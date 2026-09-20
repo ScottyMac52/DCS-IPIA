@@ -1,3 +1,3 @@
 using System.Windows;
-namespace Dcs.Ipia.App;
+namespace DcsIpia.Presentation;
 public partial class MainWindow : Window { public MainWindow() => InitializeComponent(); }
