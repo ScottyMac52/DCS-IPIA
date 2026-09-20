@@ -5,6 +5,7 @@ using Dcs.Ipia.Infrastructure;
 using Dcs.Ipia.Packaging;
 using Dcs.Ipia.Rendering;
 using Microsoft.Data.Sqlite;
+using Xunit;
 
 namespace Dcs.Ipia.Tests;
 
