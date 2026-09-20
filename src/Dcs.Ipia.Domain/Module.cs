@@ -1,6 +1,6 @@
 namespace Dcs.Ipia.Domain;
-public sealed record Module {
- public Module(Guid id,string dcsId,string displayName) {
+public sealed record DcsModule {
+ public DcsModule(Guid id,string dcsId,string displayName) {
   if(id==Guid.Empty) throw new ArgumentException("A module ID is required.",nameof(id));
   if(string.IsNullOrWhiteSpace(dcsId)) throw new ArgumentException("A DCS module ID is required.",nameof(dcsId));
   if(string.IsNullOrWhiteSpace(displayName)) throw new ArgumentException("A display name is required.",nameof(displayName));

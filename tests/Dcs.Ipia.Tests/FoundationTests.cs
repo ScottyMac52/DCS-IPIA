@@ -9,19 +9,19 @@ using Microsoft.Data.Sqlite;
 namespace Dcs.Ipia.Tests;
 
 public sealed class DomainTests {
- [Fact] public void Valid_module_is_normalized()=>Assert.Equal("UH-1H",new Module(Guid.NewGuid()," UH-1H "," Huey ").DcsId);
- [Fact] public void Empty_id_is_rejected()=>Assert.Throws<ArgumentException>(()=>new Module(Guid.Empty,"UH-1H","Huey"));
- [Theory][InlineData("","Huey")][InlineData("UH-1H"," ")] public void Missing_names_are_rejected(string id,string name)=>Assert.Throws<ArgumentException>(()=>new Module(Guid.NewGuid(),id,name));
+ [Fact] public void Valid_module_is_normalized()=>Assert.Equal("UH-1H",new DcsModule(Guid.NewGuid()," UH-1H "," Huey ").DcsId);
+ [Fact] public void Empty_id_is_rejected()=>Assert.Throws<ArgumentException>(()=>new DcsModule(Guid.Empty,"UH-1H","Huey"));
+ [Theory][InlineData("","Huey")][InlineData("UH-1H"," ")] public void Missing_names_are_rejected(string id,string name)=>Assert.Throws<ArgumentException>(()=>new DcsModule(Guid.NewGuid(),id,name));
 }
 
 public sealed class ApplicationTests {
  [Fact] public async Task Service_exposes_crud(){var repo=new MemoryRepository();var service=new ModuleService(repo);var saved=await service.SaveAsync(new(null,"UH-1H","Huey"));Assert.Equal(saved,await service.GetAsync(saved.Id));Assert.Single(await service.ListAsync());Assert.True(await service.DeleteAsync(saved.Id));Assert.Null(await service.GetAsync(saved.Id));Assert.False(await service.DeleteAsync(saved.Id));}
- private sealed class MemoryRepository:IModuleRepository {private readonly Dictionary<Guid,Module> values=[];public Task<IReadOnlyList<Module>> ListAsync(CancellationToken ct=default)=>Task.FromResult<IReadOnlyList<Module>>(values.Values.ToArray());public Task<Module?> GetAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.GetValueOrDefault(id));public Task UpsertAsync(Module value,CancellationToken ct=default){values[value.Id]=value;return Task.CompletedTask;}public Task<bool> DeleteAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.Remove(id));}
+ private sealed class MemoryRepository:IModuleRepository {private readonly Dictionary<Guid,DcsModule> values=[];public Task<IReadOnlyList<DcsModule>> ListAsync(CancellationToken ct=default)=>Task.FromResult<IReadOnlyList<DcsModule>>(values.Values.ToArray());public Task<DcsModule?> GetAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.GetValueOrDefault(id));public Task UpsertAsync(DcsModule value,CancellationToken ct=default){values[value.Id]=value;return Task.CompletedTask;}public Task<bool> DeleteAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.Remove(id));}
 }
 
 public sealed class InfrastructureTests:IDisposable {
  private readonly string path=Path.Combine(Path.GetTempPath(),$"dcs-ipia-{Guid.NewGuid():N}.db"); private string Connection=>$"Data Source={path}";
- [Fact] public async Task Migration_and_crud_use_real_sqlite(){var migration=new SqliteMigrationRunner(Connection);await migration.MigrateAsync();await migration.MigrateAsync();var repo=new SqliteModuleRepository(Connection);var id=Guid.NewGuid();Assert.Null(await repo.GetAsync(id));await repo.UpsertAsync(new(id,"UH-1H","Huey"));await repo.UpsertAsync(new(id,"UH-1H","Huey updated"));Assert.Equal("Huey updated",(await repo.GetAsync(id))!.DisplayName);Assert.Single(await repo.ListAsync());Assert.True(await repo.DeleteAsync(id));Assert.False(await repo.DeleteAsync(id));}
+ [Fact] public async Task Migration_and_crud_use_real_sqlite(){var migration=new SqliteMigrationRunner(Connection);await migration.MigrateAsync();await migration.MigrateAsync();var repo=new SqliteModuleRepository(Connection);var id=Guid.NewGuid();Assert.Null(await repo.GetAsync(id));await repo.UpsertAsync(new DcsModule(id,"UH-1H","Huey"));await repo.UpsertAsync(new DcsModule(id,"UH-1H","Huey updated"));Assert.Equal("Huey updated",(await repo.GetAsync(id))!.DisplayName);Assert.Single(await repo.ListAsync());Assert.True(await repo.DeleteAsync(id));Assert.False(await repo.DeleteAsync(id));}
  [Fact] public async Task Backup_is_verified_and_readable(){await new SqliteMigrationRunner(Connection).MigrateAsync();var backup=path+".backup";try{new SqliteBackupService(Connection).Backup(backup);await using var db=new SqliteConnection($"Data Source={backup}");await db.OpenAsync();var cmd=db.CreateCommand();cmd.CommandText="SELECT COUNT(*) FROM schema_migrations";Assert.Equal(1L,await cmd.ExecuteScalarAsync());}finally{File.Delete(backup);}}
  [Fact] public void Empty_backup_path_is_rejected()=>Assert.Throws<ArgumentException>(()=>new SqliteBackupService(Connection).Backup(""));
  public void Dispose(){File.Delete(path);GC.SuppressFinalize(this);}
