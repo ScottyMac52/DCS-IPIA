@@ -5,7 +5,7 @@ public sealed record SaveModuleCommand(Guid? Id,string DcsId,string DisplayName)
 public interface IModuleRepository {
  Task<IReadOnlyList<DcsModule>> ListAsync(CancellationToken ct=default);
  Task<DcsModule?> GetAsync(Guid id,CancellationToken ct=default);
- Task UpsertAsync(DcsModule module,CancellationToken ct=default);
+ Task UpsertAsync(DcsModule value,CancellationToken ct=default);
  Task<bool> DeleteAsync(Guid id,CancellationToken ct=default);
 }
 public sealed class ModuleService(IModuleRepository repository) {
