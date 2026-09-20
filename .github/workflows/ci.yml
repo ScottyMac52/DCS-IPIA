@@ -1,0 +1,27 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+permissions: { contents: read }
+jobs:
+  build-test-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - run: dotnet restore tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
+      - run: dotnet format style tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --verify-no-changes --no-restore --severity warn
+      - run: dotnet build tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj -c Release --no-restore
+      - name: Test and enforce independent per-layer 80/80 coverage
+        run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj -c Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=TestResults/coverage.cobertura.xml /p:Threshold=80 /p:ThresholdType=line,branch /p:ThresholdStat=minimum '/p:Include=[Dcs.Ipia.Domain]*,[Dcs.Ipia.Application]*,[Dcs.Ipia.Infrastructure]*,[Dcs.Ipia.Dcs]*,[Dcs.Ipia.Rendering]*,[Dcs.Ipia.Packaging]*'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: coverage, path: 'tests/Dcs.Ipia.Tests/TestResults/coverage.cobertura.xml' }
+  windows-presentation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - run: dotnet build src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release

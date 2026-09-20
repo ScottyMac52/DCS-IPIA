@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Dcs.Ipia.Application/Dcs.Ipia.Application.csproj"/><ProjectReference Include="../Dcs.Ipia.Domain/Dcs.Ipia.Domain.csproj"/><PackageReference Include="Microsoft.Data.Sqlite"/></ItemGroup></Project>

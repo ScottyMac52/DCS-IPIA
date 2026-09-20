@@ -1,0 +1,11 @@
+name: Enhancement
+description: Propose an independently reviewable capability
+body:
+  - type: textarea
+    id: outcome
+    attributes: { label: Desired outcome }
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Acceptance criteria }
+    validations: { required: true }
