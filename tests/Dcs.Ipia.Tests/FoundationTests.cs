@@ -16,7 +16,7 @@ public sealed class DomainTests {
 }
 
 public sealed class ApplicationTests {
- [Fact] public async Task Service_exposes_crud(){var repo=new MemoryRepository();var service=new ModuleService(repo);var saved=await service.SaveAsync(new(null,"UH-1H","Huey"));Assert.Equal(saved,await service.GetAsync(saved.Id));Assert.Single(await service.ListAsync());Assert.True(await service.DeleteAsync(saved.Id));Assert.Null(await service.GetAsync(saved.Id));Assert.False(await service.DeleteAsync(saved.Id));}
+ [Fact] public async Task Service_exposes_crud(){var repo=new MemoryRepository();var service=new ModuleService(repo);var generated=await service.SaveAsync(new(null,"F-14","Tomcat"));Assert.NotEqual(Guid.Empty,generated.Id);var id=Guid.NewGuid();var saved=await service.SaveAsync(new(id,"UH-1H","Huey"));Assert.Equal(id,saved.Id);Assert.Equal(saved,await service.GetAsync(saved.Id));Assert.Equal(2,(await service.ListAsync()).Count);Assert.True(await service.DeleteAsync(saved.Id));Assert.Null(await service.GetAsync(saved.Id));Assert.False(await service.DeleteAsync(saved.Id));}
  private sealed class MemoryRepository:IModuleRepository {private readonly Dictionary<Guid,DcsModule> values=[];public Task<IReadOnlyList<DcsModule>> ListAsync(CancellationToken ct=default)=>Task.FromResult<IReadOnlyList<DcsModule>>(values.Values.ToArray());public Task<DcsModule?> GetAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.GetValueOrDefault(id));public Task UpsertAsync(DcsModule value,CancellationToken ct=default){values[value.Id]=value;return Task.CompletedTask;}public Task<bool> DeleteAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(values.Remove(id));}
 }
 
@@ -32,7 +32,7 @@ public sealed class OutputTests {
  private static readonly ModuleDto Huey=new(Guid.Parse("11111111-1111-1111-1111-111111111111"),"UH-1H","Huey");
  private static readonly ModuleDto Tomcat=new(Guid.Parse("22222222-2222-2222-2222-222222222222"),"F-14","Tomcat | B(U)");
  [Fact] public void Snapshot_is_deterministic_and_round_trips(){var first=CanonicalSnapshotSerializer.Serialize([Huey,Tomcat]);Assert.Equal(first,CanonicalSnapshotSerializer.Serialize([Tomcat,Huey]));Assert.Equal([Tomcat,Huey],CanonicalSnapshotSerializer.Deserialize(first));}
- [Fact] public void Snapshot_validates_input(){Assert.Throws<ArgumentNullException>(()=>CanonicalSnapshotSerializer.Serialize(null!));Assert.Throws<ArgumentException>(()=>CanonicalSnapshotSerializer.Deserialize(""));}
+ [Fact] public void Snapshot_validates_input(){Assert.Throws<ArgumentNullException>(()=>CanonicalSnapshotSerializer.Serialize(null!));Assert.Throws<ArgumentException>(()=>CanonicalSnapshotSerializer.Deserialize(""));Assert.Throws<System.Text.Json.JsonException>(()=>CanonicalSnapshotSerializer.Deserialize("null"));}
  [Fact] public void Markdown_is_ordered_and_escaped(){var value=ModuleMarkdownRenderer.Render([Huey,Tomcat]);Assert.True(value.IndexOf("F-14",StringComparison.Ordinal)<value.IndexOf("UH-1H",StringComparison.Ordinal));Assert.Contains("Tomcat \\| B(U)",value,StringComparison.Ordinal);Assert.Throws<ArgumentNullException>(()=>ModuleMarkdownRenderer.Render(null!));}
  [Fact] public void Manifest_is_unique_and_ordered(){var value=PackageManifestBuilder.Build([Huey,Tomcat,Huey]);Assert.Equal("1",value.SchemaVersion);Assert.Equal(["F-14","UH-1H"],value.ModuleIds);Assert.Throws<ArgumentNullException>(()=>PackageManifestBuilder.Build(null!));}
 }
