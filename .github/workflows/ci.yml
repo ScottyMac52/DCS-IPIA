@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: 8.0.x }
       - run: dotnet restore tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
       - run: dotnet format style tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --verify-no-changes --no-restore --severity warn
@@ -22,6 +22,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: 8.0.x }
       - run: dotnet build src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release
