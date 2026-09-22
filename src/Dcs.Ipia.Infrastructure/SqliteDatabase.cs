@@ -19,7 +19,7 @@ public sealed class SqliteMigrationRunner(string connectionString) {
   }
   await tx.CommitAsync(ct);
  }
- private static async Task<bool> Applied(SqliteConnection c,System.Data.Common.DbTransaction tx,int version,CancellationToken ct){var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText="SELECT COUNT(*) FROM schema_migrations WHERE version=$version";cmd.Parameters.AddWithValue("$version",version);return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct))==1;}
+ private static async Task<bool> Applied(SqliteConnection c,System.Data.Common.DbTransaction tx,int version,CancellationToken ct){var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText="SELECT COUNT(*) FROM schema_migrations WHERE version=$version";cmd.Parameters.AddWithValue("$version",version);return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct),System.Globalization.CultureInfo.InvariantCulture)==1;}
  private static async Task Execute(SqliteConnection c,System.Data.Common.DbTransaction tx,string sql,CancellationToken ct){var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText=sql;await cmd.ExecuteNonQueryAsync(ct);}
 }
 
