@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   dotnet:
-    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@feature/dotnet-10-quality-gates
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@main
     with:
       dotnet_version: 10.0.x
       test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
