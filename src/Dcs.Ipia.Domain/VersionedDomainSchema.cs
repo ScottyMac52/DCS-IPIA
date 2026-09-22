@@ -53,20 +53,20 @@ public sealed class VersionedDomainSchema {
   SnapshotIdentity snapshot,
   ReleaseVersion release) {
   Modules=Required(modules,nameof(modules)).OrderBy(x=>x.DcsId,StringComparer.Ordinal).ToArray();
-  Devices=Required(devices,nameof(devices)).OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
+  Devices=Required(devices,nameof(devices)).Select(x=>x with{Aliases=x.Aliases.ToArray()}).OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Controls=Required(controls,nameof(controls)).OrderBy(x=>x.DeviceId).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Instances=Required(instances,nameof(instances)).OrderBy(x=>x.ModuleId).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Profiles=Required(profiles,nameof(profiles)).OrderBy(x=>x.DeviceId,StringComparer.Ordinal).ThenBy(x=>x.Instance,StringComparer.Ordinal).ToArray();
   Catalogs=Required(catalogs,nameof(catalogs)).OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Commands=Required(commands,nameof(commands)).OrderBy(x=>x.CatalogId).ThenBy(x=>x.DcsCommandId,StringComparer.Ordinal).ToArray();
-  Bindings=Required(bindings,nameof(bindings)).OrderBy(x=>x.ProfileId).ThenBy(x=>x.CommandId).ThenBy(x=>x.ControlId).ToArray();
+  Bindings=Required(bindings,nameof(bindings)).Select(x=>x with{ModifierChord=x.ModifierChord.ToArray()}).OrderBy(x=>x.ProfileId).ThenBy(x=>x.CommandId).ThenBy(x=>x.ControlId).ToArray();
   UiLayerUsage=Required(uiLayerUsage,nameof(uiLayerUsage)).OrderBy(x=>x.ModuleId).ThenBy(x=>x.CommandId).ToArray();
   UiLayerOverlays=Required(uiLayerOverlays,nameof(uiLayerOverlays)).OrderBy(x=>x.ModuleId).ThenBy(x=>x.DeviceId).ThenBy(x=>x.ControlId).ToArray();
   UiLayerTombstones=Required(uiLayerTombstones,nameof(uiLayerTombstones)).OrderBy(x=>x.ModuleId).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Categories=Required(categories,nameof(categories)).OrderBy(x=>x.Order).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
-  Pages=Required(pages,nameof(pages)).OrderBy(x=>x.ModuleId).ThenBy(x=>x.Order).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
+  Pages=Required(pages,nameof(pages)).Select(x=>x with{CategoryIds=x.CategoryIds.ToArray()}).OrderBy(x=>x.ModuleId).ThenBy(x=>x.Order).ThenBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
   Documentation=Required(documentation,nameof(documentation)).OrderBy(x=>x.ModuleId).ToArray();
-  Packages=Required(packages,nameof(packages)).OrderBy(x=>x.ModuleId).ToArray();
+  Packages=Required(packages,nameof(packages)).Select(x=>x with{IncludePatterns=x.IncludePatterns.ToArray()}).OrderBy(x=>x.ModuleId).ToArray();
   Provenance=Required(provenance,nameof(provenance)).OrderBy(x=>x.Repository,StringComparer.Ordinal).ThenBy(x=>x.Path,StringComparer.Ordinal).ToArray();
   Snapshot=snapshot??throw new ArgumentNullException(nameof(snapshot)); Release=release??throw new ArgumentNullException(nameof(release));
   Validate();
