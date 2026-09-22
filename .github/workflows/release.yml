@@ -21,7 +21,7 @@ jobs:
 
   release:
     needs: quality
-    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-release.yml@feature/explicit-project-installer-release
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-release.yml@main
     permissions:
       contents: write
     with:
@@ -29,4 +29,3 @@ jobs:
       app_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
       app_name: DCS-IPIA
       installer_iss_path: installer/installer.iss
-
