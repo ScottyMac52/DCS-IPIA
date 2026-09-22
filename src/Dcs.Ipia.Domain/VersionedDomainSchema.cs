@@ -1,7 +1,7 @@
 namespace Dcs.Ipia.Domain;
 
 public readonly record struct DomainSchemaVersion(int Major,int Minor) {
- public override string ToString()=>`${Major}.${Minor}`;
+ public override string ToString()=>$"{Major}.{Minor}";
 }
 
 public enum ControlKind { Button,Axis,Hat,Rocker,Switch,Encoder,Keyboard }
