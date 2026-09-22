@@ -71,8 +71,8 @@ public sealed class VersionedDomainSchema {
   Snapshot=snapshot??throw new ArgumentNullException(nameof(snapshot)); Release=release??throw new ArgumentNullException(nameof(release));
   Validate();
  }
- public DomainSchemaVersion SchemaVersion=>CurrentVersion;
- public int MigrationVersion=>CurrentMigrationVersion;
+ public DomainSchemaVersion SchemaVersion { get; } = CurrentVersion;
+ public int MigrationVersion { get; } = CurrentMigrationVersion;
  public IReadOnlyList<DcsModule> Modules{get;} public IReadOnlyList<PhysicalDevice> Devices{get;} public IReadOnlyList<DeviceControl> Controls{get;}
  public IReadOnlyList<DeviceInstance> Instances{get;} public IReadOnlyList<DeviceProfile> Profiles{get;} public IReadOnlyList<CommandCatalog> Catalogs{get;}
  public IReadOnlyList<DcsCommandDefinition> Commands{get;} public IReadOnlyList<BindingRelationship> Bindings{get;}
@@ -103,7 +103,7 @@ public sealed class VersionedDomainSchema {
   Require(Documentation,x=>moduleIds.Contains(x.ModuleId),"documentation metadata"); Require(Packages,x=>moduleIds.Contains(x.ModuleId),"packaging metadata");
   if(Snapshot.SchemaVersion!=CurrentSnapshotVersion) throw new ArgumentException("Unsupported snapshot schema version.",nameof(Snapshot));
  }
- private static IReadOnlyList<T> Required<T>(IEnumerable<T>? values,string name)=>values?.ToArray()??throw new ArgumentNullException(name);
+ private static T[] Required<T>(IEnumerable<T>? values,string name)=>values?.ToArray()??throw new ArgumentNullException(name);
  private static void Unique<T>(IEnumerable<T> values,string label,IEqualityComparer<T>? comparer=null){var all=values.ToArray();if(all.Distinct(comparer).Count()!=all.Length)throw new ArgumentException($"Duplicate {label}.");}
  private static void Require<T>(IEnumerable<T> values,Func<T,bool> predicate,string label){if(values.Any(x=>!predicate(x)))throw new ArgumentException($"Invalid {label} relationship.");}
 }
