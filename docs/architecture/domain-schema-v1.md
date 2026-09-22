@@ -7,7 +7,7 @@ Workstream 2 extends the executable configuration contract introduced in PR #11.
 | Concern | Current version | Rule |
 | --- | ---: | --- |
 | Domain schema | 1.0 | Major changes break readers; minor changes are backward-compatible additions. |
-| SQLite migration | 3 | Persistence adapters advance transactionally and record applied migrations. |
+| SQLite migration | 2 | Persistence adapters advance transactionally and record applied migrations. |
 | Immutable snapshot | 1 | Snapshot bytes and SHA-256 identity remain governed by the snapshot v1 canonicalization contract. |
 | Release | four-part capable | Module releases remain three-part; application releases may include revision. |
 
@@ -36,4 +36,4 @@ Workstream 2 extends the executable configuration contract introduced in PR #11.
 - Collections are copied and canonically ordered at the domain boundary.
 - No schema decision depends on WPF controls or transport/persistence representations.
 
-This contract defines Workstream 2. Importers, SQLite migration 3 storage, snapshot evolution, and projections consume it in later workstreams; they do not redefine it.
+This contract defines Workstream 2. Importers, future SQLite migrations, snapshot evolution, and projections consume it in later workstreams; they do not redefine it.
