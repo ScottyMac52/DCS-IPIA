@@ -19,3 +19,13 @@ jobs:
       coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
       line_threshold: 80
       branch_threshold: 80
+
+  solution:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Build Visual Studio solution
+        run: dotnet build DCS-IPIA.sln --configuration Release
