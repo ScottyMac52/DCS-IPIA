@@ -20,9 +20,9 @@ public sealed class DcsLuaImporter:IModuleConfigurationImporter {
  }
 }
 
-public static partial class DcsLuaParser {
+public static class DcsLuaParser {
  public static IReadOnlyList<DcsBinding> ParseProfile(string source,Guid profileId) {
-  ArgumentException.ThrowIfNullOrWhiteSpace(source); if(profileId==Guid.Empty)throw new ArgumentException("A profile ID is required.",nameof(profileId)); if(!ReturnDiffPattern().IsMatch(source))throw new FormatException("Profile must return the diff table.");
+  ArgumentException.ThrowIfNullOrWhiteSpace(source); if(profileId==Guid.Empty)throw new ArgumentException("A profile ID is required.",nameof(profileId)); if(!ReturnDiffPattern.IsMatch(source))throw new FormatException("Profile must return the diff table.");
   var result=new List<DcsBinding>();
   foreach(var pair in new[]{(Name:"keyDiffs",Section:BindingSection.Key),(Name:"axisDiffs",Section:BindingSection.Axis)}) {
    var table=TableBody(source,pair.Name); foreach(var entry in NamedTables(table)) {var name=StringField(entry.Body,"name")??throw new FormatException($"{pair.Name}.{entry.Name} has no name.");
@@ -32,7 +32,7 @@ public static partial class DcsLuaParser {
   return result;
  }
  public static IReadOnlyList<DcsModifier> ParseModifiers(string source) {
-  ArgumentException.ThrowIfNullOrWhiteSpace(source); if(!ReturnModifiersPattern().IsMatch(source))throw new FormatException("Modifiers file must return the modifiers table."); var root=RootTableBody(source,"modifiers"); var result=new List<DcsModifier>();
+  ArgumentException.ThrowIfNullOrWhiteSpace(source); if(!ReturnModifiersPattern.IsMatch(source))throw new FormatException("Modifiers file must return the modifiers table."); var root=RootTableBody(source,"modifiers"); var result=new List<DcsModifier>();
   foreach(var entry in NamedTables(root)) {var device=StringField(entry.Body,"device");var key=StringField(entry.Body,"key");var switched=BoolField(entry.Body,"switch");if(device is null||key is null||switched is null)throw new FormatException($"Modifier {entry.Name} requires device, key, and switch.");result.Add(new(entry.Name,device,key,switched.Value?ModifierMode.Toggle:ModifierMode.Hold));}
   if(result.Select(x=>x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=result.Count)throw new FormatException("Modifier names must be unique ignoring case."); if(result.Select(x=>$"{x.Device}\0{x.Key}").Distinct(StringComparer.OrdinalIgnoreCase).Count()!=result.Count)throw new FormatException("Modifier physical inputs must be unique."); return result.OrderBy(x=>x.Name,StringComparer.Ordinal).ToArray();
  }
@@ -48,16 +48,18 @@ public static partial class DcsLuaParser {
  private static bool? BoolField(string body,string name) {var raw=ScalarField(body,name);return raw switch{"true"=>true,"false"=>false,_=>null};}
  private static double? NumberField(string body,string name) {var raw=ScalarField(body,name);return double.TryParse(raw,NumberStyles.Float,CultureInfo.InvariantCulture,out var value)?value:null;}
  private static string? ScalarField(string body,string name) {var marker=$"[\"{name}\"]";var start=body.IndexOf(marker,StringComparison.Ordinal);if(start<0)return null;var equals=body.IndexOf('=',start+marker.Length);if(equals<0)return null;var begin=SkipWhite(body,equals+1);var end=begin;while(end<body.Length&&!char.IsWhiteSpace(body[end])&&body[end]!=','&&body[end]!='}')end++;return body[begin..end];}
- private static string[] IndexedStringValues(string body)=>IndexedValuePattern().Matches(body).Cast<Match>().Select(x=>Unescape(x.Groups[1].Value)).Order(StringComparer.Ordinal).ToArray();
- private static double[]? IndexedNumberValues(string body) {if(body.Length==0)return null;return IndexedNumberPattern().Matches(body).Cast<Match>().Select(x=>double.Parse(x.Groups[1].Value,CultureInfo.InvariantCulture)).ToArray();}
+ private static string[] IndexedStringValues(string body)=>IndexedValuePattern.Matches(body).Cast<Match>().Select(x=>Unescape(x.Groups[1].Value)).Order(StringComparer.Ordinal).ToArray();
+ private static double[]? IndexedNumberValues(string body) {if(body.Length==0)return null;return IndexedNumberPattern.Matches(body).Cast<Match>().Select(x=>double.Parse(x.Groups[1].Value,CultureInfo.InvariantCulture)).ToArray();}
  private static int MatchingBrace(string source,int open) {var depth=0;var quote='\0';var escaped=false;for(var i=open;i<source.Length;i++){var c=source[i];if(quote!='\0'){if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c==quote)quote='\0';continue;}if(c is '\"' or '\'')quote=c;else if(c=='{')depth++;else if(c=='}'&&--depth==0)return i;}throw new FormatException("Unbalanced Lua table braces.");}
  private static int Depth(string source,int end) {var depth=0;var quote='\0';var escaped=false;for(var i=0;i<end;i++){var c=source[i];if(quote!='\0'){if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c==quote)quote='\0';}else if(c is '\"' or '\'')quote=c;else if(c=='{')depth++;else if(c=='}')depth--;}return depth;}
  private static int FindStringEnd(string value,int start) {var escaped=false;for(var i=start;i<value.Length;i++){if(escaped)escaped=false;else if(value[i]=='\\')escaped=true;else if(value[i]=='\"')return i;}throw new FormatException("Unterminated Lua string.");}
  private static int SkipWhite(string value,int start){while(start<value.Length&&char.IsWhiteSpace(value[start]))start++;return start;}
- private static string Unescape(string value)=>LuaEscapePattern().Replace(value,match=>match.Groups[1].Value switch{"\\"=>"\\","\""=>"\"","n"=>"\n","r"=>"\r","t"=>"\t",_=>match.Value});
- [GeneratedRegex(@"\breturn\s+diff\b",RegexOptions.CultureInvariant)] private static partial Regex ReturnDiffPattern();
- [GeneratedRegex(@"\breturn\s+modifiers\b",RegexOptions.CultureInvariant)] private static partial Regex ReturnModifiersPattern();
- [GeneratedRegex("\\[\\d+\\]\\s*=\\s*\"((?:\\\\.|[^\"])*)\"",RegexOptions.CultureInvariant)] private static partial Regex IndexedValuePattern();
- [GeneratedRegex(@"\[\d+\]\s*=\s*(-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)",RegexOptions.CultureInvariant)] private static partial Regex IndexedNumberPattern();
- [GeneratedRegex("\\\\([\\\\\"nrt])",RegexOptions.CultureInvariant)] private static partial Regex LuaEscapePattern();
+ private static string Unescape(string value)=>LuaEscapePattern.Replace(value,match=>match.Groups[1].Value switch{"\\"=>"\\","\""=>"\"","n"=>"\n","r"=>"\r","t"=>"\t",_=>match.Value});
+#pragma warning disable SYSLIB1045 // Runtime regex keeps generated implementation details out of per-layer coverage.
+ private static readonly Regex ReturnDiffPattern=new(@"\breturn\s+diff\b",RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+ private static readonly Regex ReturnModifiersPattern=new(@"\breturn\s+modifiers\b",RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+ private static readonly Regex IndexedValuePattern=new("\\[\\d+\\]\\s*=\\s*\"((?:\\\\.|[^\"])*)\"",RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+ private static readonly Regex IndexedNumberPattern=new(@"\[\d+\]\s*=\s*(-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)",RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+ private static readonly Regex LuaEscapePattern=new("\\\\([\\\\\"nrt])",RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+#pragma warning restore SYSLIB1045
 }
