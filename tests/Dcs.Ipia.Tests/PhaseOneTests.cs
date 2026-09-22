@@ -18,7 +18,8 @@ public sealed class PhaseOneDomainTests {
 
 public sealed class LuaImportTests {
  private static readonly Guid ProfileId=Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
- private const string Profile="""local diff = {
+ private const string Profile="""
+local diff = {
 ["keyDiffs"] = {
  ["d1"] = { ["added"] = { [1] = { ["key"] = "JOY_BTN1", ["reformers"] = { [1] = "SHIFT" } }, }, ["removed"] = { [1] = { ["key"] = "JOY_BTN2" }, }, ["name"] = "Fire \"weapon\"", },
 },
@@ -27,7 +28,8 @@ public sealed class LuaImportTests {
 },}
 return diff
 """;
- private const string Modifiers="""local modifiers = { ["SHIFT"] = { ["device"] = "MOZA", ["key"] = "JOY_BTN3", ["switch"] = false, }, ["MODE"] = { ["device"] = "Throttle", ["key"] = "JOY_BTN4", ["switch"] = true, }, }
+ private const string Modifiers="""
+local modifiers = { ["SHIFT"] = { ["device"] = "MOZA", ["key"] = "JOY_BTN3", ["switch"] = false, }, ["MODE"] = { ["device"] = "Throttle", ["key"] = "JOY_BTN4", ["switch"] = true, }, }
 return modifiers
 """;
  [Fact] public void Parser_preserves_added_removed_changed_filters_and_chords(){var values=DcsLuaParser.ParseProfile(Profile,ProfileId);Assert.Equal(3,values.Count);var added=Assert.Single(values.Where(x=>x.Disposition==BindingDisposition.Added));Assert.Equal("Fire \"weapon\"",added.CommandName);Assert.Equal(["SHIFT"],added.Reformers);Assert.Single(values.Where(x=>x.Disposition==BindingDisposition.Removed));var axis=Assert.Single(values.Where(x=>x.Disposition==BindingDisposition.Changed));Assert.Equal(BindingSection.Axis,axis.Section);Assert.Equal([-.2,.2],axis.Filter!.Curvature);Assert.True(axis.Filter.Invert is true);Assert.True(axis.Filter.Slider is false);Assert.Equal(.95,axis.Filter.HardwareDetentMax);}
