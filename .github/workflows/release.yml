@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  quality:
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@main
+    with:
+      dotnet_version: 10.0.x
+      test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
+      presentation_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
+      coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
+      line_threshold: 80
+      branch_threshold: 80
+
+  release:
+    needs: quality
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-release.yml@main
+    permissions:
+      contents: write
+    with:
+      dotnet_version: 10.0.x
+      app_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
+      app_name: DCS-IPIA
+      installer_iss_path: installer/installer.iss
