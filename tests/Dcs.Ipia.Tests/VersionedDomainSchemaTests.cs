@@ -15,7 +15,7 @@ public sealed class VersionedDomainSchemaTests {
 
  [Fact] public void V1_graph_defines_every_workstream_relationship() {
   var value=Create();
-  Assert.Equal("1.0",value.SchemaVersion.ToString()); Assert.Equal(3,value.MigrationVersion); Assert.Equal(1,value.Snapshot.SchemaVersion);
+  Assert.Equal("1.0",value.SchemaVersion.ToString()); Assert.Equal(2,value.MigrationVersion); Assert.Equal(1,value.Snapshot.SchemaVersion);
   Assert.Equal("UH-1H",Assert.Single(value.Modules).DcsId); Assert.Equal("tm-mfd",Assert.Single(value.Devices).StableKey);
   Assert.Equal(ControlKind.Button,Assert.Single(value.Controls).Kind); Assert.Equal("pilot-left",Assert.Single(value.Instances).Role);
   Assert.Equal("iCommandPlaneFire",Assert.Single(value.Commands).DcsCommandId); Assert.Equal(["SHIFT"],Assert.Single(value.Bindings).ModifierChord);
