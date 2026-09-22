@@ -30,7 +30,7 @@ public sealed record ReleaseVersion(int Major,int Minor,int Patch,int Revision=0
 
 public sealed class VersionedDomainSchema {
  public static readonly DomainSchemaVersion CurrentVersion=new(1,0);
- public const int CurrentMigrationVersion=3;
+ public const int CurrentMigrationVersion=2;
  public const int CurrentSnapshotVersion=1;
 
  public VersionedDomainSchema(
