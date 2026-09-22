@@ -21,7 +21,7 @@ The inventory was made from each repository's recursive `main` tree at the exact
 | Repository | Audited `main` commit | Files | Releases | Latest release |
 | --- | --- | ---: | ---: | --- |
 | `DCS-Common` | `dd3d9cff8997c57ebfad36066ec4caf06bdbe52e` | 211 | 84 | `v5.5.6.0` |
-| `DCS-UI-Layer` | `844ea08e05d649a339e9424a2025decd290e5463` | 49 | 10 | `v2.5.0` |
+| `DCS-UI-Layer` (historical) | `844ea08e05d649a339e9424a2025decd290e5463` | 49 | 10 | `v2.5.0` |
 | `DCS-UH-1H-Huey` | `77d924cce220355860e8f026cff3524bac531e29` | 51 | 5 | `v3.1.1` |
 | `DCS-F4U-1D-Components` | `278751c9555b48efa7b4e6ce18852e295e70c518` | 68 | 16 | `v3.2.2` |
 | `DCS-F-14B-U-Components` | `72eb711dc4257422190fea0e0ec43dac0058816d` | 88 | 36 | `v3.5.1` |
@@ -30,7 +30,7 @@ The inventory was made from each repository's recursive `main` tree at the exact
 | `DCS-T-45-Goshawk` | `8208dc81dab83f106c8f78245072b9afff2e4eec` | 67 | 6 | `v3.2.1` |
 | `DCS-F-100D-Super-Sabre-aka-Hun` | `4129a239830184bea333cf35e565319a0ebe99f0` | 64 | 7 | `v3.0.2` |
 
-The active consumer set is the seven module repositories above plus the UI Layer projection repository. `DCS-F-16C` contains only two files and no current component pipeline. `DCSMissionInspector`, `DCS-Missions`, `DCS-KneeboardPreview`, `dcs-lua-datamine`, and `VAICOMPRO-Community` are adjacent inputs or utilities, not current DCS-Common consumers. They must not be silently imported; a future executable or data dependency must first be added to this inventory with provenance and an owner.
+The active consumer set is the seven module repositories above. DCS-Common now owns the canonical UI Layer source, projection, rendering, documentation, packaging, and release behavior; `DCS-UI-Layer` is retained in this audit only as a historical repository and release-parity source. It is not an active consumer, must not be imported as a second authored source, and its retired standalone pipeline must not be revived. `DCS-F-16C` contains only two files and no current component pipeline. `DCSMissionInspector`, `DCS-Missions`, `DCS-KneeboardPreview`, `dcs-lua-datamine`, and `VAICOMPRO-Community` are adjacent inputs or utilities, not current DCS-Common consumers. They must not be silently imported; a future executable or data dependency must first be added to this inventory with provenance and an owner.
 
 ## DCS-Common inventory
 
@@ -41,7 +41,7 @@ The active consumer set is the seven module repositories above plus the UI Layer
 | Shared-hardware catalog | `assets/shared/hardware/manifest.json`, `scaffold-device-map.json`, 12 Lua device definitions | **A** | `data/shared-hardware/` and Domain identities | Preserve stable device/control IDs, aliases, instance semantics, and the source path/commit. Reject ambiguous IDs. |
 | Hardware visual sources | 12 uncompressed `drawio/*.drawio`, 20 image inputs under `source/`, `SOURCES.md` | **A** | `data/shared-hardware/` assets and provenance | Preserve source bytes, licenses/attribution, draw.io connector IDs, and case-sensitive paths. Binary inputs are copied byte-for-byte. |
 | Hardware visual projections | 12 `svg/*.svg` files paired with the 12 draw.io sources | **G** | Rendering golden fixtures, then `Dcs.Ipia.Rendering` | Retain current SVGs as parity evidence; regenerate from the preserved source and compare deterministically before promotion. |
-| Canonical UI Layer | `functions.json`, `hardware-overlays.json`, five joystick profiles, keyboard profile, and `modifiers.lua` | **A** | `data/ui-layer/`, Domain, and Application | Preserve command IDs, device identities, modifier modes/chords, removed/default bindings, GUID-bearing source filenames, and module-isolation rules. |
+| Canonical UI Layer | `functions.json`, `hardware-overlays.json`, five joystick profiles, keyboard profile, and `modifiers.lua`; DCS-Common also owns their projection, rendering, documentation, packaging, and release behavior | **A/C/G/R** | `data/ui-layer/`, Domain, Application, Rendering, and Packaging | Treat DCS-Common as the sole current authority. Preserve command IDs, device identities, modifier modes/chords, removed/default bindings, GUID-bearing source filenames, module-isolation rules, and package layout. Do not double-import the historical `DCS-UI-Layer` repository. |
 | Node behavior | 23 `scripts/` files covering import/scaffold, Lua parsing, shared hardware, UI Layer, draw.io export, rendering, documentation, and packaging | **C** (code is **A**) | `Dcs.Ipia.Dcs`, `Dcs.Ipia.Rendering`, `Dcs.Ipia.Packaging` | Characterize existing behavior before replacement. Keep adapters read-only against source repositories and retire only after measured parity. |
 | Consumer scaffolding templates | 13 files under `templates/consumer/` | **A/C** | Application orchestration and Packaging templates | Preserve token substitution, path/case behavior, generated workflow contract, and consumer-specific escape hatches. |
 | Automated tests | 20 Node tests under `test/` plus 20 C# scaffold tests | **C** (test source is **A**) | Corresponding DCS-IPIA layer tests and golden fixtures | Port behaviors, not merely filenames. Keep determinism, embedded-image, draw.io/SVG, UI Layer, package, and workflow contract cases. |
@@ -66,7 +66,7 @@ This behavior is a compatibility contract, not the DCS-IPIA end state. Snapshot-
 
 ## Consumer inventory
 
-All seven module consumers currently call `DCS-Common/.github/workflows/{build,release}.yml@main`. Their scripts resolve `DCS_COMMON_ROOT`, falling back to `.dcs-common`, and import DCS-Common renderer, shared-hardware, UI Layer, documentation, and packaging behavior. No consumer pins a DCS-Common commit. This mutable dependency is a migration risk and is preserved until a snapshot-only build proves parity.
+All seven module consumers currently call `DCS-Common/.github/workflows/{build,release}.yml@main`. Their scripts resolve `DCS_COMMON_ROOT`, falling back to `.dcs-common`, and import DCS-Common renderer, shared-hardware, canonical UI Layer source and projection behavior, documentation, packaging, and release behavior. No consumer pins a DCS-Common commit. This mutable dependency is a migration risk and is preserved until a snapshot-only build proves parity.
 
 Common ownership boundary:
 
@@ -78,7 +78,6 @@ Common ownership boundary:
 
 | Consumer / target owner | Authored input and generated-output evidence | Exceptions and release behavior | Effort / risk |
 | --- | --- | --- | --- |
-| `DCS-UI-Layer` → `data/ui-layer/` plus Packaging projection | 5 profiles/pages; 6 Lua inputs; 5 source and 6 projected kneeboard files; collision fixtures; reserved inputs and semantic-modifier overrides | No `.github/workflows/` files at the audited commit despite 10 historical releases. Latest `v2.5.0` has Complete/OvGME ZIPs and checksums. Treat restoration or replacement of release automation as an explicit decision. | **M / high** — global runtime namespace, collision behavior, modifier semantics, and undocumented current release path. |
 | `DCS-UH-1H-Huey` → `data/modules/uh-1h/` | 5 profiles/pages; 6 Lua inputs; overlay, device override, instance-role, and scaffold decisions; generated module/device docs and 13 kneeboard source/projection files | Reference vertical slice. DCS HTML command source; authored MOZA Hornet-grip device decision; nine deliberately removed profiles. Latest `v3.1.1`. | **L / high** — first full parity/rollback proof sets the pattern for every later import. |
 | `DCS-F4U-1D-Components` → `data/modules/f4u-1d/` | 10 profiles/pages; 11 Lua inputs; local command catalog; generated docs and 23 kneeboard files | Two physical Logitech quadrant instances; a scaffold JSON file is present under `src/Config/Input` and must be classified during import, not treated as a Lua profile. Latest `v3.2.2`. | **M / medium** — repeated devices and catalog import, otherwise follows the common pattern. |
 | `DCS-F-14B-U-Components` → `data/modules/f-14bu/` | 10 profiles/pages; 12 Lua inputs; 11 local kneeboard assets; PDCP, MFD, Warthog, VAICOM, modifiers, and generated docs | AutoHotKey bridge and the richest local asset/license set. DCS HTML command source. Latest `v3.5.1`. | **XL / high** — broadest device/modifier/asset surface and strongest regression exposure. |
@@ -86,6 +85,10 @@ Common ownership boundary:
 | `DCS-FA-18-Components` → `data/modules/fa-18c-hornet/` | 9 profiles/pages; 10 Lua inputs; raw and cohesive command catalogs; 24 kneeboard source/projection files | AutoHotKey bridge. No `docs/` files at the audited commit, so documentation absence must be confirmed as intentional or regenerated. Latest `v3.6.0`. | **L / high** — dual catalogs and missing committed documentation baseline create ambiguity. |
 | `DCS-T-45-Goshawk` → `data/modules/t-45/` | 9 profiles/pages; 10 Lua inputs; local command catalog; generated docs and 24 kneeboard files | Authored-device decisions for MFD instance 3, MOZA AB9, and WINCTRL ICP; one removed profile. Latest `v3.2.1`. | **M / medium** — explicit authored-device exceptions need lossless modeling. |
 | `DCS-F-100D-Super-Sabre-aka-Hun` → `data/modules/f-100d/` | 11 profiles, 9 pages, 10 Lua inputs; local command catalog; generated docs and 21 kneeboard files | Profile/page count is intentionally non-1:1 and Warthog throttle is removed. Latest `v3.0.2`. | **M / medium** — must preserve non-rendered profiles and explicit removal without synthesizing pages. |
+
+### Historical DCS-UI-Layer evidence
+
+`DCS-UI-Layer` is not an active consumer or an independent migration owner. Its five profiles/pages, six Lua inputs, kneeboard sources/projections, collision fixtures, reserved inputs, semantic-modifier overrides, ten releases, latest `v2.5.0` packages, and checksums remain historical parity evidence for the canonical implementation now incorporated into DCS-Common. DCS-IPIA must import the current authored UI Layer only from DCS-Common, use the historical repository and releases only for provenance and equivalence checks, and must not restore a separate release workflow or produce two authoritative UI Layer snapshots.
 
 Each module release workflow is manually dispatched with a major/minor/patch choice and delegates version calculation, generation, validation, packaging, checksums, tagging, and release creation to mutable `DCS-Common@main`. The parity baseline for a module is its latest release named above, not an uncommitted local build.
 
@@ -97,7 +100,7 @@ Each module release workflow is manually dispatched with a major/minor/patch cho
 | Import/edit/export use cases and diagnostics | `Dcs.Ipia.Application` | Transport-neutral interfaces; import is read-only against source repositories. |
 | SQLite authored working state | `Dcs.Ipia.Infrastructure` | Local implementation detail; never a release-build input. |
 | DCS Lua/HTML/catalog and legacy DCS-Common behavior | `Dcs.Ipia.Dcs` | Compatibility adapters with characterization and golden-file tests. |
-| Canonical shared hardware and UI Layer authored data | `data/shared-hardware/`, `data/ui-layer/` | Versioned identities and provenance; visual source assets stay distinct from generated SVG. |
+| Canonical shared hardware and UI Layer authored data | `data/shared-hardware/`, `data/ui-layer/` | Import current authored data once from DCS-Common with versioned identities and provenance; use `DCS-UI-Layer` only as historical parity evidence; visual source assets stay distinct from generated SVG. |
 | Per-module authored data | `data/modules/<module-id>/` | Module-owned decisions remain isolated; no cross-module overlay leakage. |
 | Review/rebuild/rollback inputs | `snapshots/` | Immutable, schema-versioned, canonical, human-reviewable, SHA-256 identified. |
 | Markdown, SVG, and PNG projections | `Dcs.Ipia.Rendering` | Deterministic generated output compared with current golden artifacts. |
@@ -115,7 +118,7 @@ Each module release workflow is manually dispatched with a major/minor/patch cho
 6. Report unsupported, missing, or ambiguous data. Do not silently default it during import.
 7. Require byte-identical deterministic output or an owner-approved intentional-difference record for each generated projection.
 8. Require snapshot-only rebuild and demonstrated restore before any existing pipeline ceases to be authoritative.
-9. Keep DCS-Common and each consumer operational until its own gate passes; migration is per consumer, not a fleet-wide cutover.
+9. Keep DCS-Common and each of the seven active module consumers operational until its own gate passes; migration is per consumer, not a fleet-wide cutover. Preserve historical `DCS-UI-Layer` tags, releases, and assets as parity evidence without reviving its standalone pipeline.
 10. Preserve the independent 80% line and 80% branch coverage gates for every production assembly. Inventory work does not relax or aggregate them.
 
 ## Workstream 1 disposition
