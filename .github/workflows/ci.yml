@@ -29,6 +29,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Build Visual Studio solution
         run: dotnet build DCS-IPIA.sln --configuration Release
+      - name: Run tests on Windows
+        run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build
 
   csharp-layout:
     runs-on: ubuntu-latest
