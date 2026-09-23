@@ -19,7 +19,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   if(request.Commit.Length!=40 || !request.Commit.All(Uri.IsHexDigit))
    diagnostics.Add(new("invalid-commit","A pinned 40-character commit SHA is required.",true));
   var sources=new[]{(request.HardwarePath,request.HardwareJson),(request.FunctionsPath,request.FunctionsJson),(request.OverlaysPath,request.OverlaysJson)};
-  if(sources.Any(x=>string.IsNullOrWhiteSpace(x.Item1)||x.Item1.StartsWith("/",StringComparison.Ordinal)||x.Item1.Contains('\\')||x.Item1.Split('/').Any(part=>part is "" or "." or "..")))
+  if(sources.Any(x=>string.IsNullOrWhiteSpace(x.Item1)||x.Item1.StartsWith('/')||x.Item1.Contains('\\')||x.Item1.Split('/').Any(part=>part is "" or "." or "..")))
    diagnostics.Add(new("invalid-path","Every source needs a safe repository-relative path.",true));
   if(sources.Select(x=>x.Item1).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=sources.Length)
    diagnostics.Add(new("duplicate-path","Source paths must be distinct.",true));
@@ -43,7 +43,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
  #endregion END Public
  #region BEGIN private helpers
  private static SharedCatalogImportResult Failure(List<ImportDiagnostic> diagnostics)=>new([],null,[],[],[],diagnostics);
- private static IReadOnlyList<PhysicalDevice> ParseDevices(JsonElement root) {
+ private static PhysicalDevice[] ParseDevices(JsonElement root) {
   var devices=new List<PhysicalDevice>();var keys=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
   foreach(var entry in Items(root,"devices")) {
    var id=Required(entry,"id");var label=Required(entry,"label");
@@ -62,7 +62,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   if(devices.Count==0) throw new ArgumentException("No shared hardware devices.");
   return devices.OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray();
  }
- private static IReadOnlyList<DcsCommandDefinition> ParseFunctions(JsonElement root,Guid catalogId) {
+ private static DcsCommandDefinition[] ParseFunctions(JsonElement root,Guid catalogId) {
   if(root.GetProperty("schemaVersion").GetInt32()!=1) throw new ArgumentException("Unsupported UI Layer functions schema.");
   var commands=new List<DcsCommandDefinition>();var ids=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
   foreach(var entry in Items(root,"functions")) {
@@ -72,7 +72,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   if(commands.Count==0) throw new ArgumentException("No UI Layer functions.");
   return commands.OrderBy(x=>x.Id).ToArray();
  }
- private static IReadOnlyList<UiLayerTemplate> ParseTemplates(JsonElement root,IReadOnlyList<PhysicalDevice> devices,IReadOnlyList<DcsCommandDefinition> commands) {
+ private static UiLayerTemplate[] ParseTemplates(JsonElement root,IReadOnlyList<PhysicalDevice> devices,IReadOnlyList<DcsCommandDefinition> commands) {
   if(root.GetProperty("schemaVersion").GetInt32()!=1) throw new ArgumentException("Unsupported UI Layer overlays schema.");
   var knownDevices=devices.SelectMany(d=>new[]{d.StableKey}.Concat(d.Aliases)).ToHashSet(StringComparer.OrdinalIgnoreCase);
   var knownFunctions=commands.Select(c=>c.Id).ToHashSet();
@@ -96,7 +96,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   }
   return templates.OrderBy(x=>x.DeviceKey,StringComparer.Ordinal).ToArray();
  }
- private static IEnumerable<JsonElement> Items(JsonElement root,string name) {
+ private static JsonElement.ArrayEnumerator Items(JsonElement root,string name) {
   var value=root.GetProperty(name);
   if(value.ValueKind!=JsonValueKind.Array) throw new ArgumentException($"Expected {name} array.");
   return value.EnumerateArray();
