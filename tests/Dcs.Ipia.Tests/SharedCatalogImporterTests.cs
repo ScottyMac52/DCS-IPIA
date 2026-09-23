@@ -1,0 +1,68 @@
+using System.Security.Cryptography;
+using System.Text;
+using Dcs.Ipia.Application;
+using Dcs.Ipia.Dcs;
+using Xunit;
+
+namespace Dcs.Ipia.Tests;
+
+/// <summary>Characterizes read-only imports against pinned DCS-Common authored manifests.</summary>
+public sealed class SharedCatalogImporterTests {
+ #region BEGIN Public
+ /// <summary>The three current catalogs import with stable identities, aliases, templates and exact source hashes.</summary>
+ [Fact] public void Imports_real_shared_catalogs_with_provenance() {
+  var request=Fixture();
+  var result=new DcsCommonCatalogImporter().Import(request);
+  Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal(12,result.Devices.Count);
+  Assert.Equal(13,result.Commands.Count);
+  Assert.Equal(5,result.Templates.Count);
+  Assert.Contains(result.Devices,x=>x.StableKey=="tm-warthog-grip" && x.Aliases.Contains("moza-ab9-warthog-grip"));
+  Assert.Contains(result.Templates,x=>x.DeviceKey=="tm-mfd" && x.Instances.SequenceEqual(["MFD3"]) && x.Bindings["vr-zoom"]=="mfd-osb-t1-shifted");
+  Assert.All(result.Provenance,x=>{Assert.Equal("ScottyMac52/DCS-Common",x.Repository);Assert.Equal(request.Commit,x.Commit);});
+  Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(request.FunctionsJson))),result.Provenance.Single(x=>x.Path==request.FunctionsPath).Sha256);
+ }
+ /// <summary>Repeated imports preserve canonical ordering and stable identities.</summary>
+ [Fact] public void Repeated_imports_are_idempotent() {
+  var importer=new DcsCommonCatalogImporter();var request=Fixture();
+  var first=importer.Import(request);var second=importer.Import(request);
+  Assert.Equal(first.Devices.Select(x=>(x.Id,x.StableKey,x.DisplayName,string.Join(",",x.Aliases))),second.Devices.Select(x=>(x.Id,x.StableKey,x.DisplayName,string.Join(",",x.Aliases))));
+  Assert.Equal(first.Commands,second.Commands);
+  Assert.Equal(first.Provenance,second.Provenance);
+  Assert.Equal(first.Templates.Select(x=>x.DeviceKey),second.Templates.Select(x=>x.DeviceKey));
+ }
+ /// <summary>Malformed JSON produces a diagnostic without partial data.</summary>
+ [Fact] public void Invalid_json_returns_diagnostics() {
+  var result=new DcsCommonCatalogImporter().Import(Fixture() with {FunctionsJson="{"});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-shared-source");
+  Assert.Empty(result.Devices);Assert.Empty(result.Provenance);
+ }
+ /// <summary>A missing function reference is rejected rather than guessed.</summary>
+ [Fact] public void Unknown_overlay_function_is_rejected() {
+  var request=Fixture();
+  var result=new DcsCommonCatalogImporter().Import(request with {OverlaysJson=request.OverlaysJson.Replace("\"vr-zoom\":", "\"unknown-function\":",StringComparison.Ordinal)});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown UI Layer function",StringComparison.Ordinal));
+ }
+ /// <summary>Conflicting aliases cannot silently resolve to two devices.</summary>
+ [Fact] public void Ambiguous_alias_is_rejected() {
+  var request=Fixture();var json=request.HardwareJson.Replace("\"ava-base-f16c\"", "\"moza-ab9\"",StringComparison.Ordinal);
+  var result=new DcsCommonCatalogImporter().Import(request with {HardwareJson=json});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Ambiguous device alias",StringComparison.Ordinal));
+ }
+ /// <summary>Source paths and commits must allow precise provenance.</summary>
+ [Fact] public void Invalid_source_metadata_returns_structured_diagnostics() {
+  var request=Fixture() with {Commit="main",HardwarePath="../manifest.json",FunctionsPath="../manifest.json"};
+  var result=new DcsCommonCatalogImporter().Import(request);
+  Assert.False(result.Succeeded);
+  Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-commit");
+  Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
+  Assert.Contains(result.Diagnostics,x=>x.Code=="duplicate-path");
+ }
+ #endregion END Public
+ #region BEGIN private helpers
+ private static SharedCatalogImportRequest Fixture() {
+  var root=Path.Combine(AppContext.BaseDirectory,"Fixtures","DcsCommon");
+  return new("dd3d9cff8997c57ebfad36066ec4caf06bdbe52e","assets/shared/hardware/manifest.json",File.ReadAllText(Path.Combine(root,"hardware.json")),"assets/shared/ui-layer/functions.json",File.ReadAllText(Path.Combine(root,"functions.json")),"assets/shared/ui-layer/hardware-overlays.json",File.ReadAllText(Path.Combine(root,"hardware-overlays.json")));
+ }
+ #endregion END private helpers
+}

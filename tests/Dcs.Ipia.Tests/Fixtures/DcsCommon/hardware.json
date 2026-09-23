@@ -1,0 +1,124 @@
+{
+  "devices": [
+    {
+      "id": "moza-ab9",
+      "label": "MOZA AB9 FFB Base",
+      "drawio": "drawio/moza-ab9.drawio",
+      "svg": "svg/moza-ab9.svg",
+      "lua": "lua/moza-ab9.lua"
+    },
+    {
+      "id": "vkb-f14-gunfighter",
+      "uiLayerModifier": "VKB_F14_BTN7",
+      "label": "VKB F-14 Gunfighter Grip",
+      "drawio": "drawio/vkb-f14-gunfighter.drawio",
+      "svg": "svg/vkb-f14-gunfighter.svg",
+      "lua": "lua/vkb-f14-gunfighter.lua"
+    },
+    {
+      "id": "tm-warthog-grip",
+      "aliases": [
+        "ava-base-f16c",
+        "ava-base-warthog-grip",
+        "warthog-base-warthog-grip",
+        "moza-ab9-warthog-grip"
+      ],
+      "uiLayerModifiers": {
+        "ava-base-f16c": "AVA_BASE_MODIFIER_BTN3",
+        "ava-base-warthog-grip": "AVA_BASE_MODIFIER_BTN3",
+        "moza-ab9-warthog-grip": "MOZA_MODIFIER_BTN3"
+      },
+      "label": "TM Warthog Joystick",
+      "drawio": "drawio/tm-warthog-grip.drawio",
+      "svg": "svg/tm-warthog-grip.svg",
+      "lua": "lua/tm-warthog-grip.lua"
+    },
+    {
+      "id": "grip-f18c",
+      "aliases": [
+        "moza-ab9-hornet-grip"
+      ],
+      "uiLayerModifiers": {
+        "moza-ab9-hornet-grip": "MOZA_MODIFIER_BTN3"
+      },
+      "label": "Thrustmaster F/A-18C Hornet Grip",
+      "drawio": "drawio/grip-f18c.drawio",
+      "svg": "svg/grip-f18c.svg",
+      "lua": "lua/grip-f18c.lua"
+    },
+    {
+      "id": "tm-mfd",
+      "label": "TM MFD",
+      "drawio": "drawio/tm-mfd.drawio",
+      "svg": "svg/tm-mfd.svg",
+      "lua": "lua/tm-mfd.lua",
+      "imageMasks": [
+        {
+          "id": "mfd-caption-left",
+          "x": 18,
+          "y": 28,
+          "width": 110,
+          "height": 54,
+          "fill": "#d6f7ff"
+        },
+        {
+          "id": "mfd-caption-right",
+          "x": 850,
+          "y": 28,
+          "width": 95,
+          "height": 54,
+          "fill": "#d6f7ff"
+        }
+      ]
+    },
+    {
+      "id": "onyourtwelve-pdcp",
+      "label": "OnYourTwelve PDCP",
+      "drawio": "drawio/onyourtwelve-pdcp.drawio",
+      "svg": "svg/onyourtwelve-pdcp.svg",
+      "lua": "lua/onyourtwelve-pdcp.lua"
+    },
+    {
+      "id": "winctrl-pto2",
+      "label": "WINCTRL PTO2",
+      "drawio": "drawio/winctrl-pto2.drawio",
+      "svg": "svg/winctrl-pto2.svg",
+      "lua": "lua/winctrl-pto2.lua"
+    },
+    {
+      "id": "winctrl-icp",
+      "label": "WINCTRL ViperAce ICP",
+      "drawio": "drawio/winctrl-icp.drawio",
+      "svg": "svg/winctrl-icp.svg",
+      "lua": "lua/winctrl-icp.lua"
+    },
+    {
+      "id": "tm-tpr",
+      "label": "TM T-Pendular Rudder",
+      "drawio": "drawio/tm-tpr.drawio",
+      "svg": "svg/tm-tpr.svg",
+      "lua": "lua/tm-tpr.lua"
+    },
+    {
+      "id": "tm-warthog-throttle",
+      "label": "TM Warthog Throttle",
+      "drawio": "drawio/tm-warthog-throttle.drawio",
+      "svg": "svg/tm-warthog-throttle.svg",
+      "lua": "lua/tm-warthog-throttle.lua"
+    },
+    {
+      "id": "logitech-throttle-quadrant",
+      "label": "Logitech Throttle Quadrant",
+      "drawio": "drawio/logitech-throttle-quadrant.drawio",
+      "svg": "svg/logitech-throttle-quadrant.svg",
+      "lua": "lua/logitech-throttle-quadrant.lua"
+    },
+    {
+      "id": "viper-tqs-mission-pack",
+      "label": "Viper TQS + Mission Pack",
+      "drawio": "drawio/viper-tqs-mission-pack.drawio",
+      "svg": "svg/viper-tqs-mission-pack.svg",
+      "lua": "lua/viper-tqs-mission-pack.lua"
+    }
+  ]
+}
