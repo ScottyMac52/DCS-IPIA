@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
@@ -18,31 +19,33 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   var diagnostics=new List<ImportDiagnostic>();
   if(request.Commit.Length!=40 || !request.Commit.All(Uri.IsHexDigit))
    diagnostics.Add(new("invalid-commit","A pinned 40-character commit SHA is required.",true));
-  var sources=new[]{(request.HardwarePath,request.HardwareJson),(request.FunctionsPath,request.FunctionsJson),(request.OverlaysPath,request.OverlaysJson)};
+  var sources=new[]{(request.HardwarePath,request.HardwareJson),(request.FunctionsPath,request.FunctionsJson),(request.OverlaysPath,request.OverlaysJson),(request.DeviceMapPath,request.DeviceMapJson)};
   if(sources.Any(x=>string.IsNullOrWhiteSpace(x.Item1)||x.Item1.StartsWith('/')||x.Item1.Contains('\\')||x.Item1.Split('/').Any(part=>part is "" or "." or "..")))
    diagnostics.Add(new("invalid-path","Every source needs a safe repository-relative path.",true));
   if(sources.Select(x=>x.Item1).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=sources.Length)
    diagnostics.Add(new("duplicate-path","Source paths must be distinct.",true));
   if(sources.Any(x=>string.IsNullOrWhiteSpace(x.Item2)))
-   diagnostics.Add(new("missing-source","All three authored source texts are required.",true));
+   diagnostics.Add(new("missing-source","All four authored source texts are required.",true));
   if(diagnostics.Count>0) return Failure(diagnostics);
   try {
    using var hardware=JsonDocument.Parse(request.HardwareJson);
    using var functions=JsonDocument.Parse(request.FunctionsJson);
    using var overlays=JsonDocument.Parse(request.OverlaysJson);
+   using var deviceMap=JsonDocument.Parse(request.DeviceMapJson);
    var devices=ParseDevices(hardware.RootElement);
    var catalog=new CommandCatalog(StableIdentity.Create("catalog","dcs-common-ui-layer"),"dcs-common-ui-layer",request.FunctionsPath,"1");
    var commands=ParseFunctions(functions.RootElement,catalog.Id);
    var templates=ParseTemplates(overlays.RootElement,devices,commands);
+   var mapping=ParseDeviceMap(deviceMap.RootElement,devices,diagnostics);
    var provenance=sources.Select(x=>new SourceProvenance("ScottyMac52/DCS-Common",request.Commit,x.Item1,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Item2))))).OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
-   return new(devices,catalog,commands,templates,provenance,diagnostics);
+   return new(devices,catalog,commands,templates,mapping,provenance,diagnostics);
   }
-  catch(Exception ex) when(ex is JsonException or ArgumentException or InvalidOperationException or KeyNotFoundException) {diagnostics.Add(new("invalid-shared-source",ex.Message,true));}
+  catch(Exception ex) when(ex is JsonException or ArgumentException or InvalidOperationException or KeyNotFoundException or RegexParseException) {diagnostics.Add(new("invalid-shared-source",ex.Message,true));}
   return Failure(diagnostics);
  }
  #endregion END Public
  #region BEGIN private helpers
- private static SharedCatalogImportResult Failure(List<ImportDiagnostic> diagnostics)=>new([],null,[],[],[],diagnostics);
+ private static SharedCatalogImportResult Failure(List<ImportDiagnostic> diagnostics)=>new([],null,[],[],null,[],diagnostics);
  private static PhysicalDevice[] ParseDevices(JsonElement root) {
   var devices=new List<PhysicalDevice>();var keys=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
   foreach(var entry in Items(root,"devices")) {
@@ -96,6 +99,48 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   }
   return templates.OrderBy(x=>x.DeviceKey,StringComparer.Ordinal).ToArray();
  }
+ private static SharedDeviceMap ParseDeviceMap(JsonElement root,PhysicalDevice[] devices,List<ImportDiagnostic> diagnostics) {
+  if(root.GetProperty("schemaVersion").GetInt32()!=1) throw new ArgumentException("Unsupported device map schema.");
+  var known=devices.SelectMany(d=>new[]{d.StableKey}.Concat(d.Aliases)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+  var unresolved=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+  var rules=new List<DeviceMappingRule>();
+  foreach(var entry in Items(root,"mappings")) {
+   var key=Required(entry,"deviceId");
+   if(!known.Contains(key)) unresolved.Add(key);
+   var patterns=Items(entry,"patterns").Select(x=>x.GetString()??throw new ArgumentException("Missing filename pattern.")).ToArray();
+   if(patterns.Length==0||patterns.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException($"Empty filename pattern for {key}.");
+   rules.Add(new(key,patterns,Optional(entry,"canonicalName"),Optional(entry,"source")));
+  }
+  if(rules.Count==0) throw new ArgumentException("No device mapping rules.");
+  var aliases=new SortedDictionary<string,IReadOnlyDictionary<string,string>>(StringComparer.Ordinal);
+  var source=root.GetProperty("inputKeyAliases");
+  if(source.ValueKind!=JsonValueKind.Object) throw new ArgumentException("Invalid input key aliases.");
+  foreach(var device in source.EnumerateObject()) {
+   if(!known.Contains(device.Name)) unresolved.Add(device.Name);
+   if(device.Value.ValueKind!=JsonValueKind.Object) throw new ArgumentException($"Invalid input key aliases for {device.Name}.");
+   var values=new SortedDictionary<string,string>(StringComparer.Ordinal);
+   foreach(var alias in device.Value.EnumerateObject()) {
+    var target=alias.Value.GetString();
+    if(string.IsNullOrWhiteSpace(alias.Name)||string.IsNullOrWhiteSpace(target)) throw new ArgumentException($"Invalid input key alias for {device.Name}.");
+    values.Add(alias.Name,target);
+   }
+   aliases.Add(device.Name,values);
+  }
+  var instances=new List<DeviceInstancePattern>();
+  foreach(var entry in Items(root,"instancePatterns")) {
+   var key=Required(entry,"deviceId");
+   if(!known.Contains(key)) unresolved.Add(key);
+   var pattern=Required(entry,"regex");
+   var group=entry.GetProperty("group").GetInt32();
+   var compiled=new Regex(pattern,RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+   if(group<1||group>compiled.GetGroupNumbers().Max()) throw new ArgumentException($"Invalid instance capture group for {key}.");
+   instances.Add(new(key,pattern,group));
+  }
+  foreach(var key in unresolved.Order(StringComparer.Ordinal))
+   diagnostics.Add(new("unresolved-device-map",$"Device map refers to {key}, which is absent from the shared hardware manifest and aliases. Resolve before using this rule.",false));
+  return new(rules,aliases,instances);
+ }
+ private static string? Optional(JsonElement entry,string name)=>entry.TryGetProperty(name,out var value)?value.GetString():null;
  private static JsonElement.ArrayEnumerator Items(JsonElement root,string name) {
   var value=root.GetProperty(name);
   if(value.ValueKind!=JsonValueKind.Array) throw new ArgumentException($"Expected {name} array.");

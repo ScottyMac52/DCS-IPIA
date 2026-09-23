@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "description": "Ordered pattern list: first case-insensitive substring match on the DCS profile filename (GUID stripped) wins. Base/grip combinations must use a specific pattern or an explicit override; a bare MOZA AB9 name resolves to the standalone base because its filename does not identify an attached grip. Never invent deviceIds outside the shared hardware manifest or its aliases.",
+  "mappings": [
+    {
+      "deviceId": "winctrl-pto2",
+      "patterns": ["WINCTRL CarrierAce PTO", "CarrierAce PTO", "WINCTRL PTO"]
+    },
+    {
+      "deviceId": "winctrl-icp",
+      "patterns": ["WINCTRL ViperAce ICP", "ViperAce ICP", "WINCTRL ICP"]
+    },
+    {
+      "deviceId": "viper-tqs-mission-pack",
+      "patterns": ["Viper TQS", "Mission Pack", "ViperAce TQS"]
+    },
+    {
+      "deviceId": "vkb-f14-gunfighter",
+      "canonicalName": "VKBSim Gunfighter F14",
+      "patterns": ["VKBSim Gunfighter F14", "Gunfighter F14", "VKB F14", "VKBSim Gunfighter"]
+    },
+    {
+      "deviceId": "moza-ab9-hornet-grip",
+      "patterns": ["MOZA AB9 F/A-18C", "MOZA AB9 Hornet"]
+    },
+    {
+      "deviceId": "moza-ab9-warthog-grip",
+      "patterns": ["MOZA AB9 F-16C", "MOZA AB9 F16C", "MOZA AB9 A-10C", "MOZA AB9 A10C", "MOZA AB9 Warthog"]
+    },
+    {
+      "deviceId": "moza-ab9",
+      "source": "standalone-fallback",
+      "patterns": ["MOZA AB9 FFB Flight Base", "MOZA AB9 FFB Base", "MOZA AB9"]
+    },
+    {
+      "deviceId": "ava-base-f18c",
+      "patterns": ["Ava [R] Hornet"]
+    },
+    {
+      "deviceId": "ava-base-f16c",
+      "patterns": ["Ava [R] Viper"]
+    },
+    {
+      "deviceId": "warthog-base-hornet-grip",
+      "patterns": ["Joystick - HOTAS Warthog F/A-18C", "Warthog Base F/A-18C", "Warthog Base Hornet"]
+    },
+    {
+      "deviceId": "tm-mfd",
+      "patterns": ["F16 MFD", "F-16 MFD", "Thrustmaster MFD", "TM MFD", "Cougar MFD"]
+    },
+    {
+      "deviceId": "tm-warthog-throttle",
+      "patterns": ["Throttle - HOTAS Warthog", "HOTAS Warthog Throttle", "Warthog Throttle"]
+    },
+    {
+      "deviceId": "tm-warthog-grip",
+      "patterns": ["Joystick - HOTAS Warthog"]
+    },
+    {
+      "deviceId": "grip-f18c",
+      "patterns": ["F/A-18C Hornet Flightstick", "Joystick - F/A-18C Hornet"]
+    },
+    {
+      "deviceId": "onyourtwelve-pdcp",
+      "patterns": ["OnYourTwelve", "PDCP"]
+    },
+    {
+      "deviceId": "tm-tpr",
+      "patterns": ["T-Pendular", "TPR", "Pendular Rudder", "Thrustmaster TPR"]
+    },
+    {
+      "deviceId": "logitech-throttle-quadrant",
+      "patterns": [
+        "Logitech Throttle Quadrant",
+        "Logitech Flight Quadrant",
+        "Saitek Pro Flight Quadrant",
+        "Throttle Quadrant"
+      ]
+    }
+  ],
+  "inputKeyAliases": {
+    "tm-warthog-throttle": {
+      "JOY_BTN_POV1_U": "JOY_POV1_U",
+      "JOY_BTN_POV1_R": "JOY_POV1_R",
+      "JOY_BTN_POV1_D": "JOY_POV1_D",
+      "JOY_BTN_POV1_L": "JOY_POV1_L"
+    },
+    "moza-ab9-hornet-grip": {
+      "JOY_BTN_POV1_U": "JOY_POV1_U",
+      "JOY_BTN_POV1_R": "JOY_POV1_R",
+      "JOY_BTN_POV1_D": "JOY_POV1_D",
+      "JOY_BTN_POV1_L": "JOY_POV1_L"
+    },
+    "moza-ab9-warthog-grip": {
+      "JOY_BTN_POV1_U": "JOY_POV1_U",
+      "JOY_BTN_POV1_R": "JOY_POV1_R",
+      "JOY_BTN_POV1_D": "JOY_POV1_D",
+      "JOY_BTN_POV1_L": "JOY_POV1_L"
+    },
+    "ava-base-f16c": {
+      "JOY_BTN_POV1_U": "JOY_POV1_U",
+      "JOY_BTN_POV1_R": "JOY_POV1_R",
+      "JOY_BTN_POV1_D": "JOY_POV1_D",
+      "JOY_BTN_POV1_L": "JOY_POV1_L"
+    },
+    "ava-base-f18c": {
+      "JOY_BTN_POV1_U": "JOY_POV1_U",
+      "JOY_BTN_POV1_R": "JOY_POV1_R",
+      "JOY_BTN_POV1_D": "JOY_POV1_D",
+      "JOY_BTN_POV1_L": "JOY_POV1_L"
+    }
+  },
+  "instancePatterns": [
+    {
+      "deviceId": "tm-mfd",
+      "regex": "\\bMFD\\s*([1-4])\\b",
+      "group": 1
+    }
+  ]
+}
