@@ -7,6 +7,7 @@ namespace Dcs.Ipia.Application;
 /// <param name="Diagnostics">The diagnostics.</param>
 public sealed record ModuleImportResult(ModuleConfiguration? Configuration,IReadOnlyList<ImportDiagnostic> Diagnostics) {
  #region BEGIN Public
+ /// <summary>Gets whether an error-free configuration was imported.</summary>
  public bool Succeeded=>Configuration is not null && Diagnostics.All(x=>!x.IsError);
  #endregion END Public
 }
