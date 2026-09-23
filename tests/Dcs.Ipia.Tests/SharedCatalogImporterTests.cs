@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Xunit;
@@ -69,6 +70,20 @@ public sealed class SharedCatalogImporterTests {
   var request=Fixture();
   var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=request.DeviceMapJson.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2",StringComparison.Ordinal)});
   Assert.False(result.Succeeded);Assert.Empty(result.Provenance);
+ }
+ /// <summary>Empty filename rules cannot be used for device recognition.</summary>
+ [Fact] public void Empty_mapping_patterns_fail_atomically() {
+  var request=Fixture();var map=JsonNode.Parse(request.DeviceMapJson)!;
+  map["mappings"]![0]!["patterns"]=new JsonArray();
+  var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=map.ToJsonString()});
+  Assert.False(result.Succeeded);Assert.Empty(result.DeviceMap?.Rules??[]);
+ }
+ /// <summary>An instance rule requires an existing capture group.</summary>
+ [Fact] public void Invalid_instance_capture_group_fails_atomically() {
+  var request=Fixture();var map=JsonNode.Parse(request.DeviceMapJson)!;
+  map["instancePatterns"]![0]!["group"]=99;
+  var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=map.ToJsonString()});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Invalid instance capture group",StringComparison.Ordinal));
  }
  /// <summary>Source paths and commits must allow precise provenance.</summary>
  [Fact] public void Invalid_source_metadata_returns_structured_diagnostics() {
