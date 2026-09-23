@@ -1,38 +1,26 @@
 namespace Dcs.Ipia.Domain;
 
-public readonly record struct DomainSchemaVersion(int Major,int Minor) {
- public override string ToString()=>$"{Major}.{Minor}";
-}
-
-public enum ControlKind { Button,Axis,Hat,Rocker,Switch,Encoder,Keyboard }
-public enum KneeboardPageKind { Device,Summary }
-public enum AssetKind { Source,Generated,ReleaseOnly }
-
-public sealed record GraphicGeometry(double X,double Y,double Width,double Height,string CoordinateSpace);
-public sealed record PhysicalDevice(Guid Id,string StableKey,string DisplayName,IReadOnlyList<string> Aliases);
-public sealed record DeviceControl(Guid Id,Guid DeviceId,string StableKey,string Label,ControlKind Kind,GraphicGeometry? Geometry);
-public sealed record DeviceInstance(Guid Id,Guid ModuleId,Guid DeviceId,string StableKey,string Role);
-public sealed record CommandCatalog(Guid Id,string StableKey,string Source,string Version);
-public sealed record DcsCommandDefinition(Guid Id,Guid CatalogId,string DcsCommandId,string Name,string Category,bool IsAxis);
-public sealed record BindingRelationship(Guid Id,Guid ProfileId,Guid ControlId,Guid CommandId,BindingDisposition Disposition,string InputKey,IReadOnlyList<string> ModifierChord,AxisFilter? AxisTuning);
-public sealed record UiLayerModuleUsage(Guid ModuleId,Guid CommandId,bool Enabled);
-public sealed record UiLayerOverlay(Guid ModuleId,Guid DeviceId,Guid ControlId,Guid? CommandId,string Label);
-public sealed record UiLayerTombstone(Guid ModuleId,string StableKey,string Reason);
-public sealed record KneeboardCategory(Guid Id,string StableKey,string Label,int Order);
-public sealed record KneeboardPage(Guid Id,Guid ModuleId,Guid? DeviceInstanceId,KneeboardPageKind Kind,string StableKey,string Title,IReadOnlyList<Guid> CategoryIds,int Order);
-public sealed record DocumentationMetadata(Guid ModuleId,string OutputPath,string Title);
-public sealed record PackagingMetadata(Guid ModuleId,string PackageId,string CompleteRoot,string OvGmeRoot,IReadOnlyList<string> IncludePatterns);
-public sealed record SourceProvenance(string Repository,string Commit,string Path,string Sha256);
-public sealed record SnapshotIdentity(int SchemaVersion,string Sha256);
-public sealed record ReleaseVersion(int Major,int Minor,int Patch,int Revision=0) {
- public override string ToString()=>Revision==0?$"v{Major}.{Minor}.{Patch}":$"v{Major}.{Minor}.{Patch}.{Revision}";
-}
-
+/// <summary>Validates the versioned domain relationship graph.</summary>
 public sealed class VersionedDomainSchema {
- public static readonly DomainSchemaVersion CurrentVersion=new(1,0);
- public const int CurrentMigrationVersion=2;
- public const int CurrentSnapshotVersion=1;
-
+ /// <summary>Initializes a new versioned domain schema.</summary>
+ /// <param name="modules">The modules.</param>
+ /// <param name="devices">The devices.</param>
+ /// <param name="controls">The controls.</param>
+ /// <param name="instances">The instances.</param>
+ /// <param name="profiles">The profiles.</param>
+ /// <param name="catalogs">The catalogs.</param>
+ /// <param name="commands">The commands.</param>
+ /// <param name="bindings">The bindings.</param>
+ /// <param name="uiLayerUsage">The UI Layer usage.</param>
+ /// <param name="uiLayerOverlays">The UI Layer overlays.</param>
+ /// <param name="uiLayerTombstones">The UI Layer tombstones.</param>
+ /// <param name="categories">The categories.</param>
+ /// <param name="pages">The pages.</param>
+ /// <param name="documentation">The documentation.</param>
+ /// <param name="packages">The packages.</param>
+ /// <param name="provenance">The provenance.</param>
+ /// <param name="snapshot">The snapshot.</param>
+ /// <param name="release">The release.</param>
  public VersionedDomainSchema(
   IEnumerable<DcsModule> modules,
   IEnumerable<PhysicalDevice> devices,
@@ -71,16 +59,58 @@ public sealed class VersionedDomainSchema {
   Snapshot=snapshot??throw new ArgumentNullException(nameof(snapshot)); Release=release??throw new ArgumentNullException(nameof(release));
   Validate();
  }
- public DomainSchemaVersion SchemaVersion { get; } = CurrentVersion;
- public int MigrationVersion { get; } = CurrentMigrationVersion;
- public IReadOnlyList<DcsModule> Modules{get;} public IReadOnlyList<PhysicalDevice> Devices{get;} public IReadOnlyList<DeviceControl> Controls{get;}
- public IReadOnlyList<DeviceInstance> Instances{get;} public IReadOnlyList<DeviceProfile> Profiles{get;} public IReadOnlyList<CommandCatalog> Catalogs{get;}
- public IReadOnlyList<DcsCommandDefinition> Commands{get;} public IReadOnlyList<BindingRelationship> Bindings{get;}
- public IReadOnlyList<UiLayerModuleUsage> UiLayerUsage{get;} public IReadOnlyList<UiLayerOverlay> UiLayerOverlays{get;} public IReadOnlyList<UiLayerTombstone> UiLayerTombstones{get;}
- public IReadOnlyList<KneeboardCategory> Categories{get;} public IReadOnlyList<KneeboardPage> Pages{get;}
- public IReadOnlyList<DocumentationMetadata> Documentation{get;} public IReadOnlyList<PackagingMetadata> Packages{get;}
- public IReadOnlyList<SourceProvenance> Provenance{get;} public SnapshotIdentity Snapshot{get;} public ReleaseVersion Release{get;}
+ #region BEGIN Public
+ /// <summary>The current version.</summary>
+ public static readonly DomainSchemaVersion CurrentVersion=new(1,0);
+ /// <summary>The current migration version.</summary>
+ public const int CurrentMigrationVersion=2;
+ /// <summary>The current snapshot version.</summary>
+ public const int CurrentSnapshotVersion=1;
 
+
+ /// <summary>Gets the schema version.</summary>
+ public DomainSchemaVersion SchemaVersion { get; } = CurrentVersion;
+ /// <summary>Gets the migration version.</summary>
+ public int MigrationVersion { get; } = CurrentMigrationVersion;
+ /// <summary>Gets the modules.</summary>
+ public IReadOnlyList<DcsModule> Modules{get;}
+ /// <summary>Gets the devices.</summary>
+ public IReadOnlyList<PhysicalDevice> Devices{get;}
+ /// <summary>Gets the controls.</summary>
+ public IReadOnlyList<DeviceControl> Controls{get;}
+ /// <summary>Gets the instances.</summary>
+ public IReadOnlyList<DeviceInstance> Instances{get;}
+ /// <summary>Gets the profiles.</summary>
+ public IReadOnlyList<DeviceProfile> Profiles{get;}
+ /// <summary>Gets the catalogs.</summary>
+ public IReadOnlyList<CommandCatalog> Catalogs{get;}
+ /// <summary>Gets the commands.</summary>
+ public IReadOnlyList<DcsCommandDefinition> Commands{get;}
+ /// <summary>Gets the bindings.</summary>
+ public IReadOnlyList<BindingRelationship> Bindings{get;}
+ /// <summary>Gets the UI Layer usage.</summary>
+ public IReadOnlyList<UiLayerModuleUsage> UiLayerUsage{get;}
+ /// <summary>Gets the UI Layer overlays.</summary>
+ public IReadOnlyList<UiLayerOverlay> UiLayerOverlays{get;}
+ /// <summary>Gets the UI Layer tombstones.</summary>
+ public IReadOnlyList<UiLayerTombstone> UiLayerTombstones{get;}
+ /// <summary>Gets the categories.</summary>
+ public IReadOnlyList<KneeboardCategory> Categories{get;}
+ /// <summary>Gets the pages.</summary>
+ public IReadOnlyList<KneeboardPage> Pages{get;}
+ /// <summary>Gets the documentation.</summary>
+ public IReadOnlyList<DocumentationMetadata> Documentation{get;}
+ /// <summary>Gets the packages.</summary>
+ public IReadOnlyList<PackagingMetadata> Packages{get;}
+ /// <summary>Gets the provenance.</summary>
+ public IReadOnlyList<SourceProvenance> Provenance{get;}
+ /// <summary>Gets the snapshot.</summary>
+ public SnapshotIdentity Snapshot{get;}
+ /// <summary>Gets the release.</summary>
+ public ReleaseVersion Release{get;}
+
+ #endregion END Public
+ #region BEGIN private helpers
  private void Validate() {
   Unique(Modules.Select(x=>x.Id),"module ID"); Unique(Modules.Select(x=>x.DcsId),"DCS input module ID",StringComparer.OrdinalIgnoreCase);
   Unique(Devices.Select(x=>x.Id),"device ID"); Unique(Devices.Select(x=>x.StableKey),"device stable key",StringComparer.OrdinalIgnoreCase);
@@ -106,4 +136,5 @@ public sealed class VersionedDomainSchema {
  private static T[] Required<T>(IEnumerable<T>? values,string name)=>values?.ToArray()??throw new ArgumentNullException(name);
  private static void Unique<T>(IEnumerable<T> values,string label,IEqualityComparer<T>? comparer=null){var all=values.ToArray();if(all.Distinct(comparer).Count()!=all.Length)throw new ArgumentException($"Duplicate {label}.");}
  private static void Require<T>(IEnumerable<T> values,Func<T,bool> predicate,string label){if(values.Any(x=>!predicate(x)))throw new ArgumentException($"Invalid {label} relationship.");}
+ #endregion END private helpers
 }
