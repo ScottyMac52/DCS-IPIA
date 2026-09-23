@@ -19,7 +19,7 @@ public sealed class SqliteModuleRepository(string connectionString):IModuleRepos
  /// <param name="id">The identifier.</param>
  /// <param name="ct">Cancellation token for the operation.</param>
  /// <returns>The result of the operation.</returns>
- public async Task<DcsModule?> GetAsync(Guid id,CancellationToken ct=default){await using var c=await Open(ct);var cmd=c.CreateCommand();cmd.CommandText="SELECT id,dcs_id,display_name FROM modules WHERE id=$id";cmd.Parameters.AddWithValue("$id",identifier.ToString("D"));await using var r=await cmd.ExecuteReaderAsync(ct);return await r.ReadAsync(ct)?Read(r):null;}
+ public async Task<DcsModule?> GetAsync(Guid id,CancellationToken ct=default){await using var c=await Open(ct);var cmd=c.CreateCommand();cmd.CommandText="SELECT id,dcs_id,display_name FROM modules WHERE id=$id";cmd.Parameters.AddWithValue("$id",id.ToString("D"));await using var r=await cmd.ExecuteReaderAsync(ct);return await r.ReadAsync(ct)?Read(r):null;}
  /// <summary>Inserts or updates an item.</summary>
  /// <param name="value">The value.</param>
  /// <param name="ct">Cancellation token for the operation.</param>
@@ -29,7 +29,7 @@ public sealed class SqliteModuleRepository(string connectionString):IModuleRepos
  /// <param name="id">The identifier.</param>
  /// <param name="ct">Cancellation token for the operation.</param>
  /// <returns>The result of the operation.</returns>
- public async Task<bool> DeleteAsync(Guid id,CancellationToken ct=default){await using var c=await Open(ct);var cmd=c.CreateCommand();cmd.CommandText="DELETE FROM modules WHERE id=$id";cmd.Parameters.AddWithValue("$id",identifier.ToString("D"));return await cmd.ExecuteNonQueryAsync(ct)==1;}
+ public async Task<bool> DeleteAsync(Guid id,CancellationToken ct=default){await using var c=await Open(ct);var cmd=c.CreateCommand();cmd.CommandText="DELETE FROM modules WHERE id=$id";cmd.Parameters.AddWithValue("$id",id.ToString("D"));return await cmd.ExecuteNonQueryAsync(ct)==1;}
  #endregion END Public
  #region BEGIN private helpers
  private async Task<SqliteConnection> Open(CancellationToken ct){var c=new SqliteConnection(connectionString);await c.OpenAsync(ct);var cmd=c.CreateCommand();cmd.CommandText="PRAGMA foreign_keys=ON";await cmd.ExecuteNonQueryAsync(ct);return c;}
