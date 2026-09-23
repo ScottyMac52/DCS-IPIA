@@ -39,13 +39,21 @@ for path in files:
         for member in re.finditer(r"^\s*private\s+(?:(?:static|async)\s+)*(?:[\w<>?\[\],]+\s+)+\w+\s*\(", text, re.M):
             if member.start() < private or member.start() > text.find("#endregion END private helpers"):
                 errors.append(f"{relative}: private method outside private helpers region")
-    if relative.parts[0] == "src":
-        lines = text.splitlines()
-        for i, line in enumerate(lines):
-            if not re.match(r"\s*public\s+(?!.*\b(?:class|record|struct|enum|interface)\s+\w+)", line):
-                continue
-            if not any(item.lstrip().startswith("/// <summary>") for item in lines[max(0, i-35):i]):
-                errors.append(f"{relative}:{i + 1}: public member needs an XML summary")
+    lines = text.splitlines()
+    public_start = next((i for i, line in enumerate(lines) if "#region BEGIN Public" in line), -1)
+    public_end = next((i for i, line in enumerate(lines) if "#endregion END Public" in line), -1)
+    for i, line in enumerate(lines):
+        member = line.strip()
+        is_type = bool(re.search(r"\b(?:class|record|struct|enum|interface)\s+" + re.escape(name) + r"\b", member))
+        is_constructor = member.startswith(f"public {name}(")
+        public_member = member.startswith("public ") and not is_type and not is_constructor
+        interface_member = path.parent.name == "Interfaces" and bool(re.match(r"Task(?:<.*>)?\s+\w+\(", member))
+        if not (public_member or interface_member):
+            continue
+        if i == 0 or not lines[i - 1].lstrip().startswith("///"):
+            errors.append(f"{relative}:{i + 1}: public member needs an adjacent XML comment")
+        if not (public_start < i < public_end):
+            errors.append(f"{relative}:{i + 1}: public member outside the Public region")
 
 if errors:
     print("\n".join(errors), file=sys.stderr)
