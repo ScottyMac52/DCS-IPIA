@@ -12,7 +12,7 @@ namespace Dcs.Ipia.Tests;
 
 /// <summary>Represents phase one infrastructure tests.</summary>
 public sealed class PhaseOneInfrastructureTests:IDisposable {
- private readonly string path=Path.Combine(Path.GetTempPath(),$"dcs-ipia-phase1-{Guid.NewGuid():N}.db");private string Connection=>$"Data Source={path}";
+ private readonly string path=Path.Combine(Path.GetTempPath(),$"dcs-ipia-phase1-{Guid.NewGuid():N}.db");private string Connection=>$"Data Source={path};Pooling=False";
  #region BEGIN Public
  /// <summary>real SQLite round trips and replaces configuration.</summary>
  /// <returns>A task that completes when the operation finishes</returns>
