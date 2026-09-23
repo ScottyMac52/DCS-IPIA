@@ -1,8 +1,10 @@
 using Dcs.Ipia.Domain;
 using Xunit;
+using Dcs.Ipia.Application.Interfaces;
 
 namespace Dcs.Ipia.Tests;
 
+/// <summary>Represents versioned domain schema tests.</summary>
 public sealed class VersionedDomainSchemaTests {
  private static readonly Guid ModuleId=Guid.Parse("10000000-0000-0000-0000-000000000001");
  private static readonly Guid DeviceId=Guid.Parse("20000000-0000-0000-0000-000000000001");
@@ -13,6 +15,8 @@ public sealed class VersionedDomainSchemaTests {
  private static readonly Guid CommandId=Guid.Parse("70000000-0000-0000-0000-000000000001");
  private static readonly Guid CategoryId=Guid.Parse("80000000-0000-0000-0000-000000000001");
 
+ #region BEGIN Public
+ /// <summary>v1 graph defines every workstream relationship.</summary>
  [Fact] public void V1_graph_defines_every_workstream_relationship() {
   var value=Create();
   Assert.Equal("1.0",value.SchemaVersion.ToString()); Assert.Equal(2,value.MigrationVersion); Assert.Equal(1,value.Snapshot.SchemaVersion);
@@ -24,14 +28,18 @@ public sealed class VersionedDomainSchemaTests {
   Assert.Equal("docs/controls.md",Assert.Single(value.Documentation).OutputPath); Assert.Equal("UH-1H Complete",Assert.Single(value.Packages).PackageId);
   Assert.Equal("abc",Assert.Single(value.Provenance).Commit); Assert.Equal("v1.2.3.4",value.Release.ToString());
  }
+ /// <summary>collections are canonically ordered and copied.</summary>
  [Fact] public void Collections_are_canonically_ordered_and_copied() {
   var aliases=new List<string>{"MFD"}; var value=Create(devices:[new(DeviceId,"tm-mfd","MFD",aliases)]);
   aliases.Add("changed"); Assert.Single(value.Devices[0].Aliases);
   Assert.Equal("v1.2.3",new ReleaseVersion(1,2,3).ToString());
  }
+ /// <summary>duplicate stable identity is rejected.</summary>
  [Fact] public void Duplicate_stable_identity_is_rejected()=>Assert.Contains("Duplicate device stable key",Assert.Throws<ArgumentException>(()=>Create(devices:[new(DeviceId,"tm-mfd","MFD",[]),new(Guid.NewGuid(),"TM-MFD","Other",[])])).Message,StringComparison.Ordinal);
  [Theory]
  [InlineData("control")][InlineData("instance")][InlineData("command")][InlineData("binding")][InlineData("axis")][InlineData("usage")][InlineData("overlay")][InlineData("tombstone")][InlineData("page")][InlineData("documentation")][InlineData("package")]
+ /// <summary>dangling relationships are rejected.</summary>
+ /// <param name="relationship">The relationship.</param>
  public void Dangling_relationships_are_rejected(string relationship) {
   var unknown=Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
   var error=relationship switch {
@@ -50,10 +58,13 @@ public sealed class VersionedDomainSchemaTests {
   };
   Assert.IsType<ArgumentException>(error);
  }
+ /// <summary>snapshot version and required collections are validated.</summary>
  [Fact] public void Snapshot_version_and_required_collections_are_validated() {
   Assert.Throws<ArgumentException>(()=>Create(snapshot:new(99,"hash")));
   Assert.Throws<ArgumentNullException>(()=>new VersionedDomainSchema(null!,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],new(1,"hash"),new(1,0,0)));
  }
+ #endregion END Public
+ #region BEGIN private helpers
  private static VersionedDomainSchema Create(
   IEnumerable<PhysicalDevice>? devices=null,IEnumerable<DeviceControl>? controls=null,IEnumerable<DeviceInstance>? instances=null,
   IEnumerable<DcsCommandDefinition>? commands=null,IEnumerable<BindingRelationship>? bindings=null,IEnumerable<UiLayerModuleUsage>? usage=null,
@@ -77,4 +88,5 @@ public sealed class VersionedDomainSchemaTests {
    [new("ScottyMac52/DCS-Common","abc","assets/ui-layer/functions.json","hash")],
    snapshot??new(1,"hash"),new(1,2,3,4));
  }
+ #endregion END private helpers
 }

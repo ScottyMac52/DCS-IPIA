@@ -29,3 +29,10 @@ jobs:
           dotnet-version: 10.0.x
       - name: Build Visual Studio solution
         run: dotnet build DCS-IPIA.sln --configuration Release
+
+  csharp-layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check C# type and documentation layout
+        run: python3 scripts/check_csharp_layout.py
