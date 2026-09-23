@@ -17,6 +17,10 @@ public sealed class SharedCatalogImporterTests {
   Assert.Equal(12,result.Devices.Count);
   Assert.Equal(13,result.Commands.Count);
   Assert.Equal(5,result.Templates.Count);
+  Assert.Equal(17,result.DeviceMap!.Rules.Count);
+  Assert.Equal(5,result.DeviceMap.InputKeyAliases.Count);
+  Assert.Equal("tm-mfd",Assert.Single(result.DeviceMap.InstancePatterns).DeviceKey);
+  Assert.Equal("moza-ab9-hornet-grip",result.DeviceMap.Rules[4].DeviceKey);
   Assert.Contains(result.Devices,x=>x.StableKey=="tm-warthog-grip" && x.Aliases.Contains("moza-ab9-warthog-grip"));
   Assert.Contains(result.Templates,x=>x.DeviceKey=="tm-mfd" && x.Instances.SequenceEqual(["MFD3"]) && x.Bindings["vr-zoom"]=="mfd-osb-t1-shifted");
   Assert.All(result.Provenance,x=>{Assert.Equal("ScottyMac52/DCS-Common",x.Repository);Assert.Equal(request.Commit,x.Commit);});
@@ -29,6 +33,7 @@ public sealed class SharedCatalogImporterTests {
   Assert.Equal(first.Devices.Select(x=>(x.Id,x.StableKey,x.DisplayName,string.Join(",",x.Aliases))),second.Devices.Select(x=>(x.Id,x.StableKey,x.DisplayName,string.Join(",",x.Aliases))));
   Assert.Equal(first.Commands,second.Commands);
   Assert.Equal(first.Provenance,second.Provenance);
+  Assert.Equal(first.DeviceMap!.Rules.Select(x=>(x.DeviceKey,string.Join(",",x.Patterns))),second.DeviceMap!.Rules.Select(x=>(x.DeviceKey,string.Join(",",x.Patterns))));
   Assert.Equal(first.Templates.Select(x=>x.DeviceKey),second.Templates.Select(x=>x.DeviceKey));
  }
  /// <summary>Malformed JSON produces a diagnostic without partial data.</summary>
@@ -49,6 +54,13 @@ public sealed class SharedCatalogImporterTests {
   var result=new DcsCommonCatalogImporter().Import(request with {HardwareJson=json});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Ambiguous device alias",StringComparison.Ordinal));
  }
+ /// <summary>Unknown device keys in ordered mappings fail without partial data.</summary>
+ [Fact] public void Unknown_mapping_device_is_rejected() {
+  var request=Fixture();
+  var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=request.DeviceMapJson.Replace("\"winctrl-pto2\"", "\"unknown-device\"",StringComparison.Ordinal)});
+  Assert.False(result.Succeeded);Assert.Empty(result.Devices);
+  Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown mapped device",StringComparison.Ordinal));
+ }
  /// <summary>Source paths and commits must allow precise provenance.</summary>
  [Fact] public void Invalid_source_metadata_returns_structured_diagnostics() {
   var request=Fixture() with {Commit="main",HardwarePath="../manifest.json",FunctionsPath="../manifest.json"};
@@ -62,7 +74,7 @@ public sealed class SharedCatalogImporterTests {
  #region BEGIN private helpers
  private static SharedCatalogImportRequest Fixture() {
   var root=Path.Combine(AppContext.BaseDirectory,"Fixtures","DcsCommon");
-  return new("dd3d9cff8997c57ebfad36066ec4caf06bdbe52e","assets/shared/hardware/manifest.json",File.ReadAllText(Path.Combine(root,"hardware.json")),"assets/shared/ui-layer/functions.json",File.ReadAllText(Path.Combine(root,"functions.json")),"assets/shared/ui-layer/hardware-overlays.json",File.ReadAllText(Path.Combine(root,"hardware-overlays.json")));
+  return new("dd3d9cff8997c57ebfad36066ec4caf06bdbe52e","assets/shared/hardware/manifest.json",File.ReadAllText(Path.Combine(root,"hardware.json")),"assets/shared/ui-layer/functions.json",File.ReadAllText(Path.Combine(root,"functions.json")),"assets/shared/ui-layer/hardware-overlays.json",File.ReadAllText(Path.Combine(root,"hardware-overlays.json")),"assets/shared/hardware/scaffold-device-map.json",File.ReadAllText(Path.Combine(root,"device-map.json")));
  }
  #endregion END private helpers
 }
