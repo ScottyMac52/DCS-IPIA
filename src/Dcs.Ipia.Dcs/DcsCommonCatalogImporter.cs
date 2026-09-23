@@ -36,7 +36,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
    var catalog=new CommandCatalog(StableIdentity.Create("catalog","dcs-common-ui-layer"),"dcs-common-ui-layer",request.FunctionsPath,"1");
    var commands=ParseFunctions(functions.RootElement,catalog.Id);
    var templates=ParseTemplates(overlays.RootElement,devices,commands);
-   var mapping=ParseDeviceMap(deviceMap.RootElement,devices);
+   var mapping=ParseDeviceMap(deviceMap.RootElement,devices,diagnostics);
    var provenance=sources.Select(x=>new SourceProvenance("ScottyMac52/DCS-Common",request.Commit,x.Item1,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Item2))))).OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
    return new(devices,catalog,commands,templates,mapping,provenance,diagnostics);
   }
@@ -99,13 +99,14 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   }
   return templates.OrderBy(x=>x.DeviceKey,StringComparer.Ordinal).ToArray();
  }
- private static SharedDeviceMap ParseDeviceMap(JsonElement root,PhysicalDevice[] devices) {
+ private static SharedDeviceMap ParseDeviceMap(JsonElement root,PhysicalDevice[] devices,List<ImportDiagnostic> diagnostics) {
   if(root.GetProperty("schemaVersion").GetInt32()!=1) throw new ArgumentException("Unsupported device map schema.");
   var known=devices.SelectMany(d=>new[]{d.StableKey}.Concat(d.Aliases)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+  var unresolved=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
   var rules=new List<DeviceMappingRule>();
   foreach(var entry in Items(root,"mappings")) {
    var key=Required(entry,"deviceId");
-   if(!known.Contains(key)) throw new ArgumentException($"Unknown mapped device: {key}");
+   if(!known.Contains(key)) unresolved.Add(key);
    var patterns=Items(entry,"patterns").Select(x=>x.GetString()??throw new ArgumentException("Missing filename pattern.")).ToArray();
    if(patterns.Length==0||patterns.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException($"Empty filename pattern for {key}.");
    rules.Add(new(key,patterns,Optional(entry,"canonicalName"),Optional(entry,"source")));
@@ -115,7 +116,7 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   var source=root.GetProperty("inputKeyAliases");
   if(source.ValueKind!=JsonValueKind.Object) throw new ArgumentException("Invalid input key aliases.");
   foreach(var device in source.EnumerateObject()) {
-   if(!known.Contains(device.Name)) throw new ArgumentException($"Unknown alias device: {device.Name}");
+   if(!known.Contains(device.Name)) unresolved.Add(device.Name);
    if(device.Value.ValueKind!=JsonValueKind.Object) throw new ArgumentException($"Invalid input key aliases for {device.Name}.");
    var values=new SortedDictionary<string,string>(StringComparer.Ordinal);
    foreach(var alias in device.Value.EnumerateObject()) {
@@ -128,13 +129,15 @@ public sealed class DcsCommonCatalogImporter:ISharedCatalogImporter {
   var instances=new List<DeviceInstancePattern>();
   foreach(var entry in Items(root,"instancePatterns")) {
    var key=Required(entry,"deviceId");
-   if(!known.Contains(key)) throw new ArgumentException($"Unknown instance device: {key}");
+   if(!known.Contains(key)) unresolved.Add(key);
    var pattern=Required(entry,"regex");
    var group=entry.GetProperty("group").GetInt32();
    var compiled=new Regex(pattern,RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
    if(group<1||group>compiled.GetGroupNumbers().Max()) throw new ArgumentException($"Invalid instance capture group for {key}.");
    instances.Add(new(key,pattern,group));
   }
+  foreach(var key in unresolved.Order(StringComparer.Ordinal))
+   diagnostics.Add(new("unresolved-device-map",$"Device map refers to {key}, which is absent from the shared hardware manifest and aliases. Resolve before using this rule.",false));
   return new(rules,aliases,instances);
  }
  private static string? Optional(JsonElement entry,string name)=>entry.TryGetProperty(name,out var value)?value.GetString():null;

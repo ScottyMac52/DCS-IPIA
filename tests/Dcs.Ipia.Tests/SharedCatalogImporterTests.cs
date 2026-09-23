@@ -18,6 +18,7 @@ public sealed class SharedCatalogImporterTests {
   Assert.Equal(13,result.Commands.Count);
   Assert.Equal(5,result.Templates.Count);
   Assert.Equal(17,result.DeviceMap!.Rules.Count);
+  Assert.Equal(2,result.Diagnostics.Count(x=>x.Code=="unresolved-device-map"));
   Assert.Equal(5,result.DeviceMap.InputKeyAliases.Count);
   Assert.Equal("tm-mfd",Assert.Single(result.DeviceMap.InstancePatterns).DeviceKey);
   Assert.Equal("moza-ab9-hornet-grip",result.DeviceMap.Rules[4].DeviceKey);
@@ -54,12 +55,20 @@ public sealed class SharedCatalogImporterTests {
   var result=new DcsCommonCatalogImporter().Import(request with {HardwareJson=json});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Ambiguous device alias",StringComparison.Ordinal));
  }
- /// <summary>Unknown device keys in ordered mappings fail without partial data.</summary>
- [Fact] public void Unknown_mapping_device_is_rejected() {
+ /// <summary>Unknown map IDs are retained and flagged without creating fake devices.</summary>
+ [Fact] public void Unknown_mapping_device_is_reported() {
   var request=Fixture();
   var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=request.DeviceMapJson.Replace("\"winctrl-pto2\"", "\"unknown-device\"",StringComparison.Ordinal)});
-  Assert.False(result.Succeeded);Assert.Empty(result.Devices);
-  Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown mapped device",StringComparison.Ordinal));
+  Assert.True(result.Succeeded);
+  Assert.Contains(result.DeviceMap!.Rules,x=>x.DeviceKey=="unknown-device");
+  Assert.DoesNotContain(result.Devices,x=>x.StableKey=="unknown-device");
+  Assert.Contains(result.Diagnostics,x=>x.Code=="unresolved-device-map" && x.Message.Contains("unknown-device",StringComparison.Ordinal));
+ }
+ /// <summary>An unsupported map version is a fatal validation error.</summary>
+ [Fact] public void Unsupported_map_version_fails_atomically() {
+  var request=Fixture();
+  var result=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=request.DeviceMapJson.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2",StringComparison.Ordinal)});
+  Assert.False(result.Succeeded);Assert.Empty(result.Provenance);
  }
  /// <summary>Source paths and commits must allow precise provenance.</summary>
  [Fact] public void Invalid_source_metadata_returns_structured_diagnostics() {
