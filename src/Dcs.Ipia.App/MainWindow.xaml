@@ -61,7 +61,7 @@
           <StackPanel>
             <TextBlock Style="{DynamicResource SectionTitle}" Text="One place for a module"/>
             <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,20"
-                       Text="The example below shows the proposed route from DCS exports to a reviewed package. Navigation works; import and editing are intentionally disabled in this design preview."/>
+                       Text="The example below shows the proposed route from DCS exports to a reviewed package. Import committed Huey and DCS-Common sources to open the graphical assignment editor; changes remain in memory until persistence is connected."/>
             <Border Style="{DynamicResource Card}">
               <StackPanel>
                 <TextBlock Style="{DynamicResource SectionTitle}" Text="1  Import and resolve"/>
