@@ -8,11 +8,11 @@ namespace Dcs.Ipia.App.Smoke;
 /// <summary>Opens both read-only WPF preview modes on a Windows CI runner.</summary>
 public static class Program {
  #region BEGIN Public
+ [STAThread]
  /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
  /// <returns>Zero when both windows render their expected content.</returns>
- [STAThread]
  public static int Main() {
-  var app=new App();
+  var app=new DcsIpia.Presentation.App();
   app.InitializeComponent();
   var profile=new DeviceProfile(Guid.NewGuid(),"F16 MFD 3",null,"unresolved device","F16 MFD 3.diff.lua");
   var folder=new DcsFolderImportResult("Saved Games/Input/UH-1H/joystick",[profile],[],[],
