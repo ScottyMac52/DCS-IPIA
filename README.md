@@ -8,6 +8,12 @@ Phase 0 establishes independently testable layers, transport-neutral application
 
 Open `DCS-IPIA.sln` in Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK. The solution includes the WPF application, all six supporting libraries, and the test project. Build the solution and run tests from Test Explorer. Visual Studio 2022 cannot target .NET 10; the project remains on .NET 10.
 
+## Read-only Huey preview
+
+On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release`. Choose **Open Huey (read-only)**, select the root of your local `DCS-UH-1H-Huey` Git checkout, and then select the root of your local `DCS-Common` Git checkout. Git must be installed. The app reads committed `HEAD` contents from both repositories, so uncommitted edits are not included. It opens a results window with real profiles, aircraft bindings, kneeboard page identities, UI Layer functions, diagnostics, and source hashes. You can reopen the last result with **View imported**.
+
+The original main workspace tabs still illustrate the proposed editing layout with sample data. Import is read-only; the edit, validation, and package build actions remain unavailable while their domain workflows are completed.
+
 ## Build
 
 ```powershell
