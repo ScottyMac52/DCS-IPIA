@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
+using Dcs.Ipia.Domain;
 using Xunit;
 
 namespace Dcs.Ipia.Tests;
@@ -83,6 +85,17 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(4,withoutHardwareMap.Count);
    Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
    Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
+   var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));
+   var device=catalog.Devices.Single(x=>x.StableKey=="tm-mfd");
+   var axisControl=new DeviceControl(Guid.NewGuid(),device.Id,mappedControl.Control,mappedControl.Label,ControlKind.Axis,null);
+   var sharedMap=new SharedLuaImportResult([new SharedHardwareControl(axisControl,mappedControl.InputKey,"axis",null,null)],
+    [],[],[],[],[]);
+   var withoutLabel=new Dictionary<string,string>(graphics);
+   withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]=withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]
+    .Replace("id='lbl-"+mappedControl.Control+"'","id='other-label'",StringComparison.Ordinal);
+   var fallback=UiLayerDiagramFactory.Create(result.Import,catalog,withoutLabel,sharedMap);
+   Assert.Contains(fallback.SelectMany(x=>x.Controls),x=>x.Control==mappedControl.Control&&
+    x.Label==mappedControl.Control&&x.IsAxis);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,new Dictionary<string,string>()));
    var missingBox=new Dictionary<string,string>(graphics);
    missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
