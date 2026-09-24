@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1010" viewBox="0 0 1440 1010" role="img" aria-labelledby="title desc"><title id="title">DCS-IPIA visual assignment editor concept</title><desc id="desc">A wireframe showing separate Module and UI Layer command palettes, graphical MFD3 controls, drag and drop from OSB13 to OSB3, right-click actions, occupied destination prompt, and settings for theme and replacement behavior.</desc><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#0b9bb2"/></marker></defs>
+<rect x="0" y="0" width="1440" height="1010" rx="0" fill="#ecf2f8" stroke="none" stroke-width="1"/>
+<rect x="16" y="16" width="1408" height="978" rx="18" fill="#ffffff" stroke="#d8e3f0" stroke-width="1"/>
+<rect x="16" y="16" width="1408" height="76" rx="18" fill="#172c46" stroke="none" stroke-width="1"/>
+<rect x="16" y="70" width="1408" height="22" rx="0" fill="#172c46" stroke="none" stroke-width="1"/>
+<text x="40" y="53" fill="#ffffff" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="700" text-anchor="start">DCS-IPIA</text>
+<text x="193" y="52" fill="#d9e7f7" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="600" text-anchor="start">UH-1H Huey</text>
+<rect x="1090" y="39" width="124" height="28" rx="14" fill="#284966" stroke="none" stroke-width="1"/>
+<text x="1152" y="58" fill="#eef8ff" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Draft · 2 changes</text>
+<rect x="1230" y="39" width="166" height="28" rx="14" fill="#29435e" stroke="none" stroke-width="1"/>
+<text x="1313" y="58" fill="#ffffff" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Settings  ⚙</text>
+<rect x="35" y="112" width="160" height="615" rx="12" fill="#f6f9fd" stroke="#e3eaf3" stroke-width="1"/>
+<text x="54" y="146" fill="#7c8fa9" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="start">WORKSPACE</text>
+<text x="62" y="171" fill="#52667e" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" text-anchor="start">Overview</text>
+<text x="62" y="240" fill="#52667e" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" text-anchor="start">Devices</text>
+<text x="62" y="309" fill="#52667e" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" text-anchor="start">Assignments</text>
+<rect x="46" y="351" width="139" height="44" rx="9" fill="#e6f7fb" stroke="none" stroke-width="1"/>
+<text x="62" y="378" fill="#087f99" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" text-anchor="start">UI Layer</text>
+<text x="62" y="447" fill="#52667e" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" text-anchor="start">Kneeboard</text>
+<text x="62" y="516" fill="#52667e" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" text-anchor="start">Outputs</text>
+<rect x="212" y="112" width="1193" height="70" rx="12" fill="#f8fafc" stroke="#dfe8f3" stroke-width="1"/>
+<text x="232" y="140" fill="#60748b" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" text-anchor="start">Assignment scope</text>
+<rect x="232" y="148" width="165" height="28" rx="14" fill="#eef2f8" stroke="none" stroke-width="1"/>
+<text x="314.5" y="167" fill="#62748c" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Module commands</text>
+<rect x="408" y="148" width="199" height="28" rx="14" fill="#d9f6f8" stroke="none" stroke-width="1"/>
+<text x="507.5" y="167" fill="#087d95" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">UI Layer · this module</text>
+<rect x="621" y="148" width="196" height="28" rx="14" fill="#f1f4f9" stroke="none" stroke-width="1"/>
+<text x="719" y="167" fill="#63788c" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Shared template · read-only</text>
+<text x="1002" y="155" fill="#2b425b" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="600" text-anchor="start">Device  TM MFD · MFD3</text>
+<rect x="212" y="196" width="280" height="529" rx="12" fill="#ffffff" stroke="#dce6f1" stroke-width="1"/>
+<text x="232" y="229" fill="#172d46" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" text-anchor="start">UI Layer commands</text>
+<rect x="232" y="247" width="240" height="40" rx="8" fill="#f7fafc" stroke="#d4e0ec" stroke-width="1"/>
+<text x="248" y="272" fill="#7b8ba0" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" text-anchor="start">⌕  Search name, ID, category</text>
+<rect x="232" y="303" width="52" height="28" rx="14" fill="#e3f7fb" stroke="none" stroke-width="1"/>
+<text x="258" y="322" fill="#087d95" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">VR</text>
+<rect x="291" y="303" width="77" height="28" rx="14" fill="#eef2f7" stroke="none" stroke-width="1"/>
+<text x="329.5" y="322" fill="#6b7b90" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">General</text>
+<rect x="232" y="346" width="240" height="65" rx="9" fill="#ebf9fc" stroke="#6fbaca" stroke-width="2"/>
+<rect x="244" y="359" width="36" height="36" rx="7" fill="#bcecf2" stroke="none" stroke-width="1"/>
+<text x="262" y="384" fill="#4a7183" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" text-anchor="middle">⋮⋮</text>
+<text x="291" y="373" fill="#263d56" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="650" text-anchor="start">VR Zoom</text>
+<text x="291" y="395" fill="#7b8ea3" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="start">VR · d2604 · hold</text>
+<rect x="232" y="423" width="240" height="65" rx="9" fill="#fafbfd" stroke="#e1e9f2" stroke-width="1"/>
+<rect x="244" y="436" width="36" height="36" rx="7" fill="#e7edf5" stroke="none" stroke-width="1"/>
+<text x="262" y="461" fill="#4a7183" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" text-anchor="middle">⋮⋮</text>
+<text x="291" y="450" fill="#263d56" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="650" text-anchor="start">Recenter VR</text>
+<text x="291" y="472" fill="#7b8ea3" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="start">VR · d216 · press</text>
+<rect x="232" y="500" width="240" height="65" rx="9" fill="#fafbfd" stroke="#e1e9f2" stroke-width="1"/>
+<rect x="244" y="513" width="36" height="36" rx="7" fill="#e7edf5" stroke="none" stroke-width="1"/>
+<text x="262" y="538" fill="#4a7183" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" text-anchor="middle">⋮⋮</text>
+<text x="291" y="527" fill="#263d56" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="650" text-anchor="start">Spyglass</text>
+<text x="291" y="549" fill="#7b8ea3" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="start">VR · d2605 · hold</text>
+<rect x="232" y="577" width="240" height="65" rx="9" fill="#fafbfd" stroke="#e1e9f2" stroke-width="1"/>
+<rect x="244" y="590" width="36" height="36" rx="7" fill="#e7edf5" stroke="none" stroke-width="1"/>
+<text x="262" y="615" fill="#4a7183" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" text-anchor="middle">⋮⋮</text>
+<text x="291" y="604" fill="#263d56" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="650" text-anchor="start">Active Pause</text>
+<text x="291" y="626" fill="#7b8ea3" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="start">General · d816 · press</text>
+<text x="232" y="695" fill="#697d94" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="400" text-anchor="start">Drag a command, or right-click a control.</text>
+<rect x="506" y="196" width="568" height="529" rx="12" fill="#ffffff" stroke="#dce6f1" stroke-width="1"/>
+<text x="526" y="228" fill="#172d46" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" text-anchor="start">Controller assignments</text>
+<rect x="772" y="205" width="114" height="28" rx="14" fill="#eaf3ff" stroke="none" stroke-width="1"/>
+<text x="829" y="224" fill="#3b639c" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">TM MFD</text>
+<rect x="896" y="205" width="156" height="28" rx="14" fill="#e3f7fb" stroke="none" stroke-width="1"/>
+<text x="974" y="224" fill="#087d95" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">MFD3 · Shift</text>
+<rect x="528" y="248" width="524" height="432" rx="12" fill="#f3f7fb" stroke="#d3e0ed" stroke-width="1"/>
+<rect x="625" y="285" width="330" height="333" rx="18" fill="#263544" stroke="#536a7e" stroke-width="4"/>
+<rect x="695" y="362" width="190" height="180" rx="9" fill="#0f1e2b" stroke="#384c5e" stroke-width="1"/>
+<text x="790" y="414" fill="#d7e8f4" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" text-anchor="middle">MFD3</text>
+<text x="790" y="444" fill="#a9c1d1" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" text-anchor="middle">UI Layer · this module</text>
+<text x="790" y="474" fill="#77d5e3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" text-anchor="middle">Selected  OSB13</text>
+<text x="790" y="495" fill="#e9fbff" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" text-anchor="middle">VR Zoom</text>
+<rect x="647" y="298" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="670.5" y="320" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB1</text>
+<rect x="709" y="298" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="732.5" y="320" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB2</text>
+<rect x="771" y="298" width="47" height="34" rx="5" fill="#ffe4b9" stroke="#ce8528" stroke-width="2.5"/>
+<text x="794.5" y="320" fill="#985712" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB3</text>
+<rect x="833" y="298" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="856.5" y="320" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB4</text>
+<rect x="895" y="298" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="918.5" y="320" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB5</text>
+<rect x="918" y="350" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="941.5" y="372" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle"> 6</text>
+<rect x="918" y="402" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="941.5" y="424" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle"> 7</text>
+<rect x="918" y="454" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="941.5" y="476" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle"> 8</text>
+<rect x="918" y="506" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="941.5" y="528" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle"> 9</text>
+<rect x="918" y="558" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="941.5" y="580" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle"> 10</text>
+<rect x="895" y="571" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="918.5" y="593" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB11</text>
+<rect x="833" y="571" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="856.5" y="593" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB12</text>
+<rect x="771" y="571" width="47" height="34" rx="5" fill="#b9ebf1" stroke="#0b91a9" stroke-width="2.5"/>
+<text x="794.5" y="593" fill="#056f85" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB13</text>
+<rect x="709" y="571" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="732.5" y="593" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB14</text>
+<rect x="647" y="571" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="670.5" y="593" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">OSB15</text>
+<rect x="606" y="558" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="629.5" y="580" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">16</text>
+<rect x="606" y="506" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="629.5" y="528" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">17</text>
+<rect x="606" y="454" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="629.5" y="476" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">18</text>
+<rect x="606" y="402" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="629.5" y="424" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">19</text>
+<rect x="606" y="350" width="47" height="34" rx="5" fill="#d6e3ee" stroke="#8699ac" stroke-width="1"/>
+<text x="629.5" y="372" fill="#3b5269" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="middle">20</text>
+<line x1="785" y1="564" x2="785" y2="349" stroke="#0b9bb2" stroke-width="4" marker-end="url(#arrow)"/>
+<rect x="821" y="329" width="81" height="25" rx="11" fill="#e6f9fb" stroke="none" stroke-width="1"/>
+<text x="861" y="346" fill="#087f98" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">MOVE</text>
+<text x="530" y="709" fill="#657990" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="400" text-anchor="start">Drag OSB13 → OSB3; right-click either button for the same action.</text>
+<rect x="1088" y="196" width="317" height="529" rx="12" fill="#ffffff" stroke="#dce6f1" stroke-width="1"/>
+<text x="1110" y="230" fill="#172d46" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" text-anchor="start">Selected control</text>
+<rect x="1110" y="247" width="105" height="28" rx="14" fill="#dff6f9" stroke="none" stroke-width="1"/>
+<text x="1162.5" y="266" fill="#087d95" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">OSB13 · MFD3</text>
+<text x="1110" y="300" fill="#7b8fa5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="start">Current assignment</text>
+<text x="1110" y="327" fill="#1d3550" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" text-anchor="start">VR Zoom</text>
+<text x="1110" y="355" fill="#5d7289" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" text-anchor="start">Chord  MOZA_MODIFIER_BTN3</text>
+<line x1="1110" y1="374" x2="1384" y2="374" stroke="#e2eaf2" stroke-width="1" />
+<text x="1110" y="406" fill="#778ba1" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" text-anchor="start">ACTIONS</text>
+<rect x="1110" y="422" width="272" height="38" rx="7" fill="#edf8fa" stroke="#acdce5" stroke-width="1"/>
+<text x="1126" y="447" fill="#087e96" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="600" text-anchor="start">Drag to another OSB</text>
+<rect x="1110" y="470" width="272" height="38" rx="7" fill="#f6f9fc" stroke="#dbe5ef" stroke-width="1"/>
+<text x="1126" y="495" fill="#405d77" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" text-anchor="start">Right-click: Move / Copy / Swap</text>
+<rect x="1110" y="518" width="272" height="38" rx="7" fill="#f6f9fc" stroke="#dbe5ef" stroke-width="1"/>
+<text x="1126" y="543" fill="#405d77" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" text-anchor="start">Remove / Restore assignment</text>
+<text x="1110" y="600" fill="#668098" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="400" text-anchor="start">Source: module UI Layer overlay</text>
+<text x="1110" y="626" fill="#668098" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="400" text-anchor="start">Shared template is read-only here.</text>
+<rect x="212" y="744" width="1193" height="231" rx="12" fill="#f8fafc" stroke="#d9e4ee" stroke-width="1"/>
+<text x="234" y="779" fill="#182f48" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" text-anchor="start">On drop: OSB13 → occupied OSB3</text>
+<rect x="1162" y="755" width="218" height="28" rx="14" fill="#e9f3ff" stroke="none" stroke-width="1"/>
+<text x="1271" y="774" fill="#3b638d" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Setting: Ask before replace</text>
+<rect x="234" y="800" width="700" height="146" rx="10" fill="#ffffff" stroke="#dbe5ef" stroke-width="1"/>
+<text x="254" y="829" fill="#0a7f98" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" text-anchor="start">OSB13  VR Zoom</text>
+<line x1="420" y1="823" x2="502" y2="823" stroke="#0b9bb2" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="519" y="829" fill="#a76923" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" text-anchor="start">OSB3  Active Pause</text>
+<text x="254" y="861" fill="#536b83" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" text-anchor="start">Choose what happens to the existing OSB3 command:</text>
+<rect x="254" y="878" width="114" height="28" rx="14" fill="#e2f4f7" stroke="none" stroke-width="1"/>
+<text x="311" y="897" fill="#0b8299" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Replace</text>
+<rect x="378" y="878" width="93" height="28" rx="14" fill="#eef3ff" stroke="none" stroke-width="1"/>
+<text x="424.5" y="897" fill="#4464a2" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Swap</text>
+<rect x="481" y="878" width="100" height="28" rx="14" fill="#f1f4f8" stroke="none" stroke-width="1"/>
+<text x="531" y="897" fill="#5e7185" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Cancel</text>
+<text x="254" y="930" fill="#6a7e94" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="400" text-anchor="start">Nothing is written until the reviewed draft is saved.</text>
+<rect x="951" y="800" width="431" height="146" rx="10" fill="#ffffff" stroke="#dbe5ef" stroke-width="1"/>
+<text x="972" y="828" fill="#213951" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" text-anchor="start">Preferences</text>
+<text x="972" y="858" fill="#60758c" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" text-anchor="start">Theme</text>
+<rect x="1175" y="840" width="180" height="28" rx="14" fill="#edf3fa" stroke="none" stroke-width="1"/>
+<text x="1265" y="859" fill="#385d86" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Light / Dark</text>
+<text x="972" y="900" fill="#60758c" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" text-anchor="start">Occupied target</text>
+<rect x="1114" y="883" width="241" height="28" rx="14" fill="#e6f7fb" stroke="none" stroke-width="1"/>
+<text x="1234.5" y="902" fill="#087e97" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" text-anchor="middle">Ask  ·  Replace  ·  Reject</text>
+<text x="44" y="971" fill="#72859a" font-family="Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" text-anchor="start">CONCEPT MOCKUP · illustrates intended interactions; current import preview remains read-only.</text>
+</svg>
