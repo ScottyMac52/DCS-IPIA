@@ -69,6 +69,21 @@ public static class Program {
    throw new InvalidOperationException("Category filter did not show only General commands.");
   categories.SelectedItem="VR";
   if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
+  var types=(ComboBox)repoWindow.FindName("PaletteType")!;
+  var availability=(ComboBox)repoWindow.FindName("PaletteAvailability")!;
+  var bindingState=(ComboBox)repoWindow.FindName("PaletteBindingState")!;
+  types.SelectedIndex=2;
+  if(palette.Items.Count!=0)throw new InvalidOperationException("Axis filter included a button command.");
+  types.SelectedIndex=1;
+  assignments.SelectedIndex=0;
+  availability.SelectedIndex=1;
+  if(palette.Items.Count!=1)throw new InvalidOperationException("Selected-control compatibility hid the button command.");
+  bindingState.SelectedIndex=1;
+  if(palette.Items.Count!=1)throw new InvalidOperationException("Assigned filter missed the imported command on this modifier.");
+  if(((TextBlock)repoWindow.FindName("SelectedAssignment")!).Text!="VR Zoom"||
+     ((TextBlock)repoWindow.FindName("PendingAssignment")!).Text!="No pending change")
+   throw new InvalidOperationException("Selected control did not show imported and pending command state.");
+  bindingState.SelectedIndex=0;availability.SelectedIndex=0;types.SelectedIndex=0;
   var payload=new System.Windows.DataObject();
   payload.SetData("Dcs.Ipia.Editor.PaletteCommand","UI_ZOOM");
   var drop=typeof(HueyImportWindow).GetMethod("ApplyDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;

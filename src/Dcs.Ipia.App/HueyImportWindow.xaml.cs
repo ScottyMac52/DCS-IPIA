@@ -68,10 +68,10 @@ public partial class HueyImportWindow : Window {
   if(UiDiagramCanvas is null)return;
   _selected=null;_pendingSource=null;_pendingAction=null;
   _currentDiagram=UiDiagramList.SelectedItem as UiLayerDiagram;
-  RenderUiDiagram();
+  RenderUiDiagram();UpdatePalette();
  }
  private void UiModifierChoice_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  _pendingSource=null;_pendingAction=null;RenderUiDiagram();
+  _pendingSource=null;_pendingAction=null;RenderUiDiagram();UpdatePalette();
  }
  private void PaletteScope_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   _pendingSource=null;_pendingAction=null;
@@ -86,6 +86,7 @@ public partial class HueyImportWindow : Window {
   UpdatePalette();RenderUiDiagram();
  }
  private void PaletteSearch_TextChanged(object sender,TextChangedEventArgs e)=>UpdatePalette();
+ private void PaletteFilter_SelectionChanged(object sender,SelectionChangedEventArgs e)=>UpdatePalette();
  private void PaletteCategory_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(!_updatingCategories)UpdatePalette();
  }
@@ -94,14 +95,28 @@ public partial class HueyImportWindow : Window {
   var isUi=PaletteScope.SelectedIndex==1;
   var all=isUi?_viewModel.UiCommands:_viewModel.ModuleCommands;
   var category=PaletteCategory?.SelectedIndex>0?PaletteCategory.SelectedItem as string:null;
-  var filtered=CommandPalette.Filter(all,PaletteSearch.Text,category);
-  CommandPaletteList.ItemsSource=filtered;
-  PaletteCaption.Text=$"{filtered.Count} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
+  var filtered=CommandPalette.Filter(all,PaletteSearch.Text,category).AsEnumerable();
+  if(PaletteType?.SelectedIndex==1)filtered=filtered.Where(x=>!x.IsAxis);
+  if(PaletteType?.SelectedIndex==2)filtered=filtered.Where(x=>x.IsAxis);
+  if(PaletteAvailability?.SelectedIndex==1)
+   filtered=filtered.Where(x=>_selected is not null&&x.IsAxis==_selected.IsAxis);
+  if(PaletteBindingState?.SelectedIndex is 1 or 2) {
+   var assigned=_viewModel.Draft?.Snapshot.Where(x=>_currentDiagram is not null&&
+    x.Slot.ProfileId==_currentDiagram.ProfileId&&x.Slot.Layer==Layer()&&
+    x.Slot.ModifierChord==(Chord()=="Base"?"":Chord())).Select(x=>x.Command.Id)
+    .ToHashSet(StringComparer.Ordinal)??new HashSet<string>(StringComparer.Ordinal);
+   filtered=filtered.Where(x=>assigned.Contains(x.Id)==(PaletteBindingState.SelectedIndex==1));
+  }
+  var shown=filtered.ToArray();
+  CommandPaletteList.ItemsSource=shown;
+  PaletteCaption.Text=$"{shown.Length} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
  }
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
   UiDiagramCanvas.Children.Clear();_visibleControls=[];UiAssignmentList.ItemsSource=null;
   var diagram=_currentDiagram;
+  if(DiagramHeading is not null)DiagramHeading.Text=diagram is null?
+   "Canonical device graphic · assignment labels":$"{diagram.Title} · {Layer()} / {Chord()}";
   if(diagram is null) {UiDiagramCaption.Text="Select a device and instance to inspect its authored graphic.";UpdateInspector();return;}
   UiDiagramCanvas.Width=diagram.Width;UiDiagramCanvas.Height=diagram.Height;
   if(string.IsNullOrWhiteSpace(diagram.Svg)) {
@@ -139,6 +154,7 @@ public partial class HueyImportWindow : Window {
     badge.Drop+=(_,args)=>{
      badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");Control_Drop(control,args);
     };
+    badge.PreviewMouseRightButtonDown+=(_,_)=>{_selected=control;UpdateInspector();UpdatePalette();};
     badge.ContextMenu=BuildContextMenu(control);
     Canvas.SetLeft(badge,control.X);Canvas.SetTop(badge,control.Y);
     UiDiagramCanvas.Children.Add(badge);
@@ -173,13 +189,20 @@ public partial class HueyImportWindow : Window {
   var slot=Slot(control);
   return slot is null?null:_viewModel.Draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
  }
+ private DraftAssignment? ImportedAssignment(HardwareGraphicControl control) {
+  var slot=Slot(control);
+  if(slot is null)return null;
+  var first=_viewModel.Draft?.History.SelectMany(x=>x.Changes)
+   .FirstOrDefault(x=>x.Slot.Key==slot.Key);
+  return first is null?CurrentAssignment(control):first.Before;
+ }
  private void SelectControl(HardwareGraphicControl control) {
   if(_pendingSource is not null&&_pendingAction is not null) {
    var source=_pendingSource;var action=_pendingAction;
    _pendingSource=null;_pendingAction=null;
    ApplyTransfer(source,control,action);return;
   }
-  _selected=control;UpdateInspector();
+  _selected=control;UpdateInspector();UpdatePalette();
  }
  private void UiAssignmentList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(UiAssignmentList.SelectedIndex>=0&&UiAssignmentList.SelectedIndex<_visibleControls.Count)
@@ -187,10 +210,13 @@ public partial class HueyImportWindow : Window {
  }
  private void UpdateInspector() {
   if(SelectedControlTitle is null||SelectedAssignment is null)return;
-  SelectedControlTitle.Text=_selected is null?"Select a control":$"{_selected.Label} · {_selected.Control}";
+  SelectedControlTitle.Text=_selected is null?"Select a callout":$"{_selected.Label} · {_selected.Control}";
   var assignment=_selected is null?null:CurrentAssignment(_selected);
-  SelectedAssignment.Text=_selected is null?"Choose an authored callout or keyboard list row.":
-   $"{assignment?.Command.Name??"Empty · choose a command"}\n{_selected.InputKey} · {Layer()} / {Chord()}";
+  var imported=_selected is null?null:ImportedAssignment(_selected);
+  SelectedAssignment.Text=_selected is null?"Select a callout to inspect its imported command.":imported?.Command.Name??"Unassigned";
+  PendingAssignment.Text=_selected is null?"—":assignment==imported?"No pending change":assignment?.Command.Name??"Clear assignment";
+  DefaultControlLabel.Text=_selected?.Label??"—";
+  SelectedControlIdentity.Text=_selected is null?"—":$"{_selected.InputKey} · {Layer()} / {Chord()}";
  }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
@@ -334,7 +360,7 @@ public partial class HueyImportWindow : Window {
  }
  private void Apply(DraftResult? result) {
   if(result is null) {SetStatus(_viewModel.DraftNote);return;}
-  if(result.Outcome==DraftOutcome.Applied)RenderUiDiagram();
+  if(result.Outcome==DraftOutcome.Applied)RenderUiDiagram();UpdatePalette();
   RefreshReview();SetStatus(result.Message);
  }
  private void RefreshReview() {
