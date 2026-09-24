@@ -32,7 +32,7 @@ public sealed class HueyImportViewModel {
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
   (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
-  PaletteSourceNote="Module bindings have no category metadata. Load a DCS command catalog for named categories and all assignable commands; until then they appear as Uncategorized.";
+  PaletteSourceNote="Module bindings have no category metadata. Import a saved DCS catalog JSON or DCS Controls HTML for named categories and all assignable commands; until then they appear as Uncategorized.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
@@ -66,7 +66,7 @@ public sealed class HueyImportViewModel {
   DraftNote="Import both committed repositories to edit an identified device.";
   ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
   UiCommands=[];
-  PaletteSourceNote="Saved Games bindings have no category metadata. Open both repositories, then load a DCS command catalog for named categories.";
+  PaletteSourceNote="Saved Games bindings have no category metadata. Open both repositories, then import a saved DCS catalog JSON or DCS Controls HTML for named categories.";
   UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
   HasErrors=folder.Diagnostics.Any(x=>x.IsError);
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
