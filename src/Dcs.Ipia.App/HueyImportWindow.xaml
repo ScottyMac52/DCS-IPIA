@@ -100,9 +100,9 @@
           </StackPanel>
           <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="250"/>
+              <ColumnDefinition Width="300"/>
               <ColumnDefinition Width="*" MinWidth="350"/>
-              <ColumnDefinition Width="230"/>
+              <ColumnDefinition Width="280"/>
             </Grid.ColumnDefinitions>
             <GroupBox Grid.Column="0" Header="Command catalog" Margin="0,0,10,0">
               <Grid Margin="6">
@@ -157,10 +157,20 @@
                   </ComboBox>
                 </StackPanel>
                 <TextBlock Grid.Row="5" Text="Select or drag a command" FontWeight="SemiBold" Margin="0,3,0,5"/>
-                <ListBox x:Name="CommandPaletteList" Grid.Row="6" DisplayMemberPath="Display"
+                <ListBox x:Name="CommandPaletteList" Grid.Row="6"
                          PreviewMouseLeftButtonDown="CommandPaletteList_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="CommandPaletteList_PreviewMouseMove"
-                         AutomationProperties.Name="Drag or select a command to assign"/>
+                         AutomationProperties.Name="Drag or select a command to assign">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Margin="2,4" ToolTip="{Binding Id}">
+                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Category}" TextWrapping="Wrap" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
                 <TextBlock x:Name="PaletteCaption" Grid.Row="7" Margin="0,6,0,0" TextWrapping="Wrap"
                            Foreground="{DynamicResource SecondaryTextBrush}"/>
               </Grid>
@@ -175,11 +185,10 @@
               <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
                       Background="{DynamicResource CanvasBackgroundBrush}">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                  <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
-                    <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True" AllowDrop="True"
-                            DragOver="UiDiagramCanvas_DragOver" Drop="UiDiagramCanvas_Drop"
-                            AutomationProperties.Name="Draw.io-generated device SVG with assignment labels"/>
-                  </Viewbox>
+                  <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True" AllowDrop="True"
+                          HorizontalAlignment="Left" VerticalAlignment="Top"
+                          DragOver="UiDiagramCanvas_DragOver" Drop="UiDiagramCanvas_Drop"
+                          AutomationProperties.Name="Draw.io-generated device SVG with assignment labels"/>
                 </ScrollViewer>
               </Border>
               <ListBox x:Name="UiAssignmentList" Grid.Row="2" Margin="0,8,0,0"
