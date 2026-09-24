@@ -82,6 +82,16 @@ public sealed class HueyWorkspaceLoaderTests {
     .Replace("data:image/png;base64,","data:image/gif;base64,",StringComparison.Ordinal);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,unsupportedImage));
    Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
+   Assert.Empty(result.GraphicDiagnostics);
+   var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
+   File.WriteAllText(gripPath,"<svg broken");
+   Git(common,"add","--all");
+   Git(common,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","broken graphic");
+   var withBrokenGraphic=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.True(withBrokenGraphic.Import.Succeeded);
+   Assert.Single(withBrokenGraphic.Images);
+   Assert.Empty(withBrokenGraphic.Diagrams);
+   Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="ui-graphic-unavailable"&&x.IsError);
   }
   finally {DeleteFixture(temp);}
  }

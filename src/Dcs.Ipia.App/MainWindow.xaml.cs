@@ -35,36 +35,40 @@ public partial class MainWindow : Window {
    if(_folderImporter.HasProfiles(folder)||string.Equals(Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)),"joystick",StringComparison.OrdinalIgnoreCase)||Directory.Exists(Path.Combine(folder,"joystick"))) {
     ImportStatus.Text="Reading local Saved Games joystick profiles…";
     var result=await _folderImporter.ImportAsync(folder);
-    if(!result.Succeeded) {
-     ImportStatus.Text="Profile import needs attention: "+string.Join("; ",result.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message));
+    if(result.Profiles.Count==0) {
+     ShowImportError("No readable joystick profiles were found. "+string.Join("; ",result.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message)));
      return;
     }
     _lastViewModel=new HueyImportViewModel(result);
     ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. Saved Games joystick folders have no kneeboard images.";
+    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. Use View imported to reopen.";
    } else {
     var common=new OpenFolderDialog {Title="Select the DCS-Common Git repository root"};
     if(common.ShowDialog(this)!=true)return;
     ImportStatus.Text="Reading committed Huey, DCS-Common, and kneeboard PNG sources…";
     var preview=await _loader.LoadAsync(common.FolderName,folder);
     if(!preview.Import.Succeeded) {
-     ImportStatus.Text="Import needs attention: "+string.Join("; ",preview.Import.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message));
+     ShowImportError("Huey source import needs attention: "+string.Join("; ",preview.Import.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message)));
      return;
     }
     _lastViewModel=new HueyImportViewModel(preview);
     ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles and {preview.Images.Count} existing rendered kneeboard PNGs. No files changed.";
+    ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
    }
    ShowImported();
   }
   catch(Exception ex) {
-   ImportStatus.Text=$"Unable to open this source: {ex.Message}";
+   ShowImportError($"Unable to open this source: {ex.Message}");
   }
   finally {ImportHueyButton.IsEnabled=true;}
  }
  private void ViewImported_Click(object sender,RoutedEventArgs e) {
   try {ShowImported();}
-  catch(Exception ex) {ImportStatus.Text=$"Unable to show the imported preview: {ex.Message}";}
+  catch(Exception ex) {ShowImportError($"Unable to show the imported preview: {ex.Message}");}
+ }
+ private void ShowImportError(string message) {
+  ImportStatus.Text=message;
+  MessageBox.Show(this,message,"Import needs attention",MessageBoxButton.OK,MessageBoxImage.Warning);
  }
  private void ShowImported() {
   if(_lastViewModel is null)return;
