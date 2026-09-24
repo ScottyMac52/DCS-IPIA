@@ -27,6 +27,8 @@
           <ComboBoxItem Content="Light" Tag="Light"/>
           <ComboBoxItem Content="Dark" Tag="Dark"/>
         </ComboBox>
+        <Button Content="Settings" Padding="14,8" Margin="0,0,6,0"
+                Click="Settings_Click" ToolTip="Theme and occupied-destination behavior."/>
         <Button x:Name="ImportHueyButton" Content="Open source (read-only)" Padding="14,8" Margin="6,0"
                 Click="ImportHuey_Click" ToolTip="Choose a Huey Git repository or a DCS Saved Games module/joystick folder." />
         <Button x:Name="ViewImportedButton" Content="View imported" IsEnabled="False" Padding="14,8" Margin="6,0"

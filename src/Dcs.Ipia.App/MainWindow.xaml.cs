@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Microsoft.Win32;
@@ -11,17 +12,20 @@ namespace DcsIpia.Presentation;
 public partial class MainWindow : Window {
  private readonly IHueyWorkspaceLoader _loader;
  private readonly IDcsFolderImporter _folderImporter;
+ private readonly IAppSettingsService _settings;
  private HueyImportViewModel? _lastViewModel;
- /// <summary>Initializes the workspace and restores the saved appearance preference.</summary>
- public MainWindow():this(new HueyWorkspaceLoader(),new DcsFolderImporter()) {}
- /// <summary>Initializes the workspace with read-only application import boundaries.</summary>
+ /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
  /// <param name="loader">The committed Huey workspace loader.</param>
  /// <param name="folderImporter">The live Saved Games profile reader.</param>
- internal MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter) {
+ /// <param name="settings">The validated user preference service.</param>
+ public MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter,IAppSettingsService settings) {
   _loader=loader??throw new ArgumentNullException(nameof(loader));
   _folderImporter=folderImporter??throw new ArgumentNullException(nameof(folderImporter));
+  _settings=settings??throw new ArgumentNullException(nameof(settings));
   InitializeComponent();
-  ThemePicker.SelectedIndex=ThemeManager.LoadPreference()=="Dark"?1:0;
+  ThemeManager.Apply(_settings.Current.Theme.ToString());
+  ThemePicker.SelectedIndex=_settings.Current.Theme==AppearanceTheme.Dark?1:0;
+  ThemeSaveStatus.Text=_settings.LastError??string.Empty;
  }
  #region BEGIN Public
  #endregion END Public
@@ -77,8 +81,15 @@ public partial class MainWindow : Window {
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(ThemePicker.SelectedItem is not ComboBoxItem {Tag:string theme}) return;
-  var saved=ThemeManager.Apply(theme);
-  ThemeSaveStatus.Text=saved?string.Empty:"Theme changed for this session, but the preference could not be saved.";
+  ThemeManager.Apply(theme);
+  var saved=_settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
+  ThemeSaveStatus.Text=saved?string.Empty:_settings.LastError??"Theme changed for this session but was not saved.";
+ }
+ private void Settings_Click(object sender,RoutedEventArgs e) {
+  var dialog=new SettingsWindow(_settings) {Owner=this};
+  dialog.ShowDialog();
+  ThemePicker.SelectedIndex=_settings.Current.Theme==AppearanceTheme.Dark?1:0;
+  ThemeSaveStatus.Text=_settings.LastError??string.Empty;
  }
  #endregion END private helpers
 }
