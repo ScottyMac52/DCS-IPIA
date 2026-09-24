@@ -1,0 +1,29 @@
+<Window x:Class="DcsIpia.Presentation.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DCS-IPIA settings" Width="470" Height="330" MinWidth="420" MinHeight="310"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
+  <StackPanel Margin="24">
+    <TextBlock FontSize="23" FontWeight="SemiBold" Text="Settings"/>
+    <TextBlock Margin="0,6,0,22" Foreground="{DynamicResource SecondaryTextBrush}"
+               Text="Preferences apply now and are saved for this Windows user."/>
+    <TextBlock FontWeight="SemiBold" Text="Appearance theme"/>
+    <ComboBox x:Name="ThemeChoice" Width="180" HorizontalAlignment="Left" Margin="0,6,0,20"
+              AutomationProperties.Name="Appearance theme" SelectionChanged="ThemeChoice_SelectionChanged">
+      <ComboBoxItem Content="Light" Tag="Light"/>
+      <ComboBoxItem Content="Dark" Tag="Dark"/>
+    </ComboBox>
+    <TextBlock FontWeight="SemiBold" Text="Occupied destination"/>
+    <ComboBox x:Name="ConflictChoice" Width="235" HorizontalAlignment="Left" Margin="0,6,0,8"
+              AutomationProperties.Name="Occupied destination behavior" SelectionChanged="ConflictChoice_SelectionChanged">
+      <ComboBoxItem Content="Ask before replacing" Tag="Ask"/>
+      <ComboBoxItem Content="Replace in draft" Tag="ReplaceInDraft"/>
+      <ComboBoxItem Content="Do not replace" Tag="Reject"/>
+    </ComboBox>
+    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
+               Text="This choice will control assignment drops when the editor is enabled. No source files are edited by changing a preference."/>
+    <TextBlock x:Name="SaveStatus" Margin="0,12,0,0" TextWrapping="Wrap"
+               Foreground="{DynamicResource SecondaryTextBrush}" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
+</Window>
