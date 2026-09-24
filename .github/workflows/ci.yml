@@ -31,6 +31,8 @@ jobs:
         run: dotnet build DCS-IPIA.sln --configuration Release
       - name: Run tests on Windows
         run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build
+      - name: Open both WPF import previews
+        run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
 
   csharp-layout:
     runs-on: ubuntu-latest
