@@ -83,6 +83,7 @@ public sealed class AppSettingsServiceTests : IDisposable {
 
  /// <summary>Missing or invalid packaged settings use safe defaults.</summary>
  [Fact] public void Malformed_packaged_defaults_use_safe_values() {
+  Directory.CreateDirectory(_folder);
   File.WriteAllText(Defaults,"[]");
   var service=Open();
   Assert.Equal(AppearanceTheme.Light,service.Current.Theme);
