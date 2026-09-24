@@ -78,7 +78,7 @@ public partial class HueyImportWindow : Window {
   _updatingCategories=true;
   if(PaletteCategory is not null) {
    var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_viewModel.ModuleCommands;
-   PaletteCategory.ItemsSource=new[]{"All categories"}
+   PaletteCategory.ItemsSource=Enumerable.Repeat("All categories",1)
     .Concat(all.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
    PaletteCategory.SelectedIndex=0;
   }
