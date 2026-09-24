@@ -40,7 +40,8 @@ public sealed class HueyWorkspaceLoaderTests {
      var rects=string.Join("",controls.Select((control,i)=>$"<!-- box:{control} --><rect x='10' y='{10+i*48}' width='55' height='45'/>"));
      var path=Path.Combine(common,"assets","shared","hardware","svg",device+".svg");
      Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-     File.WriteAllText(path,$"<svg viewBox='0 0 960 720'><image href='data:image/png;base64,{Convert.ToBase64String(image)}'/>{rects}</svg>");
+     var mime=device=="grip-f18c"?"jpeg":"png";
+     File.WriteAllText(path,$"<svg viewBox='0 0 960 720'><image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>{rects}</svg>");
     }
    }
    Commit(common);Commit(huey);
