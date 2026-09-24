@@ -35,7 +35,7 @@ public static class CommandPalette {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static IReadOnlyList<CommandPaletteEntry> Sort(IEnumerable<CommandPaletteEntry> entries)=>
+ private static CommandPaletteEntry[] Sort(IEnumerable<CommandPaletteEntry> entries)=>
   entries.OrderBy(x=>x.Name,StringComparer.OrdinalIgnoreCase)
    .ThenBy(x=>x.Category,StringComparer.OrdinalIgnoreCase)
    .ThenBy(x=>x.Id,StringComparer.Ordinal).ToArray();
