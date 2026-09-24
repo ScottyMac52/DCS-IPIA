@@ -112,7 +112,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
     if(!devices.ContainsKey(deviceKey)||!profiles.Any(x=>x.DeviceId==deviceKey&&x.Instance==OptionalText(item,"deviceInstance")))
      throw new FormatException($"UI Layer utilization has no matching Huey device instance: {deviceKey}.");
     foreach(var modifier in item.GetProperty("modifiers").EnumerateArray())
-     if(!uiModifiers.Contains(modifier.GetString()))throw new FormatException($"Unknown canonical UI Layer modifier {modifier.GetString()}.");
+     if(!uiModifiers.Contains(modifier.GetString()??string.Empty))throw new FormatException($"Unknown canonical UI Layer modifier {modifier.GetString()}.");
     if(used.Add(id))usageList.Add(new(module.Id,id,true));
    }
    var provenance=files.Select(x=>new SourceProvenance("ScottyMac52/DCS-UH-1H-Huey",request.Commit!,x.Key,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Value))))).ToArray();
