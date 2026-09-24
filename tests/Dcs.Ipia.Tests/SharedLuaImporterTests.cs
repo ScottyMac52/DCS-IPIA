@@ -21,7 +21,7 @@ public sealed class SharedLuaImporterTests {
   Assert.Equal(19,result.Provenance.Count);
   Assert.Equal(28,result.Controls.Count(x=>x.Control.DeviceId==request.Catalog.Devices.Single(y=>y.StableKey=="tm-mfd").Id));
   Assert.Contains(result.Controls,x=>x.Control.StableKey=="mfd-rocker-brt-up"&&x.InputKey=="JOY_BTN25"&&x.Group=="brightness"&&x.Position=="up");
-  Assert.Contains(result.Controls,x=>x.SourceType=="button-position"&&x.Control.Kind==Dcs.Ipia.Domain.ControlKind.Button);
+  Assert.Contains(result.Controls,x=>x.SourceType=="button-position"&&x.Control.Kind==global::Dcs.Ipia.Domain.ControlKind.Button);
   Assert.Contains(result.Profiles,x=>x.DeviceId=="tm-mfd"&&x.Instance=="3");
   Assert.Contains(result.Profiles,x=>x.DeviceId=="moza-ab9");
   Assert.Contains(result.Profiles,x=>x.DeviceId=="keyboard");
