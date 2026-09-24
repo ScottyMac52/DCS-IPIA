@@ -32,7 +32,8 @@ public sealed class CommandPaletteTests {
    new DcsCommandDefinition(Guid.NewGuid(),Guid.NewGuid(),"PAUSE","Active Pause","Simulation",false)
   };
   var entries=CommandPalette.FromUiLayer(catalog);
-  Assert.Equal(new[]{"Active Pause","VR Zoom"},entries.Select(x=>x.Name));
+  Assert.Equal("Active Pause",entries[0].Name);
+  Assert.Equal("VR Zoom",entries[1].Name);
   Assert.Equal("VR Zoom",Assert.Single(CommandPalette.Search(entries,"zoom")).Name);
   Assert.Equal("Active Pause",Assert.Single(CommandPalette.Search(entries,"simulation")).Name);
   Assert.Equal(2,CommandPalette.Search(entries," ").Count);
