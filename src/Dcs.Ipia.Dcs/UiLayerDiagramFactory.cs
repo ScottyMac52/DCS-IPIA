@@ -13,8 +13,9 @@ public static class UiLayerDiagramFactory {
  /// <param name="import">Validated Huey consumer import.</param>
  /// <param name="catalog">Validated DCS-Common catalog.</param>
  /// <param name="sources">Committed shared SVG texts keyed by repository path.</param>
- /// <returns>Only diagrams with explicit module usage.</returns>
- public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources) {
+ /// <param name="shared">Validated physical-to-logical control mappings.</param>
+ /// <returns>Authored diagrams and their mapped controls for each supported profile.</returns>
+ public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null) {
   ArgumentNullException.ThrowIfNull(import);ArgumentNullException.ThrowIfNull(catalog);ArgumentNullException.ThrowIfNull(sources);
   if(!import.Succeeded||!catalog.Succeeded)throw new ArgumentException("Validated imports are required.");
   var usage=import.Metadata["config/kneeboard.json"].GetProperty("uiLayerUtilization").GetProperty("bindings");
@@ -22,9 +23,9 @@ public static class UiLayerDiagramFactory {
   foreach(var profile in import.Configuration!.Profiles) {
    var rows=usage.EnumerateArray().Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
     &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
-   if(rows.Length==0)continue;
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
-   var template=catalog.Templates.Single(x=>x.DeviceKey==device.StableKey);
+   var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);
+   if(template is null)continue;
    if(template.Instances.Count>0&&!template.Instances.Contains(profile.Instance,StringComparer.Ordinal))
     throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
@@ -50,6 +51,17 @@ public static class UiLayerDiagramFactory {
      throw new InvalidDataException($"Graphic box {marker} has no adjacent rectangle in {path}.");
     boxes.Add(marker["box:".Length..].Trim(),element);
    }
+   var mapped=(shared?.Controls??[]).Where(x=>x.Control.DeviceId==device.Id)
+    .ToDictionary(x=>x.Control.StableKey,x=>x,StringComparer.Ordinal);
+   var controls=boxes.Select(pair=>{
+    var box=pair.Value;
+    if(!mapped.TryGetValue(pair.Key,out var mapping))return null;
+    var label=box.ElementsAfterSelf().FirstOrDefault(x=>x.Name.LocalName=="text"&&
+     x.Attribute("id")?.Value=="lbl-"+pair.Key)?.Value.Trim()??pair.Key;
+    return new HardwareGraphicControl(pair.Key,label,mapping.InputKey,Number(box.Attribute("x")?.Value),
+     Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value),
+     mapping.Control.Kind==global::Dcs.Ipia.Domain.ControlKind.Axis);
+   }).OfType<HardwareGraphicControl>().OrderBy(x=>x.Control,StringComparer.Ordinal).ToArray();
    var callouts=new List<UiLayerCallout>();
    foreach(var row in rows) {
     var function=row.GetProperty("functionId").GetString()!;
@@ -58,9 +70,11 @@ public static class UiLayerDiagramFactory {
     var command=catalog.Commands.Single(x=>x.Id==global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function",function));
     var modifiers=string.Join(" + ",row.GetProperty("modifiers").EnumerateArray().Select(x=>x.GetString()));
     callouts.Add(new(callouts.Count+1,control,command.Name,modifiers,Number(box.Attribute("x")?.Value),
-     Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)));
+     Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)) {CommandId=command.DcsCommandId});
    }
-   diagrams.Add(new(device.DisplayName,profile.Instance,path,width,height,background,callouts));
+   diagrams.Add(new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
+    Svg=svg,ProfileId=profile.Id,Controls=controls
+   });
   }
   return diagrams;
  }

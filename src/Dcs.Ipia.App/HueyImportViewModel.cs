@@ -11,7 +11,8 @@ public sealed class HueyImportViewModel {
   var result=preview.Import;
   if(!result.Succeeded)throw new ArgumentException("Only validated imports can be previewed.",nameof(preview));
   var configuration=result.Configuration!;
-  WindowTitle="Huey · committed source preview";
+  ModuleId=configuration.Module.Id;
+  WindowTitle="Huey · assignment editor";
   Summary=$"{configuration.Module.DisplayName} · {configuration.Profiles.Count} profiles · {configuration.Bindings.Count} bindings · {result.Pages.Count} pages";
   Commit=$"Huey commit: {result.Provenance[0].Commit}";
   SourceNote=$"{result.Provenance.Count} committed source files · {preview.Images.Count} existing kneeboard PNGs · uncommitted changes excluded";
@@ -24,6 +25,8 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
+  (Draft,DraftNote)=CreateDraft(preview);
+  ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)];
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
   PaletteSourceNote="Aircraft list: commands found in imported Huey bindings (partial catalog). UI Layer list: all commands in the validated DCS-Common catalog.";
@@ -40,6 +43,7 @@ public sealed class HueyImportViewModel {
  public HueyImportViewModel(DcsFolderImportResult folder) {
   ArgumentNullException.ThrowIfNull(folder);
   if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
+  ModuleId=Guid.Empty;
   WindowTitle="DCS Saved Games · joystick source preview";
   Summary=$"{folder.Profiles.Count} local profiles · {folder.Bindings.Count} bindings · {folder.Modifiers.Count} modifiers";
   Commit=$"Source folder: {folder.Folder}";
@@ -53,6 +57,9 @@ public sealed class HueyImportViewModel {
   PageKeys=[];
   Images=[];
   UiDiagrams=[];
+  Draft=null;
+  ModifierChoices=["Base"];
+  DraftNote="Import both committed repositories to edit an identified device.";
   ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
   UiCommands=[];
   PaletteSourceNote="Aircraft list: commands found in local bindings (partial catalog). Open both repositories for canonical UI Layer commands.";
@@ -62,6 +69,8 @@ public sealed class HueyImportViewModel {
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
  #region BEGIN Public
+ /// <summary>Gets the selected imported module identity.</summary>
+ public Guid ModuleId {get;}
  /// <summary>Gets the preview window title.</summary>
  public string WindowTitle {get;}
  /// <summary>Gets the module and import counts.</summary>
@@ -88,6 +97,12 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<CommandPaletteEntry> UiCommands {get;}
  /// <summary>Gets command source and completeness information.</summary>
  public string PaletteSourceNote {get;}
+ /// <summary>Gets the in-memory draft editor when canonical controls and source identities are available.</summary>
+ public DraftAssignmentService? Draft {get;}
+ /// <summary>Gets Base and explicit modifier names from the imported module.</summary>
+ public IReadOnlyList<string> ModifierChoices {get;}
+ /// <summary>Gets the editor availability or unmapped-binding diagnostic.</summary>
+ public string DraftNote {get;}
  /// <summary>Gets an explanation when graphics are unavailable.</summary>
  public IReadOnlyList<string> UiUsage {get;}
  /// <summary>Gets whether any source or graphic diagnostic requires attention.</summary>
@@ -97,4 +112,42 @@ public sealed class HueyImportViewModel {
  /// <summary>Gets source hashes or their availability explanation.</summary>
  public IReadOnlyList<string> Provenance {get;}
  #endregion END Public
+ #region BEGIN private helpers
+ private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview) {
+  var configuration=preview.Import.Configuration!;
+  if(preview.Diagrams.Count==0||preview.Diagrams.All(x=>x.Controls.Count==0))
+   return (null,"No mapped controls in a validated draw.io-generated SVG; editing is unavailable.");
+  try {
+   var moduleCommands=configuration.Bindings
+    .GroupBy(x=>x.CommandId,StringComparer.Ordinal)
+    .Select(x=>x.First())
+    .Select(x=>new DraftCommand(x.CommandId,x.CommandName,x.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module));
+   var uiCommands=preview.UiCommands
+    .Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer));
+   var assignments=new List<DraftAssignment>();
+   var unmatched=0;
+   foreach(var binding in configuration.Bindings.Where(x=>x.Disposition!=global::Dcs.Ipia.Domain.BindingDisposition.Removed)) {
+    var diagram=preview.Diagrams.FirstOrDefault(x=>x.ProfileId==binding.ProfileId);
+    var matches=diagram?.Controls.Where(x=>x.InputKey==binding.InputKey).ToArray()??[];
+    if(matches.Length!=1) {unmatched++;continue;}
+    var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,matches[0].InputKey,
+     string.Join("+",binding.Reformers));
+    assignments.Add(new(slot,new(binding.CommandId,binding.CommandName,binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
+   }
+   foreach(var diagram in preview.Diagrams)foreach(var callout in diagram.Callouts) {
+    var control=diagram.Controls.SingleOrDefault(x=>x.Control==callout.Control);
+    if(control is null) {unmatched++;continue;}
+    assignments.Add(new(new(configuration.Module.Id,diagram.ProfileId,AssignmentLayer.UiLayer,
+     global::Dcs.Ipia.Domain.BindingSection.Key,control.InputKey,callout.Modifier.Replace(" + ","+",StringComparison.Ordinal)),
+     new(callout.CommandId,callout.Function,false,AssignmentLayer.UiLayer)));
+   }
+   var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),assignments);
+   return (editor,unmatched==0?"Changes are staged in memory. Review, undo or discard them before leaving this window.":
+    $"{unmatched} imported bindings could not be mapped to authored controls and are excluded from this draft. No source file is changed.");
+  }
+  catch(Exception ex) when(ex is ArgumentException or InvalidOperationException) {
+   return (null,"Editing unavailable: "+ex.Message);
+  }
+ }
+ #endregion END private helpers
 }

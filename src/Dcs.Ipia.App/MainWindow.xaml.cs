@@ -76,7 +76,7 @@ public partial class MainWindow : Window {
  }
  private void ShowImported() {
   if(_lastViewModel is null)return;
-  var window=new HueyImportWindow(_lastViewModel){Owner=this};
+  var window=new HueyImportWindow(_lastViewModel,_settings){Owner=this};
   window.ShowDialog();
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {

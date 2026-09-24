@@ -57,12 +57,15 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(image,preview.Bytes);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
-   Assert.Equal(2,result.Diagrams.Count);
+   Assert.Equal(4,result.Diagrams.Count);
+   Assert.All(result.Diagrams,x=>Assert.Contains("<svg",x.Svg,StringComparison.Ordinal));
+   Assert.All(result.Diagrams,x=>Assert.NotEmpty(x.Controls));
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
    Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
    Assert.Contains(result.Diagrams.Single(x=>x.Instance is null).Callouts,
     x=>x.Control=="hornet-grip-paddle"&&x.Function=="Recenter VR"&&x.X==10);
-   Assert.DoesNotContain(result.Diagrams,x=>x.Instance=="MFD1"||x.Instance=="MFD2");
+   Assert.Contains(result.Diagrams,x=>x.Instance=="MFD1");
+   Assert.Contains(result.Diagrams,x=>x.Instance=="MFD2");
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
     x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
