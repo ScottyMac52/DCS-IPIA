@@ -17,7 +17,7 @@
     <DockPanel Grid.Row="0" Margin="0,0,0,20">
       <StackPanel>
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
-        <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Module workspace · interactive layout preview"/>
+        <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Module workspace · canonical device assignment editor"/>
       </StackPanel>
       <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
         <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -29,9 +29,9 @@
         </ComboBox>
         <Button Content="Settings" Padding="14,8" Margin="0,0,6,0"
                 Click="Settings_Click" ToolTip="Theme and occupied-destination behavior."/>
-        <Button x:Name="ImportHueyButton" Content="Open source (read-only)" Padding="14,8" Margin="6,0"
+        <Button x:Name="ImportHueyButton" Content="Import Huey sources" Padding="14,8" Margin="6,0"
                 Click="ImportHuey_Click" ToolTip="Choose a Huey Git repository or a DCS Saved Games module/joystick folder." />
-        <Button x:Name="ViewImportedButton" Content="View imported" IsEnabled="False" Padding="14,8" Margin="6,0"
+        <Button x:Name="ViewImportedButton" Content="Open assignment editor" IsEnabled="False" Padding="14,8" Margin="6,0"
                 Click="ViewImported_Click" ToolTip="Review the last imported source data."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"
                 ToolTip="Available when module validation is connected."/>
@@ -88,98 +88,29 @@
       </TabItem>
 
       <TabItem Header="Assignments">
-        <Grid Margin="20,0,0,0">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="*"/>
-          </Grid.ColumnDefinitions>
-          <Border Grid.Column="0" Style="{DynamicResource Card}" Margin="0,0,16,0">
-            <StackPanel>
-              <TextBlock Style="{DynamicResource SectionTitle}" Text="Device assignments"/>
-              <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,12"
-                         Text="Example: TM MFD · instance MFD3 · Base layer"/>
-              <WrapPanel Margin="0,0,0,16">
-                <ComboBox Width="170" IsEnabled="False" AutomationProperties.Name="Device instance">
-                  <ComboBoxItem Content="MFD3" IsSelected="True"/>
-                </ComboBox>
-                <ComboBox Width="170" Margin="12,0,0,0" IsEnabled="False"
-                          AutomationProperties.Name="Modifier layer">
-                  <ComboBoxItem Content="Base layer" IsSelected="True"/>
-                </ComboBox>
-              </WrapPanel>
-              <Border BorderBrush="{DynamicResource CanvasBorderBrush}" BorderThickness="2" CornerRadius="12"
-                      Background="{DynamicResource CanvasBackgroundBrush}" Padding="20" MinHeight="300">
-                <Grid>
-                  <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                  </Grid.RowDefinitions>
-                  <UniformGrid Grid.Row="0" Rows="1" Columns="5">
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 1"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 2"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 3"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 4"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 5"/></Border>
-                  </UniformGrid>
-                  <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                             FontSize="17" Foreground="{DynamicResource SecondaryTextBrush}" Text="Controller graphic and callouts"/>
-                  <UniformGrid Grid.Row="2" Rows="1" Columns="5">
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 15"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 14"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 13"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 12"/></Border>
-                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 11"/></Border>
-                  </UniformGrid>
-                </Grid>
-              </Border>
-              <TextBlock Style="{DynamicResource Hint}" Margin="0,12,0,0"
-                         Text="The production view will use shared hardware geometry. A searchable control list will mirror the graphic for keyboard and screen-reader users."/>
-            </StackPanel>
-          </Border>
-          <Border Grid.Column="1" Style="{DynamicResource Card}">
-            <StackPanel>
-              <TextBlock Style="{DynamicResource SectionTitle}" Text="Selected control"/>
-              <TextBlock FontWeight="SemiBold" FontSize="16" Text="OSB 1 · MFD3"/>
-              <TextBlock Style="{DynamicResource Hint}" Margin="0,6,0,18"
-                         Text="Source and effective binding will appear here."/>
-              <TextBlock Text="Command" FontWeight="SemiBold"/>
-              <TextBox Text="Search DCS commands" IsReadOnly="True" IsEnabled="False"
-                       Margin="0,6,0,14" AutomationProperties.Name="Command search"/>
-              <TextBlock Text="Modifier chord" FontWeight="SemiBold"/>
-              <TextBox Text="Base" IsReadOnly="True" IsEnabled="False" Margin="0,6,0,14"/>
-              <TextBlock Text="Disposition" FontWeight="SemiBold"/>
-              <TextBlock Style="{DynamicResource Hint}" Margin="0,6,0,18"
-                         Text="Add · Replace · Remove · Restore"/>
-              <Button Content="Stage change" IsEnabled="False" Padding="12,8"
-                      ToolTip="Enabled after edit services and validation are connected."/>
-            </StackPanel>
-          </Border>
-        </Grid>
+        <Border Style="{DynamicResource Card}" Margin="20,0,0,0">
+          <StackPanel>
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="Assignment editor"/>
+            <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,16" TextWrapping="Wrap"
+                       Text="Open committed Huey and DCS-Common sources to see the real device image and draw.io-generated SVG callouts. Search module or UI Layer commands, then drag, right-click, or use the inspector to stage assignments."/>
+            <Button Content="Open assignment editor" Click="OpenEditor_Click" Padding="15,9"
+                    HorizontalAlignment="Left" AutomationProperties.Name="Open real assignment editor"/>
+            <TextBlock Style="{DynamicResource Hint}" Margin="0,14,0,0" TextWrapping="Wrap"
+                       Text="The editor keeps changes in memory with undo and review. Saving source changes is part of the next workstream."/>
+          </StackPanel>
+        </Border>
       </TabItem>
 
       <TabItem Header="UI Layer">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,0,0,0">
+        <Border Style="{DynamicResource Card}" Margin="20,0,0,0">
           <StackPanel>
-            <TextBlock Style="{DynamicResource SectionTitle}" Text="UI Layer in this module"/>
-            <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,18"
-                       Text="The shared DCS-Common template and this module's overlay are always shown with separate ownership."/>
-            <Border Style="{DynamicResource Card}">
-              <StackPanel>
-                <TextBlock FontSize="17" FontWeight="SemiBold" Text="Shared template · read-only"/>
-                <TextBlock Style="{DynamicResource Hint}" Margin="0,8,0,0"
-                           Text="Canonical functions, control mappings and modifiers imported from DCS-Common. A module edit never writes to this source."/>
-              </StackPanel>
-            </Border>
-            <Border Style="{DynamicResource Card}">
-              <StackPanel>
-                <TextBlock FontSize="17" FontWeight="SemiBold" Text="UH-1H overlay · module scope"/>
-                <TextBlock Style="{DynamicResource Hint}" Margin="0,8,0,0"
-                           Text="Add or remove module-only assignments here, then preview the effective result on the same device canvas. Other modules are unaffected."/>
-              </StackPanel>
-            </Border>
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="UI Layer · this module"/>
+            <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,16" TextWrapping="Wrap"
+                       Text="Open the same graphical editor and choose UI Layer commands. The DCS-Common SVG and function catalog are shared; staged assignments belong only to the imported Huey module."/>
+            <Button Content="Open UI Layer editor" Click="OpenEditor_Click" Padding="15,9"
+                    HorizontalAlignment="Left" AutomationProperties.Name="Open graphical UI Layer editor"/>
           </StackPanel>
-        </ScrollViewer>
+        </Border>
       </TabItem>
 
       <TabItem Header="Kneeboard">

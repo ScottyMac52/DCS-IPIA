@@ -66,6 +66,10 @@ public partial class MainWindow : Window {
   }
   finally {ImportHueyButton.IsEnabled=true;}
  }
+ private void OpenEditor_Click(object sender,RoutedEventArgs e) {
+  if(_lastViewModel is null)ImportHuey_Click(sender,e);
+  else ViewImported_Click(sender,e);
+ }
  private void ViewImported_Click(object sender,RoutedEventArgs e) {
   try {ShowImported();}
   catch(Exception ex) {ShowImportError($"Unable to show the imported preview: {ex.Message}");}
