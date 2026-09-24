@@ -36,7 +36,7 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(13,result.UiFunctionKeys.Count);
    Assert.StartsWith("{\n",result.Sources["config/kneeboard.json"],StringComparison.Ordinal);
   }
-  finally {if(Directory.Exists(temp))Directory.Delete(temp,true);}
+  finally {DeleteFixture(temp);}
  }
  /// <summary>Selection must point at a repository root rather than a nested directory.</summary>
  [Fact] public async Task Rejects_non_repository_folder() {
@@ -45,10 +45,16 @@ public sealed class HueyWorkspaceLoaderTests {
    Directory.CreateDirectory(path);
    await Assert.ThrowsAsync<InvalidDataException>(()=>new HueyWorkspaceLoader().LoadAsync(path,path));
   }
-  finally {if(Directory.Exists(path))Directory.Delete(path,true);}
+  finally {DeleteFixture(path);}
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static void DeleteFixture(string path) {
+  if(!Directory.Exists(path))return;
+  foreach(var file in Directory.EnumerateFiles(path,"*",SearchOption.AllDirectories))
+   File.SetAttributes(file,FileAttributes.Normal);
+  Directory.Delete(path,true);
+ }
  private static void Copy(string source,string root,string path) {
   var target=Path.Combine(root,path);
   Directory.CreateDirectory(Path.GetDirectoryName(target)!);
