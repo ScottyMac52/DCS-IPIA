@@ -23,7 +23,8 @@ public sealed class HueyImportViewModel {
   Pages=result.Pages.Select(x=>$"{x.Order:00}  ·  {x.Title}").ToArray();
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
-  UiUsage=result.UiFunctionKeys.Select(x=>$"{x}  ·  used by this module").ToArray();
+  UiDiagrams=preview.Diagrams;
+  UiUsage=preview.Diagrams.Count==0?["No graphical UI Layer assignments found in this committed source."]:[];
   Diagnostics=result.Diagnostics.Count==0?["No import diagnostics."]:result.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=result.Provenance.Select(x=>$"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
  }
@@ -44,7 +45,8 @@ public sealed class HueyImportViewModel {
   Pages=["Saved Games joystick files contain no kneeboard images. Open a Huey repository to preview its committed PNGs."];
   PageKeys=[];
   Images=[];
-  UiUsage=["Canonical UI Layer usage requires a Huey repository and DCS-Common catalog."];
+  UiDiagrams=[];
+  UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
@@ -67,7 +69,9 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<string> PageKeys {get;}
  /// <summary>Gets existing committed kneeboard PNGs.</summary>
  public IReadOnlyList<KneeboardImageAsset> Images {get;}
- /// <summary>Gets canonical UI Layer function rows or an availability explanation.</summary>
+ /// <summary>Gets diagrams positioned on committed shared hardware images.</summary>
+ public IReadOnlyList<UiLayerDiagram> UiDiagrams {get;}
+ /// <summary>Gets an explanation when graphics are unavailable.</summary>
  public IReadOnlyList<string> UiUsage {get;}
  /// <summary>Gets import diagnostics.</summary>
  public IReadOnlyList<string> Diagnostics {get;}
