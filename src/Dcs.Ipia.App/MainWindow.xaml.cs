@@ -1,23 +1,25 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Microsoft.Win32;
 
 namespace DcsIpia.Presentation;
 
-/// <summary>Displays the theme-aware module workspace and opens read-only Huey imports.</summary>
+/// <summary>Displays the themed module workspace and opens read-only repository or Saved Games previews.</summary>
 public partial class MainWindow : Window {
  private readonly IHueyWorkspaceLoader _loader;
- private HueyImportResult? _lastImport;
+ private readonly IDcsFolderImporter _folderImporter;
+ private HueyImportViewModel? _lastViewModel;
  /// <summary>Initializes the workspace and restores the saved appearance preference.</summary>
- public MainWindow():this(new HueyWorkspaceLoader()) {}
- /// <summary>Initializes the workspace with an application import boundary.</summary>
- /// <param name="loader">The read-only Huey workspace loader.</param>
- internal MainWindow(IHueyWorkspaceLoader loader) {
+ public MainWindow():this(new HueyWorkspaceLoader(),new DcsFolderImporter()) {}
+ /// <summary>Initializes the workspace with read-only application import boundaries.</summary>
+ /// <param name="loader">The committed Huey workspace loader.</param>
+ /// <param name="folderImporter">The live Saved Games profile reader.</param>
+ internal MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter) {
   _loader=loader??throw new ArgumentNullException(nameof(loader));
+  _folderImporter=folderImporter??throw new ArgumentNullException(nameof(folderImporter));
   InitializeComponent();
   ThemePicker.SelectedIndex=ThemeManager.LoadPreference()=="Dark"?1:0;
  }
@@ -25,32 +27,48 @@ public partial class MainWindow : Window {
  #endregion END Public
  #region BEGIN private helpers
  private async void ImportHuey_Click(object sender,RoutedEventArgs e) {
-  var huey=new OpenFolderDialog {Title="Select the DCS-UH-1H-Huey repository root"};
-  if(huey.ShowDialog(this)!=true)return;
-  var common=new OpenFolderDialog {Title="Select the DCS-Common repository root"};
-  if(common.ShowDialog(this)!=true)return;
   ImportHueyButton.IsEnabled=false;
-  ImportStatus.Text="Reading committed Huey and DCS-Common source files…";
   try {
-   var result=await _loader.LoadAsync(common.FolderName,huey.FolderName);
-   if(!result.Succeeded) {
-    ImportStatus.Text="Import needs attention: "+string.Join("; ",result.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message));
-    return;
+   var selected=new OpenFolderDialog {Title="Select Huey repository root or Saved Games module/joystick folder"};
+   if(selected.ShowDialog(this)!=true)return;
+   var folder=selected.FolderName;
+   if(_folderImporter.HasProfiles(folder)||string.Equals(Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)),"joystick",StringComparison.OrdinalIgnoreCase)||Directory.Exists(Path.Combine(folder,"joystick"))) {
+    ImportStatus.Text="Reading local Saved Games joystick profiles…";
+    var result=await _folderImporter.ImportAsync(folder);
+    if(!result.Succeeded) {
+     ImportStatus.Text="Profile import needs attention: "+string.Join("; ",result.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message));
+     return;
+    }
+    _lastViewModel=new HueyImportViewModel(result);
+    ViewImportedButton.IsEnabled=true;
+    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. Saved Games joystick folders have no kneeboard images.";
+   } else {
+    var common=new OpenFolderDialog {Title="Select the DCS-Common Git repository root"};
+    if(common.ShowDialog(this)!=true)return;
+    ImportStatus.Text="Reading committed Huey, DCS-Common, and kneeboard PNG sources…";
+    var preview=await _loader.LoadAsync(common.FolderName,folder);
+    if(!preview.Import.Succeeded) {
+     ImportStatus.Text="Import needs attention: "+string.Join("; ",preview.Import.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message));
+     return;
+    }
+    _lastViewModel=new HueyImportViewModel(preview);
+    ViewImportedButton.IsEnabled=true;
+    ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles and {preview.Images.Count} existing rendered kneeboard PNGs. No files changed.";
    }
-   _lastImport=result;
-   ViewImportedButton.IsEnabled=true;
-   ImportStatus.Text=$"Imported {result.Configuration!.Profiles.Count} Huey profiles and {result.Pages.Count} kneeboard pages from committed sources. No files were changed.";
    ShowImported();
   }
-  catch(Exception ex) when(ex is IOException or InvalidOperationException or UnauthorizedAccessException or ArgumentException) {
-   ImportStatus.Text=$"Unable to import: {ex.Message}";
+  catch(Exception ex) {
+   ImportStatus.Text=$"Unable to open this source: {ex.Message}";
   }
   finally {ImportHueyButton.IsEnabled=true;}
  }
- private void ViewImported_Click(object sender,RoutedEventArgs e)=>ShowImported();
+ private void ViewImported_Click(object sender,RoutedEventArgs e) {
+  try {ShowImported();}
+  catch(Exception ex) {ImportStatus.Text=$"Unable to show the imported preview: {ex.Message}";}
+ }
  private void ShowImported() {
-  if(_lastImport is null)return;
-  var window=new HueyImportWindow(new HueyImportViewModel(_lastImport)){Owner=this};
+  if(_lastViewModel is null)return;
+  var window=new HueyImportWindow(_lastViewModel){Owner=this};
   window.ShowDialog();
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {
