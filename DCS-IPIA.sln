@@ -18,6 +18,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dcs.Ipia.Rendering", "src\D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dcs.Ipia.Tests", "tests\Dcs.Ipia.Tests\Dcs.Ipia.Tests.csproj", "{D3BB5F48-0A89-4578-B889-C36800A8E741}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dcs.Ipia.App.Smoke", "tests\Dcs.Ipia.App.Smoke\Dcs.Ipia.App.Smoke.csproj", "{38E57D91-A1C3-4C8F-B8C2-B8260168B315}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{D3BB5F48-0A89-4578-B889-C36800A8E741}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3BB5F48-0A89-4578-B889-C36800A8E741}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3BB5F48-0A89-4578-B889-C36800A8E741}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38E57D91-A1C3-4C8F-B8C2-B8260168B315}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38E57D91-A1C3-4C8F-B8C2-B8260168B315}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38E57D91-A1C3-4C8F-B8C2-B8260168B315}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38E57D91-A1C3-4C8F-B8C2-B8260168B315}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
