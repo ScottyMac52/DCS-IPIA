@@ -39,9 +39,9 @@ public sealed class CommandPaletteTests {
   var entries=CommandPalette.FromBindings(bindings,catalog);
   Assert.Equal(3,entries.Count);
   Assert.Equal("Autopilot / Modes",Assert.Single(CommandPalette.Filter(entries,null,"Autopilot / Modes")).Category);
-  Assert.Equal("Autopilot On",Assert.Single(entries.Where(x=>x.Id=="dAuto")).Name);
-  Assert.Equal("Uncategorized",Assert.Single(entries.Where(x=>x.Id=="aMissing")).Category);
-  Assert.True(Assert.Single(entries.Where(x=>x.Id=="aCollective")).IsAxis);
+  Assert.Equal("Autopilot On",Assert.Single(entries,x=>x.Id=="dAuto").Name);
+  Assert.Equal("Uncategorized",Assert.Single(entries,x=>x.Id=="aMissing").Category);
+  Assert.True(Assert.Single(entries,x=>x.Id=="aCollective").IsAxis);
   Assert.Throws<ArgumentException>(()=>CommandPalette.FromBindings(bindings,
    [new CommandPaletteEntry("dAuto","Wrong type","Autopilot",true)]));
  }

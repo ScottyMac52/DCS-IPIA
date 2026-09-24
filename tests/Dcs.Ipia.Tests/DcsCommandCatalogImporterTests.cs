@@ -10,10 +10,10 @@ public sealed class DcsCommandCatalogImporterTests {
  [Fact] public void Imports_named_categories_and_assignable_commands() {
   var entries=DcsCommandCatalogImporter.Parse(Sample,"uh-1h");
   Assert.Equal(2,entries.Count);
-  Assert.Equal("Autopilot / Modes",Assert.Single(entries.Where(x=>x.Id=="dAuto")).Category);
-  Assert.False(Assert.Single(entries.Where(x=>x.Id=="dAuto")).IsAxis);
-  Assert.Equal("Flight Controls",Assert.Single(entries.Where(x=>x.Id=="aCollective")).Category);
-  Assert.True(Assert.Single(entries.Where(x=>x.Id=="aCollective")).IsAxis);
+  Assert.Equal("Autopilot / Modes",Assert.Single(entries,x=>x.Id=="dAuto").Category);
+  Assert.False(Assert.Single(entries,x=>x.Id=="dAuto").IsAxis);
+  Assert.Equal("Flight Controls",Assert.Single(entries,x=>x.Id=="aCollective").Category);
+  Assert.True(Assert.Single(entries,x=>x.Id=="aCollective").IsAxis);
  }
  /// <summary>The selected module, schema and command IDs must match before use.</summary>
  [Fact] public void Rejects_wrong_module_schema_and_duplicates() {
@@ -30,7 +30,7 @@ public sealed class DcsCommandCatalogImporterTests {
   Assert.Throws<FormatException>(()=>DcsCommandCatalogImporter.Parse(Sample.Replace("\"categoryPath\":[\"Flight Controls\"]","\"categoryPath\":null"),"UH-1H"));
   Assert.Throws<FormatException>(()=>DcsCommandCatalogImporter.Parse(Sample.Replace("\"bindingKey\":\"dAuto\",",""),"UH-1H"));
   var uncategorized=DcsCommandCatalogImporter.Parse(Sample.Replace("\"categoryPath\":[\"Autopilot\",\"Modes\"]","\"categoryPath\":[]"),"UH-1H");
-  Assert.Equal("Uncategorized",Assert.Single(uncategorized.Where(x=>x.Id=="dAuto")).Category);
+  Assert.Equal("Uncategorized",Assert.Single(uncategorized,x=>x.Id=="dAuto").Category);
  }
  #endregion END Public
  #region BEGIN private helpers
