@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
@@ -13,7 +14,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
  /// <param name="hueyRoot">Huey checkout root.</param>
  /// <param name="cancellationToken">Cancellation token for Git reads.</param>
  /// <returns>A validated Huey import including original committed source text.</returns>
- public async Task<HueyImportResult> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default) {
+ public async Task<HueyWorkspacePreview> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default) {
   var common=await RepositoryRootAsync(commonRoot,cancellationToken);
   var huey=await RepositoryRootAsync(hueyRoot,cancellationToken);
   var commonCommit=(await GitAsync(common,cancellationToken,"rev-parse","HEAD")).Trim();
@@ -35,7 +36,17 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
     ||x.StartsWith("src/Config/Input/UH-1H/joystick/",StringComparison.Ordinal)&&x.EndsWith(".diff.lua",StringComparison.Ordinal))
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
-  return new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
+  var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
+  if(!imported.Succeeded)return new(imported,[]);
+  var available=(await TrackedPathsAsync(huey,"kneeboard/UH-1H","kneeboard/UH-1H",cancellationToken)).ToHashSet(StringComparer.Ordinal);
+  var images=new List<KneeboardImageAsset>();
+  foreach(var page in imported.Pages) {
+   var path=$"kneeboard/UH-1H/{page.StableKey}.png";
+   if(!available.Contains(path))continue;
+   var bytes=await GitBytesAsync(huey,cancellationToken,"show",$"HEAD:{path}");
+   images.Add(new(page.StableKey,path,bytes,Convert.ToHexStringLower(SHA256.HashData(bytes))));
+  }
+  return new(imported,images);
  }
  #endregion END Public
  #region BEGIN private helpers
@@ -73,6 +84,21 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    return stdout;
   }
   catch(System.ComponentModel.Win32Exception ex) {throw new InvalidOperationException("Git is required to read committed source files.",ex);}
+ }
+ private static async Task<byte[]> GitBytesAsync(string root,CancellationToken ct,params string[] args) {
+  using var process=new Process();
+  process.StartInfo=new("git") {WorkingDirectory=root,RedirectStandardOutput=true,RedirectStandardError=true,UseShellExecute=false,CreateNoWindow=true};
+  foreach(var argument in args)process.StartInfo.ArgumentList.Add(argument);
+  try {
+   if(!process.Start())throw new InvalidOperationException("Unable to start Git.");
+   using var output=new MemoryStream();
+   var copy=process.StandardOutput.BaseStream.CopyToAsync(output,ct);
+   var error=process.StandardError.ReadToEndAsync(ct);
+   await Task.WhenAll(copy,process.WaitForExitAsync(ct));
+   if(process.ExitCode!=0)throw new InvalidDataException($"Git {args[0]} failed in {root}: {(await error).Trim()}");
+   return output.ToArray();
+  }
+  catch(System.ComponentModel.Win32Exception ex) {throw new InvalidOperationException("Git is required to read committed kneeboard images.",ex);}
  }
  private static readonly string[] SharedCatalogPaths=[
   "assets/shared/hardware/manifest.json",

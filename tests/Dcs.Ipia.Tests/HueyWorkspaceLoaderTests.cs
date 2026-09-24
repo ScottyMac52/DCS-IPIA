@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Dcs.Ipia.Dcs;
 using Xunit;
 
@@ -27,14 +28,22 @@ public sealed class HueyWorkspaceLoaderTests {
    var consumer=Path.Combine(fixtures,"Huey");
    foreach(var source in Directory.GetFiles(consumer,"*.*",SearchOption.AllDirectories))
     Copy(source,huey,Path.GetRelativePath(consumer,source));
+   var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZQAAAABJRU5ErkJggg==");
+   var imagePath=Path.Combine(huey,"kneeboard","UH-1H","00-UH1H-CONTROL-OVERVIEW.png");
+   Directory.CreateDirectory(Path.GetDirectoryName(imagePath)!);
+   File.WriteAllBytes(imagePath,image);
    Commit(common);Commit(huey);
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
    var result=await new HueyWorkspaceLoader().LoadAsync(common,huey);
-   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
-   Assert.Equal(5,result.Configuration!.Profiles.Count);
-   Assert.Equal(12,result.Provenance.Count);
-   Assert.Equal(13,result.UiFunctionKeys.Count);
-   Assert.StartsWith("{\n",result.Sources["config/kneeboard.json"],StringComparison.Ordinal);
+   Assert.True(result.Import.Succeeded,string.Join("; ",result.Import.Diagnostics.Select(x=>x.Message)));
+   Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
+   Assert.Equal(12,result.Import.Provenance.Count);
+   Assert.Equal(13,result.Import.UiFunctionKeys.Count);
+   Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);
+   var preview=Assert.Single(result.Images);
+   Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
+   Assert.Equal(image,preview.Bytes);
+   Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
   }
   finally {DeleteFixture(temp);}
  }

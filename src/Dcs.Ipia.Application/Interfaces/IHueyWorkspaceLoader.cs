@@ -8,6 +8,6 @@ public interface IHueyWorkspaceLoader {
  /// <param name="hueyRoot">The root of a local DCS-UH-1H-Huey Git checkout.</param>
  /// <param name="cancellationToken">Cancellation token for Git reads.</param>
  /// <returns>Validated Huey source data and provenance.</returns>
- Task<HueyImportResult> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default);
+ Task<HueyWorkspacePreview> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default);
  #endregion END Public
 }

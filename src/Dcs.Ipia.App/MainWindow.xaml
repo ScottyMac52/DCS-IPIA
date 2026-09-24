@@ -27,8 +27,8 @@
           <ComboBoxItem Content="Light" Tag="Light"/>
           <ComboBoxItem Content="Dark" Tag="Dark"/>
         </ComboBox>
-        <Button x:Name="ImportHueyButton" Content="Open Huey (read-only)" Padding="14,8" Margin="6,0"
-                Click="ImportHuey_Click" ToolTip="Select committed Huey and DCS-Common Git checkouts." />
+        <Button x:Name="ImportHueyButton" Content="Open source (read-only)" Padding="14,8" Margin="6,0"
+                Click="ImportHuey_Click" ToolTip="Choose a Huey Git repository or a DCS Saved Games module/joystick folder." />
         <Button x:Name="ViewImportedButton" Content="View imported" IsEnabled="False" Padding="14,8" Margin="6,0"
                 Click="ViewImported_Click" ToolTip="Review the last imported source data."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"
@@ -205,7 +205,7 @@
         <TextBlock x:Name="ThemeSaveStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
         <TextBlock x:Name="ImportStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
         <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
-                 Text="This workspace layout shows sample data. Open Huey (read-only) to inspect committed sources. Edit and build actions remain unavailable."/>
+                 Text="This workspace layout shows sample data. Open source (read-only) for live Saved Games profiles or committed Huey data and existing rendered PNGs. Edit and build remain unavailable."/>
       </StackPanel>
     </Border>
   </Grid>
