@@ -33,13 +33,15 @@ public static class Program {
    new Dictionary<string,System.Text.Json.JsonElement>(),new Dictionary<string,string>(),
    [new SourceProvenance("Huey",new string('a',40),"config/kneeboard.json","hash")],[]);
   var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZQAAAABJRU5ErkJggg==");
-  var svg=$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><image href='data:image/png;base64,{Convert.ToBase64String(image)}' width='200' height='150'/><!-- box:mfd-osb-t1-shifted --><rect x='10' y='10' width='60' height='40' fill='white'/><text id='lbl-mfd-osb-t1-shifted' x='20' y='20'>OSB01</text><!-- box:mfd-osb-t2 --><rect x='80' y='10' width='60' height='40' fill='white'/><text id='lbl-mfd-osb-t2' x='90' y='20'>OSB02</text></svg>";
+  var svg=$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><image href='data:image/png;base64,{Convert.ToBase64String(image)}' width='200' height='150'/><!-- box:mfd-osb-t1-shifted --><rect x='10' y='10' width='60' height='40' fill='white'/><text id='lbl-mfd-osb-t1-shifted' x='20' y='20'>OSB01</text><!-- box:mfd-osb-t2 --><rect x='80' y='10' width='60' height='40' fill='white'/><text id='lbl-mfd-osb-t2' x='90' y='20'>OSB02</text><!-- box:mfd-osb-t3 --><rect x='145' y='10' width='45' height='40' fill='white'/><text id='lbl-mfd-osb-t3' x='160' y='20'>OSB03</text></svg>";
   var diagram=new UiLayerDiagram("TM MFD","MFD3","assets/shared/hardware/svg/tm-mfd.svg",200,150,image,
    [new UiLayerCallout(1,"mfd-osb-t1-shifted","VR Zoom","MOZA_MODIFIER_BTN3",10,10,60,40) {CommandId="UI_ZOOM"}]) {
-   Svg=svg,ProfileId=mfd.Id,Controls=[new("mfd-osb-t1-shifted","OSB01","JOY_BTN1",10,10,60,40),new("mfd-osb-t2","OSB02","JOY_BTN2",80,10,60,40)]
+   Svg=svg,ProfileId=mfd.Id,Controls=[new("mfd-osb-t1-shifted","OSB01","JOY_BTN1",10,10,60,40),new("mfd-osb-t2","OSB02","JOY_BTN2",80,10,60,40),
+    new("mfd-osb-t3","OSB03","JOY_BTN3",145,10,45,40)]
   };
   var preview=new HueyWorkspacePreview(imported,[],[diagram]) {
-   UiCommands=[new(Guid.NewGuid(),Guid.NewGuid(),"UI_ZOOM","VR Zoom","VR",false)]
+   UiCommands=[new(Guid.NewGuid(),Guid.NewGuid(),"UI_ZOOM","VR Zoom","VR",false),
+    new(Guid.NewGuid(),Guid.NewGuid(),"UI_PAUSE","Active Pause","General",false)]
   };
   var repoWindow=new HueyImportWindow(new HueyImportViewModel(preview));
   repoWindow.Show();
@@ -50,7 +52,8 @@ public static class Program {
   var palette=(ListBox)repoWindow.FindName("CommandPaletteList")!;
   var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
   var search=(TextBox)repoWindow.FindName("PaletteSearch")!;
-  if(!repoWindow.IsVisible||canvas.Children.Count!=3||assignments.Items.Count!=2||
+  var categories=(ComboBox)repoWindow.FindName("PaletteCategory")!;
+  if(!repoWindow.IsVisible||canvas.Children.Count!=4||assignments.Items.Count!=3||
      !assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
 
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
@@ -59,11 +62,26 @@ public static class Program {
   scope.SelectedIndex=1;
   search.Text="Zoom";
   if(palette.Items.Count!=1)throw new InvalidOperationException("Canonical UI Layer command was not searchable.");
-  palette.SelectedIndex=0;
-  assignments.SelectedIndex=1;
-  ((Button)repoWindow.FindName("AssignSelectedCommand")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
+  categories.SelectedItem="General";
+  if(palette.Items.Count!=0)throw new InvalidOperationException("Category and search were not combined.");
+  search.Text="";
+  if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Active Pause",StringComparison.Ordinal))
+   throw new InvalidOperationException("Category filter did not show only General commands.");
+  categories.SelectedItem="VR";
+  if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
+  var payload=new System.Windows.DataObject();
+  payload.SetData("Dcs.Ipia.Editor.PaletteCommand","UI_ZOOM");
+  var drop=typeof(HueyImportWindow).GetMethod("ApplyDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  drop.Invoke(repoWindow,[diagram.Controls[1],payload,false]);
   if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-   throw new InvalidOperationException("Assign did not update the visible OSB02 callout.");
+   throw new InvalidOperationException("Palette drop did not update OSB02.");
+  var moved=new System.Windows.DataObject();
+  moved.SetData("Dcs.Ipia.Editor.HardwareControl",diagram.Controls[1].Control);
+  drop.Invoke(repoWindow,[diagram.Controls[2],moved,true]);
+  if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal)||
+     !assignments.Items[2]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
+   throw new InvalidOperationException("Ctrl-drag copy did not preserve source and fill destination.");
+  ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
   ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
   if(assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("Undo did not restore the empty OSB02 callout.");
