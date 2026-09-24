@@ -37,7 +37,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
   var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
-  if(!imported.Succeeded)return new(imported,[],[]);
+  if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands};
 
   var available=(await TrackedPathsAsync(huey,"kneeboard/UH-1H","kneeboard/UH-1H",cancellationToken)).ToHashSet(StringComparer.Ordinal);
   var images=new List<KneeboardImageAsset>();
@@ -59,7 +59,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
   catch(Exception ex) when(ex is InvalidDataException or FormatException or System.Xml.XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
    graphicDiagnostics=[new("ui-graphic-unavailable",$"DCS-Common UI Layer graphic: {ex.Message}",true)];
   }
-  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics};
+  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands};
  }
  #endregion END Public
  #region BEGIN private helpers
