@@ -1,0 +1,21 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F4F7FB"/>
+  <SolidColorBrush x:Key="PrimaryTextBrush" Color="#17263D"/>
+  <SolidColorBrush x:Key="SurfaceBrush" Color="White"/>
+  <SolidColorBrush x:Key="BorderBrush" Color="#D9E2EF"/>
+  <SolidColorBrush x:Key="SecondaryTextBrush" Color="#475569"/>
+  <SolidColorBrush x:Key="SampleControlBrush" Color="#E8F0FF"/>
+  <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#EFF6FF"/>
+  <SolidColorBrush x:Key="AccentTextBrush" Color="#1D4ED8"/>
+  <SolidColorBrush x:Key="CanvasBorderBrush" Color="#9DB4D7"/>
+  <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#F2F6FD"/>
+  <SolidColorBrush x:Key="StatusBackgroundBrush" Color="#EAF0F8"/>
+  <SolidColorBrush x:Key="StatusTextBrush" Color="#334155"/>
+  <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="ControlForegroundBrush" Color="#17263D"/>
+  <SolidColorBrush x:Key="ControlBorderBrush" Color="#9DB4D7"/>
+  <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#DBEAFE"/>
+  <SolidColorBrush x:Key="DisabledTextBrush" Color="#475569"/>
+  <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#E8EEF6"/>
+</ResourceDictionary>

@@ -3,40 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="DCS-IPIA — Module workspace design preview"
         Width="1280" Height="840" MinWidth="1024" MinHeight="700"
-        Background="#F4F7FB" Foreground="#17263D"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
         WindowStartupLocation="CenterScreen">
-  <Window.Resources>
-    <Style x:Key="Card" TargetType="Border">
-      <Setter Property="Background" Value="White"/>
-      <Setter Property="CornerRadius" Value="10"/>
-      <Setter Property="BorderBrush" Value="#D9E2EF"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Padding" Value="20"/>
-      <Setter Property="Margin" Value="0,0,0,16"/>
-    </Style>
-    <Style x:Key="SectionTitle" TargetType="TextBlock">
-      <Setter Property="FontSize" Value="19"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Margin" Value="0,0,0,10"/>
-    </Style>
-    <Style x:Key="Hint" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="#475569"/>
-      <Setter Property="TextWrapping" Value="Wrap"/>
-    </Style>
-    <Style x:Key="NavigationItem" TargetType="TabItem">
-      <Setter Property="Width" Value="198"/>
-      <Setter Property="Height" Value="54"/>
-      <Setter Property="Padding" Value="14,10"/>
-      <Setter Property="FontSize" Value="15"/>
-      <Setter Property="HorizontalContentAlignment" Value="Left"/>
-    </Style>
-    <Style x:Key="SampleControl" TargetType="Border">
-      <Setter Property="Background" Value="#E8F0FF"/>
-      <Setter Property="CornerRadius" Value="5"/>
-      <Setter Property="Padding" Value="9,6"/>
-      <Setter Property="Margin" Value="4"/>
-    </Style>
-  </Window.Resources>
+
   <Grid Margin="24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
@@ -48,9 +17,16 @@
     <DockPanel Grid.Row="0" Margin="0,0,0,20">
       <StackPanel>
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
-        <TextBlock Foreground="#475569" Text="Module workspace · interactive layout preview"/>
+        <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Module workspace · interactive layout preview"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <ComboBox x:Name="ThemePicker" Width="105" Margin="0,0,12,0"
+                  AutomationProperties.Name="Appearance theme"
+                  SelectionChanged="ThemePicker_SelectionChanged">
+          <ComboBoxItem Content="Light" Tag="Light"/>
+          <ComboBoxItem Content="Dark" Tag="Dark"/>
+        </ComboBox>
         <Button Content="Import module" IsEnabled="False" Padding="14,8" Margin="6,0"
                 ToolTip="Available when read-only consumer import is connected."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"
@@ -60,46 +36,46 @@
       </StackPanel>
     </DockPanel>
 
-    <Border Grid.Row="1" Style="{StaticResource Card}">
+    <Border Grid.Row="1" Style="{DynamicResource Card}">
       <DockPanel>
-        <Border Background="#EFF6FF" CornerRadius="6" Padding="10,5" DockPanel.Dock="Right">
-          <TextBlock Foreground="#1D4ED8" FontWeight="SemiBold" Text="DESIGN PREVIEW · sample data"/>
+        <Border Background="{DynamicResource BadgeBackgroundBrush}" CornerRadius="6" Padding="10,5" DockPanel.Dock="Right">
+          <TextBlock Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" Text="DESIGN PREVIEW · sample data"/>
         </Border>
         <StackPanel>
           <TextBlock FontSize="18" FontWeight="SemiBold" Text="UH-1H Huey"/>
-          <TextBlock Style="{StaticResource Hint}"
+          <TextBlock Style="{DynamicResource Hint}"
                      Text="Example module · input ID UH-1H · shared UI Layer from DCS-Common"/>
         </StackPanel>
       </DockPanel>
     </Border>
 
     <TabControl Grid.Row="2" TabStripPlacement="Left" Background="Transparent"
-                BorderThickness="0" ItemContainerStyle="{StaticResource NavigationItem}"
+                BorderThickness="0" ItemContainerStyle="{DynamicResource NavigationItem}"
                 AutomationProperties.Name="Module workspace sections">
       <TabItem Header="Overview" IsSelected="True">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,0,0,0">
           <StackPanel>
-            <TextBlock Style="{StaticResource SectionTitle}" Text="One place for a module"/>
-            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,20"
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="One place for a module"/>
+            <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,20"
                        Text="The example below shows the proposed route from DCS exports to a reviewed package. Navigation works; import and editing are intentionally disabled in this design preview."/>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{DynamicResource Card}">
               <StackPanel>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="1  Import and resolve"/>
-                <TextBlock Style="{StaticResource Hint}"
+                <TextBlock Style="{DynamicResource SectionTitle}" Text="1  Import and resolve"/>
+                <TextBlock Style="{DynamicResource Hint}"
                            Text="Choose DCS exports. Review detected profiles, device instances, modifier chords and source provenance. Resolve ambiguous devices in a focused queue before accepting the import."/>
               </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{DynamicResource Card}">
               <StackPanel>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="2  Assign and preview"/>
-                <TextBlock Style="{StaticResource Hint}"
+                <TextBlock Style="{DynamicResource SectionTitle}" Text="2  Assign and preview"/>
+                <TextBlock Style="{DynamicResource Hint}"
                            Text="Choose a device and instance, select a physical control, then search commands and choose a layer. A side inspector keeps the effective binding, draft change and validation message together."/>
               </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{DynamicResource Card}">
               <StackPanel>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="3  Validate and build"/>
-                <TextBlock Style="{StaticResource Hint}"
+                <TextBlock Style="{DynamicResource SectionTitle}" Text="3  Validate and build"/>
+                <TextBlock Style="{DynamicResource Hint}"
                            Text="Compare authored changes and generated outputs. Build from a validated immutable snapshot with a visible hash and package contents."/>
               </StackPanel>
             </Border>
@@ -113,10 +89,10 @@
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
-          <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,16,0">
+          <Border Grid.Column="0" Style="{DynamicResource Card}" Margin="0,0,16,0">
             <StackPanel>
-              <TextBlock Style="{StaticResource SectionTitle}" Text="Device assignments"/>
-              <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,12"
+              <TextBlock Style="{DynamicResource SectionTitle}" Text="Device assignments"/>
+              <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,12"
                          Text="Example: TM MFD · instance MFD3 · Base layer"/>
               <WrapPanel Margin="0,0,0,16">
                 <ComboBox Width="170" IsEnabled="False" AutomationProperties.Name="Device instance">
@@ -127,8 +103,8 @@
                   <ComboBoxItem Content="Base layer" IsSelected="True"/>
                 </ComboBox>
               </WrapPanel>
-              <Border BorderBrush="#9DB4D7" BorderThickness="2" CornerRadius="12"
-                      Background="#F2F6FD" Padding="20" MinHeight="300">
+              <Border BorderBrush="{DynamicResource CanvasBorderBrush}" BorderThickness="2" CornerRadius="12"
+                      Background="{DynamicResource CanvasBackgroundBrush}" Padding="20" MinHeight="300">
                 <Grid>
                   <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -136,32 +112,32 @@
                     <RowDefinition Height="Auto"/>
                   </Grid.RowDefinitions>
                   <UniformGrid Grid.Row="0" Rows="1" Columns="5">
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 1"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 2"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 3"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 4"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 5"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 1"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 2"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 3"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 4"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 5"/></Border>
                   </UniformGrid>
                   <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                             FontSize="17" Foreground="#475569" Text="Controller graphic and callouts"/>
+                             FontSize="17" Foreground="{DynamicResource SecondaryTextBrush}" Text="Controller graphic and callouts"/>
                   <UniformGrid Grid.Row="2" Rows="1" Columns="5">
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 15"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 14"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 13"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 12"/></Border>
-                    <Border Style="{StaticResource SampleControl}"><TextBlock Text="OSB 11"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 15"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 14"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 13"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 12"/></Border>
+                    <Border Style="{DynamicResource SampleControl}"><TextBlock Text="OSB 11"/></Border>
                   </UniformGrid>
                 </Grid>
               </Border>
-              <TextBlock Style="{StaticResource Hint}" Margin="0,12,0,0"
+              <TextBlock Style="{DynamicResource Hint}" Margin="0,12,0,0"
                          Text="The production view will use shared hardware geometry. A searchable control list will mirror the graphic for keyboard and screen-reader users."/>
             </StackPanel>
           </Border>
-          <Border Grid.Column="1" Style="{StaticResource Card}">
+          <Border Grid.Column="1" Style="{DynamicResource Card}">
             <StackPanel>
-              <TextBlock Style="{StaticResource SectionTitle}" Text="Selected control"/>
+              <TextBlock Style="{DynamicResource SectionTitle}" Text="Selected control"/>
               <TextBlock FontWeight="SemiBold" FontSize="16" Text="OSB 1 · MFD3"/>
-              <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,18"
+              <TextBlock Style="{DynamicResource Hint}" Margin="0,6,0,18"
                          Text="Source and effective binding will appear here."/>
               <TextBlock Text="Command" FontWeight="SemiBold"/>
               <TextBox Text="Search DCS commands" IsReadOnly="True" IsEnabled="False"
@@ -169,7 +145,7 @@
               <TextBlock Text="Modifier chord" FontWeight="SemiBold"/>
               <TextBox Text="Base" IsReadOnly="True" IsEnabled="False" Margin="0,6,0,14"/>
               <TextBlock Text="Disposition" FontWeight="SemiBold"/>
-              <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,18"
+              <TextBlock Style="{DynamicResource Hint}" Margin="0,6,0,18"
                          Text="Add · Replace · Remove · Restore"/>
               <Button Content="Stage change" IsEnabled="False" Padding="12,8"
                       ToolTip="Enabled after edit services and validation are connected."/>
@@ -181,20 +157,20 @@
       <TabItem Header="UI Layer">
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,0,0,0">
           <StackPanel>
-            <TextBlock Style="{StaticResource SectionTitle}" Text="UI Layer in this module"/>
-            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18"
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="UI Layer in this module"/>
+            <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,18"
                        Text="The shared DCS-Common template and this module's overlay are always shown with separate ownership."/>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{DynamicResource Card}">
               <StackPanel>
                 <TextBlock FontSize="17" FontWeight="SemiBold" Text="Shared template · read-only"/>
-                <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                <TextBlock Style="{DynamicResource Hint}" Margin="0,8,0,0"
                            Text="Canonical functions, control mappings and modifiers imported from DCS-Common. A module edit never writes to this source."/>
               </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{DynamicResource Card}">
               <StackPanel>
                 <TextBlock FontSize="17" FontWeight="SemiBold" Text="UH-1H overlay · module scope"/>
-                <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                <TextBlock Style="{DynamicResource Hint}" Margin="0,8,0,0"
                            Text="Add or remove module-only assignments here, then preview the effective result on the same device canvas. Other modules are unaffected."/>
               </StackPanel>
             </Border>
@@ -203,28 +179,31 @@
       </TabItem>
 
       <TabItem Header="Kneeboard">
-        <Border Style="{StaticResource Card}" Margin="20,0,0,0">
+        <Border Style="{DynamicResource Card}" Margin="20,0,0,0">
           <StackPanel>
-            <TextBlock Style="{StaticResource SectionTitle}" Text="Kneeboard preview"/>
-            <TextBlock Style="{StaticResource Hint}"
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="Kneeboard preview"/>
+            <TextBlock Style="{DynamicResource Hint}"
                        Text="Summary and device pages will appear beside the selected module assignments. Review before and after labels, layers and instance-specific controls."/>
           </StackPanel>
         </Border>
       </TabItem>
 
       <TabItem Header="Outputs">
-        <Border Style="{StaticResource Card}" Margin="20,0,0,0">
+        <Border Style="{DynamicResource Card}" Margin="20,0,0,0">
           <StackPanel>
-            <TextBlock Style="{StaticResource SectionTitle}" Text="Review before building"/>
-            <TextBlock Style="{StaticResource Hint}"
+            <TextBlock Style="{DynamicResource SectionTitle}" Text="Review before building"/>
+            <TextBlock Style="{DynamicResource Hint}"
                        Text="Validation findings, authored changes, snapshot identity, generated Markdown and package contents will be reviewed here before building from an immutable snapshot."/>
           </StackPanel>
         </Border>
       </TabItem>
     </TabControl>
-    <Border Grid.Row="3" Background="#EAF0F8" CornerRadius="8" Padding="12" Margin="0,14,0,0">
-      <TextBlock TextWrapping="Wrap" Foreground="#334155"
+    <Border Grid.Row="3" Background="{DynamicResource StatusBackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,14,0,0">
+      <StackPanel>
+        <TextBlock x:Name="ThemeSaveStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
+        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
                  Text="Design preview: navigation and layout only. No data is imported, changed, saved or packaged by this screen."/>
+      </StackPanel>
     </Border>
   </Grid>
 </Window>
