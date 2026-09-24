@@ -47,19 +47,20 @@ public static class Program {
   var repoWindow=new HueyImportWindow(repoModel);
   repoWindow.Show();
   repoWindow.UpdateLayout();
+  var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
+  if(scope.SelectedIndex!=0)
+   throw new InvalidOperationException("Editor should open with the module command catalog selected.");
+  scope.SelectedIndex=1;
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
   var assignments=(ListBox)repoWindow.FindName("UiAssignmentList")!;
   var palette=(ListBox)repoWindow.FindName("CommandPaletteList")!;
-  var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
   var search=(TextBox)repoWindow.FindName("PaletteSearch")!;
   var categories=(ComboBox)repoWindow.FindName("PaletteCategory")!;
   if(!repoWindow.IsVisible||canvas.Children.Count!=4||assignments.Items.Count!=3||
      !assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
 
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
-  if(scope.SelectedIndex!=0)
-   throw new InvalidOperationException("Editor should open with the module command catalog selected.");
   scope.SelectedIndex=0;
   if(palette.Items.Count!=0)throw new InvalidOperationException("Empty aircraft import must have an empty aircraft palette.");
   scope.SelectedIndex=1;
