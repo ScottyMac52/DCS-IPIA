@@ -83,7 +83,7 @@ public sealed class DcsCommonLuaImporter:ISharedLuaImporter {
   foreach(var missing in bindings.Select(x=>x.CommandId).Distinct(StringComparer.Ordinal).Where(x=>!commands.Contains(x)))
    diagnostics.Add(new("unknown-command",$"UI Layer binding references command {missing} absent from the canonical functions catalog.",true));
   if(diagnostics.Any(x=>x.IsError)) return Failure(diagnostics);
-  var provenance=sources.Select(x=>new SourceProvenance("ScottyMac52/DCS-Common",request.Commit,x.Path,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Content))))).OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
+  var provenance=sources.Select(x=>new SourceProvenance("ScottyMac52/DCS-Common",request.Commit!,x.Path,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Content))))).OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
   return new(controls.OrderBy(x=>x.Control.StableKey,StringComparer.Ordinal).ToArray(),profiles.OrderBy(x=>x.SourceName,StringComparer.Ordinal).ToArray(),bindings.OrderBy(x=>x.ProfileId).ThenBy(x=>x.CommandId,StringComparer.Ordinal).ThenBy(x=>x.InputKey,StringComparer.Ordinal).ToArray(),modifiers,provenance,diagnostics);
  }
  #endregion END Public
@@ -94,7 +94,7 @@ public sealed class DcsCommonLuaImporter:ISharedLuaImporter {
    if(rule.Patterns.Any(x=>name.Contains(x,StringComparison.OrdinalIgnoreCase))) return rule.DeviceKey;
   return null;
  }
- private static IReadOnlyList<SharedHardwareControl> ParseHardware(string text,PhysicalDevice device) {
+ private static List<SharedHardwareControl> ParseHardware(string text,PhysicalDevice device) {
   var output=new List<SharedHardwareControl>();
   string? id=null;string? name=null;var version=false;var hasControls=false;var started=false;var ended=false;
   foreach(var line in text.Split('\n')) {
