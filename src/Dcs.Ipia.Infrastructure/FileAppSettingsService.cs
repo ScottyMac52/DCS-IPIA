@@ -7,6 +7,7 @@ namespace Dcs.Ipia.Infrastructure;
 /// <summary>Loads packaged defaults, overlays validated user preferences, and migrates theme.txt.</summary>
 public sealed class FileAppSettingsService : IAppSettingsService {
  private const int SupportedSchemaVersion=1;
+ private static readonly JsonSerializerOptions JsonOptions=new() {WriteIndented=true};
  private readonly string _userPath;
  private readonly string _legacyThemePath;
 
@@ -108,7 +109,7 @@ public sealed class FileAppSettingsService : IAppSettingsService {
     SchemaVersion=SupportedSchemaVersion,
     Theme=Current.Theme.ToString(),
     OccupiedDestinationBehavior=Current.OccupiedDestinationBehavior.ToString()
-   },new JsonSerializerOptions {WriteIndented=true});
+   },JsonOptions);
    File.WriteAllText(temp,json);
    File.Move(temp,_userPath,true);
    LastError=null;
