@@ -114,6 +114,15 @@ public static class Program {
   types.SelectedIndex=2;
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Collective",StringComparison.Ordinal))
    throw new InvalidOperationException("Axis type filter was mixed into the category selector.");
+  types.SelectedIndex=0;
+  const string dcsHtml="<html><h1>MFD 1</h1><table><tr><td>JOY_BTN1</td><td>Canopy open</td><td>Canopy</td><td>d3011pnilu3011cd35vd1vpnilvu0</td></tr></table></html>";
+  repoModel.LoadModuleCatalog(DcsHtmlCommandCatalogImporter.Parse([("MFD 1.html",dcsHtml)]));
+  scope.SelectedIndex=1;scope.SelectedIndex=0;
+  if(!categories.Items.Contains("Canopy")||categories.Items.Contains("Key")||categories.Items.Contains("Axis"))
+   throw new InvalidOperationException("DCS HTML category did not reach the module category selector.");
+  categories.SelectedItem="Canopy";
+  if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Canopy open",StringComparison.Ordinal))
+   throw new InvalidOperationException("DCS HTML named category did not filter the module palette.");
   repoWindow.Close();
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
