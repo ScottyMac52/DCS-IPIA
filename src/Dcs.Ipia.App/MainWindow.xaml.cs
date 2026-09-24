@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
@@ -9,10 +10,14 @@ namespace DcsIpia.Presentation;
 
 /// <summary>Displays the theme-aware module workspace and opens read-only Huey imports.</summary>
 public partial class MainWindow : Window {
- private readonly IHueyWorkspaceLoader _loader=new HueyWorkspaceLoader();
+ private readonly IHueyWorkspaceLoader _loader;
  private HueyImportResult? _lastImport;
  /// <summary>Initializes the workspace and restores the saved appearance preference.</summary>
- public MainWindow() {
+ public MainWindow():this(new HueyWorkspaceLoader()) {}
+ /// <summary>Initializes the workspace with an application import boundary.</summary>
+ /// <param name="loader">The read-only Huey workspace loader.</param>
+ internal MainWindow(IHueyWorkspaceLoader loader) {
+  _loader=loader??throw new ArgumentNullException(nameof(loader));
   InitializeComponent();
   ThemePicker.SelectedIndex=ThemeManager.LoadPreference()=="Dark"?1:0;
  }
