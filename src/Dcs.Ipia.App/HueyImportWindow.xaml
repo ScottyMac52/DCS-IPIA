@@ -71,7 +71,39 @@
         </Grid>
       </TabItem>
       <TabItem Header="UI Layer">
-        <ListBox ItemsSource="{Binding UiUsage}" AutomationProperties.Name="UI Layer functions used by Huey"/>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0">
+            <TextBlock Text="Device and instance" Margin="8,8,8,6" FontWeight="SemiBold"/>
+            <ListBox x:Name="UiDiagramList" ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
+                     SelectionChanged="UiDiagramList_SelectionChanged"
+                     AutomationProperties.Name="UI Layer device and instance selector"/>
+            <ItemsControl ItemsSource="{Binding UiUsage}" Margin="8,12,8,0"/>
+          </StackPanel>
+          <Grid Grid.Column="1" Margin="12,0,0,0">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="180"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
+                    Background="{DynamicResource CanvasBackgroundBrush}">
+              <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                  <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True"
+                          AutomationProperties.Name="Hardware image with numbered UI Layer assignments"/>
+                </Viewbox>
+              </ScrollViewer>
+            </Border>
+            <ListBox x:Name="UiAssignmentList" Grid.Row="1" Margin="0,8,0,0"
+                     AutomationProperties.Name="Numbered UI Layer assignments and modifier chords"/>
+            <TextBlock x:Name="UiDiagramCaption" Grid.Row="2" Margin="0,8,0,0"
+                       TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+          </Grid>
+        </Grid>
       </TabItem>
       <TabItem Header="Diagnostics">
         <ListBox ItemsSource="{Binding Diagnostics}" AutomationProperties.Name="Import diagnostics"/>

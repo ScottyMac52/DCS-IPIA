@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Dcs.Ipia.Dcs;
 using Xunit;
 
@@ -32,6 +33,16 @@ public sealed class HueyWorkspaceLoaderTests {
    var imagePath=Path.Combine(huey,"kneeboard","UH-1H","00-UH1H-CONTROL-OVERVIEW.png");
    Directory.CreateDirectory(Path.GetDirectoryName(imagePath)!);
    File.WriteAllBytes(imagePath,image);
+   using(var overlays=JsonDocument.Parse(File.ReadAllText(Path.Combine(common,"assets/shared/ui-layer/hardware-overlays.json")))) {
+    foreach(var device in new[]{"tm-mfd","grip-f18c"}) {
+     var controls=overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
+      .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
+     var rects=string.Join("",controls.Select((control,i)=>$"<!-- box:{control} --><rect x='10' y='{10+i*48}' width='55' height='45'/>"));
+     var path=Path.Combine(common,"assets","shared","hardware","svg",device+".svg");
+     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+     File.WriteAllText(path,$"<svg viewBox='0 0 960 720'><image href='data:image/png;base64,{Convert.ToBase64String(image)}'/>{rects}</svg>");
+    }
+   }
    Commit(common);Commit(huey);
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
    var result=await new HueyWorkspaceLoader().LoadAsync(common,huey);
@@ -43,6 +54,13 @@ public sealed class HueyWorkspaceLoaderTests {
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
    Assert.Equal(image,preview.Bytes);
+   Assert.Equal(2,result.Diagrams.Count);
+   Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
+   Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
+   Assert.DoesNotContain(result.Diagrams,x=>x.Instance=="MFD1"||x.Instance=="MFD2");
+   Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
+   Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
+    x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
    Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
   }
   finally {DeleteFixture(temp);}

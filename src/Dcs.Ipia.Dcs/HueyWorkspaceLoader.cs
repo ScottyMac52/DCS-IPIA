@@ -37,7 +37,11 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
   var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
-  if(!imported.Succeeded)return new(imported,[]);
+  if(!imported.Succeeded)return new(imported,[],[]);
+  var graphicPaths=imported.Configuration!.Profiles.Select(x=>catalog.Devices.Single(y=>y.StableKey==x.DeviceId||y.Aliases.Contains(x.DeviceId,StringComparer.Ordinal)))
+   .Where(x=>catalog.Templates.Any(y=>y.DeviceKey==x.StableKey)).Select(x=>$"assets/shared/hardware/svg/{x.StableKey}.svg").Distinct(StringComparer.Ordinal).ToArray();
+  var graphics=await ReadSourcesAsync(common,graphicPaths,cancellationToken);
+  var diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics);
   var available=(await TrackedPathsAsync(huey,"kneeboard/UH-1H","kneeboard/UH-1H",cancellationToken)).ToHashSet(StringComparer.Ordinal);
   var images=new List<KneeboardImageAsset>();
   foreach(var page in imported.Pages) {
@@ -46,7 +50,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    var bytes=await GitBytesAsync(huey,cancellationToken,"show",$"HEAD:{path}");
    images.Add(new(page.StableKey,path,bytes,Convert.ToHexStringLower(SHA256.HashData(bytes))));
   }
-  return new(imported,images);
+  return new(imported,images,diagrams);
  }
  #endregion END Public
  #region BEGIN private helpers

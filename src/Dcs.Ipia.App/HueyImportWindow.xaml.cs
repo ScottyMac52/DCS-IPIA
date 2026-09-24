@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using Dcs.Ipia.Application;
 
 namespace DcsIpia.Presentation;
 
@@ -15,6 +16,7 @@ public partial class HueyImportWindow : Window {
   InitializeComponent();
   DataContext=_viewModel;
   KneeboardList.SelectedIndex=0;
+  UiDiagramList.SelectedIndex=0;
  }
  #region BEGIN Public
  #endregion END Public
@@ -46,6 +48,46 @@ public partial class HueyImportWindow : Window {
   }
   catch(Exception ex) {
    KneeboardCaption.Text=$"Unable to display {asset.Path}: {ex.Message}";
+  }
+ }
+ private void UiDiagramList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
+  if(_viewModel is null||UiDiagramCanvas is null||UiAssignmentList is null)return;
+  UiDiagramCanvas.Children.Clear();
+  UiAssignmentList.ItemsSource=null;
+  var index=UiDiagramList.SelectedIndex;
+  if(index<0||index>=_viewModel.UiDiagrams.Count) {
+   UiDiagramCaption.Text="Select a device to view its committed hardware image and UI Layer assignments.";
+   return;
+  }
+  var diagram=_viewModel.UiDiagrams[index];
+  UiDiagramCanvas.Width=diagram.Width;
+  UiDiagramCanvas.Height=diagram.Height;
+  try {
+   using var stream=new MemoryStream(diagram.Background,false);
+   var bitmap=new BitmapImage();
+   bitmap.BeginInit();
+   bitmap.CacheOption=BitmapCacheOption.OnLoad;
+   bitmap.StreamSource=stream;
+   bitmap.EndInit();
+   bitmap.Freeze();
+   UiDiagramCanvas.Children.Add(new Image {Source=bitmap,Width=diagram.Width,Height=diagram.Height,Stretch=System.Windows.Media.Stretch.Fill});
+   foreach(var callout in diagram.Callouts) {
+    var badge=new Border {Width=callout.Width,Height=callout.Height,BorderThickness=new Thickness(2),
+     CornerRadius=new CornerRadius(4),ToolTip=callout.Description,
+     Child=new TextBlock {Text=callout.Number.ToString("00"),FontWeight=FontWeights.Bold,
+      HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center}};
+    badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
+    badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
+    ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
+    Canvas.SetLeft(badge,callout.X);Canvas.SetTop(badge,callout.Y);
+    UiDiagramCanvas.Children.Add(badge);
+   }
+   UiAssignmentList.ItemsSource=diagram.Callouts.Select(x=>x.Description).ToArray();
+   UiDiagramCaption.Text=$"Explicit Huey UI Layer usage on {diagram.Path} · {diagram.Callouts.Count} assignments · source graphic from committed DCS-Common.";
+  }
+  catch(Exception ex) {
+   UiDiagramCanvas.Children.Clear();
+   UiDiagramCaption.Text=$"Unable to display {diagram.Path}: {ex.Message}";
   }
  }
  private void Close_Click(object sender,RoutedEventArgs e)=>Close();
