@@ -23,8 +23,6 @@ public static class Program {
   var folderTabs=(TabControl)folderWindow.FindName("ImportedTabs")!;
   if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=4)
    throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
-  folderWindow.Close();
-
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
   var configuration=new ModuleConfiguration(module,[],[],[],"smoke fixture");
   var imported=new HueyImportResult(configuration,[],[],[],[],
@@ -42,6 +40,7 @@ public static class Program {
   if(!repoWindow.IsVisible||canvas.Children.Count!=2||assignments.Items.Count!=1)
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
   repoWindow.Close();
+  folderWindow.Close();
   System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
   return 0;
  }
