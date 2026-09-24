@@ -66,6 +66,10 @@ public partial class MainWindow : Window {
   }
   finally {ImportHueyButton.IsEnabled=true;}
  }
+ private void OpenEditor_Click(object sender,RoutedEventArgs e) {
+  if(_lastViewModel is null)ImportHuey_Click(sender,e);
+  else ViewImported_Click(sender,e);
+ }
  private void ViewImported_Click(object sender,RoutedEventArgs e) {
   try {ShowImported();}
   catch(Exception ex) {ShowImportError($"Unable to show the imported preview: {ex.Message}");}
@@ -76,7 +80,7 @@ public partial class MainWindow : Window {
  }
  private void ShowImported() {
   if(_lastViewModel is null)return;
-  var window=new HueyImportWindow(_lastViewModel){Owner=this};
+  var window=new HueyImportWindow(_lastViewModel,_settings){Owner=this};
   window.ShowDialog();
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {

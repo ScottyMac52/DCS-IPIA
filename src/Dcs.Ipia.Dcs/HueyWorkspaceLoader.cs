@@ -54,7 +54,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
     .Where(x=>catalog.Templates.Any(y=>y.DeviceKey==x.StableKey))
     .Select(x=>$"assets/shared/hardware/svg/{x.StableKey}.svg").Distinct(StringComparer.Ordinal).ToArray();
    var graphics=await ReadSourcesAsync(common,graphicPaths,cancellationToken);
-   diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics);
+   diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics,shared);
   }
   catch(Exception ex) when(ex is InvalidDataException or FormatException or System.Xml.XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
    graphicDiagnostics=[new("ui-graphic-unavailable",$"DCS-Common UI Layer graphic: {ex.Message}",true)];

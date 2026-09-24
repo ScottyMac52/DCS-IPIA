@@ -13,5 +13,7 @@ public sealed record UiLayerCallout(int Number,string Control,string Function,st
  #region BEGIN Public
  /// <summary>Gets an accessible, numbered description of the assignment.</summary>
  public string Description=>$"{Number:00} · {Function} · {Control} · {Modifier}";
+ /// <summary>Gets the canonical DCS-Common command string for this function.</summary>
+ public string CommandId {get;init;}=string.Empty;
  #endregion END Public
 }

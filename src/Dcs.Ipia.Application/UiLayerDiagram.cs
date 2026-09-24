@@ -1,5 +1,6 @@
 namespace Dcs.Ipia.Application;
 
+
 /// <summary>Positions module-used UI Layer functions over a committed DCS-Common hardware image.</summary>
 /// <param name="Device">Authored hardware label.</param>
 /// <param name="Instance">Consumer device instance, if present.</param>
@@ -12,5 +13,13 @@ public sealed record UiLayerDiagram(string Device,string? Instance,string Path,d
  #region BEGIN Public
  /// <summary>Gets the display name, including a physical instance when present.</summary>
  public string Title=>Instance is null?Device:$"{Device} · {Instance}";
+ /// <summary>Gets the exact validated draw.io-generated SVG from the committed shared repository.</summary>
+ public string Svg {get;init;}=string.Empty;
+ /// <summary>Gets the imported device profile identity; never inferred from a Saved Games filename.</summary>
+ public Guid ProfileId {get;init;}
+ /// <summary>Gets whether the canonical UI Layer template supports this physical instance.</summary>
+ public bool SupportsUiLayer {get;init;}=true;
+ /// <summary>Gets every mapped control, including empty callouts.</summary>
+ public IReadOnlyList<HardwareGraphicControl> Controls {get;init;}=[];
  #endregion END Public
 }

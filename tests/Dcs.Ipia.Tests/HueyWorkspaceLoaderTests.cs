@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
+using Dcs.Ipia.Domain;
 using Xunit;
 
 namespace Dcs.Ipia.Tests;
@@ -57,12 +59,15 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(image,preview.Bytes);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
-   Assert.Equal(2,result.Diagrams.Count);
+   Assert.Equal(4,result.Diagrams.Count);
+   Assert.All(result.Diagrams,x=>Assert.Contains("<svg",x.Svg,StringComparison.Ordinal));
+   Assert.All(result.Diagrams,x=>Assert.NotEmpty(x.Controls));
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
    Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
    Assert.Contains(result.Diagrams.Single(x=>x.Instance is null).Callouts,
     x=>x.Control=="hornet-grip-paddle"&&x.Function=="Recenter VR"&&x.X==10);
-   Assert.DoesNotContain(result.Diagrams,x=>x.Instance=="MFD1"||x.Instance=="MFD2");
+   Assert.Contains(result.Diagrams,x=>x.Instance=="MFD1");
+   Assert.Contains(result.Diagrams,x=>x.Instance=="MFD2");
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
     x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
@@ -76,6 +81,21 @@ public sealed class HueyWorkspaceLoaderTests {
     ["assets/shared/hardware/svg/tm-mfd.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-mfd.svg")),
     ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg"))
    };
+   var withoutHardwareMap=UiLayerDiagramFactory.Create(result.Import,catalog,graphics);
+   Assert.Equal(4,withoutHardwareMap.Count);
+   Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
+   Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
+   var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));
+   var mfdDevice=catalog.Devices.Single(x=>x.StableKey=="tm-mfd");
+   var axisControl=new DeviceControl(Guid.NewGuid(),mfdDevice.Id,mappedControl.Control,mappedControl.Label,ControlKind.Axis,null);
+   var sharedMap=new SharedLuaImportResult([new SharedHardwareControl(axisControl,mappedControl.InputKey,"axis",null,null)],
+    [],[],[],[],[]);
+   var withoutLabel=new Dictionary<string,string>(graphics);
+   withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]=withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]
+    .Replace("id='lbl-"+mappedControl.Control+"'","id='other-label'",StringComparison.Ordinal);
+   var fallback=UiLayerDiagramFactory.Create(result.Import,catalog,withoutLabel,sharedMap);
+   Assert.Contains(fallback.SelectMany(x=>x.Controls),x=>x.Control==mappedControl.Control&&
+    x.Label==mappedControl.Control&&x.IsAxis);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,new Dictionary<string,string>()));
    var missingBox=new Dictionary<string,string>(graphics);
    missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
