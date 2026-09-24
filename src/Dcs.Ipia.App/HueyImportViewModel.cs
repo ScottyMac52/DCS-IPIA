@@ -24,6 +24,9 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
+  ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
+  UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
+  PaletteSourceNote="Aircraft list: commands found in imported Huey bindings (partial catalog). UI Layer list: all commands in the validated DCS-Common catalog.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
@@ -50,6 +53,9 @@ public sealed class HueyImportViewModel {
   PageKeys=[];
   Images=[];
   UiDiagrams=[];
+  ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
+  UiCommands=[];
+  PaletteSourceNote="Aircraft list: commands found in local bindings (partial catalog). Open both repositories for canonical UI Layer commands.";
   UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
   HasErrors=folder.Diagnostics.Any(x=>x.IsError);
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
@@ -76,6 +82,12 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<KneeboardImageAsset> Images {get;}
  /// <summary>Gets diagrams positioned on committed shared hardware images.</summary>
  public IReadOnlyList<UiLayerDiagram> UiDiagrams {get;}
+ /// <summary>Gets imported aircraft commands; this is not a complete aircraft command catalog.</summary>
+ public IReadOnlyList<CommandPaletteEntry> ModuleCommands {get;}
+ /// <summary>Gets canonical UI Layer commands, when DCS-Common was imported.</summary>
+ public IReadOnlyList<CommandPaletteEntry> UiCommands {get;}
+ /// <summary>Gets command source and completeness information.</summary>
+ public string PaletteSourceNote {get;}
  /// <summary>Gets an explanation when graphics are unavailable.</summary>
  public IReadOnlyList<string> UiUsage {get;}
  /// <summary>Gets whether any source or graphic diagnostic requires attention.</summary>

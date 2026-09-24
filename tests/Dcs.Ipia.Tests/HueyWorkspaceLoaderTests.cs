@@ -55,6 +55,8 @@ public sealed class HueyWorkspaceLoaderTests {
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
    Assert.Equal(image,preview.Bytes);
+   Assert.NotEmpty(result.UiCommands);
+   Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
    Assert.Equal(2,result.Diagrams.Count);
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
    Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
@@ -98,6 +100,7 @@ public sealed class HueyWorkspaceLoaderTests {
    var withBrokenGraphic=await new HueyWorkspaceLoader().LoadAsync(common,huey);
    Assert.True(withBrokenGraphic.Import.Succeeded);
    Assert.Single(withBrokenGraphic.Images);
+   Assert.Equal(result.UiCommands,withBrokenGraphic.UiCommands);
    Assert.Empty(withBrokenGraphic.Diagrams);
    Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="ui-graphic-unavailable"&&x.IsError);
   }

@@ -39,8 +39,17 @@ public static class Program {
   repoWindow.UpdateLayout();
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
   var assignments=(ListBox)repoWindow.FindName("UiAssignmentList")!;
+  var palette=(ListBox)repoWindow.FindName("CommandPaletteList")!;
+  var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
+  var search=(TextBox)repoWindow.FindName("PaletteSearch")!;
   if(!repoWindow.IsVisible||canvas.Children.Count!=2||assignments.Items.Count!=1)
+
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
+  scope.SelectedIndex=0;
+  if(palette.Items.Count!=0)throw new InvalidOperationException("Empty aircraft import must have an empty aircraft palette.");
+  scope.SelectedIndex=1;
+  search.Text="Zoom";
+  if(palette.Items.Count!=0)throw new InvalidOperationException("Empty UI Layer catalog must have an empty UI palette.");
   repoWindow.Close();
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));

@@ -73,16 +73,42 @@
       <TabItem Header="UI Layer">
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="300"/>
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
-          <StackPanel Grid.Column="0">
-            <TextBlock Text="Device and instance" Margin="8,8,8,6" FontWeight="SemiBold"/>
-            <ListBox x:Name="UiDiagramList" ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
+          <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="110"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="Device and instance" Margin="8,8,8,6" FontWeight="SemiBold"/>
+            <ListBox x:Name="UiDiagramList" Grid.Row="1" ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
                      SelectionChanged="UiDiagramList_SelectionChanged"
                      AutomationProperties.Name="UI Layer device and instance selector"/>
-            <ItemsControl ItemsSource="{Binding UiUsage}" Margin="8,12,8,0"/>
-          </StackPanel>
+            <ComboBox x:Name="UiModifierChoice" Grid.Row="2" Margin="8,8,8,0"
+                      SelectionChanged="UiModifierChoice_SelectionChanged"
+                      AutomationProperties.Name="UI Layer modifier chord"/>
+            <ItemsControl Grid.Row="3" ItemsSource="{Binding UiUsage}" Margin="8,6,8,0"/>
+            <ComboBox x:Name="PaletteScope" Grid.Row="4" Margin="8,12,8,0"
+                      SelectionChanged="PaletteScope_SelectionChanged"
+                      AutomationProperties.Name="Command palette source">
+              <ComboBoxItem Content="Aircraft commands (imported)"/>
+              <ComboBoxItem Content="UI Layer commands (canonical)"/>
+            </ComboBox>
+            <TextBox x:Name="PaletteSearch" Grid.Row="5" Margin="8,6,8,6"
+                     TextChanged="PaletteSearch_TextChanged"
+                     AutomationProperties.Name="Search commands by name ID or category"/>
+            <ListBox x:Name="CommandPaletteList" Grid.Row="6" DisplayMemberPath="Display"
+                     AutomationProperties.Name="Read-only contextual command palette"/>
+            <TextBlock x:Name="PaletteCaption" Grid.Row="7" Margin="8,6,8,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SecondaryTextBrush}"/>
+          </Grid>
           <Grid Grid.Column="1" Margin="12,0,0,0">
             <Grid.RowDefinitions>
               <RowDefinition Height="*"/>
@@ -94,7 +120,7 @@
               <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
                   <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True"
-                          AutomationProperties.Name="Hardware image with numbered UI Layer assignments"/>
+                          AutomationProperties.Name="Read-only UI Layer hardware assignments"/>
                 </Viewbox>
               </ScrollViewer>
             </Border>
