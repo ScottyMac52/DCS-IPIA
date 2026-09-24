@@ -135,7 +135,8 @@ public partial class HueyImportWindow : Window {
  private AssignmentLayer Layer()=>PaletteScope.SelectedIndex==1?AssignmentLayer.UiLayer:AssignmentLayer.Module;
  private string Chord()=>UiModifierChoice.SelectedItem as string??"Base";
  private DraftAssignmentSlot? Slot(HardwareGraphicControl control) {
-  if(_viewModel.Draft is null||_currentDiagram is null)return null;
+  if(_viewModel.Draft is null||_currentDiagram is null||
+     Layer()==AssignmentLayer.UiLayer&&!_currentDiagram.SupportsUiLayer)return null;
   return new(_viewModel.ModuleId,
    _currentDiagram.ProfileId,Layer(),control.IsAxis?BindingSection.Axis:BindingSection.Key,
    control.InputKey,Chord()=="Base"?"":Chord());

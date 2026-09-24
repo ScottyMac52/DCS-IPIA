@@ -26,7 +26,8 @@ public static class UiLayerDiagramFactory {
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
    var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);
    if(template is null)continue;
-   if(template.Instances.Count>0&&!template.Instances.Contains(profile.Instance,StringComparer.Ordinal))
+   var supportsUi=template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal);
+   if(!supportsUi&&rows.Length>0)
     throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
    if(!sources.TryGetValue(path,out var svg))throw new InvalidDataException($"Missing committed UI Layer hardware image: {path}");
@@ -73,7 +74,7 @@ public static class UiLayerDiagramFactory {
      Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)) {CommandId=command.DcsCommandId});
    }
    diagrams.Add(new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
-    Svg=svg,ProfileId=profile.Id,Controls=controls
+    Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi
    });
   }
   return diagrams;
