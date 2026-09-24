@@ -17,10 +17,11 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Empty(service.History);
  }
  /// <summary>Replace stages both ends as one operation and Undo restores them together.</summary>
- [Theory]
- [InlineData(OccupiedDestinationBehavior.Ask,DraftConflictChoice.Replace)]
- [InlineData(OccupiedDestinationBehavior.ReplaceInDraft,null)]
- public void Move_replace_is_atomic_and_undoable(OccupiedDestinationBehavior behavior,DraftConflictChoice? choice) {
+ [Fact] public void Move_replace_is_atomic_and_undoable() {
+  foreach(var (behavior,choice) in new[] {
+   (OccupiedDestinationBehavior.Ask,(DraftConflictChoice?)DraftConflictChoice.Replace),
+   (OccupiedDestinationBehavior.ReplaceInDraft,(DraftConflictChoice?)null)
+  }) {
   var (service,source,target,_,first,_)=Fixture();
   var original=service.Snapshot.ToArray();
   var result=service.Move(source,target,behavior,choice);
