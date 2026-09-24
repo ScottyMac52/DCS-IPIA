@@ -108,6 +108,54 @@ public sealed class HueyConsumerImporterTests {
   var result=new HueyConsumerImporter().Import(request);
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-commit");
  }
+ /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
+ [Fact] public void Duplicate_profile_path_is_rejected() {
+  var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
+   var root=JsonNode.Parse(x)!;var profiles=root["profiles"]!;profiles["tm-mfd-2"]=profiles["tm-mfd-1"]!.GetValue<string>();return root.ToJsonString();
+  });
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Duplicate kneeboard profile path",StringComparison.Ordinal));
+ }
+ /// <summary>An override cannot refer to a device profile that was not imported.</summary>
+ [Fact] public void Orphan_device_override_is_rejected() {
+  var request=Fixture();var sources=Replace(request,"config/scaffold-device-overrides.json",x=>{
+   var root=JsonNode.Parse(x)!;root["Other.diff.lua"]="tm-mfd";return root.ToJsonString();
+  });
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Device override references unknown profile",StringComparison.Ordinal));
+ }
+ /// <summary>A conflicting MFD instance role is reported before projection.</summary>
+ [Fact] public void Conflicting_instance_role_is_rejected() {
+  var request=Fixture();var sources=Replace(request,"config/scaffold-instance-roles.json",x=>x.Replace("\"MFD3\"","\"MFD1\"",StringComparison.Ordinal));
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Instance role",StringComparison.Ordinal));
+ }
+ /// <summary>Page devices must resolve against the shared hardware manifest.</summary>
+ [Fact] public void Unknown_page_device_is_rejected() {
+  var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
+   var root=JsonNode.Parse(x)!;root["pages"]![0]!["deviceId"]="invented-device";return root.ToJsonString();
+  });
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown shared device identity",StringComparison.Ordinal));
+ }
+ /// <summary>Malformed module-owned Lua cannot produce a partial configuration.</summary>
+ [Fact] public void Invalid_modifiers_lua_is_atomic() {
+  var request=Fixture();var sources=Replace(request,"src/Config/Input/UH-1H/modifiers.lua",_=>"return {}");
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Empty(result.Provenance);
+  Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source");
+ }
+ /// <summary>Every expected file is needed to prove the full Huey import.</summary>
+ [Fact] public void Missing_config_file_is_reported() {
+  var request=Fixture();var sources=request.Sources.Where(x=>x.Path!="config/ui-layer-overlay.json").ToArray();
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="missing-source"&&x.Message.Contains("ui-layer-overlay",StringComparison.Ordinal));
+ }
+ /// <summary>Unknown source paths are rejected before any consumer files are read.</summary>
+ [Fact] public void Unknown_source_path_is_rejected() {
+  var request=Fixture();var result=new HueyConsumerImporter().Import(request with {Sources=[..request.Sources,new("src/Config/Input/Other/unknown.diff.lua","return {}")]});
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static ConsumerSource[] Replace(HueyImportRequest request,string path,Func<string,string> transform)=>request.Sources.Select(x=>x.Path==path?x with {Content=transform(x.Content)}:x).ToArray();

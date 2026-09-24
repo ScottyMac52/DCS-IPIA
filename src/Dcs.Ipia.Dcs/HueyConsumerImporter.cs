@@ -66,12 +66,14 @@ public sealed class HueyConsumerImporter:IHueyImporter {
    var overrides=metadata[Overrides];
    var roles=metadata[Roles];
    if(overrides.ValueKind!=JsonValueKind.Object||roles.ValueKind!=JsonValueKind.Object)throw new FormatException("Device overrides and instance roles must be keyed objects.");
+   var profilePaths=new HashSet<string>(StringComparer.Ordinal);
    var modifiers=DcsLuaParser.ParseModifiers(files[Modifiers]);
    var profiles=new List<DeviceProfile>();var bindings=new List<DcsBinding>();var instances=new List<DeviceInstance>();
    foreach(var entry in sourceProfiles.EnumerateObject()) {
     var path=entry.Value.GetString()??throw new FormatException($"Missing profile path for {entry.Name}.");
     if(!files.TryGetValue(path,out var lua)||!path.StartsWith(ProfileRoot,StringComparison.Ordinal))
      throw new FormatException($"Kneeboard profile {entry.Name} has no supplied Lua source: {path}");
+    if(!profilePaths.Add(path))throw new FormatException($"Duplicate kneeboard profile path: {path}");
     if(!pagesByProfile.TryGetValue(entry.Name,out var page))throw new FormatException($"No kneeboard page for profile {entry.Name}.");
     var key=RequiredText(page,"deviceId");
     if(!devices.TryGetValue(key,out var device))throw new FormatException($"Unknown shared device identity: {key}");
@@ -86,6 +88,10 @@ public sealed class HueyConsumerImporter:IHueyImporter {
     instances.Add(new(StableIdentity.Create("device-instance",$"{module.DcsId}/{key}/{instance}"),module.Id,device.Id,entry.Name,instance??key));
     bindings.AddRange(DcsLuaParser.ParseProfile(lua,id));
    }
+   foreach(var decision in overrides.EnumerateObject())
+    if(!profiles.Any(x=>x.SourceName==decision.Name))throw new FormatException($"Device override references unknown profile {decision.Name}.");
+   foreach(var decision in roles.EnumerateObject())
+    if(!profiles.Any(x=>x.SourceName==decision.Name))throw new FormatException($"Instance role references unknown profile {decision.Name}.");
    if(profiles.Count!=pageRows.GetArrayLength()||profiles.Count!=files.Keys.Count(x=>x.EndsWith(".diff.lua",StringComparison.Ordinal)))
     throw new FormatException("Every supplied Lua profile requires exactly one kneeboard profile and page.");
    var configuration=new ModuleConfiguration(module,profiles,modifiers,bindings,$"ScottyMac52/DCS-UH-1H-Huey@{request.Commit}");
