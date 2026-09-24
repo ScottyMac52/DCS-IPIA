@@ -163,7 +163,7 @@ public sealed class DraftAssignmentService {
   }
   return true;
  }
- private DraftResult? Conflict(DraftAssignment? existing,OccupiedDestinationBehavior behavior,DraftConflictChoice? choice,bool canSwap) {
+ private static DraftResult? Conflict(DraftAssignment? existing,OccupiedDestinationBehavior behavior,DraftConflictChoice? choice,bool canSwap) {
   if(existing is null)return null;
   if(!Enum.IsDefined(behavior))return Block("Unknown occupied-destination preference.");
   if(behavior==OccupiedDestinationBehavior.Reject)return Block("Destination is occupied and replacement is disabled.");

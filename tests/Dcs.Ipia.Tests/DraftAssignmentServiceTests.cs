@@ -32,6 +32,7 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Equal(DraftOutcome.Applied,service.Undo().Outcome);
   Assert.Equal(original,service.Snapshot);
   Assert.False(service.HasChanges);
+  }
  }
  /// <summary>Swap stages two assignments and survives undo without touching another instance.</summary>
  [Fact] public void Explicit_swap_and_ask_swap_keep_context() {
