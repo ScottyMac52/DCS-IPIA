@@ -36,9 +36,10 @@ public static class UiLayerDiagramFactory {
    if(viewBox.Length!=4||viewBox[0]!="0"||viewBox[1]!="0")throw new InvalidDataException($"Unsupported SVG viewBox: {path}");
    var width=Number(viewBox[2]);var height=Number(viewBox[3]);
    var href=root.Descendants().FirstOrDefault(x=>x.Name.LocalName=="image")?.Attributes().FirstOrDefault(x=>x.Name.LocalName=="href")?.Value;
-   const string prefix="data:image/png;base64,";
-   if(href is null||!href.StartsWith(prefix,StringComparison.Ordinal))throw new InvalidDataException($"Missing embedded hardware PNG: {path}");
-   var background=Convert.FromBase64String(href[prefix.Length..]);
+   var prefix=href?.StartsWith("data:image/png;base64,",StringComparison.Ordinal)==true?"data:image/png;base64,":
+    href?.StartsWith("data:image/jpeg;base64,",StringComparison.Ordinal)==true?"data:image/jpeg;base64,":null;
+   if(prefix is null)throw new InvalidDataException($"Missing embedded hardware image: {path}");
+   var background=Convert.FromBase64String(href![prefix.Length..]);
    var boxes=new Dictionary<string,XElement>(StringComparer.Ordinal);
    var nodes=root.Nodes().ToArray();
    for(var i=0;i<nodes.Length-1;i++)

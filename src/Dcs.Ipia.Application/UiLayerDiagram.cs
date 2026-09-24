@@ -6,7 +6,7 @@ namespace Dcs.Ipia.Application;
 /// <param name="Path">Committed DCS-Common SVG source path.</param>
 /// <param name="Width">SVG viewBox width.</param>
 /// <param name="Height">SVG viewBox height.</param>
-/// <param name="Background">The SVG's embedded hardware PNG.</param>
+/// <param name="Background">The SVG's embedded PNG or JPEG hardware image.</param>
 /// <param name="Callouts">Only assignments explicitly used by this module and device instance.</param>
 public sealed record UiLayerDiagram(string Device,string? Instance,string Path,double Width,double Height,byte[] Background,IReadOnlyList<UiLayerCallout> Callouts) {
  #region BEGIN Public
