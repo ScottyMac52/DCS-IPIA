@@ -79,6 +79,10 @@ public sealed class HueyWorkspaceLoaderTests {
     ["assets/shared/hardware/svg/tm-mfd.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-mfd.svg")),
     ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg"))
    };
+   var withoutHardwareMap=UiLayerDiagramFactory.Create(result.Import,catalog,graphics);
+   Assert.Equal(4,withoutHardwareMap.Count);
+   Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
+   Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,new Dictionary<string,string>()));
    var missingBox=new Dictionary<string,string>(graphics);
    missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
