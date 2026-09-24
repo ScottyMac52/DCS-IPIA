@@ -12,7 +12,7 @@ public sealed class CanonicalSvgRendererTests {
   var svg=$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><image href='data:image/png;base64,{pixel}' width='80' height='80'/><!-- box:mfd-osb-t1 --><rect x='10' y='10' width='40' height='40' fill='red'/><text id='lbl-mfd-osb-t1' x='20' y='20'>OSB1</text></svg>";
   var bytes=CanonicalSvgRenderer.Render(svg,80,80);
   Assert.True(bytes.Length>100);
-  Assert.Equal(137,bytes[1]);
+  Assert.Equal(137,bytes[0]);
   Assert.Contains("OSB1",svg,StringComparison.Ordinal);
  }
  /// <summary>Nonfinite or unsupported canvas dimensions cannot allocate a raster surface.</summary>
