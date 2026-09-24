@@ -40,7 +40,7 @@ public static class Program {
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
   var assignments=(ListBox)repoWindow.FindName("UiAssignmentList")!;
   if(!repoWindow.IsVisible||canvas.Children.Count!=2||assignments.Items.Count!=1)
-   throw new InvalidOperationException("Committed Huey preview did not display the controller assignment.");
+   throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
   repoWindow.Close();
   System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
   return 0;
