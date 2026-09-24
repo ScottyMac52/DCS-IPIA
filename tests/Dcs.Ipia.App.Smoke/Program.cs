@@ -58,6 +58,8 @@ public static class Program {
      !assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
 
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
+  if(scope.SelectedIndex!=0)
+   throw new InvalidOperationException("Editor should open with the module command catalog selected.");
   scope.SelectedIndex=0;
   if(palette.Items.Count!=0)throw new InvalidOperationException("Empty aircraft import must have an empty aircraft palette.");
   scope.SelectedIndex=1;
@@ -108,8 +110,17 @@ public static class Program {
      categories.Items.Contains("Key")||categories.Items.Contains("Axis"))
    throw new InvalidOperationException("Module catalog did not provide named categories and full command list.");
   categories.SelectedItem="Autopilot";
+  var commandRow=(ListBoxItem)palette.ItemContainerGenerator.ContainerFromIndex(0)!;
+  var categoryLabels=FindVisualChildren<TextBlock>(commandRow).Select(x=>x.Text).ToArray();
+  if(!categoryLabels.Contains("Autopilot"))
+   throw new InvalidOperationException("The visible command row omitted its authored JSON category.");
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Autopilot On",StringComparison.Ordinal))
    throw new InvalidOperationException("Autopilot category did not filter aircraft commands.");
+  var canDrop=typeof(HueyImportWindow).GetMethod("CanDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  var incompatible=new System.Windows.DataObject();
+  incompatible.SetData("Dcs.Ipia.Editor.PaletteCommand","aCollective");
+  if((bool)canDrop.Invoke(repoWindow,[incompatible,diagram.Controls[1]])!)
+   throw new InvalidOperationException("An axis command was accepted on a button drop target.");
   categories.SelectedIndex=0;
   types.SelectedIndex=2;
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Collective",StringComparison.Ordinal))
@@ -144,4 +155,11 @@ public static class Program {
   return 0;
  }
  #endregion END Public
+ private static IEnumerable<T> FindVisualChildren<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject {
+  for(var index=0;index<System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);index++) {
+   var child=System.Windows.Media.VisualTreeHelper.GetChild(parent,index);
+   if(child is T match)yield return match;
+   foreach(var descendant in FindVisualChildren<T>(child))yield return descendant;
+  }
+ }
 }
