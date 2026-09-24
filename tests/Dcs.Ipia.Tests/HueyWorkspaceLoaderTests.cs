@@ -79,6 +79,12 @@ public sealed class HueyWorkspaceLoaderTests {
    missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
     .Replace("box:hornet-grip-paddle","box:missing-control",StringComparison.Ordinal);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,missingBox));
+   var nonAdjacentBox=new Dictionary<string,string>(graphics);
+   nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"]=nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"]
+    .Replace("<!-- box:hornet-grip-paddle -->\n  <rect",
+     "<!-- box:hornet-grip-paddle -->\n  <text>Unexpected shape</text>\n  <rect",StringComparison.Ordinal);
+   var badBox=Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,nonAdjacentBox));
+   Assert.Contains("adjacent rectangle",badBox.Message,StringComparison.Ordinal);
    var unsupportedImage=new Dictionary<string,string>(graphics);
    unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]=unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]
     .Replace("data:image/png;base64,","data:image/gif;base64,",StringComparison.Ordinal);
