@@ -110,6 +110,8 @@ public static class Program {
      categories.Items.Contains("Key")||categories.Items.Contains("Axis"))
    throw new InvalidOperationException("Module catalog did not provide named categories and full command list.");
   categories.SelectedItem="Autopilot";
+  ((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex=3;
+  repoWindow.UpdateLayout();
   var commandRow=(ListBoxItem)palette.ItemContainerGenerator.ContainerFromIndex(0)!;
   var categoryLabels=FindVisualChildren<TextBlock>(commandRow).Select(x=>x.Text).ToArray();
   if(!categoryLabels.Contains("Autopilot"))
