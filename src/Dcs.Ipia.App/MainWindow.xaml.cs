@@ -10,6 +10,8 @@ public partial class MainWindow : Window {
   InitializeComponent();
   ThemePicker.SelectedIndex=ThemeManager.LoadPreference()=="Dark"?1:0;
  }
+ #region BEGIN Public
+ #endregion END Public
  #region BEGIN private helpers
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(ThemePicker.SelectedItem is not ComboBoxItem {Tag:string theme}) return;
