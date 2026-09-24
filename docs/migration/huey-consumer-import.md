@@ -1,0 +1,7 @@
+# Pinned Huey consumer import
+
+`IHueyImporter` takes unmodified source texts from `ScottyMac52/DCS-UH-1H-Huey` at commit `77d924cce220355860e8f026cff3524bac531e29`. Its tests pin the six `config/*.json` files, five `src/Config/Input/UH-1H/joystick/*.diff.lua` files, and `src/Config/Input/UH-1H/modifiers.lua`. The imported shared DCS-Common catalog and canonical UI Layer Lua remain authoritative for shared device, function, and modifier references. The importer reads only supplied strings and never follows the machine-specific paths embedded in the legacy scaffold settings.
+
+The result includes five aircraft profiles and device instances, their Lua bindings and modifier, six ordered kneeboard page identities, distinct UI Layer function usage, cloned JSON roots, all 12 exact source texts, and repository/commit/path/SHA-256 provenance. Page callouts, labels, layers, roles, removed-profile decisions, configuration choices, and their original formatting remain available in the source texts. Unsupported nonempty module overlay assignments fail explicitly rather than being discarded. Validation reports missing or contradictory identities, unresolved labels, shared UI references, malformed JSON/Lua, and unsafe source metadata with no partial result.
+
+This is a read-only characterization slice. It does not persist the full page graph to SQLite, render Markdown or images, build OvGME output, claim equivalence with the Huey release, or switch the consumer away from DCS-Common. Those are subsequent Workstream 3–5 acceptance steps in issue #10.

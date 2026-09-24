@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "description": "Module-owned UI Layer changes. Packaging composes these over DCS-Common; this file never changes the shared catalog.",
+  "assignments": [],
+  "labels": {}
+}

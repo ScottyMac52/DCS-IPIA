@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "name": "scaffold.dcs-scaffold",
+  "import": {
+    "target": "ui-layer",
+    "profilesDirectory": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\UiLayer\\joystick",
+    "modifiersPath": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\UiLayer\\modifiers.lua",
+    "mozaGrip": "hornet",
+    "commonRoot": "C:\\Users\\vyper\\Source\\repos\\DCS-Common",
+    "outputDirectory": "C:\\Users\\vyper\\Source\\repos\\DCS-UH-1H-Huey"
+  },
+  "decisions": {
+    "instanceRoles": {},
+    "semanticModifiers": {
+      "LAlt": "LAlt",
+      "LCtrl": "LCtrl",
+      "LShift": "LShift",
+      "LWin": "LWin",
+      "MOZA_MODIFIER_BTN3": "MOZA_MODIFIER_BTN3",
+      "RAlt": "RAlt",
+      "RCtrl": "RCtrl",
+      "RShift": "RShift",
+      "RWin": "RWin"
+    },
+    "removedProfiles": [],
+    "authoredDevices": []
+  }
+}
