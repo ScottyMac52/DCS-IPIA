@@ -22,7 +22,7 @@ public sealed class HueyConsumerImporterTests {
   Assert.Equal(6,result.Metadata.Count);
   Assert.Equal(12,result.Provenance.Count);
   Assert.Equal(101,result.Metadata["config/kneeboard.json"].GetProperty("labels").EnumerateObject().Count());
-  Assert.Equal(15,result.Metadata["config/kneeboard.json"].GetProperty("uiLayerUtilization").GetProperty("bindings").GetArrayLength());
+  Assert.Equal(16,result.Metadata["config/kneeboard.json"].GetProperty("uiLayerUtilization").GetProperty("bindings").GetArrayLength());
   Assert.Contains(result.Instances,x=>x.StableKey=="tm-mfd-3"&&x.Role=="MFD3");
   Assert.Contains(result.Configuration.Bindings,x=>x.Reformers.Contains("MOZA_F16_F18_BTN3"));
   Assert.Contains(result.Configuration.Bindings,x=>x.Section==BindingSection.Axis);
