@@ -110,7 +110,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
    if(RequiredText(usage,"mode")!="explicit")throw new FormatException("Only explicit UI Layer utilization is supported.");
    var validIds=request.Catalog.Commands.Select(x=>x.Id).ToHashSet();
    var uiModifiers=request.SharedLua!.Modifiers.Select(x=>x.Name).ToHashSet(StringComparer.Ordinal);
-   var used=new HashSet<Guid>();var usageList=new List<UiLayerModuleUsage>();
+   var used=new HashSet<Guid>();var usageList=new List<UiLayerModuleUsage>();var functionKeys=new HashSet<string>(StringComparer.Ordinal);
    foreach(var item in usage.GetProperty("bindings").EnumerateArray()) {
     var function=RequiredText(item,"functionId");var id=StableIdentity.Create("ui-function",function);
     if(!validIds.Contains(id))throw new FormatException($"Unknown canonical UI Layer function {function}.");
@@ -119,10 +119,10 @@ public sealed class HueyConsumerImporter:IHueyImporter {
      throw new FormatException($"UI Layer utilization has no matching Huey device instance: {deviceKey}.");
     foreach(var modifier in item.GetProperty("modifiers").EnumerateArray())
      if(!uiModifiers.Contains(modifier.GetString()??string.Empty))throw new FormatException($"Unknown canonical UI Layer modifier {modifier.GetString()}.");
-    if(used.Add(id))usageList.Add(new(module.Id,id,true));
+    if(used.Add(id)){usageList.Add(new(module.Id,id,true));functionKeys.Add(function);}
    }
    var provenance=files.Select(x=>new SourceProvenance("ScottyMac52/DCS-UH-1H-Huey",request.Commit!,x.Key,Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(x.Value))))).ToArray();
-   return new(configuration,instances.OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray(),pageList,usageList.OrderBy(x=>x.CommandId).ToArray(),metadata,files,provenance,diagnostics);
+   return new(configuration,instances.OrderBy(x=>x.StableKey,StringComparer.Ordinal).ToArray(),pageList,usageList.OrderBy(x=>x.CommandId).ToArray(),functionKeys.Order(StringComparer.Ordinal).ToArray(),metadata,files,provenance,diagnostics);
   }
   catch(Exception ex) when(ex is FormatException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
    diagnostics.Add(new("invalid-huey-source",ex.Message,true));
@@ -144,7 +144,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
    throw new FormatException($"Kneeboard callout references missing label {id.GetString()}.");
   foreach(var child in value.EnumerateObject())ValidateLabels(child.Value,labels);
  }
- private static HueyImportResult Failure(List<ImportDiagnostic> diagnostics)=>new(null,[],[],[],new Dictionary<string,JsonElement>(),new Dictionary<string,string>(),[],diagnostics);
+ private static HueyImportResult Failure(List<ImportDiagnostic> diagnostics)=>new(null,[],[],[],[],new Dictionary<string,JsonElement>(),new Dictionary<string,string>(),[],diagnostics);
  private const string Scaffold="config/UH-1H.dcs-scaffold.json";
  private const string UiScaffold="config/scaffold.dcs-scaffold.json";
  private const string Kneeboard="config/kneeboard.json";

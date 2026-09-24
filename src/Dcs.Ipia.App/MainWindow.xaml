@@ -1,7 +1,7 @@
 <Window x:Class="DcsIpia.Presentation.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DCS-IPIA — Module workspace design preview"
+        Title="DCS-IPIA — Module workspace"
         Width="1280" Height="840" MinWidth="1024" MinHeight="700"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
         WindowStartupLocation="CenterScreen">
@@ -27,8 +27,10 @@
           <ComboBoxItem Content="Light" Tag="Light"/>
           <ComboBoxItem Content="Dark" Tag="Dark"/>
         </ComboBox>
-        <Button Content="Import module" IsEnabled="False" Padding="14,8" Margin="6,0"
-                ToolTip="Available when read-only consumer import is connected."/>
+        <Button x:Name="ImportHueyButton" Content="Open Huey (read-only)" Padding="14,8" Margin="6,0"
+                Click="ImportHuey_Click" ToolTip="Select committed Huey and DCS-Common Git checkouts." />
+        <Button x:Name="ViewImportedButton" Content="View imported" IsEnabled="False" Padding="14,8" Margin="6,0"
+                Click="ViewImported_Click" ToolTip="Review the last imported source data."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"
                 ToolTip="Available when module validation is connected."/>
         <Button Content="Build package" IsEnabled="False" Padding="14,8" Margin="6,0"
@@ -201,8 +203,9 @@
     <Border Grid.Row="3" Background="{DynamicResource StatusBackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,14,0,0">
       <StackPanel>
         <TextBlock x:Name="ThemeSaveStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
+        <TextBlock x:Name="ImportStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
         <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
-                 Text="Design preview: navigation and layout only. No data is imported, changed, saved or packaged by this screen."/>
+                 Text="This workspace layout shows sample data. Open Huey (read-only) to inspect committed sources. Edit and build actions remain unavailable."/>
       </StackPanel>
     </Border>
   </Grid>

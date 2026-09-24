@@ -10,12 +10,13 @@ public sealed class HueyImportResult {
  /// <param name="instances">Physical device instances and roles.</param>
  /// <param name="pages">Summary and device kneeboard page identities.</param>
  /// <param name="usage">Referenced canonical UI Layer functions.</param>
+ /// <param name="uiFunctionKeys">The authored canonical UI Layer function keys used by this module.</param>
  /// <param name="metadata">Parsed copies of the authored JSON files, keyed by repository path.</param>
  /// <param name="sources">The original source texts, including unprojected page callouts.</param>
  /// <param name="provenance">Exact repository, commit, path, and SHA-256 records.</param>
  /// <param name="diagnostics">Structured import diagnostics.</param>
- public HueyImportResult(ModuleConfiguration? configuration,IReadOnlyList<DeviceInstance> instances,IReadOnlyList<KneeboardPage> pages,IReadOnlyList<UiLayerModuleUsage> usage,IReadOnlyDictionary<string,JsonElement> metadata,IReadOnlyDictionary<string,string> sources,IReadOnlyList<SourceProvenance> provenance,IReadOnlyList<ImportDiagnostic> diagnostics) {
-  Configuration=configuration;Instances=instances;Pages=pages;Usage=usage;Metadata=metadata;Sources=sources;Provenance=provenance;Diagnostics=diagnostics;
+ public HueyImportResult(ModuleConfiguration? configuration,IReadOnlyList<DeviceInstance> instances,IReadOnlyList<KneeboardPage> pages,IReadOnlyList<UiLayerModuleUsage> usage,IReadOnlyList<string> uiFunctionKeys,IReadOnlyDictionary<string,JsonElement> metadata,IReadOnlyDictionary<string,string> sources,IReadOnlyList<SourceProvenance> provenance,IReadOnlyList<ImportDiagnostic> diagnostics) {
+  Configuration=configuration;Instances=instances;Pages=pages;Usage=usage;UiFunctionKeys=uiFunctionKeys;Metadata=metadata;Sources=sources;Provenance=provenance;Diagnostics=diagnostics;
  }
  #region BEGIN Public
  /// <summary>Gets the parsed aircraft configuration.</summary>
@@ -26,6 +27,8 @@ public sealed class HueyImportResult {
  public IReadOnlyList<KneeboardPage> Pages {get;}
  /// <summary>Gets the canonical UI Layer functions used by the module.</summary>
  public IReadOnlyList<UiLayerModuleUsage> Usage {get;}
+ /// <summary>Gets human-readable canonical UI Layer function keys.</summary>
+ public IReadOnlyList<string> UiFunctionKeys {get;}
  /// <summary>Gets cloned JSON roots for all six module configuration files.</summary>
  public IReadOnlyDictionary<string,JsonElement> Metadata {get;}
  /// <summary>Gets the unchanged repository-relative source texts.</summary>
