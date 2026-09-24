@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using DcsIpia.Presentation;
 
 namespace Dcs.Ipia.App.Smoke;
@@ -41,6 +42,21 @@ public static class Program {
    throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
   repoWindow.Close();
   folderWindow.Close();
+  var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
+  try {
+   var settings=new FileAppSettingsService(Path.Combine(preferencesRoot,"defaults.json"),
+    Path.Combine(preferencesRoot,"user-settings.json"),Path.Combine(preferencesRoot,"theme.txt"));
+   var preferencesWindow=new SettingsWindow(settings);
+   preferencesWindow.Show();
+   preferencesWindow.UpdateLayout();
+   ((ComboBox)preferencesWindow.FindName("ThemeChoice")!).SelectedIndex=1;
+   ((ComboBox)preferencesWindow.FindName("ConflictChoice")!).SelectedIndex=2;
+   if(settings.Current.Theme!=AppearanceTheme.Dark || settings.Current.OccupiedDestinationBehavior!=OccupiedDestinationBehavior.Reject ||
+      !File.Exists(Path.Combine(preferencesRoot,"user-settings.json")))
+    throw new InvalidOperationException("Settings window did not apply and save theme and destination preferences.");
+   preferencesWindow.Close();
+  }
+  finally {if(Directory.Exists(preferencesRoot))Directory.Delete(preferencesRoot,true);}
   System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
   return 0;
  }
