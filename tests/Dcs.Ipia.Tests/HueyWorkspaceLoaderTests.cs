@@ -37,11 +37,11 @@ public sealed class HueyWorkspaceLoaderTests {
     foreach(var device in new[]{"tm-mfd","grip-f18c"}) {
      var controls=overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
       .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
-     var rects=string.Join("",controls.Select((control,i)=>$"<!-- box:{control} --><rect x='10' y='{10+i*48}' width='55' height='45'/>"));
+     var rects=string.Join("\n",controls.Select((control,i)=>$"  <!-- box:{control} -->\n  <rect x='10' y='{10+i*48}' width='55' height='45'/>\n  <text id='lbl-{control}' x='10' y='10'>label</text>"));
      var path=Path.Combine(common,"assets","shared","hardware","svg",device+".svg");
      Directory.CreateDirectory(Path.GetDirectoryName(path)!);
      var mime=device=="grip-f18c"?"jpeg":"png";
-     File.WriteAllText(path,$"<svg viewBox='0 0 960 720'><image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>{rects}</svg>");
+     File.WriteAllText(path,$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'>\n  <image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>\n{rects}\n</svg>");
     }
    }
    Commit(common);Commit(huey);
@@ -58,6 +58,8 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(2,result.Diagrams.Count);
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
    Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
+   Assert.Contains(result.Diagrams.Single(x=>x.Instance is null).Callouts,
+    x=>x.Control=="hornet-grip-paddle"&&x.Function=="Recenter VR"&&x.X==10);
    Assert.DoesNotContain(result.Diagrams,x=>x.Instance=="MFD1"||x.Instance=="MFD2");
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
@@ -77,6 +79,12 @@ public sealed class HueyWorkspaceLoaderTests {
    missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
     .Replace("box:hornet-grip-paddle","box:missing-control",StringComparison.Ordinal);
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,missingBox));
+   var nonAdjacentBox=new Dictionary<string,string>(graphics);
+   nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"]=nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"]
+    .Replace("<!-- box:hornet-grip-paddle -->\n  <rect",
+     "<!-- box:hornet-grip-paddle -->\n  <text>Unexpected shape</text>\n  <rect",StringComparison.Ordinal);
+   var badBox=Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,nonAdjacentBox));
+   Assert.Contains("adjacent rectangle",badBox.Message,StringComparison.Ordinal);
    var unsupportedImage=new Dictionary<string,string>(graphics);
    unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]=unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]
     .Replace("data:image/png;base64,","data:image/gif;base64,",StringComparison.Ordinal);

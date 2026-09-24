@@ -30,7 +30,7 @@ public static class UiLayerDiagramFactory {
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
    if(!sources.TryGetValue(path,out var svg))throw new InvalidDataException($"Missing committed UI Layer hardware image: {path}");
    using var reader=XmlReader.Create(new StringReader(svg),new XmlReaderSettings {DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=4_000_000});
-   var document=XDocument.Load(reader);
+   var document=XDocument.Load(reader,LoadOptions.PreserveWhitespace);
    var root=document.Root??throw new InvalidDataException($"Empty SVG: {path}");
    var viewBox=(root.Attribute("viewBox")?.Value??"").Split(' ',StringSplitOptions.RemoveEmptyEntries);
    if(viewBox.Length!=4||viewBox[0]!="0"||viewBox[1]!="0")throw new InvalidDataException($"Unsupported SVG viewBox: {path}");
@@ -41,11 +41,15 @@ public static class UiLayerDiagramFactory {
    if(prefix is null)throw new InvalidDataException($"Missing embedded hardware image: {path}");
    var background=Convert.FromBase64String(href![prefix.Length..]);
    var boxes=new Dictionary<string,XElement>(StringComparer.Ordinal);
-   var nodes=root.Nodes().ToArray();
-   for(var i=0;i<nodes.Length-1;i++)
-    if(nodes[i] is XComment comment&&comment.Value.Trim().StartsWith("box:",StringComparison.Ordinal)
-       &&nodes[i+1] is XElement element&&element.Name.LocalName=="rect")
-     boxes.Add(comment.Value.Trim()["box:".Length..].Trim(),element);
+   foreach(var comment in root.Nodes().OfType<XComment>()) {
+    var marker=comment.Value.Trim();
+    if(!marker.StartsWith("box:",StringComparison.Ordinal))continue;
+    XNode? next=comment.NextNode;
+    while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
+    if(next is not XElement element||element.Name.LocalName!="rect")
+     throw new InvalidDataException($"Graphic box {marker} has no adjacent rectangle in {path}.");
+    boxes.Add(marker["box:".Length..].Trim(),element);
+   }
    var callouts=new List<UiLayerCallout>();
    foreach(var row in rows) {
     var function=row.GetProperty("functionId").GetString()!;
