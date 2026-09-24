@@ -62,6 +62,25 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
     x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
+   var paths=new[]{"assets/shared/hardware/manifest.json","assets/shared/ui-layer/functions.json",
+    "assets/shared/ui-layer/hardware-overlays.json","assets/shared/hardware/scaffold-device-map.json"};
+   var texts=paths.Select(x=>File.ReadAllText(Path.Combine(common,x))).ToArray();
+   var catalog=new DcsCommonCatalogImporter().Import(new(new string('a',40),
+    paths[0],texts[0],paths[1],texts[1],paths[2],texts[2],paths[3],texts[3]));
+   Assert.True(catalog.Succeeded);
+   var graphics=new Dictionary<string,string> {
+    ["assets/shared/hardware/svg/tm-mfd.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-mfd.svg")),
+    ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg"))
+   };
+   Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,new Dictionary<string,string>()));
+   var missingBox=new Dictionary<string,string>(graphics);
+   missingBox["assets/shared/hardware/svg/grip-f18c.svg"]=missingBox["assets/shared/hardware/svg/grip-f18c.svg"]
+    .Replace("box:hornet-grip-paddle","box:missing-control",StringComparison.Ordinal);
+   Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,missingBox));
+   var unsupportedImage=new Dictionary<string,string>(graphics);
+   unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]=unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"]
+    .Replace("data:image/png;base64,","data:image/gif;base64,",StringComparison.Ordinal);
+   Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,unsupportedImage));
    Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
   }
   finally {DeleteFixture(temp);}

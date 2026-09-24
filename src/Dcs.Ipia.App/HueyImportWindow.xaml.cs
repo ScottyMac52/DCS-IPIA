@@ -74,7 +74,7 @@ public partial class HueyImportWindow : Window {
    foreach(var callout in diagram.Callouts) {
     var badge=new Border {Width=callout.Width,Height=callout.Height,BorderThickness=new Thickness(2),
      CornerRadius=new CornerRadius(4),ToolTip=callout.Description,
-     Child=new TextBlock {Text=callout.Number.ToString("00"),FontWeight=FontWeights.Bold,
+     Child=new TextBlock {Text=callout.Number.ToString("00",System.Globalization.CultureInfo.InvariantCulture),FontWeight=FontWeights.Bold,
       HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center}};
     badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
     badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
