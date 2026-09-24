@@ -86,8 +86,8 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
    Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
    var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));
-   var device=catalog.Devices.Single(x=>x.StableKey=="tm-mfd");
-   var axisControl=new DeviceControl(Guid.NewGuid(),device.Id,mappedControl.Control,mappedControl.Label,ControlKind.Axis,null);
+   var mfdDevice=catalog.Devices.Single(x=>x.StableKey=="tm-mfd");
+   var axisControl=new DeviceControl(Guid.NewGuid(),mfdDevice.Id,mappedControl.Control,mappedControl.Label,ControlKind.Axis,null);
    var sharedMap=new SharedLuaImportResult([new SharedHardwareControl(axisControl,mappedControl.InputKey,"axis",null,null)],
     [],[],[],[],[]);
    var withoutLabel=new Dictionary<string,string>(graphics);
