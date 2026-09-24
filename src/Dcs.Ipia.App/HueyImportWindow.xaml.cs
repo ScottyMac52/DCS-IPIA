@@ -17,6 +17,7 @@ public partial class HueyImportWindow : Window {
   DataContext=_viewModel;
   KneeboardList.SelectedIndex=0;
   UiDiagramList.SelectedIndex=0;
+  if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
  }
  #region BEGIN Public
  #endregion END Public

@@ -24,15 +24,19 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
-  UiUsage=preview.Diagrams.Count==0?["No graphical UI Layer assignments found in this committed source."]:[];
-  Diagnostics=result.Diagnostics.Count==0?["No import diagnostics."]:result.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
+  UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
+   ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
+   :"No graphical UI Layer assignments found in this committed source."]:[];
+  var issues=result.Diagnostics.Concat(preview.GraphicDiagnostics).ToArray();
+  HasErrors=issues.Any(x=>x.IsError);
+  Diagnostics=issues.Length==0?["No import diagnostics."]:issues.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=result.Provenance.Select(x=>$"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
  }
  /// <summary>Builds a live Saved Games profile preview without inventing device IDs or kneeboard output.</summary>
  /// <param name="folder">The parsed local joystick folder.</param>
  public HueyImportViewModel(DcsFolderImportResult folder) {
   ArgumentNullException.ThrowIfNull(folder);
-  if(!folder.Succeeded)throw new ArgumentException("Only validated profiles can be previewed.",nameof(folder));
+  if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
   WindowTitle="DCS Saved Games · joystick source preview";
   Summary=$"{folder.Profiles.Count} local profiles · {folder.Bindings.Count} bindings · {folder.Modifiers.Count} modifiers";
   Commit=$"Source folder: {folder.Folder}";
@@ -47,6 +51,7 @@ public sealed class HueyImportViewModel {
   Images=[];
   UiDiagrams=[];
   UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
+  HasErrors=folder.Diagnostics.Any(x=>x.IsError);
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
@@ -73,6 +78,8 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<UiLayerDiagram> UiDiagrams {get;}
  /// <summary>Gets an explanation when graphics are unavailable.</summary>
  public IReadOnlyList<string> UiUsage {get;}
+ /// <summary>Gets whether any source or graphic diagnostic requires attention.</summary>
+ public bool HasErrors {get;}
  /// <summary>Gets import diagnostics.</summary>
  public IReadOnlyList<string> Diagnostics {get;}
  /// <summary>Gets source hashes or their availability explanation.</summary>

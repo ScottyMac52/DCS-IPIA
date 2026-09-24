@@ -54,6 +54,8 @@ public sealed class DcsFolderImporterTests {
    File.Delete(Path.Combine(root,"modifiers.lua"));
    var result=await new DcsFolderImporter().ImportAsync(root);
    Assert.False(result.Succeeded);
+   Assert.Equal(5,result.Profiles.Count);
+   Assert.NotEmpty(result.Bindings);
    Assert.Contains(result.Diagnostics,x=>x.Code=="missing-modifiers");
    Assert.Contains(result.Diagnostics,x=>x.Code=="unknown-modifier");
   }
@@ -67,6 +69,8 @@ public sealed class DcsFolderImporterTests {
    File.WriteAllText(file,"return {}");
    var result=await new DcsFolderImporter().ImportAsync(root);
    Assert.False(result.Succeeded);
+   Assert.Equal(4,result.Profiles.Count);
+   Assert.DoesNotContain(result.Profiles,x=>x.DeviceId=="F16 MFD 1");
    Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-profile"&&x.Message.Contains("F16 MFD 1",StringComparison.Ordinal));
   }
   finally {Directory.Delete(root,true);}

@@ -36,7 +36,7 @@
       <TextBlock Text="{Binding SourceNote}" Margin="0,3,0,0"
                  Foreground="{DynamicResource SecondaryTextBrush}"/>
     </StackPanel>
-    <TabControl Grid.Row="1" TabStripPlacement="Left" Background="{DynamicResource SurfaceBrush}"
+    <TabControl x:Name="ImportedTabs" Grid.Row="1" TabStripPlacement="Left" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" ItemContainerStyle="{DynamicResource NavigationItem}"
                 AutomationProperties.Name="Imported Huey data">
       <TabItem Header="Profiles">
@@ -105,7 +105,7 @@
           </Grid>
         </Grid>
       </TabItem>
-      <TabItem Header="Diagnostics">
+      <TabItem x:Name="DiagnosticsTab" Header="Diagnostics">
         <ListBox ItemsSource="{Binding Diagnostics}" AutomationProperties.Name="Import diagnostics"/>
       </TabItem>
       <TabItem Header="Sources">

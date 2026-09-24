@@ -44,8 +44,9 @@ public sealed class DcsFolderImporter:IDcsFolderImporter {
     if(guidStart>=0&&key.EndsWith('}'))key=key[..guidStart];
     var id=StableIdentity.Create("dcs-saved-games-profile",key);
     var profile=new DeviceProfile(id,key,null,"unresolved device",filename);
+    var parsed=DcsLuaParser.ParseProfile(await File.ReadAllTextAsync(file,cancellationToken),id);
     profiles.Add(profile);
-    bindings.AddRange(DcsLuaParser.ParseProfile(await File.ReadAllTextAsync(file,cancellationToken),id));
+    bindings.AddRange(parsed);
    }
    catch(Exception ex) when(ex is IOException or FormatException or ArgumentException) {diagnostics.Add(new("invalid-profile",$"{file}: {ex.Message}",true));}
   }
