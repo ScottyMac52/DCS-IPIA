@@ -17,6 +17,7 @@ public partial class HueyImportWindow : Window {
  private readonly IAppSettingsService? _settings;
  private HardwareGraphicControl? _selected;
  private HardwareGraphicControl? _pendingSource;
+ private HardwareGraphicControl? _contextSource;
  private string? _pendingAction;
  private IReadOnlyList<HardwareGraphicControl> _visibleControls=[];
  private UiLayerDiagram? _currentDiagram;
@@ -39,7 +40,7 @@ public partial class HueyImportWindow : Window {
   UiModifierChoice.SelectedIndex=0;
   KneeboardList.SelectedIndex=0;
   UiDiagramList.SelectedIndex=0;
-  PaletteScope.SelectedIndex=1;
+  PaletteScope.SelectedIndex=0;
   EditorStatus.Text=_viewModel.DraftNote;
   RefreshReview();
   if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
@@ -197,7 +198,7 @@ public partial class HueyImportWindow : Window {
     badge.Drop+=(_,args)=>{
      badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");Control_Drop(control,args);
     };
-    badge.PreviewMouseRightButtonDown+=(_,_)=>{_selected=control;UpdateInspector();UpdatePalette();};
+    badge.PreviewMouseRightButtonDown+=(_,_)=>{_contextSource=_selected;_selected=control;UpdateInspector();UpdatePalette();};
     badge.ContextMenu=BuildContextMenu(control);
     Canvas.SetLeft(badge,control.X);Canvas.SetTop(badge,control.Y);
     UiDiagramCanvas.Children.Add(badge);
@@ -293,7 +294,12 @@ public partial class HueyImportWindow : Window {
   Math.Abs(start.Y-current.Y)>=SystemParameters.MinimumVerticalDragDistance;
  private bool CanDrop(IDataObject data,HardwareGraphicControl? target) =>
   target is not null&&Slot(target) is not null&&
-  (data.GetDataPresent(PaletteDragFormat)||data.GetDataPresent(ControlDragFormat));
+  (data.GetData(PaletteDragFormat) is string commandId
+    ? (Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands)
+       .Any(command=>command.Id==commandId&&command.IsAxis==target.IsAxis)
+    : data.GetData(ControlDragFormat) is string sourceId&&
+      _visibleControls.Any(source=>source.Control==sourceId&&source.IsAxis==target.IsAxis&&
+       CurrentAssignment(source) is not null));
  private void Control_DragOver(object sender,DragEventArgs e) {
   var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
   e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
@@ -331,10 +337,10 @@ public partial class HueyImportWindow : Window {
  private ContextMenu BuildContextMenu(HardwareGraphicControl target) {
   var menu=new ContextMenu();
   AddMenu(menu,"Assign selected command",()=>AssignTo(target,CommandPaletteList.SelectedItem as CommandPaletteEntry));
-  AddMenu(menu,"Move selected assignment here",()=>{if(_selected is not null)ApplyTransfer(_selected,target,"Move");});
+  AddMenu(menu,"Move selected assignment here",()=>{if(_contextSource is not null)ApplyTransfer(_contextSource,target,"Move");});
   AddMenu(menu,"Move this assignment…",()=>StartTransfer(target,"Move"));
   AddMenu(menu,"Copy this assignment…",()=>StartTransfer(target,"Copy"));
-  AddMenu(menu,"Swap with selected",()=>{if(_selected is not null)ApplyTransfer(_selected,target,"Swap");});
+  AddMenu(menu,"Swap with selected",()=>{if(_contextSource is not null)ApplyTransfer(_contextSource,target,"Swap");});
   AddMenu(menu,"Remove",()=>Apply(_viewModel.Draft?.Remove(Slot(target)!)));
   AddMenu(menu,"Restore imported",()=>Apply(_viewModel.Draft?.Restore(Slot(target)!)));
   return menu;
