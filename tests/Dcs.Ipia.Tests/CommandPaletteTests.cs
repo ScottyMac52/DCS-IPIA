@@ -25,6 +25,18 @@ public sealed class CommandPaletteTests {
   Assert.Single(CommandPalette.Search(ui,"view"));
   Assert.Empty(CommandPalette.Search(ui,"Trim"));
  }
+ /// <summary>Exact category and free-text search combine without leaking commands from another scope.</summary>
+ [Fact] public void Filters_exact_category_and_search_together() {
+  var entries=CommandPalette.FromUiLayer([
+   new(Guid.NewGuid(),Guid.NewGuid(),"ZOOM","VR Zoom","VR",false),
+   new(Guid.NewGuid(),Guid.NewGuid(),"PAUSE","Active Pause","General",false),
+   new(Guid.NewGuid(),Guid.NewGuid(),"RECENTER","Recenter VR","VR",false)
+  ]);
+  Assert.Equal(2,CommandPalette.Filter(entries,null,"VR").Count);
+  Assert.Equal("VR Zoom",Assert.Single(CommandPalette.Filter(entries,"zoom","VR")).Name);
+  Assert.Empty(CommandPalette.Filter(entries,"zoom","General"));
+  Assert.Equal(3,CommandPalette.Filter(entries," ",null).Count);
+ }
  /// <summary>Search keeps category and command ID semantics and does not reorder the input palette.</summary>
  [Fact] public void Search_is_case_insensitive_and_source_scoped() {
   var catalog=new[] {

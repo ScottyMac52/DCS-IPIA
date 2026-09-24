@@ -82,7 +82,7 @@
               <RowDefinition Height="Auto"/><RowDefinition Height="112"/>
               <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
               <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-              <RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="Device and instance" Margin="8,8,8,6" FontWeight="SemiBold"/>
             <ListBox x:Name="UiDiagramList" Grid.Row="1" ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
@@ -98,10 +98,14 @@
             <TextBlock Grid.Row="4" Text="Available commands" Margin="8,12,8,3" FontWeight="SemiBold"/>
             <TextBox x:Name="PaletteSearch" Grid.Row="5" Margin="8,0,8,6"
                      TextChanged="PaletteSearch_TextChanged" AutomationProperties.Name="Search commands"/>
-            <ListBox x:Name="CommandPaletteList" Grid.Row="6" DisplayMemberPath="Display"
+            <ComboBox x:Name="PaletteCategory" Grid.Row="6" Margin="8,0,8,6"
+                      SelectionChanged="PaletteCategory_SelectionChanged"
+                      AutomationProperties.Name="Filter commands by category"/>
+            <ListBox x:Name="CommandPaletteList" Grid.Row="7" DisplayMemberPath="Display"
+                     PreviewMouseLeftButtonDown="CommandPaletteList_PreviewMouseLeftButtonDown"
                      PreviewMouseMove="CommandPaletteList_PreviewMouseMove"
                      AutomationProperties.Name="Drag or select a command to assign"/>
-            <TextBlock x:Name="PaletteCaption" Grid.Row="7" Margin="8,6,8,0" TextWrapping="Wrap"
+            <TextBlock x:Name="PaletteCaption" Grid.Row="8" Margin="8,6,8,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource SecondaryTextBrush}"/>
           </Grid>
           <Grid Grid.Column="1" Margin="0,0,10,0">
@@ -115,7 +119,8 @@
                     Background="{DynamicResource CanvasBackgroundBrush}">
               <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
-                  <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True"
+                  <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True" AllowDrop="True"
+                          DragOver="UiDiagramCanvas_DragOver" Drop="UiDiagramCanvas_Drop"
                           AutomationProperties.Name="Draw.io-generated device SVG with assignment labels"/>
                 </Viewbox>
               </ScrollViewer>

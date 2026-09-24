@@ -19,6 +19,13 @@ public partial class HueyImportWindow : Window {
  private string? _pendingAction;
  private IReadOnlyList<HardwareGraphicControl> _visibleControls=[];
  private UiLayerDiagram? _currentDiagram;
+ private Point? _paletteDragStart;
+ private CommandPaletteEntry? _dragCommand;
+ private Point? _controlDragStart;
+ private HardwareGraphicControl? _dragControl;
+ private bool _updatingCategories;
+ private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
+ private const string ControlDragFormat="Dcs.Ipia.Editor.HardwareControl";
  /// <summary>Opens the imported graphical editor with optional user preferences.</summary>
  /// <param name="viewModel">The validated import and in-memory draft.</param>
  /// <param name="settings">The app's current destination preference.</param>
@@ -68,16 +75,28 @@ public partial class HueyImportWindow : Window {
  }
  private void PaletteScope_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   _pendingSource=null;_pendingAction=null;
+  _updatingCategories=true;
+  if(PaletteCategory is not null) {
+   var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_viewModel.ModuleCommands;
+   PaletteCategory.ItemsSource=new[]{"All categories"}
+    .Concat(all.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
+   PaletteCategory.SelectedIndex=0;
+  }
+  _updatingCategories=false;
   UpdatePalette();RenderUiDiagram();
  }
  private void PaletteSearch_TextChanged(object sender,TextChangedEventArgs e)=>UpdatePalette();
+ private void PaletteCategory_SelectionChanged(object sender,SelectionChangedEventArgs e) {
+  if(!_updatingCategories)UpdatePalette();
+ }
  private void UpdatePalette() {
   if(_viewModel is null||CommandPaletteList is null||PaletteScope is null||PaletteSearch is null||PaletteCaption is null)return;
   var isUi=PaletteScope.SelectedIndex==1;
   var all=isUi?_viewModel.UiCommands:_viewModel.ModuleCommands;
-  var filtered=CommandPalette.Search(all,PaletteSearch.Text);
+  var category=PaletteCategory?.SelectedIndex>0?PaletteCategory.SelectedItem as string:null;
+  var filtered=CommandPalette.Filter(all,PaletteSearch.Text,category);
   CommandPaletteList.ItemsSource=filtered;
-  PaletteCaption.Text=$"{filtered.Count} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
+  PaletteCaption.Text=$"{filtered.Count} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
  }
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
@@ -107,10 +126,19 @@ public partial class HueyImportWindow : Window {
     badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
     badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
     ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
-    badge.MouseLeftButtonDown+=(_,_)=>SelectControl(control);
+    badge.PreviewMouseLeftButtonDown+=(_,args)=>{
+     _controlDragStart=args.GetPosition(badge);_dragControl=control;SelectControl(control);
+    };
+    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;};
     badge.PreviewMouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
+    badge.DragEnter+=(_,args)=>{
+     if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
+    };
+    badge.DragLeave+=(_,_)=>badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
     badge.DragOver+=Control_DragOver;
-    badge.Drop+=(_,args)=>Control_Drop(control,args);
+    badge.Drop+=(_,args)=>{
+     badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");Control_Drop(control,args);
+    };
     badge.ContextMenu=BuildContextMenu(control);
     Canvas.SetLeft(badge,control.X);Canvas.SetTop(badge,control.Y);
     UiDiagramCanvas.Children.Add(badge);
@@ -164,24 +192,72 @@ public partial class HueyImportWindow : Window {
   SelectedAssignment.Text=_selected is null?"Choose an authored callout or keyboard list row.":
    $"{assignment?.Command.Name??"Empty · choose a command"}\n{_selected.InputKey} · {Layer()} / {Chord()}";
  }
+ private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
+  var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
+  _dragCommand=container?.DataContext as CommandPaletteEntry;
+  _paletteDragStart=_dragCommand is null?null:e.GetPosition(CommandPaletteList);
+ }
  private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
-  if(e.LeftButton==MouseButtonState.Pressed&&CommandPaletteList.SelectedItem is CommandPaletteEntry command&&_viewModel.Draft is not null)
-   DragDrop.DoDragDrop(CommandPaletteList,new DataObject(typeof(CommandPaletteEntry),command),DragDropEffects.Copy);
+  if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
+  if(_viewModel.Draft is null||_dragCommand is null||_paletteDragStart is not Point origin||
+     !PastDragThreshold(origin,e.GetPosition(CommandPaletteList)))return;
+  var command=_dragCommand;
+  _paletteDragStart=null;_dragCommand=null;
+  var data=new DataObject();
+  data.SetData(PaletteDragFormat,command.Id);
+  SetStatus($"Drop {command.Name} onto an authored control on the device.");
+  DragDrop.DoDragDrop(CommandPaletteList,data,DragDropEffects.Copy);
  }
  private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
-  if(e.LeftButton==MouseButtonState.Pressed&&CurrentAssignment(control) is not null)
-   DragDrop.DoDragDrop(badge,new DataObject(typeof(HardwareGraphicControl),control),DragDropEffects.Move|DragDropEffects.Copy);
+  if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;return;}
+  if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
+     !PastDragThreshold(origin,e.GetPosition(badge)))return;
+  if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
+  _controlDragStart=null;_dragControl=null;
+  var data=new DataObject();
+  data.SetData(ControlDragFormat,control.Control);
+  SetStatus($"Drop {control.Label} onto another control. Hold Ctrl to copy.");
+  DragDrop.DoDragDrop(badge,data,DragDropEffects.Move|DragDropEffects.Copy);
  }
+ private static bool PastDragThreshold(Point start,Point current)=>
+  Math.Abs(start.X-current.X)>=SystemParameters.MinimumHorizontalDragDistance||
+  Math.Abs(start.Y-current.Y)>=SystemParameters.MinimumVerticalDragDistance;
+ private bool CanDrop(IDataObject data,HardwareGraphicControl? target) =>
+  target is not null&&Slot(target) is not null&&
+  (data.GetDataPresent(PaletteDragFormat)||data.GetDataPresent(ControlDragFormat));
  private void Control_DragOver(object sender,DragEventArgs e) {
-  e.Effects=_viewModel.Draft is not null&&(e.Data.GetDataPresent(typeof(CommandPaletteEntry))||
-   e.Data.GetDataPresent(typeof(HardwareGraphicControl)))?DragDropEffects.Copy:DragDropEffects.None;
+  var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
+  e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
   e.Handled=true;
  }
+ private void UiDiagramCanvas_DragOver(object sender,DragEventArgs e)=>Control_DragOver(sender,e);
+ private static DragDropEffects DropEffect(IDataObject data,DragDropKeyStates keys)=>
+  data.GetDataPresent(PaletteDragFormat)||keys.HasFlag(DragDropKeyStates.ControlKey)
+   ?DragDropEffects.Copy:DragDropEffects.Move;
+ private HardwareGraphicControl? HitControl(Point point)=>_visibleControls.LastOrDefault(x=>
+  point.X>=x.X&&point.X<=x.X+x.Width&&point.Y>=x.Y&&point.Y<=x.Y+x.Height);
  private void Control_Drop(HardwareGraphicControl control,DragEventArgs e) {
-  if(e.Data.GetData(typeof(CommandPaletteEntry)) is CommandPaletteEntry command)AssignTo(control,command);
-  else if(e.Data.GetData(typeof(HardwareGraphicControl)) is HardwareGraphicControl source)
-   ApplyTransfer(source,control,Keyboard.Modifiers.HasFlag(ModifierKeys.Control)?"Copy":"Move");
+  ApplyDrop(control,e.Data,e.KeyStates.HasFlag(DragDropKeyStates.ControlKey));
   e.Handled=true;
+ }
+ private void UiDiagramCanvas_Drop(object sender,DragEventArgs e) {
+  var target=HitControl(e.GetPosition(UiDiagramCanvas));
+  if(target is null)SetStatus("Drop onto an authored control label on the device.");
+  else ApplyDrop(target,e.Data,e.KeyStates.HasFlag(DragDropKeyStates.ControlKey));
+  e.Handled=true;
+ }
+ private void ApplyDrop(HardwareGraphicControl target,IDataObject data,bool copy) {
+  if(!CanDrop(data,target)) {SetStatus(_viewModel.DraftNote);return;}
+  if(data.GetData(PaletteDragFormat) is string commandId) {
+   var entries=Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands;
+   var command=entries.FirstOrDefault(x=>x.Id==commandId);
+   if(command is null)SetStatus("The dragged command is not in this scope; no draft change was made.");
+   else AssignTo(target,command);
+  } else if(data.GetData(ControlDragFormat) is string controlKey) {
+   var source=_visibleControls.FirstOrDefault(x=>x.Control==controlKey);
+   if(source is null)SetStatus("The dragged control is no longer on this device; no draft change was made.");
+   else ApplyTransfer(source,target,copy?"Copy":"Move");
+  } else SetStatus("Unsupported drop data; no draft change was made.");
  }
  private ContextMenu BuildContextMenu(HardwareGraphicControl target) {
   var menu=new ContextMenu();

@@ -27,11 +27,19 @@ public static class CommandPalette {
  /// <returns>Matching entries in their original order.</returns>
  public static IReadOnlyList<CommandPaletteEntry> Search(IEnumerable<CommandPaletteEntry> entries,string? query) {
   ArgumentNullException.ThrowIfNull(entries);
-  if(string.IsNullOrWhiteSpace(query))return entries.ToArray();
-  var term=query.Trim();
-  return entries.Where(x=>x.Name.Contains(term,StringComparison.OrdinalIgnoreCase)||
-   x.Id.Contains(term,StringComparison.OrdinalIgnoreCase)||
-   x.Category.Contains(term,StringComparison.OrdinalIgnoreCase)).ToArray();
+  return Filter(entries,query,null);
+ }
+ /// <summary>Filters one scope by exact category and optional name, ID, or category text.</summary>
+ /// <param name="entries">Entries from one command scope.</param>
+ /// <param name="query">Case-insensitive search text.</param>
+ /// <param name="category">Exact category, or null for all categories.</param>
+ /// <returns>Matching commands in original palette order.</returns>
+ public static IReadOnlyList<CommandPaletteEntry> Filter(IEnumerable<CommandPaletteEntry> entries,string? query,string? category) {
+  ArgumentNullException.ThrowIfNull(entries);
+  var term=query?.Trim();
+  return entries.Where(x=>(category is null||string.Equals(x.Category,category,StringComparison.Ordinal))&&
+   (string.IsNullOrEmpty(term)||x.Name.Contains(term,StringComparison.OrdinalIgnoreCase)||
+    x.Id.Contains(term,StringComparison.OrdinalIgnoreCase)||x.Category.Contains(term,StringComparison.OrdinalIgnoreCase))).ToArray();
  }
  #endregion END Public
  #region BEGIN private helpers
