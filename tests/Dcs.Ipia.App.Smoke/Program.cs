@@ -43,7 +43,8 @@ public static class Program {
    UiCommands=[new(Guid.NewGuid(),Guid.NewGuid(),"UI_ZOOM","VR Zoom","VR",false),
     new(Guid.NewGuid(),Guid.NewGuid(),"UI_PAUSE","Active Pause","General",false)]
   };
-  var repoWindow=new HueyImportWindow(new HueyImportViewModel(preview));
+  var repoModel=new HueyImportViewModel(preview);
+  var repoWindow=new HueyImportWindow(repoModel);
   repoWindow.Show();
   repoWindow.UpdateLayout();
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
@@ -100,6 +101,19 @@ public static class Program {
   ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
   if(assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("Undo did not restore the empty OSB02 callout.");
+  const string dcsCatalog="""{"schemaVersion":1,"moduleId":"UH-1H","commands":[{"bindingKey":"dAuto","name":"Autopilot On","categoryPath":["Autopilot"],"type":"button"},{"bindingKey":"aCollective","name":"Collective","categoryPath":["Flight Controls"],"type":"axis"}]}""";
+  repoModel.LoadModuleCatalog(DcsCommandCatalogImporter.Parse(dcsCatalog,"UH-1H"));
+  scope.SelectedIndex=0;
+  if(palette.Items.Count!=2||!categories.Items.Contains("Autopilot")||!categories.Items.Contains("Flight Controls")||
+     categories.Items.Contains("Key")||categories.Items.Contains("Axis"))
+   throw new InvalidOperationException("Module catalog did not provide named categories and full command list.");
+  categories.SelectedItem="Autopilot";
+  if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Autopilot On",StringComparison.Ordinal))
+   throw new InvalidOperationException("Autopilot category did not filter aircraft commands.");
+  categories.SelectedIndex=0;
+  types.SelectedIndex=2;
+  if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Collective",StringComparison.Ordinal))
+   throw new InvalidOperationException("Axis type filter was mixed into the category selector.");
   repoWindow.Close();
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));

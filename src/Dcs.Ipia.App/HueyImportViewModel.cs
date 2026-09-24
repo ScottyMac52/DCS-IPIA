@@ -4,14 +4,17 @@ namespace DcsIpia.Presentation;
 
 /// <summary>Formats validated repository or Saved Games inputs for the read-only preview.</summary>
 public sealed class HueyImportViewModel {
+ private readonly HueyWorkspacePreview? _preview;
  /// <summary>Builds a committed Huey preview with existing rendered PNG assets.</summary>
  /// <param name="preview">The completed repository import and committed kneeboard images.</param>
  public HueyImportViewModel(HueyWorkspacePreview preview) {
   ArgumentNullException.ThrowIfNull(preview);
+  _preview=preview;
   var result=preview.Import;
   if(!result.Succeeded)throw new ArgumentException("Only validated imports can be previewed.",nameof(preview));
   var configuration=result.Configuration!;
   ModuleId=configuration.Module.Id;
+  ModuleDcsId=configuration.Module.DcsId;
   WindowTitle="Huey · assignment editor";
   Summary=$"{configuration.Module.DisplayName} · {configuration.Profiles.Count} profiles · {configuration.Bindings.Count} bindings · {result.Pages.Count} pages";
   Commit=$"Huey commit: {result.Provenance[0].Commit}";
@@ -25,11 +28,11 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
-  (Draft,DraftNote)=CreateDraft(preview);
   ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)];
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
+  (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
-  PaletteSourceNote="Aircraft list: commands found in imported Huey bindings (partial catalog). UI Layer list: all commands in the validated DCS-Common catalog.";
+  PaletteSourceNote="Module bindings have no category metadata. Load a DCS command catalog for named categories and all assignable commands; until then they appear as Uncategorized.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
@@ -44,6 +47,7 @@ public sealed class HueyImportViewModel {
   ArgumentNullException.ThrowIfNull(folder);
   if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
   ModuleId=Guid.Empty;
+  ModuleDcsId=string.Empty;
   WindowTitle="DCS Saved Games · joystick source preview";
   Summary=$"{folder.Profiles.Count} local profiles · {folder.Bindings.Count} bindings · {folder.Modifiers.Count} modifiers";
   Commit=$"Source folder: {folder.Folder}";
@@ -62,7 +66,7 @@ public sealed class HueyImportViewModel {
   DraftNote="Import both committed repositories to edit an identified device.";
   ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
   UiCommands=[];
-  PaletteSourceNote="Aircraft list: commands found in local bindings (partial catalog). Open both repositories for canonical UI Layer commands.";
+  PaletteSourceNote="Saved Games bindings have no category metadata. Open both repositories, then load a DCS command catalog for named categories.";
   UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
   HasErrors=folder.Diagnostics.Any(x=>x.IsError);
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
@@ -71,6 +75,8 @@ public sealed class HueyImportViewModel {
  #region BEGIN Public
  /// <summary>Gets the selected imported module identity.</summary>
  public Guid ModuleId {get;}
+ /// <summary>Gets the DCS aircraft identifier required to validate a command catalog.</summary>
+ public string ModuleDcsId {get;}
  /// <summary>Gets the preview window title.</summary>
  public string WindowTitle {get;}
  /// <summary>Gets the module and import counts.</summary>
@@ -92,17 +98,17 @@ public sealed class HueyImportViewModel {
  /// <summary>Gets diagrams positioned on committed shared hardware images.</summary>
  public IReadOnlyList<UiLayerDiagram> UiDiagrams {get;}
  /// <summary>Gets imported aircraft commands; this is not a complete aircraft command catalog.</summary>
- public IReadOnlyList<CommandPaletteEntry> ModuleCommands {get;}
+ public IReadOnlyList<CommandPaletteEntry> ModuleCommands {get;private set;}
  /// <summary>Gets canonical UI Layer commands, when DCS-Common was imported.</summary>
  public IReadOnlyList<CommandPaletteEntry> UiCommands {get;}
  /// <summary>Gets command source and completeness information.</summary>
- public string PaletteSourceNote {get;}
+ public string PaletteSourceNote {get;private set;}
  /// <summary>Gets the in-memory draft editor when canonical controls and source identities are available.</summary>
- public DraftAssignmentService? Draft {get;}
+ public DraftAssignmentService? Draft {get;private set;}
  /// <summary>Gets Base and explicit modifier names from the imported module.</summary>
  public IReadOnlyList<string> ModifierChoices {get;}
  /// <summary>Gets the editor availability or unmapped-binding diagnostic.</summary>
- public string DraftNote {get;}
+ public string DraftNote {get;private set;}
  /// <summary>Gets an explanation when graphics are unavailable.</summary>
  public IReadOnlyList<string> UiUsage {get;}
  /// <summary>Gets whether any source or graphic diagnostic requires attention.</summary>
@@ -111,17 +117,27 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<string> Diagnostics {get;}
  /// <summary>Gets source hashes or their availability explanation.</summary>
  public IReadOnlyList<string> Provenance {get;}
+ /// <summary>Loads a validated module catalog and refreshes the draft before editing begins.</summary>
+ /// <param name="catalog">Commands parsed from a DCS-Common command catalog for this module.</param>
+ public void LoadModuleCatalog(IReadOnlyList<CommandPaletteEntry> catalog) {
+  ArgumentNullException.ThrowIfNull(catalog);
+  if(_preview is null)throw new InvalidOperationException("Import both repositories before loading a module catalog.");
+  if(Draft?.HasChanges==true)throw new InvalidOperationException("Review or discard pending edits before replacing the command catalog.");
+  var commands=CommandPalette.FromBindings(_preview.Import.Configuration!.Bindings,catalog);
+  var (draft,note)=CreateDraft(_preview,commands);
+  if(draft is null)throw new InvalidOperationException(note);
+  ModuleCommands=commands;Draft=draft;DraftNote=note;
+  PaletteSourceNote="Aircraft commands and named categories from the selected DCS catalog; imported bindings absent from it appear as Uncategorized.";
+ }
  #endregion END Public
  #region BEGIN private helpers
- private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview) {
+ private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview,IReadOnlyList<CommandPaletteEntry> catalog) {
   var configuration=preview.Import.Configuration!;
   if(preview.Diagrams.Count==0||preview.Diagrams.All(x=>x.Controls.Count==0))
    return (null,"No mapped controls in a validated draw.io-generated SVG; editing is unavailable.");
   try {
-   var moduleCommands=configuration.Bindings
-    .GroupBy(x=>x.CommandId,StringComparer.Ordinal)
-    .Select(x=>x.First())
-    .Select(x=>new DraftCommand(x.CommandId,x.CommandName,x.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module));
+   var moduleCommands=catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module)).ToArray();
+   var moduleNames=catalog.ToDictionary(x=>x.Id,x=>x.Name,StringComparer.Ordinal);
    var uiCommands=preview.UiCommands
     .Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer));
    var assignments=new List<DraftAssignment>();
@@ -132,7 +148,7 @@ public sealed class HueyImportViewModel {
     if(matches.Length!=1) {unmatched++;continue;}
     var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,matches[0].InputKey,
      string.Join("+",binding.Reformers));
-    assignments.Add(new(slot,new(binding.CommandId,binding.CommandName,binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
+    assignments.Add(new(slot,new(binding.CommandId,moduleNames[binding.CommandId],binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
    }
    foreach(var diagram in preview.Diagrams)foreach(var callout in diagram.Callouts) {
     var control=diagram.Controls.SingleOrDefault(x=>x.Control==callout.Control);

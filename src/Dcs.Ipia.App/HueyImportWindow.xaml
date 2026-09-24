@@ -112,8 +112,13 @@
                   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                   <RowDefinition Height="*"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBox x:Name="PaletteSearch" Grid.Row="0" Margin="0,0,0,8"
-                         TextChanged="PaletteSearch_TextChanged" AutomationProperties.Name="Search commands"/>
+                <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                  <Button Content="Load DCS catalog…" Click="LoadModuleCatalog_Click" Margin="0,0,0,8"
+                          ToolTip="Load a module command catalog JSON exported by DCS-Common scaffolding."
+                          AutomationProperties.Name="Load DCS module command catalog"/>
+                  <TextBox x:Name="PaletteSearch" TextChanged="PaletteSearch_TextChanged"
+                           AutomationProperties.Name="Search commands"/>
+                </StackPanel>
                 <StackPanel Grid.Row="1">
                   <TextBlock Text="Category"/>
                   <ComboBox x:Name="PaletteCategory" Margin="0,3,0,8"

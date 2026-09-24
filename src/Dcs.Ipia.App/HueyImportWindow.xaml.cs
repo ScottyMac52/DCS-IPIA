@@ -7,6 +7,7 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using Microsoft.Win32;
 
 namespace DcsIpia.Presentation;
 
@@ -75,6 +76,10 @@ public partial class HueyImportWindow : Window {
  }
  private void PaletteScope_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   _pendingSource=null;_pendingAction=null;
+  RefreshCategories();
+  UpdatePalette();RenderUiDiagram();
+ }
+ private void RefreshCategories() {
   _updatingCategories=true;
   if(PaletteCategory is not null) {
    var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_viewModel.ModuleCommands;
@@ -83,7 +88,26 @@ public partial class HueyImportWindow : Window {
    PaletteCategory.SelectedIndex=0;
   }
   _updatingCategories=false;
-  UpdatePalette();RenderUiDiagram();
+ }
+ private void LoadModuleCatalog_Click(object sender,RoutedEventArgs e) {
+  if(_viewModel.Draft?.HasChanges==true) {
+   SetStatus("Review or discard pending edits before loading a new command catalog.");return;
+  }
+  if(string.IsNullOrWhiteSpace(_viewModel.ModuleDcsId)) {
+   SetStatus("Import both committed repositories before loading a module catalog.");return;
+  }
+  var chooser=new OpenFileDialog {Title="Select a DCS-Common module command catalog",Filter="DCS command catalog (*.json)|*.json"};
+  if(chooser.ShowDialog(this)!=true)return;
+  try {
+   var entries=DcsCommandCatalogImporter.Parse(File.ReadAllText(chooser.FileName),_viewModel.ModuleDcsId);
+   _viewModel.LoadModuleCatalog(entries);
+   PaletteScope.SelectedIndex=0;
+   RefreshCategories();UpdatePalette();RenderUiDiagram();RefreshReview();
+   SetStatus($"Loaded {entries.Count} assignable aircraft commands with named categories from {Path.GetFileName(chooser.FileName)}.");
+  }
+  catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or ArgumentException or FormatException or InvalidOperationException) {
+   SetStatus($"Could not load DCS command catalog: {ex.Message}");
+  }
  }
  private void PaletteSearch_TextChanged(object sender,TextChangedEventArgs e)=>UpdatePalette();
  private void PaletteFilter_SelectionChanged(object sender,SelectionChangedEventArgs e)=>UpdatePalette();
