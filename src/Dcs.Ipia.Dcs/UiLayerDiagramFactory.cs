@@ -50,7 +50,7 @@ public static class UiLayerDiagramFactory {
     var function=row.GetProperty("functionId").GetString()!;
     if(!template.Bindings.TryGetValue(function,out var control)||!boxes.TryGetValue(control,out var box))
      throw new InvalidDataException($"No canonical graphic control for {device.StableKey}/{function} in {path}.");
-    var command=catalog.Commands.Single(x=>x.Id==Dcs.Ipia.Domain.StableIdentity.Create("ui-function",function));
+    var command=catalog.Commands.Single(x=>x.Id==global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function",function));
     var modifiers=string.Join(" + ",row.GetProperty("modifiers").EnumerateArray().Select(x=>x.GetString()));
     callouts.Add(new(callouts.Count+1,control,command.Name,modifiers,Number(box.Attribute("x")?.Value),
      Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)));
