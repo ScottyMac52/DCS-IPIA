@@ -12,35 +12,10 @@
   <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#F2F6FD"/>
   <SolidColorBrush x:Key="StatusBackgroundBrush" Color="#EAF0F8"/>
   <SolidColorBrush x:Key="StatusTextBrush" Color="#334155"/>
-
-  <Style x:Key="Card" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="20"/>
-        <Setter Property="Margin" Value="0,0,0,16"/>
-      </Style>
-      <Style x:Key="SectionTitle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="19"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Margin" Value="0,0,0,10"/>
-      </Style>
-      <Style x:Key="Hint" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-      </Style>
-      <Style x:Key="NavigationItem" TargetType="TabItem">
-        <Setter Property="Width" Value="198"/>
-        <Setter Property="Height" Value="54"/>
-        <Setter Property="Padding" Value="14,10"/>
-        <Setter Property="FontSize" Value="15"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-      </Style>
-      <Style x:Key="SampleControl" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource SampleControlBrush}"/>
-        <Setter Property="CornerRadius" Value="5"/>
-        <Setter Property="Padding" Value="9,6"/>
-        <Setter Property="Margin" Value="4"/>
-      </Style>
+  <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="ControlForegroundBrush" Color="#17263D"/>
+  <SolidColorBrush x:Key="ControlBorderBrush" Color="#9DB4D7"/>
+  <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#DBEAFE"/>
+  <SolidColorBrush x:Key="DisabledTextBrush" Color="#475569"/>
+  <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#E8EEF6"/>
 </ResourceDictionary>

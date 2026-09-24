@@ -19,7 +19,14 @@
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
         <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Module workspace · interactive layout preview"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <ComboBox x:Name="ThemePicker" Width="105" Margin="0,0,12,0"
+                  AutomationProperties.Name="Appearance theme"
+                  SelectionChanged="ThemePicker_SelectionChanged">
+          <ComboBoxItem Content="Light" Tag="Light"/>
+          <ComboBoxItem Content="Dark" Tag="Dark"/>
+        </ComboBox>
         <Button Content="Import module" IsEnabled="False" Padding="14,8" Margin="6,0"
                 ToolTip="Available when read-only consumer import is connected."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"
@@ -192,8 +199,11 @@
       </TabItem>
     </TabControl>
     <Border Grid.Row="3" Background="{DynamicResource StatusBackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,14,0,0">
-      <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
+      <StackPanel>
+        <TextBlock x:Name="ThemeSaveStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
+        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
                  Text="Design preview: navigation and layout only. No data is imported, changed, saved or packaged by this screen."/>
+      </StackPanel>
     </Border>
   </Grid>
 </Window>
