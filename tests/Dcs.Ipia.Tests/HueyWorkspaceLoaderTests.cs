@@ -46,6 +46,17 @@ public sealed class HueyWorkspaceLoaderTests {
      File.WriteAllText(path,$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'>\n  <image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>\n{rects}\n</svg>");
     }
    }
+   var catalogPath=Path.Combine(temp,"UH-1H-commands.json");
+   File.WriteAllText(catalogPath,System.Text.Json.JsonSerializer.Serialize(new {
+    schemaVersion=1,moduleId="UH-1H",commands=new[] {
+     new {bindingKey="d3002pnilunilcd27vd-1vpnilvunil",name="ADF Band 190-400 kHz",categoryPath=AdfCategory,type="button"},
+     new {bindingKey="d1702pnilunilcdnilvdnilvpnilvunil",name="Camera bookmarks editor",categoryPath=ViewCategory,type="button"}
+    }
+   }));
+   var solutionPath=Path.Combine(huey,"config","UH-1H.dcs-scaffold.json");
+   var solution=System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(solutionPath))!;
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="catalog-json",paths=new[]{catalogPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
    Commit(common);Commit(huey);
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
    var result=await new HueyWorkspaceLoader().LoadAsync(common,huey);
@@ -57,6 +68,19 @@ public sealed class HueyWorkspaceLoaderTests {
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
    Assert.Equal(image,preview.Bytes);
+   Assert.Equal(2,result.ModuleCommands.Count);
+   Assert.Contains(result.ModuleCommands,x=>x.Name=="ADF Band 190-400 kHz"&&x.Category=="ADF Set Control panel");
+   Assert.Single(CommandPalette.Filter(result.ModuleCommands,null,"View"));
+   Assert.Empty(result.CommandDiagnostics);
+   var savedCatalog=File.ReadAllText(catalogPath);
+   File.Delete(catalogPath);
+   var missingSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Empty(missingSource.ModuleCommands);
+   Assert.Contains(missingSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,"{invalid");
+   var invalidSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(invalidSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,savedCatalog);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
    Assert.Equal(4,result.Diagrams.Count);
@@ -113,6 +137,28 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,unsupportedImage));
    Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
    Assert.Empty(result.GraphicDiagnostics);
+   solution["import"]!["commandSource"]=null;
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","unlink commands");
+   var unlinked=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Empty(unlinked.ModuleCommands);
+   Assert.Empty(unlinked.CommandDiagnostics);
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="unsupported",paths=new[]{catalogPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","invalid command source");
+   var unsupported=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(unsupported.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   var htmlPath=Path.Combine(temp,"MFD 1.html");
+   File.WriteAllText(htmlPath,"<html><h1>MFD 1</h1><table><tr><td>JOY_BTN1</td><td>ADF Band 190-400 kHz</td><td>ADF Set Control panel</td><td>d3002pnilunilcd27vd-1vpnilvunil</td></tr></table></html>");
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="dcs-html",paths=new[]{htmlPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","link DCS HTML");
+   var linkedHtml=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(linkedHtml.ModuleCommands,x=>x.Category=="ADF Set Control panel"&&x.Name=="ADF Band 190-400 kHz");
+   Assert.Empty(linkedHtml.CommandDiagnostics);
    var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
    File.WriteAllText(gripPath,"<svg broken");
    Git(common,"add","--all");
@@ -137,6 +183,8 @@ public sealed class HueyWorkspaceLoaderTests {
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static readonly string[] AdfCategory=["ADF Set Control panel"];
+ private static readonly string[] ViewCategory=["View"];
  private static void DeleteFixture(string path) {
   if(!Directory.Exists(path))return;
   foreach(var file in Directory.EnumerateFiles(path,"*",SearchOption.AllDirectories))

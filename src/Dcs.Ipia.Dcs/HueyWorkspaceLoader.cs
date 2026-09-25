@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 
@@ -37,7 +38,8 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
   var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
-  if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands};
+  var (moduleCommands,commandSource,commandDiagnostics)=LoadLinkedCommands(huey,hueySources,imported.Configuration?.Module.DcsId);
+  if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
 
   var available=(await TrackedPathsAsync(huey,"kneeboard/UH-1H","kneeboard/UH-1H",cancellationToken)).ToHashSet(StringComparer.Ordinal);
   var images=new List<KneeboardImageAsset>();
@@ -59,10 +61,40 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
   catch(Exception ex) when(ex is InvalidDataException or FormatException or System.Xml.XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
    graphicDiagnostics=[new("ui-graphic-unavailable",$"DCS-Common UI Layer graphic: {ex.Message}",true)];
   }
-  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands};
+  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static (IReadOnlyList<CommandPaletteEntry> Commands,string Source,IReadOnlyList<ImportDiagnostic> Diagnostics)
+  LoadLinkedCommands(string hueyRoot,IReadOnlyDictionary<string,string> sources,string? moduleId) {
+  var solution=sources.FirstOrDefault(x=>x.Key=="config/UH-1H.dcs-scaffold.json");
+  if(string.IsNullOrEmpty(solution.Value))
+   solution=sources.FirstOrDefault(x=>x.Key=="config/scaffold.dcs-scaffold.json");
+  if(string.IsNullOrEmpty(solution.Value))
+   return ([],"No scaffold solution with a linked command source was found.",[]);
+  try {
+   using var document=JsonDocument.Parse(solution.Value);
+   var import=document.RootElement.GetProperty("import");
+   if(!import.TryGetProperty("commandSource",out var source)||source.ValueKind==JsonValueKind.Null)
+    return ([],"No module command source is linked in the scaffold solution.",[]);
+   var type=source.GetProperty("type").GetString();
+   var paths=source.GetProperty("paths").EnumerateArray().Select(x=>x.GetString())
+    .Where(x=>!string.IsNullOrWhiteSpace(x)).Select(x=>Path.IsPathRooted(x!)?x!:Path.GetFullPath(Path.Combine(hueyRoot,x!))).ToArray();
+   if(paths.Length==0)throw new InvalidDataException("The linked command source has no paths.");
+   var missing=paths.Where(x=>!File.Exists(x)).ToArray();
+   if(missing.Length>0)throw new FileNotFoundException($"Linked command source is missing: {string.Join(", ",missing.Select(Path.GetFileName))}. Relink it in the scaffold solution or import a catalog manually.");
+   if(string.IsNullOrWhiteSpace(moduleId))throw new InvalidDataException("The imported module ID is unavailable.");
+   var commands=type switch {
+    "catalog-json" when paths.Length==1=>DcsCommandCatalogImporter.Parse(File.ReadAllText(paths[0]),moduleId),
+    "dcs-html"=>DcsHtmlCommandCatalogImporter.Parse(paths.Select(path=>(Path.GetFileName(path),File.ReadAllText(path)))),
+    _=>throw new InvalidDataException($"Unsupported linked command source '{type}'.")
+   };
+   return (commands,$"{commands.Count} module commands and named categories loaded from {paths.Length} linked {type} source file(s).",[]);
+  }
+  catch(Exception ex) when(ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or FormatException or InvalidOperationException or KeyNotFoundException or JsonException) {
+   return ([],"Linked command source could not be loaded.",[new("module-command-source",ex.Message,true)]);
+  }
+ }
  private static async Task<string> RepositoryRootAsync(string root,CancellationToken ct) {
   ArgumentException.ThrowIfNullOrWhiteSpace(root);
   if(!Directory.Exists(root))throw new DirectoryNotFoundException($"Selected folder does not exist: {root}");

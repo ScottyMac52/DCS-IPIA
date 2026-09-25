@@ -86,8 +86,6 @@ public static class Program {
   ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
   if(assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("Undo did not restore the empty OSB02 callout.");
-  repoWindow.Close();
-  folderWindow.Close();
   var sharedWindow=new DcsConsumerScaffold.UiLayerEditorWindow("DCS-Common", "Imported module");
   sharedWindow.Show();
   sharedWindow.UpdateLayout();
@@ -95,8 +93,10 @@ public static class Program {
      ((TextBox)sharedWindow.FindName("CommonRootBox")!).Text!="DCS-Common"||
      sharedWindow.FindName("UiCommandsGrid") is not DataGrid||
      sharedWindow.FindName("PossibilitiesGrid") is not DataGrid)
-   throw new InvalidOperationException("DCS-Common shared UI Layer editor did not open its authoritative catalog views.");
+   throw new InvalidOperationException($"DCS-Common shared UI Layer editor: visible={sharedWindow.IsVisible}, root={((TextBox?)sharedWindow.FindName("CommonRootBox"))?.Text}, commands={sharedWindow.FindName("UiCommandsGrid")?.GetType().Name}, possibilities={sharedWindow.FindName("PossibilitiesGrid")?.GetType().Name}.");
   sharedWindow.Close();
+  repoWindow.Close();
+  folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
   try {
    var settings=new FileAppSettingsService(Path.Combine(preferencesRoot,"defaults.json"),

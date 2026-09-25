@@ -28,15 +28,16 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
-  (Draft,DraftNote)=CreateDraft(preview);
+  ModuleCommands=CommandPalette.FromBindings(configuration.Bindings,preview.ModuleCommands);
+  (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
   ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)];
-  ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
-  PaletteSourceNote="Aircraft list: commands found in imported Huey bindings (partial catalog). UI Layer list: all commands in the validated DCS-Common catalog.";
+  PaletteSourceNote=preview.ModuleCommands.Count>0?preview.ModuleCommandSource:
+   $"{preview.ModuleCommandSource} Import the UH-1H command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
-  var issues=result.Diagnostics.Concat(preview.GraphicDiagnostics).ToArray();
+  var issues=result.Diagnostics.Concat(preview.GraphicDiagnostics).Concat(preview.CommandDiagnostics).ToArray();
   HasErrors=issues.Any(x=>x.IsError);
   Diagnostics=issues.Length==0?["No import diagnostics."]:issues.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=result.Provenance.Select(x=>$"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
@@ -124,15 +125,13 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<string> Provenance {get;}
  #endregion END Public
  #region BEGIN private helpers
- private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview) {
+ private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview,IReadOnlyList<CommandPaletteEntry> catalog) {
   var configuration=preview.Import.Configuration!;
   if(preview.Diagrams.Count==0||preview.Diagrams.All(x=>x.Controls.Count==0))
    return (null,"No mapped controls in a validated draw.io-generated SVG; editing is unavailable.");
   try {
-   var moduleCommands=configuration.Bindings
-    .GroupBy(x=>x.CommandId,StringComparer.Ordinal)
-    .Select(x=>x.First())
-    .Select(x=>new DraftCommand(x.CommandId,x.CommandName,x.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module));
+   var moduleCommands=catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module));
+   var moduleNames=catalog.ToDictionary(x=>x.Id,x=>x.Name,StringComparer.Ordinal);
    var uiCommands=preview.UiCommands
     .Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer));
    var assignments=new List<DraftAssignment>();
@@ -143,7 +142,8 @@ public sealed class HueyImportViewModel {
     if(matches.Length!=1) {unmatched++;continue;}
     var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,matches[0].InputKey,
      string.Join("+",binding.Reformers));
-    assignments.Add(new(slot,new(binding.CommandId,binding.CommandName,binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
+    assignments.Add(new(slot,new(binding.CommandId,moduleNames.GetValueOrDefault(binding.CommandId,binding.CommandName),
+     binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
    }
    foreach(var diagram in preview.Diagrams)foreach(var callout in diagram.Callouts) {
     var control=diagram.Controls.SingleOrDefault(x=>x.Control==callout.Control);
