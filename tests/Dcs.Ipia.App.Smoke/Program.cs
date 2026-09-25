@@ -87,7 +87,7 @@ public static class Program {
   var dragRow=(ListBoxItem)palette.ItemContainerGenerator.ContainerFromIndex(0)!;
   DragMouse(repoWindow,dragRow,canvas,new Point(110,30));
   if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-   throw new InvalidOperationException("A physical mouse drag from the command row did not assign OSB02.");
+   throw new InvalidOperationException($"A physical mouse drag from the command row did not assign OSB02. Status: {((TextBlock)repoWindow.FindName("EditorStatus")!).Text}; row visible={dragRow.IsVisible}; canvas visible={canvas.IsVisible}; from={dragRow.PointToScreen(new Point(dragRow.ActualWidth/2,dragRow.ActualHeight/2))}; to={canvas.PointToScreen(new Point(110,30))}; screen={SystemParameters.PrimaryScreenWidth}x{SystemParameters.PrimaryScreenHeight}.");
   ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
   repoWindow.UpdateLayout();
   var sourceBadge=canvas.Children.OfType<Border>().Single(x=>((HardwareGraphicControl)x.Tag).Control==diagram.Controls[0].Control);
