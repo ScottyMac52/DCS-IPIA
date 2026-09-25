@@ -28,6 +28,7 @@ public partial class HueyImportWindow : Window {
  private HardwareGraphicControl? _dragControl;
  private readonly Dictionary<string,string> _displayLabels=new(StringComparer.Ordinal);
  private bool _updatingInspector;
+ private static readonly JsonSerializerOptions CatalogJsonOptions=new() {WriteIndented=true};
  private IReadOnlyList<CommandPaletteEntry> _moduleCommands=[];
  private bool _updatingCategories;
  private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
@@ -426,8 +427,7 @@ public partial class HueyImportWindow : Window {
   try {
    var commands=_moduleCommands.Select(x=>new {bindingKey=x.Id,name=x.Name,type=x.IsAxis?"axis":"button",
     categoryPath=x.Category=="Uncategorized"?Array.Empty<string>():x.Category.Split(" / "),isAssignable=true});
-   File.WriteAllText(dialog.FileName,JsonSerializer.Serialize(new {schemaVersion=1,moduleId=_viewModel.ModuleDcsId,commands},
-    new JsonSerializerOptions {WriteIndented=true}));
+   File.WriteAllText(dialog.FileName,JsonSerializer.Serialize(new {schemaVersion=1,moduleId=_viewModel.ModuleDcsId,commands},CatalogJsonOptions));
    SetStatus($"Saved {_moduleCommands.Count} commands to {dialog.FileName}.");
   } catch(Exception ex) {SetStatus(ex.Message);}
  }
