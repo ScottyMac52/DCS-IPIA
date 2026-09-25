@@ -56,7 +56,10 @@ public static class UiLayerDiagramFactory {
     .ToDictionary(x=>x.Control.StableKey,x=>x,StringComparer.Ordinal);
    var controls=boxes.Select(pair=>{
     var box=pair.Value;
-    if(!mapped.TryGetValue(pair.Key,out var mapping))return null;
+    if(!mapped.TryGetValue(pair.Key,out var mapping)) {
+     if(!pair.Key.EndsWith("-shifted",StringComparison.Ordinal)||
+        !mapped.TryGetValue(pair.Key[..^"-shifted".Length],out mapping))return null;
+    }
     var label=box.ElementsAfterSelf().FirstOrDefault(x=>x.Name.LocalName=="text"&&
      x.Attribute("id")?.Value=="lbl-"+pair.Key)?.Value.Trim()??pair.Key;
     return new HardwareGraphicControl(pair.Key,label,mapping.InputKey,Number(box.Attribute("x")?.Value),

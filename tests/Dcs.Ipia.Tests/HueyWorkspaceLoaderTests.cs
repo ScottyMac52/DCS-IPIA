@@ -93,6 +93,8 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD1");
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD2");
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
+   Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls,
+    x=>x.Control=="mfd-osb-t1-shifted"&&x.InputKey=="JOY_BTN1");
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
     x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
    var paths=new[]{"assets/shared/hardware/manifest.json","assets/shared/ui-layer/functions.json",

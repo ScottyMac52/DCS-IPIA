@@ -30,7 +30,10 @@ public sealed class HueyImportViewModel {
   UiDiagrams=preview.Diagrams;
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings,preview.ModuleCommands);
   (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
-  ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)];
+  ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)
+   .Concat(configuration.Bindings.Where(x=>x.Reformers.Count>1).Select(x=>string.Join(" + ",x.Reformers)))
+   .Concat(preview.Diagrams.SelectMany(x=>x.Callouts).Select(x=>x.Modifier))
+   .Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal)];
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
   PaletteSourceNote=preview.ModuleCommands.Count>0?preview.ModuleCommandSource:
    $"{preview.ModuleCommandSource} Import the UH-1H command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
@@ -164,7 +167,7 @@ public sealed class HueyImportViewModel {
    foreach(var binding in configuration.Bindings.Where(x=>x.Disposition!=global::Dcs.Ipia.Domain.BindingDisposition.Removed)) {
     var diagram=preview.Diagrams.FirstOrDefault(x=>x.ProfileId==binding.ProfileId);
     var matches=diagram?.Controls.Where(x=>x.InputKey==binding.InputKey).ToArray()??[];
-    if(matches.Length!=1) {unmatched++;continue;}
+    if(matches.Length==0) {unmatched++;continue;}
     var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,matches[0].InputKey,
      string.Join("+",binding.Reformers));
     assignments.Add(new(slot,new(binding.CommandId,moduleNames.GetValueOrDefault(binding.CommandId,binding.CommandName),
