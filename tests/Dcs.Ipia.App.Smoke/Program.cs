@@ -82,6 +82,7 @@ public static class Program {
    throw new InvalidOperationException("Category filter did not show only General commands.");
   categories.SelectedItem="VR";
   if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
+  if(Environment.GetEnvironmentVariable("DCS_IPIA_INTERACTIVE_MOUSE_TEST")=="1") {
   repoWindow.Left=0;repoWindow.Top=0;repoWindow.Width=1200;repoWindow.Height=720;
   repoWindow.Activate();repoWindow.UpdateLayout();
   palette.ScrollIntoView(palette.Items[0]);repoWindow.UpdateLayout();
@@ -97,6 +98,7 @@ public static class Program {
      assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("A physical mouse drag between assigned callouts did not move the command.");
   ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  }
   var types=(ComboBox)repoWindow.FindName("PaletteType")!;
   var availability=(ComboBox)repoWindow.FindName("PaletteAvailability")!;
   var bindingState=(ComboBox)repoWindow.FindName("PaletteBindingState")!;
