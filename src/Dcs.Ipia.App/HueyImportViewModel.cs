@@ -94,13 +94,13 @@ public sealed class HueyImportViewModel {
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
  #region BEGIN Public
- /// <summary>Gets or sets the selected DCS-Common root for the authoritative UI Layer editor.</summary>
  /// <summary>Gets the saved editor workspace when opened from SQLite.</summary>
  public EditorWorkspaceSnapshot? Workspace {get;}
  /// <summary>Gets the persisted callout label overrides.</summary>
  public IReadOnlyDictionary<string,string> Labels {get;}=new Dictionary<string,string>();
+ /// <summary>Gets or sets the selected import source root.</summary>
  public string? CommonRoot {get;set;}
- /// <summary>Gets or sets the selected source folder used to open the original scaffolding workspace.</summary>
+ /// <summary>Gets or sets the source folder for the one-time import.</summary>
  public string? SourceFolder {get;set;}
  /// <summary>Gets the actual DCS module identity for validating an imported command catalog.</summary>
  public string? ModuleDcsId {get;}

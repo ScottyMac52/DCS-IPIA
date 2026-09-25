@@ -77,7 +77,7 @@ public partial class HueyImportWindow : Window {
   EditorMessage.Text=_saved is null?"Import a module to SQLite or open a saved module to edit its controls.":"";
   _updatingFilters=true;
   var available=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleCommands:_viewModel.UiCommands;
-  CommandCategory.ItemsSource=new[]{"All"}.Concat(available.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
+  CommandCategory.ItemsSource=Enumerable.Repeat("All",1).Concat(available.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
   CommandCategory.SelectedIndex=0;
   _updatingFilters=false;
   FilterCommands();
@@ -161,7 +161,7 @@ public partial class HueyImportWindow : Window {
   if(destination is null||_draft is null)return;
   var source=e.Data.GetData(typeof(EditorControlDrag)) as EditorControlDrag;
   var command=e.Data.GetData(typeof(CommandPaletteEntry)) as CommandPaletteEntry;
-  if(source is not null)Apply((choice)=>e.Effects==DragDropEffects.Copy?
+  if(source is not null)Apply((choice)=>(Keyboard.Modifiers&ModifierKeys.Control)!=0?
    _draft.Copy(source.Slot,destination,Behavior,choice):_draft.Move(source.Slot,destination,Behavior,choice),source.Slot);
   else if(command is not null)Apply(choice=>_draft.Assign(destination,
    new DraftCommand(command.Id,command.Name,command.IsAxis,CurrentLayer),Behavior,choice));
