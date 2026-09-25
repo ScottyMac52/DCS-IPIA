@@ -25,7 +25,8 @@ public partial class HueyImportWindow : Window {
  private CommandPaletteEntry? _dragCommand;
  private Point? _controlDragStart;
  private HardwareGraphicControl? _dragControl;
- private Border? _dragBadge;
+ private bool _pointerDragging;
+ private Border? _hoverBadge;
  private bool _updatingCategories;
  private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
  private const string ControlDragFormat="Dcs.Ipia.Editor.HardwareControl";
@@ -46,6 +47,7 @@ public partial class HueyImportWindow : Window {
   RefreshReview();
   if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=0;
   else ImportedTabs.SelectedItem=DiagnosticsTab;
+  Deactivated+=(_,_)=>ResetPointerDrag();
   Closing+=OnClosing;
  }
  #region BEGIN Public
@@ -161,7 +163,7 @@ public partial class HueyImportWindow : Window {
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
   UiDiagramCanvas.Children.Clear();_visibleControls=[];UiAssignmentList.ItemsSource=null;
-  _dragControl=null;_dragBadge=null;_controlDragStart=null;
+  ResetPointerDrag();
   var diagram=_currentDiagram;
   if(DiagramHeading is not null)DiagramHeading.Text=diagram is null?
    "Canonical device graphic · assignment labels":$"{diagram.Title} · {Layer()} / {Chord()}";
@@ -191,10 +193,9 @@ public partial class HueyImportWindow : Window {
     badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
     ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
     badge.MouseLeftButtonDown+=(_,args)=>{
-     _controlDragStart=args.GetPosition(this);_dragControl=control;_dragBadge=badge;SelectControl(control);
+     _controlDragStart=args.GetPosition(this);_dragControl=control;SelectControl(control);
      args.Handled=true;
     };
-    badge.MouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;_dragBadge=null;};
     badge.DragEnter+=(_,args)=>{
      if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
     };
@@ -269,12 +270,38 @@ public partial class HueyImportWindow : Window {
   SelectedControlIdentity.Text=_selected is null?"—":$"{_selected.InputKey} · {Layer()} / {Chord()}";
  }
  private void Editor_PreviewMouseLeftButtonUp(object sender,MouseButtonEventArgs e) {
-  _paletteDragStart=null;_dragCommand=null;
-  _controlDragStart=null;_dragControl=null;_dragBadge=null;
+  if(!_pointerDragging) {ResetPointerDrag();return;}
+  var target=HitControl(e.GetPosition(UiDiagramCanvas));
+  var data=PointerData();
+  var copy=Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+  ResetPointerDrag();
+  if(target is null)SetStatus("Release over an authored control label to assign or move.");
+  else if(data is not null)ApplyDrop(target,data,copy);
+  e.Handled=true;
  }
  private void Editor_PreviewMouseMove(object sender,MouseEventArgs e) {
-  if(_dragCommand is not null)CommandPaletteList_PreviewMouseMove(sender,e);
-  else if(_dragControl is not null&&_dragBadge is not null)Control_PreviewMouseMove(_dragBadge,_dragControl,e);
+  if(e.LeftButton!=MouseButtonState.Pressed) {if(_pointerDragging)ResetPointerDrag();return;}
+  if(!_pointerDragging) {
+   var start=_dragCommand is not null?_paletteDragStart:_controlDragStart;
+   if(_viewModel.Draft is null||start is not Point origin||
+      !PastDragThreshold(origin,e.GetPosition(this)))return;
+   if(_dragControl is not null&&CurrentAssignment(_dragControl) is null) {
+    SetStatus("Choose an assigned control to move.");ResetPointerDrag();return;
+   }
+   if(!Mouse.Capture(this)) {SetStatus("Could not capture the pointer; try dragging again.");ResetPointerDrag();return;}
+   _pointerDragging=true;
+  }
+  var target=HitControl(e.GetPosition(UiDiagramCanvas));
+  var valid=target is not null&&PointerData() is {} data&&CanDrop(data,target);
+  Mouse.OverrideCursor=valid?Cursors.Hand:Cursors.No;
+  var badge=UiDiagramCanvas.Children.OfType<Border>().FirstOrDefault(x=>ReferenceEquals(x.Tag,target));
+  if(ReferenceEquals(badge,_hoverBadge))return;
+  if(_hoverBadge is not null)_hoverBadge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
+  _hoverBadge=valid?badge:null;
+  if(_hoverBadge is not null)_hoverBadge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
+  SetStatus(target is null?"Release over an authored control label.":
+   valid?$"Release to {(_dragCommand is not null?"assign":Keyboard.Modifiers.HasFlag(ModifierKeys.Control)?"copy":"move")} onto {target.Label}.":
+   "That control is incompatible with this assignment.");
  }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
@@ -282,29 +309,21 @@ public partial class HueyImportWindow : Window {
   _paletteDragStart=_dragCommand is null?null:e.GetPosition(this);
   if(_dragCommand is not null)SetStatus($"Drag {_dragCommand.Name} onto a device callout.");
  }
- private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
-  if(_viewModel.Draft is null||_dragCommand is null||_paletteDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(this)))return;
-  var command=_dragCommand;
-  _paletteDragStart=null;_dragCommand=null;
+ private IDataObject? PointerData() {
   var data=new DataObject();
-  data.SetData(DataFormats.UnicodeText,$"{PaletteDragFormat}\n{command.Id}");
-  SetStatus($"Drop {command.Name} onto an authored control on the device.");
-  if(DragDrop.DoDragDrop(CommandPaletteList,data,DragDropEffects.Copy)==DragDropEffects.None)
-   SetStatus($"No assignment staged for {command.Name}. Drop it on a compatible callout for this device and layer.");
+  if(_dragCommand is not null)data.SetData(DataFormats.UnicodeText,$"{PaletteDragFormat}\n{_dragCommand.Id}");
+  else if(_dragControl is not null)data.SetData(DataFormats.UnicodeText,$"{ControlDragFormat}\n{_dragControl.Control}");
+  else return null;
+  return data;
  }
- private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;_dragBadge=null;return;}
-  if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(this)))return;
-  if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
-  _controlDragStart=null;_dragControl=null;_dragBadge=null;
-  var data=new DataObject();
-  data.SetData(DataFormats.UnicodeText,$"{ControlDragFormat}\n{control.Control}");
-  SetStatus($"Drop {control.Label} onto another control. Hold Ctrl to copy.");
-  if(DragDrop.DoDragDrop(badge,data,DragDropEffects.Move|DragDropEffects.Copy)==DragDropEffects.None)
-   SetStatus($"No transfer staged for {control.Label}. Drop it on another compatible callout on this device.");
+ private void ResetPointerDrag() {
+  if(_hoverBadge is not null)_hoverBadge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
+  _hoverBadge=null;
+  if(_pointerDragging&&ReferenceEquals(Mouse.Captured,this))Mouse.Capture(null);
+  Mouse.OverrideCursor=null;
+  _pointerDragging=false;
+  _paletteDragStart=null;_dragCommand=null;
+  _controlDragStart=null;_dragControl=null;
  }
  private static bool PastDragThreshold(Point start,Point current)=>
   Math.Abs(start.X-current.X)>=SystemParameters.MinimumHorizontalDragDistance||

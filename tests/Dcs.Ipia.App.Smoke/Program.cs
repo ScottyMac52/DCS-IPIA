@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
@@ -145,6 +146,18 @@ public static class Program {
   var categoryLabels=FindVisualChildren<TextBlock>(commandRow).Select(x=>x.Text).ToArray();
   if(!categoryLabels.Contains("Autopilot"))
    throw new InvalidOperationException("The visible command row omitted its authored JSON category.");
+  var press=new MouseButtonEventArgs(Mouse.PrimaryDevice,Environment.TickCount,MouseButton.Left) {
+   RoutedEvent=UIElement.PreviewMouseLeftButtonDownEvent
+  };
+  commandRow.RaiseEvent(press);
+  var pointerData=typeof(HueyImportWindow).GetMethod("PointerData",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  var stagedPointer=pointerData.Invoke(repoWindow,null) as System.Windows.IDataObject;
+  if(stagedPointer?.GetData(System.Windows.DataFormats.UnicodeText) is not string dragText||
+     dragText!="Dcs.Ipia.Editor.PaletteCommand\ndAuto"||
+     !(bool)canDrop.Invoke(repoWindow,[stagedPointer,diagram.Controls[1]])!)
+   throw new InvalidOperationException("Pressing a visible command row did not arm a compatible assignment drag.");
+  typeof(HueyImportWindow).GetMethod("ResetPointerDrag",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!
+   .Invoke(repoWindow,null);
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Autopilot On",StringComparison.Ordinal))
    throw new InvalidOperationException("Autopilot category did not filter aircraft commands.");
   var incompatible=new System.Windows.DataObject();
