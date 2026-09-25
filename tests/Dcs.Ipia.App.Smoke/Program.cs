@@ -23,7 +23,7 @@ public static class Program {
   folderWindow.Show();
   folderWindow.UpdateLayout();
   var folderTabs=(TabControl)folderWindow.FindName("ImportedTabs")!;
-  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=4)
+  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=5)
    throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
   var mfd=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
@@ -48,7 +48,7 @@ public static class Program {
   repoWindow.Show();
   repoWindow.UpdateLayout();
   var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
-  if(scope.SelectedIndex!=0||((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex!=3)
+  if(scope.SelectedIndex!=0||((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex!=0)
    throw new InvalidOperationException("Editor should open the live assignment canvas with module commands selected.");
   scope.SelectedIndex=1;
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;

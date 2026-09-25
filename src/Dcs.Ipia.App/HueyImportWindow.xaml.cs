@@ -44,7 +44,7 @@ public partial class HueyImportWindow : Window {
   PaletteScope.SelectedIndex=0;
   EditorStatus.Text=_viewModel.DraftNote;
   RefreshReview();
-  if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=3;
+  if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=0;
   else ImportedTabs.SelectedItem=DiagnosticsTab;
   Closing+=OnClosing;
  }
@@ -180,7 +180,8 @@ public partial class HueyImportWindow : Window {
     var label=assignment?.Command.Name??"Assign";
     var badge=new Border {Width=control.Width,Height=control.Height,BorderThickness=new Thickness(2),
      CornerRadius=new CornerRadius(4),Padding=new Thickness(2),AllowDrop=true,
-     ToolTip=$"{control.Label} · {control.Control} · {control.InputKey} · {label}",
+     Tag=control,Cursor=Cursors.Hand,
+     ToolTip=$"{control.Label} · {control.Control} · {control.InputKey} · {label}. Drag to move an assignment; Ctrl-drag to copy.",
      Child=new TextBlock {Text=label,FontSize=11,FontWeight=FontWeights.SemiBold,
       TextWrapping=TextWrapping.Wrap,TextTrimming=TextTrimming.CharacterEllipsis,
       HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,
@@ -276,7 +277,7 @@ public partial class HueyImportWindow : Window {
   _controlDragStart=null;_dragControl=null;_dragBadge=null;
  }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
-  var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
+  var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
   _dragCommand=container?.DataContext as CommandPaletteEntry;
   _paletteDragStart=_dragCommand is null?null:e.GetPosition(CommandPaletteList);
  }
@@ -333,7 +334,8 @@ public partial class HueyImportWindow : Window {
   return "Select a catalog command or an assigned callout to drag.";
  }
  private void Control_DragOver(object sender,DragEventArgs e) {
-  var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
+  var target=sender is Border badge&&badge.Tag is HardwareGraphicControl control
+   ?control:UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
   e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
   e.Handled=true;
  }
