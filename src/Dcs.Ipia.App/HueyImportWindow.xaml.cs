@@ -277,6 +277,7 @@ public partial class HueyImportWindow : Window {
   var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
   _dragCommand=container?.DataContext as CommandPaletteEntry;
   _paletteDragStart=_dragCommand is null?null:e.GetPosition(this);
+  if(_dragCommand is not null)SetStatus($"Drag {_dragCommand.Name} onto a device callout.");
  }
  private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}

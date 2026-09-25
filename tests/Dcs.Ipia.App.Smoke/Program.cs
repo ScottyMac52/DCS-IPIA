@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
@@ -188,11 +189,14 @@ public static class Program {
  [DllImport("user32.dll")]
  private static extern bool SetCursorPos(int x,int y);
  [DllImport("user32.dll")]
+ private static extern IntPtr GetForegroundWindow();
+ [DllImport("user32.dll")]
  private static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extraInfo);
  private static void DragMouse(HueyImportWindow window,FrameworkElement source,Canvas canvas,Point destination) {
   window.UpdateLayout();
   var from=source.PointToScreen(new Point(source.ActualWidth/2,source.ActualHeight/2));
   var to=canvas.PointToScreen(destination);
+  Console.WriteLine($"Mouse gesture: foreground={GetForegroundWindow()}, window={new WindowInteropHelper(window).Handle}, from={from}, to={to}.");
   var frame=new DispatcherFrame();
   var drag=Task.Run(()=>{
    if(!SetCursorPos((int)from.X,(int)from.Y))throw new InvalidOperationException("Mouse input is unavailable on this Windows runner.");
