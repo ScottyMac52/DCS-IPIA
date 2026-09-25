@@ -309,7 +309,7 @@ public partial class HueyImportWindow : Window {
   _paletteDragStart=_dragCommand is null?null:e.GetPosition(this);
   if(_dragCommand is not null)SetStatus($"Drag {_dragCommand.Name} onto a device callout.");
  }
- private IDataObject? PointerData() {
+ private DataObject? PointerData() {
   var data=new DataObject();
   if(_dragCommand is not null)data.SetData(DataFormats.UnicodeText,$"{PaletteDragFormat}\n{_dragCommand.Id}");
   else if(_dragControl is not null)data.SetData(DataFormats.UnicodeText,$"{ControlDragFormat}\n{_dragControl.Control}");
