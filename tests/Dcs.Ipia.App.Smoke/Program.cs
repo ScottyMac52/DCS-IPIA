@@ -83,6 +83,18 @@ public static class Program {
    throw new InvalidOperationException("Category filter did not show only General commands.");
   categories.SelectedItem="VR";
   if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
+  var assignedBadge=canvas.Children.OfType<Border>().Single(x=>
+   ((HardwareGraphicControl)x.Tag).Control==diagram.Controls[0].Control);
+  assignedBadge.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice,Environment.TickCount,MouseButton.Left) {
+   RoutedEvent=UIElement.MouseLeftButtonDownEvent
+  });
+  var badgePayload=typeof(HueyImportWindow).GetMethod("PointerData",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!
+   .Invoke(repoWindow,null) as System.Windows.IDataObject;
+  if(badgePayload?.GetData(System.Windows.DataFormats.UnicodeText) is not string badgeText||
+     badgeText!="Dcs.Ipia.Editor.HardwareControl\n"+diagram.Controls[0].Control)
+   throw new InvalidOperationException("Pressing an assigned callout did not arm a control-to-control drag.");
+  typeof(HueyImportWindow).GetMethod("ResetPointerDrag",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!
+   .Invoke(repoWindow,null);
   if(Environment.GetEnvironmentVariable("DCS_IPIA_INTERACTIVE_MOUSE_TEST")=="1") {
   repoWindow.Left=0;repoWindow.Top=0;repoWindow.Width=1200;repoWindow.Height=720;
   repoWindow.Activate();repoWindow.UpdateLayout();
