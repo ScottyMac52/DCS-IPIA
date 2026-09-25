@@ -25,6 +25,7 @@ public partial class HueyImportWindow : Window {
  private CommandPaletteEntry? _dragCommand;
  private Point? _controlDragStart;
  private HardwareGraphicControl? _dragControl;
+ private Border? _dragBadge;
  private bool _updatingCategories;
  private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
  private const string ControlDragFormat="Dcs.Ipia.Editor.HardwareControl";
@@ -159,6 +160,7 @@ public partial class HueyImportWindow : Window {
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
   UiDiagramCanvas.Children.Clear();_visibleControls=[];UiAssignmentList.ItemsSource=null;
+  _dragControl=null;_dragBadge=null;_controlDragStart=null;
   var diagram=_currentDiagram;
   if(DiagramHeading is not null)DiagramHeading.Text=diagram is null?
    "Canonical device graphic · assignment labels":$"{diagram.Title} · {Layer()} / {Chord()}";
@@ -187,9 +189,9 @@ public partial class HueyImportWindow : Window {
     badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
     ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
     badge.PreviewMouseLeftButtonDown+=(_,args)=>{
-     _controlDragStart=args.GetPosition(badge);_dragControl=control;SelectControl(control);
+     _controlDragStart=args.GetPosition(badge);_dragControl=control;_dragBadge=badge;SelectControl(control);
     };
-    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;};
+    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;_dragBadge=null;};
     badge.PreviewMouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
     badge.DragEnter+=(_,args)=>{
      if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
@@ -263,6 +265,16 @@ public partial class HueyImportWindow : Window {
   DefaultControlLabel.Text=_selected?.Label??"—";
   SelectedControlIdentity.Text=_selected is null?"—":$"{_selected.InputKey} · {Layer()} / {Chord()}";
  }
+ private void Editor_PreviewMouseMove(object sender,MouseEventArgs e) {
+  // The tunnel reaches the window even after the pointer leaves a narrow catalog row or callout.
+  if(_dragCommand is not null)CommandPaletteList_PreviewMouseMove(sender,e);
+  else if(_dragControl is not null&&_dragBadge is not null)
+   Control_PreviewMouseMove(_dragBadge,_dragControl,e);
+ }
+ private void Editor_PreviewMouseLeftButtonUp(object sender,MouseButtonEventArgs e) {
+  _paletteDragStart=null;_dragCommand=null;
+  _controlDragStart=null;_dragControl=null;_dragBadge=null;
+ }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
   _dragCommand=container?.DataContext as CommandPaletteEntry;
@@ -282,11 +294,11 @@ public partial class HueyImportWindow : Window {
    SetStatus($"No assignment staged for {command.Name}. Drop it on a compatible callout for this device and layer.");
  }
  private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;return;}
+  if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;_dragBadge=null;return;}
   if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
      !PastDragThreshold(origin,e.GetPosition(badge)))return;
   if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
-  _controlDragStart=null;_dragControl=null;
+  _controlDragStart=null;_dragControl=null;_dragBadge=null;
   var data=new DataObject();
   data.SetData(ControlDragFormat,control.Control);
   SetStatus($"Drop {control.Label} onto another control. Hold Ctrl to copy.");
