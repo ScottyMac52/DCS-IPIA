@@ -115,7 +115,7 @@ public static class Program {
    throw new InvalidOperationException("Selected control did not show imported and pending command state.");
   bindingState.SelectedIndex=0;availability.SelectedIndex=0;types.SelectedIndex=0;
   var payload=new System.Windows.DataObject();
-  payload.SetData("Dcs.Ipia.Editor.PaletteCommand","UI_ZOOM");
+  payload.SetData(System.Windows.DataFormats.UnicodeText,"Dcs.Ipia.Editor.PaletteCommand\nUI_ZOOM");
   var drop=typeof(HueyImportWindow).GetMethod("ApplyDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
   var canDrop=typeof(HueyImportWindow).GetMethod("CanDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
   if(!(bool)canDrop.Invoke(repoWindow,[payload,hit])!)
@@ -124,7 +124,7 @@ public static class Program {
   if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("Palette drop did not update OSB02.");
   var moved=new System.Windows.DataObject();
-  moved.SetData("Dcs.Ipia.Editor.HardwareControl",diagram.Controls[1].Control);
+  moved.SetData(System.Windows.DataFormats.UnicodeText,"Dcs.Ipia.Editor.HardwareControl\n"+diagram.Controls[1].Control);
   drop.Invoke(repoWindow,[diagram.Controls[2],moved,true]);
   if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal)||
      !assignments.Items[2]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
