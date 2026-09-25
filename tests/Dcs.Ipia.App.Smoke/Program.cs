@@ -29,9 +29,9 @@ public static class Program {
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
   var mfd=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
   var configuration=new ModuleConfiguration(module,[mfd],
-   [new DcsModifier("MOZA_MODIFIER_BTN3","tm-mfd","JOY_BTN5",ModifierMode.Hold)],
+   [new DcsModifier("MOZA_F16_F18_BTN3","tm-mfd","JOY_BTN5",ModifierMode.Hold)],
    [new DcsBinding(mfd.Id,BindingSection.Key,"MODULE_BASE","Base action",BindingDisposition.Added,"JOY_BTN1"),
-    new DcsBinding(mfd.Id,BindingSection.Key,"MODULE_SHIFTED","Modified action",BindingDisposition.Added,"JOY_BTN1",["MOZA_MODIFIER_BTN3"])],
+    new DcsBinding(mfd.Id,BindingSection.Key,"MODULE_SHIFTED","Modified action",BindingDisposition.Added,"JOY_BTN1",["MOZA_F16_F18_BTN3"])],
    "smoke fixture");
   var imported=new HueyImportResult(configuration,[],[],[],[],
    new Dictionary<string,System.Text.Json.JsonElement>(),new Dictionary<string,string>(),
@@ -49,7 +49,7 @@ public static class Program {
     new(Guid.NewGuid(),Guid.NewGuid(),"UI_PAUSE","Active Pause","General",false)]
   };
   var importedView=new HueyImportViewModel(preview);
-  if(importedView.Draft is null||!importedView.Draft.Snapshot.Any(x=>x.Slot.Layer==AssignmentLayer.Module&&x.Slot.ModifierChord=="MOZA_MODIFIER_BTN3")||
+  if(importedView.Draft is null||!importedView.Draft.Snapshot.Any(x=>x.Slot.Layer==AssignmentLayer.Module&&x.Slot.ModifierChord=="MOZA_F16_F18_BTN3")||
      !importedView.Draft.Snapshot.Any(x=>x.Slot.Layer==AssignmentLayer.UiLayer&&x.Slot.ModifierChord=="MOZA_MODIFIER_BTN3"))
    throw new InvalidOperationException("The import dropped shifted module or UI Layer assignments.");
   var repoWindow=new HueyImportWindow(importedView);
@@ -91,8 +91,8 @@ public static class Program {
    throw new InvalidOperationException("Modifier selection did not show the shifted module assignment.");
   scope.SelectedIndex=1;
   savedWindow.UpdateLayout();
-  if(Caption("mfd-osb-t1-shifted")!="VR Zoom")
-   throw new InvalidOperationException("Scope selection did not show the shifted UI Layer assignment.");
+  if((string?)layers.SelectedItem!="MOZA_MODIFIER_BTN3"||Caption("mfd-osb-t1-shifted")!="VR Zoom")
+   throw new InvalidOperationException("Scope selection did not choose the canonical UI Layer modifier and assignment.");
   savedWindow.Close();
   SqliteConnection.ClearAllPools();
   File.Delete(scratch);

@@ -71,5 +71,59 @@ public sealed class LegacyEditorWorkspaceUpgradeTests {
   }
   finally {File.Delete(path);}
  }
+ /// <summary>Repairs a persisted Huey snapshot whose UI modifier is canonical and differs from the module modifier.</summary>
+ /// <returns>Completion of the SQLite upgrade.</returns>
+ [Fact] public async Task Empty_legacy_import_restores_both_scopes_from_stored_sources_once() {
+  var path=Path.Combine(Path.GetTempPath(),"ipia-empty-"+Guid.NewGuid().ToString("N")+".db");
+  var connectionString="Data Source="+path+";Pooling=False";
+  try {
+   await new SqliteMigrationRunner(connectionString).MigrateAsync();
+   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
+   var profile=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
+   var binding=new DcsBinding(profile.Id,BindingSection.Key,"MODULE_BASE","Base action",
+    BindingDisposition.Added,"JOY_BTN1");
+   var configuration=new ModuleConfiguration(module,[profile],
+    [new DcsModifier("MOZA_F16_F18_BTN3","MOZA","JOY_BTN3",ModifierMode.Hold)],[binding],"import");
+   await new SqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
+   var diagram=new UiLayerDiagram("MFD","MFD3","assets/shared/hardware/svg/tm-mfd.svg",100,100,[],
+    [new UiLayerCallout(1,"osb-1-shifted","VR Zoom","MOZA_MODIFIER_BTN3",40,10,25,20) {CommandId="UI_ZOOM"}]) {
+    Svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'/>",ProfileId=profile.Id,
+    Controls=[new("osb-1","OSB 1","JOY_BTN1",10,10,25,20),
+     new("osb-1-shifted","OSB 1","JOY_BTN1",40,10,25,20)]
+   };
+   var initial=new EditorWorkspaceSnapshot(configuration,[],[],[diagram],
+    [new CommandPaletteEntry("MODULE_BASE","Base action","General",false)],
+    [new DcsCommandDefinition(Guid.NewGuid(),Guid.NewGuid(),"UI_ZOOM","VR Zoom","VR",false)],
+    [],new Dictionary<string,string>());
+   var repository=new SqliteEditorWorkspaceRepository(connectionString);
+   await repository.SaveAsync(initial);
+   await using(var connection=new SqliteConnection(connectionString)) {
+    await connection.OpenAsync();
+    var read=connection.CreateCommand();
+    read.CommandText="SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
+    read.Parameters.AddWithValue("$id",module.Id.ToString("D"));
+    var payload=JsonNode.Parse((string)(await read.ExecuteScalarAsync())!)!.AsObject();
+    payload["Version"]=1;
+    var write=connection.CreateCommand();
+    write.CommandText="UPDATE editor_workspaces SET snapshot_json=$json WHERE module_id=$id";
+    write.Parameters.AddWithValue("$json",payload.ToJsonString());
+    write.Parameters.AddWithValue("$id",module.Id.ToString("D"));
+    await write.ExecuteNonQueryAsync();
+   }
+   var restored=(await repository.GetAsync(module.Id))!;
+   Assert.Equal(2,restored.Assignments.Count);
+   Assert.Contains(restored.Assignments,x=>x.Slot.Layer==AssignmentLayer.Module&&
+    x.Slot.ModifierChord==""&&x.Command.Id=="MODULE_BASE");
+   Assert.Contains(restored.Assignments,x=>x.Slot.Layer==AssignmentLayer.UiLayer&&
+    x.Slot.ModifierChord=="MOZA_MODIFIER_BTN3"&&x.Command.Id=="UI_ZOOM");
+   var allowed=restored.ModuleCommands.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module))
+    .Concat(restored.UiCommands.Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer)));
+   var draft=new DraftAssignmentService(configuration,allowed,restored.Assignments,["MOZA_MODIFIER_BTN3"]);
+   Assert.Equal(DraftOutcome.Applied,draft.Remove(restored.Assignments.Single(x=>x.Slot.Layer==AssignmentLayer.UiLayer).Slot).Outcome);
+   await repository.SaveAsync(restored with {Assignments=draft.Snapshot});
+   Assert.Single((await repository.GetAsync(module.Id))!.Assignments);
+  }
+  finally {File.Delete(path);}
+ }
  #endregion END Public
 }

@@ -30,10 +30,12 @@ public sealed class HueyImportViewModel {
   UiDiagrams=preview.Diagrams;
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings,preview.ModuleCommands);
   (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
-  ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)
+  ModuleModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)
    .Concat(configuration.Bindings.Where(x=>x.Reformers.Count>1).Select(x=>string.Join(" + ",x.Reformers)))
-   .Concat(preview.Diagrams.SelectMany(x=>x.Callouts).Select(x=>x.Modifier))
    .Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal)];
+  UiModifierChoices=["Base",..preview.Diagrams.SelectMany(x=>x.Callouts).Select(x=>x.Modifier)
+   .Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal)];
+  ModifierChoices=ModuleModifierChoices;
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
   PaletteSourceNote=preview.ModuleCommands.Count>0?preview.ModuleCommandSource:
    $"{preview.ModuleCommandSource} Import the UH-1H command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
@@ -55,7 +57,8 @@ public sealed class HueyImportViewModel {
   ModuleCommands=saved.ModuleCommands;
   var moduleCommands=saved.ModuleCommands.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module));
   var uiCommands=saved.UiCommands.Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer));
-  Draft=new DraftAssignmentService(saved.Configuration,moduleCommands.Concat(uiCommands),saved.Assignments);
+  Draft=new DraftAssignmentService(saved.Configuration,moduleCommands.Concat(uiCommands),saved.Assignments,
+   saved.Diagrams.SelectMany(x=>x.Callouts).SelectMany(x=>x.Modifier.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)));
   DraftNote="Changes remain pending until Save to database.";
   WindowTitle=saved.Configuration.Module.DisplayName+" · database assignment editor";
   Commit="Saved in local SQLite database";
@@ -86,7 +89,9 @@ public sealed class HueyImportViewModel {
   Images=[];
   UiDiagrams=[];
   Draft=null;
-  ModifierChoices=["Base"];
+  ModuleModifierChoices=["Base"];
+  UiModifierChoices=["Base"];
+  ModifierChoices=ModuleModifierChoices;
   DraftNote="Import both committed repositories to edit an identified device.";
   ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
   UiCommands=[];
@@ -139,7 +144,11 @@ public sealed class HueyImportViewModel {
  public string PaletteSourceNote {get;}
  /// <summary>Gets the in-memory draft editor when canonical controls and source identities are available.</summary>
  public DraftAssignmentService? Draft {get;}
- /// <summary>Gets Base and explicit modifier names from the imported module.</summary>
+ /// <summary>Gets Base and native module modifier chords.</summary>
+ public IReadOnlyList<string> ModuleModifierChoices {get;}
+ /// <summary>Gets Base and canonical UI Layer modifier chords used by this module.</summary>
+ public IReadOnlyList<string> UiModifierChoices {get;}
+ /// <summary>Gets the module modifier choices for compatibility with existing previews.</summary>
  public IReadOnlyList<string> ModifierChoices {get;}
  /// <summary>Gets the editor availability or unmapped-binding diagnostic.</summary>
  public string DraftNote {get;}
@@ -180,7 +189,8 @@ public sealed class HueyImportViewModel {
      global::Dcs.Ipia.Domain.BindingSection.Key,control.InputKey,callout.Modifier.Replace(" + ","+",StringComparison.Ordinal)),
      new(callout.CommandId,callout.Function,false,AssignmentLayer.UiLayer)));
    }
-   var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),assignments);
+   var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),assignments,
+    preview.Diagrams.SelectMany(x=>x.Callouts).SelectMany(x=>x.Modifier.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)));
    return (editor,unmatched==0?"Changes are staged in memory. Review, undo or discard them before leaving this window.":
     $"{unmatched} imported bindings could not be mapped to authored controls and are excluded from this draft. No source file is changed.");
   }

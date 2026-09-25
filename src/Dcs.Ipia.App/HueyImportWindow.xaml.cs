@@ -40,7 +40,7 @@ public partial class HueyImportWindow : Window {
   DataContext=_viewModel;
   KneeboardList.SelectedIndex=0;
   DeviceChoice.ItemsSource=_viewModel.UiDiagrams;
-  Layers.ItemsSource=_viewModel.ModifierChoices;
+  Layers.ItemsSource=_viewModel.ModuleModifierChoices;
   Layers.SelectedIndex=0;
   Scope.SelectedIndex=0;
   CommandType.SelectedIndex=0;
@@ -69,7 +69,15 @@ public partial class HueyImportWindow : Window {
  private DraftAssignment? Assignment(DraftAssignmentSlot slot)=>_draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
  private void DeviceChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
  private void LayerChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
- private void ScopeChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
+ private void ScopeChanged(object sender,SelectionChangedEventArgs e) {
+  if(Layers is null)return;
+  var previous=Layers.SelectedItem as string??"Base";
+  var choices=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleModifierChoices:_viewModel.UiModifierChoices;
+  Layers.ItemsSource=choices;
+  Layers.SelectedItem=choices.Contains(previous,StringComparer.Ordinal)?previous:
+   previous!="Base"&&choices.Count==2?choices[1]:"Base";
+  RefreshEditor();
+ }
  private void ZoomChanged(object sender,RoutedPropertyChangedEventArgs<double> e)=>RefreshEditor();
  private void FiltersChanged(object sender,EventArgs e) {
   if(_updatingFilters)return;
@@ -247,7 +255,8 @@ public partial class HueyImportWindow : Window {
    _saved=updated;
    var allowed=updated.ModuleCommands.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module))
     .Concat(updated.UiCommands.Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer)));
-   _draft=new DraftAssignmentService(updated.Configuration,allowed,updated.Assignments);
+   _draft=new DraftAssignmentService(updated.Configuration,allowed,updated.Assignments,
+    updated.Diagrams.SelectMany(x=>x.Callouts).SelectMany(x=>x.Modifier.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)));
    RefreshEditor();
    EditorMessage.Text="Assignments and labels saved to the local database.";
   }

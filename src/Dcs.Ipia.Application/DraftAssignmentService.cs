@@ -5,6 +5,7 @@ namespace Dcs.Ipia.Application;
 /// <summary>Stages module-owned assignments in memory with atomic conflicts, review, and undo.</summary>
 public sealed class DraftAssignmentService {
  private readonly ModuleConfiguration _module;
+ private readonly HashSet<string> _uiModifiers;
  private readonly Dictionary<string,DraftCommand> _allowed;
  private readonly Dictionary<string,DraftAssignment> _original=new(StringComparer.Ordinal);
  private readonly Dictionary<string,DraftAssignment> _current=new(StringComparer.Ordinal);
@@ -13,10 +14,12 @@ public sealed class DraftAssignmentService {
  /// <param name="module">Module and its recognized profiles and modifiers.</param>
  /// <param name="commands">Permitted module and canonical UI Layer commands.</param>
  /// <param name="assignments">Validated existing assignments, including the module-local UI Layer overlay.</param>
- public DraftAssignmentService(ModuleConfiguration module,IEnumerable<DraftCommand> commands,IEnumerable<DraftAssignment> assignments) {
+ /// <param name="uiModifierNames">Canonical UI Layer modifier names; defaults to module modifiers for older callers.</param>
+ public DraftAssignmentService(ModuleConfiguration module,IEnumerable<DraftCommand> commands,IEnumerable<DraftAssignment> assignments,IEnumerable<string>? uiModifierNames=null) {
   _module=module??throw new ArgumentNullException(nameof(module));
   ArgumentNullException.ThrowIfNull(commands);
   ArgumentNullException.ThrowIfNull(assignments);
+  _uiModifiers=(uiModifierNames??module.Modifiers.Select(x=>x.Name)).ToHashSet(StringComparer.Ordinal);
   _allowed=new Dictionary<string,DraftCommand>(StringComparer.Ordinal);
   foreach(var command in commands) {
    if(command is null||string.IsNullOrWhiteSpace(command.Id)||string.IsNullOrWhiteSpace(command.Name)||
@@ -171,8 +174,8 @@ public sealed class DraftAssignmentService {
   if(slot.ModifierChord is null) {reason="Modifier chord is missing.";return false;}
   var names=slot.ModifierChord.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
   if((slot.ModifierChord.Length>0&&names.Length==0)||names.Distinct(StringComparer.Ordinal).Count()!=names.Length||
-     names.Any(x=>!_module.Modifiers.Any(y=>y.Name==x))) {
-   reason="Modifier chord is not declared by the selected module.";return false;
+     names.Any(x=>slot.Layer==AssignmentLayer.UiLayer?!_uiModifiers.Contains(x):!_module.Modifiers.Any(y=>y.Name==x))) {
+   reason=slot.Layer==AssignmentLayer.UiLayer?"Modifier chord is not declared by the UI Layer.":"Modifier chord is not declared by the selected module.";return false;
   }
   return true;
  }

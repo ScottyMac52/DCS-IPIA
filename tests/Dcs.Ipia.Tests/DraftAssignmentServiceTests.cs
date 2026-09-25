@@ -127,6 +127,24 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Throws<ArgumentException>(()=>new DraftAssignmentService(module,[first],[new(source,first with { Id="missing" })]));
   Assert.NotNull(service);
  }
+ /// <summary>Module and canonical UI Layer modifiers remain independently validated.</summary>
+ [Fact] public void Distinct_scope_modifiers_keep_their_own_assignments() {
+  var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
+  var profile=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
+  var configuration=new ModuleConfiguration(module,[profile],
+   [new DcsModifier("MOZA_F16_F18_BTN3","MOZA","JOY_BTN3",ModifierMode.Hold)],[],"import");
+  var moduleCommand=new DraftCommand("MODULE","Module command",false,AssignmentLayer.Module);
+  var uiCommand=new DraftCommand("UI","UI command",false,AssignmentLayer.UiLayer);
+  var moduleSlot=new DraftAssignmentSlot(module.Id,profile.Id,AssignmentLayer.Module,BindingSection.Key,"JOY_BTN1","MOZA_F16_F18_BTN3");
+  var uiSlot=moduleSlot with {Layer=AssignmentLayer.UiLayer,ModifierChord="MOZA_MODIFIER_BTN3"};
+  var service=new DraftAssignmentService(configuration,[moduleCommand,uiCommand],
+   [new(moduleSlot,moduleCommand),new(uiSlot,uiCommand)],["MOZA_MODIFIER_BTN3"]);
+  Assert.Equal(2,service.Snapshot.Count);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(moduleSlot with {ModifierChord="MOZA_MODIFIER_BTN3"},
+   moduleCommand,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(uiSlot with {ModifierChord="MOZA_F16_F18_BTN3"},
+   uiCommand,OccupiedDestinationBehavior.Ask).Outcome);
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static (DraftAssignmentService Service,DraftAssignmentSlot Source,DraftAssignmentSlot Target,DraftAssignmentSlot Other,DraftCommand First,DraftCommand Second) Fixture() {

@@ -62,6 +62,10 @@ public partial class MainWindow : Window {
      return;
     }
     var importedView=new HueyImportViewModel(preview);
+    if(preview.Diagrams.Any(x=>x.Controls.Count>0)&&importedView.Draft is null) {
+     ShowImportError("Assignments were not saved: "+importedView.DraftNote);
+     return;
+    }
     var module=preview.Import.Configuration!;
     await _configurations.ReplaceAsync(module);
     var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
