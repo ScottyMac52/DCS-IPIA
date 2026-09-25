@@ -18,4 +18,9 @@ internal sealed record EditorWorkspacePayload(
  IReadOnlyList<CommandPaletteEntry> ModuleCommands,
  IReadOnlyList<DcsCommandDefinition> UiCommands,
  IReadOnlyList<DraftAssignment> Assignments,
- IReadOnlyDictionary<string,string> Labels);
+ IReadOnlyDictionary<string,string> Labels) {
+ #region BEGIN Public
+ /// <summary>Gets the stored snapshot schema version; absent in older SQLite records.</summary>
+ public int Version {get;init;}
+ #endregion END Public
+}
