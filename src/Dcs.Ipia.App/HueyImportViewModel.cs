@@ -29,14 +29,15 @@ public sealed class HueyImportViewModel {
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
   ModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)];
-  ModuleCommands=CommandPalette.FromBindings(configuration.Bindings);
+  ModuleCommands=CommandPalette.FromBindings(configuration.Bindings,preview.ModuleCommands);
   (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
-  PaletteSourceNote="Module bindings have no category metadata. Import a saved DCS catalog JSON or DCS Controls HTML for named categories and all assignable commands; until then they appear as Uncategorized.";
+  PaletteSourceNote=preview.ModuleCommands.Count>0?preview.ModuleCommandSource:
+   $"{preview.ModuleCommandSource} Import the UH-1H command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
-  var issues=result.Diagnostics.Concat(preview.GraphicDiagnostics).ToArray();
+  var issues=result.Diagnostics.Concat(preview.GraphicDiagnostics).Concat(preview.CommandDiagnostics).ToArray();
   HasErrors=issues.Any(x=>x.IsError);
   Diagnostics=issues.Length==0?["No import diagnostics."]:issues.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=result.Provenance.Select(x=>$"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
