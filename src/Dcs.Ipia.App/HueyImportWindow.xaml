@@ -136,10 +136,10 @@
                 <TextBlock x:Name="PaletteCaption" Grid.Row="5" Margin="0,3,0,5" TextWrapping="Wrap"
                            Foreground="{DynamicResource SecondaryTextBrush}"/>
                 <ListBox x:Name="CommandPaletteList" Grid.Row="6"
-                         PreviewMouseLeftButtonDown="CommandPaletteList_PreviewMouseLeftButtonDown"
                          AutomationProperties.Name="Drag or select a command to assign">
                   <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                      <EventSetter Event="PreviewMouseLeftButtonDown" Handler="CommandPaletteList_PreviewMouseLeftButtonDown"/>
                       <Setter Property="Cursor" Value="Hand"/>
                       <Setter Property="ToolTip" Value="Drag onto a device callout to assign"/>
                     </Style>
