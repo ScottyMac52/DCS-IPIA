@@ -195,7 +195,6 @@ public partial class HueyImportWindow : Window {
      args.Handled=true;
     };
     badge.MouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;_dragBadge=null;};
-    badge.MouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
     badge.DragEnter+=(_,args)=>{
      if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
     };
@@ -272,6 +271,10 @@ public partial class HueyImportWindow : Window {
  private void Editor_PreviewMouseLeftButtonUp(object sender,MouseButtonEventArgs e) {
   _paletteDragStart=null;_dragCommand=null;
   _controlDragStart=null;_dragControl=null;_dragBadge=null;
+ }
+ private void Editor_PreviewMouseMove(object sender,MouseEventArgs e) {
+  if(_dragCommand is not null)CommandPaletteList_PreviewMouseMove(sender,e);
+  else if(_dragControl is not null&&_dragBadge is not null)Control_PreviewMouseMove(_dragBadge,_dragControl,e);
  }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
