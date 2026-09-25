@@ -45,7 +45,7 @@ public partial class MainWindow : Window {
     }
     _lastViewModel=new HueyImportViewModel(result);
     ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. Use View imported to reopen.";
+    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. For drag and drop, import the Huey repository root with DCS-Common.";
    } else {
     var common=new OpenFolderDialog {Title="Select the DCS-Common Git repository root"};
     if(common.ShowDialog(this)!=true)return;
