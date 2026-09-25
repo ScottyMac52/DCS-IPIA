@@ -23,7 +23,7 @@ public static class Program {
   folderWindow.Show();
   folderWindow.UpdateLayout();
   var folderTabs=(TabControl)folderWindow.FindName("ImportedTabs")!;
-  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=5)
+  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=4)
    throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
   var mfd=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
