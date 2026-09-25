@@ -48,8 +48,8 @@ public static class Program {
   repoWindow.Show();
   repoWindow.UpdateLayout();
   var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
-  if(scope.SelectedIndex!=0)
-   throw new InvalidOperationException("Editor should open with the module command catalog selected.");
+  if(scope.SelectedIndex!=0||((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex!=3)
+   throw new InvalidOperationException("Editor should open the live assignment canvas with module commands selected.");
   scope.SelectedIndex=1;
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
@@ -57,6 +57,11 @@ public static class Program {
   var palette=(ListBox)repoWindow.FindName("CommandPaletteList")!;
   var search=(TextBox)repoWindow.FindName("PaletteSearch")!;
   var categories=(ComboBox)repoWindow.FindName("PaletteCategory")!;
+  var hitControl=typeof(HueyImportWindow).GetMethod("HitControl",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  var hit=hitControl.Invoke(repoWindow,[new System.Windows.Point(100,30)]) as HardwareGraphicControl;
+  if(hit?.Control!=diagram.Controls[1].Control||!canvas.IsVisible||
+     canvas.Children.OfType<Border>().Count(x=>x.AllowDrop)!=diagram.Controls.Count)
+   throw new InvalidOperationException("The visible authored callouts are not WPF drop targets at their canvas coordinates.");
   if(!repoWindow.IsVisible||canvas.Children.Count!=4||assignments.Items.Count!=3||
      !assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
 
@@ -91,6 +96,9 @@ public static class Program {
   var payload=new System.Windows.DataObject();
   payload.SetData("Dcs.Ipia.Editor.PaletteCommand","UI_ZOOM");
   var drop=typeof(HueyImportWindow).GetMethod("ApplyDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  var canDrop=typeof(HueyImportWindow).GetMethod("CanDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+  if(!(bool)canDrop.Invoke(repoWindow,[payload,hit])!)
+   throw new InvalidOperationException("The visible callout rejected a valid dragged palette command.");
   drop.Invoke(repoWindow,[diagram.Controls[1],payload,false]);
   if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
    throw new InvalidOperationException("Palette drop did not update OSB02.");
@@ -111,7 +119,6 @@ public static class Program {
      categories.Items.Contains("Key")||categories.Items.Contains("Axis"))
    throw new InvalidOperationException("Module catalog did not provide named categories and full command list.");
   categories.SelectedItem="Autopilot";
-  ((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex=3;
   repoWindow.UpdateLayout();
   var commandRow=(ListBoxItem)palette.ItemContainerGenerator.ContainerFromIndex(0)!;
   var categoryLabels=FindVisualChildren<TextBlock>(commandRow).Select(x=>x.Text).ToArray();
@@ -119,7 +126,6 @@ public static class Program {
    throw new InvalidOperationException("The visible command row omitted its authored JSON category.");
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Autopilot On",StringComparison.Ordinal))
    throw new InvalidOperationException("Autopilot category did not filter aircraft commands.");
-  var canDrop=typeof(HueyImportWindow).GetMethod("CanDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
   var incompatible=new System.Windows.DataObject();
   incompatible.SetData("Dcs.Ipia.Editor.PaletteCommand","aCollective");
   if((bool)canDrop.Invoke(repoWindow,[incompatible,diagram.Controls[1]])!)
