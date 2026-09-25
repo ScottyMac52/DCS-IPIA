@@ -55,6 +55,8 @@ public static class Program {
   var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
   if(scope.SelectedIndex!=0||((TabControl)repoWindow.FindName("ImportedTabs")!).SelectedIndex!=0)
    throw new InvalidOperationException("Editor should open the live assignment canvas with module commands selected.");
+  if(((FrameworkElement)repoWindow.FindName("ImportSummary")!).Visibility!=Visibility.Collapsed)
+   throw new InvalidOperationException("Import metadata displaced the scaffolding editor layout.");
   scope.SelectedIndex=1;
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;

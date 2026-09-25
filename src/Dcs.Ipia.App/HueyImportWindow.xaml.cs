@@ -47,6 +47,7 @@ public partial class HueyImportWindow : Window {
   RefreshReview();
   if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=0;
   else ImportedTabs.SelectedItem=DiagnosticsTab;
+  ImportSummary.Visibility=ImportedTabs.SelectedIndex==0?Visibility.Collapsed:Visibility.Visible;
   Deactivated+=(_,_)=>ResetPointerDrag();
   Closing+=OnClosing;
  }
