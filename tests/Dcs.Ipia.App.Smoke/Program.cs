@@ -87,12 +87,25 @@ public static class Program {
    throw new InvalidOperationException("Base layer did not show only its own assignment.");
   layers.SelectedIndex=1;
   savedWindow.UpdateLayout();
-  if(Caption("mfd-osb-t1-shifted")!="Modified action")
-   throw new InvalidOperationException("Modifier selection did not show the shifted module assignment.");
+  bool Visible(string control) {
+   var canvas=(Canvas)savedWindow.FindName("Diagram")!;
+   return canvas.Children.OfType<Canvas>().Single().Children.OfType<Border>()
+    .Any(x=>x.Tag is HardwareGraphicControl item&&item.Control==control);
+  }
+  if(Visible("mfd-osb-t1")||Caption("mfd-osb-t1-shifted")!="Modified action")
+   throw new InvalidOperationException("Modifier selection still displays a base assignment.");
   scope.SelectedIndex=1;
   savedWindow.UpdateLayout();
-  if(Caption("mfd-osb-t1-shifted")!="VR Zoom")
-   throw new InvalidOperationException("Scope selection did not show the shifted UI Layer assignment.");
+  if(Visible("mfd-osb-t1")||Caption("mfd-osb-t1-shifted")!="VR Zoom")
+   throw new InvalidOperationException("Scope selection still displays a module assignment.");
+  layers.SelectedIndex=0;
+  savedWindow.UpdateLayout();
+  if(Visible("mfd-osb-t1-shifted")||Caption("mfd-osb-t1")!="Unassigned")
+   throw new InvalidOperationException("Base UI Layer still displays a module assignment.");
+  scope.SelectedIndex=0;
+  savedWindow.UpdateLayout();
+  if(Caption("mfd-osb-t1")!="Base action")
+   throw new InvalidOperationException("Returning to Base Module did not restore its assignment.");
   savedWindow.Close();
   SqliteConnection.ClearAllPools();
   File.Delete(scratch);

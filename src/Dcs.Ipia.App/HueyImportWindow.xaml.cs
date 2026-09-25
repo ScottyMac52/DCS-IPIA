@@ -62,7 +62,8 @@ public partial class HueyImportWindow : Window {
   var shifted=control.Control.EndsWith("-shifted",StringComparison.Ordinal);
   if(shifted&&layer=="Base")return null;
   var hasShiftedPair=!shifted&&diagram.Controls.Any(x=>x.Control==control.Control+"-shifted");
-  var chord=layer=="Base"||hasShiftedPair?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+  if(hasShiftedPair&&layer!="Base")return null;
+  var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
   return new DraftAssignmentSlot(_saved.Configuration.Module.Id,diagram.ProfileId,CurrentLayer,
    control.IsAxis?BindingSection.Axis:BindingSection.Key,control.InputKey,chord);
  }
@@ -104,7 +105,7 @@ public partial class HueyImportWindow : Window {
     var slot=Slot(control);
     if(slot is null)continue;
     var assignment=Assignment(slot);
-    var caption=_labels.GetValueOrDefault(slot.Key)??assignment?.Command.Name??control.Label;
+    var caption=_labels.GetValueOrDefault(slot.Key)??assignment?.Command.Name??"Unassigned";
     var text=new TextBlock {Text=caption,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
     _calloutText[slot.Key]=text;
