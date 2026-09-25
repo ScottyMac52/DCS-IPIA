@@ -45,7 +45,7 @@ public partial class HueyImportWindow : Window {
   EditorStatus.Text=_viewModel.DraftNote;
   RefreshReview();
   if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=3;
-  else if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
+  else ImportedTabs.SelectedItem=DiagnosticsTab;
   Closing+=OnClosing;
  }
  #region BEGIN Public
