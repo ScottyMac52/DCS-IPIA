@@ -2,7 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
-using Dcs.Ipia.Application;
+using Dcs.Ipia.Application.Interfaces;
 
 namespace DcsIpia.Presentation;
 
