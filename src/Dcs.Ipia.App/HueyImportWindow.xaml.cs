@@ -375,6 +375,8 @@ public partial class HueyImportWindow : Window {
   new SettingsWindow(_settings) {Owner=this}.ShowDialog();
   SetStatus($"Occupied destination: {_settings.Current.OccupiedDestinationBehavior}.");
  }
+ private void OpenSharedUiLayer_Click(object sender,RoutedEventArgs e)=>
+  new DcsConsumerScaffold.UiLayerEditorWindow(_viewModel.CommonRoot,_viewModel.Summary) {Owner=this}.ShowDialog();
  private void Back_Click(object sender,RoutedEventArgs e)=>ImportedTabs.SelectedIndex=0;
  private void EditorZoom_ValueChanged(object sender,RoutedPropertyChangedEventArgs<double> e) {
   if(UiDiagramCanvas is not null)UiDiagramCanvas.LayoutTransform=new ScaleTransform(e.NewValue,e.NewValue);

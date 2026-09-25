@@ -181,6 +181,7 @@
                   <Button Content="Reset label to DCS default" Click="ResetLabel_Click" Margin="0,4" Padding="8,5"/>
                   <TextBlock Text="Drag an assigned callout onto another compatible callout to move its command."
                              TextWrapping="Wrap" Margin="0,16,0,0"/>
+                  <Button Content="Edit shared UI Layer catalog…" Click="OpenSharedUiLayer_Click" Margin="0,12,0,0"/>
                   <Button Content="Settings" Click="EditorSettings_Click" Margin="0,12,0,0"/>
                   <Button x:Name="UndoDraft" Content="Undo" Click="Undo_Click" Margin="0,4"/>
                   <Button Content="Discard draft" Click="Discard_Click" Margin="0,4"/>

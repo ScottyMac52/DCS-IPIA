@@ -74,6 +74,8 @@ public sealed class HueyImportViewModel {
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
  #region BEGIN Public
+ /// <summary>Gets or sets the selected DCS-Common root for the authoritative UI Layer editor.</summary>
+ public string? CommonRoot {get;set;}
  /// <summary>Gets the actual DCS module identity for validating an imported command catalog.</summary>
  public string? ModuleDcsId {get;}
  /// <summary>Gets imported bindings used to include existing commands when a catalog is loaded.</summary>
