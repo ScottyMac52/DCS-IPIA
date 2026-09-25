@@ -20,10 +20,30 @@ public sealed class CommandPaletteTests {
   Assert.Equal(2,aircraft.Count);
   Assert.Equal("Collective",aircraft[0].Name);
   Assert.True(aircraft[0].IsAxis);
+  Assert.All(aircraft,x=>Assert.Equal("Uncategorized",x.Category));
   Assert.Single(CommandPalette.Search(aircraft,"FOO"));
   Assert.Empty(CommandPalette.Search(aircraft,"VR Zoom"));
   Assert.Single(CommandPalette.Search(ui,"view"));
   Assert.Empty(CommandPalette.Search(ui,"Trim"));
+ }
+ /// <summary>Named catalog categories stay separate from key/axis command type.</summary>
+ [Fact] public void Module_catalog_supplies_named_categories_and_unbound_commands() {
+  var bindings=new[] {
+   new DcsBinding(Guid.NewGuid(),BindingSection.Key,"dAuto","Old name",BindingDisposition.Added,"JOY_BTN1"),
+   new DcsBinding(Guid.NewGuid(),BindingSection.Axis,"aMissing","Throttle",BindingDisposition.Added,"JOY_X")
+  };
+  var catalog=new[] {
+   new CommandPaletteEntry("dAuto","Autopilot On","Autopilot / Modes",false),
+   new CommandPaletteEntry("aCollective","Collective","Flight Controls",true)
+  };
+  var entries=CommandPalette.FromBindings(bindings,catalog);
+  Assert.Equal(3,entries.Count);
+  Assert.Equal("Autopilot / Modes",Assert.Single(CommandPalette.Filter(entries,null,"Autopilot / Modes")).Category);
+  Assert.Equal("Autopilot On",Assert.Single(entries,x=>x.Id=="dAuto").Name);
+  Assert.Equal("Uncategorized",Assert.Single(entries,x=>x.Id=="aMissing").Category);
+  Assert.True(Assert.Single(entries,x=>x.Id=="aCollective").IsAxis);
+  Assert.Throws<ArgumentException>(()=>CommandPalette.FromBindings(bindings,
+   [new CommandPaletteEntry("dAuto","Wrong type","Autopilot",true)]));
  }
  /// <summary>Exact category and free-text search combine without leaking commands from another scope.</summary>
  [Fact] public void Filters_exact_category_and_search_together() {

@@ -24,7 +24,6 @@ public partial class HueyImportWindow : Window {
  private IReadOnlyList<HardwareGraphicControl> _visibleControls=[];
  private UiLayerDiagram? _currentDiagram;
  private Point? _paletteDragStart;
- private CommandPaletteEntry? _dragCommand;
  private Point? _controlDragStart;
  private HardwareGraphicControl? _dragControl;
  private readonly Dictionary<string,string> _displayLabels=new(StringComparer.Ordinal);
@@ -236,11 +235,11 @@ public partial class HueyImportWindow : Window {
  // The drag source and threshold match DCS-Common's InteractivePreviewWindow.
  private void DragStart(object sender,MouseButtonEventArgs e)=>_paletteDragStart=e.GetPosition(this);
  private void CommandDrag(object sender,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
+  if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;return;}
   if(_viewModel.Draft is null||_paletteDragStart is not Point origin||
      !PastDragThreshold(origin,e.GetPosition(this))||
      CommandPaletteList.SelectedItem is not CommandPaletteEntry command)return;
-  _paletteDragStart=null;_dragCommand=null;
+  _paletteDragStart=null;
   var data=new DataObject();
   data.SetData(PaletteDragFormat,command.Id);
   SetStatus($"Drop {command.Name} onto an authored control on the device.");
@@ -403,7 +402,7 @@ public partial class HueyImportWindow : Window {
    var catalog=DcsCommandCatalogImporter.Parse(File.ReadAllText(dialog.FileName),_viewModel.ModuleDcsId);
    _moduleCommands=CommandPalette.FromBindings(_viewModel.ImportedBindings,catalog);
    _viewModel.Draft?.AddCommands(catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module)));
-   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,[],[]));
+   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,new System.Collections.ArrayList(),new System.Collections.ArrayList()));
    SetStatus($"Loaded {catalog.Count} module commands and named categories.");
   } catch(Exception ex) {SetStatus(ex.Message);}
  }
@@ -415,7 +414,7 @@ public partial class HueyImportWindow : Window {
    var catalog=DcsHtmlCommandCatalogImporter.Parse(dialog.FileNames.Select(x=>(x,File.ReadAllText(x))));
    _moduleCommands=CommandPalette.FromBindings(_viewModel.ImportedBindings,catalog);
    _viewModel.Draft?.AddCommands(catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module)));
-   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,[],[]));
+   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,new System.Collections.ArrayList(),new System.Collections.ArrayList()));
    SetStatus($"Loaded {catalog.Count} DCS HTML commands and named categories.");
   } catch(Exception ex) {SetStatus(ex.Message);}
  }

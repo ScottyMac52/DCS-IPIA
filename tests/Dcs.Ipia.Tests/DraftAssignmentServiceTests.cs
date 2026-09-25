@@ -7,6 +7,18 @@ namespace Dcs.Ipia.Tests;
 /// <summary>Checks atomic in-memory editing, ownership, conflicts, and undo.</summary>
 public sealed class DraftAssignmentServiceTests {
  #region BEGIN Public
+ /// <summary>A newly imported module command becomes assignable without resetting the pending draft.</summary>
+ [Fact] public void Imported_catalog_command_is_assignable_without_losing_history() {
+  var (service,source,_,_,_,_)=Fixture();
+  var incoming=new DraftCommand("NEW_COMMAND","New module command",false,AssignmentLayer.Module);
+  service.AddCommands([incoming]);
+  var empty=source with {InputKey="JOY_BTN9"};
+  Assert.Equal(DraftOutcome.Applied,service.Assign(empty,incoming,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Single(service.History);
+  Assert.Equal(incoming,Assert.Single(service.Snapshot,x=>x.Slot==empty).Command);
+  Assert.Throws<ArgumentException>(()=>service.AddCommands([incoming with {IsAxis=true}]));
+  Assert.Single(service.History);
+ }
  /// <summary>Ask requires an explicit choice, and Cancel leaves the whole draft intact.</summary>
  [Fact] public void Ask_conflict_requires_choice_without_mutating() {
   var (service,source,target,_,_,_)=Fixture();
