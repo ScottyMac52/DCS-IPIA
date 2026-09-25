@@ -70,7 +70,8 @@ public sealed class HueyImportViewModel {
   PaletteSourceNote="Saved Games bindings have no category metadata. Open both repositories, then import a saved DCS catalog JSON or DCS Controls HTML for named categories.";
   UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
   HasErrors=folder.Diagnostics.Any(x=>x.IsError);
-  Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
+  Diagnostics=folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}")
+   .Append("Note  ·  editor-unavailable: Saved Games profiles alone do not identify canonical hardware callouts. Import the Huey and DCS-Common repository roots for drag-and-drop assignments.").ToArray();
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
  #region BEGIN Public
