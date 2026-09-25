@@ -49,8 +49,8 @@ public sealed class HueyWorkspaceLoaderTests {
    var catalogPath=Path.Combine(temp,"UH-1H-commands.json");
    File.WriteAllText(catalogPath,System.Text.Json.JsonSerializer.Serialize(new {
     schemaVersion=1,moduleId="UH-1H",commands=new[] {
-     new {bindingKey="d3002pnilunilcd27vd-1vpnilvunil",name="ADF Band 190-400 kHz",categoryPath=new[]{"ADF Set Control panel"},type="button"},
-     new {bindingKey="d1702pnilunilcdnilvdnilvpnilvunil",name="Camera bookmarks editor",categoryPath=new[]{"View"},type="button"}
+     new {bindingKey="d3002pnilunilcd27vd-1vpnilvunil",name="ADF Band 190-400 kHz",categoryPath=AdfCategory,type="button"},
+     new {bindingKey="d1702pnilunilcdnilvdnilvpnilvunil",name="Camera bookmarks editor",categoryPath=ViewCategory,type="button"}
     }
    }));
    var solutionPath=Path.Combine(huey,"config","UH-1H.dcs-scaffold.json");
@@ -161,6 +161,8 @@ public sealed class HueyWorkspaceLoaderTests {
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static readonly string[] AdfCategory=["ADF Set Control panel"];
+ private static readonly string[] ViewCategory=["View"];
  private static void DeleteFixture(string path) {
   if(!Directory.Exists(path))return;
   foreach(var file in Directory.EnumerateFiles(path,"*",SearchOption.AllDirectories))
