@@ -72,6 +72,15 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Contains(result.ModuleCommands,x=>x.Name=="ADF Band 190-400 kHz"&&x.Category=="ADF Set Control panel");
    Assert.Single(CommandPalette.Filter(result.ModuleCommands,null,"View"));
    Assert.Empty(result.CommandDiagnostics);
+   var savedCatalog=File.ReadAllText(catalogPath);
+   File.Delete(catalogPath);
+   var missingSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Empty(missingSource.ModuleCommands);
+   Assert.Contains(missingSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,"{invalid");
+   var invalidSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(invalidSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,savedCatalog);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
    Assert.Equal(4,result.Diagrams.Count);
