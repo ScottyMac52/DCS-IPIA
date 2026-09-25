@@ -155,7 +155,7 @@ public static class Program {
   if(stagedPointer?.GetData(System.Windows.DataFormats.UnicodeText) is not string dragText||
      dragText!="Dcs.Ipia.Editor.PaletteCommand\ndAuto"||
      !(bool)canDrop.Invoke(repoWindow,[stagedPointer,diagram.Controls[1]])!)
-   throw new InvalidOperationException("Pressing a visible command row did not arm a compatible assignment drag.");
+   throw new InvalidOperationException($"Pressing a visible command row did not arm a compatible assignment drag: status={((TextBlock)repoWindow.FindName("EditorStatus")!).Text}; payload={stagedPointer?.GetData(System.Windows.DataFormats.UnicodeText)}; row source={commandRow.DataContext}; scope={scope.SelectedIndex}; target={diagram.Controls[1].Control}.");
   typeof(HueyImportWindow).GetMethod("ResetPointerDrag",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!
    .Invoke(repoWindow,null);
   if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Autopilot On",StringComparison.Ordinal))

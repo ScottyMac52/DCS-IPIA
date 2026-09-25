@@ -305,7 +305,8 @@ public partial class HueyImportWindow : Window {
  }
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
-  _dragCommand=container?.DataContext as CommandPaletteEntry;
+  _dragCommand=(e.OriginalSource as FrameworkElement)?.DataContext as CommandPaletteEntry??
+   container?.DataContext as CommandPaletteEntry;
   _paletteDragStart=_dragCommand is null?null:e.GetPosition(this);
   if(_dragCommand is not null)SetStatus($"Drag {_dragCommand.Name} onto a device callout.");
  }
