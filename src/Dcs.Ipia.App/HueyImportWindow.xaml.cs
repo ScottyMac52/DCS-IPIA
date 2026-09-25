@@ -43,7 +43,8 @@ public partial class HueyImportWindow : Window {
   PaletteScope.SelectedIndex=0;
   EditorStatus.Text=_viewModel.DraftNote;
   RefreshReview();
-  if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
+  if(_viewModel.Draft is not null)ImportedTabs.SelectedIndex=3;
+  else if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
   Closing+=OnClosing;
  }
  #region BEGIN Public
@@ -276,7 +277,9 @@ public partial class HueyImportWindow : Window {
   var data=new DataObject();
   data.SetData(PaletteDragFormat,command.Id);
   SetStatus($"Drop {command.Name} onto an authored control on the device.");
-  DragDrop.DoDragDrop(CommandPaletteList,data,DragDropEffects.Copy);
+  var source=CommandPaletteList.ItemContainerGenerator.ContainerFromItem(command) as DependencyObject??CommandPaletteList;
+  if(DragDrop.DoDragDrop(source,data,DragDropEffects.Copy)==DragDropEffects.None)
+   SetStatus($"No assignment staged for {command.Name}. Drop it on a compatible callout for this device and layer.");
  }
  private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;return;}
@@ -287,7 +290,8 @@ public partial class HueyImportWindow : Window {
   var data=new DataObject();
   data.SetData(ControlDragFormat,control.Control);
   SetStatus($"Drop {control.Label} onto another control. Hold Ctrl to copy.");
-  DragDrop.DoDragDrop(badge,data,DragDropEffects.Move|DragDropEffects.Copy);
+  if(DragDrop.DoDragDrop(badge,data,DragDropEffects.Move|DragDropEffects.Copy)==DragDropEffects.None)
+   SetStatus($"No transfer staged for {control.Label}. Drop it on another compatible callout on this device.");
  }
  private static bool PastDragThreshold(Point start,Point current)=>
   Math.Abs(start.X-current.X)>=SystemParameters.MinimumHorizontalDragDistance||
@@ -300,6 +304,22 @@ public partial class HueyImportWindow : Window {
     : data.GetData(ControlDragFormat) is string sourceId&&
       _visibleControls.Any(source=>source.Control==sourceId&&source.IsAxis==target.IsAxis&&
        CurrentAssignment(source) is not null));
+ private string DropRejection(IDataObject data,HardwareGraphicControl target) {
+  if(_viewModel.Draft is null||Slot(target) is null)return _viewModel.DraftNote;
+  if(data.GetData(PaletteDragFormat) is string id) {
+   var command=(Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands)
+    .FirstOrDefault(x=>x.Id==id);
+   return command is null?"That command is not in the selected Module or UI Layer catalog.":
+    $"Cannot assign {(command.IsAxis?"an axis":"a button")} command to {(target.IsAxis?"an axis":"a button")} control.";
+  }
+  if(data.GetData(ControlDragFormat) is string sourceId) {
+   var source=_visibleControls.FirstOrDefault(x=>x.Control==sourceId);
+   return source is null?"The source control is not on this device.":
+    CurrentAssignment(source) is null?"The source control has no assignment on this layer and chord.":
+    "Source and destination controls must have matching button or axis types.";
+  }
+  return "Select a catalog command or an assigned callout to drag.";
+ }
  private void Control_DragOver(object sender,DragEventArgs e) {
   var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
   e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
@@ -322,7 +342,7 @@ public partial class HueyImportWindow : Window {
   e.Handled=true;
  }
  private void ApplyDrop(HardwareGraphicControl target,IDataObject data,bool copy) {
-  if(!CanDrop(data,target)) {SetStatus(_viewModel.DraftNote);return;}
+  if(!CanDrop(data,target)) {SetStatus(DropRejection(data,target));return;}
   if(data.GetData(PaletteDragFormat) is string commandId) {
    var entries=Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands;
    var command=entries.FirstOrDefault(x=>x.Id==commandId);
