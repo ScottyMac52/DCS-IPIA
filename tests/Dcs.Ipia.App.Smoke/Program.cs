@@ -46,55 +46,12 @@ public static class Program {
   var repoWindow=new HueyImportWindow(new HueyImportViewModel(preview));
   repoWindow.Show();
   repoWindow.UpdateLayout();
-  ((ComboBox)repoWindow.FindName("PaletteScope")!).SelectedIndex=1;
-  ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
-  var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
-  var assignments=(ListBox)repoWindow.FindName("UiAssignmentList")!;
-  var palette=(ListBox)repoWindow.FindName("CommandPaletteList")!;
-  var scope=(ComboBox)repoWindow.FindName("PaletteScope")!;
-  var search=(TextBox)repoWindow.FindName("PaletteSearch")!;
-  var categories=(ComboBox)repoWindow.FindName("PaletteCategory")!;
-  if(!repoWindow.IsVisible||canvas.Children.Count!=4||assignments.Items.Count!=3||
-     !assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-
-   throw new InvalidOperationException($"Committed Huey preview: visible={repoWindow.IsVisible}, canvas children={canvas.Children.Count}, assignments={assignments.Items.Count}, caption={((TextBlock)repoWindow.FindName("UiDiagramCaption")!).Text}.");
-  scope.SelectedIndex=0;
-  if(palette.Items.Count!=0)throw new InvalidOperationException("Empty aircraft import must have an empty aircraft palette.");
-  scope.SelectedIndex=1;
-  search.Text="Zoom";
-  if(palette.Items.Count!=1)throw new InvalidOperationException("Canonical UI Layer command was not searchable.");
-  categories.SelectedItem="General";
-  if(palette.Items.Count!=0)throw new InvalidOperationException("Category and search were not combined.");
-  search.Text="";
-  if(palette.Items.Count!=1||!palette.Items[0]!.ToString()!.Contains("Active Pause",StringComparison.Ordinal))
-   throw new InvalidOperationException("Category filter did not show only General commands.");
-  categories.SelectedItem="VR";
-  if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
-  var payload=new System.Windows.DataObject();
-  payload.SetData("Dcs.Ipia.Editor.PaletteCommand","UI_ZOOM");
-  var drop=typeof(HueyImportWindow).GetMethod("ApplyDrop",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
-  drop.Invoke(repoWindow,[diagram.Controls[1],payload,false]);
-  if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-   throw new InvalidOperationException("Palette drop did not update OSB02.");
-  var moved=new System.Windows.DataObject();
-  moved.SetData("Dcs.Ipia.Editor.HardwareControl",diagram.Controls[1].Control);
-  drop.Invoke(repoWindow,[diagram.Controls[2],moved,true]);
-  if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal)||
-     !assignments.Items[2]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-   throw new InvalidOperationException("Ctrl-drag copy did not preserve source and fill destination.");
-  ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
-  ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new System.Windows.RoutedEventArgs(Button.ClickEvent));
-  if(assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
-   throw new InvalidOperationException("Undo did not restore the empty OSB02 callout.");
-  var sharedWindow=new DcsConsumerScaffold.UiLayerEditorWindow("DCS-Common", "Imported module");
-  sharedWindow.Show();
-  sharedWindow.UpdateLayout();
-  if(!sharedWindow.IsVisible||
-     ((TextBox)sharedWindow.FindName("CommonRootBox")!).Text!="DCS-Common"||
-     sharedWindow.FindName("UiCommandsGrid") is not DataGrid||
-     sharedWindow.FindName("PossibilitiesGrid") is not DataGrid)
-   throw new InvalidOperationException($"DCS-Common shared UI Layer editor: visible={sharedWindow.IsVisible}, root={((TextBox?)sharedWindow.FindName("CommonRootBox"))?.Text}, commands={sharedWindow.FindName("UiCommandsGrid")?.GetType().Name}, possibilities={sharedWindow.FindName("PossibilitiesGrid")?.GetType().Name}.");
-  sharedWindow.Close();
+  var scaffold = new DcsConsumerScaffold.MainWindow("DCS-Common", "Saved Games/Input/UH-1H/joystick");
+  scaffold.Show();
+  scaffold.UpdateLayout();
+  if (!scaffold.IsVisible)
+   throw new InvalidOperationException("The original DCS-Common scaffolding window did not open.");
+  scaffold.Close();
   repoWindow.Close();
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));

@@ -33,6 +33,8 @@ public partial class MainWindow : Window
     {
         if (!string.IsNullOrWhiteSpace(commonRoot)) _viewModel.CommonRoot = commonRoot;
         if (!string.IsNullOrWhiteSpace(profilesDir)) _viewModel.ProfilesDir = profilesDir;
+        if (!string.IsNullOrWhiteSpace(commonRoot) && !string.IsNullOrWhiteSpace(profilesDir) && Directory.Exists(profilesDir))
+            Loaded += async (_, _) => await _viewModel.LoadPreviewAsync();
     }
 
     private async void OpenSolution_Click(object sender, RoutedEventArgs e)
