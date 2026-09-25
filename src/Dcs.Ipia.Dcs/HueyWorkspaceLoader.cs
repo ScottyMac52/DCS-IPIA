@@ -91,7 +91,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    };
    return (commands,$"{commands.Count} module commands and named categories loaded from {paths.Length} linked {type} source file(s).",[]);
   }
-  catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or ArgumentException or FormatException or InvalidOperationException or KeyNotFoundException or JsonException) {
+  catch(Exception ex) when(ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or FormatException or InvalidOperationException or KeyNotFoundException or JsonException) {
    return ([],"Linked command source could not be loaded.",[new("module-command-source",ex.Message,true)]);
   }
  }
