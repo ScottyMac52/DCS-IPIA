@@ -18,8 +18,13 @@ public sealed class SqliteEditorWorkspaceRepository(string connectionString):IEd
   command.CommandText="SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
   command.Parameters.AddWithValue("$id",moduleId.ToString("D"));
   var json=await command.ExecuteScalarAsync(ct) as string;
-  return json is null?null:JsonSerializer.Deserialize<EditorWorkspaceSnapshot>(json,JsonOptions)
+  if(json is null)return null;
+  var payload=JsonSerializer.Deserialize<EditorWorkspacePayload>(json,JsonOptions)
    ??throw new InvalidDataException("Stored editor workspace could not be read.");
+  var configuration=await new SqliteConfigurationRepository(connectionString).GetAsync(moduleId,ct)
+   ??throw new InvalidDataException("The editor workspace has no stored module configuration.");
+  return new EditorWorkspaceSnapshot(configuration,payload.Pages,payload.Images,payload.Diagrams,
+   payload.ModuleCommands,payload.UiCommands,payload.Assignments,payload.Labels);
  }
  /// <inheritdoc/>
  public async Task<IReadOnlyList<Guid>> ListAsync(CancellationToken ct=default) {
@@ -45,7 +50,9 @@ public sealed class SqliteEditorWorkspaceRepository(string connectionString):IEd
   command.Transaction=(SqliteTransaction)transaction;
   command.CommandText="INSERT INTO editor_workspaces(module_id,snapshot_json,updated_utc) VALUES($id,$json,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(module_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,updated_utc=excluded.updated_utc";
   command.Parameters.AddWithValue("$id",snapshot.Configuration.Module.Id.ToString("D"));
-  command.Parameters.AddWithValue("$json",JsonSerializer.Serialize(snapshot,JsonOptions));
+  var payload=new EditorWorkspacePayload(snapshot.Pages,snapshot.Images,snapshot.Diagrams,
+   snapshot.ModuleCommands,snapshot.UiCommands,snapshot.Assignments,snapshot.Labels);
+  command.Parameters.AddWithValue("$json",JsonSerializer.Serialize(payload,JsonOptions));
   await command.ExecuteNonQueryAsync(ct);
   await transaction.CommitAsync(ct);
  }

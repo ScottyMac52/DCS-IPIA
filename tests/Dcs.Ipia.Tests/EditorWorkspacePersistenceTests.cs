@@ -10,8 +10,7 @@ public sealed class EditorWorkspacePersistenceTests {
  #region BEGIN Public
  /// <summary>Reopens the actual SVG, named categories, and changed callout assignment without source files.</summary>
  /// <returns>Completion of the database round trip.</returns>
- [Fact]
- public async Task Editor_reopens_saved_svg_catalog_assignment_and_label() {
+ [Fact] public async Task Editor_reopens_saved_svg_catalog_assignment_and_label() {
   var path=Path.Combine(Path.GetTempPath(),"ipia-workspace-"+Guid.NewGuid().ToString("N")+".db");
   var connection="Data Source="+path+";Pooling=False";
   try {
