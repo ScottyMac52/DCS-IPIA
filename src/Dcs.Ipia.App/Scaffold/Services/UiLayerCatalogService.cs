@@ -16,16 +16,16 @@ public sealed class UiLayerCatalogService
         commonRoot, "assets", "shared", "ui-layer", "input", "UiLayer");
 
     /// <summary>Runs the DCS-Common UI Layer catalog operation.</summary>
-    public async Task<UiLayerCatalogDocument> InspectAsync(string commonRoot, CancellationToken cancellationToken = default) =>
+    public static async Task<UiLayerCatalogDocument> InspectAsync(string commonRoot, CancellationToken cancellationToken = default) =>
         Deserialize<UiLayerCatalogDocument>(await RunAsync(commonRoot, ["inspect", CatalogPath(commonRoot)], cancellationToken));
 
     /// <summary>Runs the DCS-Common UI Layer catalog operation.</summary>
-    public async Task<UiLayerCatalogComparison> CompareAsync(
+    public static async Task<UiLayerCatalogComparison> CompareAsync(
         string commonRoot, string sourceRoot, CancellationToken cancellationToken = default) =>
         Deserialize<UiLayerCatalogComparison>(await RunAsync(commonRoot, ["compare", CatalogPath(commonRoot), sourceRoot], cancellationToken));
 
     /// <summary>Runs the DCS-Common UI Layer catalog operation.</summary>
-    public async Task<UiLayerCatalogDocument> ApplyAsync(
+    public static async Task<UiLayerCatalogDocument> ApplyAsync(
         string commonRoot, string sourceRoot, IReadOnlyCollection<UiLayerCatalogChange> decisions,
         CancellationToken cancellationToken = default)
     {
@@ -40,7 +40,7 @@ public sealed class UiLayerCatalogService
     }
 
     /// <summary>Runs the DCS-Common UI Layer catalog operation.</summary>
-    public async Task<UiLayerCatalogDocument> ApplyEditsAsync(string commonRoot, string expectedFingerprint,
+    public static async Task<UiLayerCatalogDocument> ApplyEditsAsync(string commonRoot, string expectedFingerprint,
         IReadOnlyCollection<IpiModifierDefinition> modifiers, IReadOnlyCollection<UiLayerBindingEdit> bindings,
         CancellationToken cancellationToken = default)
     {

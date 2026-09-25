@@ -12,7 +12,7 @@ public sealed class IpiAuthoringService
 
     #region BEGIN Public
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public IReadOnlyList<IpiHardwareChoice> Hardware(string commonRoot)
+    public static IReadOnlyList<IpiHardwareChoice> Hardware(string commonRoot)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(commonRoot, "assets", "shared", "hardware", "manifest.json")));
         return document.RootElement.GetProperty("devices").EnumerateArray().SelectMany(device =>
@@ -26,7 +26,7 @@ public sealed class IpiAuthoringService
     }
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public IReadOnlyList<IpiUiFunctionChoice> UiFunctions(string commonRoot)
+    public static IReadOnlyList<IpiUiFunctionChoice> UiFunctions(string commonRoot)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(commonRoot, "assets", "shared", "ui-layer", "functions.json")));
         return document.RootElement.GetProperty("functions").EnumerateArray().Select(item => new IpiUiFunctionChoice
@@ -37,7 +37,7 @@ public sealed class IpiAuthoringService
     }
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public async Task<IReadOnlyList<IpiSharedControlChoice>> SharedControlsAsync(string commonRoot, string deviceId,
+    public static async Task<IReadOnlyList<IpiSharedControlChoice>> SharedControlsAsync(string commonRoot, string deviceId,
         CancellationToken cancellationToken = default)
     {
         var script = Path.Combine(commonRoot, "scripts", "render-interactive-device.mjs");
@@ -65,10 +65,10 @@ public sealed class IpiAuthoringService
     }
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public async Task<IReadOnlyList<IpiUiLayerBindingChoice>> UiLayerBindingsAsync(string commonRoot,
+    public static async Task<IReadOnlyList<IpiUiLayerBindingChoice>> UiLayerBindingsAsync(string commonRoot,
         CancellationToken cancellationToken = default)
     {
-        var document = await new UiLayerCatalogService().InspectAsync(commonRoot, cancellationToken);
+        var document = await UiLayerCatalogService.InspectAsync(commonRoot, cancellationToken);
         var functions = UiFunctions(commonRoot).ToDictionary(item => item.Id, StringComparer.Ordinal);
         return document.Bindings.Where(item => item.DeviceId is not null && item.FunctionId is not null && item.ControlId is not null)
             .Select(item => new IpiUiLayerBindingChoice
@@ -80,16 +80,16 @@ public sealed class IpiAuthoringService
     }
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public Task<IpiAuthoringResult> InitializeAsync(string commonRoot, object request, CancellationToken cancellationToken = default) =>
+    public static Task<IpiAuthoringResult> InitializeAsync(string commonRoot, object request, CancellationToken cancellationToken = default) =>
         RunAsync<IpiAuthoringResult>(commonRoot, "initialize", request, cancellationToken);
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public Task<IpiModuleAuthoringState> InspectModuleAsync(string commonRoot, string repositoryRoot, string inputModuleId,
+    public static Task<IpiModuleAuthoringState> InspectModuleAsync(string commonRoot, string repositoryRoot, string inputModuleId,
         CancellationToken cancellationToken = default) =>
         RunAsync<IpiModuleAuthoringState>(commonRoot, "inspect-module", new { repositoryRoot, inputModuleId }, cancellationToken);
 
     /// <summary>Reads or writes DCS-Common authoring data.</summary>
-    public Task<IpiAuthoringResult> SaveModuleAsync(string commonRoot, object request, CancellationToken cancellationToken = default) =>
+    public static Task<IpiAuthoringResult> SaveModuleAsync(string commonRoot, object request, CancellationToken cancellationToken = default) =>
         RunAsync<IpiAuthoringResult>(commonRoot, "save-module", request, cancellationToken);
 
     #endregion END Public

@@ -10,7 +10,6 @@ namespace DcsConsumerScaffold;
 /// <summary>Hosts DCS-Common's authoritative UI Layer device and command editor.</summary>
 public partial class UiLayerEditorWindow : Window
 {
-    private readonly UiLayerCatalogService _service = new();
     private UiLayerCatalogComparison? _comparison;
     private readonly List<IpiUiFunctionChoice> _functions = [];
     private UiLayerCatalogBinding? _selectedBinding;
@@ -49,11 +48,11 @@ public partial class UiLayerEditorWindow : Window
     }
 
     private async void Load_Click(object sender, RoutedEventArgs e) => await RunAsync(async () =>
-        Display(await _service.InspectAsync(CommonRootBox.Text.Trim())));
+        Display(await UiLayerCatalogService.InspectAsync(CommonRootBox.Text.Trim())));
 
     private async void Compare_Click(object sender, RoutedEventArgs e) => await RunAsync(async () =>
     {
-        _comparison = await _service.CompareAsync(CommonRootBox.Text.Trim(), SourceRootBox.Text.Trim());
+        _comparison = await UiLayerCatalogService.CompareAsync(CommonRootBox.Text.Trim(), SourceRootBox.Text.Trim());
         Display(_comparison.Canonical);
         ChangesGrid.ItemsSource = _comparison.Changes;
         SaveButton.IsEnabled = _comparison.Source.Valid;
@@ -69,7 +68,7 @@ public partial class UiLayerEditorWindow : Window
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         await RunAsync(async () =>
         {
-            var result = await _service.ApplyAsync(CommonRootBox.Text.Trim(), SourceRootBox.Text.Trim(), _comparison.Changes);
+            var result = await UiLayerCatalogService.ApplyAsync(CommonRootBox.Text.Trim(), SourceRootBox.Text.Trim(), _comparison.Changes);
             Display(result);
             _comparison = null;
             ChangesGrid.ItemsSource = null;
@@ -101,7 +100,7 @@ public partial class UiLayerEditorWindow : Window
     private void LoadFunctions()
     {
         _functions.Clear();
-        _functions.AddRange(new IpiAuthoringService().UiFunctions(CommonRootBox.Text.Trim()));
+        _functions.AddRange(IpiAuthoringService.UiFunctions(CommonRootBox.Text.Trim()));
         FilterFunctions();
     }
 
@@ -122,12 +121,12 @@ public partial class UiLayerEditorWindow : Window
         var profiles = UiLayerEditorSelection.ProfilesForDevice(_document, device);
         EditProfileBox.ItemsSource = profiles;
         EditProfileBox.SelectedIndex = profiles.Count > 0 ? 0 : -1;
-        EditProfileBox.Text = profiles.FirstOrDefault()?.Name ?? string.Empty;
-        if (profiles.FirstOrDefault() is { } profile)
+        EditProfileBox.Text = profiles.Count > 0 ? profiles[0].Name : string.Empty;
+        if (profiles.Count > 0 && profiles[0] is { } profile)
             EditCategoryBox.SelectedIndex = profile.Category switch { "keyboard" => 1, "mouse" => 2, _ => 0 };
         try
         {
-            SharedControlBox.ItemsSource = await new IpiAuthoringService().SharedControlsAsync(CommonRootBox.Text.Trim(), device.DeviceId);
+            SharedControlBox.ItemsSource = await IpiAuthoringService.SharedControlsAsync(CommonRootBox.Text.Trim(), device.DeviceId);
             SharedControlBox.SelectedIndex = SharedControlBox.Items.Count > 0 ? 0 : -1;
         }
         catch (Exception ex) { StatusText.Text = ex.Message; }
@@ -259,7 +258,7 @@ public partial class UiLayerEditorWindow : Window
             "Save authoritative UI Layer", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         await RunAsync(async () =>
         {
-            var result = await _service.ApplyEditsAsync(CommonRootBox.Text.Trim(), _fingerprint, EditableModifiers.ToArray(), StagedEdits.ToArray());
+            var result = await UiLayerCatalogService.ApplyEditsAsync(CommonRootBox.Text.Trim(), _fingerprint, EditableModifiers.ToArray(), StagedEdits.ToArray());
             StagedEdits.Clear();
             Display(result);
             StatusText.Text = result.Impact is null

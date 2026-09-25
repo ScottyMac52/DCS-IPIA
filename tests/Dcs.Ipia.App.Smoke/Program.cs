@@ -88,6 +88,15 @@ public static class Program {
    throw new InvalidOperationException("Undo did not restore the empty OSB02 callout.");
   repoWindow.Close();
   folderWindow.Close();
+  var sharedWindow=new DcsConsumerScaffold.UiLayerEditorWindow("DCS-Common", "Imported module");
+  sharedWindow.Show();
+  sharedWindow.UpdateLayout();
+  if(!sharedWindow.IsVisible||
+     ((TextBox)sharedWindow.FindName("CommonRootBox")!).Text!="DCS-Common"||
+     sharedWindow.FindName("UiCommandsGrid") is not DataGrid||
+     sharedWindow.FindName("PossibilitiesGrid") is not DataGrid)
+   throw new InvalidOperationException("DCS-Common shared UI Layer editor did not open its authoritative catalog views.");
+  sharedWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
   try {
    var settings=new FileAppSettingsService(Path.Combine(preferencesRoot,"defaults.json"),
