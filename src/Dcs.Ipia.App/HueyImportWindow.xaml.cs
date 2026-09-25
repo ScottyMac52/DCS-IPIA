@@ -53,6 +53,10 @@ public partial class HueyImportWindow : Window {
  #region BEGIN Public
  #endregion END Public
  #region BEGIN private helpers
+ private void ImportedTabs_SelectionChanged(object sender,SelectionChangedEventArgs e) {
+  if(ImportSummary is null||ImportedTabs is null||!ReferenceEquals(e.Source,ImportedTabs))return;
+  ImportSummary.Visibility=ImportedTabs.SelectedIndex==0?Visibility.Collapsed:Visibility.Visible;
+ }
  private void KneeboardList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(_viewModel is null||KneeboardPreview is null)return;
   KneeboardPreview.Source=null;

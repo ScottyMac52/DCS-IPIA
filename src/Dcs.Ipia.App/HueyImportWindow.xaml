@@ -29,9 +29,8 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+    <StackPanel x:Name="ImportSummary" Grid.Row="0" Margin="0,0,0,8">
       <TextBlock Text="{Binding Summary}" FontSize="19" FontWeight="SemiBold"/>
       <TextBlock Text="{Binding Commit}" Margin="0,3,0,0"
                  Foreground="{DynamicResource SecondaryTextBrush}"/>
@@ -39,104 +38,80 @@
                  Foreground="{DynamicResource SecondaryTextBrush}"/>
     </StackPanel>
     <TabControl x:Name="ImportedTabs" Grid.Row="1" TabStripPlacement="Top" Background="{DynamicResource SurfaceBrush}"
+                SelectionChanged="ImportedTabs_SelectionChanged"
                 BorderBrush="{DynamicResource BorderBrush}"
                 AutomationProperties.Name="Imported Huey data">
       <TabItem Header="Module controls">
-        <Grid Margin="2,8,2,0">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-          </Grid.RowDefinitions>
-          <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock x:Name="EditorHeading" Text="Module controls" FontSize="21" FontWeight="SemiBold"/>
-            <TextBlock Text="Drag a command onto a callout, or drag an assigned callout to another. Select a callout to assign, clear or restore."
-                       Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,3,0,8"/>
-            <WrapPanel>
-              <TextBlock Text="Command scope" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <ComboBox x:Name="PaletteScope" Width="160" Margin="0,0,12,0"
-                        SelectionChanged="PaletteScope_SelectionChanged" AutomationProperties.Name="Command scope">
-                <ComboBoxItem Content="Module commands"/>
-                <ComboBoxItem Content="UI Layer commands"/>
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock x:Name="EditorHeading" Text="Module controls" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="Drag a command onto a callout, or drag an assigned callout onto another. Select a callout to assign, clear or restore."
+                       TextWrapping="Wrap" Margin="0,4"/>
+            <WrapPanel Margin="0,2,0,0">
+              <TextBlock Text="Modifier layer:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <ComboBox x:Name="UiModifierChoice" MinWidth="180" SelectionChanged="UiModifierChoice_SelectionChanged"
+                        AutomationProperties.Name="Modifier chord"/>
+              <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="16,0,6,0"/>
+              <Slider x:Name="DiagramZoom" Minimum="0.5" Maximum="3" Value="1" Width="140"
+                      TickFrequency="0.25" IsSnapToTickEnabled="True" AutomationProperties.Name="Device graphic zoom"/>
+              <Button Content="Rendered kneeboard…" Click="OpenKneeboard_Click" Margin="16,0,0,0" Padding="10,4"/>
+            </WrapPanel>
+            <WrapPanel Margin="0,6,0,0">
+              <TextBlock Text="Command scope:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <ComboBox x:Name="PaletteScope" Width="165" SelectionChanged="PaletteScope_SelectionChanged"
+                        AutomationProperties.Name="Command scope">
+                <ComboBoxItem Content="Module commands"/><ComboBoxItem Content="UI Layer commands"/>
               </ComboBox>
-              <TextBlock Text="Device / instance" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <ComboBox x:Name="UiDiagramList" Width="210" Margin="0,0,12,0"
-                        ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
-                        SelectionChanged="UiDiagramList_SelectionChanged"
-                        AutomationProperties.Name="Device and instance selector"/>
-              <TextBlock Text="Modifier layer" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <ComboBox x:Name="UiModifierChoice" Width="145" Margin="0,0,14,0"
-                        SelectionChanged="UiModifierChoice_SelectionChanged" AutomationProperties.Name="Modifier chord"/>
-              <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="0,0,7,0"/>
-              <Slider x:Name="DiagramZoom" Width="115" Minimum="0.5" Maximum="2" Value="1"
-                      TickFrequency="0.25" IsSnapToTickEnabled="True"
-                      AutomationProperties.Name="Device graphic zoom"/>
-              <Button Content="Rendered kneeboard…" Margin="14,0,0,0" Padding="10,4"
-                      Click="OpenKneeboard_Click"/>
+              <TextBlock Text="Device / instance:" VerticalAlignment="Center" Margin="16,0,8,0"/>
+              <ComboBox x:Name="UiDiagramList" Width="240" ItemsSource="{Binding UiDiagrams}" DisplayMemberPath="Title"
+                        SelectionChanged="UiDiagramList_SelectionChanged" AutomationProperties.Name="Device and instance selector"/>
             </WrapPanel>
           </StackPanel>
-          <Grid Grid.Row="1">
+          <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button Content="Close" DockPanel.Dock="Right" Padding="20,6" Click="Close_Click"/>
+            <StackPanel>
+              <TextBlock x:Name="EditorStatus" TextWrapping="Wrap"/>
+              <TextBlock Text="White: unchanged   Green: new   Yellow: replaced   Red: conflict   Gray: unassigned"
+                         Margin="0,4,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+              <TextBlock x:Name="DraftCount" FontWeight="SemiBold"/>
+            </StackPanel>
+          </DockPanel>
+          <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="300"/>
-              <ColumnDefinition Width="*" MinWidth="350"/>
-              <ColumnDefinition Width="280"/>
+              <ColumnDefinition Width="300"/><ColumnDefinition Width="*"/><ColumnDefinition Width="280"/>
             </Grid.ColumnDefinitions>
-            <GroupBox Grid.Column="0" Header="Command catalog" Margin="0,0,10,0">
-              <Grid Margin="6">
-                <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                  <WrapPanel Margin="0,0,0,8">
-                    <Button Content="Import catalog…" Click="LoadModuleCatalog_Click" Margin="0,0,6,4"
-                            ToolTip="Import a module command catalog JSON saved by DCS-Common scaffolding."
-                            AutomationProperties.Name="Import DCS module command catalog JSON"/>
-                    <Button Content="Load DCS HTML…" Click="LoadDcsHtml_Click" Margin="0,0,0,4"
-                            ToolTip="Import one or more HTML files generated by DCS Controls."
-                            AutomationProperties.Name="Load DCS Controls HTML command catalog"/>
+            <GroupBox Grid.Column="0" Header="Command catalog" Padding="6">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                  <WrapPanel>
+                    <Button Content="Import catalog…" Click="LoadModuleCatalog_Click" Padding="8,4"
+                            ToolTip="Import a DCS-Common module command catalog JSON."/>
+                    <Button Content="Load DCS HTML…" Click="LoadDcsHtml_Click" Padding="8,4" Margin="6,0,0,0"
+                            ToolTip="Import DCS Controls HTML exports."/>
                   </WrapPanel>
-                  <TextBox x:Name="PaletteSearch" TextChanged="PaletteSearch_TextChanged"
+                  <TextBox x:Name="PaletteSearch" TextChanged="PaletteSearch_TextChanged" Margin="0,8,0,4"
                            AutomationProperties.Name="Search commands"/>
-                </StackPanel>
-                <StackPanel Grid.Row="1">
-                  <TextBlock Text="Category"/>
-                  <ComboBox x:Name="PaletteCategory" Margin="0,3,0,8"
-                            SelectionChanged="PaletteCategory_SelectionChanged"
-                            AutomationProperties.Name="Filter commands by category"/>
-                </StackPanel>
-                <StackPanel Grid.Row="2">
-                  <TextBlock Text="Type"/>
-                  <ComboBox x:Name="PaletteType" SelectedIndex="0" Margin="0,3,0,8"
-                            SelectionChanged="PaletteFilter_SelectionChanged"
+                  <TextBlock Text="Category"/><ComboBox x:Name="PaletteCategory" Margin="0,2,0,0"
+                   SelectionChanged="PaletteCategory_SelectionChanged" AutomationProperties.Name="Filter commands by category"/>
+                  <TextBlock Text="Type" Margin="0,4,0,0"/>
+                  <ComboBox x:Name="PaletteType" SelectedIndex="0" SelectionChanged="PaletteFilter_SelectionChanged"
                             AutomationProperties.Name="Filter commands by type">
-                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Buttons"/>
-                    <ComboBoxItem Content="Axes"/>
+                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Buttons"/><ComboBoxItem Content="Axes"/>
                   </ComboBox>
-                </StackPanel>
-                <StackPanel Grid.Row="3">
-                  <TextBlock Text="Availability"/>
-                  <ComboBox x:Name="PaletteAvailability" SelectedIndex="0" Margin="0,3,0,8"
-                            SelectionChanged="PaletteFilter_SelectionChanged"
+                  <TextBlock Text="Availability" Margin="0,4,0,0"/>
+                  <ComboBox x:Name="PaletteAvailability" SelectedIndex="0" SelectionChanged="PaletteFilter_SelectionChanged"
                             AutomationProperties.Name="Filter commands by control compatibility">
                     <ComboBoxItem Content="All"/><ComboBoxItem Content="Compatible with selected control"/>
                   </ComboBox>
-                </StackPanel>
-                <StackPanel Grid.Row="4">
-                  <TextBlock Text="Binding state"/>
-                  <ComboBox x:Name="PaletteBindingState" SelectedIndex="0" Margin="0,3,0,8"
-                            SelectionChanged="PaletteFilter_SelectionChanged"
+                  <TextBlock Text="Binding state" Margin="0,4,0,0"/>
+                  <ComboBox x:Name="PaletteBindingState" SelectedIndex="0" SelectionChanged="PaletteFilter_SelectionChanged"
                             AutomationProperties.Name="Filter assigned commands">
                     <ComboBoxItem Content="All"/><ComboBoxItem Content="Assigned on this device"/>
                     <ComboBoxItem Content="Unassigned on this device"/>
                   </ComboBox>
+                  <TextBlock x:Name="PaletteCaption" Margin="0,6"/>
                 </StackPanel>
-                <TextBlock x:Name="PaletteCaption" Grid.Row="5" Margin="0,3,0,5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource SecondaryTextBrush}"/>
-                <ListBox x:Name="CommandPaletteList" Grid.Row="6"
-                         AutomationProperties.Name="Drag or select a command to assign">
+                <ListBox x:Name="CommandPaletteList" AutomationProperties.Name="Drag or select a command to assign">
                   <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                       <EventSetter Event="PreviewMouseLeftButtonDown" Handler="CommandPaletteList_PreviewMouseLeftButtonDown"/>
@@ -146,86 +121,69 @@
                   </ListBox.ItemContainerStyle>
                   <ListBox.ItemTemplate>
                     <DataTemplate>
-                      <StackPanel Margin="2,4" ToolTip="{Binding Id}">
+                      <StackPanel Margin="2,4">
                         <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding Category}" TextWrapping="Wrap" FontSize="11"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Text="Assignable" FontSize="11"/>
                       </StackPanel>
                     </DataTemplate>
                   </ListBox.ItemTemplate>
                 </ListBox>
-              </Grid>
+              </DockPanel>
             </GroupBox>
-            <Grid Grid.Column="1" Margin="0,0,10,0">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-              </Grid.RowDefinitions>
-              <TextBlock x:Name="DiagramHeading" Grid.Row="0" Text="Device graphic · assignment labels"
-                         Margin="0,6,0,8" FontWeight="SemiBold"/>
-              <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
-                      Background="{DynamicResource CanvasBackgroundBrush}">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                  <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True" AllowDrop="True"
-                          HorizontalAlignment="Left" VerticalAlignment="Top"
-                          DragOver="UiDiagramCanvas_DragOver" Drop="UiDiagramCanvas_Drop"
-                          AutomationProperties.Name="Draw.io-generated device SVG with assignment labels">
-                    <Canvas.LayoutTransform>
-                      <ScaleTransform ScaleX="{Binding Value, ElementName=DiagramZoom}"
-                                      ScaleY="{Binding Value, ElementName=DiagramZoom}"/>
-                    </Canvas.LayoutTransform>
-                  </Canvas>
-                </ScrollViewer>
-              </Border>
-              <Expander Grid.Row="2" Header="Control list for keyboard navigation" Margin="0,5,0,0">
-                <ListBox x:Name="UiAssignmentList" Height="100"
-                         SelectionChanged="UiAssignmentList_SelectionChanged"
-                         AutomationProperties.Name="Keyboard-accessible device controls and assignments"/>
-              </Expander>
-              <TextBlock x:Name="UiDiagramCaption" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-                         Foreground="{DynamicResource SecondaryTextBrush}"/>
-            </Grid>
-            <GroupBox Grid.Column="2" Header="Selected control">
+            <ScrollViewer Grid.Column="1" Margin="8,0" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto" Background="{DynamicResource CanvasBackgroundBrush}">
+              <Canvas x:Name="UiDiagramCanvas" ClipToBounds="True" AllowDrop="True"
+                      HorizontalAlignment="Left" VerticalAlignment="Top"
+                      DragOver="UiDiagramCanvas_DragOver" Drop="UiDiagramCanvas_Drop"
+                      AutomationProperties.Name="Draw.io-generated device SVG with assignment labels">
+                <Canvas.LayoutTransform>
+                  <ScaleTransform ScaleX="{Binding Value, ElementName=DiagramZoom}"
+                                  ScaleY="{Binding Value, ElementName=DiagramZoom}"/>
+                </Canvas.LayoutTransform>
+              </Canvas>
+            </ScrollViewer>
+            <GroupBox Grid.Column="2" Header="Selected control" Padding="10">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="8">
-                  <TextBlock x:Name="SelectedControlTitle" Text="Select a callout" FontSize="17"
+                <StackPanel>
+                  <TextBlock x:Name="SelectedControlTitle" Text="Select a callout" FontSize="18"
                              FontWeight="SemiBold" TextWrapping="Wrap"/>
-                  <TextBlock Text="Current command" FontWeight="SemiBold" Margin="0,14,0,3"/>
-                  <TextBlock x:Name="SelectedAssignment" TextWrapping="Wrap"/>
-                  <TextBlock Text="Pending command" FontWeight="SemiBold" Margin="0,14,0,3"/>
-                  <TextBlock x:Name="PendingAssignment" TextWrapping="Wrap"/>
-                  <TextBlock Text="DCS default label" FontWeight="SemiBold" Margin="0,14,0,3"/>
-                  <TextBlock x:Name="DefaultControlLabel" TextWrapping="Wrap"/>
-                  <TextBlock Text="Control and modifier" FontWeight="SemiBold" Margin="0,14,0,3"/>
-                  <TextBlock x:Name="SelectedControlIdentity" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                  <TextBlock x:Name="SelectedControlIdentity" Margin="0,6,0,10" TextWrapping="Wrap"/>
+                  <TextBlock Text="Current command" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="SelectedAssignment" Margin="0,2,0,10" TextWrapping="Wrap"/>
+                  <TextBlock Text="Pending command" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="PendingAssignment" Margin="0,2,0,10" TextWrapping="Wrap"/>
+                  <TextBlock Text="DCS default label" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="DefaultControlLabel" Margin="0,2,0,10" TextWrapping="Wrap"/>
                   <Button x:Name="AssignSelectedCommand" Content="Assign selected command"
-                          Click="Assign_Click" Margin="0,0,0,5"/>
-                  <Button Content="Move assignment…" Click="Move_Click" Margin="0,0,0,5"/>
-                  <Button Content="Copy assignment…" Click="Copy_Click" Margin="0,0,0,5"/>
-                  <Button Content="Swap assignments…" Click="Swap_Click" Margin="0,0,0,5"/>
-                  <Button Content="Clear assignment" Click="Remove_Click" Margin="0,0,0,5"/>
-                  <Button Content="Restore imported" Click="Restore_Click" Margin="0,0,0,5"/>
+                          Click="Assign_Click" Margin="0,4" Padding="8,5"/>
+                  <Button Content="Clear assignment" Click="Remove_Click" Margin="0,4" Padding="8,5"/>
+                  <Button Content="Undo assignment / Restore" Click="Restore_Click" Margin="0,4" Padding="8,5"/>
+                  <Button Content="Move assignment…" Click="Move_Click" Margin="0,4" Padding="8,5"/>
+                  <Button Content="Copy assignment…" Click="Copy_Click" Margin="0,4" Padding="8,5"/>
+                  <Button Content="Swap assignments…" Click="Swap_Click" Margin="0,4" Padding="8,5"/>
                   <WrapPanel Margin="0,8,0,0">
                     <Button x:Name="UndoDraft" Content="Undo" Click="Undo_Click" Margin="0,0,5,5"/>
                     <Button Content="Discard draft" Click="Discard_Click" Margin="0,0,5,5"/>
                     <Button Content="Settings" Click="EditorSettings_Click" Margin="0,0,5,5"/>
                   </WrapPanel>
-                  <TextBlock x:Name="EditorStatus" TextWrapping="Wrap" Margin="0,6,0,6"/>
-                  <Expander Header="Pending changes" Margin="0,8,0,0">
-                    <StackPanel>
-                      <TextBlock x:Name="DraftCount" FontWeight="SemiBold" Margin="0,6"/>
-                      <ListBox x:Name="DraftReviewList" Height="120"
-                               AutomationProperties.Name="Draft before and after review"/>
-                    </StackPanel>
+                  <TextBlock Text="Drag an assigned callout onto another compatible callout to move its command."
+                             Margin="0,16,0,0" TextWrapping="Wrap"/>
+                  <Expander Header="Pending changes" Margin="0,12,0,0">
+                    <ListBox x:Name="DraftReviewList" Height="120"
+                             AutomationProperties.Name="Draft before and after review"/>
                   </Expander>
                 </StackPanel>
               </ScrollViewer>
             </GroupBox>
+            <StackPanel Grid.Column="1" Visibility="Collapsed">
+              <TextBlock x:Name="DiagramHeading"/>
+              <ListBox x:Name="UiAssignmentList" SelectionChanged="UiAssignmentList_SelectionChanged"/>
+              <TextBlock x:Name="UiDiagramCaption"/>
+            </StackPanel>
           </Grid>
-          <TextBlock Grid.Row="2" Margin="0,5,0,0" TextWrapping="Wrap"
-                     Foreground="{DynamicResource SecondaryTextBrush}"
-                     Text="White: imported   Green: new   Amber: replaced   Gray: unassigned     ·     Hold Ctrl while dragging an assignment to copy it."/>
-        </Grid>
+        </DockPanel>
       </TabItem>
       <TabItem Header="Profiles">
         <ListBox ItemsSource="{Binding Profiles}" AutomationProperties.Name="Imported device profiles"/>
@@ -266,11 +224,6 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
       </TabItem>
     </TabControl>
-    <DockPanel Grid.Row="2" Margin="0,16,0,0">
-      <TextBlock Text="Draft only · no changes are written to either repository."
-                 VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
-      <Button Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Right" MinWidth="90"
-              Padding="12,7" Click="Close_Click"/>
-    </DockPanel>
+
   </Grid>
 </Window>
