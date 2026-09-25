@@ -1,4 +1,5 @@
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Domain;
 
 namespace DcsIpia.Presentation;
 
@@ -12,6 +13,8 @@ public sealed class HueyImportViewModel {
   if(!result.Succeeded)throw new ArgumentException("Only validated imports can be previewed.",nameof(preview));
   var configuration=result.Configuration!;
   ModuleId=configuration.Module.Id;
+  ModuleDcsId=configuration.Module.DcsId;
+  ImportedBindings=configuration.Bindings;
   WindowTitle="Huey · assignment editor";
   Summary=$"{configuration.Module.DisplayName} · {configuration.Profiles.Count} profiles · {configuration.Bindings.Count} bindings · {result.Pages.Count} pages";
   Commit=$"Huey commit: {result.Provenance[0].Commit}";
@@ -44,6 +47,8 @@ public sealed class HueyImportViewModel {
   ArgumentNullException.ThrowIfNull(folder);
   if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
   ModuleId=Guid.Empty;
+  ModuleDcsId=null;
+  ImportedBindings=folder.Bindings;
   WindowTitle="DCS Saved Games · joystick source preview";
   Summary=$"{folder.Profiles.Count} local profiles · {folder.Bindings.Count} bindings · {folder.Modifiers.Count} modifiers";
   Commit=$"Source folder: {folder.Folder}";
@@ -69,6 +74,10 @@ public sealed class HueyImportViewModel {
   Provenance=["Live local files; no repository commit or source hash was claimed."];
  }
  #region BEGIN Public
+ /// <summary>Gets the actual DCS module identity for validating an imported command catalog.</summary>
+ public string? ModuleDcsId {get;}
+ /// <summary>Gets imported bindings used to include existing commands when a catalog is loaded.</summary>
+ public IReadOnlyList<DcsBinding> ImportedBindings {get;}
  /// <summary>Gets the selected imported module identity.</summary>
  public Guid ModuleId {get;}
  /// <summary>Gets the preview window title.</summary>

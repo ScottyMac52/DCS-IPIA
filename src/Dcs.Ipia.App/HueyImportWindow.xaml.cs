@@ -1,12 +1,16 @@
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using Microsoft.Win32;
 
 namespace DcsIpia.Presentation;
 
@@ -23,6 +27,9 @@ public partial class HueyImportWindow : Window {
  private CommandPaletteEntry? _dragCommand;
  private Point? _controlDragStart;
  private HardwareGraphicControl? _dragControl;
+ private readonly Dictionary<string,string> _displayLabels=new(StringComparer.Ordinal);
+ private bool _updatingInspector;
+ private IReadOnlyList<CommandPaletteEntry> _moduleCommands=[];
  private bool _updatingCategories;
  private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
  private const string ControlDragFormat="Dcs.Ipia.Editor.HardwareControl";
@@ -32,13 +39,17 @@ public partial class HueyImportWindow : Window {
  public HueyImportWindow(HueyImportViewModel viewModel,IAppSettingsService? settings=null) {
   _viewModel=viewModel??throw new ArgumentNullException(nameof(viewModel));
   _settings=settings;
+  _moduleCommands=viewModel.ModuleCommands;
   InitializeComponent();
   DataContext=_viewModel;
   UiModifierChoice.ItemsSource=_viewModel.ModifierChoices;
   UiModifierChoice.SelectedIndex=0;
   KneeboardList.SelectedIndex=0;
   UiDiagramList.SelectedIndex=0;
-  PaletteScope.SelectedIndex=1;
+  PaletteScope.SelectedIndex=0;
+  PaletteType.SelectedIndex=0;
+  PaletteAvailability.SelectedIndex=0;
+  PaletteBindingState.SelectedIndex=0;
   EditorStatus.Text=_viewModel.DraftNote;
   RefreshReview();
   if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
@@ -77,7 +88,7 @@ public partial class HueyImportWindow : Window {
   _pendingSource=null;_pendingAction=null;
   _updatingCategories=true;
   if(PaletteCategory is not null) {
-   var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_viewModel.ModuleCommands;
+   var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_moduleCommands;
    PaletteCategory.ItemsSource=Enumerable.Repeat("All categories",1)
     .Concat(all.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
    PaletteCategory.SelectedIndex=0;
@@ -92,17 +103,29 @@ public partial class HueyImportWindow : Window {
  private void UpdatePalette() {
   if(_viewModel is null||CommandPaletteList is null||PaletteScope is null||PaletteSearch is null||PaletteCaption is null)return;
   var isUi=PaletteScope.SelectedIndex==1;
-  var all=isUi?_viewModel.UiCommands:_viewModel.ModuleCommands;
+  var all=isUi?_viewModel.UiCommands:_moduleCommands;
   var category=PaletteCategory?.SelectedIndex>0?PaletteCategory.SelectedItem as string:null;
   var filtered=CommandPalette.Filter(all,PaletteSearch.Text,category);
+  if(PaletteType?.SelectedIndex==1)filtered=filtered.Where(x=>!x.IsAxis).ToArray();
+  if(PaletteType?.SelectedIndex==2)filtered=filtered.Where(x=>x.IsAxis).ToArray();
+  if(PaletteBindingState?.SelectedIndex>0) {
+   var assigned=_viewModel.Draft?.Snapshot.Where(x=>x.Slot.Layer==Layer()).Select(x=>x.Command.Id).ToHashSet(StringComparer.Ordinal)
+    ??new HashSet<string>(StringComparer.Ordinal);
+   filtered=filtered.Where(x=>assigned.Contains(x.Id)==(PaletteBindingState.SelectedIndex==1)).ToArray();
+  }
   CommandPaletteList.ItemsSource=filtered;
   PaletteCaption.Text=$"{filtered.Count} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
  }
+ private void PaletteFilter_SelectionChanged(object sender,SelectionChangedEventArgs e)=>UpdatePalette();
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
   UiDiagramCanvas.Children.Clear();_visibleControls=[];UiAssignmentList.ItemsSource=null;
   var diagram=_currentDiagram;
   if(diagram is null) {UiDiagramCaption.Text="Select a device and instance to inspect its authored graphic.";UpdateInspector();return;}
+  DeviceTitle.Text=$"{diagram.Title} — {(Layer()==AssignmentLayer.UiLayer?"UI Layer controls":"Module controls")}";
+  Instructions.Text=Layer()==AssignmentLayer.UiLayer
+   ?"Drag a standard UI command onto a callout, or select a callout to assign, clear, restore, or relabel it."
+   :"Drag a module command onto a callout, or select a callout to assign, clear, restore, or relabel it.";
   UiDiagramCanvas.Width=diagram.Width;UiDiagramCanvas.Height=diagram.Height;
   if(string.IsNullOrWhiteSpace(diagram.Svg)) {
    UiDiagramCaption.Text=$"Canonical draw.io-generated SVG unavailable: {diagram.Path}. Use Diagnostics and the assignment list.";
@@ -115,22 +138,22 @@ public partial class HueyImportWindow : Window {
    _visibleControls=diagram.Controls;
    foreach(var control in _visibleControls) {
     var assignment=CurrentAssignment(control);
-    var label=assignment?.Command.Name??"Assign";
-    var badge=new Border {Width=control.Width,Height=control.Height,BorderThickness=new Thickness(2),
+    var label=assignment is null?"Unassigned":_displayLabels.GetValueOrDefault(Slot(control)!.Key,assignment.Command.Name);
+    var badge=new Border {Tag=control,Width=control.Width,Height=control.Height,BorderThickness=new Thickness(2),
      CornerRadius=new CornerRadius(4),Padding=new Thickness(2),AllowDrop=true,
      ToolTip=$"{control.Label} · {control.Control} · {control.InputKey} · {label}",
      Child=new TextBlock {Text=label,FontSize=11,FontWeight=FontWeights.SemiBold,
       TextWrapping=TextWrapping.Wrap,TextTrimming=TextTrimming.CharacterEllipsis,
       HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,
       TextAlignment=TextAlignment.Center}};
-    badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
-    badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
+    badge.Background=assignment is null?Brushes.Gainsboro:
+     _viewModel.Draft!.History.SelectMany(x=>x.Changes).Any(x=>x.Slot.Key==Slot(control)!.Key)?Brushes.LightGreen:Brushes.White;
+    badge.BorderBrush=control==_selected?Brushes.RoyalBlue:Brushes.SlateGray;
     ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
-    badge.PreviewMouseLeftButtonDown+=(_,args)=>{
-     _controlDragStart=args.GetPosition(badge);_dragControl=control;SelectControl(control);
+    badge.MouseLeftButtonDown+=(_,args)=>{
+     _controlDragStart=args.GetPosition(this);_dragControl=control;SelectControl(control);args.Handled=true;
     };
-    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;};
-    badge.PreviewMouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
+    badge.MouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
     badge.DragEnter+=(_,args)=>{
      if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
     };
@@ -180,6 +203,10 @@ public partial class HueyImportWindow : Window {
    ApplyTransfer(source,control,action);return;
   }
   _selected=control;UpdateInspector();
+  foreach(var border in UiDiagramCanvas.Children.OfType<Border>()) {
+   if(border.Tag is HardwareGraphicControl tagged)
+    border.BorderBrush=tagged==control?Brushes.RoyalBlue:Brushes.SlateGray;
+  }
  }
  private void UiAssignmentList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(UiAssignmentList.SelectedIndex>=0&&UiAssignmentList.SelectedIndex<_visibleControls.Count)
@@ -187,21 +214,32 @@ public partial class HueyImportWindow : Window {
  }
  private void UpdateInspector() {
   if(SelectedControlTitle is null||SelectedAssignment is null)return;
-  SelectedControlTitle.Text=_selected is null?"Select a control":$"{_selected.Label} · {_selected.Control}";
+  SelectedControlTitle.Text=_selected is null?"Select a callout":_selected.InputKey;
   var assignment=_selected is null?null:CurrentAssignment(_selected);
   SelectedAssignment.Text=_selected is null?"Choose an authored callout or keyboard list row.":
    $"{assignment?.Command.Name??"Empty · choose a command"}\n{_selected.InputKey} · {Layer()} / {Chord()}";
+  SelectedChord.Text=_selected is null?string.Empty:$"Modifier / chord: {Chord()}";
+  CurrentCommand.Text=assignment?.Command.Name??string.Empty;
+  PendingCommand.Text=_selected is null?string.Empty:
+   _viewModel.Draft?.History.SelectMany(x=>x.Changes).LastOrDefault(x=>x.Slot.Key==Slot(_selected)?.Key) is { } last
+    ?last.After?.Command.Name??"Clear assignment":"No pending assignment";
+  DefaultLabel.Text=_selected?.Label??string.Empty;
+  _updatingInspector=true;
+  LabelEditor.IsEnabled=assignment is not null;
+  LabelEditor.Text=_selected is null?string.Empty:
+   _displayLabels.GetValueOrDefault(Slot(_selected)!.Key,assignment?.Command.Name??_selected.Label);
+  _updatingInspector=false;
+  TuneAxisButton.IsEnabled=false;
+  AxisTuningSummary.Text=_selected is {IsAxis:true}
+   ?"Axis tuning is unavailable in the current draft model.":string.Empty;
  }
- private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
-  var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
-  _dragCommand=container?.DataContext as CommandPaletteEntry;
-  _paletteDragStart=_dragCommand is null?null:e.GetPosition(CommandPaletteList);
- }
- private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
+ // The drag source and threshold match DCS-Common's InteractivePreviewWindow.
+ private void DragStart(object sender,MouseButtonEventArgs e)=>_paletteDragStart=e.GetPosition(this);
+ private void CommandDrag(object sender,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
-  if(_viewModel.Draft is null||_dragCommand is null||_paletteDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(CommandPaletteList)))return;
-  var command=_dragCommand;
+  if(_viewModel.Draft is null||_paletteDragStart is not Point origin||
+     !PastDragThreshold(origin,e.GetPosition(this))||
+     CommandPaletteList.SelectedItem is not CommandPaletteEntry command)return;
   _paletteDragStart=null;_dragCommand=null;
   var data=new DataObject();
   data.SetData(PaletteDragFormat,command.Id);
@@ -211,7 +249,7 @@ public partial class HueyImportWindow : Window {
  private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;return;}
   if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(badge)))return;
+     !PastDragThreshold(origin,e.GetPosition(this)))return;
   if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
   _controlDragStart=null;_dragControl=null;
   var data=new DataObject();
@@ -224,7 +262,12 @@ public partial class HueyImportWindow : Window {
   Math.Abs(start.Y-current.Y)>=SystemParameters.MinimumVerticalDragDistance;
  private bool CanDrop(IDataObject data,HardwareGraphicControl? target) =>
   target is not null&&Slot(target) is not null&&
-  (data.GetDataPresent(PaletteDragFormat)||data.GetDataPresent(ControlDragFormat));
+  (data.GetData(PaletteDragFormat) is string commandId&&
+   (Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_moduleCommands)
+    .Any(x=>x.Id==commandId&&x.IsAxis==target.IsAxis)
+   ||data.GetData(ControlDragFormat) is string controlId&&
+    _visibleControls.Any(x=>x.Control==controlId&&x.Control!=target.Control&&
+     x.IsAxis==target.IsAxis&&CurrentAssignment(x) is not null));
  private void Control_DragOver(object sender,DragEventArgs e) {
   var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
   e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
@@ -249,7 +292,7 @@ public partial class HueyImportWindow : Window {
  private void ApplyDrop(HardwareGraphicControl target,IDataObject data,bool copy) {
   if(!CanDrop(data,target)) {SetStatus(_viewModel.DraftNote);return;}
   if(data.GetData(PaletteDragFormat) is string commandId) {
-   var entries=Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands;
+   var entries=Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_moduleCommands;
    var command=entries.FirstOrDefault(x=>x.Id==commandId);
    if(command is null)SetStatus("The dragged command is not in this scope; no draft change was made.");
    else AssignTo(target,command);
@@ -331,6 +374,63 @@ public partial class HueyImportWindow : Window {
   if(_settings is null) {SetStatus("Open Settings from the main workspace.");return;}
   new SettingsWindow(_settings) {Owner=this}.ShowDialog();
   SetStatus($"Occupied destination: {_settings.Current.OccupiedDestinationBehavior}.");
+ }
+ private void Back_Click(object sender,RoutedEventArgs e)=>ImportedTabs.SelectedIndex=0;
+ private void EditorZoom_ValueChanged(object sender,RoutedPropertyChangedEventArgs<double> e) {
+  if(UiDiagramCanvas is not null)UiDiagramCanvas.LayoutTransform=new ScaleTransform(e.NewValue,e.NewValue);
+ }
+ private void RenderKneeboard_Click(object sender,RoutedEventArgs e)=>ImportedTabs.SelectedIndex=2;
+ private void LabelEditor_TextChanged(object sender,TextChangedEventArgs e) {
+  if(_updatingInspector||_selected is null||Slot(_selected) is not {} slot)return;
+  _displayLabels[slot.Key]=LabelEditor.Text;
+  foreach(var border in UiDiagramCanvas.Children.OfType<Border>()) {
+   if(border.Tag is HardwareGraphicControl control&&Slot(control)?.Key==slot.Key&&border.Child is TextBlock label)
+    label.Text=LabelEditor.Text;
+  }
+ }
+ private void ResetLabel_Click(object sender,RoutedEventArgs e) {
+  if(_selected is null||Slot(_selected) is not {} slot)return;
+  _displayLabels.Remove(slot.Key);
+  RenderUiDiagram();
+ }
+ private void TuneAxis_Click(object sender,RoutedEventArgs e)=>
+  SetStatus("Axis tuning requires an editable axis-filter model.");
+ private void ImportCatalog_Click(object sender,RoutedEventArgs e) {
+  if(_viewModel.ModuleDcsId is null) {SetStatus("Open a committed module source before importing its command catalog.");return;}
+  var dialog=new OpenFileDialog {Title="Import DCS-Common command catalog",Filter="Command catalog|*.json"};
+  if(dialog.ShowDialog(this)!=true)return;
+  try {
+   var catalog=DcsCommandCatalogImporter.Parse(File.ReadAllText(dialog.FileName),_viewModel.ModuleDcsId);
+   _moduleCommands=CommandPalette.FromBindings(_viewModel.ImportedBindings,catalog);
+   _viewModel.Draft?.AddCommands(catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module)));
+   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,[],[]));
+   SetStatus($"Loaded {catalog.Count} module commands and named categories.");
+  } catch(Exception ex) {SetStatus(ex.Message);}
+ }
+ private void LoadDcsHtml_Click(object sender,RoutedEventArgs e) {
+  var dialog=new OpenFileDialog {Title="Select DCS Controls HTML exports for this module",
+   Filter="DCS Controls HTML|*.html;*.htm",Multiselect=true};
+  if(dialog.ShowDialog(this)!=true)return;
+  try {
+   var catalog=DcsHtmlCommandCatalogImporter.Parse(dialog.FileNames.Select(x=>(x,File.ReadAllText(x))));
+   _moduleCommands=CommandPalette.FromBindings(_viewModel.ImportedBindings,catalog);
+   _viewModel.Draft?.AddCommands(catalog.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module)));
+   PaletteScope.SelectedIndex=0;PaletteScope_SelectionChanged(PaletteScope,new SelectionChangedEventArgs(Selector.SelectionChangedEvent,[],[]));
+   SetStatus($"Loaded {catalog.Count} DCS HTML commands and named categories.");
+  } catch(Exception ex) {SetStatus(ex.Message);}
+ }
+ private void SaveCatalog_Click(object sender,RoutedEventArgs e) {
+  if(string.IsNullOrWhiteSpace(_viewModel.ModuleDcsId)) {SetStatus("Open a committed module source before saving its catalog.");return;}
+  var dialog=new SaveFileDialog {Title="Save reloadable DCS command catalog",
+   FileName=$"{_viewModel.ModuleDcsId}-commands.json",Filter="Command catalog|*.json"};
+  if(dialog.ShowDialog(this)!=true)return;
+  try {
+   var commands=_moduleCommands.Select(x=>new {bindingKey=x.Id,name=x.Name,type=x.IsAxis?"axis":"button",
+    categoryPath=x.Category=="Uncategorized"?Array.Empty<string>():x.Category.Split(" / "),isAssignable=true});
+   File.WriteAllText(dialog.FileName,JsonSerializer.Serialize(new {schemaVersion=1,moduleId=_viewModel.ModuleDcsId,commands},
+    new JsonSerializerOptions {WriteIndented=true}));
+   SetStatus($"Saved {_moduleCommands.Count} commands to {dialog.FileName}.");
+  } catch(Exception ex) {SetStatus(ex.Message);}
  }
  private void Apply(DraftResult? result) {
   if(result is null) {SetStatus(_viewModel.DraftNote);return;}

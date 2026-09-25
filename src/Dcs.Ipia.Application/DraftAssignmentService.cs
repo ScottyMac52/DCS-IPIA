@@ -33,6 +33,19 @@ public sealed class DraftAssignmentService {
   }
  }
  #region BEGIN Public
+ /// <summary>Adds validated commands imported after the editor opens without changing staged assignments.</summary>
+ /// <param name="commands">Commands from the selected module's verified catalog.</param>
+ public void AddCommands(IEnumerable<DraftCommand> commands) {
+  ArgumentNullException.ThrowIfNull(commands);
+  foreach(var command in commands) {
+   if(command is null||string.IsNullOrWhiteSpace(command.Id)||string.IsNullOrWhiteSpace(command.Name)||
+      !Enum.IsDefined(command.Layer))throw new ArgumentException("Every catalog command needs an ID, name, and layer.",nameof(commands));
+   var key=CommandKey(command);
+   if(_allowed.TryGetValue(key,out var existing)&&existing.IsAxis!=command.IsAxis)
+    throw new ArgumentException($"Catalog type conflicts with an existing command: {command.Id}.",nameof(commands));
+   _allowed[key]=command;
+  }
+ }
  /// <summary>Gets the current draft assignments; no source is written by this service.</summary>
  public IReadOnlyList<DraftAssignment> Snapshot=>_current.Values.OrderBy(x=>x.Slot.Key,StringComparer.Ordinal).ToArray();
  /// <summary>Gets atomic before/after operations available for review and undo.</summary>
