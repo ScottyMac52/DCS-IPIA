@@ -155,7 +155,8 @@ public partial class HueyImportWindow : Window {
   }
   var shown=filtered.ToArray();
   CommandPaletteList.ItemsSource=shown;
-  PaletteCaption.Text=$"{shown.Length} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
+  PaletteCaption.Text=$"Showing {shown.Length} of {all.Count} commands{(category is null?"":$" · {category}")}";
+  PaletteCaption.ToolTip=_viewModel.PaletteSourceNote;
  }
  private void RenderUiDiagram() {
   if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
@@ -189,11 +190,12 @@ public partial class HueyImportWindow : Window {
     badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
     badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
     ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
-    badge.PreviewMouseLeftButtonDown+=(_,args)=>{
-     _controlDragStart=args.GetPosition(badge);_dragControl=control;_dragBadge=badge;SelectControl(control);
+    badge.MouseLeftButtonDown+=(_,args)=>{
+     _controlDragStart=args.GetPosition(this);_dragControl=control;_dragBadge=badge;SelectControl(control);
+     args.Handled=true;
     };
-    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;_dragBadge=null;};
-    badge.PreviewMouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
+    badge.MouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;_dragBadge=null;};
+    badge.MouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
     badge.DragEnter+=(_,args)=>{
      if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
     };
@@ -208,7 +210,8 @@ public partial class HueyImportWindow : Window {
     UiDiagramCanvas.Children.Add(badge);
    }
    UiAssignmentList.ItemsSource=_visibleControls.Select(x=>$"{x.Label} · {CurrentAssignment(x)?.Command.Name??"Assign"} · {x.InputKey}").ToArray();
-   UiDiagramCaption.Text=$"{diagram.Title} · {Layer()} / {Chord()} · {diagram.Path} · {diagram.Controls.Count} mapped controls · canonical DCS-Common SVG.";
+   UiDiagramCaption.Text=$"{diagram.Controls.Count} authored controls · {Layer()} / {Chord()} · draw.io SVG";
+   EditorHeading.Text=$"{diagram.Title} — {(Layer()==AssignmentLayer.UiLayer?"UI Layer":"Module controls")}";
    UpdateInspector();
   }
   catch(Exception ex) {
@@ -266,12 +269,6 @@ public partial class HueyImportWindow : Window {
   DefaultControlLabel.Text=_selected?.Label??"—";
   SelectedControlIdentity.Text=_selected is null?"—":$"{_selected.InputKey} · {Layer()} / {Chord()}";
  }
- private void Editor_PreviewMouseMove(object sender,MouseEventArgs e) {
-  // The tunnel reaches the window even after the pointer leaves a narrow catalog row or callout.
-  if(_dragCommand is not null)CommandPaletteList_PreviewMouseMove(sender,e);
-  else if(_dragControl is not null&&_dragBadge is not null)
-   Control_PreviewMouseMove(_dragBadge,_dragControl,e);
- }
  private void Editor_PreviewMouseLeftButtonUp(object sender,MouseButtonEventArgs e) {
   _paletteDragStart=null;_dragCommand=null;
   _controlDragStart=null;_dragControl=null;_dragBadge=null;
@@ -279,25 +276,24 @@ public partial class HueyImportWindow : Window {
  private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
   var container=ItemsControl.ContainerFromElement(CommandPaletteList,e.OriginalSource as DependencyObject) as ListBoxItem;
   _dragCommand=container?.DataContext as CommandPaletteEntry;
-  _paletteDragStart=_dragCommand is null?null:e.GetPosition(CommandPaletteList);
+  _paletteDragStart=_dragCommand is null?null:e.GetPosition(this);
  }
  private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
   if(_viewModel.Draft is null||_dragCommand is null||_paletteDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(CommandPaletteList)))return;
+     !PastDragThreshold(origin,e.GetPosition(this)))return;
   var command=_dragCommand;
   _paletteDragStart=null;_dragCommand=null;
   var data=new DataObject();
   data.SetData(PaletteDragFormat,command.Id);
   SetStatus($"Drop {command.Name} onto an authored control on the device.");
-  var source=CommandPaletteList.ItemContainerGenerator.ContainerFromItem(command) as DependencyObject??CommandPaletteList;
-  if(DragDrop.DoDragDrop(source,data,DragDropEffects.Copy)==DragDropEffects.None)
+  if(DragDrop.DoDragDrop(CommandPaletteList,data,DragDropEffects.Copy)==DragDropEffects.None)
    SetStatus($"No assignment staged for {command.Name}. Drop it on a compatible callout for this device and layer.");
  }
  private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
   if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;_dragBadge=null;return;}
   if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(badge)))return;
+     !PastDragThreshold(origin,e.GetPosition(this)))return;
   if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
   _controlDragStart=null;_dragControl=null;_dragBadge=null;
   var data=new DataObject();
@@ -441,6 +437,7 @@ public partial class HueyImportWindow : Window {
   new SettingsWindow(_settings) {Owner=this}.ShowDialog();
   SetStatus($"Occupied destination: {_settings.Current.OccupiedDestinationBehavior}.");
  }
+ private void OpenKneeboard_Click(object sender,RoutedEventArgs e) => ImportedTabs.SelectedIndex=3;
  private void Apply(DraftResult? result) {
   if(result is null) {SetStatus(_viewModel.DraftNote);return;}
   if(result.Outcome==DraftOutcome.Applied)RenderUiDiagram();UpdatePalette();

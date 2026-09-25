@@ -1,5 +1,8 @@
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
@@ -78,6 +81,21 @@ public static class Program {
    throw new InvalidOperationException("Category filter did not show only General commands.");
   categories.SelectedItem="VR";
   if(palette.Items.Count!=1)throw new InvalidOperationException("VR category did not show its command.");
+  repoWindow.Left=0;repoWindow.Top=0;repoWindow.Width=1200;repoWindow.Height=720;
+  repoWindow.Activate();repoWindow.UpdateLayout();
+  palette.ScrollIntoView(palette.Items[0]);repoWindow.UpdateLayout();
+  var dragRow=(ListBoxItem)palette.ItemContainerGenerator.ContainerFromIndex(0)!;
+  DragMouse(repoWindow,dragRow,canvas,new Point(110,30));
+  if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
+   throw new InvalidOperationException("A physical mouse drag from the command row did not assign OSB02.");
+  ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  repoWindow.UpdateLayout();
+  var sourceBadge=canvas.Children.OfType<Border>().Single(x=>((HardwareGraphicControl)x.Tag).Control==diagram.Controls[0].Control);
+  DragMouse(repoWindow,sourceBadge,canvas,new Point(110,30));
+  if(!assignments.Items[1]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal)||
+     assignments.Items[0]!.ToString()!.Contains("VR Zoom",StringComparison.Ordinal))
+   throw new InvalidOperationException("A physical mouse drag between assigned callouts did not move the command.");
+  ((Button)repoWindow.FindName("UndoDraft")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
   var types=(ComboBox)repoWindow.FindName("PaletteType")!;
   var availability=(ComboBox)repoWindow.FindName("PaletteAvailability")!;
   var bindingState=(ComboBox)repoWindow.FindName("PaletteBindingState")!;
@@ -164,6 +182,36 @@ public static class Program {
   return 0;
  }
  #endregion END Public
+ #region BEGIN private helpers
+ private const uint MouseLeftDown=0x0002;
+ private const uint MouseLeftUp=0x0004;
+ [DllImport("user32.dll")]
+ private static extern bool SetCursorPos(int x,int y);
+ [DllImport("user32.dll")]
+ private static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extraInfo);
+ private static void DragMouse(HueyImportWindow window,FrameworkElement source,Canvas canvas,Point destination) {
+  window.UpdateLayout();
+  var from=source.PointToScreen(new Point(source.ActualWidth/2,source.ActualHeight/2));
+  var to=canvas.PointToScreen(destination);
+  var frame=new DispatcherFrame();
+  var drag=Task.Run(()=>{
+   if(!SetCursorPos((int)from.X,(int)from.Y))throw new InvalidOperationException("Mouse input is unavailable on this Windows runner.");
+   Thread.Sleep(100);
+   mouse_event(MouseLeftDown,0,0,0,UIntPtr.Zero);
+   Thread.Sleep(100);
+   for(var step=1;step<=15;step++) {
+    var fraction=step/15d;
+    SetCursorPos((int)(from.X+(to.X-from.X)*fraction),(int)(from.Y+(to.Y-from.Y)*fraction));
+    Thread.Sleep(35);
+   }
+   Thread.Sleep(100);
+   mouse_event(MouseLeftUp,0,0,0,UIntPtr.Zero);
+  });
+  drag.ContinueWith(_=>window.Dispatcher.BeginInvoke(new Action(()=>frame.Continue=false)));
+  Dispatcher.PushFrame(frame);
+  drag.GetAwaiter().GetResult();
+  window.UpdateLayout();
+ }
  private static IEnumerable<T> FindVisualChildren<T>(System.Windows.DependencyObject parent) where T : System.Windows.DependencyObject {
   for(var index=0;index<System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);index++) {
    var child=System.Windows.Media.VisualTreeHelper.GetChild(parent,index);
@@ -171,4 +219,5 @@ public static class Program {
    foreach(var descendant in FindVisualChildren<T>(child))yield return descendant;
   }
  }
+ #endregion END private helpers
 }
