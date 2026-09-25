@@ -46,6 +46,7 @@ public static class Program {
   var repoWindow=new HueyImportWindow(new HueyImportViewModel(preview));
   repoWindow.Show();
   repoWindow.UpdateLayout();
+  ((ComboBox)repoWindow.FindName("PaletteScope")!).SelectedIndex=1;
   ((ComboBox)repoWindow.FindName("UiModifierChoice")!).SelectedIndex=1;
   var canvas=(Canvas)repoWindow.FindName("UiDiagramCanvas")!;
   var assignments=(ListBox)repoWindow.FindName("UiAssignmentList")!;
