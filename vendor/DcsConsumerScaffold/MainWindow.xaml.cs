@@ -31,8 +31,7 @@ public partial class MainWindow : Window
     /// <summary>Open the original scaffolding workspace with the repositories already selected in IPIA.</summary>
     public MainWindow(string? commonRoot, string? profilesDir) : this()
     {
-        if (!string.IsNullOrWhiteSpace(commonRoot)) _viewModel.CommonRoot = commonRoot;
-        if (!string.IsNullOrWhiteSpace(profilesDir)) _viewModel.ProfilesDir = profilesDir;
+        _viewModel.InitializeInputs(commonRoot, profilesDir);
         if (!string.IsNullOrWhiteSpace(commonRoot) && !string.IsNullOrWhiteSpace(profilesDir) && Directory.Exists(profilesDir))
             Loaded += async (_, _) => await _viewModel.LoadPreviewAsync();
     }

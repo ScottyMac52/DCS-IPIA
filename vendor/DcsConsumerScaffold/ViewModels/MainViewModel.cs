@@ -86,6 +86,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
     public IReadOnlyList<string> CommandAvailabilities { get; } = ["All", "Assignable", "Search only"];
 
+    /// <summary>Initializes imported paths without treating them as user edits to a saved solution.</summary>
+    /// <param name="commonRoot">Selected DCS-Common checkout.</param>
+    /// <param name="profilesDir">Selected joystick profiles directory.</param>
+    public void InitializeInputs(string? commonRoot, string? profilesDir)
+    {
+        var previous = _suppressSolutionDirty;
+        _suppressSolutionDirty = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(commonRoot)) CommonRoot = commonRoot;
+            if (!string.IsNullOrWhiteSpace(profilesDir)) ProfilesDir = profilesDir;
+        }
+        finally
+        {
+            _suppressSolutionDirty = previous;
+        }
+    }
+
     public MainViewModel(
         ScaffoldEngineService? engine = null,
         CurrentLabelService? currentLabels = null,
