@@ -13,15 +13,21 @@ public partial class MainWindow : Window {
  private readonly IHueyWorkspaceLoader _loader;
  private readonly IDcsFolderImporter _folderImporter;
  private readonly IAppSettingsService _settings;
+ private readonly IEditorWorkspaceRepository _workspaces;
+ private readonly IModuleConfigurationRepository _configurations;
  private HueyImportViewModel? _lastViewModel;
  /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
  /// <param name="loader">The committed Huey workspace loader.</param>
  /// <param name="folderImporter">The live Saved Games profile reader.</param>
  /// <param name="settings">The validated user preference service.</param>
- public MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter,IAppSettingsService settings) {
+ /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
+ /// <param name="configurations">Relational module configuration store.</param>
+ public MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter,IAppSettingsService settings,IEditorWorkspaceRepository workspaces,IModuleConfigurationRepository configurations) {
   _loader=loader??throw new ArgumentNullException(nameof(loader));
   _folderImporter=folderImporter??throw new ArgumentNullException(nameof(folderImporter));
   _settings=settings??throw new ArgumentNullException(nameof(settings));
+  _workspaces=workspaces??throw new ArgumentNullException(nameof(workspaces));
+  _configurations=configurations??throw new ArgumentNullException(nameof(configurations));
   InitializeComponent();
   ThemeManager.Apply(_settings.Current.Theme.ToString());
   ThemePicker.SelectedIndex=_settings.Current.Theme==AppearanceTheme.Dark?1:0;
@@ -55,9 +61,14 @@ public partial class MainWindow : Window {
      ShowImportError("Huey source import needs attention: "+string.Join("; ",preview.Import.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message)));
      return;
     }
-    _lastViewModel=new HueyImportViewModel(preview);
-    _lastViewModel.CommonRoot=common.FolderName;
-    _lastViewModel.SourceFolder=folder;
+    var importedView=new HueyImportViewModel(preview);
+    var module=preview.Import.Configuration!;
+    await _configurations.ReplaceAsync(module);
+    var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
+     importedView.ModuleCommands,preview.UiCommands,importedView.Draft?.Snapshot??[],
+     new Dictionary<string,string>());
+    await _workspaces.SaveAsync(saved);
+    _lastViewModel=new HueyImportViewModel((await _workspaces.GetAsync(module.Module.Id))!);
     ViewImportedButton.IsEnabled=true;
     ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
    }
@@ -68,12 +79,30 @@ public partial class MainWindow : Window {
   }
   finally {ImportHueyButton.IsEnabled=true;}
  }
+ private async void OpenSaved_Click(object sender,RoutedEventArgs e) {
+  try {
+   var ids=await _workspaces.ListAsync();
+   if(ids.Count==0) {ImportStatus.Text="No local editor workspace has been saved yet.";return;}
+   var saved=await _workspaces.GetAsync(ids[0]);
+   if(saved is null)return;
+   _lastViewModel=new HueyImportViewModel(saved);
+   ViewImportedButton.IsEnabled=true;
+   ShowImported();
+  }
+  catch(Exception ex) {ShowImportError("Unable to open saved workspace: "+ex.Message);}
+ }
  private void OpenEditor_Click(object sender,RoutedEventArgs e) {
   if(_lastViewModel is null)ImportHuey_Click(sender,e);
   else ViewImported_Click(sender,e);
  }
- private void ViewImported_Click(object sender,RoutedEventArgs e) {
-  try {ShowImported();}
+ private async void ViewImported_Click(object sender,RoutedEventArgs e) {
+  try {
+   if(_lastViewModel is {ModuleId:var id}&&id!=Guid.Empty) {
+    var saved=await _workspaces.GetAsync(id);
+    if(saved is not null)_lastViewModel=new HueyImportViewModel(saved);
+   }
+   ShowImported();
+  }
   catch(Exception ex) {ShowImportError($"Unable to show the imported preview: {ex.Message}");}
  }
  private void ShowImportError(string message) {
@@ -82,7 +111,7 @@ public partial class MainWindow : Window {
  }
  private void ShowImported() {
   if(_lastViewModel is null)return;
-  var window=new HueyImportWindow(_lastViewModel,_settings){Owner=this};
+  var window=new HueyImportWindow(_lastViewModel,_settings,_workspaces){Owner=this};
   window.ShowDialog();
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {

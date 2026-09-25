@@ -42,6 +42,24 @@ public sealed class HueyImportViewModel {
   Diagnostics=issues.Length==0?["No import diagnostics."]:issues.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=result.Provenance.Select(x=>$"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
  }
+ /// <summary>Reopens a persisted workspace using only local SQLite data.</summary>
+ /// <param name="saved">Stored module, SVGs, catalogs, and assignments.</param>
+ public HueyImportViewModel(EditorWorkspaceSnapshot saved):this(new HueyWorkspacePreview(
+  new HueyImportResult(saved.Configuration,[],saved.Pages,[],[],new Dictionary<string,System.Text.Json.JsonElement>(),
+   new Dictionary<string,string>(),[new SourceProvenance("SQLite","local","editor_workspaces","local")],[]),
+  saved.Images,saved.Diagrams) { ModuleCommands=saved.ModuleCommands,UiCommands=saved.UiCommands }) {
+  UiCommands=CommandPalette.FromUiLayer(saved.UiCommands);
+  ModuleCommands=saved.ModuleCommands;
+  var moduleCommands=saved.ModuleCommands.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module));
+  var uiCommands=saved.UiCommands.Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer));
+  Draft=new DraftAssignmentService(saved.Configuration,moduleCommands.Concat(uiCommands),saved.Assignments);
+  DraftNote="Changes remain pending until Save to database.";
+  WindowTitle=saved.Configuration.Module.DisplayName+" · database assignment editor";
+  Commit="Saved in local SQLite database";
+  SourceNote="Editor graphics, command catalogs, kneeboards, labels and assignments loaded from SQLite.";
+  Labels=new Dictionary<string,string>(saved.Labels,StringComparer.Ordinal);
+  Workspace=saved;
+ }
  /// <summary>Builds a live Saved Games profile preview without inventing device IDs or kneeboard output.</summary>
  /// <param name="folder">The parsed local joystick folder.</param>
  public HueyImportViewModel(DcsFolderImportResult folder) {
@@ -77,6 +95,10 @@ public sealed class HueyImportViewModel {
  }
  #region BEGIN Public
  /// <summary>Gets or sets the selected DCS-Common root for the authoritative UI Layer editor.</summary>
+ /// <summary>Gets the saved editor workspace when opened from SQLite.</summary>
+ public EditorWorkspaceSnapshot? Workspace {get;}
+ /// <summary>Gets the persisted callout label overrides.</summary>
+ public IReadOnlyDictionary<string,string> Labels {get;}=new Dictionary<string,string>();
  public string? CommonRoot {get;set;}
  /// <summary>Gets or sets the selected source folder used to open the original scaffolding workspace.</summary>
  public string? SourceFolder {get;set;}

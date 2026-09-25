@@ -23,6 +23,9 @@ public sealed class SqliteMigrationRunner(string connectionString) {
     "INSERT INTO schema_migrations VALUES(2,strftime('%Y-%m-%dT%H:%M:%fZ','now'));";
    await Execute(c,tx,migration2,ct);
   }
+  if(!await Applied(c,tx,3,ct)) {
+   await Execute(c,tx,"""CREATE TABLE editor_workspaces(module_id TEXT NOT NULL PRIMARY KEY REFERENCES modules(id) ON DELETE CASCADE,snapshot_json TEXT NOT NULL,updated_utc TEXT NOT NULL); INSERT INTO schema_migrations VALUES(3,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""",ct);
+  }
   await tx.CommitAsync(ct);
  }
  #endregion END Public

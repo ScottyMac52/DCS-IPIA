@@ -31,6 +31,8 @@
                 Click="Settings_Click" ToolTip="Theme and occupied-destination behavior."/>
         <Button x:Name="ImportHueyButton" Content="Import Huey sources" Padding="14,8" Margin="6,0"
                 Click="ImportHuey_Click" ToolTip="Choose a Huey Git repository or a DCS Saved Games module/joystick folder." />
+        <Button Content="Open saved module" Padding="14,8" Margin="6,0" Click="OpenSaved_Click"
+                ToolTip="Open editor graphics, catalogs and assignments from the local SQLite database."/>
         <Button x:Name="ViewImportedButton" Content="Open assignment editor" IsEnabled="False" Padding="14,8" Margin="6,0"
                 Click="ViewImported_Click" ToolTip="Review the last imported source data."/>
         <Button Content="Validate" IsEnabled="False" Padding="14,8" Margin="6,0"

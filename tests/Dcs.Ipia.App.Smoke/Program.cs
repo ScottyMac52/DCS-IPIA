@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
+using Microsoft.Data.Sqlite;
 using DcsIpia.Presentation;
 
 namespace Dcs.Ipia.App.Smoke;
@@ -46,12 +47,26 @@ public static class Program {
   var repoWindow=new HueyImportWindow(new HueyImportViewModel(preview));
   repoWindow.Show();
   repoWindow.UpdateLayout();
-  var scaffold = new DcsConsumerScaffold.MainWindow("DCS-Common", "Saved Games/Input/UH-1H/joystick");
-  scaffold.Show();
-  scaffold.UpdateLayout();
-  if (!scaffold.IsVisible)
-   throw new InvalidOperationException("The original DCS-Common scaffolding window did not open.");
-  scaffold.Close();
+  var scratch=Path.Combine(Path.GetTempPath(),"ipia-editor-smoke-"+Guid.NewGuid().ToString("N")+".db");
+  var db=new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {DataSource=scratch,ForeignKeys=true}.ToString();
+  new SqliteMigrationRunner(db).MigrateAsync().GetAwaiter().GetResult();
+  new SqliteConfigurationRepository(db).ReplaceAsync(configuration).GetAwaiter().GetResult();
+  var snapshot=new EditorWorkspaceSnapshot(configuration,[],[],[diagram],
+   [new CommandPaletteEntry("MODULE_TEST","Module test","Flight Control",false)],preview.UiCommands,[],
+   new Dictionary<string,string>());
+  var repository=new SqliteEditorWorkspaceRepository(db);
+  repository.SaveAsync(snapshot).GetAwaiter().GetResult();
+  var loaded=repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
+  if(loaded.Diagrams[0].Svg!=svg||loaded.ModuleCommands[0].Category!="Flight Control")
+   throw new InvalidOperationException("Saved SVG or category was not recovered from SQLite.");
+  var savedWindow=new HueyImportWindow(new HueyImportViewModel(loaded),null,repository);
+  savedWindow.Show();
+  savedWindow.UpdateLayout();
+  if(!savedWindow.IsVisible||((Canvas)savedWindow.FindName("Diagram")!).Children.Count==0)
+   throw new InvalidOperationException("Database-backed graphical assignment editor did not display.");
+  savedWindow.Close();
+  SqliteConnection.ClearAllPools();
+  File.Delete(scratch);
   repoWindow.Close();
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
