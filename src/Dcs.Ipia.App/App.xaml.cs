@@ -22,7 +22,7 @@ public partial class App : System.Windows.Application {
   try {await new SqliteMigrationRunner(connectionString).MigrateAsync();}
   catch(Exception ex) {MessageBox.Show("Unable to open local database: "+ex.Message,"DCS-IPIA",MessageBoxButton.OK,MessageBoxImage.Error);Shutdown(1);return;}
   _services=new ServiceCollection()
-   .AddSingleton<IAppSettingsService>(_=>new FileAppSettingsService(
+   .AddSingleton<IAppSettingsService>(_=>new SqliteAppSettingsService(connectionString,
     Path.Combine(AppContext.BaseDirectory,"appsettings.json"),
     Path.Combine(userFolder,"user-settings.json"),
     Path.Combine(userFolder,"theme.txt")))

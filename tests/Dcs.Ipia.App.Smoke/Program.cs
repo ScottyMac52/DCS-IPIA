@@ -71,7 +71,10 @@ public static class Program {
   folderWindow.Close();
   var preferencesRoot=Path.Combine(Path.GetTempPath(),"dcs-ipia-settings-smoke-"+Guid.NewGuid().ToString("N"));
   try {
-   var settings=new FileAppSettingsService(Path.Combine(preferencesRoot,"defaults.json"),
+   Directory.CreateDirectory(preferencesRoot);
+   var preferenceConnection="Data Source="+Path.Combine(preferencesRoot,"ipia.db")+";Pooling=False";
+   new SqliteMigrationRunner(preferenceConnection).MigrateAsync().GetAwaiter().GetResult();
+   var settings=new SqliteAppSettingsService(preferenceConnection,Path.Combine(preferencesRoot,"defaults.json"),
     Path.Combine(preferencesRoot,"user-settings.json"),Path.Combine(preferencesRoot,"theme.txt"));
    var preferencesWindow=new SettingsWindow(settings);
    preferencesWindow.Show();
@@ -79,11 +82,12 @@ public static class Program {
    ((ComboBox)preferencesWindow.FindName("ThemeChoice")!).SelectedIndex=1;
    ((ComboBox)preferencesWindow.FindName("ConflictChoice")!).SelectedIndex=2;
    if(settings.Current.Theme!=AppearanceTheme.Dark || settings.Current.OccupiedDestinationBehavior!=OccupiedDestinationBehavior.Reject ||
-      !File.Exists(Path.Combine(preferencesRoot,"user-settings.json")))
+      new SqliteAppSettingsService(preferenceConnection,Path.Combine(preferencesRoot,"defaults.json"),
+       Path.Combine(preferencesRoot,"user-settings.json"),Path.Combine(preferencesRoot,"theme.txt")).Current.OccupiedDestinationBehavior!=OccupiedDestinationBehavior.Reject)
     throw new InvalidOperationException("Settings window did not apply and save theme and destination preferences.");
    preferencesWindow.Close();
   }
-  finally {if(Directory.Exists(preferencesRoot))Directory.Delete(preferencesRoot,true);}
+  finally {SqliteConnection.ClearAllPools();if(Directory.Exists(preferencesRoot))Directory.Delete(preferencesRoot,true);}
   System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
   return 0;
  }

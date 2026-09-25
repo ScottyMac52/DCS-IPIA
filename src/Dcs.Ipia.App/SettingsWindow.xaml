@@ -22,7 +22,7 @@
       <ComboBoxItem Content="Do not replace" Tag="Reject"/>
     </ComboBox>
     <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
-               Text="This choice will control assignment drops when the editor is enabled. No source files are edited by changing a preference."/>
+               Text="This choice controls assignment drops. Preferences are stored in the local database."/>
     <TextBlock x:Name="SaveStatus" Margin="0,12,0,0" TextWrapping="Wrap"
                Foreground="{DynamicResource SecondaryTextBrush}" AutomationProperties.LiveSetting="Polite"/>
   </StackPanel>

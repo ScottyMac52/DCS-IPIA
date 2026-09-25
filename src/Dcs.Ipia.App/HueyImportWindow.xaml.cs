@@ -1,4 +1,5 @@
 using System.IO;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,6 +20,7 @@ public partial class HueyImportWindow : Window {
  private EditorWorkspaceSnapshot? _saved;
  private DraftAssignmentService? _draft;
  private readonly Dictionary<string,string> _labels=new(StringComparer.Ordinal);
+ private readonly Dictionary<string,TextBlock> _calloutText=new(StringComparer.Ordinal);
  private HardwareGraphicControl? _selected;
  private Point? _dragStart;
  private bool _updatingInspector;
@@ -44,6 +46,7 @@ public partial class HueyImportWindow : Window {
   CommandType.SelectedIndex=0;
   DeviceChoice.SelectedIndex=_viewModel.UiDiagrams.Count>0?0:-1;
   if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
+  Closing+=ConfirmClose;
   RefreshEditor();
  }
  #region BEGIN Public
@@ -72,6 +75,7 @@ public partial class HueyImportWindow : Window {
   if(Diagram is null||Commands is null||DeviceTitle is null)return;
   var diagram=CurrentDiagram;
   Diagram.Children.Clear();
+  _calloutText.Clear();
   _selected=null;
   DeviceTitle.Text=diagram is null?"Select a stored device":diagram.Title+" — "+(CurrentLayer==AssignmentLayer.Module?"Module controls":"Module UI Layer controls");
   EditorMessage.Text=_saved is null?"Import a module to SQLite or open a saved module to edit its controls.":"";
@@ -99,8 +103,12 @@ public partial class HueyImportWindow : Window {
     var caption=_labels.GetValueOrDefault(slot.Key)??assignment?.Command.Name??control.Label;
     var text=new TextBlock {Text=caption,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
+    _calloutText[slot.Key]=text;
+    var original=_saved.Assignments.FirstOrDefault(x=>x.Slot.Key==slot.Key);
+    var stateBrush=assignment is null?Brushes.SlateGray:original is null?Brushes.ForestGreen:
+     original.Command==assignment.Command?Brushes.White:Brushes.Goldenrod;
     var target=new Border {Width=control.Width,Height=control.Height,Background=Brushes.White,
-     BorderBrush=assignment is null?Brushes.SlateGray:Brushes.ForestGreen,BorderThickness=new Thickness(1),
+     BorderBrush=stateBrush,BorderThickness=new Thickness(1),
      Child=text,AllowDrop=true,Cursor=Cursors.Hand,Tag=control};
     Canvas.SetLeft(target,control.X);Canvas.SetTop(target,control.Y);
     target.PreviewMouseLeftButtonDown+=(_,args)=>{_dragStart=args.GetPosition(this);_selected=control;RefreshInspector();};
@@ -209,7 +217,8 @@ public partial class HueyImportWindow : Window {
   if(slot is null)return;
   if(string.IsNullOrWhiteSpace(LabelEditor.Text))_labels.Remove(slot.Key);
   else _labels[slot.Key]=LabelEditor.Text;
-  RefreshEditor();
+  if(_calloutText.TryGetValue(slot.Key,out var label))label.Text=LabelEditor.Text;
+  PendingSummary.Text="Pending label or assignment changes";
  }
  private void RefreshInspector() {
   if(PhysicalInput is null)return;
@@ -261,6 +270,13 @@ public partial class HueyImportWindow : Window {
    KneeboardPreview.Source=bitmap;KneeboardCaption.Text="Stored kneeboard: "+asset.Path;
   }
   catch(Exception ex) {KneeboardCaption.Text=ex.Message;}
+ }
+ private void ConfirmClose(object? sender,CancelEventArgs e) {
+  var labelsChanged=_saved is not null&&(_labels.Count!=_saved.Labels.Count||
+   _labels.Any(x=>!_saved.Labels.TryGetValue(x.Key,out var original)||original!=x.Value));
+  if((_draft?.HasChanges==true||labelsChanged)&&MessageBox.Show(this,
+   "Discard unsaved assignment and label changes?","Pending changes",
+   MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)e.Cancel=true;
  }
  private void Close_Click(object sender,RoutedEventArgs e)=>Close();
  #endregion END private helpers
