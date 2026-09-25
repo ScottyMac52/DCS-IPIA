@@ -190,7 +190,7 @@ public partial class HueyImportWindow : Window {
      Layer()==AssignmentLayer.UiLayer&&!_currentDiagram.SupportsUiLayer)return null;
   return new(_viewModel.ModuleId,
    _currentDiagram.ProfileId,Layer(),control.IsAxis?BindingSection.Axis:BindingSection.Key,
-   control.InputKey,Chord()=="Base"?"":Chord());
+   control.InputKey,Chord()=="Base"?"":Chord().Replace(" + ","+",StringComparison.Ordinal));
  }
  private DraftAssignment? CurrentAssignment(HardwareGraphicControl control) {
   var slot=Slot(control);
@@ -368,7 +368,8 @@ public partial class HueyImportWindow : Window {
  private void Restore_Click(object sender,RoutedEventArgs e)=>Apply(_selected is null?null:_viewModel.Draft?.Restore(Slot(_selected)!));
  private void Undo_Click(object sender,RoutedEventArgs e)=>Apply(_viewModel.Draft?.Undo());
  private void Discard_Click(object sender,RoutedEventArgs e) {
-  _viewModel.Draft?.Discard();RenderUiDiagram();RefreshReview();SetStatus("Draft discarded; imported assignments restored.");
+  _viewModel.Draft?.Discard();_displayLabels.Clear();RenderUiDiagram();RefreshReview();
+  SetStatus("Draft discarded; imported assignments and labels restored.");
  }
  private void EditorSettings_Click(object sender,RoutedEventArgs e) {
   if(_settings is null) {SetStatus("Open Settings from the main workspace.");return;}
@@ -381,6 +382,32 @@ public partial class HueyImportWindow : Window {
  private void EditorZoom_ValueChanged(object sender,RoutedPropertyChangedEventArgs<double> e) {
   if(UiDiagramCanvas is not null)UiDiagramCanvas.LayoutTransform=new ScaleTransform(e.NewValue,e.NewValue);
  }
+ private void ChooseChord_Click(object sender,RoutedEventArgs e) {
+  var modifiers=_viewModel.ModifierChoices.Skip(1).Distinct(StringComparer.Ordinal).ToArray();
+  if(modifiers.Length==0) {SetStatus("Import module modifiers before creating an assignment chord.");return;}
+  var panel=new StackPanel {Margin=new Thickness(12)};
+  panel.Children.Add(new TextBlock {Text="Select one or more imported modifiers for the assignment chord.",
+   TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)});
+  var current=Chord().Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
+  var choices=modifiers.Select(name=>new CheckBox {Content=name,Tag=name,IsChecked=current.Contains(name,StringComparer.Ordinal),
+   Margin=new Thickness(0,5,0,5)}).ToArray();
+  foreach(var choice in choices)panel.Children.Add(choice);
+  var apply=new Button {Content="Use chord",Padding=new Thickness(12,6,12,6),
+   Margin=new Thickness(0,10,0,0),IsDefault=true};
+  panel.Children.Add(apply);
+  var dialog=new Window {Owner=this,Title="Assignment chord",Width=420,Height=380,
+   Content=new ScrollViewer {Content=panel},WindowStartupLocation=WindowStartupLocation.CenterOwner};
+  apply.Click+=(_,_)=>{
+   var selected=choices.Where(x=>x.IsChecked==true).Select(x=>(string)x.Tag).ToArray();
+   if(selected.Length==0) {SetStatus("Select at least one imported modifier.");return;}
+   var chord=string.Join(" + ",selected);
+   var layers=UiModifierChoice.Items.Cast<string>().Append(chord).Distinct(StringComparer.Ordinal).ToArray();
+   UiModifierChoice.ItemsSource=layers;
+   UiModifierChoice.SelectedItem=chord;
+   dialog.Close();
+  };
+  dialog.ShowDialog();
+ }
  private void RenderKneeboard_Click(object sender,RoutedEventArgs e)=>ImportedTabs.SelectedIndex=2;
  private void LabelEditor_TextChanged(object sender,TextChangedEventArgs e) {
   if(_updatingInspector||_selected is null||Slot(_selected) is not {} slot)return;
@@ -389,11 +416,13 @@ public partial class HueyImportWindow : Window {
    if(border.Tag is HardwareGraphicControl control&&Slot(control)?.Key==slot.Key&&border.Child is TextBlock label)
     label.Text=LabelEditor.Text;
   }
+  RefreshReview();
  }
  private void ResetLabel_Click(object sender,RoutedEventArgs e) {
   if(_selected is null||Slot(_selected) is not {} slot)return;
   _displayLabels.Remove(slot.Key);
   RenderUiDiagram();
+  RefreshReview();
  }
  private void TuneAxis_Click(object sender,RoutedEventArgs e)=>
   SetStatus("Axis tuning requires an editable axis-filter model.");
@@ -441,16 +470,16 @@ public partial class HueyImportWindow : Window {
  private void RefreshReview() {
   if(DraftCount is null||DraftReviewList is null)return;
   var history=_viewModel.Draft?.History??[];
-  DraftCount.Text=$"Draft · {history.Count} operations";
+  DraftCount.Text=$"Draft · {history.Count} assignment operations · {_displayLabels.Count} displayed labels";
   DraftReviewList.ItemsSource=history.SelectMany(op=>op.Changes.Select(change=>
    $"{op.Name} · {change.Slot.InputKey} · {change.Before?.Command.Name??"Empty"} → {change.After?.Command.Name??"Empty"}")).ToArray();
  }
  private void SetStatus(string message) {if(EditorStatus is not null)EditorStatus.Text=message;}
  private void OnClosing(object? sender,System.ComponentModel.CancelEventArgs e) {
-  if(_viewModel.Draft?.HasChanges!=true)return;
+  if(_viewModel.Draft?.HasChanges!=true&&_displayLabels.Count==0)return;
   if(MessageBox.Show(this,"Discard unsaved assignment draft? No source files have been changed.","Unsaved draft",
     MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)e.Cancel=true;
-  else _viewModel.Draft.Discard();
+  else {_viewModel.Draft?.Discard();_displayLabels.Clear();}
  }
  private void Close_Click(object sender,RoutedEventArgs e)=>Close();
  #endregion END private helpers

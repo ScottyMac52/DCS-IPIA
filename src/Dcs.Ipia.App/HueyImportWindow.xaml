@@ -84,6 +84,7 @@
               <TextBlock Text="Modifier layer:" VerticalAlignment="Center" Margin="12,0,8,0"/>
               <ComboBox x:Name="UiModifierChoice" MinWidth="180"
                         SelectionChanged="UiModifierChoice_SelectionChanged" AutomationProperties.Name="Modifier chord"/>
+              <Button Content="New chord…" Click="ChooseChord_Click" Margin="8,0,0,0" Padding="10,4"/>
               <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="16,0,6,0"/>
               <Slider x:Name="EditorZoom" Minimum="0.5" Maximum="3" Value="1" Width="140"
                       ValueChanged="EditorZoom_ValueChanged"/>
@@ -163,6 +164,7 @@
                 <StackPanel>
                   <TextBlock x:Name="SelectedControlTitle" Text="Select a callout" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
                   <TextBlock x:Name="SelectedChord" Margin="0,6" TextWrapping="Wrap"/>
+                  <Button Content="Choose assignment chord…" Click="ChooseChord_Click" Margin="0,0,0,10" Padding="8,5"/>
                   <TextBlock Text="Current command" FontWeight="SemiBold"/>
                   <TextBlock x:Name="CurrentCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                   <TextBlock Text="Pending command" FontWeight="SemiBold"/>
