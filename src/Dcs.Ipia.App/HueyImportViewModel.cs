@@ -48,6 +48,7 @@ public sealed class HueyImportViewModel {
   ArgumentNullException.ThrowIfNull(folder);
   if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
   ModuleId=Guid.Empty;
+  SourceFolder=folder.Folder;
   ModuleDcsId=null;
   ImportedBindings=folder.Bindings;
   WindowTitle="DCS Saved Games · joystick source preview";
@@ -77,6 +78,8 @@ public sealed class HueyImportViewModel {
  #region BEGIN Public
  /// <summary>Gets or sets the selected DCS-Common root for the authoritative UI Layer editor.</summary>
  public string? CommonRoot {get;set;}
+ /// <summary>Gets or sets the selected source folder used to open the original scaffolding workspace.</summary>
+ public string? SourceFolder {get;set;}
  /// <summary>Gets the actual DCS module identity for validating an imported command catalog.</summary>
  public string? ModuleDcsId {get;}
  /// <summary>Gets imported bindings used to include existing commands when a catalog is loaded.</summary>

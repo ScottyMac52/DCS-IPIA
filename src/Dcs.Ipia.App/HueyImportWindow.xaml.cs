@@ -58,6 +58,16 @@ public partial class HueyImportWindow : Window {
  #region BEGIN Public
  #endregion END Public
  #region BEGIN private helpers
+ /// <summary>Launches the original DCS-Common scaffolding application window.</summary>
+ private void OpenOriginalScaffold_Click(object sender,RoutedEventArgs e) {
+  var profileRoot=_viewModel.SourceFolder;
+  if(profileRoot is not null) {
+   var repositoryProfiles=Path.Combine(profileRoot,"src","Config","Input","UH-1H","joystick");
+   if(Directory.Exists(repositoryProfiles))profileRoot=repositoryProfiles;
+   else if(Directory.Exists(Path.Combine(profileRoot,"joystick")))profileRoot=Path.Combine(profileRoot,"joystick");
+  }
+  new DcsConsumerScaffold.MainWindow(_viewModel.CommonRoot,profileRoot) {Owner=this}.ShowDialog();
+ }
  private void KneeboardList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(_viewModel is null||KneeboardPreview is null)return;
   KneeboardPreview.Source=null;

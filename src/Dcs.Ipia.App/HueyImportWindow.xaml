@@ -71,6 +71,14 @@
         </Grid>
       </TabItem>
       <TabItem Header="Assignment editor">
+        <StackPanel Margin="24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="600">
+          <TextBlock Text="DCS-Common scaffolding editor" FontSize="25" FontWeight="SemiBold" Margin="0,0,0,16"/>
+          <TextBlock TextWrapping="Wrap" FontSize="16" Margin="0,0,0,18"
+                     Text="Open the original DCS-Common scaffolding workspace for module devices, module UI Layer devices, and shared UI Layer devices. Its graphical editor has the original command catalog, callouts, and drag-and-drop behavior."/>
+          <Button Content="Open DCS-Common scaffolding…" Click="OpenOriginalScaffold_Click" FontSize="16" Padding="18,10" HorizontalAlignment="Left"/>
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="Previous editor" Visibility="Collapsed">
         <DockPanel Margin="12">
           <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
             <TextBlock x:Name="DeviceTitle" FontSize="20" FontWeight="SemiBold"/>

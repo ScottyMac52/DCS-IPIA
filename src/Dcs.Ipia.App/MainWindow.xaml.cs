@@ -57,6 +57,7 @@ public partial class MainWindow : Window {
     }
     _lastViewModel=new HueyImportViewModel(preview);
     _lastViewModel.CommonRoot=common.FolderName;
+    _lastViewModel.SourceFolder=folder;
     ViewImportedButton.IsEnabled=true;
     ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
    }
