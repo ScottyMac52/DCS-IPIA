@@ -22,10 +22,21 @@ public static class KneeboardLabelImporter {
    var instance=page.TryGetProperty("deviceInstance",out var value)&&value.ValueKind!=JsonValueKind.Null
     ?value.GetString():null;
    var profile=configuration.Profiles.FirstOrDefault(x=>x.DeviceId==device&&x.Instance==instance);
-   if(profile is null||!page.TryGetProperty("layers",out var layers))continue;
-   foreach(var layer in layers.EnumerateArray()) {
-    if(!layer.TryGetProperty("controls",out var controls))continue;
-    foreach(var item in controls.EnumerateObject()) {
+   if(profile is null)continue;
+   if(page.TryGetProperty("controls",out var baseControls))
+    ImportControls(baseControls,names,configuration,profile,labels);
+   if(page.TryGetProperty("layers",out var layers))
+    foreach(var layer in layers.EnumerateArray())
+     if(layer.TryGetProperty("controls",out var controls))
+      ImportControls(controls,names,configuration,profile,labels);
+  }
+  return labels;
+ }
+ #endregion END Public
+ #region BEGIN private helpers
+ private static void ImportControls(JsonElement controls,JsonElement names,ModuleConfiguration configuration,
+  DeviceProfile profile,Dictionary<string,string> labels) {
+  foreach(var item in controls.EnumerateObject()) {
    var values=item.Value.ValueKind==JsonValueKind.Array?
     item.Value.EnumerateArray().ToArray():[item.Value];
    foreach(var control in values) {
@@ -44,4 +55,6 @@ public static class KneeboardLabelImporter {
     labels.TryAdd(slot.Key,label.GetString()!);
    }
   }
-
+ }
+ #endregion END private helpers
+}
