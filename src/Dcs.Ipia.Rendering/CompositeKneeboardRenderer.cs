@@ -24,7 +24,8 @@ public static class CompositeKneeboardRenderer {
   ArgumentNullException.ThrowIfNull(diagram);
   ArgumentNullException.ThrowIfNull(page);
   var device=BuildDeviceSvg(diagram,page);
-  var png=CanonicalSvgRenderer.RenderComplete(device,diagram.Width,diagram.Height);
+  var png=CanonicalSvgRenderer.RenderCompleteScaled(device,diagram.Width,diagram.Height,
+   Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height))));
   var encoded=Convert.ToBase64String(png);
   var legend=BuildLegend(page.Legend);
   var hardwareHeight=page.Legend.Count>0?1170:1350;
@@ -58,21 +59,32 @@ public static class CompositeKneeboardRenderer {
     var control=id["lbl-".Length..];
     page.Labels.TryGetValue(control,out var variants);
     label.RemoveNodes();
-    label.SetAttributeValue("font-size",variants?.Count>2?"11":variants?.Count>1?"13":"16");
+    label.SetAttributeValue("font-size",variants?.Count>1?"13":"16");
     label.SetAttributeValue("font-weight","700");
     if(variants is null||variants.Count==0)continue;
+    var x=label.Attribute("x")?.Value??"0";
     if(variants.Count==1) {
-     label.SetAttributeValue("fill",variants[0].Color);
-     label.Value=variants[0].Text;
+     var variant=variants[0];
+     // DCS-Common retains the SVG's native fill for an unmodified base label.
+     if(variant.Color!="#ffffff"||variant.Scope!=AssignmentLayer.Module||variant.ModifierChord.Length>0)
+      label.SetAttributeValue("fill",variant.Color);
+     var lines=WrapLabel(variant.Text);
+     if(lines.Count==1)label.Value=lines[0];
+     else for(var i=0;i<lines.Count;i++)
+      label.Add(new XElement(label.Name.Namespace+"tspan",new XAttribute("x",x),
+       new XAttribute("dy",i==0?-8:16),new XAttribute("font-size",16),
+       new XAttribute("font-weight","700"),lines[i]));
      continue;
     }
-    var x=label.Attribute("x")?.Value??"0";
-    var lineHeight=variants.Count>2?13:16;
     for(var i=0;i<variants.Count;i++) {
      var variant=variants[i];
-     label.Add(new XElement(label.Name.Namespace+"tspan",
-      new XAttribute("x",x),new XAttribute("dy",i==0?-(variants.Count-1)*lineHeight/2:lineHeight),
-      new XAttribute("fill",variant.Color),new XAttribute("font-weight","700"),variant.Text));
+     var span=new XElement(label.Name.Namespace+"tspan",
+      new XAttribute("x",x),new XAttribute("dy",i==0?-(variants.Count-1)*8:16),
+      new XAttribute("font-size",13),new XAttribute("font-weight","700"),
+      new XAttribute("data-full-label",variant.Text),variant.Text);
+     if(variant.Color!="#ffffff"||variant.Scope!=AssignmentLayer.Module||variant.ModifierChord.Length>0)
+      span.SetAttributeValue("fill",variant.Color);
+     label.Add(span);
     }
    } else if(id?.StartsWith("meta-",StringComparison.Ordinal)==true) {
     label.RemoveNodes();
@@ -83,6 +95,17 @@ public static class CompositeKneeboardRenderer {
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static IReadOnlyList<string> WrapLabel(string value) {
+  var words=value.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries);
+  var lines=new List<string>();
+  foreach(var word in words) {
+   if(lines.Count==0||lines[^1].Length+1+word.Length>18)lines.Add(word);
+   else lines[^1]+=" "+word;
+  }
+  if(lines.Count<=2)return lines.Count==0?[""]:lines;
+  var tail=string.Join(" ",lines.Skip(1));
+  return [lines[0],tail[..Math.Min(17,tail.Length)].TrimEnd()+"…"];
+ }
  private static string BuildLegend(IReadOnlyList<KneeboardModifierLegend> legend) {
   if(legend.Count==0)return "";
   var result=new StringBuilder();
