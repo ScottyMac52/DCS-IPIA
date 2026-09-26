@@ -18,10 +18,12 @@ public static class UiLayerDiagramFactory {
  public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null) {
   ArgumentNullException.ThrowIfNull(import);ArgumentNullException.ThrowIfNull(catalog);ArgumentNullException.ThrowIfNull(sources);
   if(!import.Succeeded||!catalog.Succeeded)throw new ArgumentException("Validated imports are required.");
-  var usage=import.Metadata["config/kneeboard.json"].GetProperty("uiLayerUtilization").GetProperty("bindings");
+  var kneeboard=import.Metadata["config/kneeboard.json"];
+  var usage=kneeboard.TryGetProperty("uiLayerUtilization",out var utilization)?
+   utilization.GetProperty("bindings").EnumerateArray().ToArray():[];
   var diagrams=new List<UiLayerDiagram>();
   foreach(var profile in import.Configuration!.Profiles) {
-   var rows=usage.EnumerateArray().Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
+   var rows=usage.Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
     &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
    var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);

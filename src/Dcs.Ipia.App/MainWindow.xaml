@@ -29,8 +29,9 @@
         </ComboBox>
         <Button Content="Settings" Padding="14,8" Margin="0,0,6,0"
                 Click="Settings_Click" ToolTip="Theme and occupied-destination behavior."/>
-        <Button x:Name="ImportHueyButton" Content="Import Huey sources" Padding="14,8" Margin="6,0"
-                Click="ImportHuey_Click" ToolTip="Choose a Huey Git repository or a DCS Saved Games module/joystick folder." />
+        <Button x:Name="ImportHueyButton" Content="Import module sources" Padding="14,8" Margin="6,0"
+                Click="ImportHuey_Click" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder." />
+        <ComboBox x:Name="SavedModules" Width="180" Margin="6,0" VerticalAlignment="Center" DisplayMemberPath="DisplayName" AutomationProperties.Name="Saved module selection" SelectionChanged="SavedModuleChanged"/>
         <Button Content="Open saved module" Padding="14,8" Margin="6,0" Click="OpenSaved_Click"
                 ToolTip="Open editor graphics, catalogs and assignments from the local SQLite database."/>
         <Button x:Name="ViewImportedButton" Content="Open assignment editor" IsEnabled="False" Padding="14,8" Margin="6,0"
@@ -48,9 +49,9 @@
           <TextBlock Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" Text="DESIGN PREVIEW · sample data"/>
         </Border>
         <StackPanel>
-          <TextBlock FontSize="18" FontWeight="SemiBold" Text="UH-1H Huey"/>
+          <TextBlock FontSize="18" FontWeight="SemiBold" Text="Saved module workspace"/>
           <TextBlock Style="{DynamicResource Hint}"
-                     Text="Example module · input ID UH-1H · shared UI Layer from DCS-Common"/>
+                     Text="Choose a stored module or import a module to edit its device assignments."/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -63,7 +64,7 @@
           <StackPanel>
             <TextBlock Style="{DynamicResource SectionTitle}" Text="One place for a module"/>
             <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,20"
-                       Text="The example below shows the proposed route from DCS exports to a reviewed package. Import committed Huey and DCS-Common sources to open the graphical assignment editor; changes remain in memory until persistence is connected."/>
+                       Text="The example below shows the route from DCS exports to a reviewed package. Import committed module and DCS-Common sources to open the graphical assignment editor; Save to database persists assignments."/>
             <Border Style="{DynamicResource Card}">
               <StackPanel>
                 <TextBlock Style="{DynamicResource SectionTitle}" Text="1  Import and resolve"/>
@@ -94,11 +95,11 @@
           <StackPanel>
             <TextBlock Style="{DynamicResource SectionTitle}" Text="Assignment editor"/>
             <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,16" TextWrapping="Wrap"
-                       Text="Open committed Huey and DCS-Common sources to see the real device image and draw.io-generated SVG callouts. Search module or UI Layer commands, then drag, right-click, or use the inspector to stage assignments."/>
+                       Text="Open committed module and DCS-Common sources to see the real device image and draw.io-generated SVG callouts. Search module or UI Layer commands, then drag, right-click, or use the inspector to stage assignments."/>
             <Button Content="Open assignment editor" Click="OpenEditor_Click" Padding="15,9"
                     HorizontalAlignment="Left" AutomationProperties.Name="Open real assignment editor"/>
             <TextBlock Style="{DynamicResource Hint}" Margin="0,14,0,0" TextWrapping="Wrap"
-                       Text="The editor keeps changes in memory with undo and review. Saving source changes is part of the next workstream."/>
+                       Text="The editor keeps changes in memory with undo and review. Save to database persists module assignments without changing source repositories."/>
           </StackPanel>
         </Border>
       </TabItem>
@@ -108,7 +109,7 @@
           <StackPanel>
             <TextBlock Style="{DynamicResource SectionTitle}" Text="UI Layer · this module"/>
             <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,16" TextWrapping="Wrap"
-                       Text="Open the same graphical editor and choose UI Layer commands. The DCS-Common SVG and function catalog are shared; staged assignments belong only to the imported Huey module."/>
+                       Text="Open the same graphical editor and choose UI Layer commands. The DCS-Common SVG and function catalog are shared; staged assignments belong only to the selected module."/>
             <Button Content="Open UI Layer editor" Click="OpenEditor_Click" Padding="15,9"
                     HorizontalAlignment="Left" AutomationProperties.Name="Open graphical UI Layer editor"/>
           </StackPanel>
@@ -140,7 +141,7 @@
         <TextBlock x:Name="ThemeSaveStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
         <TextBlock x:Name="ImportStatus" TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
         <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"
-                 Text="This workspace layout shows sample data. Open source (read-only) for live Saved Games profiles or committed Huey data and existing rendered PNGs. Edit and build remain unavailable."/>
+                 Text="Select a saved module to reopen its stored editor. Repository import reads committed source and writes the resulting workspace to SQLite."/>
       </StackPanel>
     </Border>
   </Grid>

@@ -38,7 +38,7 @@
     </StackPanel>
     <TabControl x:Name="ImportedTabs" Grid.Row="1" TabStripPlacement="Left" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" ItemContainerStyle="{DynamicResource NavigationItem}"
-                AutomationProperties.Name="Imported Huey data">
+                AutomationProperties.Name="Imported module data">
       <TabItem Header="Profiles">
         <ListBox ItemsSource="{Binding Profiles}" AutomationProperties.Name="Imported device profiles"/>
       </TabItem>

@@ -7,14 +7,14 @@ using Dcs.Ipia.Application.Interfaces;
 
 namespace Dcs.Ipia.Dcs;
 
-/// <summary>Reads committed source files from selected local Git checkouts for a Huey preview.</summary>
+/// <summary>Reads committed source files from selected local Git checkouts for a module preview.</summary>
 public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
  #region BEGIN Public
  /// <summary>Imports the committed repository heads without changing either checkout.</summary>
  /// <param name="commonRoot">DCS-Common checkout root.</param>
- /// <param name="hueyRoot">Huey checkout root.</param>
+ /// <param name="hueyRoot">module checkout root.</param>
  /// <param name="cancellationToken">Cancellation token for Git reads.</param>
- /// <returns>A validated Huey import including original committed source text.</returns>
+ /// <returns>A validated module import including original committed source text.</returns>
  public async Task<HueyWorkspacePreview> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default) {
   var common=await RepositoryRootAsync(commonRoot,cancellationToken);
   var huey=await RepositoryRootAsync(hueyRoot,cancellationToken);
@@ -31,20 +31,22 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
   var sharedSources=await ReadSourcesAsync(common,sharedPaths,cancellationToken);
   var shared=new DcsCommonLuaImporter().Import(new(commonCommit,catalog,sharedSources.Select(x=>new SharedLuaSource(x.Key,x.Value)).ToArray()));
   if(!shared.Succeeded)throw new InvalidDataException($"DCS-Common Lua: {string.Join("; ",shared.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message))}");
-  var hueyPaths=(await TrackedPathsAsync(huey,"config","src/Config/Input/UH-1H",cancellationToken))
+  var hueyPaths=(await TrackedPathsAsync(huey,"config","src/Config/Input",cancellationToken))
    .Where(x=>x.StartsWith("config/",StringComparison.Ordinal)&&x.EndsWith(".json",StringComparison.Ordinal)
-    ||x=="src/Config/Input/UH-1H/modifiers.lua"
-    ||x.StartsWith("src/Config/Input/UH-1H/joystick/",StringComparison.Ordinal)&&x.EndsWith(".diff.lua",StringComparison.Ordinal))
+    ||x.StartsWith("src/Config/Input/",StringComparison.Ordinal)&&
+     (x.EndsWith("/modifiers.lua",StringComparison.Ordinal)||
+      x.Contains("/joystick/",StringComparison.Ordinal)&&x.EndsWith(".diff.lua",StringComparison.Ordinal)))
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
-  var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray()));
+  var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray(),Path.GetFileName(huey)));
   var (moduleCommands,commandSource,commandDiagnostics)=LoadLinkedCommands(huey,hueySources,imported.Configuration?.Module.DcsId);
   if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
 
-  var available=(await TrackedPathsAsync(huey,"kneeboard/UH-1H","kneeboard/UH-1H",cancellationToken)).ToHashSet(StringComparer.Ordinal);
+  var kneeboardRoot=$"kneeboard/{imported.Configuration!.Module.DcsId}";
+  var available=(await TrackedPathsAsync(huey,kneeboardRoot,kneeboardRoot,cancellationToken)).ToHashSet(StringComparer.Ordinal);
   var images=new List<KneeboardImageAsset>();
   foreach(var page in imported.Pages) {
-   var path=$"kneeboard/UH-1H/{page.StableKey}.png";
+   var path=$"{kneeboardRoot}/{page.StableKey}.png";
    if(!available.Contains(path))continue;
    var bytes=await GitBytesAsync(huey,cancellationToken,"show",$"HEAD:{path}");
    images.Add(new(page.StableKey,path,bytes,Convert.ToHexStringLower(SHA256.HashData(bytes))));
@@ -67,12 +69,18 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
  #region BEGIN private helpers
  private static (IReadOnlyList<CommandPaletteEntry> Commands,string Source,IReadOnlyList<ImportDiagnostic> Diagnostics)
   LoadLinkedCommands(string hueyRoot,IReadOnlyDictionary<string,string> sources,string? moduleId) {
-  var solution=sources.FirstOrDefault(x=>x.Key=="config/UH-1H.dcs-scaffold.json");
-  if(string.IsNullOrEmpty(solution.Value))
-   solution=sources.FirstOrDefault(x=>x.Key=="config/scaffold.dcs-scaffold.json");
-  if(string.IsNullOrEmpty(solution.Value))
-   return ([],"No scaffold solution with a linked command source was found.",[]);
   try {
+   var solution=sources.Where(x=>x.Key.StartsWith("config/",StringComparison.Ordinal)&&
+    x.Key.EndsWith(".dcs-scaffold.json",StringComparison.Ordinal))
+    .FirstOrDefault(x=>{
+     using var candidate=JsonDocument.Parse(x.Value);
+     var root=candidate.RootElement;
+     return root.TryGetProperty("import",out var import)&&
+      import.TryGetProperty("target",out var target)&&target.GetString()=="consumer"&&
+      import.TryGetProperty("inputModuleId",out var id)&&id.GetString()==moduleId;
+    });
+   if(string.IsNullOrEmpty(solution.Value))
+    return ([],"No consumer scaffold with a linked command source was found.",[]);
    using var document=JsonDocument.Parse(solution.Value);
    var import=document.RootElement.GetProperty("import");
    if(!import.TryGetProperty("commandSource",out var source)||source.ValueKind==JsonValueKind.Null)

@@ -15,9 +15,9 @@ public sealed class HueyImportViewModel {
   ModuleId=configuration.Module.Id;
   ModuleDcsId=configuration.Module.DcsId;
   ImportedBindings=configuration.Bindings;
-  WindowTitle="Huey · assignment editor";
+  WindowTitle=configuration.Module.DisplayName+" · assignment editor";
   Summary=$"{configuration.Module.DisplayName} · {configuration.Profiles.Count} profiles · {configuration.Bindings.Count} bindings · {result.Pages.Count} pages";
-  Commit=$"Huey commit: {result.Provenance[0].Commit}";
+  Commit=$"{configuration.Module.DcsId} commit: {result.Provenance[0].Commit}";
   SourceNote=$"{result.Provenance.Count} committed source files · {preview.Images.Count} existing kneeboard PNGs · uncommitted changes excluded";
   Profiles=configuration.Profiles.Select(x=>$"{x.DeviceId}  ·  {x.Instance??"single instance"}  ·  {configuration.Bindings.Count(y=>y.ProfileId==x.Id)} bindings  ·  {x.SourceName}").ToArray();
   Bindings=configuration.Bindings.Select(x=>{
@@ -39,7 +39,7 @@ public sealed class HueyImportViewModel {
   ModifierChoices=ModuleModifierChoices;
   UiCommands=CommandPalette.FromUiLayer(preview.UiCommands);
   PaletteSourceNote=preview.ModuleCommands.Count>0?preview.ModuleCommandSource:
-   $"{preview.ModuleCommandSource} Import the UH-1H command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
+   $"{preview.ModuleCommandSource} Import the module command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
   UiUsage=preview.Diagrams.Count==0?[preview.GraphicDiagnostics.Count>0
    ?"UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
    :"No graphical UI Layer assignments found in this committed source."]:[];
@@ -85,7 +85,7 @@ public sealed class HueyImportViewModel {
    var profile=folder.Profiles.Single(y=>y.Id==x.ProfileId);
    return $"{profile.SourceName}  ·  {x.InputKey}  ·  {x.CommandName}  ·  {x.Disposition}{(x.Reformers.Count==0?"":$"  ·  {string.Join(" + ",x.Reformers)}")}";
   }).ToArray();
-  Pages=["Saved Games joystick files contain no kneeboard images. Open a Huey repository to preview its committed PNGs."];
+  Pages=["Saved Games joystick files contain no kneeboard images. Open a module repository to preview its committed PNGs."];
   PageKeys=[];
   Images=[];
   UiDiagrams=[];
@@ -97,7 +97,7 @@ public sealed class HueyImportViewModel {
   ModuleCommands=CommandPalette.FromBindings(folder.Bindings);
   UiCommands=[];
   PaletteSourceNote="Aircraft list: commands found in local bindings (partial catalog). Open both repositories for canonical UI Layer commands.";
-  UiUsage=["Canonical UI Layer graphics require a Huey repository and DCS-Common catalog."];
+  UiUsage=["Canonical UI Layer graphics require a module repository and DCS-Common catalog."];
   HasErrors=folder.Diagnostics.Any(x=>x.IsError);
   Diagnostics=folder.Diagnostics.Count==0?["No import diagnostics."]:folder.Diagnostics.Select(x=>$"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}").ToArray();
   Provenance=["Live local files; no repository commit or source hash was claimed."];
@@ -190,7 +190,8 @@ public sealed class HueyImportViewModel {
      global::Dcs.Ipia.Domain.BindingSection.Key,DcsInputKey.Resolve(configuration,diagram.ProfileId,global::Dcs.Ipia.Domain.BindingSection.Key,control.InputKey),callout.Modifier.Replace(" + ","+",StringComparison.Ordinal)),
      new(callout.CommandId,callout.Function,false,AssignmentLayer.UiLayer)));
    }
-   var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),assignments,
+   var unique=assignments.GroupBy(x=>x.Slot.Key,StringComparer.Ordinal).Select(x=>x.First()).ToArray();
+   var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),unique,
     preview.Diagrams.SelectMany(x=>x.Callouts).SelectMany(x=>x.Modifier.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)));
    return (editor,unmatched==0?"Changes are staged in memory. Review, undo or discard them before leaving this window.":
     $"{unmatched} imported bindings could not be mapped to authored controls and are excluded from this draft. No source file is changed.");

@@ -24,7 +24,7 @@ public sealed class SqliteEditorWorkspaceRepository(string connectionString):IEd
   var configuration=await new SqliteConfigurationRepository(connectionString).GetAsync(moduleId,ct)
    ??throw new InvalidDataException("The editor workspace has no stored module configuration.");
   var snapshot=new EditorWorkspaceSnapshot(configuration,payload.Pages,payload.Images,payload.Diagrams,
-   payload.ModuleCommands,payload.UiCommands,payload.Assignments,payload.Labels);
+   payload.ModuleCommands,payload.UiCommands,payload.Assignments,payload.Labels,payload.Sources);
   if(payload.Version<2) {
    snapshot=EditorWorkspaceUpgrade.RestoreShiftedControls(snapshot);
    snapshot=EditorWorkspaceUpgrade.RestoreMissingImportedAssignments(snapshot);
@@ -60,7 +60,7 @@ public sealed class SqliteEditorWorkspaceRepository(string connectionString):IEd
   command.CommandText="INSERT INTO editor_workspaces(module_id,snapshot_json,updated_utc) VALUES($id,$json,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(module_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,updated_utc=excluded.updated_utc";
   command.Parameters.AddWithValue("$id",snapshot.Configuration.Module.Id.ToString("D"));
   var payload=new EditorWorkspacePayload(snapshot.Pages,snapshot.Images,snapshot.Diagrams,
-   snapshot.ModuleCommands,snapshot.UiCommands,snapshot.Assignments,snapshot.Labels) {Version=3};
+   snapshot.ModuleCommands,snapshot.UiCommands,snapshot.Assignments,snapshot.Labels,snapshot.Sources) {Version=3};
   command.Parameters.AddWithValue("$json",JsonSerializer.Serialize(payload,JsonOptions));
   await command.ExecuteNonQueryAsync(ct);
   await transaction.CommitAsync(ct);

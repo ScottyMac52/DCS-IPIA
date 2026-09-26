@@ -31,7 +31,7 @@ public sealed class HueyConsumerImporterTests {
   var source=request.Sources.Single(x=>x.Path=="config/kneeboard.json");
   Assert.Equal(source.Content,result.Sources[source.Path]);
   Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source.Content))),result.Provenance.Single(x=>x.Path==source.Path).Sha256);
-  Assert.All(result.Provenance,x=>{Assert.Equal(request.Commit,x.Commit);Assert.Equal("ScottyMac52/DCS-UH-1H-Huey",x.Repository);});
+  Assert.All(result.Provenance,x=>{Assert.Equal(request.Commit,x.Commit);Assert.Equal("UH-1H",x.Repository);});
  }
  /// <summary>Repeat imports preserve ordering, stable IDs, and content hashes.</summary>
  [Fact] public void Repeated_import_is_deterministic() {
@@ -93,7 +93,7 @@ public sealed class HueyConsumerImporterTests {
  [Fact] public void Unmapped_overlay_assignments_are_rejected() {
   var request=Fixture();var sources=Replace(request,"config/ui-layer-overlay.json",x=>x.Replace("\"assignments\": []","\"assignments\": [{}]",StringComparison.Ordinal));
   var result=new HueyConsumerImporter().Import(request with {Sources=sources});
-  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("overlay assignments",StringComparison.Ordinal));
+  Assert.True(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="module-overlay-preserved");
  }
  /// <summary>Malformed authored JSON yields a diagnostic and no partial configuration.</summary>
  [Fact] public void Malformed_json_is_atomic() {
@@ -149,12 +149,29 @@ public sealed class HueyConsumerImporterTests {
  [Fact] public void Missing_config_file_is_reported() {
   var request=Fixture();var sources=request.Sources.Where(x=>x.Path!="config/ui-layer-overlay.json").ToArray();
   var result=new HueyConsumerImporter().Import(request with {Sources=sources});
-  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="missing-source"&&x.Message.Contains("ui-layer-overlay",StringComparison.Ordinal));
+  Assert.True(result.Succeeded);Assert.False(result.Metadata.ContainsKey("config/ui-layer-overlay.json"));
  }
  /// <summary>Unknown source paths are rejected before any consumer files are read.</summary>
  [Fact] public void Unknown_source_path_is_rejected() {
   var request=Fixture();var result=new HueyConsumerImporter().Import(request with {Sources=[..request.Sources,new("src/Config/Input/Other/unknown.diff.lua","return {}")]});
-  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source");
+ }
+ /// <summary>Uses another module's own scaffold and kneeboard paths without Huey-only support files.</summary>
+ [Fact] public void Consumer_module_identity_is_derived_from_its_own_config() {
+  var original=Fixture();
+  var sources=original.Sources.Where(x=>x.Path is not (
+   "config/scaffold.dcs-scaffold.json" or "config/ui-layer-overlay.json" or
+   "config/scaffold-device-overrides.json" or "config/scaffold-instance-roles.json"))
+   .Select(x=>new ConsumerSource(x.Path.Replace("UH-1H","F-14BU",StringComparison.Ordinal),
+    x.Path.EndsWith(".json",StringComparison.Ordinal)
+     ?x.Content.Replace("UH-1H","F-14BU",StringComparison.Ordinal):x.Content)).ToArray();
+  var result=new HueyConsumerImporter().Import(original with {Sources=sources,Repository="F-14BU"});
+  Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal("F-14BU",result.Configuration!.Module.DcsId);
+  Assert.Equal(5,result.Configuration.Profiles.Count);
+  Assert.Equal(101,KneeboardLabelImporter.Import(result.Metadata,result.Configuration).Count);
+  Assert.Empty(result.Usage);
+  Assert.All(result.Provenance,x=>Assert.Equal("F-14BU",x.Repository));
  }
  #endregion END Public
  #region BEGIN private helpers

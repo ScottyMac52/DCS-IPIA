@@ -11,6 +11,7 @@ namespace Dcs.Ipia.Application;
 /// <param name="UiCommands">Stored standard UI Layer command catalog.</param>
 /// <param name="Assignments">Current module and module-local UI Layer assignments.</param>
 /// <param name="Labels">Displayed callout label overrides by assignment slot.</param>
+/// <param name="Sources">Original imported module configuration text for lossless recovery.</param>
 public sealed record EditorWorkspaceSnapshot(
  ModuleConfiguration Configuration,
  IReadOnlyList<KneeboardPage> Pages,
@@ -19,4 +20,5 @@ public sealed record EditorWorkspaceSnapshot(
  IReadOnlyList<CommandPaletteEntry> ModuleCommands,
  IReadOnlyList<DcsCommandDefinition> UiCommands,
  IReadOnlyList<DraftAssignment> Assignments,
- IReadOnlyDictionary<string,string> Labels);
+ IReadOnlyDictionary<string,string> Labels,
+ IReadOnlyDictionary<string,string>? Sources=null);

@@ -39,6 +39,16 @@ public sealed class EditorWorkspacePersistenceTests {
    Assert.Equal("Weapons",restored.ModuleCommands[0].Category);
    Assert.Equal("FIRE",Assert.Single(restored.Assignments).Command.Id);
    Assert.Equal("Trigger",restored.Labels[slot.Key]);
+   var secondModule=new DcsModule(Guid.NewGuid(),"F-14BU","Tomcat");
+   var secondConfig=new ModuleConfiguration(secondModule,[],[],[],"import");
+   await new SqliteConfigurationRepository(connection).ReplaceAsync(secondConfig);
+   await repository.SaveAsync(new EditorWorkspaceSnapshot(secondConfig,[],[],[],[],[],[],
+    new Dictionary<string,string>(),new Dictionary<string,string> {["config/kneeboard.json"]="{}"}));
+   Assert.Equal(2,(await repository.ListAsync()).Count);
+   var second=await repository.GetAsync(secondModule.Id);
+   Assert.Equal("F-14BU",second!.Configuration.Module.DcsId);
+   Assert.Equal("{}",second.Sources!["config/kneeboard.json"]);
+   Assert.Equal("Trigger",(await repository.GetAsync(module.Id))!.Labels[slot.Key]);
   }
   finally {File.Delete(path);}
  }
