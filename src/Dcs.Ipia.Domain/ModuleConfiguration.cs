@@ -16,7 +16,7 @@ public sealed record ModuleConfiguration {
   Modifiers=(modifiers??throw new ArgumentNullException(nameof(modifiers))).OrderBy(x=>x.Name,StringComparer.Ordinal).ToArray(); Bindings=(bindings??throw new ArgumentNullException(nameof(bindings))).OrderBy(x=>x.ProfileId).ThenBy(x=>x.Section).ThenBy(x=>x.CommandId,StringComparer.Ordinal).ThenBy(x=>x.Disposition).ThenBy(x=>x.InputKey,StringComparer.Ordinal).ToArray();
   EnsureUnique(Profiles.Select(x=>x.Id),"profile ID"); EnsureUnique(Profiles.Select(x=>$"{x.DeviceId}\0{x.Instance}"),"device instance",StringComparer.OrdinalIgnoreCase); EnsureUnique(Modifiers.Select(x=>x.Name),"modifier name",StringComparer.OrdinalIgnoreCase); EnsureUnique(Modifiers.Select(x=>$"{x.Device}\0{x.Key}"),"modifier input",StringComparer.OrdinalIgnoreCase);
   var profileIds=Profiles.Select(x=>x.Id).ToHashSet(); if(Bindings.Any(x=>!profileIds.Contains(x.ProfileId))) throw new ArgumentException("Every binding must reference a profile.",nameof(bindings));
-  var modifierNames=Modifiers.Select(x=>x.Name).ToHashSet(StringComparer.Ordinal); if(Bindings.SelectMany(x=>x.Reformers).Any(x=>!modifierNames.Contains(x))) throw new ArgumentException("Every reformer must reference a declared modifier.",nameof(bindings));
+  var modifierNames=Modifiers.Select(x=>x.Name).ToHashSet(StringComparer.Ordinal); if(Bindings.Where(x=>x.Disposition!=BindingDisposition.Removed).SelectMany(x=>x.Reformers).Any(x=>!modifierNames.Contains(x))) throw new ArgumentException("Every reformer must reference a declared modifier.",nameof(bindings));
   Provenance=string.IsNullOrWhiteSpace(provenance)?throw new ArgumentException("Provenance is required.",nameof(provenance)):provenance.Trim();
  }
  #region BEGIN Public
