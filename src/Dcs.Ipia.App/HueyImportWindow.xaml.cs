@@ -12,6 +12,8 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using Microsoft.Win32;
+using System.Text.Json;
 
 namespace DcsIpia.Presentation;
 
@@ -293,6 +295,25 @@ public partial class HueyImportWindow : Window {
    EditorMessage.Text="Assignments and labels saved to the local database.";
   }
   catch(Exception ex) {EditorMessage.Text="Database save failed: "+ex.Message;}
+ }
+ private void LoadAuthoredLabelsClicked(object sender,RoutedEventArgs e) {
+  if(_saved is null||_draft is null)return;
+  var picker=new OpenFileDialog {Title="Select the Huey config/kneeboard.json file",
+   Filter="kneeboard.json|kneeboard.json|JSON files|*.json"};
+  if(picker.ShowDialog(this)!=true)return;
+  try {
+   using var document=JsonDocument.Parse(File.ReadAllText(picker.FileName));
+   var metadata=new Dictionary<string,JsonElement> {["config/kneeboard.json"]=document.RootElement};
+   var imported=KneeboardLabelImporter.Import(metadata,_saved.Configuration);
+   if(imported.Count==0) {EditorMessage.Text="No authored labels matched this saved module.";return;}
+   foreach(var pair in imported)_labels[pair.Key]=pair.Value;
+   RefreshEditor();
+   EditorMessage.Text=$"{imported.Count} authored Module labels staged. Save to database to keep them, or Discard draft.";
+   PendingSummary.Text="Pending label changes";
+  }
+  catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
+   EditorMessage.Text="Unable to load authored labels: "+ex.Message;
+  }
  }
  private void DiscardClicked(object sender,RoutedEventArgs e) {
   _draft?.Discard();_labels.Clear();
