@@ -176,14 +176,13 @@ public partial class HueyImportWindow : Window {
   var category=CommandCategory.SelectedItem as string;
   var filtered=CommandPalette.Filter(list,CommandSearch.Text,category=="All"?null:category)
    .Where(x=>CommandType.SelectedIndex==0||(CommandType.SelectedIndex==2)==x.IsAxis).ToArray();
-  var diagram=CurrentDiagram;
-  if(BindingState.SelectedIndex>0&&diagram is not null&&_draft is not null) {
+  if(_draft is not null&&BindingState.SelectedIndex>0) {
    var layer=Layers.SelectedItem as string??"Base";
    var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
-   var bound=_draft.Snapshot.Where(x=>x.Slot.ProfileId==diagram.ProfileId&&
-    x.Slot.Layer==CurrentLayer&&x.Slot.ModifierChord==chord)
-    .Select(x=>x.Command.Id).ToHashSet(StringComparer.Ordinal);
-   filtered=filtered.Where(x=>bound.Contains(x.Id)==(BindingState.SelectedIndex==1)).ToArray();
+   var eligible=_viewModel.UiDiagrams.Where(x=>CurrentLayer==AssignmentLayer.Module||x.SupportsUiLayer)
+    .Select(x=>x.ProfileId);
+   filtered=CommandBindingStateFilter.Filter(filtered,_draft.Snapshot,CurrentLayer,eligible,
+    CurrentDiagram?.ProfileId,chord,(CommandBindingState)BindingState.SelectedIndex).ToArray();
   }
   Commands.ItemsSource=filtered;
   CommandCount.Text=$"Showing {filtered.Length} of {list.Count}";

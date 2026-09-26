@@ -113,8 +113,10 @@
                     <ComboBoxItem Content="All"/><ComboBoxItem Content="Key"/><ComboBoxItem Content="Axes"/>
                   </ComboBox>
                   <TextBlock Text="Binding state" Margin="0,4,0,0"/>
-                  <ComboBox x:Name="BindingState" SelectionChanged="FiltersChanged">
+                  <ComboBox x:Name="BindingState" SelectionChanged="FiltersChanged"
+                            ToolTip="Bound/Unbound: selected device and modifier. Bound by all: assigned on every device in this scope. Unbound by all: assigned on no device in this scope.">
                     <ComboBoxItem Content="All"/><ComboBoxItem Content="Bound"/><ComboBoxItem Content="Unbound"/>
+                    <ComboBoxItem Content="Bound by all"/><ComboBoxItem Content="Unbound by all"/>
                   </ComboBox>
                   <TextBlock x:Name="CommandCount" Margin="0,6"/>
                 </StackPanel>
