@@ -34,5 +34,19 @@ public sealed class CompositeKneeboardRendererTests {
   var png=CompositeKneeboardRenderer.Render(diagram,page);
   Assert.Equal(new byte[] {137,80,78,71,13,10,26,10},png.Take(8));
  }
+ /// <summary>Final-style labels wrap without losing the authored base color; modifier entries stay on one callout.</summary>
+ [Fact] public void Keeps_native_base_color_and_wraps_long_single_labels() {
+  const string svg="<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='white'/><text id='lbl-one' x='50' y='50' fill='black'>Old</text></svg>";
+  var diagram=new UiLayerDiagram("Device",null,"device.svg",100,100,[],[]) {Svg=svg};
+  var page=new KneeboardComposite("Device","",
+   new Dictionary<string,IReadOnlyList<KneeboardLabelVariant>> {
+    ["one"]=[new("Long function name for a control","#ffffff",AssignmentLayer.Module,"")]
+   },new Dictionary<string,string>(),[]);
+  var document=XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram,page));
+  var label=Assert.Single(document.Descendants().Where(x=>x.Attribute("id")?.Value=="lbl-one"));
+  Assert.Equal("black",label.Attribute("fill")?.Value);
+  Assert.Equal(2,label.Elements().Count());
+  Assert.DoesNotContain("data-modifier-legend",CompositeKneeboardRenderer.BuildPageSvg(diagram,page));
+ }
  #endregion END Public
 }
