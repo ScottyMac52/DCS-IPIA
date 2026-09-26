@@ -176,7 +176,8 @@ public sealed class HueyConsumerImporterTests {
   Assert.Equal(7,stickDiagram.Callouts.Count);
   Assert.DoesNotContain(diagrams.SelectMany(x=>x.Callouts),
    x=>x.Modifier is "AVA_BASE_MODIFIER_BTN3" or "MOZA_MODIFIER_BTN3");
-  Assert.Empty(diagrams.Single(x=>x.Instance=="MFD3").Callouts);
+  Assert.NotEmpty(diagrams.Single(x=>x.Instance=="MFD3").Callouts);
+  Assert.All(diagrams.Single(x=>x.Instance=="MFD3").Callouts,x=>Assert.Equal("VKB_F14_BTN7",x.Modifier));
  }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {
