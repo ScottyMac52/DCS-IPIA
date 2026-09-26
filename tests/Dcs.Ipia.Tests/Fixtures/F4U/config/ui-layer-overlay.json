@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 2,
+  "assignments": [
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN1",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN6",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN4",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN_POV1_L",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN_POV1_U",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN_POV1_R",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN_POV1_D",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN27",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN1",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN2",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN3",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN21",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN22",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN8",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN15",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN13",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN25",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN26",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN23",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN24",
+      "reformers": [
+        "AVA_BASE_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN27",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN1",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN2",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN3",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN15",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN8",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN13",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN21",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN22",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN25",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN26",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN23",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    },
+    {
+      "tuneOnly": false,
+      "clear": true,
+      "profileFile": "F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "section": "keyDiffs",
+      "key": "JOY_BTN24",
+      "reformers": [
+        "MOZA_MODIFIER_BTN3"
+      ],
+      "allowCreate": false,
+      "command": "",
+      "name": "",
+      "axisFilter": null
+    }
+  ],
+  "labels": {},
+  "modifierOverrides": [],
+  "removedModifiers": [
+    "AVA_BASE_MODIFIER_BTN3",
+    "MOZA_MODIFIER_BTN3"
+  ],
+  "removedProfiles": []
+}

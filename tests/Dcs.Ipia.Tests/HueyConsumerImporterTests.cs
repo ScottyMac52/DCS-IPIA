@@ -131,6 +131,28 @@ public sealed class HueyConsumerImporterTests {
   Assert.Contains(labels.Keys,x=>x.Split('\u001f')[1]==second.Id.ToString());
   Assert.Equal(2,imported.Instances.Count(x=>x.StableKey is "tm-mfd-1" or "tm-mfd-2"));
  }
+ /// <summary>Imports the committed F4U-1D module with both quadrants and obsolete removed chords.</summary>
+ [Fact] public void Imports_real_f4u_sources_without_conflating_quadrants() {
+  var common=Fixture();
+  var root=Path.Combine(AppContext.BaseDirectory,"Fixtures","F4U");
+  var sources=Directory.GetFiles(root,"*.*",SearchOption.AllDirectories)
+   .Select(x=>new ConsumerSource(Path.GetRelativePath(root,x).Replace('\\','/'),File.ReadAllText(x)))
+   .OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
+  var request=common with {Commit="4cd755aa9dc36384e75d054893213b8a77bc26dc",
+   Repository="ScottyMac52/DCS-F4U-1D-Components",Sources=sources};
+  var imported=new HueyConsumerImporter().Import(request);
+  Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal("F4U-1D",imported.Configuration!.Module.DcsId);
+  Assert.Equal(10,imported.Configuration.Profiles.Count);
+  var quadrants=imported.Configuration.Profiles.Where(x=>x.DeviceId=="logitech-throttle-quadrant").ToArray();
+  Assert.Equal(2,quadrants.Length);
+  Assert.NotEqual(quadrants[0].Id,quadrants[1].Id);
+  Assert.All(quadrants,x=>Assert.Contains(imported.Configuration.Bindings,y=>y.ProfileId==x.Id));
+  Assert.Contains(imported.Configuration.Bindings,x=>x.Disposition==BindingDisposition.Removed&&x.Reformers.Contains("JOY_BTN3"));
+  var labels=KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration);
+  Assert.All(quadrants,x=>Assert.Contains(labels.Keys,key=>key.Split('\u001f')[1]==x.Id.ToString()));
+  Assert.Contains(imported.Diagnostics,x=>x.Code=="module-overlay-preserved");
+ }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{

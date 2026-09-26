@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "F4U-1D",
+  "import": {
+    "target": "consumer",
+    "profilesDirectory": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\F4U-1D\\joystick",
+    "modifiersPath": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\F4U-1D\\modifiers.lua",
+    "mozaGrip": "standalone",
+    "commonRoot": "C:\\Users\\vyper\\Source\\repos\\DCS-Common",
+    "outputDirectory": "C:\\Users\\vyper\\Source\\repos\\DCS-F4U-1D-Components",
+    "displayName": "F4U-1D",
+    "inputModuleId": "F4U-1D",
+    "kneeboardId": "F4U-1D",
+    "commandSource": {
+      "type": "catalog-json",
+      "paths": [
+        "C:\\Users\\vyper\\Source\\repos\\DCS-F4U-1D-Components\\config\\F4U-1D-commands.json"
+      ]
+    }
+  },
+  "decisions": {
+    "instanceRoles": {},
+    "semanticModifiers": {
+      "JOY_BTN7": "JOY_BTN7",
+      "LAlt": "LAlt",
+      "LCtrl": "LCtrl",
+      "LShift": "LShift",
+      "LWin": "LWin",
+      "RAlt": "RAlt",
+      "RCtrl": "RCtrl",
+      "RShift": "RShift",
+      "RWin": "RWin"
+    },
+    "removedProfiles": [
+      "onyourtwelve-pdcp",
+      "tm-warthog-throttle",
+      "viper-tqs-mission-pack"
+    ],
+    "authoredModifiers": [
+      {
+        "name": "JOY_BTN7",
+        "device": "VKBSim Gunfighter F14 {2D5CEC70-5189-11f1-8001-444553540000}",
+        "key": "JOY_BTN7",
+        "mode": "hold",
+        "semanticModifier": "JOY_BTN7",
+        "deviceId": "vkb-f14-gunfighter"
+      },
+      {
+        "name": "LAlt",
+        "device": "Keyboard",
+        "key": "LAlt",
+        "mode": "hold",
+        "semanticModifier": "LAlt"
+      },
+      {
+        "name": "LCtrl",
+        "device": "Keyboard",
+        "key": "LCtrl",
+        "mode": "hold",
+        "semanticModifier": "LCtrl"
+      },
+      {
+        "name": "LShift",
+        "device": "Keyboard",
+        "key": "LShift",
+        "mode": "hold",
+        "semanticModifier": "LShift"
+      },
+      {
+        "name": "LWin",
+        "device": "Keyboard",
+        "key": "LWin",
+        "mode": "hold",
+        "semanticModifier": "LWin"
+      },
+      {
+        "name": "RAlt",
+        "device": "Keyboard",
+        "key": "RAlt",
+        "mode": "hold",
+        "semanticModifier": "RAlt"
+      },
+      {
+        "name": "RCtrl",
+        "device": "Keyboard",
+        "key": "RCtrl",
+        "mode": "hold",
+        "semanticModifier": "RCtrl"
+      },
+      {
+        "name": "RShift",
+        "device": "Keyboard",
+        "key": "RShift",
+        "mode": "hold",
+        "semanticModifier": "RShift"
+      },
+      {
+        "name": "RWin",
+        "device": "Keyboard",
+        "key": "RWin",
+        "mode": "hold",
+        "semanticModifier": "RWin"
+      }
+    ],
+    "authoredDevices": []
+  }
+}
