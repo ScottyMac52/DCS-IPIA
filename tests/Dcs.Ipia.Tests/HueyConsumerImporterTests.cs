@@ -182,6 +182,30 @@ public sealed class HueyConsumerImporterTests {
   Assert.Contains(diagrams.Single(x=>x.Instance=="MFD3").Callouts,
    x=>x.Control=="mfd-osb-b1-shifted"&&x.Function=="Restart Mission");
  }
+ /// <summary>Only kneeboard-declared profiles become module devices even when the checkout contains other Lua files.</summary>
+ [Fact] public void Unreferenced_lua_profiles_do_not_block_module_import() {
+  var request=Fixture();
+  var sources=request.Sources.Concat([
+   new ConsumerSource("src/Config/Input/UH-1H/joystick/Old Controller.diff.lua","return {}"),
+   new ConsumerSource("src/Config/Input/Other/joystick/Other Controller.diff.lua","return {}")
+  ]).ToArray();
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal(5,result.Configuration!.Profiles.Count);
+  Assert.Equal(request.Sources.Length+2,result.Provenance.Count);
+  Assert.Contains(result.Diagnostics,x=>x.Code=="unreferenced-module-profiles");
+  Assert.DoesNotContain(result.Configuration.Profiles,x=>x.SourceName=="Old Controller.diff.lua");
+ }
+ /// <summary>A declared kneeboard profile still needs its Lua source when unrelated profiles are supplied.</summary>
+ [Fact] public void Unreferenced_lua_cannot_replace_missing_declared_profile() {
+  var request=Fixture();
+  var missing=request.Sources.Single(x=>x.Path.Contains("F16 MFD 1 ",StringComparison.Ordinal));
+  var sources=request.Sources.Where(x=>x!=missing).Append(
+   new ConsumerSource("src/Config/Input/UH-1H/joystick/Other Controller.diff.lua","return {}")).ToArray();
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);
+  Assert.Contains(result.Diagnostics,x=>x.Message.Contains("no supplied Lua source",StringComparison.Ordinal));
+ }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{

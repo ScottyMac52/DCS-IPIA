@@ -115,8 +115,12 @@ public sealed class HueyConsumerImporter:IHueyImporter {
     if(!profiles.Any(x=>x.SourceName==decision.Name))throw new FormatException($"Device override references unknown profile {decision.Name}.");
    foreach(var decision in roles.ValueKind==JsonValueKind.Object?roles.EnumerateObject().ToArray():Array.Empty<JsonProperty>())
     if(!profiles.Any(x=>x.SourceName==decision.Name))throw new FormatException($"Instance role references unknown profile {decision.Name}.");
-   if(profiles.Count!=pageRows.GetArrayLength()||profiles.Count!=files.Keys.Count(x=>x.EndsWith(".diff.lua",StringComparison.Ordinal)))
-    throw new FormatException("Every supplied Lua profile requires exactly one kneeboard profile and page.");
+   if(profiles.Count!=pageRows.GetArrayLength())
+    throw new FormatException("Every kneeboard profile requires exactly one page.");
+   var unused=files.Keys.Where(x=>x.StartsWith(profileRoot,StringComparison.Ordinal)&&
+    x.EndsWith(".diff.lua",StringComparison.Ordinal)&&!profilePaths.Contains(x)).ToArray();
+   if(unused.Length>0)diagnostics.Add(new("unreferenced-module-profiles",
+    $"{unused.Length} Lua profile(s) under {profileRoot} are not referenced by kneeboard.json and were not imported.",false));
    var configuration=new ModuleConfiguration(module,profiles,modifiers,bindings,$"{module.DcsId}@{request.Commit}");
    var multi=bindings.Where(x=>x.Disposition!=BindingDisposition.Removed)
     .GroupBy(x=>new {x.ProfileId,x.Section,x.InputKey,Chord=string.Join("+",x.Reformers)})
