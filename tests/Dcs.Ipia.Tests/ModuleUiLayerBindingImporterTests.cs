@@ -12,9 +12,9 @@ public sealed class ModuleUiLayerBindingImporterTests {
  /// <summary>Canonical assignments are selected per device and changed by authored overlay rows.</summary>
  [Fact] public void Composes_shared_bindings_with_module_clear_and_assignment() {
   var module=new DcsModule(Guid.NewGuid(),"TEST","Test module");
-  var profile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"Panel","Panel.diff.lua");
+  var profile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"Panel","Panel {11111111-1111-1111-1111-111111111111}.diff.lua");
   var configuration=new ModuleConfiguration(module,[profile],[],[],"test@sha");
-  var sharedProfile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"UI","Panel.diff.lua");
+  var sharedProfile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"UI","Panel {22222222-2222-2222-2222-222222222222}.diff.lua");
   var shared=new SharedLuaImportResult([], [sharedProfile],[
    new(sharedProfile.Id,BindingSection.Key,"BASE","Base command",BindingDisposition.Added,"JOY_BTN1"),
    new(sharedProfile.Id,BindingSection.Key,"SHIFT","Shift command",BindingDisposition.Added,"JOY_BTN2",["SHIFT"])
@@ -23,8 +23,8 @@ public sealed class ModuleUiLayerBindingImporterTests {
    {"includeUiLayer":true}
    ""","""
    {"assignments":[
-    {"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN1","reformers":[],"clear":true},
-    {"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN3","reformers":["SHIFT"],"clear":false,"command":"NEW","name":"New command"}
+    {"profileFile":"Panel {22222222-2222-2222-2222-222222222222}.diff.lua","section":"keyDiffs","key":"JOY_BTN1","reformers":[],"clear":true},
+    {"profileFile":"Panel {22222222-2222-2222-2222-222222222222}.diff.lua","section":"keyDiffs","key":"JOY_BTN3","reformers":["SHIFT"],"clear":false,"command":"NEW","name":"New command"}
    ],"removedModifiers":[]}
    """);
   var imported=new HueyImportResult(configuration,[],[],[],[],metadata,
@@ -40,7 +40,7 @@ public sealed class ModuleUiLayerBindingImporterTests {
   Assert.Empty(ModuleUiLayerBindingImporter.Import(imported,shared,
    new DeviceProfile(Guid.NewGuid(),"other-panel",null,"Other","Other.diff.lua")));
   var removedOverlay=JsonDocument.Parse("""
-   {"assignments":[{"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN1",
+   {"assignments":[{"profileFile":"Panel {22222222-2222-2222-2222-222222222222}.diff.lua","section":"keyDiffs","key":"JOY_BTN1",
     "reformers":[],"clear":true}],"removedModifiers":["SHIFT"]}
    """).RootElement.Clone();
   var removedMetadata=metadata.ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal);

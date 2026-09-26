@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 
@@ -22,10 +23,14 @@ public static class ModuleUiLayerBindingImporter {
   var matches=shared.Profiles.Where(x=>x.DeviceId==profile.DeviceId).ToArray();
   var canonical=matches.SingleOrDefault(x=>x.SourceName==profile.SourceName);
   if(canonical is null) {
-   var byInstance=matches.Where(x=>SameInstance(x.Instance,profile.Instance)).ToArray();
-   if(byInstance.Length==1)canonical=byInstance[0];
-   else if(matches.Length==1&&module.Configuration!.Profiles.Count(x=>x.DeviceId==profile.DeviceId)==1)
-    canonical=matches[0];
+   var byName=matches.Where(x=>NormalizeSourceName(x.SourceName)==NormalizeSourceName(profile.SourceName)).ToArray();
+   if(byName.Length==1)canonical=byName[0];
+   else {
+    var byInstance=matches.Where(x=>x.Instance is not null&&x.Instance==profile.Instance).ToArray();
+    if(byInstance.Length==1)canonical=byInstance[0];
+    else if(matches.Length==1&&module.Configuration!.Profiles.Count(x=>x.DeviceId==profile.DeviceId)==1)
+     canonical=matches[0];
+   }
   }
   if(canonical is null)return [];
   module.Metadata.TryGetValue("config/ui-layer-overlay.json",out var overlay);
@@ -59,9 +64,11 @@ public static class ModuleUiLayerBindingImporter {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static bool SameInstance(string? shared,string? module) =>
-  shared==module||shared is not null&&module is not null&&
-   module.EndsWith(shared,StringComparison.OrdinalIgnoreCase)&&
-   module[..^shared.Length].EndsWith("MFD",StringComparison.OrdinalIgnoreCase);
+ private static string NormalizeSourceName(string source) =>
+  GuidSuffix.Replace(source,string.Empty).Trim();
+#pragma warning disable SYSLIB1045 // Runtime regex keeps generated implementation details out of per-layer coverage.
+ private static readonly Regex GuidSuffix=new(@"\s*\{[0-9a-fA-F-]{36}\}(?=\.diff\.lua$)",
+  RegexOptions.CultureInvariant,TimeSpan.FromSeconds(1));
+#pragma warning restore SYSLIB1045
  #endregion END private helpers
 }
