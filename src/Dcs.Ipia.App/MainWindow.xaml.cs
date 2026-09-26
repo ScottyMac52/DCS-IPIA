@@ -67,14 +67,25 @@ public partial class MainWindow : Window {
      return;
     }
     var module=preview.Import.Configuration!;
+    var authored=preview.Import.Metadata["config/kneeboard.json"].GetProperty("pages")
+     .EnumerateArray().SelectMany(page=>page.TryGetProperty("layers",out var layers)
+      ?layers.EnumerateArray().SelectMany(layer=>layer.GetProperty("controls").EnumerateObject()).ToArray()
+      :[]).Count(control=>control.Value.TryGetProperty("labelId",out _));
+    if(authored!=importedView.Labels.Count)
+     throw new InvalidDataException($"Authored kneeboard labels did not map to database slots: {importedView.Labels.Count} of {authored}. Check the Huey kneeboard.json and diff.lua files at the selected commit.");
     await _configurations.ReplaceAsync(module);
     var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
      importedView.ModuleCommands,preview.UiCommands,importedView.Draft?.Snapshot??[],
      importedView.Labels);
     await _workspaces.SaveAsync(saved);
-    _lastViewModel=new HueyImportViewModel((await _workspaces.GetAsync(module.Module.Id))!);
+    var persisted=await _workspaces.GetAsync(module.Module.Id)
+     ??throw new InvalidDataException("The imported workspace could not be reopened from SQLite.");
+    if(persisted.Labels.Count!=importedView.Labels.Count||
+       importedView.Labels.Any(pair=>!persisted.Labels.TryGetValue(pair.Key,out var value)||value!=pair.Value))
+     throw new InvalidDataException("The authored kneeboard labels did not survive the SQLite save.");
+    _lastViewModel=new HueyImportViewModel(persisted);
     ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Imported {preview.Import.Configuration!.Profiles.Count} Huey profiles, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
+    ImportStatus.Text=$"Imported {module.Profiles.Count} Huey profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
    }
    ShowImported();
   }

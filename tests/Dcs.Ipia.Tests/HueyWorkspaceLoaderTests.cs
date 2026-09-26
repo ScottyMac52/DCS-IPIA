@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using Xunit;
 
 namespace Dcs.Ipia.Tests;
@@ -64,6 +65,29 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
    Assert.Equal(12,result.Import.Provenance.Count);
    Assert.Equal(13,result.Import.UiFunctionKeys.Count);
+   var authoredLabels=KneeboardLabelImporter.Import(result.Import.Metadata,result.Import.Configuration!);
+   Assert.Equal(60,authoredLabels.Count);
+   var hornet=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="moza-ab9-hornet-grip");
+   var baseArm=new DraftAssignmentSlot(result.Import.Configuration.Module.Id,hornet.Id,AssignmentLayer.Module,
+    BindingSection.Key,"JOY_BTN11");
+   Assert.Equal("Arm Up",authoredLabels[baseArm.Key]);
+   Assert.Equal("Gun Up",authoredLabels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
+   var baseTrim=baseArm with {InputKey="JOY_BTN_POV1_U"};
+   Assert.Equal("Pilot",authoredLabels[baseTrim.Key]);
+   Assert.Equal("Pilot Sight Elevation Increase",authoredLabels[
+    (baseTrim with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
+   var database="Data Source="+Path.Combine(temp,"labels.db")+";Pooling=False";
+   await new SqliteMigrationRunner(database).MigrateAsync();
+   await new SqliteConfigurationRepository(database).ReplaceAsync(result.Import.Configuration);
+   var workspace=new EditorWorkspaceSnapshot(result.Import.Configuration,result.Import.Pages,result.Images,
+    result.Diagrams,[],result.UiCommands,[],authoredLabels);
+   var repository=new SqliteEditorWorkspaceRepository(database);
+   await repository.SaveAsync(workspace);
+   var reopened=await repository.GetAsync(result.Import.Configuration.Module.Id);
+   Assert.NotNull(reopened);
+   Assert.Equal(authoredLabels.Count,reopened.Labels.Count);
+   Assert.Equal("Arm Up",reopened.Labels[baseArm.Key]);
+   Assert.Equal("Gun Up",reopened.Labels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
    Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
