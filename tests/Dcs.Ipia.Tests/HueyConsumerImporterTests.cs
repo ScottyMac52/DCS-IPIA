@@ -179,6 +179,31 @@ public sealed class HueyConsumerImporterTests {
   Assert.Empty(result.Usage);
   Assert.All(result.Provenance,x=>Assert.Equal("F-14BU",x.Repository));
  }
+ /// <summary>Retains module-specific overlay and repeated control entries for later editing support.</summary>
+ [Fact] public void Repeated_control_bindings_and_overlay_are_preserved() {
+  var request=Fixture();
+  var sources=request.Sources.Select(source=>{
+   if(source.Path=="config/kneeboard.json") {
+    var root=JsonNode.Parse(source.Content)!;
+    var controls=root["pages"]![0]!["controls"]!;
+    var original=controls["mfd-osb-t3"]!.DeepClone();
+    controls["mfd-osb-t3"]=new JsonArray(original,original.DeepClone());
+    return source with {Content=root.ToJsonString()};
+   }
+   if(source.Path=="config/ui-layer-overlay.json") {
+    var root=JsonNode.Parse(source.Content)!;
+    root["schemaVersion"]=2;
+    root["assignments"]=new JsonArray(new JsonObject {["clear"]=true,["key"]="JOY_BTN1"});
+    return source with {Content=root.ToJsonString()};
+   }
+   return source;
+  }).ToArray();
+  var imported=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
+  Assert.Contains(imported.Diagnostics,x=>x.Code=="module-overlay-preserved");
+  Assert.Equal(101,KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration!).Count);
+  Assert.Contains("\"schemaVersion\":2",imported.Sources["config/ui-layer-overlay.json"],StringComparison.Ordinal);
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static ConsumerSource[] Replace(HueyImportRequest request,string path,Func<string,string> transform)=>request.Sources.Select(x=>x.Path==path?x with {Content=transform(x.Content)}:x).ToArray();
