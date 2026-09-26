@@ -95,7 +95,7 @@ public static class CompositeKneeboardRenderer {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static IReadOnlyList<string> WrapLabel(string value) {
+ private static List<string> WrapLabel(string value) {
   var words=value.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries);
   var lines=new List<string>();
   foreach(var word in words) {
