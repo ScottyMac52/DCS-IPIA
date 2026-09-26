@@ -37,6 +37,11 @@ public sealed class KneeboardDraftProjectionTests {
   Assert.Equal("UI",pages[2].Captions["one"]);
   Assert.Equal("Unassigned",pages[2].Captions["two"]);
   Assert.DoesNotContain(pages,x=>x.Title=="UI Layer · SHIFT");
+  var combined=KneeboardDraftProjection.CreateCombined(snapshot,diagram,[original,shifted,ui],labels);
+  Assert.Equal(["BASE","UI"],combined.Labels["one"].Select(x=>x.Text));
+  Assert.Equal(["New shifted label"],combined.Labels["two"].Select(x=>x.Text));
+  Assert.Contains(combined.Legend,x=>x.Label=="SHIFT"&&x.Color=="#dc2626");
+  Assert.Contains(combined.Legend,x=>x.Label=="UI Layer — Base"&&x.Color=="#0891b2");
  }
  /// <summary>An unsupported UI Layer produces only module pages even when a stale UI assignment exists.</summary>
  [Fact] public void Unsupported_ui_layer_is_not_rendered() {

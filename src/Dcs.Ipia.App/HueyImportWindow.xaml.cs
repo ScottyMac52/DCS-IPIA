@@ -328,37 +328,17 @@ public partial class HueyImportWindow : Window {
    EditorMessage.Text="Select a stored device with an authored graphic to render its current kneeboard.";return;
   }
   try {
-   var pages=KneeboardDraftProjection.Create(_saved,diagram,_draft.Snapshot,_labels);
-   var png=CanonicalSvgRenderer.Render(diagram.Svg,diagram.Width,diagram.Height);
+   var page=KneeboardDraftProjection.CreateCombined(_saved,diagram,_draft.Snapshot,_labels);
+   var png=CompositeKneeboardRenderer.Render(diagram,page);
    using var stream=new MemoryStream(png);
    var bitmap=new BitmapImage();
    bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
    var view=new Window {Title="Current kneeboard · "+diagram.Title,
-    Owner=this,Width=1100,Height=800,MinWidth=600,MinHeight=450,WindowStartupLocation=WindowStartupLocation.CenterOwner,
+    Owner=this,Width=900,Height=900,MinWidth=500,MinHeight=500,WindowStartupLocation=WindowStartupLocation.CenterOwner,
     Background=(Brush)FindResource("WindowBackgroundBrush"),Foreground=(Brush)FindResource("PrimaryTextBrush")};
-   var layout=new DockPanel {Margin=new Thickness(12)};
-   var caption=new TextBlock {Text=diagram.Title+" · current draft assignments and displayed labels across all used layers",
-    TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)};
-   DockPanel.SetDock(caption,Dock.Top);layout.Children.Add(caption);
-   var tabs=new TabControl {Background=(Brush)FindResource("WindowBackgroundBrush")};
-   foreach(var page in pages) {
-    var surface=new Canvas {Width=diagram.Width,Height=diagram.Height,
-     Background=(Brush)FindResource("CanvasBackgroundBrush")};
-    surface.Children.Add(new Image {Source=bitmap,Width=diagram.Width,Height=diagram.Height});
-    CoverAuthoredLabels(surface,diagram.Svg);
-    foreach(var control in diagram.Controls) {
-     if(!page.Captions.TryGetValue(control.Control,out var label))continue;
-     var text=new TextBlock {Text=label,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
-      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
-     var target=new Border {Width=control.Width,Height=control.Height,Background=Brushes.White,
-      BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Child=text};
-     Canvas.SetLeft(target,control.X);Canvas.SetTop(target,control.Y);
-     surface.Children.Add(target);
-    }
-    tabs.Items.Add(new TabItem {Header=page.Title,Content=new ScrollViewer {Content=surface,
-     HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});
-   }
-   layout.Children.Add(tabs);view.Content=layout;view.ShowDialog();
+   view.Content=new ScrollViewer {Content=new Image {Source=bitmap,Stretch=Stretch.Uniform},
+    HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
+   view.ShowDialog();
   }
   catch(Exception ex) {EditorMessage.Text="Unable to render current kneeboard: "+ex.Message;}
  }

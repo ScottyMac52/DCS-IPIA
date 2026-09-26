@@ -20,7 +20,18 @@ public static class CanonicalSvgRenderer {
   var document=XDocument.Parse(source);
   foreach(var label in document.Descendants().Where(x=>x.Name.LocalName=="text"&&
    (x.Attribute("id")?.Value.StartsWith("lbl-",StringComparison.Ordinal)??false)).ToArray())label.Remove();
-  using var stream=new MemoryStream(Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting)));
+  return RenderComplete(document.ToString(SaveOptions.DisableFormatting),width,height);
+ }
+ /// <summary>Rasterizes a complete SVG with its current callout labels intact.</summary>
+ /// <param name="source">Complete generated page or device SVG.</param>
+ /// <param name="width">Output width in pixels.</param>
+ /// <param name="height">Output height in pixels.</param>
+ /// <returns>The rendered PNG.</returns>
+ public static byte[] RenderComplete(string source,double width,double height) {
+  ArgumentException.ThrowIfNullOrWhiteSpace(source);
+  if(!double.IsFinite(width)||!double.IsFinite(height)||width<=0||height<=0||width>4096||height>4096)
+   throw new ArgumentOutOfRangeException(nameof(width),"SVG canvas must have finite supported dimensions.");
+  using var stream=new MemoryStream(Encoding.UTF8.GetBytes(source));
   using var svg=new SKSvg();
   var picture=svg.Load(stream)??throw new InvalidDataException("Canonical SVG could not be rendered.");
   using var surface=SKSurface.Create(new SKImageInfo((int)Math.Ceiling(width),(int)Math.Ceiling(height)))??
