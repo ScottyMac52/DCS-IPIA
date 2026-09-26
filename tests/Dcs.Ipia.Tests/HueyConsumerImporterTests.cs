@@ -154,17 +154,23 @@ public sealed class HueyConsumerImporterTests {
  /// <summary>Unknown source paths are rejected before any consumer files are read.</summary>
  [Fact] public void Unknown_source_path_is_rejected() {
   var request=Fixture();var result=new HueyConsumerImporter().Import(request with {Sources=[..request.Sources,new("src/Config/Input/Other/unknown.diff.lua","return {}")]});
-  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source");
+  Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
  }
  /// <summary>Uses another module's own scaffold and kneeboard paths without Huey-only support files.</summary>
  [Fact] public void Consumer_module_identity_is_derived_from_its_own_config() {
   var original=Fixture();
+  static string Rewrite(ConsumerSource source) {
+   var text=source.Path.EndsWith(".json",StringComparison.Ordinal)?
+    source.Content.Replace("UH-1H","F-14BU",StringComparison.Ordinal):source.Content;
+   if(source.Path!="config/kneeboard.json")return text;
+   var json=JsonNode.Parse(text)!;
+   json.AsObject().Remove("uiLayerUtilization");
+   return json.ToJsonString();
+  }
   var sources=original.Sources.Where(x=>x.Path is not (
    "config/scaffold.dcs-scaffold.json" or "config/ui-layer-overlay.json" or
    "config/scaffold-device-overrides.json" or "config/scaffold-instance-roles.json"))
-   .Select(x=>new ConsumerSource(x.Path.Replace("UH-1H","F-14BU",StringComparison.Ordinal),
-    x.Path.EndsWith(".json",StringComparison.Ordinal)
-     ?x.Content.Replace("UH-1H","F-14BU",StringComparison.Ordinal):x.Content)).ToArray();
+   .Select(x=>new ConsumerSource(x.Path.Replace("UH-1H","F-14BU",StringComparison.Ordinal),Rewrite(x))).ToArray();
   var result=new HueyConsumerImporter().Import(original with {Sources=sources,Repository="F-14BU"});
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal("F-14BU",result.Configuration!.Module.DcsId);
