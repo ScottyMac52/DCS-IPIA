@@ -23,10 +23,10 @@ public sealed class CompositeKneeboardRendererTests {
    [new("Base (no modifier)","#ffffff"),new("SHIFT","#dc2626"),new("UI Layer — Base","#0891b2")]);
   var device=CompositeKneeboardRenderer.BuildDeviceSvg(diagram,page);
   var document=XDocument.Parse(device);
-  var label=Assert.Single(document.Descendants().Where(x=>x.Attribute("id")?.Value=="lbl-one"));
+  var label=Assert.Single(document.Descendants(),x=>x.Attribute("id")?.Value=="lbl-one");
   Assert.Equal(["Base label","Shift label","UI label"],label.Elements().Select(x=>x.Value));
-  Assert.Equal("Flight",Assert.Single(document.Descendants().Where(x=>
-   x.Attribute("id")?.Value=="meta-mfd-category-top")).Value);
+  Assert.Equal("Flight",Assert.Single(document.Descendants(),x=>
+   x.Attribute("id")?.Value=="meta-mfd-category-top").Value);
   var outer=CompositeKneeboardRenderer.BuildPageSvg(diagram,page);
   Assert.Contains("data-modifier-legend",outer,StringComparison.Ordinal);
   Assert.Contains("UI Layer — Base",outer,StringComparison.Ordinal);
@@ -43,7 +43,7 @@ public sealed class CompositeKneeboardRendererTests {
     ["one"]=[new("Long function name for a control","#ffffff",AssignmentLayer.Module,"")]
    },new Dictionary<string,string>(),[]);
   var document=XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram,page));
-  var label=Assert.Single(document.Descendants().Where(x=>x.Attribute("id")?.Value=="lbl-one"));
+  var label=Assert.Single(document.Descendants(),x=>x.Attribute("id")?.Value=="lbl-one");
   Assert.Equal("black",label.Attribute("fill")?.Value);
   Assert.Equal(2,label.Elements().Count());
   Assert.DoesNotContain("data-modifier-legend",CompositeKneeboardRenderer.BuildPageSvg(diagram,page));
