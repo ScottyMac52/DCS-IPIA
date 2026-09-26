@@ -1,0 +1,62 @@
+using System.Text.Json;
+using Dcs.Ipia.Application;
+using Dcs.Ipia.Dcs;
+using Dcs.Ipia.Domain;
+using Xunit;
+
+namespace Dcs.Ipia.Tests;
+
+/// <summary>Checks module-owned UI Layer composition across device and overlay schemas.</summary>
+public sealed class ModuleUiLayerBindingImporterTests {
+ #region BEGIN Public
+ /// <summary>Canonical assignments are selected per device and changed by authored overlay rows.</summary>
+ [Fact] public void Composes_shared_bindings_with_module_clear_and_assignment() {
+  var module=new DcsModule(Guid.NewGuid(),"TEST","Test module");
+  var profile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"Panel","Panel.diff.lua");
+  var configuration=new ModuleConfiguration(module,[profile],[],[],"test@sha");
+  var sharedProfile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"UI","Panel.diff.lua");
+  var shared=new SharedLuaImportResult([], [sharedProfile],[
+   new(sharedProfile.Id,BindingSection.Key,"BASE","Base command",BindingDisposition.Added,"JOY_BTN1"),
+   new(sharedProfile.Id,BindingSection.Key,"SHIFT","Shift command",BindingDisposition.Added,"JOY_BTN2",["SHIFT"])
+  ],[],[],[]);
+  var metadata=ParseMetadata("""
+   {"includeUiLayer":true}
+   ""","""
+   {"assignments":[
+    {"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN1","reformers":[],"clear":true},
+    {"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN3","reformers":["SHIFT"],"clear":false,"command":"NEW","name":"New command"}
+   ],"removedModifiers":[]}
+   """);
+  var imported=new HueyImportResult(configuration,[],[],[],[],metadata,
+   new Dictionary<string,string>(),[],[]);
+  var effective=ModuleUiLayerBindingImporter.Import(imported,shared,profile);
+  Assert.Equal(2,effective.Count);
+  Assert.DoesNotContain(effective,x=>x.CommandId=="BASE");
+  Assert.Contains(effective,x=>x.CommandId=="SHIFT"&&x.ProfileId==profile.Id);
+  Assert.Contains(effective,x=>x.CommandId=="NEW"&&x.InputKey=="JOY_BTN3"&&x.Reformers.SequenceEqual(["SHIFT"]));
+  var disabled=new HueyImportResult(configuration,[],[],[],[],
+   ParseMetadata("""{"includeUiLayer":false}""",null),new Dictionary<string,string>(),[],[]);
+  Assert.Empty(ModuleUiLayerBindingImporter.Import(disabled,shared,profile));
+  Assert.Empty(ModuleUiLayerBindingImporter.Import(imported,shared,
+   new DeviceProfile(Guid.NewGuid(),"other-panel",null,"Other","Other.diff.lua")));
+  var removedOverlay=JsonDocument.Parse("""
+   {"assignments":[{"profileFile":"Panel.diff.lua","section":"keyDiffs","key":"JOY_BTN1",
+    "reformers":[],"clear":true}],"removedModifiers":["SHIFT"]}
+   """).RootElement.Clone();
+  var removedMetadata=metadata.ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal);
+  removedMetadata["config/ui-layer-overlay.json"]=removedOverlay;
+  var removedImport=new HueyImportResult(configuration,[],[],[],[],removedMetadata,
+   new Dictionary<string,string>(),[],[]);
+  Assert.Empty(ModuleUiLayerBindingImporter.Import(removedImport,shared,profile));
+ }
+ #endregion END Public
+ #region BEGIN private helpers
+ private static IReadOnlyDictionary<string,JsonElement> ParseMetadata(string kneeboard,string? overlay) {
+  var result=new Dictionary<string,JsonElement> {
+   ["config/kneeboard.json"]=JsonDocument.Parse(kneeboard).RootElement.Clone()
+  };
+  if(overlay is not null)result["config/ui-layer-overlay.json"]=JsonDocument.Parse(overlay).RootElement.Clone();
+  return result;
+ }
+ #endregion END private helpers
+}
