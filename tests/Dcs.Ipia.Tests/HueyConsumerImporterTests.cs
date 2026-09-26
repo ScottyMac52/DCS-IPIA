@@ -158,7 +158,8 @@ public sealed class HueyConsumerImporterTests {
    var controls=common.SharedLua!.Controls.Where(x=>x.Control.DeviceId==device.Id)
     .Select(x=>x.Control.StableKey).ToArray();
    Assert.NotEmpty(controls);
-   var callouts=string.Join("\n",controls.Select((control,index)=>
+   var calloutControls=device.StableKey=="tm-mfd"?controls.Concat(["mfd-osb-b1-shifted"]):controls.AsEnumerable();
+   var callouts=string.Join("\n",calloutControls.Select((control,index)=>
     $"<!-- callout:{control} -->{(device.StableKey=="logitech-throttle-quadrant"&&index==0?"<polyline/>":"<line/>")}<circle/><rect x='10' y='{10+index*30}' width='100' height='24'/><text id='lbl-{control}'>{control}</text>"));
    graphics.Add($"assets/shared/hardware/svg/{device.StableKey}.svg",
     $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}'/>{callouts}</svg>");
@@ -178,6 +179,8 @@ public sealed class HueyConsumerImporterTests {
    x=>x.Modifier is "AVA_BASE_MODIFIER_BTN3" or "MOZA_MODIFIER_BTN3");
   Assert.NotEmpty(diagrams.Single(x=>x.Instance=="MFD3").Callouts);
   Assert.All(diagrams.Single(x=>x.Instance=="MFD3").Callouts,x=>Assert.Equal("VKB_F14_BTN7",x.Modifier));
+  Assert.Contains(diagrams.Single(x=>x.Instance=="MFD3").Callouts,
+   x=>x.Control=="mfd-osb-b1-shifted"&&x.Function=="Restart Mission");
  }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {

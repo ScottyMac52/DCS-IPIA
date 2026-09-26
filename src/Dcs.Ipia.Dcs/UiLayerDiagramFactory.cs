@@ -90,7 +90,10 @@ public static class UiLayerDiagramFactory {
     foreach(var binding in projected) {
      var candidates=controls.Where(x=>x.IsAxis==(binding.Section==BindingSection.Axis)&&
       DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)).ToArray();
-     var control=candidates.FirstOrDefault(x=>!x.Control.EndsWith("-shifted",StringComparison.Ordinal))??candidates.FirstOrDefault();
+     var control=(binding.Reformers.Count>0?
+      candidates.FirstOrDefault(x=>x.Control.EndsWith("-shifted",StringComparison.Ordinal)):
+      candidates.FirstOrDefault(x=>!x.Control.EndsWith("-shifted",StringComparison.Ordinal)))??
+      candidates.FirstOrDefault();
      if(control is null)continue;
      callouts.Add(new(callouts.Count+1,control.Control,binding.CommandName,string.Join(" + ",binding.Reformers),
       control.X,control.Y,control.Width,control.Height) {CommandId=binding.CommandId});
