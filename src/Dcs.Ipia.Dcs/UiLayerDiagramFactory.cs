@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Domain;
 
 namespace Dcs.Ipia.Dcs;
 
@@ -14,8 +15,9 @@ public static class UiLayerDiagramFactory {
  /// <param name="catalog">Validated DCS-Common catalog.</param>
  /// <param name="sources">Committed shared SVG texts keyed by repository path.</param>
  /// <param name="shared">Validated physical-to-logical control mappings.</param>
+ /// <param name="onGraphicError">Optional per-device diagnostic receiver; without one, invalid graphics fail the import projection.</param>
  /// <returns>Authored diagrams and their mapped controls for each supported profile.</returns>
- public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null) {
+ public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null,Action<DeviceProfile,Exception>? onGraphicError=null) {
   ArgumentNullException.ThrowIfNull(import);ArgumentNullException.ThrowIfNull(catalog);ArgumentNullException.ThrowIfNull(sources);
   if(!import.Succeeded||!catalog.Succeeded)throw new ArgumentException("Validated imports are required.");
   var kneeboard=import.Metadata["config/kneeboard.json"];
@@ -23,6 +25,18 @@ public static class UiLayerDiagramFactory {
    utilization.GetProperty("bindings").EnumerateArray().ToArray():[];
   var diagrams=new List<UiLayerDiagram>();
   foreach(var profile in import.Configuration!.Profiles) {
+   try {diagrams.Add(CreateProfile(profile,usage,catalog,sources,shared));}
+   catch(Exception ex) when(onGraphicError is not null&&ex is (InvalidDataException or FormatException or XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException)) {
+    onGraphicError!(profile,ex);
+   }
+  }
+  return diagrams;
+ }
+ #endregion END Public
+ #region BEGIN private helpers
+ private static UiLayerDiagram CreateProfile(DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
+  IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared) {
+
    var rows=usage.Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
     &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
@@ -32,7 +46,7 @@ public static class UiLayerDiagramFactory {
    if(!supportsUi&&rows.Length>0)
     throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
-   if(!sources.TryGetValue(path,out var svg))throw new InvalidDataException($"Missing committed UI Layer hardware image: {path}");
+   if(!sources.TryGetValue(path,out var svg))throw new InvalidDataException($"Missing committed hardware image: {path}");
    using var reader=XmlReader.Create(new StringReader(svg),new XmlReaderSettings {DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=4_000_000});
    var document=XDocument.Load(reader,LoadOptions.PreserveWhitespace);
    var root=document.Root??throw new InvalidDataException($"Empty SVG: {path}");
@@ -69,14 +83,10 @@ public static class UiLayerDiagramFactory {
     callouts.Add(new(callouts.Count+1,control,command.Name,modifiers,Number(box.Attribute("x")?.Value),
      Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)) {CommandId=command.DcsCommandId});
    }
-   diagrams.Add(new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
+   return new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
     Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi
-   });
+   };
   }
-  return diagrams;
- }
- #endregion END Public
- #region BEGIN private helpers
  private static double Number(string? value)=>double.TryParse(value,NumberStyles.Float,CultureInfo.InvariantCulture,out var parsed)&&parsed>0
   ?parsed:throw new InvalidDataException($"Invalid SVG coordinate: {value}");
  #endregion END private helpers

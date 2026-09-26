@@ -202,8 +202,10 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.True(withBrokenGraphic.Import.Succeeded);
    Assert.Single(withBrokenGraphic.Images);
    Assert.Equal(result.UiCommands,withBrokenGraphic.UiCommands);
-   Assert.Empty(withBrokenGraphic.Diagrams);
-   Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="ui-graphic-unavailable"&&x.IsError);
+   Assert.Equal(4,withBrokenGraphic.Diagrams.Count);
+   Assert.Contains(withBrokenGraphic.Diagrams,x=>x.Path.EndsWith("/tm-warthog-throttle.svg",StringComparison.Ordinal));
+   Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="device-graphic-unavailable"&&x.IsError&&
+    x.Message.Contains("moza-ab9-hornet-grip",StringComparison.Ordinal));
   }
   finally {DeleteFixture(temp);}
  }

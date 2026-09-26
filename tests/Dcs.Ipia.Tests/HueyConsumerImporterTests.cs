@@ -159,7 +159,7 @@ public sealed class HueyConsumerImporterTests {
     .Select(x=>x.Control.StableKey).ToArray();
    Assert.NotEmpty(controls);
    var callouts=string.Join("\n",controls.Select((control,index)=>
-    $"<!-- callout:{control} --><line/><circle/><rect x='10' y='{10+index*30}' width='100' height='24'/><text id='lbl-{control}'>{control}</text>"));
+    $"<!-- callout:{control} -->{(device.StableKey=="logitech-throttle-quadrant"&&index==0?"<polyline/>":"<line/>")}<circle/><rect x='10' y='{10+index*30}' width='100' height='24'/><text id='lbl-{control}'>{control}</text>"));
    graphics.Add($"assets/shared/hardware/svg/{device.StableKey}.svg",
     $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}'/>{callouts}</svg>");
   }

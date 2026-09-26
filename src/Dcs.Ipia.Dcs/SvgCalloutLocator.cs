@@ -19,7 +19,7 @@ public static class SvgCalloutLocator {
    XNode? next=comment.NextNode;
    while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
    if(!isBox) {
-    while(next is XElement element&&element.Name.LocalName is "line" or "circle") {
+    while(next is XElement element&&element.Name.LocalName is "line" or "polyline" or "circle") {
      next=next.NextNode;
      while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
     }

@@ -52,15 +52,21 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
    images.Add(new(page.StableKey,path,bytes,Convert.ToHexStringLower(SHA256.HashData(bytes))));
   }
   IReadOnlyList<UiLayerDiagram> diagrams=[];
-  IReadOnlyList<ImportDiagnostic> graphicDiagnostics=[];
+  var graphicDiagnostics=new List<ImportDiagnostic>();
   try {
    var graphicPaths=imported.Configuration!.Profiles.Select(x=>catalog.Devices.Single(y=>y.StableKey==x.DeviceId||y.Aliases.Contains(x.DeviceId,StringComparer.Ordinal)))
     .Select(x=>$"assets/shared/hardware/svg/{x.StableKey}.svg").Distinct(StringComparer.Ordinal).ToArray();
-   var graphics=await ReadSourcesAsync(common,graphicPaths,cancellationToken);
-   diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics,shared);
+   var graphics=new SortedDictionary<string,string>(StringComparer.Ordinal);
+   foreach(var path in graphicPaths) {
+    try {graphics.Add(path,await GitAsync(common,cancellationToken,"show",$"HEAD:{path}"));}
+    catch(InvalidDataException) { /* The profile diagnostic below identifies the missing graphic. */ }
+   }
+   diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics,shared,(profile,error)=>
+    graphicDiagnostics.Add(new("device-graphic-unavailable",
+     $"{profile.DeviceId} {profile.Instance??profile.SourceName}: {error.Message}",true)));
   }
   catch(Exception ex) when(ex is InvalidDataException or FormatException or System.Xml.XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
-   graphicDiagnostics=[new("ui-graphic-unavailable",$"DCS-Common UI Layer graphic: {ex.Message}",true)];
+   graphicDiagnostics.Add(new("device-graphic-unavailable",$"DCS-Common hardware graphic: {ex.Message}",true));
   }
   return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
  }
