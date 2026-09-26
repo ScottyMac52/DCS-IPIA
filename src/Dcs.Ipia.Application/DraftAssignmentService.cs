@@ -157,7 +157,7 @@ public sealed class DraftAssignmentService {
  }
  private bool Validate(DraftAssignmentSlot slot,DraftCommand command,out string reason) {
   if(!ValidateSlot(slot,out reason))return false;
-  if(command is null||!_allowed.TryGetValue(CommandKey(command),out var allowed)||allowed!=command) {
+  if(command is null||!_allowed.TryGetValue(CommandKey(command),out var allowed)||allowed.IsAxis!=command.IsAxis) {
    reason="Command is not in the validated catalog for this layer.";return false;
   }
   if(slot.Layer!=command.Layer||((slot.Section==BindingSection.Axis)!=command.IsAxis)) {

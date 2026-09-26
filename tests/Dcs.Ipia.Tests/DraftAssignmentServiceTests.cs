@@ -127,6 +127,21 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Throws<ArgumentException>(()=>new DraftAssignmentService(module,[first],[new(source,first with { Id="missing" })]));
   Assert.NotNull(service);
  }
+ /// <summary>Imported display labels may differ from the catalog name while command identity and type stay validated.</summary>
+ [Fact] public void Imported_callout_label_does_not_invalidate_canonical_command() {
+  var moduleId=Guid.NewGuid();var profileId=Guid.NewGuid();
+  var module=BuildModule(moduleId,profileId,Guid.NewGuid());
+  var slot=new DraftAssignmentSlot(moduleId,profileId,AssignmentLayer.UiLayer,BindingSection.Key,"JOY_BTN7");
+  var canonical=new DraftCommand("UI_COMMAND","Catalog name",false,AssignmentLayer.UiLayer);
+  var labeled=canonical with {Name="Kneeboard label"};
+  var service=new DraftAssignmentService(module,[canonical],[new(slot,labeled)]);
+  Assert.Equal(labeled,Assert.Single(service.Snapshot).Command);
+  Assert.Equal(DraftOutcome.Applied,service.Assign(slot with {InputKey="JOY_BTN8"},labeled,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(slot with {InputKey="JOY_BTN9"},
+   labeled with {Id="OTHER"},OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(slot with {InputKey="JOY_BTN9"},
+   labeled with {IsAxis=true},OccupiedDestinationBehavior.Ask).Outcome);
+ }
  /// <summary>Module and canonical UI Layer modifiers remain independently validated.</summary>
  [Fact] public void Distinct_scope_modifiers_keep_their_own_assignments() {
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
