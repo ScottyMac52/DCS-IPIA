@@ -70,7 +70,7 @@ public partial class MainWindow : Window {
     await _configurations.ReplaceAsync(module);
     var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
      importedView.ModuleCommands,preview.UiCommands,importedView.Draft?.Snapshot??[],
-     new Dictionary<string,string>());
+     importedView.Labels);
     await _workspaces.SaveAsync(saved);
     _lastViewModel=new HueyImportViewModel((await _workspaces.GetAsync(module.Module.Id))!);
     ViewImportedButton.IsEnabled=true;

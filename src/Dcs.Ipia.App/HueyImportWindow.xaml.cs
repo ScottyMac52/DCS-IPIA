@@ -67,8 +67,10 @@ public partial class HueyImportWindow : Window {
   var hasShiftedPair=!shifted&&diagram.Controls.Any(x=>x.Control==control.Control+"-shifted");
   if(CurrentLayer==AssignmentLayer.UiLayer&&hasShiftedPair&&layer!="Base")return null;
   var chord=layer=="Base"||hasShiftedPair?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+  var section=control.IsAxis?BindingSection.Axis:BindingSection.Key;
+  var input=DcsInputKey.Resolve(_saved.Configuration,diagram.ProfileId,section,control.InputKey);
   return new DraftAssignmentSlot(_saved.Configuration.Module.Id,diagram.ProfileId,CurrentLayer,
-   control.IsAxis?BindingSection.Axis:BindingSection.Key,control.InputKey,chord);
+   section,input,chord);
  }
  private DraftAssignment? Assignment(DraftAssignmentSlot slot)=>_draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
  private void DeviceChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();

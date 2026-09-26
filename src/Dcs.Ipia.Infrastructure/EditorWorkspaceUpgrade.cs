@@ -26,7 +26,8 @@ internal static class EditorWorkspaceUpgrade {
     var chord=callout.Modifier.Replace(" + ","+",StringComparison.Ordinal);
     if(chord=="Base")chord="";
     var slot=new DraftAssignmentSlot(snapshot.Configuration.Module.Id,diagram.ProfileId,AssignmentLayer.UiLayer,
-     control.IsAxis?BindingSection.Axis:BindingSection.Key,control.InputKey,chord);
+     control.IsAxis?BindingSection.Axis:BindingSection.Key,
+     DcsInputKey.Resolve(snapshot.Configuration,diagram.ProfileId,control.IsAxis?BindingSection.Axis:BindingSection.Key,control.InputKey),chord);
     assignments.TryAdd(slot.Key,new DraftAssignment(slot,new DraftCommand(command.DcsCommandId,command.Name,command.IsAxis,AssignmentLayer.UiLayer)));
    }
   }
@@ -47,10 +48,11 @@ internal static class EditorWorkspaceUpgrade {
   if(!assignments.Values.Any(x=>x.Slot.Layer==AssignmentLayer.Module)) {
    foreach(var binding in configuration.Bindings.Where(x=>x.Disposition!=BindingDisposition.Removed)) {
     var control=snapshot.Diagrams.FirstOrDefault(x=>x.ProfileId==binding.ProfileId)?.Controls
-     .FirstOrDefault(x=>x.InputKey==binding.InputKey&&x.IsAxis==(binding.Section==BindingSection.Axis));
+     .FirstOrDefault(x=>DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)&&
+      x.IsAxis==(binding.Section==BindingSection.Axis));
     if(control is null||!moduleCommands.TryGetValue(binding.CommandId,out var command))continue;
     var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,
-     binding.Section,control.InputKey,string.Join("+",binding.Reformers));
+     binding.Section,binding.InputKey,string.Join("+",binding.Reformers));
     assignments.TryAdd(slot.Key,new DraftAssignment(slot,
      new DraftCommand(command.Id,command.Name,command.IsAxis,AssignmentLayer.Module)));
    }
@@ -67,6 +69,38 @@ internal static class EditorWorkspaceUpgrade {
    }
   }
   return snapshot with {Assignments=assignments.Values.ToArray()};
+ }
+ /// <summary>Restores Hornet POV bindings previously invisible because the hardware and DCS key spellings differed.</summary>
+ /// <param name="snapshot">The persisted editor snapshot.</param>
+ /// <returns>A snapshot retaining edits while mapping previously inaccessible POV slots.</returns>
+ public static EditorWorkspaceSnapshot RestorePovAliases(EditorWorkspaceSnapshot snapshot) {
+  var configuration=snapshot.Configuration;
+  var assignments=snapshot.Assignments.ToDictionary(x=>x.Slot.Key,x=>x,StringComparer.Ordinal);
+  var labels=new Dictionary<string,string>(snapshot.Labels,StringComparer.Ordinal);
+  foreach(var assignment in snapshot.Assignments.Where(x=>x.Slot.InputKey.StartsWith("JOY_POV",StringComparison.Ordinal))) {
+   var slot=assignment.Slot;
+   var actual=DcsInputKey.Resolve(configuration,slot.ProfileId,slot.Section,slot.InputKey);
+   if(actual==slot.InputKey||!configuration.Bindings.Any(x=>x.ProfileId==slot.ProfileId&&x.Section==slot.Section&&
+      x.InputKey==actual))continue;
+   var destination=slot with {InputKey=actual};
+   assignments.Remove(slot.Key);
+   assignments.TryAdd(destination.Key,assignment with {Slot=destination});
+   if(labels.Remove(slot.Key,out var label))labels.TryAdd(destination.Key,label);
+  }
+  var commands=snapshot.ModuleCommands.ToDictionary(x=>x.Id,x=>x,StringComparer.Ordinal);
+  foreach(var binding in configuration.Bindings.Where(x=>x.Disposition!=BindingDisposition.Removed&&
+   x.InputKey.StartsWith("JOY_BTN_POV",StringComparison.Ordinal))) {
+   var mapped=snapshot.Diagrams.FirstOrDefault(x=>x.ProfileId==binding.ProfileId)?.Controls
+    .Any(x=>x.InputKey.StartsWith("JOY_POV",StringComparison.Ordinal)&&
+     DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)&&
+     x.IsAxis==(binding.Section==BindingSection.Axis))==true;
+   if(!mapped||!commands.TryGetValue(binding.CommandId,out var command))continue;
+   var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,
+    binding.Section,binding.InputKey,string.Join("+",binding.Reformers));
+   assignments.TryAdd(slot.Key,new DraftAssignment(slot,
+    new DraftCommand(command.Id,command.Name,command.IsAxis,AssignmentLayer.Module)));
+  }
+  return snapshot with {Assignments=assignments.Values.ToArray(),Labels=labels};
  }
  #endregion END Public
  #region BEGIN private helpers

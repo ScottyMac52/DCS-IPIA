@@ -28,6 +28,7 @@ public sealed class HueyImportViewModel {
   PageKeys=result.Pages.Select(x=>x.StableKey).ToArray();
   Images=preview.Images;
   UiDiagrams=preview.Diagrams;
+  Labels=KneeboardLabelImporter.Import(result.Metadata,configuration);
   ModuleCommands=CommandPalette.FromBindings(configuration.Bindings,preview.ModuleCommands);
   (Draft,DraftNote)=CreateDraft(preview,ModuleCommands);
   ModuleModifierChoices=["Base",..configuration.Modifiers.Select(x=>x.Name)
@@ -175,9 +176,9 @@ public sealed class HueyImportViewModel {
    var unmatched=0;
    foreach(var binding in configuration.Bindings.Where(x=>x.Disposition!=global::Dcs.Ipia.Domain.BindingDisposition.Removed)) {
     var diagram=preview.Diagrams.FirstOrDefault(x=>x.ProfileId==binding.ProfileId);
-    var matches=diagram?.Controls.Where(x=>x.InputKey==binding.InputKey).ToArray()??[];
+    var matches=diagram?.Controls.Where(x=>DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)).ToArray()??[];
     if(matches.Length==0) {unmatched++;continue;}
-    var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,matches[0].InputKey,
+    var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,binding.InputKey,
      string.Join("+",binding.Reformers));
     assignments.Add(new(slot,new(binding.CommandId,moduleNames.GetValueOrDefault(binding.CommandId,binding.CommandName),
      binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
@@ -186,7 +187,7 @@ public sealed class HueyImportViewModel {
     var control=diagram.Controls.SingleOrDefault(x=>x.Control==callout.Control);
     if(control is null) {unmatched++;continue;}
     assignments.Add(new(new(configuration.Module.Id,diagram.ProfileId,AssignmentLayer.UiLayer,
-     global::Dcs.Ipia.Domain.BindingSection.Key,control.InputKey,callout.Modifier.Replace(" + ","+",StringComparison.Ordinal)),
+     global::Dcs.Ipia.Domain.BindingSection.Key,DcsInputKey.Resolve(configuration,diagram.ProfileId,global::Dcs.Ipia.Domain.BindingSection.Key,control.InputKey),callout.Modifier.Replace(" + ","+",StringComparison.Ordinal)),
      new(callout.CommandId,callout.Function,false,AssignmentLayer.UiLayer)));
    }
    var editor=new DraftAssignmentService(configuration,moduleCommands.Concat(uiCommands),assignments,

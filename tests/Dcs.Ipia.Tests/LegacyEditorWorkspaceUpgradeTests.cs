@@ -125,5 +125,64 @@ public sealed class LegacyEditorWorkspaceUpgradeTests {
   }
   finally {File.Delete(path);}
  }
+ /// <summary>Restores Hornet POV assignments omitted by the old hardware-key matcher without reviving later edits.</summary>
+ /// <returns>Completion of the SQLite migration.</returns>
+ [Fact] public async Task Older_snapshot_restores_only_previously_unmapped_pov_bindings() {
+  var path=Path.Combine(Path.GetTempPath(),"ipia-pov-"+Guid.NewGuid().ToString("N")+".db");
+  var connectionString="Data Source="+path+";Pooling=False";
+  try {
+   await new SqliteMigrationRunner(connectionString).MigrateAsync();
+   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
+   var profile=new DeviceProfile(Guid.NewGuid(),"moza-ab9-hornet-grip",null,"Hornet grip","MOZA.diff.lua");
+   var configuration=new ModuleConfiguration(module,[profile],
+    [new DcsModifier("SHIFT","MOZA","JOY_BTN3",ModifierMode.Hold)],
+    [new DcsBinding(profile.Id,BindingSection.Key,"BASE","Pilot Trimmer",BindingDisposition.Added,"JOY_BTN_POV1_U"),
+     new DcsBinding(profile.Id,BindingSection.Key,"SHIFTED","Pilot Sight Elevation Increase",
+      BindingDisposition.Added,"JOY_BTN_POV1_U",["SHIFT"]),
+     new DcsBinding(profile.Id,BindingSection.Key,"OTHER","Other",BindingDisposition.Added,"JOY_BTN11")],"import");
+   await new SqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
+   var diagram=new UiLayerDiagram("Hornet grip",null,"assets/shared/hardware/svg/grip-f18c.svg",100,100,[],[]) {
+    Svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'/>",ProfileId=profile.Id,
+    Controls=[new("hornet-grip-trim-up","Trim up","JOY_POV1_U",10,10,25,20),
+     new("hornet-grip-vr-up","VR up","JOY_BTN11",40,10,25,20)]
+   };
+   var otherSlot=new DraftAssignmentSlot(module.Id,profile.Id,AssignmentLayer.Module,BindingSection.Key,"JOY_BTN11");
+   var oldUiSlot=new DraftAssignmentSlot(module.Id,profile.Id,AssignmentLayer.UiLayer,BindingSection.Key,"JOY_POV1_U");
+   var initial=new EditorWorkspaceSnapshot(configuration,[],[],[diagram],
+    [new("BASE","Pilot Trimmer","Flight",false),new("SHIFTED","Pilot Sight Elevation Increase","Flight",false),
+     new("OTHER","Other","Flight",false)],
+    [new DcsCommandDefinition(Guid.NewGuid(),Guid.NewGuid(),"UI","UI action","General",false)],
+    [new(otherSlot,new("OTHER","Other",false,AssignmentLayer.Module)),
+     new(oldUiSlot,new("UI","UI action",false,AssignmentLayer.UiLayer))],
+    new Dictionary<string,string> {[oldUiSlot.Key]="UI custom"});
+   var repository=new SqliteEditorWorkspaceRepository(connectionString);
+   await repository.SaveAsync(initial);
+   await using(var connection=new SqliteConnection(connectionString)) {
+    await connection.OpenAsync();
+    var read=connection.CreateCommand();
+    read.CommandText="SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
+    read.Parameters.AddWithValue("$id",module.Id.ToString("D"));
+    var payload=JsonNode.Parse((string)(await read.ExecuteScalarAsync())!)!.AsObject();
+    payload["Version"]=2;
+    var write=connection.CreateCommand();
+    write.CommandText="UPDATE editor_workspaces SET snapshot_json=$json WHERE module_id=$id";
+    write.Parameters.AddWithValue("$json",payload.ToJsonString());
+    write.Parameters.AddWithValue("$id",module.Id.ToString("D"));
+    await write.ExecuteNonQueryAsync();
+   }
+   var restored=(await repository.GetAsync(module.Id))!;
+   var baseSlot=otherSlot with {InputKey="JOY_BTN_POV1_U"};
+   var shiftedSlot=baseSlot with {ModifierChord="SHIFT"};
+   var uiSlot=oldUiSlot with {InputKey="JOY_BTN_POV1_U"};
+   Assert.Equal("BASE",restored.Assignments.Single(x=>x.Slot.Key==baseSlot.Key).Command.Id);
+   Assert.Equal("SHIFTED",restored.Assignments.Single(x=>x.Slot.Key==shiftedSlot.Key).Command.Id);
+   Assert.Equal("UI",restored.Assignments.Single(x=>x.Slot.Key==uiSlot.Key).Command.Id);
+   Assert.Equal("UI custom",restored.Labels[uiSlot.Key]);
+   Assert.DoesNotContain(restored.Assignments,x=>x.Slot.Key==oldUiSlot.Key);
+   await repository.SaveAsync(restored with {Assignments=restored.Assignments.Where(x=>x.Slot.Key!=baseSlot.Key).ToArray()});
+   Assert.DoesNotContain((await repository.GetAsync(module.Id))!.Assignments,x=>x.Slot.Key==baseSlot.Key);
+  }
+  finally {File.Delete(path);}
+ }
  #endregion END Public
 }
