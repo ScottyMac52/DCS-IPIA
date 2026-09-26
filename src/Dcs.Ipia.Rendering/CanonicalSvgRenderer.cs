@@ -42,5 +42,28 @@ public static class CanonicalSvgRenderer {
   using var png=image.Encode(SKEncodedImageFormat.Png,100);
   return png.ToArray();
  }
+ /// <summary>Rasterizes the authored device SVG at a larger pixel density before it is fitted on a kneeboard.</summary>
+ /// <param name="source">Complete device SVG with staged labels.</param>
+ /// <param name="width">Authored viewBox width.</param>
+ /// <param name="height">Authored viewBox height.</param>
+ /// <param name="scale">Whole-number output scale.</param>
+ /// <returns>A scaled PNG that preserves the original device geometry.</returns>
+ public static byte[] RenderCompleteScaled(string source,double width,double height,int scale) {
+  ArgumentException.ThrowIfNullOrWhiteSpace(source);
+  if(scale<1||scale>4||!double.IsFinite(width)||!double.IsFinite(height)||
+     width<=0||height<=0||width*scale>4096||height*scale>4096)
+   throw new ArgumentOutOfRangeException(nameof(scale),"Scaled SVG canvas must have finite supported dimensions.");
+  using var stream=new MemoryStream(Encoding.UTF8.GetBytes(source));
+  using var svg=new SKSvg();
+  var picture=svg.Load(stream)??throw new InvalidDataException("Canonical SVG could not be rendered.");
+  using var surface=SKSurface.Create(new SKImageInfo((int)Math.Ceiling(width*scale),(int)Math.Ceiling(height*scale)))??
+   throw new InvalidDataException("Could not allocate scaled SVG surface.");
+  surface.Canvas.Clear(SKColors.Transparent);
+  surface.Canvas.Scale(scale,scale);
+  surface.Canvas.DrawPicture(picture);
+  using var image=surface.Snapshot();
+  using var png=image.Encode(SKEncodedImageFormat.Png,100);
+  return png.ToArray();
+ }
  #endregion END Public
 }
