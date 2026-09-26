@@ -172,6 +172,11 @@ public sealed class HueyConsumerImporterTests {
    imported.Configuration.Bindings.Any(y=>y.ProfileId==stick.Id&&
     y.Disposition!=BindingDisposition.Removed&&y.Reformers.Count==0&&y.InputKey==x.InputKey));
   Assert.Equal(2,diagrams.Count(x=>x.Path.EndsWith("/logitech-throttle-quadrant.svg",StringComparison.Ordinal)));
+  Assert.Contains(stickDiagram.Callouts,x=>x.Modifier=="VKB_F14_BTN7"&&x.CommandId=="d2604pnilu2604cdnilvd1vpnilvu0");
+  Assert.Equal(7,stickDiagram.Callouts.Count);
+  Assert.DoesNotContain(diagrams.SelectMany(x=>x.Callouts),
+   x=>x.Modifier is "AVA_BASE_MODIFIER_BTN3" or "MOZA_MODIFIER_BTN3");
+  Assert.Empty(diagrams.Single(x=>x.Instance=="MFD3").Callouts);
  }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {

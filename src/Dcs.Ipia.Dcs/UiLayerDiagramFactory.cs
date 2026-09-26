@@ -25,7 +25,7 @@ public static class UiLayerDiagramFactory {
    utilization.GetProperty("bindings").EnumerateArray().ToArray():[];
   var diagrams=new List<UiLayerDiagram>();
   foreach(var profile in import.Configuration!.Profiles) {
-   try {diagrams.Add(CreateProfile(profile,usage,catalog,sources,shared));}
+   try {diagrams.Add(CreateProfile(import,profile,usage,catalog,sources,shared));}
    catch(Exception ex) when(onGraphicError is not null&&ex is (InvalidDataException or FormatException or XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException)) {
     onGraphicError!(profile,ex);
    }
@@ -34,15 +34,18 @@ public static class UiLayerDiagramFactory {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static UiLayerDiagram CreateProfile(DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
+ private static UiLayerDiagram CreateProfile(HueyImportResult import,DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
   IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared) {
 
    var rows=usage.Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
     &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
    var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);
+   IReadOnlyList<DcsBinding> projected=rows.Length==0&&shared is not null?
+    ModuleUiLayerBindingImporter.Import(import,shared,profile):[];
    var supportsUi=template is not null&&
-    (template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal));
+    (template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal))||
+    projected.Count>0;
    if(!supportsUi&&rows.Length>0)
     throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
@@ -82,6 +85,16 @@ public static class UiLayerDiagramFactory {
     var modifiers=string.Join(" + ",row.GetProperty("modifiers").EnumerateArray().Select(x=>x.GetString()));
     callouts.Add(new(callouts.Count+1,control,command.Name,modifiers,Number(box.Attribute("x")?.Value),
      Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)) {CommandId=command.DcsCommandId});
+   }
+   if(projected.Count>0) {
+    foreach(var binding in projected) {
+     var candidates=controls.Where(x=>x.IsAxis==(binding.Section==BindingSection.Axis)&&
+      DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)).ToArray();
+     var control=candidates.FirstOrDefault(x=>!x.Control.EndsWith("-shifted",StringComparison.Ordinal))??candidates.FirstOrDefault();
+     if(control is null)continue;
+     callouts.Add(new(callouts.Count+1,control.Control,binding.CommandName,string.Join(" + ",binding.Reformers),
+      control.X,control.Y,control.Width,control.Height) {CommandId=binding.CommandId});
+    }
    }
    return new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
     Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi

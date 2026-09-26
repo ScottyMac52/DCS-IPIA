@@ -73,7 +73,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
       overlay.TryGetProperty("assignments",out var overlayAssignments)&&
       overlayAssignments.ValueKind==JsonValueKind.Array&&overlayAssignments.GetArrayLength()>0)
     diagnostics.Add(new("module-overlay-preserved",
-     $"{overlayAssignments.GetArrayLength()} UI Layer overlay entries are retained as authored JSON; editor projection is not available yet.",false));
+     $"{overlayAssignments.GetArrayLength()} UI Layer overlay entries are retained as authored JSON and applied to matching canonical profiles in the module editor.",false));
    var devices=request.Catalog!.Devices.SelectMany(x=>new[]{x.StableKey}.Concat(x.Aliases).Select(key=>(Key:key,Device:x))).ToDictionary(x=>x.Key,x=>x.Device,StringComparer.OrdinalIgnoreCase);
    var sourceProfiles=kneeboard.GetProperty("profiles");
    if(sourceProfiles.ValueKind!=JsonValueKind.Object)throw new FormatException("Kneeboard profiles must be a keyed object.");
