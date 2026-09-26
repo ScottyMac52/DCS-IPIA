@@ -66,7 +66,11 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(12,result.Import.Provenance.Count);
    Assert.Equal(13,result.Import.UiFunctionKeys.Count);
    var authoredLabels=KneeboardLabelImporter.Import(result.Import.Metadata,result.Import.Configuration!);
-   Assert.Equal(60,authoredLabels.Count);
+   Assert.Equal(101,authoredLabels.Count);
+   var mfd1=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="tm-mfd"&&x.Instance=="MFD1");
+   var mfd1Top=new DraftAssignmentSlot(result.Import.Configuration.Module.Id,mfd1.Id,AssignmentLayer.Module,
+    BindingSection.Key,"JOY_BTN1");
+   Assert.Equal("Switch",authoredLabels[mfd1Top.Key]);
    var hornet=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="moza-ab9-hornet-grip");
    var baseArm=new DraftAssignmentSlot(result.Import.Configuration.Module.Id,hornet.Id,AssignmentLayer.Module,
     BindingSection.Key,"JOY_BTN11");
@@ -86,6 +90,7 @@ public sealed class HueyWorkspaceLoaderTests {
    var reopened=await repository.GetAsync(result.Import.Configuration.Module.Id);
    Assert.NotNull(reopened);
    Assert.Equal(authoredLabels.Count,reopened.Labels.Count);
+   Assert.Equal("Switch",reopened.Labels[mfd1Top.Key]);
    Assert.Equal("Arm Up",reopened.Labels[baseArm.Key]);
    Assert.Equal("Gun Up",reopened.Labels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
    Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);

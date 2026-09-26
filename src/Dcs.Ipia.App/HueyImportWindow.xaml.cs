@@ -298,7 +298,7 @@ public partial class HueyImportWindow : Window {
  }
  private void LoadAuthoredLabelsClicked(object sender,RoutedEventArgs e) {
   if(_saved is null||_draft is null)return;
-  var picker=new OpenFileDialog {Title="Select the Huey config/kneeboard.json file",
+  var picker=new OpenFileDialog {Title="Select a module config/kneeboard.json file",
    Filter="kneeboard.json|kneeboard.json|JSON files|*.json"};
   if(picker.ShowDialog(this)!=true)return;
   try {

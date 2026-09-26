@@ -68,11 +68,12 @@ public partial class MainWindow : Window {
     }
     var module=preview.Import.Configuration!;
     var authored=preview.Import.Metadata["config/kneeboard.json"].GetProperty("pages")
-     .EnumerateArray().SelectMany(page=>page.TryGetProperty("layers",out var layers)
-      ?layers.EnumerateArray().SelectMany(layer=>layer.GetProperty("controls").EnumerateObject()).ToArray()
-      :[]).Count(control=>control.Value.TryGetProperty("labelId",out _));
+     .EnumerateArray().Sum(page=>
+      (page.TryGetProperty("controls",out var controls)?controls.EnumerateObject().Count():0)+
+      (page.TryGetProperty("layers",out var layers)?layers.EnumerateArray()
+       .Sum(layer=>layer.TryGetProperty("controls",out var nested)?nested.EnumerateObject().Count():0):0));
     if(authored!=importedView.Labels.Count)
-     throw new InvalidDataException($"Authored kneeboard labels did not map to database slots: {importedView.Labels.Count} of {authored}. Check the Huey kneeboard.json and diff.lua files at the selected commit.");
+     throw new InvalidDataException($"Authored kneeboard labels did not map to database slots: {importedView.Labels.Count} of {authored}. Check kneeboard.json and the matching diff.lua profiles at the selected commit.");
     await _configurations.ReplaceAsync(module);
     var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
      importedView.ModuleCommands,preview.UiCommands,importedView.Draft?.Snapshot??[],

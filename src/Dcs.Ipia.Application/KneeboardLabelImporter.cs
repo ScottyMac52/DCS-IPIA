@@ -22,28 +22,36 @@ public static class KneeboardLabelImporter {
    var instance=page.TryGetProperty("deviceInstance",out var value)&&value.ValueKind!=JsonValueKind.Null
     ?value.GetString():null;
    var profile=configuration.Profiles.FirstOrDefault(x=>x.DeviceId==device&&x.Instance==instance);
-   if(profile is null||!page.TryGetProperty("layers",out var layers))continue;
-   foreach(var layer in layers.EnumerateArray()) {
-    if(!layer.TryGetProperty("controls",out var controls))continue;
-    foreach(var item in controls.EnumerateObject()) {
-     var control=item.Value;
-     if(!control.TryGetProperty("labelId",out var id)||!names.TryGetProperty(id.GetString()??"",out var label)||
-        string.IsNullOrWhiteSpace(label.GetString()))continue;
-     var key=control.GetProperty("key").GetString();
-     var command=control.GetProperty("command").GetString();
-     var reformers=control.TryGetProperty("modifiers",out var modifierValues)
-      ?modifierValues.EnumerateArray().Select(x=>x.GetString()??"").ToArray():[];
-     var binding=configuration.Bindings.FirstOrDefault(x=>x.ProfileId==profile.Id&&x.CommandId==command&&
-      DcsInputKey.SamePhysicalInput(x.InputKey,key??"")&&
-      x.Reformers.SequenceEqual(reformers,StringComparer.Ordinal));
-     if(binding is null)continue;
-     var slot=new DraftAssignmentSlot(configuration.Module.Id,profile.Id,AssignmentLayer.Module,
-      binding.Section,binding.InputKey,string.Join("+",binding.Reformers));
-     labels.TryAdd(slot.Key,label.GetString()!);
-    }
-   }
+   if(profile is null)continue;
+   if(page.TryGetProperty("controls",out var baseControls))
+    ImportControls(baseControls,names,configuration,profile,labels);
+   if(page.TryGetProperty("layers",out var layers))
+    foreach(var layer in layers.EnumerateArray())
+     if(layer.TryGetProperty("controls",out var controls))
+      ImportControls(controls,names,configuration,profile,labels);
   }
   return labels;
  }
  #endregion END Public
+ #region BEGIN private helpers
+ private static void ImportControls(JsonElement controls,JsonElement names,ModuleConfiguration configuration,
+  DeviceProfile profile,Dictionary<string,string> labels) {
+  foreach(var item in controls.EnumerateObject()) {
+   var control=item.Value;
+   if(!control.TryGetProperty("labelId",out var id)||!names.TryGetProperty(id.GetString()??"",out var label)||
+      string.IsNullOrWhiteSpace(label.GetString()))continue;
+   var key=control.GetProperty("key").GetString();
+   var command=control.GetProperty("command").GetString();
+   var reformers=control.TryGetProperty("modifiers",out var modifierValues)
+    ?modifierValues.EnumerateArray().Select(x=>x.GetString()??"").ToArray():[];
+   var binding=configuration.Bindings.FirstOrDefault(x=>x.ProfileId==profile.Id&&x.CommandId==command&&
+    DcsInputKey.SamePhysicalInput(x.InputKey,key??"")&&
+    x.Reformers.SequenceEqual(reformers,StringComparer.Ordinal));
+   if(binding is null)continue;
+   var slot=new DraftAssignmentSlot(configuration.Module.Id,profile.Id,AssignmentLayer.Module,
+    binding.Section,binding.InputKey,string.Join("+",binding.Reformers));
+   labels.TryAdd(slot.Key,label.GetString()!);
+  }
+ }
+ #endregion END private helpers
 }
