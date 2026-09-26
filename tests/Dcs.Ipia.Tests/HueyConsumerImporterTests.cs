@@ -108,6 +108,29 @@ public sealed class HueyConsumerImporterTests {
   var result=new HueyConsumerImporter().Import(request);
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-commit");
  }
+ /// <summary>Two same-model devices with null page instances remain distinct and keep their own labels.</summary>
+ [Fact] public void Repeated_device_without_instance_uses_authored_profile_keys() {
+  var request=Fixture();
+  var sources=request.Sources.Where(x=>x.Path!="config/scaffold-instance-roles.json").Select(source=>{
+   if(source.Path!="config/kneeboard.json")return source;
+   var root=JsonNode.Parse(source.Content)!;
+   root["pages"]![0]!["deviceInstance"]=null;
+   root["pages"]![1]!["deviceInstance"]=null;
+   return source with {Content=root.ToJsonString()};
+  }).ToArray();
+  var imported=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
+  var first=imported.Configuration!.Profiles.Single(x=>x.Instance=="tm-mfd-1");
+  var second=imported.Configuration.Profiles.Single(x=>x.Instance=="tm-mfd-2");
+  Assert.NotEqual(first.Id,second.Id);
+  Assert.Contains(imported.Configuration.Bindings,x=>x.ProfileId==first.Id);
+  Assert.Contains(imported.Configuration.Bindings,x=>x.ProfileId==second.Id);
+  var labels=KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration);
+  Assert.Equal(101,labels.Count);
+  Assert.Contains(labels.Keys,x=>x.Split('\u001f')[1]==first.Id.ToString());
+  Assert.Contains(labels.Keys,x=>x.Split('\u001f')[1]==second.Id.ToString());
+  Assert.Equal(2,imported.Instances.Count(x=>x.StableKey is "tm-mfd-1" or "tm-mfd-2"));
+ }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{

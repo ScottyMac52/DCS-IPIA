@@ -21,7 +21,13 @@ public static class KneeboardLabelImporter {
    var device=page.GetProperty("deviceId").GetString();
    var instance=page.TryGetProperty("deviceInstance",out var value)&&value.ValueKind!=JsonValueKind.Null
     ?value.GetString():null;
-   var profile=configuration.Profiles.FirstOrDefault(x=>x.DeviceId==device&&x.Instance==instance);
+   DeviceProfile? profile=null;
+   if(page.TryGetProperty("profile",out var profileKey)&&
+      root.TryGetProperty("profiles",out var sourceProfiles)&&
+      sourceProfiles.TryGetProperty(profileKey.GetString()??"",out var sourcePath))
+    profile=configuration.Profiles.FirstOrDefault(x=>x.SourceName==Path.GetFileName(sourcePath.GetString()));
+   else
+    profile=configuration.Profiles.FirstOrDefault(x=>x.DeviceId==device&&x.Instance==instance);
    if(profile is null)continue;
    if(page.TryGetProperty("controls",out var baseControls))
     ImportControls(baseControls,names,configuration,profile,labels);

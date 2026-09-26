@@ -96,12 +96,16 @@ public sealed class HueyConsumerImporter:IHueyImporter {
     if(!pagesByProfile.TryGetValue(entry.Name,out var page))throw new FormatException($"No kneeboard page for profile {entry.Name}.");
     var key=RequiredText(page,"deviceId");
     if(!devices.TryGetValue(key,out var device))throw new FormatException($"Unknown shared device identity: {key}");
-    var instance=OptionalText(page,"deviceInstance");
+    var authoredInstance=OptionalText(page,"deviceInstance");
+    // A page may omit its instance even when several profiles use the same device.
+    // The kneeboard profile key is the module's authored identity for those profiles.
+    var repeatedDevice=pageRows.EnumerateArray().Count(x=>RequiredText(x,"deviceId")==key)>1;
+    var instance=authoredInstance??(repeatedDevice?entry.Name:null);
     var filename=Path.GetFileName(path);
     if(overrides.ValueKind==JsonValueKind.Object&&overrides.TryGetProperty(filename,out var forced)&&forced.GetString()!=key)
      throw new FormatException($"Device override for {filename} conflicts with {key}.");
-    if(roles.ValueKind==JsonValueKind.Object&&roles.TryGetProperty(filename,out var assigned)&&assigned.GetString()!=instance)
-     throw new FormatException($"Instance role for {filename} conflicts with {instance}.");
+    if(roles.ValueKind==JsonValueKind.Object&&roles.TryGetProperty(filename,out var assigned)&&assigned.GetString()!=authoredInstance)
+     throw new FormatException($"Instance role for {filename} conflicts with {authoredInstance}.");
     var id=StableIdentity.Create(module.DcsId,$"{key}\0{instance}");
     profiles.Add(new(id,key,instance,instance??key,filename));
     instances.Add(new(StableIdentity.Create("device-instance",$"{module.DcsId}/{key}/{instance}"),module.Id,device.Id,entry.Name,instance??key));
