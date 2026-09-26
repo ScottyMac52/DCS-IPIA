@@ -58,7 +58,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
    var modifiersPath=RequiredText(kneeboard,"modifiersFile");
    var profileRoot=$"src/Config/Input/{dcsId}/joystick/";
    if(kneeboard.GetProperty("schemaVersion").GetInt32()!=1||
-      modifiersPath!=$"src/Config/Input/{dcsId}/modifiers.lua"||!files.ContainsKey(modifiersPath))
+      modifiersPath!=$"src/Config/Input/{dcsId}/modifiers.lua"||!files.TryGetValue(modifiersPath,out var modifiersText))
     throw new FormatException("Kneeboard schema, aircraft, or modifiers reference does not match supplied module sources.");
    if(metadata.TryGetValue(UiScaffold,out var uiScaffold)&&
       (uiScaffold.GetProperty("schemaVersion").GetInt32()!=1||
@@ -86,7 +86,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
       roles.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.Object))
     throw new FormatException("Device overrides and instance roles must be keyed objects.");
    var profilePaths=new HashSet<string>(StringComparer.Ordinal);
-   var modifiers=DcsLuaParser.ParseModifiers(files[modifiersPath]);
+   var modifiers=DcsLuaParser.ParseModifiers(modifiersText);
    var profiles=new List<DeviceProfile>();var bindings=new List<DcsBinding>();var instances=new List<DeviceInstance>();
    foreach(var entry in sourceProfiles.EnumerateObject()) {
     var path=entry.Value.GetString()??throw new FormatException($"Missing profile path for {entry.Name}.");
