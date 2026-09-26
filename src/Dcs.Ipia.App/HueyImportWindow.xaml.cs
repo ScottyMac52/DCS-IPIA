@@ -1,4 +1,7 @@
 using System.IO;
+using System.Globalization;
+using System.Xml;
+using System.Xml.Linq;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -62,6 +65,7 @@ public partial class HueyImportWindow : Window {
   var shifted=control.Control.EndsWith("-shifted",StringComparison.Ordinal);
   if(shifted&&layer=="Base")return null;
   var hasShiftedPair=!shifted&&diagram.Controls.Any(x=>x.Control==control.Control+"-shifted");
+  if(CurrentLayer==AssignmentLayer.UiLayer&&hasShiftedPair&&layer!="Base")return null;
   var chord=layer=="Base"||hasShiftedPair?"":layer.Replace(" + ","+",StringComparison.Ordinal);
   return new DraftAssignmentSlot(_saved.Configuration.Module.Id,diagram.ProfileId,CurrentLayer,
    control.IsAxis?BindingSection.Axis:BindingSection.Key,control.InputKey,chord);
@@ -108,11 +112,12 @@ public partial class HueyImportWindow : Window {
    Diagram.Width=diagram.Width*Zoom.Value;Diagram.Height=diagram.Height*Zoom.Value;
    var surface=new Canvas {Width=diagram.Width,Height=diagram.Height};
    surface.Children.Add(new Image {Source=bitmap,Width=diagram.Width,Height=diagram.Height});
+   CoverAuthoredLabels(surface,diagram.Svg);
    foreach(var control in diagram.Controls) {
     var slot=Slot(control);
     if(slot is null)continue;
     var assignment=Assignment(slot);
-    var caption=_labels.GetValueOrDefault(slot.Key)??assignment?.Command.Name??control.Label;
+    var caption=assignment is null?"Unassigned":_labels.GetValueOrDefault(slot.Key)??assignment.Command.Name;
     var text=new TextBlock {Text=caption,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
     _calloutText[slot.Key]=text;
@@ -138,6 +143,31 @@ public partial class HueyImportWindow : Window {
   }
   catch(Exception ex) {EditorMessage.Text="Unable to render saved SVG: "+ex.Message;}
   RefreshInspector();
+ }
+ private static void CoverAuthoredLabels(Canvas surface,string svg) {
+  using var reader=XmlReader.Create(new StringReader(svg),new XmlReaderSettings {
+   DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=4_000_000
+  });
+  var root=XDocument.Load(reader,LoadOptions.PreserveWhitespace).Root;
+  if(root is null)return;
+  foreach(var comment in root.Nodes().OfType<XComment>()) {
+   var marker=comment.Value.Trim();
+   if(!marker.StartsWith("box:",StringComparison.Ordinal))continue;
+   XNode? next=comment.NextNode;
+   while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
+   if(next is not XElement box||box.Name.LocalName!="rect")continue;
+   var x=double.Parse(box.Attribute("x")?.Value??"0",CultureInfo.InvariantCulture);
+   var y=double.Parse(box.Attribute("y")?.Value??"0",CultureInfo.InvariantCulture);
+   var width=double.Parse(box.Attribute("width")?.Value??"0",CultureInfo.InvariantCulture);
+   var height=double.Parse(box.Attribute("height")?.Value??"0",CultureInfo.InvariantCulture);
+   if(width<=0||height<=0)continue;
+   var mask=new Border {Width=width,Height=height,Background=Brushes.White,
+    BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Tag=marker["box:".Length..].Trim(),
+    Child=new TextBlock {Text="Unassigned",TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
+     VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black}};
+   Canvas.SetLeft(mask,x);Canvas.SetTop(mask,y);
+   surface.Children.Add(mask);
+  }
  }
  private void FilterCommands() {
   if(Commands is null||CommandCategory is null||CommandCount is null)return;
@@ -242,8 +272,8 @@ public partial class HueyImportWindow : Window {
   PendingCommand.Text=assignment?.Command.Name??"Unassigned";
   DefaultLabel.Text=_selected?.Label??"";
   _updatingInspector=true;
-  LabelEditor.IsEnabled=slot is not null;
-  LabelEditor.Text=slot is null?"":_labels.GetValueOrDefault(slot.Key)??assignment?.Command.Name??_selected!.Label;
+  LabelEditor.IsEnabled=assignment is not null;
+  LabelEditor.Text=slot is null?"":assignment is null?"Unassigned":_labels.GetValueOrDefault(slot.Key)??assignment.Command.Name;
   _updatingInspector=false;
   PendingSummary.Text=_draft?.HasChanges==true?"Pending assignments: "+_draft.History.Count:"No pending assignment changes";
  }
