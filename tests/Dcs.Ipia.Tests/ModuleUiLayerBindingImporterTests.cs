@@ -51,7 +51,7 @@ public sealed class ModuleUiLayerBindingImporterTests {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static IReadOnlyDictionary<string,JsonElement> ParseMetadata(string kneeboard,string? overlay) {
+ private static Dictionary<string,JsonElement> ParseMetadata(string kneeboard,string? overlay) {
   var result=new Dictionary<string,JsonElement> {
    ["config/kneeboard.json"]=JsonDocument.Parse(kneeboard).RootElement.Clone()
   };
