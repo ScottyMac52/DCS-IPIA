@@ -58,5 +58,41 @@ public sealed class KneeboardDraftProjectionTests {
   Assert.Single(pages);
   Assert.Equal("Module · Base",pages[0].Title);
  }
+ /// <summary>One authored page retains static control text and category names while staged module and UI assignments share it.</summary>
+ [Fact] public void Combined_device_uses_authored_page_and_current_ui_assignments() {
+  var module=new DcsModule(Guid.NewGuid(),"TEST","Test");
+  var profile=new DeviceProfile(Guid.NewGuid(),"test-device",null,"Device","Device.diff.lua");
+  var config=new ModuleConfiguration(module,[profile],[],[],"fixture");
+  var diagram=new UiLayerDiagram("Device",null,"device.svg",100,100,[],[]) {
+   ProfileId=profile.Id,Controls=[
+    new HardwareGraphicControl("one","One","JOY_BTN1",10,10,40,20),
+    new HardwareGraphicControl("one-shifted","One shifted","JOY_BTN1",10,40,40,20),
+    new HardwareGraphicControl("two","Two","JOY_BTN2",10,70,40,20)]
+  };
+  const string source="""
+   {"profiles":{"stick":"Device.diff.lua"},"pages":[
+    {"profile":"stick","title":"Authored device","kicker":"FLIGHT CONTROLS",
+     "labels":{"two":"Physical control"},"categoryLabels":{"top":"Flight"},
+     "layers":[{"labels":{"one":"Old authored label"},"categoryLabels":{"right":"Systems"}}]}
+   ]}
+   """;
+  var snapshot=new EditorWorkspaceSnapshot(config,[],[],[diagram],[],[],[],
+   new Dictionary<string,string>(),new Dictionary<string,string> {["config/kneeboard.json"]=source});
+  DraftAssignment Assigned(AssignmentLayer layer,string id,string chord="")=>
+   new(new(module.Id,profile.Id,layer,BindingSection.Key,"JOY_BTN1",chord),
+    new DraftCommand(id,id,false,layer));
+  var moduleBase=Assigned(AssignmentLayer.Module,"Module");
+  var uiShift=Assigned(AssignmentLayer.UiLayer,"UI shifted","UI_BTN7");
+  var overrides=new Dictionary<string,string> {[moduleBase.Slot.Key]="Edited module"};
+  var page=KneeboardDraftProjection.CreateCombined(snapshot,diagram,[moduleBase,uiShift],overrides);
+  Assert.Equal("Authored device",page.Title);
+  Assert.Equal("FLIGHT CONTROLS",page.Kicker);
+  Assert.Equal("Edited module",Assert.Single(page.Labels["one"]).Text);
+  Assert.Equal("UI shifted",Assert.Single(page.Labels["one-shifted"]).Text);
+  Assert.Equal("Physical control",Assert.Single(page.Labels["two"]).Text);
+  Assert.Equal("Flight",page.CategoryLabels["mfd-category-top"]);
+  Assert.Equal("Systems",page.CategoryLabels["mfd-category-right"]);
+  Assert.Contains(page.Legend,x=>x.Label=="UI Layer — UI_BTN7");
+ }
  #endregion END Public
 }
