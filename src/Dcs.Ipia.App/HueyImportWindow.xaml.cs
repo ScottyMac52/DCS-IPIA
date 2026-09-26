@@ -64,17 +64,9 @@ public partial class HueyImportWindow : Window {
  private DraftAssignmentSlot? Slot(HardwareGraphicControl control) {
   var diagram=CurrentDiagram;
   if(diagram is null||_saved is null||_draft is null)return null;
-  if(CurrentLayer==AssignmentLayer.UiLayer&&!diagram.SupportsUiLayer)return null;
   var layer=Layers.SelectedItem as string??"Base";
-  var shifted=control.Control.EndsWith("-shifted",StringComparison.Ordinal);
-  if(shifted&&layer=="Base")return null;
-  var hasShiftedPair=!shifted&&diagram.Controls.Any(x=>x.Control==control.Control+"-shifted");
-  if(CurrentLayer==AssignmentLayer.UiLayer&&hasShiftedPair&&layer!="Base")return null;
-  var chord=layer=="Base"||hasShiftedPair?"":layer.Replace(" + ","+",StringComparison.Ordinal);
-  var section=control.IsAxis?BindingSection.Axis:BindingSection.Key;
-  var input=DcsInputKey.Resolve(_saved.Configuration,diagram.ProfileId,section,control.InputKey);
-  return new DraftAssignmentSlot(_saved.Configuration.Module.Id,diagram.ProfileId,CurrentLayer,
-   section,input,chord);
+  var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+  return KneeboardDraftProjection.SlotForControl(_saved,diagram,control,CurrentLayer,chord);
  }
  private DraftAssignment? Assignment(DraftAssignmentSlot slot)=>_draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
  private void DeviceChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
@@ -332,30 +324,43 @@ public partial class HueyImportWindow : Window {
  }
  private void RenderClicked(object sender,RoutedEventArgs e) {
   var diagram=CurrentDiagram;
-  if(diagram is null||_selected is null||_saved is null) {
-   EditorMessage.Text="Select a control to view its rendered kneeboard.";return;
-  }
-  var asset=KneeboardPageLocator.ForProfile(_saved,diagram.ProfileId);
-  if(asset is null) {
-   EditorMessage.Text="No stored rendered kneeboard PNG is available for this device.";return;
+  if(diagram is null||_saved is null||_draft is null||string.IsNullOrWhiteSpace(diagram.Svg)) {
+   EditorMessage.Text="Select a stored device with an authored graphic to render its current kneeboard.";return;
   }
   try {
-   using var stream=new MemoryStream(asset.Bytes);
+   var pages=KneeboardDraftProjection.Create(_saved,diagram,_draft.Snapshot,_labels);
+   var png=CanonicalSvgRenderer.Render(diagram.Svg,diagram.Width,diagram.Height);
+   using var stream=new MemoryStream(png);
    var bitmap=new BitmapImage();
    bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
-   var view=new Window {Title="Rendered kneeboard · "+diagram.Title+" · "+_selected.Label,
-    Owner=this,Width=980,Height=760,MinWidth=500,MinHeight=400,WindowStartupLocation=WindowStartupLocation.CenterOwner,
+   var view=new Window {Title="Current kneeboard · "+diagram.Title,
+    Owner=this,Width=1100,Height=800,MinWidth=600,MinHeight=450,WindowStartupLocation=WindowStartupLocation.CenterOwner,
     Background=(Brush)FindResource("WindowBackgroundBrush"),Foreground=(Brush)FindResource("PrimaryTextBrush")};
-   var panel=new DockPanel {Margin=new Thickness(12)};
-   var caption=new TextBlock {Text=_selected.Label+" · "+_selected.InputKey+" · "+
-    (Layers.SelectedItem as string??"Base")+" · "+(CurrentLayer==AssignmentLayer.Module?"Module":"UI Layer")+
-    "\n"+asset.Path,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)};
-   DockPanel.SetDock(caption,Dock.Top);panel.Children.Add(caption);
-   panel.Children.Add(new ScrollViewer {Content=new Image {Source=bitmap,Stretch=Stretch.Uniform},
-    HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});
-   view.Content=panel;view.ShowDialog();
+   var layout=new DockPanel {Margin=new Thickness(12)};
+   var caption=new TextBlock {Text=diagram.Title+" · current draft assignments and displayed labels across all used layers",
+    TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)};
+   DockPanel.SetDock(caption,Dock.Top);layout.Children.Add(caption);
+   var tabs=new TabControl {Background=(Brush)FindResource("WindowBackgroundBrush")};
+   foreach(var page in pages) {
+    var surface=new Canvas {Width=diagram.Width,Height=diagram.Height,
+     Background=(Brush)FindResource("CanvasBackgroundBrush")};
+    surface.Children.Add(new Image {Source=bitmap,Width=diagram.Width,Height=diagram.Height});
+    CoverAuthoredLabels(surface,diagram.Svg);
+    foreach(var control in diagram.Controls) {
+     if(!page.Captions.TryGetValue(control.Control,out var label))continue;
+     var text=new TextBlock {Text=label,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
+      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
+     var target=new Border {Width=control.Width,Height=control.Height,Background=Brushes.White,
+      BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Child=text};
+     Canvas.SetLeft(target,control.X);Canvas.SetTop(target,control.Y);
+     surface.Children.Add(target);
+    }
+    tabs.Items.Add(new TabItem {Header=page.Title,Content=new ScrollViewer {Content=surface,
+     HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});
+   }
+   layout.Children.Add(tabs);view.Content=layout;view.ShowDialog();
   }
-  catch(Exception ex) {EditorMessage.Text="Unable to display stored kneeboard: "+ex.Message;}
+  catch(Exception ex) {EditorMessage.Text="Unable to render current kneeboard: "+ex.Message;}
  }
  private void TuneAxisClicked(object sender,RoutedEventArgs e) {
   if(_selected is null||_draft is null)return;
