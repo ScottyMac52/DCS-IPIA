@@ -55,7 +55,6 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
   IReadOnlyList<ImportDiagnostic> graphicDiagnostics=[];
   try {
    var graphicPaths=imported.Configuration!.Profiles.Select(x=>catalog.Devices.Single(y=>y.StableKey==x.DeviceId||y.Aliases.Contains(x.DeviceId,StringComparer.Ordinal)))
-    .Where(x=>catalog.Templates.Any(y=>y.DeviceKey==x.StableKey))
     .Select(x=>$"assets/shared/hardware/svg/{x.StableKey}.svg").Distinct(StringComparer.Ordinal).ToArray();
    var graphics=await ReadSourcesAsync(common,graphicPaths,cancellationToken);
    diagrams=UiLayerDiagramFactory.Create(imported,catalog,graphics,shared);

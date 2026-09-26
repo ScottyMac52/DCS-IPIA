@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Rendering;
 using Microsoft.Win32;
 using System.Text.Json;
@@ -154,19 +155,14 @@ public partial class HueyImportWindow : Window {
   });
   var root=XDocument.Load(reader,LoadOptions.PreserveWhitespace).Root;
   if(root is null)return;
-  foreach(var comment in root.Nodes().OfType<XComment>()) {
-   var marker=comment.Value.Trim();
-   if(!marker.StartsWith("box:",StringComparison.Ordinal))continue;
-   XNode? next=comment.NextNode;
-   while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
-   if(next is not XElement box||box.Name.LocalName!="rect")continue;
+  foreach(var (control,box) in SvgCalloutLocator.Find(root)) {
    var x=double.Parse(box.Attribute("x")?.Value??"0",CultureInfo.InvariantCulture);
    var y=double.Parse(box.Attribute("y")?.Value??"0",CultureInfo.InvariantCulture);
    var width=double.Parse(box.Attribute("width")?.Value??"0",CultureInfo.InvariantCulture);
    var height=double.Parse(box.Attribute("height")?.Value??"0",CultureInfo.InvariantCulture);
    if(width<=0||height<=0)continue;
    var mask=new Border {Width=width,Height=height,Background=Brushes.White,
-    BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Tag=marker["box:".Length..].Trim(),
+    BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Tag=control,
     Child=new TextBlock {Text="Unassigned",TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
      VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black}};
    Canvas.SetLeft(mask,x);Canvas.SetTop(mask,y);

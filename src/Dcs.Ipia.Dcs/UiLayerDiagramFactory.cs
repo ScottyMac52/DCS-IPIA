@@ -6,11 +6,11 @@ using Dcs.Ipia.Application;
 
 namespace Dcs.Ipia.Dcs;
 
-/// <summary>Composes explicit Huey UI usage with canonical hardware template boxes.</summary>
+/// <summary>Builds module device diagrams from DCS-Common hardware graphics and optional UI Layer templates.</summary>
 public static class UiLayerDiagramFactory {
  #region BEGIN Public
  /// <summary>Builds diagrams for module-used devices and instances using committed SVG text.</summary>
- /// <param name="import">Validated Huey consumer import.</param>
+ /// <param name="import">Validated module import.</param>
  /// <param name="catalog">Validated DCS-Common catalog.</param>
  /// <param name="sources">Committed shared SVG texts keyed by repository path.</param>
  /// <param name="shared">Validated physical-to-logical control mappings.</param>
@@ -27,8 +27,8 @@ public static class UiLayerDiagramFactory {
     &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
    var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
    var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);
-   if(template is null)continue;
-   var supportsUi=template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal);
+   var supportsUi=template is not null&&
+    (template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal));
    if(!supportsUi&&rows.Length>0)
     throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
    var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
@@ -44,16 +44,7 @@ public static class UiLayerDiagramFactory {
     href?.StartsWith("data:image/jpeg;base64,",StringComparison.Ordinal)==true?"data:image/jpeg;base64,":null;
    if(prefix is null)throw new InvalidDataException($"Missing embedded hardware image: {path}");
    var background=Convert.FromBase64String(href![prefix.Length..]);
-   var boxes=new Dictionary<string,XElement>(StringComparer.Ordinal);
-   foreach(var comment in root.Nodes().OfType<XComment>()) {
-    var marker=comment.Value.Trim();
-    if(!marker.StartsWith("box:",StringComparison.Ordinal))continue;
-    XNode? next=comment.NextNode;
-    while(next is XText whitespace&&string.IsNullOrWhiteSpace(whitespace.Value))next=next.NextNode;
-    if(next is not XElement element||element.Name.LocalName!="rect")
-     throw new InvalidDataException($"Graphic box {marker} has no adjacent rectangle in {path}.");
-    boxes.Add(marker["box:".Length..].Trim(),element);
-   }
+   var boxes=SvgCalloutLocator.Find(root);
    var mapped=(shared?.Controls??[]).Where(x=>x.Control.DeviceId==device.Id)
     .ToDictionary(x=>x.Control.StableKey,x=>x,StringComparer.Ordinal);
    var controls=boxes.Select(pair=>{
@@ -71,7 +62,7 @@ public static class UiLayerDiagramFactory {
    var callouts=new List<UiLayerCallout>();
    foreach(var row in rows) {
     var function=row.GetProperty("functionId").GetString()!;
-    if(!template.Bindings.TryGetValue(function,out var control)||!boxes.TryGetValue(control,out var box))
+    if(template is null||!template.Bindings.TryGetValue(function,out var control)||!boxes.TryGetValue(control,out var box))
      throw new InvalidDataException($"No canonical graphic control for {device.StableKey}/{function} in {path}.");
     var command=catalog.Commands.Single(x=>x.Id==global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function",function));
     var modifiers=string.Join(" + ",row.GetProperty("modifiers").EnumerateArray().Select(x=>x.GetString()));

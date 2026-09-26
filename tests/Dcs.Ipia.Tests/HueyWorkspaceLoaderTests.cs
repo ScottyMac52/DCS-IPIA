@@ -37,9 +37,10 @@ public sealed class HueyWorkspaceLoaderTests {
    Directory.CreateDirectory(Path.GetDirectoryName(imagePath)!);
    File.WriteAllBytes(imagePath,image);
    using(var overlays=JsonDocument.Parse(File.ReadAllText(Path.Combine(common,"assets/shared/ui-layer/hardware-overlays.json")))) {
-    foreach(var device in new[]{"tm-mfd","grip-f18c"}) {
-     var controls=overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
-      .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
+    foreach(var device in new[]{"tm-mfd","grip-f18c","tm-warthog-throttle"}) {
+     var controls=device=="tm-warthog-throttle"?new[]{"warthog-thr-slew-push"}:
+      overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
+       .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
      var rects=string.Join("\n",controls.Select((control,i)=>$"  <!-- box:{control} -->\n  <rect x='10' y='{10+i*48}' width='55' height='45'/>\n  <text id='lbl-{control}' x='10' y='10'>label</text>"));
      var path=Path.Combine(common,"assets","shared","hardware","svg",device+".svg");
      Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -112,15 +113,17 @@ public sealed class HueyWorkspaceLoaderTests {
    File.WriteAllText(catalogPath,savedCatalog);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
-   Assert.Equal(4,result.Diagrams.Count);
+   Assert.Equal(5,result.Diagrams.Count);
    Assert.All(result.Diagrams,x=>Assert.Contains("<svg",x.Svg,StringComparison.Ordinal));
    Assert.All(result.Diagrams,x=>Assert.NotEmpty(x.Controls));
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
-   Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
-   Assert.Contains(result.Diagrams.Single(x=>x.Instance is null).Callouts,
+   Assert.Equal(3,result.Diagrams.Single(x=>x.Path.EndsWith("/grip-f18c.svg",StringComparison.Ordinal)).Callouts.Count);
+   Assert.Contains(result.Diagrams.Single(x=>x.Path.EndsWith("/grip-f18c.svg",StringComparison.Ordinal)).Callouts,
     x=>x.Control=="hornet-grip-paddle"&&x.Function=="Recenter VR"&&x.X==10);
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD1");
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD2");
+   Assert.Contains(result.Diagrams,x=>x.Path.EndsWith("/tm-warthog-throttle.svg",StringComparison.Ordinal)&&
+    !x.SupportsUiLayer&&x.Controls.Any(y=>y.Control=="warthog-thr-slew-push"));
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls,
     x=>x.Control=="mfd-osb-t1-shifted"&&x.InputKey=="JOY_BTN1");
@@ -134,10 +137,11 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.True(catalog.Succeeded);
    var graphics=new Dictionary<string,string> {
     ["assets/shared/hardware/svg/tm-mfd.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-mfd.svg")),
-    ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg"))
+    ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg")),
+    ["assets/shared/hardware/svg/tm-warthog-throttle.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-warthog-throttle.svg"))
    };
    var withoutHardwareMap=UiLayerDiagramFactory.Create(result.Import,catalog,graphics);
-   Assert.Equal(4,withoutHardwareMap.Count);
+   Assert.Equal(5,withoutHardwareMap.Count);
    Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
    Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
    var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));

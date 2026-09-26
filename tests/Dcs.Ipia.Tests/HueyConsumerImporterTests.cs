@@ -152,6 +152,26 @@ public sealed class HueyConsumerImporterTests {
   var labels=KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration);
   Assert.All(quadrants,x=>Assert.Contains(labels.Keys,key=>key.Split('\u001f')[1]==x.Id.ToString()));
   Assert.Contains(imported.Diagnostics,x=>x.Code=="module-overlay-preserved");
+  var tinyImage=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZQAAAABJRU5ErkJggg==");
+  var graphics=new Dictionary<string,string>(StringComparer.Ordinal);
+  foreach(var device in common.Catalog!.Devices.Where(x=>imported.Configuration.Profiles.Any(y=>y.DeviceId==x.StableKey))) {
+   var controls=common.SharedLua!.Controls.Where(x=>x.Control.DeviceId==device.Id)
+    .Select(x=>x.Control.StableKey).ToArray();
+   Assert.NotEmpty(controls);
+   var callouts=string.Join("\n",controls.Select((control,index)=>
+    $"<!-- callout:{control} --><line/><circle/><rect x='10' y='{10+index*30}' width='100' height='24'/><text id='lbl-{control}'>{control}</text>"));
+   graphics.Add($"assets/shared/hardware/svg/{device.StableKey}.svg",
+    $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}'/>{callouts}</svg>");
+  }
+  var diagrams=UiLayerDiagramFactory.Create(imported,common.Catalog,graphics,common.SharedLua);
+  Assert.Equal(imported.Configuration.Profiles.Count,diagrams.Count);
+  Assert.All(diagrams,x=>Assert.NotEmpty(x.Controls));
+  var stick=imported.Configuration.Profiles.Single(x=>x.DeviceId=="vkb-f14-gunfighter");
+  var stickDiagram=diagrams.Single(x=>x.ProfileId==stick.Id);
+  Assert.Contains(stickDiagram.Controls,x=>x.InputKey=="JOY_BTN5"&&
+   imported.Configuration.Bindings.Any(y=>y.ProfileId==stick.Id&&
+    y.Disposition!=BindingDisposition.Removed&&y.Reformers.Count==0&&y.InputKey==x.InputKey));
+  Assert.Equal(2,diagrams.Count(x=>x.Path.EndsWith("/logitech-throttle-quadrant.svg",StringComparison.Ordinal)));
  }
  /// <summary>Two logical profiles cannot claim the same authored Lua file.</summary>
  [Fact] public void Duplicate_profile_path_is_rejected() {
