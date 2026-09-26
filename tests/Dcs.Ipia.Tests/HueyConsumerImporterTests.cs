@@ -192,7 +192,7 @@ public sealed class HueyConsumerImporterTests {
   var result=new HueyConsumerImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal(5,result.Configuration!.Profiles.Count);
-  Assert.Equal(request.Sources.Length+2,result.Provenance.Count);
+  Assert.Equal(request.Sources.Count+2,result.Provenance.Count);
   Assert.Contains(result.Diagnostics,x=>x.Code=="unreferenced-module-profiles");
   Assert.DoesNotContain(result.Configuration.Profiles,x=>x.SourceName=="Old Controller.diff.lua");
  }
