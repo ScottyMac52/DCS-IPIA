@@ -112,6 +112,10 @@
                   <ComboBox x:Name="CommandType" SelectionChanged="FiltersChanged">
                     <ComboBoxItem Content="All"/><ComboBoxItem Content="Key"/><ComboBoxItem Content="Axes"/>
                   </ComboBox>
+                  <TextBlock Text="Binding state" Margin="0,4,0,0"/>
+                  <ComboBox x:Name="BindingState" SelectionChanged="FiltersChanged">
+                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Bound"/><ComboBoxItem Content="Unbound"/>
+                  </ComboBox>
                   <TextBlock x:Name="CommandCount" Margin="0,6"/>
                 </StackPanel>
                 <ListBox x:Name="Commands" PreviewMouseLeftButtonDown="DragStart" PreviewMouseMove="CommandDrag">
@@ -138,7 +142,8 @@
                 <TextBlock Text="Pending command" FontWeight="SemiBold"/><TextBlock x:Name="PendingCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                 <TextBlock Text="DCS default label" FontWeight="SemiBold"/><TextBlock x:Name="DefaultLabel" TextWrapping="Wrap" Margin="0,2,0,10"/>
                 <TextBlock Text="Displayed label" FontWeight="SemiBold"/><TextBox x:Name="LabelEditor" TextChanged="LabelChanged" IsEnabled="False" Margin="0,4,0,8"/>
-                <TextBlock Text="Axis tuning" FontWeight="SemiBold"/><TextBlock Text="Axis tuning will use stored filter data." Margin="0,2,0,6" TextWrapping="Wrap"/>
+                <TextBlock Text="Axis tuning" FontWeight="SemiBold"/><TextBlock x:Name="AxisTuningSummary" Margin="0,2,0,6" TextWrapping="Wrap"/>
+                <Button x:Name="TuneAxisButton" Content="Tune axis…" Click="TuneAxisClicked" IsEnabled="False" Padding="8,5"/>
                 <Button Content="Assign selected command" Click="AssignClicked" Margin="0,4" Padding="8,5"/>
                 <Button Content="Clear assignment" Click="ClearClicked" Margin="0,4" Padding="8,5"/>
                 <Button Content="Undo assignment / Restore" Click="UndoClicked" Margin="0,4" Padding="8,5"/>

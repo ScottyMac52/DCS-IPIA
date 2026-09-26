@@ -180,8 +180,8 @@ public sealed class HueyImportViewModel {
     if(matches.Length==0) {unmatched++;continue;}
     var slot=new DraftAssignmentSlot(configuration.Module.Id,binding.ProfileId,AssignmentLayer.Module,binding.Section,binding.InputKey,
      string.Join("+",binding.Reformers));
-    assignments.Add(new(slot,new(binding.CommandId,moduleNames.GetValueOrDefault(binding.CommandId,binding.CommandName),
-     binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)));
+    assignments.Add(new DraftAssignment(slot,new(binding.CommandId,moduleNames.GetValueOrDefault(binding.CommandId,binding.CommandName),
+     binding.Section==global::Dcs.Ipia.Domain.BindingSection.Axis,AssignmentLayer.Module)) {Filter=binding.Filter});
    }
    foreach(var diagram in preview.Diagrams)foreach(var callout in diagram.Callouts) {
     var control=diagram.Controls.SingleOrDefault(x=>x.Control==callout.Control);

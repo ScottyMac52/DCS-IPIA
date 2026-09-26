@@ -28,6 +28,8 @@ public sealed class DraftAssignmentService {
   }
   foreach(var assignment in assignments) {
    if(assignment is null)throw new ArgumentException("Initial assignment is missing.",nameof(assignments));
+   if(assignment.Filter is not null&&assignment.Slot.Section!=BindingSection.Axis)
+    throw new ArgumentException("Only axis assignments may have tuning.",nameof(assignments));
    if(!Validate(assignment.Slot,assignment.Command,out var reason))
     throw new ArgumentException(reason,nameof(assignments));
    if(!_original.TryAdd(assignment.Slot.Key,assignment))
@@ -65,7 +67,7 @@ public sealed class DraftAssignmentService {
  public DraftResult Assign(DraftAssignmentSlot destination,DraftCommand command,OccupiedDestinationBehavior behavior,DraftConflictChoice? choice=null) {
   if(!Validate(destination,command,out var reason))return Block(reason);
   _current.TryGetValue(destination.Key,out var existing);
-  var incoming=new DraftAssignment(destination,command);
+  var incoming=new DraftAssignment(destination,command) {Filter=existing?.Filter};
   if(existing==incoming)return Unchanged();
   var conflict=Conflict(existing,behavior,choice,false);
   if(conflict is not null)return conflict;
@@ -97,7 +99,21 @@ public sealed class DraftAssignmentService {
   if(!_current.TryGetValue(source.Key,out var first)||!_current.TryGetValue(destination.Key,out var second))
    return Block("Both controls must be assigned before swapping.");
   if(!Validate(destination,first.Command,out reason)||!Validate(source,second.Command,out reason))return Block(reason);
-  return Commit("Swap",[new(source,first,new(source,second.Command)),new(destination,second,new(destination,first.Command))]);
+  return Commit("Swap",[new(source,first,second with {Slot=source}),new(destination,second,first with {Slot=destination})]);
+ }
+ /// <summary>Stages sparse DCS tuning for an assigned axis in the current draft.</summary>
+ /// <param name="slot">Axis input and modifier layer.</param>
+ /// <param name="filter">Tuning fields; null clears tuning.</param>
+ /// <returns>An undoable operation or a blocked result.</returns>
+ public DraftResult TuneAxis(DraftAssignmentSlot slot,AxisFilter? filter) {
+  if(!ValidateSlot(slot,out var reason))return Block(reason);
+  if(slot.Section!=BindingSection.Axis)return Block("Only an axis can be tuned.");
+  if(!_current.TryGetValue(slot.Key,out var prior))return Block("Assign an axis command before tuning.");
+  if(filter is not null&&new double?[] {filter.Deadzone,filter.SaturationX,filter.SaturationY,
+   filter.HardwareDetentAB,filter.HardwareDetentMax}.Any(x=>x.HasValue&&!double.IsFinite(x.Value))||
+   filter?.Curvature?.Any(x=>!double.IsFinite(x))==true)return Block("Axis tuning requires finite numbers.");
+  if(System.Text.Json.JsonSerializer.Serialize(prior.Filter)==System.Text.Json.JsonSerializer.Serialize(filter))return Unchanged();
+  return Commit("Tune axis",[new(slot,prior,prior with {Filter=filter})]);
  }
  /// <summary>Removes an assignment in the draft without modifying imported files.</summary>
  /// <param name="slot">Control to clear.</param>
@@ -139,12 +155,12 @@ public sealed class DraftAssignmentService {
   if(!Validate(destination,incoming.Command,out reason))return Block(reason);
   if(source.Key==destination.Key)return Unchanged();
   _current.TryGetValue(destination.Key,out var existing);
-  var moved=new DraftAssignment(destination,incoming.Command);
+  var moved=incoming with {Slot=destination};
   if(copy&&existing==moved)return Unchanged();
   var conflict=Conflict(existing,behavior,choice,!copy);
   if(conflict is not null)return conflict;
   if(existing is not null&&choice==DraftConflictChoice.Swap)
-   return Commit("Swap",[new(source,incoming,new(source,existing.Command)),new(destination,existing,moved)]);
+   return Commit("Swap",[new(source,incoming,existing with {Slot=source}),new(destination,existing,moved)]);
   return copy?Commit("Copy",[new(destination,existing,moved)]):
    Commit("Move",[new(source,incoming,null),new(destination,existing,moved)]);
  }

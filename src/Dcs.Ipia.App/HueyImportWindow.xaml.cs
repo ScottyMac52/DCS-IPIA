@@ -50,6 +50,7 @@ public partial class HueyImportWindow : Window {
   Layers.SelectedIndex=0;
   Scope.SelectedIndex=0;
   CommandType.SelectedIndex=0;
+  BindingState.SelectedIndex=0;
   DeviceChoice.SelectedIndex=_viewModel.UiDiagrams.Count>0?0:-1;
   if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
   Closing+=ConfirmClose;
@@ -175,6 +176,15 @@ public partial class HueyImportWindow : Window {
   var category=CommandCategory.SelectedItem as string;
   var filtered=CommandPalette.Filter(list,CommandSearch.Text,category=="All"?null:category)
    .Where(x=>CommandType.SelectedIndex==0||(CommandType.SelectedIndex==2)==x.IsAxis).ToArray();
+  var diagram=CurrentDiagram;
+  if(BindingState.SelectedIndex>0&&diagram is not null&&_draft is not null) {
+   var layer=Layers.SelectedItem as string??"Base";
+   var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+   var bound=_draft.Snapshot.Where(x=>x.Slot.ProfileId==diagram.ProfileId&&
+    x.Slot.Layer==CurrentLayer&&x.Slot.ModifierChord==chord)
+    .Select(x=>x.Command.Id).ToHashSet(StringComparer.Ordinal);
+   filtered=filtered.Where(x=>bound.Contains(x.Id)==(BindingState.SelectedIndex==1)).ToArray();
+  }
   Commands.ItemsSource=filtered;
   CommandCount.Text=$"Showing {filtered.Length} of {list.Count}";
  }
@@ -275,6 +285,10 @@ public partial class HueyImportWindow : Window {
   LabelEditor.IsEnabled=assignment is not null;
   LabelEditor.Text=slot is null?"":assignment is null?"Unassigned":_labels.GetValueOrDefault(slot.Key)??assignment.Command.Name;
   _updatingInspector=false;
+  TuneAxisButton.IsEnabled=slot?.Section==BindingSection.Axis&&assignment is not null;
+  AxisTuningSummary.Text=slot?.Section!=BindingSection.Axis?"Select an axis control to tune.":
+   assignment is null?"Assign a command before tuning.":
+   assignment.Filter is null?"No axis filter set.":"Axis filter staged.";
   PendingSummary.Text=_draft?.HasChanges==true?"Pending assignments: "+_draft.History.Count:"No pending assignment changes";
  }
  private async void SaveClicked(object sender,RoutedEventArgs e) {
@@ -317,7 +331,45 @@ public partial class HueyImportWindow : Window {
   RefreshEditor();
   EditorMessage.Text="Pending edits discarded.";
  }
- private void RenderClicked(object sender,RoutedEventArgs e)=>ImportedTabs.SelectedIndex=2;
+ private void RenderClicked(object sender,RoutedEventArgs e) {
+  var diagram=CurrentDiagram;
+  if(diagram is null||_selected is null||_saved is null) {
+   EditorMessage.Text="Select a control to view its rendered kneeboard.";return;
+  }
+  var asset=KneeboardPageLocator.ForProfile(_saved,diagram.ProfileId);
+  if(asset is null) {
+   EditorMessage.Text="No stored rendered kneeboard PNG is available for this device.";return;
+  }
+  try {
+   using var stream=new MemoryStream(asset.Bytes);
+   var bitmap=new BitmapImage();
+   bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
+   var view=new Window {Title="Rendered kneeboard · "+diagram.Title+" · "+_selected.Label,
+    Owner=this,Width=980,Height=760,MinWidth=500,MinHeight=400,WindowStartupLocation=WindowStartupLocation.CenterOwner,
+    Background=(Brush)FindResource("WindowBackgroundBrush"),Foreground=(Brush)FindResource("PrimaryTextBrush")};
+   var panel=new DockPanel {Margin=new Thickness(12)};
+   var caption=new TextBlock {Text=_selected.Label+" · "+_selected.InputKey+" · "+
+    (Layers.SelectedItem as string??"Base")+" · "+(CurrentLayer==AssignmentLayer.Module?"Module":"UI Layer")+
+    "\n"+asset.Path,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)};
+   DockPanel.SetDock(caption,Dock.Top);panel.Children.Add(caption);
+   panel.Children.Add(new ScrollViewer {Content=new Image {Source=bitmap,Stretch=Stretch.Uniform},
+    HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});
+   view.Content=panel;view.ShowDialog();
+  }
+  catch(Exception ex) {EditorMessage.Text="Unable to display stored kneeboard: "+ex.Message;}
+ }
+ private void TuneAxisClicked(object sender,RoutedEventArgs e) {
+  if(_selected is null||_draft is null)return;
+  var slot=Slot(_selected);
+  if(slot?.Section!=BindingSection.Axis)return;
+  var assignment=Assignment(slot);
+  if(assignment is null)return;
+  var dialog=new AxisTuningWindow(assignment.Filter) {Owner=this};
+  if(dialog.ShowDialog()!=true)return;
+  var result=_draft.TuneAxis(slot,dialog.Filter);
+  EditorMessage.Text=result.Message;
+  if(result.Outcome==DraftOutcome.Applied)RefreshEditor();
+ }
  private void KneeboardList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
   if(KneeboardPreview is null||KneeboardCaption is null)return;
   KneeboardPreview.Source=null;

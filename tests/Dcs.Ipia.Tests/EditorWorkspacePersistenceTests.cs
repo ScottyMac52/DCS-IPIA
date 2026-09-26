@@ -49,6 +49,19 @@ public sealed class EditorWorkspacePersistenceTests {
    Assert.Equal("F-14BU",second!.Configuration.Module.DcsId);
    Assert.Equal("{}",second.Sources!["config/kneeboard.json"]);
    Assert.Equal("Trigger",(await repository.GetAsync(module.Id))!.Labels[slot.Key]);
+   var axisSlot=new DraftAssignmentSlot(module.Id,profile.Id,AssignmentLayer.Module,BindingSection.Axis,"JOY_X");
+   var axisCommand=new DraftCommand("PITCH","Pitch",true,AssignmentLayer.Module);
+   var filter=new AxisFilter(0.04,1,0.85,[0.2,-0.2],true,false,true,0.9,1);
+   var current=(await repository.GetAsync(module.Id))!;
+   await repository.SaveAsync(current with {
+    ModuleCommands=[..current.ModuleCommands,new CommandPaletteEntry("PITCH","Pitch","Axes",true)],
+    Assignments=[..current.Assignments,new DraftAssignment(axisSlot,axisCommand) {Filter=filter}]
+   });
+   var restoredAxis=(await repository.GetAsync(module.Id))!.Assignments.Single(x=>x.Slot==axisSlot);
+   Assert.Equal(filter.Deadzone,restoredAxis.Filter!.Deadzone);
+   Assert.Equal(filter.Curvature,restoredAxis.Filter.Curvature);
+   Assert.Equal(filter.HardwareDetentAB,restoredAxis.Filter.HardwareDetentAB);
+
   }
   finally {File.Delete(path);}
  }

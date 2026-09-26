@@ -142,6 +142,29 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Equal(DraftOutcome.Blocked,service.Assign(slot with {InputKey="JOY_BTN9"},
    labeled with {IsAxis=true},OccupiedDestinationBehavior.Ask).Outcome);
  }
+ /// <summary>Axis tuning is scoped to one assignment and moves, copies, and undoes with the command.</summary>
+ [Fact] public void Axis_tuning_stays_with_assignment_and_is_undoable() {
+  var moduleId=Guid.NewGuid();var profileId=Guid.NewGuid();
+  var module=BuildModule(moduleId,profileId,Guid.NewGuid());
+  var command=new DraftCommand("PITCH","Pitch",true,AssignmentLayer.Module);
+  var source=new DraftAssignmentSlot(moduleId,profileId,AssignmentLayer.Module,BindingSection.Axis,"JOY_X");
+  var target=source with {InputKey="JOY_Y"};
+  var initial=new AxisFilter(0.03,1,0.8,[0.2],true,false);
+  var draft=new DraftAssignmentService(module,[command],
+   [new DraftAssignment(source,command) {Filter=initial}]);
+  Assert.Equal(initial,Assert.Single(draft.Snapshot).Filter);
+  var tuned=new AxisFilter(0.05,1,0.9,[0.3],false,true);
+  Assert.Equal(DraftOutcome.Applied,draft.TuneAxis(source,tuned).Outcome);
+  Assert.Equal(tuned,Assert.Single(draft.Snapshot).Filter);
+  Assert.Equal(DraftOutcome.Applied,draft.Copy(source,target,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(tuned,Assert.Single(draft.Snapshot,x=>x.Slot==target).Filter);
+  Assert.Equal(DraftOutcome.Applied,draft.Undo().Outcome);
+  Assert.Equal(DraftOutcome.Applied,draft.Undo().Outcome);
+  Assert.Equal(initial,Assert.Single(draft.Snapshot).Filter);
+  Assert.False(draft.HasChanges);
+  Assert.Equal(DraftOutcome.Blocked,draft.TuneAxis(source with {Section=BindingSection.Key},tuned).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,draft.TuneAxis(source,new AxisFilter(double.NaN)).Outcome);
+ }
  /// <summary>Module and canonical UI Layer modifiers remain independently validated.</summary>
  [Fact] public void Distinct_scope_modifiers_keep_their_own_assignments() {
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
