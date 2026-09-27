@@ -48,5 +48,20 @@ public sealed class CompositeKneeboardRendererTests {
   Assert.Equal(2,label.Elements().Count());
   Assert.DoesNotContain("data-modifier-legend",CompositeKneeboardRenderer.BuildPageSvg(diagram,page));
  }
+ /// <summary>Unassigned callouts stay blank and a single UI Layer label keeps its scope color.</summary>
+ [Fact] public void Clears_unassigned_callouts_and_colors_single_ui_label() {
+  const string svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text id='lbl-empty' x='20' y='20'>Old</text><text id='lbl-ui' x='40' y='40'>Old</text><text id='meta-category' x='50' y='50'>Old</text></svg>";
+  var diagram=new UiLayerDiagram("Device",null,"device.svg",100,100,[],[]) {Svg=svg};
+  var page=new KneeboardComposite("Device","",
+   new Dictionary<string,IReadOnlyList<KneeboardLabelVariant>> {
+    ["ui"]=[new("VR Zoom","#0891b2",AssignmentLayer.UiLayer,"")]
+   },new Dictionary<string,string>(),[]);
+  var document=XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram,page));
+  Assert.Equal("",Assert.Single(document.Descendants(),x=>x.Attribute("id")?.Value=="lbl-empty").Value);
+  var ui=Assert.Single(document.Descendants(),x=>x.Attribute("id")?.Value=="lbl-ui");
+  Assert.Equal("VR Zoom",ui.Value);
+  Assert.Equal("#0891b2",ui.Attribute("fill")?.Value);
+  Assert.Equal("",Assert.Single(document.Descendants(),x=>x.Attribute("id")?.Value=="meta-category").Value);
+ }
  #endregion END Public
 }
