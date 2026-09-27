@@ -121,6 +121,35 @@ public sealed class SharedCatalogImporterTests {
   Assert.False(invalidMap.Succeeded);
   Assert.Contains(invalidMap.Diagnostics,x=>x.Message.Contains("Invalid input key aliases",StringComparison.Ordinal));
  }
+ /// <summary>Broken identities and overlay controls fail import with actionable diagnostics.</summary>
+ [Fact] public void Invalid_alias_and_overlay_control_are_rejected() {
+  var request=Fixture();var hardware=JsonNode.Parse(request.HardwareJson)!;
+  hardware["devices"]![0]!["aliases"]=new JsonObject();
+  var invalidAliases=new DcsCommonCatalogImporter().Import(request with {HardwareJson=hardware.ToJsonString()});
+  Assert.False(invalidAliases.Succeeded);
+  Assert.Contains(invalidAliases.Diagnostics,x=>x.Message.Contains("Invalid aliases",StringComparison.Ordinal));
+  var overlays=JsonNode.Parse(request.OverlaysJson)!;
+  var first=overlays["devices"]!.AsObject().First();
+  var binding=first.Value!["bindings"]!.AsObject().First();
+  first.Value["bindings"]![binding.Key]="";
+  var invalidControl=new DcsCommonCatalogImporter().Import(request with {OverlaysJson=overlays.ToJsonString()});
+  Assert.False(invalidControl.Succeeded);
+  Assert.Contains(invalidControl.Diagnostics,x=>x.Message.Contains("Missing overlay control",StringComparison.Ordinal));
+ }
+ /// <summary>Empty device rules and invalid alias tables are rejected.</summary>
+ [Fact] public void Invalid_device_mapping_is_rejected() {
+  var request=Fixture();var map=JsonNode.Parse(request.DeviceMapJson)!;
+  map["mappings"]=new JsonArray();
+  var missingRules=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=map.ToJsonString()});
+  Assert.False(missingRules.Succeeded);
+  Assert.Contains(missingRules.Diagnostics,x=>x.Message.Contains("No device mapping rules",StringComparison.Ordinal));
+  map=JsonNode.Parse(request.DeviceMapJson)!;
+  var key=map["inputKeyAliases"]!.AsObject().First().Key;
+  map["inputKeyAliases"]![key]=new JsonArray();
+  var invalidAliases=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=map.ToJsonString()});
+  Assert.False(invalidAliases.Succeeded);
+  Assert.Contains(invalidAliases.Diagnostics,x=>x.Message.Contains("Invalid input key aliases for",StringComparison.Ordinal));
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static SharedCatalogImportRequest Fixture() {
