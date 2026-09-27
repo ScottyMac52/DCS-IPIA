@@ -94,6 +94,33 @@ public sealed class SharedCatalogImporterTests {
   Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
   Assert.Contains(result.Diagnostics,x=>x.Code=="duplicate-path");
  }
+ /// <summary>Incomplete shared manifests cannot produce a partial catalog.</summary>
+ [Fact] public void Missing_devices_and_functions_are_rejected() {
+  var request=Fixture();var hardware=JsonNode.Parse(request.HardwareJson)!;
+  hardware["devices"]=new JsonArray();
+  var missingDevices=new DcsCommonCatalogImporter().Import(request with {HardwareJson=hardware.ToJsonString()});
+  Assert.False(missingDevices.Succeeded);
+  Assert.Contains(missingDevices.Diagnostics,x=>x.Message.Contains("No shared hardware devices",StringComparison.Ordinal));
+  var functions=JsonNode.Parse(request.FunctionsJson)!;
+  functions["functions"]=new JsonArray();
+  var missingFunctions=new DcsCommonCatalogImporter().Import(request with {FunctionsJson=functions.ToJsonString()});
+  Assert.False(missingFunctions.Succeeded);
+  Assert.Contains(missingFunctions.Diagnostics,x=>x.Message.Contains("No UI Layer functions",StringComparison.Ordinal));
+ }
+ /// <summary>Malformed overlay and device mapping records are rejected before use.</summary>
+ [Fact] public void Invalid_overlay_and_mapping_records_are_rejected() {
+  var request=Fixture();
+  var overlays=JsonNode.Parse(request.OverlaysJson)!;
+  overlays["devices"]=new JsonArray();
+  var invalidOverlays=new DcsCommonCatalogImporter().Import(request with {OverlaysJson=overlays.ToJsonString()});
+  Assert.False(invalidOverlays.Succeeded);
+  Assert.Contains(invalidOverlays.Diagnostics,x=>x.Message.Contains("Invalid UI Layer device overlays",StringComparison.Ordinal));
+  var map=JsonNode.Parse(request.DeviceMapJson)!;
+  map["inputKeyAliases"]=new JsonArray();
+  var invalidMap=new DcsCommonCatalogImporter().Import(request with {DeviceMapJson=map.ToJsonString()});
+  Assert.False(invalidMap.Succeeded);
+  Assert.Contains(invalidMap.Diagnostics,x=>x.Message.Contains("Invalid input key aliases",StringComparison.Ordinal));
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static SharedCatalogImportRequest Fixture() {
