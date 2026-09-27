@@ -302,6 +302,32 @@ public sealed class HueyConsumerImporterTests {
   Assert.Equal(101,KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration!).Count);
   Assert.Contains("\"schemaVersion\":2",imported.Sources["config/ui-layer-overlay.json"],StringComparison.Ordinal);
  }
+ /// <summary>Declared pages with removed-only profiles are omitted like DCS-Common's generated PNGs.</summary>
+ [Fact] public void Removed_only_profile_has_no_rendered_device_page() {
+  var request=Fixture();
+  var source=request.Sources.Single(x=>x.Path.Contains("F16 MFD 1 ",StringComparison.Ordinal));
+  const string removedOnly="""
+   local diff = {
+     ["axisDiffs"] = {
+       ["a2001cdnil"] = {
+         ["removed"] = { [1] = { ["key"] = "JOY_Y" } },
+         ["name"] = "Pitch",
+       },
+     },
+   }
+   return diff
+   """;
+  var sources=request.Sources.Select(x=>x==source?x with {Content=removedOnly}:x).ToArray();
+  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal(5,result.Configuration!.Profiles.Count);
+  Assert.Contains(result.Configuration.Bindings,x=>x.Disposition==BindingDisposition.Removed&&
+   x.ProfileId==result.Configuration.Profiles.Single(y=>y.Instance=="MFD1").Id);
+  Assert.DoesNotContain(result.Pages,x=>x.StableKey=="01-TM-MFD-1");
+  Assert.Contains(result.Diagnostics,x=>x.Code=="inactive-kneeboard-page"&&
+   x.Message.Contains("01-TM-MFD-1",StringComparison.Ordinal));
+  Assert.Equal(5,result.Pages.Count);
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static ConsumerSource[] Replace(HueyImportRequest request,string path,Func<string,string> transform)=>request.Sources.Select(x=>x.Path==path?x with {Content=transform(x.Content)}:x).ToArray();
