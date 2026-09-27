@@ -31,6 +31,7 @@ public partial class HueyImportWindow : Window {
  private Point? _dragStart;
  private bool _updatingInspector;
  private bool _updatingFilters;
+ private AssignmentLayer? _categoryScope;
  /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>
  /// <param name="viewModel">Persisted editor data or a source preview.</param>
  /// <param name="settings">Occupied destination preference.</param>
@@ -93,11 +94,14 @@ public partial class HueyImportWindow : Window {
   _selected=null;
   DeviceTitle.Text=diagram is null?"Select a stored device":diagram.Title+" — "+(CurrentLayer==AssignmentLayer.Module?"Module controls":"Module UI Layer controls");
   EditorMessage.Text=_saved is null?"Import a module to SQLite or open a saved module to edit its controls.":"";
-  _updatingFilters=true;
-  var available=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleCommands:_viewModel.UiCommands;
-  CommandCategory.ItemsSource=Enumerable.Repeat("All",1).Concat(available.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
-  CommandCategory.SelectedIndex=0;
-  _updatingFilters=false;
+  if(_categoryScope!=CurrentLayer) {
+   _updatingFilters=true;
+   var available=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleCommands:_viewModel.UiCommands;
+   CommandCategory.ItemsSource=Enumerable.Repeat("All",1).Concat(available.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
+   CommandCategory.SelectedIndex=0;
+   _categoryScope=CurrentLayer;
+   _updatingFilters=false;
+  }
   FilterCommands();
   if(diagram is null||_saved is null||_draft is null||string.IsNullOrWhiteSpace(diagram.Svg)) {
    RefreshInspector();return;
