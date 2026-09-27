@@ -150,6 +150,15 @@ public sealed class SharedCatalogImporterTests {
   Assert.False(invalidAliases.Succeeded);
   Assert.Contains(invalidAliases.Diagnostics,x=>x.Message.Contains("Invalid input key aliases for",StringComparison.Ordinal));
  }
+ /// <summary>Overlay templates must name a known shared hardware device.</summary>
+ [Fact] public void Unknown_overlay_device_is_rejected() {
+  var request=Fixture();var overlays=JsonNode.Parse(request.OverlaysJson)!;
+  var devices=overlays["devices"]!.AsObject();var first=devices.First();
+  devices["unknown-device"]=first.Value!.DeepClone();devices.Remove(first.Key);
+  var result=new DcsCommonCatalogImporter().Import(request with {OverlaysJson=overlays.ToJsonString()});
+  Assert.False(result.Succeeded);
+  Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown overlay device",StringComparison.Ordinal));
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static SharedCatalogImportRequest Fixture() {
