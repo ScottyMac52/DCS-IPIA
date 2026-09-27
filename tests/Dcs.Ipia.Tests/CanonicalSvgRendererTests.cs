@@ -19,6 +19,10 @@ public sealed class CanonicalSvgRendererTests {
  [Fact] public void Rejects_invalid_dimensions() {
   Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",double.NaN,20));
   Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",5000,20));
+  Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",20,double.PositiveInfinity));
+  Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",0,20));
+  Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",20,0));
+  Assert.Throws<ArgumentOutOfRangeException>(()=>CanonicalSvgRenderer.Render("<svg/>",20,5000));
  }
  #endregion END Public
 }

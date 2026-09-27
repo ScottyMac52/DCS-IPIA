@@ -86,6 +86,31 @@ public sealed class DcsFolderImporterTests {
   }
   finally {Directory.Delete(root,true);}
  }
+ /// <summary>An empty joystick directory reports missing profiles even when modifiers exist.</summary>
+ [Fact] public async Task Empty_joystick_folder_is_reported() {
+  var root=CreateFixture();
+  try {
+   foreach(var file in Directory.GetFiles(Path.Combine(root,"joystick"),"*.diff.lua"))File.Delete(file);
+   var importer=new DcsFolderImporter();
+   Assert.False(importer.HasProfiles(Path.Combine(root,"joystick")));
+   var result=await importer.ImportAsync(root);
+   Assert.False(result.Succeeded);
+   Assert.Contains(result.Diagnostics,x=>x.Code=="missing-profiles");
+  }
+  finally {Directory.Delete(root,true);}
+ }
+ /// <summary>Broken modifiers are diagnosed while valid profile files remain available for review.</summary>
+ [Fact] public async Task Invalid_modifiers_are_reported() {
+  var root=CreateFixture();
+  try {
+   File.WriteAllText(Path.Combine(root,"modifiers.lua"),"return {}");
+   var result=await new DcsFolderImporter().ImportAsync(root);
+   Assert.False(result.Succeeded);
+   Assert.Equal(5,result.Profiles.Count);
+   Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-modifiers");
+  }
+  finally {Directory.Delete(root,true);}
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static string CreateFixture() {

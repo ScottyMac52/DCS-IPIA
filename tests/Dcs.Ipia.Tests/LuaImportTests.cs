@@ -53,6 +53,12 @@ return modifiers
  /// <param name="source">The source.</param>
  /// <param name="message">The message.</param>
  public void Invalid_modifiers_report_actionable_errors(string source,string message)=>Assert.Contains(message,Assert.Throws<FormatException>(()=>DcsLuaParser.ParseModifiers(source)).Message,StringComparison.Ordinal);
+ /// <summary>Malformed Lua tables and quoted strings report format errors.</summary>
+ [Fact] public void Parser_rejects_malformed_lua_tables() {
+  Assert.Throws<FormatException>(()=>DcsLuaParser.ParseModifiers("local modifiers = return modifiers"));
+  Assert.Throws<FormatException>(()=>DcsLuaParser.ParseModifiers("local modifiers = { [\"M\"] = { [\"device\"] = \"unterminated } } return modifiers"));
+  Assert.Throws<FormatException>(()=>DcsLuaParser.ParseProfile("local diff = { [\"keyDiffs\"] = broken } return diff",ProfileId));
+ }
  /// <summary>importer is idempotent and reports source errors.</summary>
  /// <returns>A task that completes when the operation finishes</returns>
  [Fact] public async Task Importer_is_idempotent_and_reports_source_errors(){var module=new DcsModule(Guid.Parse("11111111-1111-1111-1111-111111111111"),"UH-1H","Huey");var request=new ModuleImportRequest(module,[new("tm-mfd","MFD1","panel","mfd.lua",Profile)],Modifiers,"Huey@abc");var importer=new DcsLuaImporter();var first=await importer.ImportAsync(request);var second=await importer.ImportAsync(request);Assert.True(first.Succeeded);Assert.Equal(ConfigurationSnapshotSerializer.Serialize([first.Configuration!]).Content,ConfigurationSnapshotSerializer.Serialize([second.Configuration!]).Content);Assert.Contains(first.Diagnostics,x=>x.Code=="imported"&&!x.IsError);var badModifiers=await importer.ImportAsync(request with{ModifiersContent="bad"});Assert.False(badModifiers.Succeeded);Assert.Equal("invalid-modifiers",Assert.Single(badModifiers.Diagnostics).Code);var badProfile=await importer.ImportAsync(request with{Profiles=[new("d",null,"r","bad.lua","bad")]});Assert.False(badProfile.Succeeded);Assert.Equal("invalid-profile",Assert.Single(badProfile.Diagnostics).Code);await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>importer.ImportAsync(request,new(true)));}
