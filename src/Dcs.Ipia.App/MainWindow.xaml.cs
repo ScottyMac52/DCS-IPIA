@@ -10,19 +10,19 @@ namespace DcsIpia.Presentation;
 
 /// <summary>Displays the themed module workspace and opens read-only repository or Saved Games previews.</summary>
 public partial class MainWindow : Window {
- private readonly IHueyWorkspaceLoader _loader;
+ private readonly IModuleWorkspaceLoader _loader;
  private readonly IDcsFolderImporter _folderImporter;
  private readonly IAppSettingsService _settings;
  private readonly IEditorWorkspaceRepository _workspaces;
  private readonly IModuleConfigurationRepository _configurations;
- private HueyImportViewModel? _lastViewModel;
+ private ModuleWorkspaceViewModel? _lastViewModel;
  /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
  /// <param name="loader">The committed module workspace loader.</param>
  /// <param name="folderImporter">The live Saved Games profile reader.</param>
  /// <param name="settings">The validated user preference service.</param>
  /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
  /// <param name="configurations">Relational module configuration store.</param>
- public MainWindow(IHueyWorkspaceLoader loader,IDcsFolderImporter folderImporter,IAppSettingsService settings,IEditorWorkspaceRepository workspaces,IModuleConfigurationRepository configurations) {
+ public MainWindow(IModuleWorkspaceLoader loader,IDcsFolderImporter folderImporter,IAppSettingsService settings,IEditorWorkspaceRepository workspaces,IModuleConfigurationRepository configurations) {
   _loader=loader??throw new ArgumentNullException(nameof(loader));
   _folderImporter=folderImporter??throw new ArgumentNullException(nameof(folderImporter));
   _settings=settings??throw new ArgumentNullException(nameof(settings));
@@ -37,8 +37,8 @@ public partial class MainWindow : Window {
  #region BEGIN Public
  #endregion END Public
  #region BEGIN private helpers
- private async void ImportHuey_Click(object sender,RoutedEventArgs e) {
-  ImportHueyButton.IsEnabled=false;
+ private async void ImportModule_Click(object sender,RoutedEventArgs e) {
+  ImportButton.IsEnabled=false;
   try {
    var selected=new OpenFolderDialog {Title="Select module repository root or Saved Games module/joystick folder"};
    if(selected.ShowDialog(this)!=true)return;
@@ -50,9 +50,8 @@ public partial class MainWindow : Window {
      ShowImportError("No readable joystick profiles were found. "+string.Join("; ",result.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message)));
      return;
     }
-    _lastViewModel=new HueyImportViewModel(result);
-    ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. Use View imported to reopen.";
+    _lastViewModel=new ModuleWorkspaceViewModel(result);
+    ImportStatus.Text=$"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. Import again to reopen.";
    } else {
     var common=new OpenFolderDialog {Title="Select the DCS-Common Git repository root"};
     if(common.ShowDialog(this)!=true)return;
@@ -62,7 +61,7 @@ public partial class MainWindow : Window {
      ShowImportError("Module source import needs attention: "+string.Join("; ",preview.Import.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message)));
      return;
     }
-    var importedView=new HueyImportViewModel(preview);
+    var importedView=new ModuleWorkspaceViewModel(preview);
     if(preview.Diagrams.Any(x=>x.Controls.Count>0)&&importedView.Draft is null) {
      ShowImportError("Assignments were not saved: "+importedView.DraftNote);
      return;
@@ -85,17 +84,16 @@ public partial class MainWindow : Window {
     if(persisted.Labels.Count!=importedView.Labels.Count||
        importedView.Labels.Any(pair=>!persisted.Labels.TryGetValue(pair.Key,out var value)||value!=pair.Value))
      throw new InvalidDataException("The authored kneeboard labels did not survive the SQLite save.");
-    _lastViewModel=new HueyImportViewModel(persisted);
+    _lastViewModel=new ModuleWorkspaceViewModel(persisted);
     await RefreshSavedModulesAsync(module.Module.Id);
-    ViewImportedButton.IsEnabled=true;
-    ImportStatus.Text=$"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; use View imported to reopen.";
+    ImportStatus.Text=$"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; select the module to reopen.";
    }
    ShowImported();
   }
   catch(Exception ex) {
    ShowImportError($"Unable to open this source: {ex.Message}");
   }
-  finally {ImportHueyButton.IsEnabled=true;}
+  finally {ImportButton.IsEnabled=true;}
  }
  private async void OpenSaved_Click(object sender,RoutedEventArgs e) {
   try {
@@ -108,8 +106,7 @@ public partial class MainWindow : Window {
    }
    var saved=await _workspaces.GetAsync(choice.Id);
    if(saved is null) {ImportStatus.Text="The selected module is no longer in the database.";await RefreshSavedModulesAsync();return;}
-   _lastViewModel=new HueyImportViewModel(saved);
-   ViewImportedButton.IsEnabled=true;
+   _lastViewModel=new ModuleWorkspaceViewModel(saved);
    ShowImported();
   }
   catch(Exception ex) {ShowImportError("Unable to open saved workspace: "+ex.Message);}
@@ -118,8 +115,7 @@ public partial class MainWindow : Window {
   if(SavedModules?.SelectedItem is not SavedModuleChoice choice)return;
   try {
    var saved=await _workspaces.GetAsync(choice.Id);
-   _lastViewModel=saved is null?null:new HueyImportViewModel(saved);
-   ViewImportedButton.IsEnabled=_lastViewModel is not null;
+   _lastViewModel=saved is null?null:new ModuleWorkspaceViewModel(saved);
    ImportStatus.Text=saved is null?"The selected module is no longer in the database.":
     $"Selected {saved.Configuration.Module.DisplayName} ({saved.Configuration.Module.DcsId}) from SQLite.";
   }
@@ -137,27 +133,13 @@ public partial class MainWindow : Window {
   SavedModules.ItemsSource=choices;
   SavedModules.SelectedItem=choices.FirstOrDefault(x=>x.Id==previous)??choices.FirstOrDefault();
  }
- private void OpenEditor_Click(object sender,RoutedEventArgs e) {
-  if(_lastViewModel is null)ImportHuey_Click(sender,e);
-  else ViewImported_Click(sender,e);
- }
- private async void ViewImported_Click(object sender,RoutedEventArgs e) {
-  try {
-   if(_lastViewModel is {ModuleId:var id}&&id!=Guid.Empty) {
-    var saved=await _workspaces.GetAsync(id);
-    if(saved is not null)_lastViewModel=new HueyImportViewModel(saved);
-   }
-   ShowImported();
-  }
-  catch(Exception ex) {ShowImportError($"Unable to show the imported preview: {ex.Message}");}
- }
  private void ShowImportError(string message) {
   ImportStatus.Text=message;
   MessageBox.Show(this,message,"Import needs attention",MessageBoxButton.OK,MessageBoxImage.Warning);
  }
  private void ShowImported() {
   if(_lastViewModel is null)return;
-  var window=new HueyImportWindow(_lastViewModel,_settings,_workspaces){Owner=this};
+  var window=new ModuleWorkspaceWindow(_lastViewModel,_settings,_workspaces){Owner=this};
   window.ShowDialog();
  }
  private void ThemePicker_SelectionChanged(object sender,SelectionChangedEventArgs e) {

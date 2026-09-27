@@ -4,10 +4,10 @@ using Dcs.Ipia.Domain;
 namespace DcsIpia.Presentation;
 
 /// <summary>Formats validated repository or Saved Games inputs for the read-only preview.</summary>
-public sealed class HueyImportViewModel {
+public sealed class ModuleWorkspaceViewModel {
  /// <summary>Builds a committed Huey preview with existing rendered PNG assets.</summary>
  /// <param name="preview">The completed repository import and committed kneeboard images.</param>
- public HueyImportViewModel(HueyWorkspacePreview preview) {
+ public ModuleWorkspaceViewModel(ModuleWorkspacePreview preview) {
   ArgumentNullException.ThrowIfNull(preview);
   var result=preview.Import;
   if(!result.Succeeded)throw new ArgumentException("Only validated imports can be previewed.",nameof(preview));
@@ -50,8 +50,8 @@ public sealed class HueyImportViewModel {
  }
  /// <summary>Reopens a persisted workspace using only local SQLite data.</summary>
  /// <param name="saved">Stored module, SVGs, catalogs, and assignments.</param>
- public HueyImportViewModel(EditorWorkspaceSnapshot saved):this(new HueyWorkspacePreview(
-  new HueyImportResult(saved.Configuration,[],saved.Pages,[],[],new Dictionary<string,System.Text.Json.JsonElement>(),
+ public ModuleWorkspaceViewModel(EditorWorkspaceSnapshot saved):this(new ModuleWorkspacePreview(
+  new ConsumerImportResult(saved.Configuration,[],saved.Pages,[],[],new Dictionary<string,System.Text.Json.JsonElement>(),
    new Dictionary<string,string>(),[new SourceProvenance("SQLite","local","editor_workspaces","local")],[]),
   saved.Images,saved.Diagrams) { ModuleCommands=saved.ModuleCommands,UiCommands=saved.UiCommands }) {
   UiCommands=CommandPalette.FromUiLayer(saved.UiCommands);
@@ -69,7 +69,7 @@ public sealed class HueyImportViewModel {
  }
  /// <summary>Builds a live Saved Games profile preview without inventing device IDs or kneeboard output.</summary>
  /// <param name="folder">The parsed local joystick folder.</param>
- public HueyImportViewModel(DcsFolderImportResult folder) {
+ public ModuleWorkspaceViewModel(DcsFolderImportResult folder) {
   ArgumentNullException.ThrowIfNull(folder);
   if(folder.Profiles.Count==0)throw new ArgumentException("No readable profiles are available for preview.",nameof(folder));
   ModuleId=Guid.Empty;
@@ -163,7 +163,7 @@ public sealed class HueyImportViewModel {
  public IReadOnlyList<string> Provenance {get;}
  #endregion END Public
  #region BEGIN private helpers
- private static (DraftAssignmentService?,string) CreateDraft(HueyWorkspacePreview preview,IReadOnlyList<CommandPaletteEntry> catalog) {
+ private static (DraftAssignmentService?,string) CreateDraft(ModuleWorkspacePreview preview,IReadOnlyList<CommandPaletteEntry> catalog) {
   var configuration=preview.Import.Configuration!;
   if(preview.Diagrams.Count==0||preview.Diagrams.All(x=>x.Controls.Count==0))
    return (null,"No mapped controls in a validated draw.io-generated SVG; editing is unavailable.");

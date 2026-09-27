@@ -28,7 +28,7 @@ public partial class App : System.Windows.Application {
     Path.Combine(userFolder,"theme.txt")))
    .AddSingleton<IModuleConfigurationRepository>(_=>new SqliteConfigurationRepository(connectionString))
    .AddSingleton<IEditorWorkspaceRepository>(_=>new SqliteEditorWorkspaceRepository(connectionString))
-   .AddSingleton<IHueyWorkspaceLoader,HueyWorkspaceLoader>()
+   .AddSingleton<IModuleWorkspaceLoader,ModuleWorkspaceLoader>()
    .AddSingleton<IDcsFolderImporter,DcsFolderImporter>()
    .AddTransient<MainWindow>()
    .BuildServiceProvider();

@@ -1,31 +1,22 @@
-# DCS-IPIA module workspace design preview
+# DCS-IPIA module workspace navigation
 
-Review issue: [#20](https://github.com/ScottyMac52/DCS-IPIA/issues/20). This PR changes the WPF Phase 0 placeholder into a navigable design preview. The sample Huey context is clearly labeled and all data-changing controls are disabled. No import, edit, snapshot, or build behavior is implied.
+Navigation simplification: [#48](https://github.com/ScottyMac52/DCS-IPIA/issues/48). The module chooser opens one module workspace directly, with Assignments as its default destination.
 
 ## Navigation
 
-| Area | User decision | Later application contract |
-| --- | --- | --- |
-| Overview | See the import → assign → validate path | Module discovery, validation summary |
-| Assignments | Select device instance, layer, control and command in one workspace | Per-module binding CRUD, device geometry, chord validation |
-| UI Layer | Inspect shared template separately from module overlay | Canonical shared read model and isolated module overlay editor |
-| Kneeboard | Review summary and device pages in context | Deterministic renderer from immutable snapshot |
-| Outputs | Review diagnostics, change list, snapshot and package contents | Validation, snapshot diff and snapshot-only package builder |
+| Location | User action |
+| --- | --- |
+| Module chooser | Select a saved module and **Open module**, or **Import module sources**. Settings and theme are available here. |
+| Assignments | Select device, modifier layer, and scope (**Module controls** or **Module UI Layer**), then edit a physical control with the command catalog and inspector. |
+| Kneeboard | Inspect existing rendered device pages. The editor also provides a contextual rendered kneeboard action. |
+| Diagnostics | Review import and graphic issues; opens automatically when an import has errors. |
+| Sources | Inspect committed source provenance. |
+| Import details | Expand the read-only Profiles and Bindings lists in the workspace header when needed. |
 
-The future controller canvas uses the shared hardware source geometry. The MFD rectangle and OSB labels in this preview illustrate layout only; they are not hardware data. A searchable control list will mirror every selectable canvas control for keyboard and screen-reader access, including all OSBs and rocker positions. Repeated MFD instances remain explicit, with no cross-instance editing.
+The module chooser does not repeat the workspace destinations. Import opens the workspace immediately; saved modules reopen from SQLite. Only a scope change resets the command Category filter to All. Other selection and draft changes preserve Category.
 
-## Interaction rules
+The controller canvas uses shared hardware geometry. Repeated MFD instances remain distinct. Assignment drafts are saved explicitly to the local database; source repositories are read-only.
 
-- Select a module first; keep its DCS input ID, source commit and snapshot status visible.
-- Import is read-only against source repositories and reports ambiguous identity at the point of resolution.
-- Separate shared DCS-Common UI Layer data from editable module-only overlay data at the point of action.
-- Stage changes and review their scope, before/after values and diagnostics before saving through application services.
-- Bindings expose default/removed dispositions, axis tuning and multiple hold/toggle modifier chords.
-- Build packages only after validating a snapshot and showing its hash and resulting files.
-- Text and iconography convey status without relying on color alone; support keyboard focus and Windows scaling.
+## Remaining work
 
-## Review path
-
-1. Open the Windows app and click each navigation section. Review hierarchy, terminology, empty states and action placement.
-2. Review the Huey task flow in #20. Confirm landing page, graphic versus list emphasis and UI Layer navigation.
-3. Implement live data only after the corresponding Workstream 3/4 application contracts and Phase 1 Huey parity tests exist. Maintain the independent per-assembly 80/80 gates and keep WPF presentation-only.
+The detailed plan and acceptance criteria for further navigation polish, including direct links from diagnostics to controls and richer empty states, are in #48. Validation and package building remain unavailable until their application contracts are connected. Do not expose inactive destinations as a substitute for those workflows.

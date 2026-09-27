@@ -8,12 +8,12 @@ using Dcs.Ipia.Domain;
 namespace Dcs.Ipia.Dcs;
 
 /// <summary>Reads a pinned module consumer checkout into a validated, read-only module view.</summary>
-public sealed class HueyConsumerImporter:IHueyImporter {
+public sealed class ConsumerSourceImporter:IConsumerSourceImporter {
  #region BEGIN Public
  /// <summary>Parses the supplied texts without accessing local source paths or writing consumer files.</summary>
  /// <param name="request">The pinned module files and imported DCS-Common authority.</param>
  /// <returns>Normalized identities, source-preserving metadata, provenance, and diagnostics.</returns>
- public HueyImportResult Import(HueyImportRequest request) {
+ public ConsumerImportResult Import(ConsumerImportRequest request) {
   ArgumentNullException.ThrowIfNull(request);
   var diagnostics=new List<ImportDiagnostic>();
   if(request.Commit is null||request.Commit.Length!=40||!request.Commit.All(Uri.IsHexDigit))
@@ -190,7 +190,7 @@ public sealed class HueyConsumerImporter:IHueyImporter {
    throw new FormatException($"Kneeboard callout references missing label {id.GetString()}.");
   foreach(var child in value.EnumerateObject())ValidateLabels(child.Value,labels);
  }
- private static HueyImportResult Failure(List<ImportDiagnostic> diagnostics)=>new(null,[],[],[],[],new Dictionary<string,JsonElement>(),new Dictionary<string,string>(),[],diagnostics);
+ private static ConsumerImportResult Failure(List<ImportDiagnostic> diagnostics)=>new(null,[],[],[],[],new Dictionary<string,JsonElement>(),new Dictionary<string,string>(),[],diagnostics);
  private const string UiScaffold="config/scaffold.dcs-scaffold.json";
  private const string Kneeboard="config/kneeboard.json";
  private const string Overlay="config/ui-layer-overlay.json";

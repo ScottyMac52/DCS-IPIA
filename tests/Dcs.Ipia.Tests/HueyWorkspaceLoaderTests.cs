@@ -61,7 +61,7 @@ public sealed class HueyWorkspaceLoaderTests {
    File.WriteAllText(solutionPath,solution.ToJsonString());
    Commit(common);Commit(huey);
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
-   var result=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var result=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.True(result.Import.Succeeded,string.Join("; ",result.Import.Diagnostics.Select(x=>x.Message)));
    Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
    Assert.Equal(12,result.Import.Provenance.Count);
@@ -104,11 +104,11 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Empty(result.CommandDiagnostics);
    var savedCatalog=File.ReadAllText(catalogPath);
    File.Delete(catalogPath);
-   var missingSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var missingSource=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Empty(missingSource.ModuleCommands);
    Assert.Contains(missingSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
    File.WriteAllText(catalogPath,"{invalid");
-   var invalidSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var invalidSource=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Contains(invalidSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
    File.WriteAllText(catalogPath,savedCatalog);
    Assert.NotEmpty(result.UiCommands);
@@ -176,14 +176,14 @@ public sealed class HueyWorkspaceLoaderTests {
    File.WriteAllText(solutionPath,solution.ToJsonString());
    Git(huey,"add","config/UH-1H.dcs-scaffold.json");
    Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","unlink commands");
-   var unlinked=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var unlinked=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Empty(unlinked.ModuleCommands);
    Assert.Empty(unlinked.CommandDiagnostics);
    solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="unsupported",paths=new[]{catalogPath}});
    File.WriteAllText(solutionPath,solution.ToJsonString());
    Git(huey,"add","config/UH-1H.dcs-scaffold.json");
    Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","invalid command source");
-   var unsupported=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var unsupported=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Contains(unsupported.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
    var htmlPath=Path.Combine(temp,"MFD 1.html");
    File.WriteAllText(htmlPath,"<html><h1>MFD 1</h1><table><tr><td>JOY_BTN1</td><td>ADF Band 190-400 kHz</td><td>ADF Set Control panel</td><td>d3002pnilunilcd27vd-1vpnilvunil</td></tr></table></html>");
@@ -191,14 +191,14 @@ public sealed class HueyWorkspaceLoaderTests {
    File.WriteAllText(solutionPath,solution.ToJsonString());
    Git(huey,"add","config/UH-1H.dcs-scaffold.json");
    Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","link DCS HTML");
-   var linkedHtml=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var linkedHtml=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Contains(linkedHtml.ModuleCommands,x=>x.Category=="ADF Set Control panel"&&x.Name=="ADF Band 190-400 kHz");
    Assert.Empty(linkedHtml.CommandDiagnostics);
    var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
    File.WriteAllText(gripPath,"<svg broken");
    Git(common,"add","--all");
    Git(common,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","broken graphic");
-   var withBrokenGraphic=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   var withBrokenGraphic=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.True(withBrokenGraphic.Import.Succeeded);
    Assert.Single(withBrokenGraphic.Images);
    Assert.Equal(result.UiCommands,withBrokenGraphic.UiCommands);
@@ -214,7 +214,7 @@ public sealed class HueyWorkspaceLoaderTests {
   var path=Path.Combine(Path.GetTempPath(),"DcsIpiaWorkspace-"+Guid.NewGuid().ToString("N"));
   try {
    Directory.CreateDirectory(path);
-   await Assert.ThrowsAsync<InvalidDataException>(()=>new HueyWorkspaceLoader().LoadAsync(path,path));
+   await Assert.ThrowsAsync<InvalidDataException>(()=>new ModuleWorkspaceLoader().LoadAsync(path,path));
   }
   finally {DeleteFixture(path);}
  }

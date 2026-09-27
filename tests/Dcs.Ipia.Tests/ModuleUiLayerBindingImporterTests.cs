@@ -27,14 +27,14 @@ public sealed class ModuleUiLayerBindingImporterTests {
     {"profileFile":"Panel {22222222-2222-2222-2222-222222222222}.diff.lua","section":"keyDiffs","key":"JOY_BTN3","reformers":["SHIFT"],"clear":false,"command":"NEW","name":"New command"}
    ],"removedModifiers":[]}
    """);
-  var imported=new HueyImportResult(configuration,[],[],[],[],metadata,
+  var imported=new ConsumerImportResult(configuration,[],[],[],[],metadata,
    new Dictionary<string,string>(),[],[]);
   var effective=ModuleUiLayerBindingImporter.Import(imported,shared,profile);
   Assert.Equal(2,effective.Count);
   Assert.DoesNotContain(effective,x=>x.CommandId=="BASE");
   Assert.Contains(effective,x=>x.CommandId=="SHIFT"&&x.ProfileId==profile.Id);
   Assert.Contains(effective,x=>x.CommandId=="NEW"&&x.InputKey=="JOY_BTN3"&&x.Reformers.SequenceEqual(["SHIFT"]));
-  var disabled=new HueyImportResult(configuration,[],[],[],[],
+  var disabled=new ConsumerImportResult(configuration,[],[],[],[],
    ParseMetadata("""{"includeUiLayer":false}""",null),new Dictionary<string,string>(),[],[]);
   Assert.Empty(ModuleUiLayerBindingImporter.Import(disabled,shared,profile));
   Assert.Empty(ModuleUiLayerBindingImporter.Import(imported,shared,
@@ -45,7 +45,7 @@ public sealed class ModuleUiLayerBindingImporterTests {
    """).RootElement.Clone();
   var removedMetadata=metadata.ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal);
   removedMetadata["config/ui-layer-overlay.json"]=removedOverlay;
-  var removedImport=new HueyImportResult(configuration,[],[],[],[],removedMetadata,
+  var removedImport=new ConsumerImportResult(configuration,[],[],[],[],removedMetadata,
    new Dictionary<string,string>(),[],[]);
   Assert.Empty(ModuleUiLayerBindingImporter.Import(removedImport,shared,profile));
  }

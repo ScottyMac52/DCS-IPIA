@@ -20,11 +20,11 @@ public static class Program {
   var profile=new DeviceProfile(Guid.NewGuid(),"F16 MFD 3",null,"unresolved device","F16 MFD 3.diff.lua");
   var folder=new DcsFolderImportResult("Saved Games/Input/UH-1H/joystick",[profile],[],[],
    [new("bad-profile","One other device profile could not be parsed.",true)]);
-  var folderWindow=new HueyImportWindow(new HueyImportViewModel(folder));
+  var folderWindow=new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
   folderWindow.Show();
   folderWindow.UpdateLayout();
   var folderTabs=(TabControl)folderWindow.FindName("ImportedTabs")!;
-  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=4)
+  if(!folderWindow.IsVisible||folderTabs.SelectedIndex!=2)
    throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
   var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
   var mfd=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
@@ -47,7 +47,7 @@ public static class Program {
       "trim-up":{"key":"JOY_BTN_POV1_U","command":"POV_SHIFT","labelId":"elevation","modifiers":["MOZA_F16_F18_BTN3"]}}}
     ]}]}
    """);
-  var imported=new HueyImportResult(configuration,[],[],[],[],
+  var imported=new ConsumerImportResult(configuration,[],[],[],[],
    new Dictionary<string,System.Text.Json.JsonElement> {["config/kneeboard.json"]=kneeboard.RootElement.Clone()},new Dictionary<string,string>(),
    [new SourceProvenance("Huey",new string('a',40),"config/kneeboard.json","hash")],[]);
   var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZQAAAABJRU5ErkJggg==");
@@ -59,15 +59,15 @@ public static class Program {
     new("mfd-osb-t3","OSB03","JOY_BTN3",145,10,45,40),
     new("trim-up","Trim","JOY_POV1_U",80,110,60,30)]
   };
-  var preview=new HueyWorkspacePreview(imported,[],[diagram]) {
+  var preview=new ModuleWorkspacePreview(imported,[],[diagram]) {
    UiCommands=[new(Guid.NewGuid(),Guid.NewGuid(),"UI_ZOOM","VR Zoom","VR",false),
     new(Guid.NewGuid(),Guid.NewGuid(),"UI_PAUSE","Active Pause","General",false)]
   };
-  var importedView=new HueyImportViewModel(preview);
+  var importedView=new ModuleWorkspaceViewModel(preview);
   if(importedView.Draft is null||!importedView.Draft.Snapshot.Any(x=>x.Slot.Layer==AssignmentLayer.Module&&x.Slot.ModifierChord=="MOZA_F16_F18_BTN3")||
      !importedView.Draft.Snapshot.Any(x=>x.Slot.Layer==AssignmentLayer.UiLayer&&x.Slot.ModifierChord=="MOZA_MODIFIER_BTN3"))
    throw new InvalidOperationException("The import dropped shifted module or UI Layer assignments.");
-  var repoWindow=new HueyImportWindow(importedView);
+  var repoWindow=new ModuleWorkspaceWindow(importedView);
   repoWindow.Show();
   repoWindow.UpdateLayout();
   var scratch=Path.Combine(Path.GetTempPath(),"ipia-editor-smoke-"+Guid.NewGuid().ToString("N")+".db");
@@ -86,7 +86,7 @@ public static class Program {
   var loaded=repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
   if(loaded.Diagrams[0].Svg!=svg||loaded.ModuleCommands[0].Category!="Flight Control")
    throw new InvalidOperationException("Saved SVG or category was not recovered from SQLite.");
-  var savedWindow=new HueyImportWindow(new HueyImportViewModel(loaded),null,repository);
+  var savedWindow=new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(loaded),null,repository);
   savedWindow.Show();
   savedWindow.UpdateLayout();
   if(!savedWindow.IsVisible||((Canvas)savedWindow.FindName("Diagram")!).Children.Count==0)
@@ -133,7 +133,7 @@ public static class Program {
    Assignments=loaded.Assignments.Where(x=>x.Slot.Key!=shiftedUiSlot.Key).ToArray(),
    Labels=new Dictionary<string,string> {[shiftedUiSlot.Key]="Old VR Zoom"}
   }).GetAwaiter().GetResult();
-  var clearedWindow=new HueyImportWindow(new HueyImportViewModel(repository.GetAsync(module.Id).GetAwaiter().GetResult()!),null,repository);
+  var clearedWindow=new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(repository.GetAsync(module.Id).GetAwaiter().GetResult()!),null,repository);
   clearedWindow.Show();
   ((ComboBox)clearedWindow.FindName("Scope")!).SelectedIndex=1;
   ((ComboBox)clearedWindow.FindName("Layers")!).SelectedIndex=1;

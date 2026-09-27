@@ -19,8 +19,8 @@ using System.Text.Json;
 namespace DcsIpia.Presentation;
 
 /// <summary>Edits locally persisted module controls on canonical draw.io generated SVGs.</summary>
-public partial class HueyImportWindow : Window {
- private readonly HueyImportViewModel _viewModel;
+public partial class ModuleWorkspaceWindow : Window {
+ private readonly ModuleWorkspaceViewModel _viewModel;
  private readonly IAppSettingsService? _settings;
  private readonly IEditorWorkspaceRepository? _repository;
  private EditorWorkspaceSnapshot? _saved;
@@ -36,7 +36,7 @@ public partial class HueyImportWindow : Window {
  /// <param name="viewModel">Persisted editor data or a source preview.</param>
  /// <param name="settings">Occupied destination preference.</param>
  /// <param name="repository">Local editor database.</param>
- public HueyImportWindow(HueyImportViewModel viewModel,IAppSettingsService? settings=null,IEditorWorkspaceRepository? repository=null) {
+ public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel,IAppSettingsService? settings=null,IEditorWorkspaceRepository? repository=null) {
   _viewModel=viewModel??throw new ArgumentNullException(nameof(viewModel));
   _settings=settings;
   _repository=repository;
@@ -45,6 +45,7 @@ public partial class HueyImportWindow : Window {
   foreach(var pair in viewModel.Labels)_labels[pair.Key]=pair.Value;
   InitializeComponent();
   DataContext=_viewModel;
+  WorkspaceSettingsButton.IsEnabled=_settings is not null;
   KneeboardList.SelectedIndex=0;
   DeviceChoice.ItemsSource=_viewModel.UiDiagrams;
   Layers.ItemsSource=_viewModel.ModuleModifierChoices;
@@ -60,6 +61,13 @@ public partial class HueyImportWindow : Window {
  #region BEGIN Public
  #endregion END Public
  #region BEGIN private helpers
+ private void SettingsClicked(object sender,RoutedEventArgs e) {
+  if(_settings is null)return;
+  var dialog=new SettingsWindow(_settings) {Owner=this};
+  dialog.ShowDialog();
+  ThemeManager.Apply(_settings.Current.Theme.ToString());
+ }
+
  private UiLayerDiagram? CurrentDiagram=>DeviceChoice.SelectedItem as UiLayerDiagram;
  private AssignmentLayer CurrentLayer=>Scope.SelectedIndex==1?AssignmentLayer.UiLayer:AssignmentLayer.Module;
  private DraftAssignmentSlot? Slot(HardwareGraphicControl control) {

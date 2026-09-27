@@ -4,7 +4,7 @@ using Dcs.Ipia.Domain;
 namespace Dcs.Ipia.Application;
 
 /// <summary>Returns a validated Huey module view while retaining every authored source byte.</summary>
-public sealed class HueyImportResult {
+public sealed class ConsumerImportResult {
  /// <summary>Initializes the read-only import result.</summary>
  /// <param name="configuration">The parsed aircraft profiles and modifiers.</param>
  /// <param name="instances">Physical device instances and roles.</param>
@@ -15,7 +15,7 @@ public sealed class HueyImportResult {
  /// <param name="sources">The original source texts, including unprojected page callouts.</param>
  /// <param name="provenance">Exact repository, commit, path, and SHA-256 records.</param>
  /// <param name="diagnostics">Structured import diagnostics.</param>
- public HueyImportResult(ModuleConfiguration? configuration,IReadOnlyList<DeviceInstance> instances,IReadOnlyList<KneeboardPage> pages,IReadOnlyList<UiLayerModuleUsage> usage,IReadOnlyList<string> uiFunctionKeys,IReadOnlyDictionary<string,JsonElement> metadata,IReadOnlyDictionary<string,string> sources,IReadOnlyList<SourceProvenance> provenance,IReadOnlyList<ImportDiagnostic> diagnostics) {
+ public ConsumerImportResult(ModuleConfiguration? configuration,IReadOnlyList<DeviceInstance> instances,IReadOnlyList<KneeboardPage> pages,IReadOnlyList<UiLayerModuleUsage> usage,IReadOnlyList<string> uiFunctionKeys,IReadOnlyDictionary<string,JsonElement> metadata,IReadOnlyDictionary<string,string> sources,IReadOnlyList<SourceProvenance> provenance,IReadOnlyList<ImportDiagnostic> diagnostics) {
   Configuration=configuration;Instances=instances;Pages=pages;Usage=usage;UiFunctionKeys=uiFunctionKeys;Metadata=metadata;Sources=sources;Provenance=provenance;Diagnostics=diagnostics;
  }
  #region BEGIN Public
