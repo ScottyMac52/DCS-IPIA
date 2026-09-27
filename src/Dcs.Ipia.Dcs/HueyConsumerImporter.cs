@@ -132,6 +132,14 @@ public sealed class HueyConsumerImporter:IHueyImporter {
     pageList.Add(new(StableIdentity.Create("kneeboard-page",$"{module.DcsId}/{RequiredText(item,"file")}"),module.Id,null,KneeboardPageKind.Summary,RequiredText(item,"file"),RequiredText(item,"title"),[],order++));
    foreach(var item in pageRows.EnumerateArray()) {
     var profileName=RequiredText(item,"profile");var physical=instances.Single(x=>x.StableKey==profileName);
+    var sourceName=Path.GetFileName(sourceProfiles.GetProperty(profileName).GetString()!);
+    var profile=profiles.Single(x=>x.SourceName==sourceName);
+    // DCS-Common renders a device page only when its profile has effective added inputs.
+    if(!bindings.Any(x=>x.ProfileId==profile.Id&&x.Disposition==BindingDisposition.Added)) {
+     diagnostics.Add(new("inactive-kneeboard-page",
+      $"{RequiredText(item,"file")} is not rendered: {profileName} has no effective key or axis additions.",false));
+     continue;
+    }
     pageList.Add(new(StableIdentity.Create("kneeboard-page",$"{module.DcsId}/{RequiredText(item,"file")}"),module.Id,physical.Id,KneeboardPageKind.Device,RequiredText(item,"file"),RequiredText(item,"title"),[],order++));
    }
    if(pageList.Select(x=>x.Id).Distinct().Count()!=pageList.Count)throw new FormatException("Duplicate kneeboard page file.");
