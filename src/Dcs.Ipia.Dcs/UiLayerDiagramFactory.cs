@@ -17,7 +17,7 @@ public static class UiLayerDiagramFactory {
  /// <param name="shared">Validated physical-to-logical control mappings.</param>
  /// <param name="onGraphicError">Optional per-device diagnostic receiver; without one, invalid graphics fail the import projection.</param>
  /// <returns>Authored diagrams and their mapped controls for each supported profile.</returns>
- public static IReadOnlyList<UiLayerDiagram> Create(HueyImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null,Action<DeviceProfile,Exception>? onGraphicError=null) {
+ public static IReadOnlyList<UiLayerDiagram> Create(ConsumerImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null,Action<DeviceProfile,Exception>? onGraphicError=null) {
   ArgumentNullException.ThrowIfNull(import);ArgumentNullException.ThrowIfNull(catalog);ArgumentNullException.ThrowIfNull(sources);
   if(!import.Succeeded||!catalog.Succeeded)throw new ArgumentException("Validated imports are required.");
   var kneeboard=import.Metadata["config/kneeboard.json"];
@@ -34,7 +34,7 @@ public static class UiLayerDiagramFactory {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static UiLayerDiagram CreateProfile(HueyImportResult import,DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
+ private static UiLayerDiagram CreateProfile(ConsumerImportResult import,DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
   IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared) {
 
    var rows=usage.Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId

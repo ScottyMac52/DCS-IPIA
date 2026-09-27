@@ -13,7 +13,7 @@ public sealed class HueyConsumerImporterTests {
  #region BEGIN Public
  /// <summary>Real Huey sources retain five profiles, three MFD roles, pages, UI usage, labels, and exact source hashes.</summary>
  [Fact] public void Imports_real_huey_sources_without_losing_authored_metadata() {
-  var request=Fixture();var result=new HueyConsumerImporter().Import(request);
+  var request=Fixture();var result=new ConsumerSourceImporter().Import(request);
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal(5,result.Configuration!.Profiles.Count);
   Assert.Equal(5,result.Instances.Count);
@@ -35,7 +35,7 @@ public sealed class HueyConsumerImporterTests {
  }
  /// <summary>Repeat imports preserve ordering, stable IDs, and content hashes.</summary>
  [Fact] public void Repeated_import_is_deterministic() {
-  var request=Fixture();var importer=new HueyConsumerImporter();
+  var request=Fixture();var importer=new ConsumerSourceImporter();
   var first=importer.Import(request);var second=importer.Import(request);
   Assert.True(first.Succeeded);Assert.True(second.Succeeded);
   Assert.Equal(first.Configuration!.Profiles,second.Configuration!.Profiles);
@@ -46,8 +46,8 @@ public sealed class HueyConsumerImporterTests {
  [Fact] public void Machine_guid_does_not_define_mfd_identity() {
   var request=Fixture();const string oldGuid="51FA60C0-CB32-11ed-800B-444553540000";const string newGuid="11111111-1111-1111-1111-111111111111";
   var sources=request.Sources.Select(x=>x.Path.Contains(oldGuid,StringComparison.Ordinal)?x with {Path=x.Path.Replace(oldGuid,newGuid,StringComparison.Ordinal)}:x.Path=="config/kneeboard.json"?x with {Content=x.Content.Replace(oldGuid,newGuid,StringComparison.Ordinal)}:x).ToArray();
-  var changed=new HueyConsumerImporter().Import(request with {Sources=sources});
-  var original=new HueyConsumerImporter().Import(request);
+  var changed=new ConsumerSourceImporter().Import(request with {Sources=sources});
+  var original=new ConsumerSourceImporter().Import(request);
   Assert.True(changed.Succeeded,string.Join("; ",changed.Diagnostics.Select(x=>x.Message)));
   Assert.Equal(original.Configuration!.Profiles.Single(x=>x.Instance=="MFD1").Id,changed.Configuration!.Profiles.Single(x=>x.Instance=="MFD1").Id);
   Assert.Equal(original.Instances.Single(x=>x.Role=="MFD1").Id,changed.Instances.Single(x=>x.Role=="MFD1").Id);
@@ -55,14 +55,14 @@ public sealed class HueyConsumerImporterTests {
  /// <summary>A kneeboard profile must point to a supplied Lua file.</summary>
  [Fact] public void Missing_profile_is_rejected_without_partial_data() {
   var request=Fixture();var sources=request.Sources.Where(x=>!x.Path.Contains("F16 MFD 1 ",StringComparison.Ordinal)).ToArray();
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Null(result.Configuration);Assert.Empty(result.Provenance);
   Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source"&&x.Message.Contains("no supplied Lua",StringComparison.Ordinal));
  }
  /// <summary>Conflicting author overrides cannot silently change profile devices.</summary>
  [Fact] public void Device_override_conflict_is_reported() {
   var request=Fixture();var sources=Replace(request,"config/scaffold-device-overrides.json",x=>x.Replace("\"tm-mfd\"","\"tm-warthog-throttle\"",StringComparison.Ordinal));
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Device override",StringComparison.Ordinal));
  }
  /// <summary>Page callouts must resolve to authored labels.</summary>
@@ -70,7 +70,7 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
    var root=JsonNode.Parse(x)!;root["pages"]![0]!["controls"]!["mfd-osb-t3"]!["labelId"]="missing-label";return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("missing-label",StringComparison.Ordinal));
  }
  /// <summary>Module UI usage cannot invent shared function identities.</summary>
@@ -78,7 +78,7 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
    var root=JsonNode.Parse(x)!;root["uiLayerUtilization"]!["bindings"]![0]!["functionId"]="unknown-function";return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown canonical UI Layer function",StringComparison.Ordinal));
  }
  /// <summary>Module UI usage must reference a canonical modifier.</summary>
@@ -86,26 +86,26 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
    var root=JsonNode.Parse(x)!;root["uiLayerUtilization"]!["bindings"]![0]!["modifiers"]![0]="unknown-modifier";return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown canonical UI Layer modifier",StringComparison.Ordinal));
  }
  /// <summary>Unsupported overlay assignments are diagnosed until their shape has an importer.</summary>
  [Fact] public void Unmapped_overlay_assignments_are_rejected() {
   var request=Fixture();var sources=Replace(request,"config/ui-layer-overlay.json",x=>x.Replace("\"assignments\": []","\"assignments\": [{}]",StringComparison.Ordinal));
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="module-overlay-preserved");
  }
  /// <summary>Malformed authored JSON yields a diagnostic and no partial configuration.</summary>
  [Fact] public void Malformed_json_is_atomic() {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",_=>"{");
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Empty(result.Metadata);Assert.Empty(result.Sources);
   Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-json");
  }
  /// <summary>Repository metadata must retain safe paths and an exact commit.</summary>
  [Fact] public void Invalid_provenance_is_rejected() {
   var request=Fixture() with {Commit="main",Sources=[new("../bad.json","{}")]};
-  var result=new HueyConsumerImporter().Import(request);
+  var result=new ConsumerSourceImporter().Import(request);
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-commit");
  }
  /// <summary>Two same-model devices with null page instances remain distinct and keep their own labels.</summary>
@@ -118,7 +118,7 @@ public sealed class HueyConsumerImporterTests {
    root["pages"]![1]!["deviceInstance"]=null;
    return source with {Content=root.ToJsonString()};
   }).ToArray();
-  var imported=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var imported=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
   var first=imported.Configuration!.Profiles.Single(x=>x.Instance=="tm-mfd-1");
   var second=imported.Configuration.Profiles.Single(x=>x.Instance=="tm-mfd-2");
@@ -140,7 +140,7 @@ public sealed class HueyConsumerImporterTests {
    .OrderBy(x=>x.Path,StringComparer.Ordinal).ToArray();
   var request=common with {Commit="4cd755aa9dc36384e75d054893213b8a77bc26dc",
    Repository="ScottyMac52/DCS-F4U-1D-Components",Sources=sources};
-  var imported=new HueyConsumerImporter().Import(request);
+  var imported=new ConsumerSourceImporter().Import(request);
   Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
   Assert.Equal("F4U-1D",imported.Configuration!.Module.DcsId);
   Assert.Equal(10,imported.Configuration.Profiles.Count);
@@ -189,7 +189,7 @@ public sealed class HueyConsumerImporterTests {
    new ConsumerSource("src/Config/Input/UH-1H/joystick/Old Controller.diff.lua","return {}"),
    new ConsumerSource("src/Config/Input/Other/joystick/Other Controller.diff.lua","return {}")
   ]).ToArray();
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal(5,result.Configuration!.Profiles.Count);
   Assert.Equal(request.Sources.Count+2,result.Provenance.Count);
@@ -202,7 +202,7 @@ public sealed class HueyConsumerImporterTests {
   var missing=request.Sources.Single(x=>x.Path.Contains("F16 MFD 1 ",StringComparison.Ordinal));
   var sources=request.Sources.Where(x=>x!=missing).Append(
    new ConsumerSource("src/Config/Input/UH-1H/joystick/Other Controller.diff.lua","return {}")).ToArray();
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);
   Assert.Contains(result.Diagnostics,x=>x.Message.Contains("no supplied Lua source",StringComparison.Ordinal));
  }
@@ -211,7 +211,7 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
    var root=JsonNode.Parse(x)!;var profiles=root["profiles"]!;profiles["tm-mfd-2"]=profiles["tm-mfd-1"]!.GetValue<string>();return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Duplicate kneeboard profile path",StringComparison.Ordinal));
  }
  /// <summary>An override cannot refer to a device profile that was not imported.</summary>
@@ -219,13 +219,13 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/scaffold-device-overrides.json",x=>{
    var root=JsonNode.Parse(x)!;root["Other.diff.lua"]="tm-mfd";return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Device override references unknown profile",StringComparison.Ordinal));
  }
  /// <summary>A conflicting MFD instance role is reported before projection.</summary>
  [Fact] public void Conflicting_instance_role_is_rejected() {
   var request=Fixture();var sources=Replace(request,"config/scaffold-instance-roles.json",x=>x.Replace("\"MFD3\"","\"MFD1\"",StringComparison.Ordinal));
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Instance role",StringComparison.Ordinal));
  }
  /// <summary>Page devices must resolve against the shared hardware manifest.</summary>
@@ -233,25 +233,25 @@ public sealed class HueyConsumerImporterTests {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",x=>{
    var root=JsonNode.Parse(x)!;root["pages"]![0]!["deviceId"]="invented-device";return root.ToJsonString();
   });
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Message.Contains("Unknown shared device identity",StringComparison.Ordinal));
  }
  /// <summary>Malformed module-owned Lua cannot produce a partial configuration.</summary>
  [Fact] public void Invalid_modifiers_lua_is_atomic() {
   var request=Fixture();var sources=Replace(request,"src/Config/Input/UH-1H/modifiers.lua",_=>"return {}");
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.False(result.Succeeded);Assert.Empty(result.Provenance);
   Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source");
  }
  /// <summary>Every expected file is needed to prove the full Huey import.</summary>
  [Fact] public void Missing_config_file_is_reported() {
   var request=Fixture();var sources=request.Sources.Where(x=>x.Path!="config/ui-layer-overlay.json").ToArray();
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded);Assert.False(result.Metadata.ContainsKey("config/ui-layer-overlay.json"));
  }
  /// <summary>Unknown source paths are rejected before any consumer files are read.</summary>
  [Fact] public void Unknown_source_path_is_rejected() {
-  var request=Fixture();var result=new HueyConsumerImporter().Import(request with {Sources=[..request.Sources,new("src/Config/Input/Other/unknown.diff.lua","return {}")]});
+  var request=Fixture();var result=new ConsumerSourceImporter().Import(request with {Sources=[..request.Sources,new("src/Config/Input/Other/unknown.diff.lua","return {}")]});
   Assert.False(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-path");
  }
  /// <summary>Uses another module's own scaffold and kneeboard paths without Huey-only support files.</summary>
@@ -269,7 +269,7 @@ public sealed class HueyConsumerImporterTests {
    "config/scaffold.dcs-scaffold.json" or "config/ui-layer-overlay.json" or
    "config/scaffold-device-overrides.json" or "config/scaffold-instance-roles.json"))
    .Select(x=>new ConsumerSource(x.Path.Replace("UH-1H","F-14BU",StringComparison.Ordinal),Rewrite(x))).ToArray();
-  var result=new HueyConsumerImporter().Import(original with {Sources=sources,Repository="F-14BU"});
+  var result=new ConsumerSourceImporter().Import(original with {Sources=sources,Repository="F-14BU"});
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal("F-14BU",result.Configuration!.Module.DcsId);
   Assert.Equal(5,result.Configuration.Profiles.Count);
@@ -296,7 +296,7 @@ public sealed class HueyConsumerImporterTests {
    }
    return source;
   }).ToArray();
-  var imported=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var imported=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
   Assert.Contains(imported.Diagnostics,x=>x.Code=="module-overlay-preserved");
   Assert.Equal(101,KneeboardLabelImporter.Import(imported.Metadata,imported.Configuration!).Count);
@@ -318,7 +318,7 @@ public sealed class HueyConsumerImporterTests {
    return diff
    """;
   var sources=request.Sources.Select(x=>x==source?x with {Content=removedOnly}:x).ToArray();
-  var result=new HueyConsumerImporter().Import(request with {Sources=sources});
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded,string.Join("; ",result.Diagnostics.Select(x=>x.Message)));
   Assert.Equal(5,result.Configuration!.Profiles.Count);
   Assert.Contains(result.Configuration.Bindings,x=>x.Disposition==BindingDisposition.Removed&&
@@ -330,8 +330,8 @@ public sealed class HueyConsumerImporterTests {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static ConsumerSource[] Replace(HueyImportRequest request,string path,Func<string,string> transform)=>request.Sources.Select(x=>x.Path==path?x with {Content=transform(x.Content)}:x).ToArray();
- private static HueyImportRequest Fixture() {
+ private static ConsumerSource[] Replace(ConsumerImportRequest request,string path,Func<string,string> transform)=>request.Sources.Select(x=>x.Path==path?x with {Content=transform(x.Content)}:x).ToArray();
+ private static ConsumerImportRequest Fixture() {
   var root=Path.Combine(AppContext.BaseDirectory,"Fixtures","DcsCommon");
   string Read(string name)=>File.ReadAllText(Path.Combine(root,name));
   var catalog=new DcsCommonCatalogImporter().Import(new("dd3d9cff8997c57ebfad36066ec4caf06bdbe52e","assets/shared/hardware/manifest.json",Read("hardware.json"),"assets/shared/ui-layer/functions.json",Read("functions.json"),"assets/shared/ui-layer/hardware-overlays.json",Read("hardware-overlays.json"),"assets/shared/hardware/scaffold-device-map.json",Read("device-map.json")));

@@ -8,14 +8,14 @@ using Dcs.Ipia.Application.Interfaces;
 namespace Dcs.Ipia.Dcs;
 
 /// <summary>Reads committed source files from selected local Git checkouts for a module preview.</summary>
-public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
+public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
  #region BEGIN Public
  /// <summary>Imports the committed repository heads without changing either checkout.</summary>
  /// <param name="commonRoot">DCS-Common checkout root.</param>
  /// <param name="hueyRoot">module checkout root.</param>
  /// <param name="cancellationToken">Cancellation token for Git reads.</param>
  /// <returns>A validated module import including original committed source text.</returns>
- public async Task<HueyWorkspacePreview> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default) {
+ public async Task<ModuleWorkspacePreview> LoadAsync(string commonRoot,string hueyRoot,CancellationToken cancellationToken=default) {
   var common=await RepositoryRootAsync(commonRoot,cancellationToken);
   var huey=await RepositoryRootAsync(hueyRoot,cancellationToken);
   var commonCommit=(await GitAsync(common,cancellationToken,"rev-parse","HEAD")).Trim();
@@ -38,7 +38,7 @@ public sealed class HueyWorkspaceLoader:IHueyWorkspaceLoader {
       x.Contains("/joystick/",StringComparison.Ordinal)&&x.EndsWith(".diff.lua",StringComparison.Ordinal)))
    .ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
-  var imported=new HueyConsumerImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray(),Path.GetFileName(huey)));
+  var imported=new ConsumerSourceImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray(),Path.GetFileName(huey)));
   var (moduleCommands,commandSource,commandDiagnostics)=LoadLinkedCommands(huey,hueySources,imported.Configuration?.Module.DcsId);
   if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
 

@@ -13,7 +13,7 @@ public static class ModuleUiLayerBindingImporter {
  /// <param name="shared">Canonical DCS-Common UI Layer profiles and bindings.</param>
  /// <param name="profile">The module device profile.</param>
  /// <returns>Effective bindings after module-owned removals and assignments.</returns>
- public static IReadOnlyList<DcsBinding> Import(HueyImportResult module,SharedLuaImportResult shared,DeviceProfile profile) {
+ public static IReadOnlyList<DcsBinding> Import(ConsumerImportResult module,SharedLuaImportResult shared,DeviceProfile profile) {
   ArgumentNullException.ThrowIfNull(module);
   ArgumentNullException.ThrowIfNull(shared);
   ArgumentNullException.ThrowIfNull(profile);
