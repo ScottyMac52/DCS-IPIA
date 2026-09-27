@@ -1,355 +1,384 @@
 using System.IO;
+using System.Globalization;
+using System.Xml;
+using System.Xml.Linq;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Rendering;
+using Microsoft.Win32;
+using System.Text.Json;
 
 namespace DcsIpia.Presentation;
 
-/// <summary>Shows the canonical device SVG and stages module-owned assignments in memory.</summary>
+/// <summary>Edits locally persisted module controls on canonical draw.io generated SVGs.</summary>
 public partial class HueyImportWindow : Window {
  private readonly HueyImportViewModel _viewModel;
  private readonly IAppSettingsService? _settings;
+ private readonly IEditorWorkspaceRepository? _repository;
+ private EditorWorkspaceSnapshot? _saved;
+ private DraftAssignmentService? _draft;
+ private readonly Dictionary<string,string> _labels=new(StringComparer.Ordinal);
+ private readonly Dictionary<string,TextBlock> _calloutText=new(StringComparer.Ordinal);
  private HardwareGraphicControl? _selected;
- private HardwareGraphicControl? _pendingSource;
- private string? _pendingAction;
- private IReadOnlyList<HardwareGraphicControl> _visibleControls=[];
- private UiLayerDiagram? _currentDiagram;
- private Point? _paletteDragStart;
- private CommandPaletteEntry? _dragCommand;
- private Point? _controlDragStart;
- private HardwareGraphicControl? _dragControl;
- private bool _updatingCategories;
- private const string PaletteDragFormat="Dcs.Ipia.Editor.PaletteCommand";
- private const string ControlDragFormat="Dcs.Ipia.Editor.HardwareControl";
- /// <summary>Opens the imported graphical editor with optional user preferences.</summary>
- /// <param name="viewModel">The validated import and in-memory draft.</param>
- /// <param name="settings">The app's current destination preference.</param>
- public HueyImportWindow(HueyImportViewModel viewModel,IAppSettingsService? settings=null) {
+ private Point? _dragStart;
+ private bool _updatingInspector;
+ private bool _updatingFilters;
+ private AssignmentLayer? _categoryScope;
+ /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>
+ /// <param name="viewModel">Persisted editor data or a source preview.</param>
+ /// <param name="settings">Occupied destination preference.</param>
+ /// <param name="repository">Local editor database.</param>
+ public HueyImportWindow(HueyImportViewModel viewModel,IAppSettingsService? settings=null,IEditorWorkspaceRepository? repository=null) {
   _viewModel=viewModel??throw new ArgumentNullException(nameof(viewModel));
   _settings=settings;
+  _repository=repository;
+  _saved=viewModel.Workspace;
+  _draft=viewModel.Draft;
+  foreach(var pair in viewModel.Labels)_labels[pair.Key]=pair.Value;
   InitializeComponent();
   DataContext=_viewModel;
-  UiModifierChoice.ItemsSource=_viewModel.ModifierChoices;
-  UiModifierChoice.SelectedIndex=0;
   KneeboardList.SelectedIndex=0;
-  UiDiagramList.SelectedIndex=0;
-  PaletteScope.SelectedIndex=1;
-  EditorStatus.Text=_viewModel.DraftNote;
-  RefreshReview();
+  DeviceChoice.ItemsSource=_viewModel.UiDiagrams;
+  Layers.ItemsSource=_viewModel.ModuleModifierChoices;
+  Layers.SelectedIndex=0;
+  Scope.SelectedIndex=0;
+  CommandType.SelectedIndex=0;
+  BindingState.SelectedIndex=0;
+  DeviceChoice.SelectedIndex=_viewModel.UiDiagrams.Count>0?0:-1;
   if(_viewModel.HasErrors)ImportedTabs.SelectedItem=DiagnosticsTab;
-  Closing+=OnClosing;
+  Closing+=ConfirmClose;
+  RefreshEditor();
  }
  #region BEGIN Public
  #endregion END Public
  #region BEGIN private helpers
+ private UiLayerDiagram? CurrentDiagram=>DeviceChoice.SelectedItem as UiLayerDiagram;
+ private AssignmentLayer CurrentLayer=>Scope.SelectedIndex==1?AssignmentLayer.UiLayer:AssignmentLayer.Module;
+ private DraftAssignmentSlot? Slot(HardwareGraphicControl control) {
+  var diagram=CurrentDiagram;
+  if(diagram is null||_saved is null||_draft is null)return null;
+  var layer=Layers.SelectedItem as string??"Base";
+  var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+  return KneeboardDraftProjection.SlotForControl(_saved,diagram,control,CurrentLayer,chord);
+ }
+ private DraftAssignment? Assignment(DraftAssignmentSlot slot)=>_draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
+ private void DeviceChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
+ private void LayerChanged(object sender,SelectionChangedEventArgs e)=>RefreshEditor();
+ private void ScopeChanged(object sender,SelectionChangedEventArgs e) {
+  if(Layers is null)return;
+  var previous=Layers.SelectedItem as string??"Base";
+  var choices=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleModifierChoices:_viewModel.UiModifierChoices;
+  Layers.ItemsSource=choices;
+  Layers.SelectedItem=choices.Contains(previous,StringComparer.Ordinal)?previous:
+   previous!="Base"&&choices.Count==2?choices[1]:"Base";
+  RefreshEditor();
+ }
+ private void ZoomChanged(object sender,RoutedPropertyChangedEventArgs<double> e)=>RefreshEditor();
+ private void FiltersChanged(object sender,EventArgs e) {
+  if(_updatingFilters)return;
+  FilterCommands();
+ }
+ private void RefreshEditor() {
+  if(Diagram is null||Commands is null||DeviceTitle is null)return;
+  var diagram=CurrentDiagram;
+  Diagram.Children.Clear();
+  _calloutText.Clear();
+  _selected=null;
+  DeviceTitle.Text=diagram is null?"Select a stored device":diagram.Title+" — "+(CurrentLayer==AssignmentLayer.Module?"Module controls":"Module UI Layer controls");
+  EditorMessage.Text=_saved is null?"Import a module to SQLite or open a saved module to edit its controls.":"";
+  if(_categoryScope!=CurrentLayer) {
+   _updatingFilters=true;
+   var available=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleCommands:_viewModel.UiCommands;
+   CommandCategory.ItemsSource=Enumerable.Repeat("All",1).Concat(available.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
+   CommandCategory.SelectedIndex=0;
+   _categoryScope=CurrentLayer;
+   _updatingFilters=false;
+  }
+  FilterCommands();
+  if(diagram is null||_saved is null||_draft is null||string.IsNullOrWhiteSpace(diagram.Svg)) {
+   RefreshInspector();return;
+  }
+  try {
+   var png=CanonicalSvgRenderer.Render(diagram.Svg,diagram.Width,diagram.Height);
+   using var stream=new MemoryStream(png);
+   var bitmap=new BitmapImage();
+   bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
+   Diagram.Width=diagram.Width*Zoom.Value;Diagram.Height=diagram.Height*Zoom.Value;
+   var surface=new Canvas {Width=diagram.Width,Height=diagram.Height};
+   surface.Children.Add(new Image {Source=bitmap,Width=diagram.Width,Height=diagram.Height});
+   CoverAuthoredLabels(surface,diagram.Svg);
+   foreach(var control in diagram.Controls) {
+    var slot=Slot(control);
+    if(slot is null)continue;
+    var assignment=Assignment(slot);
+    var caption=assignment is null?"Unassigned":_labels.GetValueOrDefault(slot.Key)??assignment.Command.Name;
+    var text=new TextBlock {Text=caption,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
+     VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black};
+    _calloutText[slot.Key]=text;
+    var original=_saved.Assignments.FirstOrDefault(x=>x.Slot.Key==slot.Key);
+    var stateBrush=assignment is null?Brushes.SlateGray:original is null?Brushes.ForestGreen:
+     original.Command==assignment.Command?Brushes.White:Brushes.Goldenrod;
+    var target=new Border {Width=control.Width,Height=control.Height,Background=Brushes.White,
+     BorderBrush=stateBrush,BorderThickness=new Thickness(1),
+     Child=text,AllowDrop=true,Cursor=Cursors.Hand,Tag=control};
+    Canvas.SetLeft(target,control.X);Canvas.SetTop(target,control.Y);
+    target.PreviewMouseLeftButtonDown+=(_,args)=>{_dragStart=args.GetPosition(this);_selected=control;RefreshInspector();};
+    target.PreviewMouseMove+=(_,args)=>ControlDrag(target,control,args);
+    target.DragOver+=(_,args)=>DragOverControl(control,args);
+    target.Drop+=(_,args)=>DropOnControl(control,args);
+    var menu=new ContextMenu();
+    var assign=new MenuItem {Header="Assign selected command"};assign.Click+=(_,_)=>{_selected=control;AssignClicked(target,new RoutedEventArgs());};menu.Items.Add(assign);
+    var clear=new MenuItem {Header="Clear assignment"};clear.Click+=(_,_)=>{_selected=control;ClearClicked(target,new RoutedEventArgs());};menu.Items.Add(clear);
+    target.ContextMenu=menu;
+    surface.Children.Add(target);
+   }
+   surface.LayoutTransform=new ScaleTransform(Zoom.Value,Zoom.Value);
+   Diagram.Children.Add(surface);
+  }
+  catch(Exception ex) {EditorMessage.Text="Unable to render saved SVG: "+ex.Message;}
+  RefreshInspector();
+ }
+ private static void CoverAuthoredLabels(Canvas surface,string svg) {
+  using var reader=XmlReader.Create(new StringReader(svg),new XmlReaderSettings {
+   DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=4_000_000
+  });
+  var root=XDocument.Load(reader,LoadOptions.PreserveWhitespace).Root;
+  if(root is null)return;
+  foreach(var (control,box) in SvgCalloutLocator.Find(root)) {
+   var x=double.Parse(box.Attribute("x")?.Value??"0",CultureInfo.InvariantCulture);
+   var y=double.Parse(box.Attribute("y")?.Value??"0",CultureInfo.InvariantCulture);
+   var width=double.Parse(box.Attribute("width")?.Value??"0",CultureInfo.InvariantCulture);
+   var height=double.Parse(box.Attribute("height")?.Value??"0",CultureInfo.InvariantCulture);
+   if(width<=0||height<=0)continue;
+   var mask=new Border {Width=width,Height=height,Background=Brushes.White,
+    BorderBrush=Brushes.SlateGray,BorderThickness=new Thickness(1),Tag=control,
+    Child=new TextBlock {Text="Unassigned",TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.Wrap,
+     VerticalAlignment=VerticalAlignment.Center,FontSize=11,Foreground=Brushes.Black}};
+   Canvas.SetLeft(mask,x);Canvas.SetTop(mask,y);
+   surface.Children.Add(mask);
+  }
+ }
+ private void FilterCommands() {
+  if(Commands is null||CommandCategory is null||CommandCount is null)return;
+  var list=CurrentLayer==AssignmentLayer.Module?_viewModel.ModuleCommands:_viewModel.UiCommands;
+  var category=CommandCategory.SelectedItem as string;
+  var filtered=CommandPalette.Filter(list,CommandSearch.Text,category=="All"?null:category)
+   .Where(x=>CommandType.SelectedIndex==0||(CommandType.SelectedIndex==2)==x.IsAxis).ToArray();
+  if(_draft is not null&&BindingState.SelectedIndex>0) {
+   var layer=Layers.SelectedItem as string??"Base";
+   var chord=layer=="Base"?"":layer.Replace(" + ","+",StringComparison.Ordinal);
+   var eligible=_viewModel.UiDiagrams.Where(x=>CurrentLayer==AssignmentLayer.Module||x.SupportsUiLayer)
+    .Select(x=>x.ProfileId);
+   filtered=CommandBindingStateFilter.Filter(filtered,_draft.Snapshot,CurrentLayer,eligible,
+    CurrentDiagram?.ProfileId,chord,(CommandBindingState)BindingState.SelectedIndex).ToArray();
+  }
+  Commands.ItemsSource=filtered;
+  CommandCount.Text=$"Showing {filtered.Length} of {list.Count}";
+ }
+ private void DragStart(object sender,MouseButtonEventArgs e)=>_dragStart=e.GetPosition(this);
+ private bool Dragging(MouseEventArgs e)=>_dragStart is Point start&&e.LeftButton==MouseButtonState.Pressed&&
+  (Math.Abs(e.GetPosition(this).X-start.X)>SystemParameters.MinimumHorizontalDragDistance||
+   Math.Abs(e.GetPosition(this).Y-start.Y)>SystemParameters.MinimumVerticalDragDistance);
+ private void CommandDrag(object sender,MouseEventArgs e) {
+  if(!Dragging(e)||Commands.SelectedItem is not CommandPaletteEntry command||_draft is null)return;
+  _dragStart=null;
+  DragDrop.DoDragDrop(Commands,new DataObject(typeof(CommandPaletteEntry),command),DragDropEffects.Copy);
+ }
+ private void ControlDrag(Border source,HardwareGraphicControl control,MouseEventArgs e) {
+  if(!Dragging(e)||_draft is null)return;
+  var slot=Slot(control);
+  if(slot is null||Assignment(slot) is null)return;
+  _dragStart=null;
+  DragDrop.DoDragDrop(source,new DataObject(typeof(EditorControlDrag),new EditorControlDrag(slot)),
+   DragDropEffects.Move|DragDropEffects.Copy);
+ }
+ private void DragOverControl(HardwareGraphicControl target,DragEventArgs e) {
+  var destination=Slot(target);
+  var source=e.Data.GetData(typeof(EditorControlDrag)) as EditorControlDrag;
+  var catalog=e.Data.GetData(typeof(CommandPaletteEntry)) as CommandPaletteEntry;
+  var compatible=destination is not null&&((catalog is not null&&catalog.IsAxis==target.IsAxis)||
+   (source is not null&&source.Slot.ProfileId==destination.ProfileId&&source.Slot.Layer==destination.Layer&&
+    source.Slot.Section==destination.Section&&source.Slot.Key!=destination.Key));
+  e.Effects=!compatible?DragDropEffects.None:source is null?DragDropEffects.Copy:
+   (Keyboard.Modifiers&ModifierKeys.Control)!=0?DragDropEffects.Copy:DragDropEffects.Move;
+  e.Handled=true;
+ }
+ private void DropOnControl(HardwareGraphicControl target,DragEventArgs e) {
+  var destination=Slot(target);
+  if(destination is null||_draft is null)return;
+  var source=e.Data.GetData(typeof(EditorControlDrag)) as EditorControlDrag;
+  var command=e.Data.GetData(typeof(CommandPaletteEntry)) as CommandPaletteEntry;
+  if(source is not null)Apply((choice)=>(Keyboard.Modifiers&ModifierKeys.Control)!=0?
+   _draft.Copy(source.Slot,destination,Behavior,choice):_draft.Move(source.Slot,destination,Behavior,choice),source.Slot);
+  else if(command is not null)Apply(choice=>_draft.Assign(destination,
+   new DraftCommand(command.Id,command.Name,command.IsAxis,CurrentLayer),Behavior,choice));
+  e.Handled=true;
+ }
+ private OccupiedDestinationBehavior Behavior=>_settings?.Current.OccupiedDestinationBehavior??OccupiedDestinationBehavior.Ask;
+ private void Apply(Func<DraftConflictChoice?,DraftResult> operation,DraftAssignmentSlot? source=null) {
+  var result=operation(null);
+  if(result.Outcome==DraftOutcome.ConfirmationRequired) {
+   var decision=MessageBox.Show(this,"Destination is occupied. Yes: replace; No: swap assigned controls; Cancel: keep both.",
+    "Occupied control",MessageBoxButton.YesNoCancel,MessageBoxImage.Question);
+   var choice=decision==MessageBoxResult.Yes?DraftConflictChoice.Replace:
+    decision==MessageBoxResult.No&&source is not null?DraftConflictChoice.Swap:DraftConflictChoice.Cancel;
+   result=operation(choice);
+  }
+  EditorMessage.Text=result.Message;
+  if(result.Outcome==DraftOutcome.Applied)RefreshEditor();
+ }
+ private void AssignClicked(object sender,RoutedEventArgs e) {
+  if(_selected is null||_draft is null||Commands.SelectedItem is not CommandPaletteEntry command)return;
+  var slot=Slot(_selected);
+  if(slot is null)return;
+  Apply(choice=>_draft.Assign(slot,new DraftCommand(command.Id,command.Name,command.IsAxis,CurrentLayer),Behavior,choice));
+ }
+ private void ClearClicked(object sender,RoutedEventArgs e) {
+  if(_selected is null||_draft is null)return;
+  var slot=Slot(_selected);
+  if(slot is not null)Apply(_=>_draft.Remove(slot));
+ }
+ private void UndoClicked(object sender,RoutedEventArgs e) {
+  if(_draft is null)return;
+  EditorMessage.Text=_draft.Undo().Message;
+  RefreshEditor();
+ }
+ private void ResetClicked(object sender,RoutedEventArgs e) {
+  if(_selected is null)return;
+  var slot=Slot(_selected);
+  if(slot is null)return;
+  _labels.Remove(slot.Key);
+  RefreshEditor();
+ }
+ private void LabelChanged(object sender,TextChangedEventArgs e) {
+  if(_updatingInspector||_selected is null||_saved is null)return;
+  var slot=Slot(_selected);
+  if(slot is null)return;
+  if(string.IsNullOrWhiteSpace(LabelEditor.Text))_labels.Remove(slot.Key);
+  else _labels[slot.Key]=LabelEditor.Text;
+  if(_calloutText.TryGetValue(slot.Key,out var label))label.Text=LabelEditor.Text;
+  PendingSummary.Text="Pending label or assignment changes";
+ }
+ private void RefreshInspector() {
+  if(PhysicalInput is null)return;
+  var slot=_selected is null?null:Slot(_selected);
+  var assignment=slot is null?null:Assignment(slot);
+  PhysicalInput.Text=_selected is null?"Select a callout":_selected.Label+" · "+_selected.InputKey;
+  Chord.Text=slot is null?"":slot.ModifierChord.Length==0?"Base":slot.ModifierChord;
+  CurrentCommand.Text=slot is null?"":_saved?.Assignments.FirstOrDefault(x=>x.Slot.Key==slot.Key)?.Command.Name??"Unassigned";
+  PendingCommand.Text=assignment?.Command.Name??"Unassigned";
+  DefaultLabel.Text=_selected?.Label??"";
+  _updatingInspector=true;
+  LabelEditor.IsEnabled=assignment is not null;
+  LabelEditor.Text=slot is null?"":assignment is null?"Unassigned":_labels.GetValueOrDefault(slot.Key)??assignment.Command.Name;
+  _updatingInspector=false;
+  TuneAxisButton.IsEnabled=slot?.Section==BindingSection.Axis&&assignment is not null;
+  AxisTuningSummary.Text=slot?.Section!=BindingSection.Axis?"Select an axis control to tune.":
+   assignment is null?"Assign a command before tuning.":
+   assignment.Filter is null?"No axis filter set.":"Axis filter staged.";
+  PendingSummary.Text=_draft?.HasChanges==true?"Pending assignments: "+_draft.History.Count:"No pending assignment changes";
+ }
+ private async void SaveClicked(object sender,RoutedEventArgs e) {
+  if(_repository is null||_saved is null||_draft is null) {EditorMessage.Text="Open a saved database workspace to edit.";return;}
+  try {
+   var updated=_saved with {Assignments=_draft.Snapshot,Labels=new Dictionary<string,string>(_labels,StringComparer.Ordinal)};
+   await _repository.SaveAsync(updated);
+   _saved=updated;
+   var allowed=updated.ModuleCommands.Select(x=>new DraftCommand(x.Id,x.Name,x.IsAxis,AssignmentLayer.Module))
+    .Concat(updated.UiCommands.Select(x=>new DraftCommand(x.DcsCommandId,x.Name,x.IsAxis,AssignmentLayer.UiLayer)));
+   _draft=new DraftAssignmentService(updated.Configuration,allowed,updated.Assignments,
+    updated.Diagrams.SelectMany(x=>x.Callouts).SelectMany(x=>x.Modifier.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)));
+   RefreshEditor();
+   EditorMessage.Text="Assignments and labels saved to the local database.";
+  }
+  catch(Exception ex) {EditorMessage.Text="Database save failed: "+ex.Message;}
+ }
+ private void LoadAuthoredLabelsClicked(object sender,RoutedEventArgs e) {
+  if(_saved is null||_draft is null)return;
+  var picker=new OpenFileDialog {Title="Select a module config/kneeboard.json file",
+   Filter="kneeboard.json|kneeboard.json|JSON files|*.json"};
+  if(picker.ShowDialog(this)!=true)return;
+  try {
+   using var document=JsonDocument.Parse(File.ReadAllText(picker.FileName));
+   var metadata=new Dictionary<string,JsonElement> {["config/kneeboard.json"]=document.RootElement};
+   var imported=KneeboardLabelImporter.Import(metadata,_saved.Configuration);
+   if(imported.Count==0) {EditorMessage.Text="No authored labels matched this saved module.";return;}
+   foreach(var pair in imported)_labels[pair.Key]=pair.Value;
+   RefreshEditor();
+   EditorMessage.Text=$"{imported.Count} authored Module labels staged. Save to database to keep them, or Discard draft.";
+   PendingSummary.Text="Pending label changes";
+  }
+  catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
+   EditorMessage.Text="Unable to load authored labels: "+ex.Message;
+  }
+ }
+ private void DiscardClicked(object sender,RoutedEventArgs e) {
+  _draft?.Discard();_labels.Clear();
+  if(_saved is not null)foreach(var pair in _saved.Labels)_labels[pair.Key]=pair.Value;
+  RefreshEditor();
+  EditorMessage.Text="Pending edits discarded.";
+ }
+ private void RenderClicked(object sender,RoutedEventArgs e) {
+  var diagram=CurrentDiagram;
+  if(diagram is null||_saved is null||_draft is null||string.IsNullOrWhiteSpace(diagram.Svg)) {
+   EditorMessage.Text="Select a stored device with an authored graphic to render its current kneeboard.";return;
+  }
+  try {
+   var page=KneeboardDraftProjection.CreateCombined(_saved,diagram,_draft.Snapshot,_labels);
+   var png=CompositeKneeboardRenderer.Render(diagram,page);
+   using var stream=new MemoryStream(png);
+   var bitmap=new BitmapImage();
+   bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
+   var view=new Window {Title="Current kneeboard · "+diagram.Title,
+    Owner=this,Width=900,Height=900,MinWidth=500,MinHeight=500,WindowStartupLocation=WindowStartupLocation.CenterOwner,
+    Background=(Brush)FindResource("WindowBackgroundBrush"),Foreground=(Brush)FindResource("PrimaryTextBrush")};
+   view.Content=new ScrollViewer {Content=new Image {Source=bitmap,Stretch=Stretch.Uniform},
+    HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
+   view.ShowDialog();
+  }
+  catch(Exception ex) {EditorMessage.Text="Unable to render current kneeboard: "+ex.Message;}
+ }
+ private void TuneAxisClicked(object sender,RoutedEventArgs e) {
+  if(_selected is null||_draft is null)return;
+  var slot=Slot(_selected);
+  if(slot?.Section!=BindingSection.Axis)return;
+  var assignment=Assignment(slot);
+  if(assignment is null)return;
+  var dialog=new AxisTuningWindow(assignment.Filter) {Owner=this};
+  if(dialog.ShowDialog()!=true)return;
+  var result=_draft.TuneAxis(slot,dialog.Filter);
+  EditorMessage.Text=result.Message;
+  if(result.Outcome==DraftOutcome.Applied)RefreshEditor();
+ }
  private void KneeboardList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  if(_viewModel is null||KneeboardPreview is null)return;
+  if(KneeboardPreview is null||KneeboardCaption is null)return;
   KneeboardPreview.Source=null;
   var index=KneeboardList.SelectedIndex;
-  if(index<0||index>=_viewModel.PageKeys.Count) {
-   KneeboardCaption.Text="No rendered kneeboard image is available from this source.";
-   return;
-  }
-  var page=_viewModel.PageKeys[index];
-  var asset=_viewModel.Images.FirstOrDefault(x=>x.PageKey==page);
-  if(asset is null) {KneeboardCaption.Text=$"No committed PNG was found for {page}.";return;}
+  if(index<0||index>=_viewModel.PageKeys.Count) {KneeboardCaption.Text="No rendered kneeboard image is available.";return;}
+  var asset=_viewModel.Images.FirstOrDefault(x=>x.PageKey==_viewModel.PageKeys[index]);
+  if(asset is null) {KneeboardCaption.Text="No stored PNG for this page.";return;}
   try {
-   KneeboardPreview.Source=LoadBitmap(asset.Bytes);
-   KneeboardCaption.Text=$"Existing rendered image: {asset.Path} · SHA-256 {asset.Sha256}. This preview does not regenerate the page.";
+   using var stream=new MemoryStream(asset.Bytes);
+   var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;
+   bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
+   KneeboardPreview.Source=bitmap;KneeboardCaption.Text="Stored kneeboard: "+asset.Path;
   }
-  catch(Exception ex) {KneeboardCaption.Text=$"Unable to display {asset.Path}: {ex.Message}";}
+  catch(Exception ex) {KneeboardCaption.Text=ex.Message;}
  }
- private void UiDiagramList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  if(UiDiagramCanvas is null)return;
-  _selected=null;_pendingSource=null;_pendingAction=null;
-  _currentDiagram=UiDiagramList.SelectedItem as UiLayerDiagram;
-  RenderUiDiagram();
- }
- private void UiModifierChoice_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  _pendingSource=null;_pendingAction=null;RenderUiDiagram();
- }
- private void PaletteScope_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  _pendingSource=null;_pendingAction=null;
-  _updatingCategories=true;
-  if(PaletteCategory is not null) {
-   var all=PaletteScope.SelectedIndex==1?_viewModel.UiCommands:_viewModel.ModuleCommands;
-   PaletteCategory.ItemsSource=Enumerable.Repeat("All categories",1)
-    .Concat(all.Select(x=>x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)).ToArray();
-   PaletteCategory.SelectedIndex=0;
-  }
-  _updatingCategories=false;
-  UpdatePalette();RenderUiDiagram();
- }
- private void PaletteSearch_TextChanged(object sender,TextChangedEventArgs e)=>UpdatePalette();
- private void PaletteCategory_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  if(!_updatingCategories)UpdatePalette();
- }
- private void UpdatePalette() {
-  if(_viewModel is null||CommandPaletteList is null||PaletteScope is null||PaletteSearch is null||PaletteCaption is null)return;
-  var isUi=PaletteScope.SelectedIndex==1;
-  var all=isUi?_viewModel.UiCommands:_viewModel.ModuleCommands;
-  var category=PaletteCategory?.SelectedIndex>0?PaletteCategory.SelectedItem as string:null;
-  var filtered=CommandPalette.Filter(all,PaletteSearch.Text,category);
-  CommandPaletteList.ItemsSource=filtered;
-  PaletteCaption.Text=$"{filtered.Count} of {all.Count} {(isUi?"UI Layer":"aircraft")} commands{(category is null?"":$" in {category}")}. {_viewModel.PaletteSourceNote} Drag a command onto a control or select it and choose Assign.";
- }
- private void RenderUiDiagram() {
-  if(UiDiagramCanvas is null||UiAssignmentList is null||UiDiagramCaption is null||UiModifierChoice is null)return;
-  UiDiagramCanvas.Children.Clear();_visibleControls=[];UiAssignmentList.ItemsSource=null;
-  var diagram=_currentDiagram;
-  if(diagram is null) {UiDiagramCaption.Text="Select a device and instance to inspect its authored graphic.";UpdateInspector();return;}
-  UiDiagramCanvas.Width=diagram.Width;UiDiagramCanvas.Height=diagram.Height;
-  if(string.IsNullOrWhiteSpace(diagram.Svg)) {
-   UiDiagramCaption.Text=$"Canonical draw.io-generated SVG unavailable: {diagram.Path}. Use Diagnostics and the assignment list.";
-   UiAssignmentList.ItemsSource=diagram.Callouts.Select(x=>x.Description).ToArray();
-   UpdateInspector();return;
-  }
-  try {
-   UiDiagramCanvas.Children.Add(new Image {Source=LoadBitmap(CanonicalSvgRenderer.Render(diagram.Svg,diagram.Width,diagram.Height)),
-    Width=diagram.Width,Height=diagram.Height,Stretch=System.Windows.Media.Stretch.Fill});
-   _visibleControls=diagram.Controls;
-   foreach(var control in _visibleControls) {
-    var assignment=CurrentAssignment(control);
-    var label=assignment?.Command.Name??"Assign";
-    var badge=new Border {Width=control.Width,Height=control.Height,BorderThickness=new Thickness(2),
-     CornerRadius=new CornerRadius(4),Padding=new Thickness(2),AllowDrop=true,
-     ToolTip=$"{control.Label} · {control.Control} · {control.InputKey} · {label}",
-     Child=new TextBlock {Text=label,FontSize=11,FontWeight=FontWeights.SemiBold,
-      TextWrapping=TextWrapping.Wrap,TextTrimming=TextTrimming.CharacterEllipsis,
-      HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,
-      TextAlignment=TextAlignment.Center}};
-    badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
-    badge.SetResourceReference(Border.BorderBrushProperty,"AccentTextBrush");
-    ((TextBlock)badge.Child).SetResourceReference(TextBlock.ForegroundProperty,"PrimaryTextBrush");
-    badge.PreviewMouseLeftButtonDown+=(_,args)=>{
-     _controlDragStart=args.GetPosition(badge);_dragControl=control;SelectControl(control);
-    };
-    badge.PreviewMouseLeftButtonUp+=(_,_)=>{_controlDragStart=null;_dragControl=null;};
-    badge.PreviewMouseMove+=(_,args)=>Control_PreviewMouseMove(badge,control,args);
-    badge.DragEnter+=(_,args)=>{
-     if(CanDrop(args.Data,control))badge.SetResourceReference(Border.BackgroundProperty,"SelectedBackgroundBrush");
-    };
-    badge.DragLeave+=(_,_)=>badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");
-    badge.DragOver+=Control_DragOver;
-    badge.Drop+=(_,args)=>{
-     badge.SetResourceReference(Border.BackgroundProperty,"SurfaceBrush");Control_Drop(control,args);
-    };
-    badge.ContextMenu=BuildContextMenu(control);
-    Canvas.SetLeft(badge,control.X);Canvas.SetTop(badge,control.Y);
-    UiDiagramCanvas.Children.Add(badge);
-   }
-   UiAssignmentList.ItemsSource=_visibleControls.Select(x=>$"{x.Label} · {CurrentAssignment(x)?.Command.Name??"Assign"} · {x.InputKey}").ToArray();
-   UiDiagramCaption.Text=$"{diagram.Title} · {Layer()} / {Chord()} · {diagram.Path} · {diagram.Controls.Count} mapped controls · canonical DCS-Common SVG.";
-   UpdateInspector();
-  }
-  catch(Exception ex) {
-   UiDiagramCanvas.Children.Clear();_visibleControls=[];
-   UiDiagramCaption.Text=$"Unable to render canonical SVG {diagram.Path}: {ex.Message}. No substitute graphic was drawn.";
-   UiAssignmentList.ItemsSource=diagram.Callouts.Select(x=>x.Description).ToArray();
-   UpdateInspector();
-  }
- }
- private static BitmapImage LoadBitmap(byte[] bytes) {
-  using var stream=new MemoryStream(bytes,false);
-  var bitmap=new BitmapImage();
-  bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();
-  return bitmap;
- }
- private AssignmentLayer Layer()=>PaletteScope.SelectedIndex==1?AssignmentLayer.UiLayer:AssignmentLayer.Module;
- private string Chord()=>UiModifierChoice.SelectedItem as string??"Base";
- private DraftAssignmentSlot? Slot(HardwareGraphicControl control) {
-  if(_viewModel.Draft is null||_currentDiagram is null||
-     Layer()==AssignmentLayer.UiLayer&&!_currentDiagram.SupportsUiLayer)return null;
-  return new(_viewModel.ModuleId,
-   _currentDiagram.ProfileId,Layer(),control.IsAxis?BindingSection.Axis:BindingSection.Key,
-   control.InputKey,Chord()=="Base"?"":Chord());
- }
- private DraftAssignment? CurrentAssignment(HardwareGraphicControl control) {
-  var slot=Slot(control);
-  return slot is null?null:_viewModel.Draft?.Snapshot.FirstOrDefault(x=>x.Slot.Key==slot.Key);
- }
- private void SelectControl(HardwareGraphicControl control) {
-  if(_pendingSource is not null&&_pendingAction is not null) {
-   var source=_pendingSource;var action=_pendingAction;
-   _pendingSource=null;_pendingAction=null;
-   ApplyTransfer(source,control,action);return;
-  }
-  _selected=control;UpdateInspector();
- }
- private void UiAssignmentList_SelectionChanged(object sender,SelectionChangedEventArgs e) {
-  if(UiAssignmentList.SelectedIndex>=0&&UiAssignmentList.SelectedIndex<_visibleControls.Count)
-   SelectControl(_visibleControls[UiAssignmentList.SelectedIndex]);
- }
- private void UpdateInspector() {
-  if(SelectedControlTitle is null||SelectedAssignment is null)return;
-  SelectedControlTitle.Text=_selected is null?"Select a control":$"{_selected.Label} · {_selected.Control}";
-  var assignment=_selected is null?null:CurrentAssignment(_selected);
-  SelectedAssignment.Text=_selected is null?"Choose an authored callout or keyboard list row.":
-   $"{assignment?.Command.Name??"Empty · choose a command"}\n{_selected.InputKey} · {Layer()} / {Chord()}";
- }
- private void CommandPaletteList_PreviewMouseLeftButtonDown(object sender,MouseButtonEventArgs e) {
-  var container=CommandPaletteList.ContainerFromElement(e.OriginalSource as DependencyObject) as ListBoxItem;
-  _dragCommand=container?.DataContext as CommandPaletteEntry;
-  _paletteDragStart=_dragCommand is null?null:e.GetPosition(CommandPaletteList);
- }
- private void CommandPaletteList_PreviewMouseMove(object sender,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_paletteDragStart=null;_dragCommand=null;return;}
-  if(_viewModel.Draft is null||_dragCommand is null||_paletteDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(CommandPaletteList)))return;
-  var command=_dragCommand;
-  _paletteDragStart=null;_dragCommand=null;
-  var data=new DataObject();
-  data.SetData(PaletteDragFormat,command.Id);
-  SetStatus($"Drop {command.Name} onto an authored control on the device.");
-  DragDrop.DoDragDrop(CommandPaletteList,data,DragDropEffects.Copy);
- }
- private void Control_PreviewMouseMove(Border badge,HardwareGraphicControl control,MouseEventArgs e) {
-  if(e.LeftButton!=MouseButtonState.Pressed) {_controlDragStart=null;_dragControl=null;return;}
-  if(_viewModel.Draft is null||_dragControl!=control||_controlDragStart is not Point origin||
-     !PastDragThreshold(origin,e.GetPosition(badge)))return;
-  if(CurrentAssignment(control) is null) {SetStatus("Choose an assigned control to move.");return;}
-  _controlDragStart=null;_dragControl=null;
-  var data=new DataObject();
-  data.SetData(ControlDragFormat,control.Control);
-  SetStatus($"Drop {control.Label} onto another control. Hold Ctrl to copy.");
-  DragDrop.DoDragDrop(badge,data,DragDropEffects.Move|DragDropEffects.Copy);
- }
- private static bool PastDragThreshold(Point start,Point current)=>
-  Math.Abs(start.X-current.X)>=SystemParameters.MinimumHorizontalDragDistance||
-  Math.Abs(start.Y-current.Y)>=SystemParameters.MinimumVerticalDragDistance;
- private bool CanDrop(IDataObject data,HardwareGraphicControl? target) =>
-  target is not null&&Slot(target) is not null&&
-  (data.GetDataPresent(PaletteDragFormat)||data.GetDataPresent(ControlDragFormat));
- private void Control_DragOver(object sender,DragEventArgs e) {
-  var target=UiDiagramCanvas is null?null:HitControl(e.GetPosition(UiDiagramCanvas));
-  e.Effects=CanDrop(e.Data,target)?DropEffect(e.Data,e.KeyStates):DragDropEffects.None;
-  e.Handled=true;
- }
- private void UiDiagramCanvas_DragOver(object sender,DragEventArgs e)=>Control_DragOver(sender,e);
- private static DragDropEffects DropEffect(IDataObject data,DragDropKeyStates keys)=>
-  data.GetDataPresent(PaletteDragFormat)||keys.HasFlag(DragDropKeyStates.ControlKey)
-   ?DragDropEffects.Copy:DragDropEffects.Move;
- private HardwareGraphicControl? HitControl(Point point)=>_visibleControls.LastOrDefault(x=>
-  point.X>=x.X&&point.X<=x.X+x.Width&&point.Y>=x.Y&&point.Y<=x.Y+x.Height);
- private void Control_Drop(HardwareGraphicControl control,DragEventArgs e) {
-  ApplyDrop(control,e.Data,e.KeyStates.HasFlag(DragDropKeyStates.ControlKey));
-  e.Handled=true;
- }
- private void UiDiagramCanvas_Drop(object sender,DragEventArgs e) {
-  var target=HitControl(e.GetPosition(UiDiagramCanvas));
-  if(target is null)SetStatus("Drop onto an authored control label on the device.");
-  else ApplyDrop(target,e.Data,e.KeyStates.HasFlag(DragDropKeyStates.ControlKey));
-  e.Handled=true;
- }
- private void ApplyDrop(HardwareGraphicControl target,IDataObject data,bool copy) {
-  if(!CanDrop(data,target)) {SetStatus(_viewModel.DraftNote);return;}
-  if(data.GetData(PaletteDragFormat) is string commandId) {
-   var entries=Layer()==AssignmentLayer.UiLayer?_viewModel.UiCommands:_viewModel.ModuleCommands;
-   var command=entries.FirstOrDefault(x=>x.Id==commandId);
-   if(command is null)SetStatus("The dragged command is not in this scope; no draft change was made.");
-   else AssignTo(target,command);
-  } else if(data.GetData(ControlDragFormat) is string controlKey) {
-   var source=_visibleControls.FirstOrDefault(x=>x.Control==controlKey);
-   if(source is null)SetStatus("The dragged control is no longer on this device; no draft change was made.");
-   else ApplyTransfer(source,target,copy?"Copy":"Move");
-  } else SetStatus("Unsupported drop data; no draft change was made.");
- }
- private ContextMenu BuildContextMenu(HardwareGraphicControl target) {
-  var menu=new ContextMenu();
-  AddMenu(menu,"Assign selected command",()=>AssignTo(target,CommandPaletteList.SelectedItem as CommandPaletteEntry));
-  AddMenu(menu,"Move selected assignment here",()=>{if(_selected is not null)ApplyTransfer(_selected,target,"Move");});
-  AddMenu(menu,"Move this assignment…",()=>StartTransfer(target,"Move"));
-  AddMenu(menu,"Copy this assignment…",()=>StartTransfer(target,"Copy"));
-  AddMenu(menu,"Swap with selected",()=>{if(_selected is not null)ApplyTransfer(_selected,target,"Swap");});
-  AddMenu(menu,"Remove",()=>Apply(_viewModel.Draft?.Remove(Slot(target)!)));
-  AddMenu(menu,"Restore imported",()=>Apply(_viewModel.Draft?.Restore(Slot(target)!)));
-  return menu;
- }
- private static void AddMenu(ContextMenu menu,string caption,Action action) {
-  var item=new MenuItem {Header=caption};
-  item.Click+=(_,_)=>action();menu.Items.Add(item);
- }
- private void Assign_Click(object sender,RoutedEventArgs e) {
-  if(_selected is not null)AssignTo(_selected,CommandPaletteList.SelectedItem as CommandPaletteEntry);
- }
- private void AssignTo(HardwareGraphicControl control,CommandPaletteEntry? entry) {
-  if(_viewModel.Draft is null||Slot(control) is not {} slot) {SetStatus(_viewModel.DraftNote);return;}
-  if(entry is null) {SetStatus("Select a command in the palette first.");return;}
-  var command=new DraftCommand(entry.Id,entry.Name,entry.IsAxis,Layer());
-  var behavior=_settings?.Current.OccupiedDestinationBehavior??OccupiedDestinationBehavior.Ask;
-  var result=_viewModel.Draft.Assign(slot,command,behavior);
-  if(result.Outcome==DraftOutcome.ConfirmationRequired) {
-   var answer=MessageBox.Show(this,$"{control.Label} currently contains {CurrentAssignment(control)?.Command.Name}. Replace it with {entry.Name} in the draft?",
-    "Occupied control",MessageBoxButton.YesNo,MessageBoxImage.Question);
-   result=_viewModel.Draft.Assign(slot,command,behavior,answer==MessageBoxResult.Yes?DraftConflictChoice.Replace:DraftConflictChoice.Cancel);
-  }
-  Apply(result);
- }
- private void Move_Click(object sender,RoutedEventArgs e)=>StartTransfer(_selected,"Move");
- private void Copy_Click(object sender,RoutedEventArgs e)=>StartTransfer(_selected,"Copy");
- private void Swap_Click(object sender,RoutedEventArgs e)=>StartTransfer(_selected,"Swap");
- private void StartTransfer(HardwareGraphicControl? source,string action) {
-  if(source is null||CurrentAssignment(source) is null) {SetStatus("Select an assigned source control first.");return;}
-  _pendingSource=source;_pendingAction=action;
-  SetStatus($"Select the destination on this device to {action.ToLowerInvariant()} {CurrentAssignment(source)!.Command.Name}.");
- }
- private void ApplyTransfer(HardwareGraphicControl source,HardwareGraphicControl destination,string action) {
-  if(_viewModel.Draft is null||Slot(source) is not {} from||Slot(destination) is not {} to) {
-   SetStatus(_viewModel.DraftNote);return;
-  }
-  var behavior=_settings?.Current.OccupiedDestinationBehavior??OccupiedDestinationBehavior.Ask;
-  var result=action switch {
-   "Swap"=>_viewModel.Draft.Swap(from,to),
-   "Copy"=>_viewModel.Draft.Copy(from,to,behavior),
-   _=>_viewModel.Draft.Move(from,to,behavior)
-  };
-  if(result.Outcome==DraftOutcome.ConfirmationRequired) {
-   var message=$"{source.Label}: {CurrentAssignment(source)?.Command.Name}\n{destination.Label}: {CurrentAssignment(destination)?.Command.Name}\n\nYes: Replace destination · No: Swap · Cancel: Keep both";
-   var answer=MessageBox.Show(this,message,"Occupied control",MessageBoxButton.YesNoCancel,MessageBoxImage.Question);
-   var choice=answer switch {
-    MessageBoxResult.Yes=>DraftConflictChoice.Replace,
-    MessageBoxResult.No=>DraftConflictChoice.Swap,
-    _=>DraftConflictChoice.Cancel
-   };
-   result=action=="Copy"?_viewModel.Draft.Copy(from,to,behavior,choice):
-    _viewModel.Draft.Move(from,to,behavior,choice);
-  }
-  _selected=destination;Apply(result);
- }
- private void Remove_Click(object sender,RoutedEventArgs e)=>Apply(_selected is null?null:_viewModel.Draft?.Remove(Slot(_selected)!));
- private void Restore_Click(object sender,RoutedEventArgs e)=>Apply(_selected is null?null:_viewModel.Draft?.Restore(Slot(_selected)!));
- private void Undo_Click(object sender,RoutedEventArgs e)=>Apply(_viewModel.Draft?.Undo());
- private void Discard_Click(object sender,RoutedEventArgs e) {
-  _viewModel.Draft?.Discard();RenderUiDiagram();RefreshReview();SetStatus("Draft discarded; imported assignments restored.");
- }
- private void EditorSettings_Click(object sender,RoutedEventArgs e) {
-  if(_settings is null) {SetStatus("Open Settings from the main workspace.");return;}
-  new SettingsWindow(_settings) {Owner=this}.ShowDialog();
-  SetStatus($"Occupied destination: {_settings.Current.OccupiedDestinationBehavior}.");
- }
- private void Apply(DraftResult? result) {
-  if(result is null) {SetStatus(_viewModel.DraftNote);return;}
-  if(result.Outcome==DraftOutcome.Applied)RenderUiDiagram();
-  RefreshReview();SetStatus(result.Message);
- }
- private void RefreshReview() {
-  if(DraftCount is null||DraftReviewList is null)return;
-  var history=_viewModel.Draft?.History??[];
-  DraftCount.Text=$"Draft · {history.Count} operations";
-  DraftReviewList.ItemsSource=history.SelectMany(op=>op.Changes.Select(change=>
-   $"{op.Name} · {change.Slot.InputKey} · {change.Before?.Command.Name??"Empty"} → {change.After?.Command.Name??"Empty"}")).ToArray();
- }
- private void SetStatus(string message) {if(EditorStatus is not null)EditorStatus.Text=message;}
- private void OnClosing(object? sender,System.ComponentModel.CancelEventArgs e) {
-  if(_viewModel.Draft?.HasChanges!=true)return;
-  if(MessageBox.Show(this,"Discard unsaved assignment draft? No source files have been changed.","Unsaved draft",
-    MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)e.Cancel=true;
-  else _viewModel.Draft.Discard();
+ private void ConfirmClose(object? sender,CancelEventArgs e) {
+  var labelsChanged=_saved is not null&&(_labels.Count!=_saved.Labels.Count||
+   _labels.Any(x=>!_saved.Labels.TryGetValue(x.Key,out var original)||original!=x.Value));
+  if((_draft?.HasChanges==true||labelsChanged)&&MessageBox.Show(this,
+   "Discard unsaved assignment and label changes?","Pending changes",
+   MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)e.Cancel=true;
  }
  private void Close_Click(object sender,RoutedEventArgs e)=>Close();
  #endregion END private helpers

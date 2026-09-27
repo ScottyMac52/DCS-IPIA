@@ -5,13 +5,19 @@ namespace Dcs.Ipia.Application;
 /// <summary>Builds separate searchable palettes from imported bindings and canonical UI Layer commands.</summary>
 public static class CommandPalette {
  #region BEGIN Public
- /// <summary>Lists commands evidenced by imported aircraft bindings; an import is not a complete aircraft catalog.</summary>
+ /// <summary>Lists imported bindings and optional DCS catalog commands with their named categories.</summary>
  /// <param name="bindings">The selected module's imported bindings.</param>
+ /// <param name="catalog">Assignable commands from a validated module catalog, when available.</param>
  /// <returns>Distinct commands ordered by name, category, and source ID.</returns>
- public static IReadOnlyList<CommandPaletteEntry> FromBindings(IEnumerable<DcsBinding> bindings) {
+ public static IReadOnlyList<CommandPaletteEntry> FromBindings(IEnumerable<DcsBinding> bindings,IEnumerable<CommandPaletteEntry>? catalog=null) {
   ArgumentNullException.ThrowIfNull(bindings);
-  return Sort(bindings.Select(x=>new CommandPaletteEntry(x.CommandId,x.CommandName,x.Section.ToString(),x.Section==BindingSection.Axis))
-   .Distinct().ToArray());
+  var known=(catalog??[]).ToDictionary(x=>x.Id,StringComparer.Ordinal);
+  foreach(var binding in bindings) {
+   if(known.TryGetValue(binding.CommandId,out var command)&&command.IsAxis!=(binding.Section==BindingSection.Axis))
+    throw new ArgumentException($"Catalog type conflicts with imported binding {binding.CommandId}.",nameof(catalog));
+   known.TryAdd(binding.CommandId,new(binding.CommandId,binding.CommandName,"Uncategorized",binding.Section==BindingSection.Axis));
+  }
+  return Sort(known.Values);
  }
  /// <summary>Lists all commands in the validated canonical UI Layer catalog.</summary>
  /// <param name="commands">DCS-Common command definitions from the selected source.</param>

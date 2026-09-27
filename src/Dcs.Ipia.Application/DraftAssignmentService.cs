@@ -5,6 +5,7 @@ namespace Dcs.Ipia.Application;
 /// <summary>Stages module-owned assignments in memory with atomic conflicts, review, and undo.</summary>
 public sealed class DraftAssignmentService {
  private readonly ModuleConfiguration _module;
+ private readonly HashSet<string> _uiModifiers;
  private readonly Dictionary<string,DraftCommand> _allowed;
  private readonly Dictionary<string,DraftAssignment> _original=new(StringComparer.Ordinal);
  private readonly Dictionary<string,DraftAssignment> _current=new(StringComparer.Ordinal);
@@ -13,10 +14,12 @@ public sealed class DraftAssignmentService {
  /// <param name="module">Module and its recognized profiles and modifiers.</param>
  /// <param name="commands">Permitted module and canonical UI Layer commands.</param>
  /// <param name="assignments">Validated existing assignments, including the module-local UI Layer overlay.</param>
- public DraftAssignmentService(ModuleConfiguration module,IEnumerable<DraftCommand> commands,IEnumerable<DraftAssignment> assignments) {
+ /// <param name="uiModifierNames">Canonical UI Layer modifier names; defaults to module modifiers for older callers.</param>
+ public DraftAssignmentService(ModuleConfiguration module,IEnumerable<DraftCommand> commands,IEnumerable<DraftAssignment> assignments,IEnumerable<string>? uiModifierNames=null) {
   _module=module??throw new ArgumentNullException(nameof(module));
   ArgumentNullException.ThrowIfNull(commands);
   ArgumentNullException.ThrowIfNull(assignments);
+  _uiModifiers=(uiModifierNames??module.Modifiers.Select(x=>x.Name)).ToHashSet(StringComparer.Ordinal);
   _allowed=new Dictionary<string,DraftCommand>(StringComparer.Ordinal);
   foreach(var command in commands) {
    if(command is null||string.IsNullOrWhiteSpace(command.Id)||string.IsNullOrWhiteSpace(command.Name)||
@@ -25,6 +28,8 @@ public sealed class DraftAssignmentService {
   }
   foreach(var assignment in assignments) {
    if(assignment is null)throw new ArgumentException("Initial assignment is missing.",nameof(assignments));
+   if(assignment.Filter is not null&&assignment.Slot.Section!=BindingSection.Axis)
+    throw new ArgumentException("Only axis assignments may have tuning.",nameof(assignments));
    if(!Validate(assignment.Slot,assignment.Command,out var reason))
     throw new ArgumentException(reason,nameof(assignments));
    if(!_original.TryAdd(assignment.Slot.Key,assignment))
@@ -33,6 +38,19 @@ public sealed class DraftAssignmentService {
   }
  }
  #region BEGIN Public
+ /// <summary>Adds validated commands imported after the editor opens without changing staged assignments.</summary>
+ /// <param name="commands">Commands from the selected module's verified catalog.</param>
+ public void AddCommands(IEnumerable<DraftCommand> commands) {
+  ArgumentNullException.ThrowIfNull(commands);
+  foreach(var command in commands) {
+   if(command is null||string.IsNullOrWhiteSpace(command.Id)||string.IsNullOrWhiteSpace(command.Name)||
+      !Enum.IsDefined(command.Layer))throw new ArgumentException("Every catalog command needs an ID, name, and layer.",nameof(commands));
+   var key=CommandKey(command);
+   if(_allowed.TryGetValue(key,out var existing)&&existing.IsAxis!=command.IsAxis)
+    throw new ArgumentException($"Catalog type conflicts with an existing command: {command.Id}.",nameof(commands));
+   _allowed[key]=command;
+  }
+ }
  /// <summary>Gets the current draft assignments; no source is written by this service.</summary>
  public IReadOnlyList<DraftAssignment> Snapshot=>_current.Values.OrderBy(x=>x.Slot.Key,StringComparer.Ordinal).ToArray();
  /// <summary>Gets atomic before/after operations available for review and undo.</summary>
@@ -49,7 +67,7 @@ public sealed class DraftAssignmentService {
  public DraftResult Assign(DraftAssignmentSlot destination,DraftCommand command,OccupiedDestinationBehavior behavior,DraftConflictChoice? choice=null) {
   if(!Validate(destination,command,out var reason))return Block(reason);
   _current.TryGetValue(destination.Key,out var existing);
-  var incoming=new DraftAssignment(destination,command);
+  var incoming=new DraftAssignment(destination,command) {Filter=existing?.Filter};
   if(existing==incoming)return Unchanged();
   var conflict=Conflict(existing,behavior,choice,false);
   if(conflict is not null)return conflict;
@@ -81,7 +99,21 @@ public sealed class DraftAssignmentService {
   if(!_current.TryGetValue(source.Key,out var first)||!_current.TryGetValue(destination.Key,out var second))
    return Block("Both controls must be assigned before swapping.");
   if(!Validate(destination,first.Command,out reason)||!Validate(source,second.Command,out reason))return Block(reason);
-  return Commit("Swap",[new(source,first,new(source,second.Command)),new(destination,second,new(destination,first.Command))]);
+  return Commit("Swap",[new(source,first,second with {Slot=source}),new(destination,second,first with {Slot=destination})]);
+ }
+ /// <summary>Stages sparse DCS tuning for an assigned axis in the current draft.</summary>
+ /// <param name="slot">Axis input and modifier layer.</param>
+ /// <param name="filter">Tuning fields; null clears tuning.</param>
+ /// <returns>An undoable operation or a blocked result.</returns>
+ public DraftResult TuneAxis(DraftAssignmentSlot slot,AxisFilter? filter) {
+  if(!ValidateSlot(slot,out var reason))return Block(reason);
+  if(slot.Section!=BindingSection.Axis)return Block("Only an axis can be tuned.");
+  if(!_current.TryGetValue(slot.Key,out var prior))return Block("Assign an axis command before tuning.");
+  if(filter is not null&&new double?[] {filter.Deadzone,filter.SaturationX,filter.SaturationY,
+   filter.HardwareDetentAB,filter.HardwareDetentMax}.Any(x=>x.HasValue&&!double.IsFinite(x.Value))||
+   filter?.Curvature?.Any(x=>!double.IsFinite(x))==true)return Block("Axis tuning requires finite numbers.");
+  if(System.Text.Json.JsonSerializer.Serialize(prior.Filter)==System.Text.Json.JsonSerializer.Serialize(filter))return Unchanged();
+  return Commit("Tune axis",[new(slot,prior,prior with {Filter=filter})]);
  }
  /// <summary>Removes an assignment in the draft without modifying imported files.</summary>
  /// <param name="slot">Control to clear.</param>
@@ -123,12 +155,12 @@ public sealed class DraftAssignmentService {
   if(!Validate(destination,incoming.Command,out reason))return Block(reason);
   if(source.Key==destination.Key)return Unchanged();
   _current.TryGetValue(destination.Key,out var existing);
-  var moved=new DraftAssignment(destination,incoming.Command);
+  var moved=incoming with {Slot=destination};
   if(copy&&existing==moved)return Unchanged();
   var conflict=Conflict(existing,behavior,choice,!copy);
   if(conflict is not null)return conflict;
   if(existing is not null&&choice==DraftConflictChoice.Swap)
-   return Commit("Swap",[new(source,incoming,new(source,existing.Command)),new(destination,existing,moved)]);
+   return Commit("Swap",[new(source,incoming,existing with {Slot=source}),new(destination,existing,moved)]);
   return copy?Commit("Copy",[new(destination,existing,moved)]):
    Commit("Move",[new(source,incoming,null),new(destination,existing,moved)]);
  }
@@ -141,7 +173,7 @@ public sealed class DraftAssignmentService {
  }
  private bool Validate(DraftAssignmentSlot slot,DraftCommand command,out string reason) {
   if(!ValidateSlot(slot,out reason))return false;
-  if(command is null||!_allowed.TryGetValue(CommandKey(command),out var allowed)||allowed!=command) {
+  if(command is null||!_allowed.TryGetValue(CommandKey(command),out var allowed)||allowed.IsAxis!=command.IsAxis) {
    reason="Command is not in the validated catalog for this layer.";return false;
   }
   if(slot.Layer!=command.Layer||((slot.Section==BindingSection.Axis)!=command.IsAxis)) {
@@ -158,8 +190,8 @@ public sealed class DraftAssignmentService {
   if(slot.ModifierChord is null) {reason="Modifier chord is missing.";return false;}
   var names=slot.ModifierChord.Split('+',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
   if((slot.ModifierChord.Length>0&&names.Length==0)||names.Distinct(StringComparer.Ordinal).Count()!=names.Length||
-     names.Any(x=>!_module.Modifiers.Any(y=>y.Name==x))) {
-   reason="Modifier chord is not declared by the selected module.";return false;
+     names.Any(x=>slot.Layer==AssignmentLayer.UiLayer?!_uiModifiers.Contains(x):!_module.Modifiers.Any(y=>y.Name==x))) {
+   reason=slot.Layer==AssignmentLayer.UiLayer?"Modifier chord is not declared by the UI Layer.":"Modifier chord is not declared by the selected module.";return false;
   }
   return true;
  }

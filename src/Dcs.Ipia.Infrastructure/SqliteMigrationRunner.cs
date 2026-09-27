@@ -23,11 +23,17 @@ public sealed class SqliteMigrationRunner(string connectionString) {
     "INSERT INTO schema_migrations VALUES(2,strftime('%Y-%m-%dT%H:%M:%fZ','now'));";
    await Execute(c,tx,migration2,ct);
   }
+  if(!await Applied(c,tx,3,ct)) {
+   await Execute(c,tx,"""CREATE TABLE editor_workspaces(module_id TEXT NOT NULL PRIMARY KEY REFERENCES modules(id) ON DELETE CASCADE,snapshot_json TEXT NOT NULL,updated_utc TEXT NOT NULL); INSERT INTO schema_migrations VALUES(3,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""",ct);
+  }
+  if(!await Applied(c,tx,4,ct)) {
+   await Execute(c,tx,"""CREATE TABLE app_preferences(id INTEGER NOT NULL PRIMARY KEY CHECK(id=1),schema_version INTEGER NOT NULL,theme TEXT NOT NULL,occupied_destination_behavior TEXT NOT NULL); INSERT INTO schema_migrations VALUES(4,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""",ct);
+  }
   await tx.CommitAsync(ct);
  }
  #endregion END Public
  #region BEGIN private helpers
- private static async Task<bool> Applied(SqliteConnection c,System.Data.Common.DbTransaction tx,int version,CancellationToken ct){var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText="SELECT COUNT(*) FROM schema_migrations WHERE version=$version";cmd.Parameters.AddWithValue("$version",version);return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct),System.Globalization.CultureInfo.InvariantCulture)==1;}
- private static async Task Execute(SqliteConnection c,System.Data.Common.DbTransaction tx,string sql,CancellationToken ct){var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText=sql;await cmd.ExecuteNonQueryAsync(ct);}
+ private static async Task<bool> Applied(SqliteConnection c,System.Data.Common.DbTransaction tx,int version,CancellationToken ct){await using var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText="SELECT COUNT(*) FROM schema_migrations WHERE version=$version";cmd.Parameters.AddWithValue("$version",version);return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct),System.Globalization.CultureInfo.InvariantCulture)==1;}
+ private static async Task Execute(SqliteConnection c,System.Data.Common.DbTransaction tx,string sql,CancellationToken ct){await using var cmd=c.CreateCommand();cmd.Transaction=(SqliteTransaction)tx;cmd.CommandText=sql;await cmd.ExecuteNonQueryAsync(ct);}
  #endregion END private helpers
 }

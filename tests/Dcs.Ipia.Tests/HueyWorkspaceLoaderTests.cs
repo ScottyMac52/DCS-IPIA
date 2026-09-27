@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using Xunit;
 
 namespace Dcs.Ipia.Tests;
@@ -36,9 +37,10 @@ public sealed class HueyWorkspaceLoaderTests {
    Directory.CreateDirectory(Path.GetDirectoryName(imagePath)!);
    File.WriteAllBytes(imagePath,image);
    using(var overlays=JsonDocument.Parse(File.ReadAllText(Path.Combine(common,"assets/shared/ui-layer/hardware-overlays.json")))) {
-    foreach(var device in new[]{"tm-mfd","grip-f18c"}) {
-     var controls=overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
-      .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
+    foreach(var device in new[]{"tm-mfd","grip-f18c","tm-warthog-throttle"}) {
+     var controls=device=="tm-warthog-throttle"?new[]{"warthog-thr-slew-push"}:
+      overlays.RootElement.GetProperty("devices").GetProperty(device).GetProperty("bindings")
+       .EnumerateObject().Select(x=>x.Value.GetString()!).Distinct().ToArray();
      var rects=string.Join("\n",controls.Select((control,i)=>$"  <!-- box:{control} -->\n  <rect x='10' y='{10+i*48}' width='55' height='45'/>\n  <text id='lbl-{control}' x='10' y='10'>label</text>"));
      var path=Path.Combine(common,"assets","shared","hardware","svg",device+".svg");
      Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -46,6 +48,17 @@ public sealed class HueyWorkspaceLoaderTests {
      File.WriteAllText(path,$"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'>\n  <image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>\n{rects}\n</svg>");
     }
    }
+   var catalogPath=Path.Combine(temp,"UH-1H-commands.json");
+   File.WriteAllText(catalogPath,System.Text.Json.JsonSerializer.Serialize(new {
+    schemaVersion=1,moduleId="UH-1H",commands=new[] {
+     new {bindingKey="d3002pnilunilcd27vd-1vpnilvunil",name="ADF Band 190-400 kHz",categoryPath=AdfCategory,type="button"},
+     new {bindingKey="d1702pnilunilcdnilvdnilvpnilvunil",name="Camera bookmarks editor",categoryPath=ViewCategory,type="button"}
+    }
+   }));
+   var solutionPath=Path.Combine(huey,"config","UH-1H.dcs-scaffold.json");
+   var solution=System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(solutionPath))!;
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="catalog-json",paths=new[]{catalogPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
    Commit(common);Commit(huey);
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
    var result=await new HueyWorkspaceLoader().LoadAsync(common,huey);
@@ -53,22 +66,67 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
    Assert.Equal(12,result.Import.Provenance.Count);
    Assert.Equal(13,result.Import.UiFunctionKeys.Count);
+   var authoredLabels=KneeboardLabelImporter.Import(result.Import.Metadata,result.Import.Configuration!);
+   Assert.Equal(101,authoredLabels.Count);
+   var mfd1=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="tm-mfd"&&x.Instance=="MFD1");
+   var mfd1Top=new DraftAssignmentSlot(result.Import.Configuration.Module.Id,mfd1.Id,AssignmentLayer.Module,
+    BindingSection.Key,"JOY_BTN1");
+   Assert.Equal("Switch",authoredLabels[mfd1Top.Key]);
+   var hornet=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="moza-ab9-hornet-grip");
+   var baseArm=new DraftAssignmentSlot(result.Import.Configuration.Module.Id,hornet.Id,AssignmentLayer.Module,
+    BindingSection.Key,"JOY_BTN11");
+   Assert.Equal("Arm Up",authoredLabels[baseArm.Key]);
+   Assert.Equal("Gun Up",authoredLabels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
+   var baseTrim=baseArm with {InputKey="JOY_BTN_POV1_U"};
+   Assert.Equal("Pilot",authoredLabels[baseTrim.Key]);
+   Assert.Equal("Pilot Sight Elevation Increase",authoredLabels[
+    (baseTrim with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
+   var database="Data Source="+Path.Combine(temp,"labels.db")+";Pooling=False";
+   await new SqliteMigrationRunner(database).MigrateAsync();
+   await new SqliteConfigurationRepository(database).ReplaceAsync(result.Import.Configuration);
+   var workspace=new EditorWorkspaceSnapshot(result.Import.Configuration,result.Import.Pages,result.Images,
+    result.Diagrams,[],result.UiCommands,[],authoredLabels);
+   var repository=new SqliteEditorWorkspaceRepository(database);
+   await repository.SaveAsync(workspace);
+   var reopened=await repository.GetAsync(result.Import.Configuration.Module.Id);
+   Assert.NotNull(reopened);
+   Assert.Equal(authoredLabels.Count,reopened.Labels.Count);
+   Assert.Equal("Switch",reopened.Labels[mfd1Top.Key]);
+   Assert.Equal("Arm Up",reopened.Labels[baseArm.Key]);
+   Assert.Equal("Gun Up",reopened.Labels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
    Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
    Assert.Equal(image,preview.Bytes);
+   Assert.Equal(2,result.ModuleCommands.Count);
+   Assert.Contains(result.ModuleCommands,x=>x.Name=="ADF Band 190-400 kHz"&&x.Category=="ADF Set Control panel");
+   Assert.Single(CommandPalette.Filter(result.ModuleCommands,null,"View"));
+   Assert.Empty(result.CommandDiagnostics);
+   var savedCatalog=File.ReadAllText(catalogPath);
+   File.Delete(catalogPath);
+   var missingSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Empty(missingSource.ModuleCommands);
+   Assert.Contains(missingSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,"{invalid");
+   var invalidSource=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(invalidSource.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   File.WriteAllText(catalogPath,savedCatalog);
    Assert.NotEmpty(result.UiCommands);
    Assert.Contains(result.UiCommands,x=>x.Name=="VR Zoom");
-   Assert.Equal(4,result.Diagrams.Count);
+   Assert.Equal(5,result.Diagrams.Count);
    Assert.All(result.Diagrams,x=>Assert.Contains("<svg",x.Svg,StringComparison.Ordinal));
    Assert.All(result.Diagrams,x=>Assert.NotEmpty(x.Controls));
    Assert.Equal(13,result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts.Count);
-   Assert.Equal(3,result.Diagrams.Single(x=>x.Instance is null).Callouts.Count);
-   Assert.Contains(result.Diagrams.Single(x=>x.Instance is null).Callouts,
+   Assert.Equal(3,result.Diagrams.Single(x=>x.Path.EndsWith("/grip-f18c.svg",StringComparison.Ordinal)).Callouts.Count);
+   Assert.Contains(result.Diagrams.Single(x=>x.Path.EndsWith("/grip-f18c.svg",StringComparison.Ordinal)).Callouts,
     x=>x.Control=="hornet-grip-paddle"&&x.Function=="Recenter VR"&&x.X==10);
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD1");
    Assert.Contains(result.Diagrams,x=>x.Instance=="MFD2");
+   Assert.Contains(result.Diagrams,x=>x.Path.EndsWith("/tm-warthog-throttle.svg",StringComparison.Ordinal)&&
+    !x.SupportsUiLayer&&x.Controls.Any(y=>y.Control=="warthog-thr-slew-push"));
    Assert.All(result.Diagrams,x=>Assert.Equal(image,x.Background));
+   Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls,
+    x=>x.Control=="mfd-osb-t1-shifted"&&x.InputKey=="JOY_BTN1");
    Assert.Contains(result.Diagrams.Single(x=>x.Instance=="MFD3").Callouts,
     x=>x.Function=="VR Zoom"&&x.Modifier=="MOZA_MODIFIER_BTN3");
    var paths=new[]{"assets/shared/hardware/manifest.json","assets/shared/ui-layer/functions.json",
@@ -79,10 +137,11 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.True(catalog.Succeeded);
    var graphics=new Dictionary<string,string> {
     ["assets/shared/hardware/svg/tm-mfd.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-mfd.svg")),
-    ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg"))
+    ["assets/shared/hardware/svg/grip-f18c.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg")),
+    ["assets/shared/hardware/svg/tm-warthog-throttle.svg"]=File.ReadAllText(Path.Combine(common,"assets/shared/hardware/svg/tm-warthog-throttle.svg"))
    };
    var withoutHardwareMap=UiLayerDiagramFactory.Create(result.Import,catalog,graphics);
-   Assert.Equal(4,withoutHardwareMap.Count);
+   Assert.Equal(5,withoutHardwareMap.Count);
    Assert.All(withoutHardwareMap,x=>Assert.Empty(x.Controls));
    Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
    var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));
@@ -113,6 +172,28 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Throws<InvalidDataException>(()=>UiLayerDiagramFactory.Create(result.Import,catalog,unsupportedImage));
    Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)),preview.Sha256);
    Assert.Empty(result.GraphicDiagnostics);
+   solution["import"]!["commandSource"]=null;
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","unlink commands");
+   var unlinked=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Empty(unlinked.ModuleCommands);
+   Assert.Empty(unlinked.CommandDiagnostics);
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="unsupported",paths=new[]{catalogPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","invalid command source");
+   var unsupported=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(unsupported.CommandDiagnostics,x=>x.Code=="module-command-source"&&x.IsError);
+   var htmlPath=Path.Combine(temp,"MFD 1.html");
+   File.WriteAllText(htmlPath,"<html><h1>MFD 1</h1><table><tr><td>JOY_BTN1</td><td>ADF Band 190-400 kHz</td><td>ADF Set Control panel</td><td>d3002pnilunilcd27vd-1vpnilvunil</td></tr></table></html>");
+   solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="dcs-html",paths=new[]{htmlPath}});
+   File.WriteAllText(solutionPath,solution.ToJsonString());
+   Git(huey,"add","config/UH-1H.dcs-scaffold.json");
+   Git(huey,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","link DCS HTML");
+   var linkedHtml=await new HueyWorkspaceLoader().LoadAsync(common,huey);
+   Assert.Contains(linkedHtml.ModuleCommands,x=>x.Category=="ADF Set Control panel"&&x.Name=="ADF Band 190-400 kHz");
+   Assert.Empty(linkedHtml.CommandDiagnostics);
    var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
    File.WriteAllText(gripPath,"<svg broken");
    Git(common,"add","--all");
@@ -121,8 +202,10 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.True(withBrokenGraphic.Import.Succeeded);
    Assert.Single(withBrokenGraphic.Images);
    Assert.Equal(result.UiCommands,withBrokenGraphic.UiCommands);
-   Assert.Empty(withBrokenGraphic.Diagrams);
-   Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="ui-graphic-unavailable"&&x.IsError);
+   Assert.Equal(4,withBrokenGraphic.Diagrams.Count);
+   Assert.Contains(withBrokenGraphic.Diagrams,x=>x.Path.EndsWith("/tm-warthog-throttle.svg",StringComparison.Ordinal));
+   Assert.Contains(withBrokenGraphic.GraphicDiagnostics,x=>x.Code=="device-graphic-unavailable"&&x.IsError&&
+    x.Message.Contains("moza-ab9-hornet-grip",StringComparison.Ordinal));
   }
   finally {DeleteFixture(temp);}
  }
@@ -137,6 +220,8 @@ public sealed class HueyWorkspaceLoaderTests {
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static readonly string[] AdfCategory=["ADF Set Control panel"];
+ private static readonly string[] ViewCategory=["View"];
  private static void DeleteFixture(string path) {
   if(!Directory.Exists(path))return;
   foreach(var file in Directory.EnumerateFiles(path,"*",SearchOption.AllDirectories))

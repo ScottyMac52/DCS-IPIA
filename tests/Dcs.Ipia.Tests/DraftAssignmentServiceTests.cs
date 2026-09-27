@@ -7,6 +7,18 @@ namespace Dcs.Ipia.Tests;
 /// <summary>Checks atomic in-memory editing, ownership, conflicts, and undo.</summary>
 public sealed class DraftAssignmentServiceTests {
  #region BEGIN Public
+ /// <summary>A newly imported module command becomes assignable without resetting the pending draft.</summary>
+ [Fact] public void Imported_catalog_command_is_assignable_without_losing_history() {
+  var (service,source,_,_,_,_)=Fixture();
+  var incoming=new DraftCommand("NEW_COMMAND","New module command",false,AssignmentLayer.Module);
+  service.AddCommands([incoming]);
+  var empty=source with {InputKey="JOY_BTN9"};
+  Assert.Equal(DraftOutcome.Applied,service.Assign(empty,incoming,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Single(service.History);
+  Assert.Equal(incoming,Assert.Single(service.Snapshot,x=>x.Slot==empty).Command);
+  Assert.Throws<ArgumentException>(()=>service.AddCommands([incoming with {IsAxis=true}]));
+  Assert.Single(service.History);
+ }
  /// <summary>Ask requires an explicit choice, and Cancel leaves the whole draft intact.</summary>
  [Fact] public void Ask_conflict_requires_choice_without_mutating() {
   var (service,source,target,_,_,_)=Fixture();
@@ -114,6 +126,62 @@ public sealed class DraftAssignmentServiceTests {
   Assert.Throws<ArgumentException>(()=>new DraftAssignmentService(module,[first,first],[]));
   Assert.Throws<ArgumentException>(()=>new DraftAssignmentService(module,[first],[new(source,first with { Id="missing" })]));
   Assert.NotNull(service);
+ }
+ /// <summary>Imported display labels may differ from the catalog name while command identity and type stay validated.</summary>
+ [Fact] public void Imported_callout_label_does_not_invalidate_canonical_command() {
+  var moduleId=Guid.NewGuid();var profileId=Guid.NewGuid();
+  var module=BuildModule(moduleId,profileId,Guid.NewGuid());
+  var slot=new DraftAssignmentSlot(moduleId,profileId,AssignmentLayer.UiLayer,BindingSection.Key,"JOY_BTN7");
+  var canonical=new DraftCommand("UI_COMMAND","Catalog name",false,AssignmentLayer.UiLayer);
+  var labeled=canonical with {Name="Kneeboard label"};
+  var service=new DraftAssignmentService(module,[canonical],[new(slot,labeled)]);
+  Assert.Equal(labeled,Assert.Single(service.Snapshot).Command);
+  Assert.Equal(DraftOutcome.Applied,service.Assign(slot with {InputKey="JOY_BTN8"},labeled,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(slot with {InputKey="JOY_BTN9"},
+   labeled with {Id="OTHER"},OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(slot with {InputKey="JOY_BTN9"},
+   labeled with {IsAxis=true},OccupiedDestinationBehavior.Ask).Outcome);
+ }
+ /// <summary>Axis tuning is scoped to one assignment and moves, copies, and undoes with the command.</summary>
+ [Fact] public void Axis_tuning_stays_with_assignment_and_is_undoable() {
+  var moduleId=Guid.NewGuid();var profileId=Guid.NewGuid();
+  var module=BuildModule(moduleId,profileId,Guid.NewGuid());
+  var command=new DraftCommand("PITCH","Pitch",true,AssignmentLayer.Module);
+  var source=new DraftAssignmentSlot(moduleId,profileId,AssignmentLayer.Module,BindingSection.Axis,"JOY_X");
+  var target=source with {InputKey="JOY_Y"};
+  var initial=new AxisFilter(0.03,1,0.8,[0.2],true,false);
+  var draft=new DraftAssignmentService(module,[command],
+   [new DraftAssignment(source,command) {Filter=initial}]);
+  Assert.Equal(initial,Assert.Single(draft.Snapshot).Filter);
+  var tuned=new AxisFilter(0.05,1,0.9,[0.3],false,true);
+  Assert.Equal(DraftOutcome.Applied,draft.TuneAxis(source,tuned).Outcome);
+  Assert.Equal(tuned,Assert.Single(draft.Snapshot).Filter);
+  Assert.Equal(DraftOutcome.Applied,draft.Copy(source,target,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(tuned,Assert.Single(draft.Snapshot,x=>x.Slot==target).Filter);
+  Assert.Equal(DraftOutcome.Applied,draft.Undo().Outcome);
+  Assert.Equal(DraftOutcome.Applied,draft.Undo().Outcome);
+  Assert.Equal(initial,Assert.Single(draft.Snapshot).Filter);
+  Assert.False(draft.HasChanges);
+  Assert.Equal(DraftOutcome.Blocked,draft.TuneAxis(source with {Section=BindingSection.Key},tuned).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,draft.TuneAxis(source,new AxisFilter(double.NaN)).Outcome);
+ }
+ /// <summary>Module and canonical UI Layer modifiers remain independently validated.</summary>
+ [Fact] public void Distinct_scope_modifiers_keep_their_own_assignments() {
+  var module=new DcsModule(Guid.NewGuid(),"UH-1H","Huey");
+  var profile=new DeviceProfile(Guid.NewGuid(),"tm-mfd","MFD3","MFD","MFD3.diff.lua");
+  var configuration=new ModuleConfiguration(module,[profile],
+   [new DcsModifier("MOZA_F16_F18_BTN3","MOZA","JOY_BTN3",ModifierMode.Hold)],[],"import");
+  var moduleCommand=new DraftCommand("MODULE","Module command",false,AssignmentLayer.Module);
+  var uiCommand=new DraftCommand("UI","UI command",false,AssignmentLayer.UiLayer);
+  var moduleSlot=new DraftAssignmentSlot(module.Id,profile.Id,AssignmentLayer.Module,BindingSection.Key,"JOY_BTN1","MOZA_F16_F18_BTN3");
+  var uiSlot=moduleSlot with {Layer=AssignmentLayer.UiLayer,ModifierChord="MOZA_MODIFIER_BTN3"};
+  var service=new DraftAssignmentService(configuration,[moduleCommand,uiCommand],
+   [new(moduleSlot,moduleCommand),new(uiSlot,uiCommand)],["MOZA_MODIFIER_BTN3"]);
+  Assert.Equal(2,service.Snapshot.Count);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(moduleSlot with {ModifierChord="MOZA_MODIFIER_BTN3"},
+   moduleCommand,OccupiedDestinationBehavior.Ask).Outcome);
+  Assert.Equal(DraftOutcome.Blocked,service.Assign(uiSlot with {ModifierChord="MOZA_F16_F18_BTN3"},
+   uiCommand,OccupiedDestinationBehavior.Ask).Outcome);
  }
  #endregion END Public
  #region BEGIN private helpers

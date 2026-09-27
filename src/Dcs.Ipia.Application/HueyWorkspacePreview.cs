@@ -12,5 +12,11 @@ public sealed record HueyWorkspacePreview(HueyImportResult Import,IReadOnlyList<
  public IReadOnlyList<ImportDiagnostic> GraphicDiagnostics {get;init;}=[];
  /// <summary>Gets the validated DCS-Common UI Layer catalog, even when device graphics are unavailable.</summary>
  public IReadOnlyList<DcsCommandDefinition> UiCommands {get;init;}=[];
+ /// <summary>Gets module commands from the scaffold solution linked JSON or DCS HTML source.</summary>
+ public IReadOnlyList<CommandPaletteEntry> ModuleCommands {get;init;}=[];
+ /// <summary>Describes the linked module command source.</summary>
+ public string ModuleCommandSource {get;init;}="No linked module command source was found.";
+ /// <summary>Reports a missing or invalid linked command source without discarding the module preview.</summary>
+ public IReadOnlyList<ImportDiagnostic> CommandDiagnostics {get;init;}=[];
  #endregion END Public
 }
