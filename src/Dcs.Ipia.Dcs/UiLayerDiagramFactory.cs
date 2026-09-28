@@ -5,117 +5,202 @@ using System.Xml.Linq;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 
-namespace Dcs.Ipia.Dcs;
+namespace Dcs.Ipia.Dcs
+{
+    /// <summary>Builds module device diagrams from DCS-Common hardware graphics and optional UI Layer templates.</summary>
+    public static class UiLayerDiagramFactory
+    {
+        #region BEGIN Public
+        /// <summary>Builds diagrams for module-used devices and instances using committed SVG text.</summary>
+        /// <param name="import">Validated module import.</param>
+        /// <param name="catalog">Validated DCS-Common catalog.</param>
+        /// <param name="sources">Committed shared SVG texts keyed by repository path.</param>
+        /// <param name="shared">Validated physical-to-logical control mappings.</param>
+        /// <param name="onGraphicError">Optional per-device diagnostic receiver; without one, invalid graphics fail the import projection.</param>
+        /// <returns>Authored diagrams and their mapped controls for each supported profile.</returns>
+        public static IReadOnlyList<UiLayerDiagram> Create(ConsumerImportResult import,
+                                                           SharedCatalogImportResult catalog,
+                                                           IReadOnlyDictionary<string, string> sources,
+                                                           SharedLuaImportResult? shared = null,
+                                                           Action<DeviceProfile, Exception>? onGraphicError = null)
+        {
+            ArgumentNullException.ThrowIfNull(import);
+            ArgumentNullException.ThrowIfNull(catalog);
+            ArgumentNullException.ThrowIfNull(sources);
+            if (!import.Succeeded || !catalog.Succeeded)
+                throw new ArgumentException("Validated imports are required.");
+            var kneeboard = import.Metadata["config/kneeboard.json"];
+            var usage = kneeboard.TryGetProperty("uiLayerUtilization", out var utilization)
+                            ? utilization.GetProperty("bindings").EnumerateArray().ToArray()
+                            : [];
+            var diagrams = new List<UiLayerDiagram>();
+            foreach (var profile in import.Configuration!.Profiles)
+            {
+                try
+                {
+                    diagrams.Add(CreateProfile(import, profile, usage, catalog, sources, shared));
+                }
+                catch (Exception ex)
+                    when (onGraphicError is not null &&
+                          ex is(InvalidDataException or FormatException or XmlException or ArgumentException or
+                                    InvalidOperationException or KeyNotFoundException))
+                {
+                    onGraphicError!(profile, ex);
+                }
+            }
+            return diagrams;
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        private static UiLayerDiagram CreateProfile(ConsumerImportResult import, DeviceProfile profile,
+                                                    JsonElement[] usage, SharedCatalogImportResult catalog,
+                                                    IReadOnlyDictionary<string, string> sources,
+                                                    SharedLuaImportResult? shared)
+        {
 
-/// <summary>Builds module device diagrams from DCS-Common hardware graphics and optional UI Layer templates.</summary>
-public static class UiLayerDiagramFactory {
- #region BEGIN Public
- /// <summary>Builds diagrams for module-used devices and instances using committed SVG text.</summary>
- /// <param name="import">Validated module import.</param>
- /// <param name="catalog">Validated DCS-Common catalog.</param>
- /// <param name="sources">Committed shared SVG texts keyed by repository path.</param>
- /// <param name="shared">Validated physical-to-logical control mappings.</param>
- /// <param name="onGraphicError">Optional per-device diagnostic receiver; without one, invalid graphics fail the import projection.</param>
- /// <returns>Authored diagrams and their mapped controls for each supported profile.</returns>
- public static IReadOnlyList<UiLayerDiagram> Create(ConsumerImportResult import,SharedCatalogImportResult catalog,IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared=null,Action<DeviceProfile,Exception>? onGraphicError=null) {
-  ArgumentNullException.ThrowIfNull(import);ArgumentNullException.ThrowIfNull(catalog);ArgumentNullException.ThrowIfNull(sources);
-  if(!import.Succeeded||!catalog.Succeeded)throw new ArgumentException("Validated imports are required.");
-  var kneeboard=import.Metadata["config/kneeboard.json"];
-  var usage=kneeboard.TryGetProperty("uiLayerUtilization",out var utilization)?
-   utilization.GetProperty("bindings").EnumerateArray().ToArray():[];
-  var diagrams=new List<UiLayerDiagram>();
-  foreach(var profile in import.Configuration!.Profiles) {
-   try {diagrams.Add(CreateProfile(import,profile,usage,catalog,sources,shared));}
-   catch(Exception ex) when(onGraphicError is not null&&ex is (InvalidDataException or FormatException or XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException)) {
-    onGraphicError!(profile,ex);
-   }
-  }
-  return diagrams;
- }
- #endregion END Public
- #region BEGIN private helpers
- private static UiLayerDiagram CreateProfile(ConsumerImportResult import,DeviceProfile profile,JsonElement[] usage,SharedCatalogImportResult catalog,
-  IReadOnlyDictionary<string,string> sources,SharedLuaImportResult? shared) {
-
-   var rows=usage.Where(x=>x.GetProperty("deviceId").GetString()==profile.DeviceId
-    &&(x.TryGetProperty("deviceInstance",out var instance)?instance.GetString():null)==profile.Instance).ToArray();
-   var device=catalog.Devices.Single(x=>x.StableKey==profile.DeviceId||x.Aliases.Contains(profile.DeviceId,StringComparer.Ordinal));
-   var template=catalog.Templates.SingleOrDefault(x=>x.DeviceKey==device.StableKey);
-   IReadOnlyList<DcsBinding> projected=rows.Length==0&&shared is not null?
-    ModuleUiLayerBindingImporter.Import(import,shared,profile):[];
-   var supportsUi=template is not null&&
-    (template.Instances.Count==0||template.Instances.Contains(profile.Instance,StringComparer.Ordinal))||
-    projected.Count>0;
-   if(!supportsUi&&rows.Length>0)
-    throw new InvalidDataException($"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
-   var path=$"assets/shared/hardware/svg/{device.StableKey}.svg";
-   if(!sources.TryGetValue(path,out var svg))throw new InvalidDataException($"Missing committed hardware image: {path}");
-   using var reader=XmlReader.Create(new StringReader(svg),new XmlReaderSettings {DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=4_000_000});
-   var document=XDocument.Load(reader,LoadOptions.PreserveWhitespace);
-   var root=document.Root??throw new InvalidDataException($"Empty SVG: {path}");
-   var viewBox=(root.Attribute("viewBox")?.Value??"").Split(' ',StringSplitOptions.RemoveEmptyEntries);
-   if(viewBox.Length!=4||viewBox[0]!="0"||viewBox[1]!="0")throw new InvalidDataException($"Unsupported SVG viewBox: {path}");
-   var width=Number(viewBox[2]);var height=Number(viewBox[3]);
-   var href=root.Descendants().FirstOrDefault(x=>x.Name.LocalName=="image")?.Attributes().FirstOrDefault(x=>x.Name.LocalName=="href")?.Value;
-   var prefix=href?.StartsWith("data:image/png;base64,",StringComparison.Ordinal)==true?"data:image/png;base64,":
-    href?.StartsWith("data:image/jpeg;base64,",StringComparison.Ordinal)==true?"data:image/jpeg;base64,":null;
-   if(prefix is null)throw new InvalidDataException($"Missing embedded hardware image: {path}");
-   var background=Convert.FromBase64String(href![prefix.Length..]);
-   var boxes=SvgCalloutLocator.Find(root);
-   var mapped=(shared?.Controls??[]).Where(x=>x.Control.DeviceId==device.Id)
-    .ToDictionary(x=>x.Control.StableKey,x=>x,StringComparer.Ordinal);
-   if(shared is not null) {
-    var unknown=boxes.Keys.Where(key=>!mapped.ContainsKey(key)&&
-     !(key.EndsWith("-shifted",StringComparison.Ordinal)&&
-       mapped.ContainsKey(key[..^"-shifted".Length])))
-     .Order(StringComparer.Ordinal).ToArray();
-    if(unknown.Length>0)
-     throw new InvalidDataException($"Hardware graphic {path} has callout identities absent from its shared Lua definition: {string.Join(", ",unknown)}.");
-   }
-   var controls=boxes.Select(pair=>{
-    var box=pair.Value;
-    if(!mapped.TryGetValue(pair.Key,out var mapping)) {
-     if(!pair.Key.EndsWith("-shifted",StringComparison.Ordinal)||
-        !mapped.TryGetValue(pair.Key[..^"-shifted".Length],out mapping))return null;
+            var rows =
+                usage
+                    .Where(x => x.GetProperty("deviceId").GetString() == profile.DeviceId &&
+                                (x.TryGetProperty("deviceInstance", out var instance) ? instance.GetString() : null) ==
+                                    profile.Instance)
+                    .ToArray();
+            var device = catalog.Devices.Single(x => x.StableKey == profile.DeviceId ||
+                                                     x.Aliases.Contains(profile.DeviceId, StringComparer.Ordinal));
+            var template = catalog.Templates.SingleOrDefault(x => x.DeviceKey == device.StableKey);
+            IReadOnlyList<DcsBinding> projected = rows.Length == 0 && shared is not null
+                                                      ? ModuleUiLayerBindingImporter.Import(import, shared, profile)
+                                                      : [];
+            var supportsUi =
+                template is not null && (template.Instances.Count == 0 ||
+                                         template.Instances.Contains(profile.Instance, StringComparer.Ordinal)) ||
+                projected.Count > 0;
+            if (!supportsUi && rows.Length > 0)
+                throw new InvalidDataException(
+                    $"UI Layer template does not apply to {profile.DeviceId} {profile.Instance}.");
+            var path = $"assets/shared/hardware/svg/{device.StableKey}.svg";
+            if (!sources.TryGetValue(path, out var svg))
+                throw new InvalidDataException($"Missing committed hardware image: {path}");
+            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4_000_000
+            });
+            var document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+            var root = document.Root ?? throw new InvalidDataException($"Empty SVG: {path}");
+            var viewBox = (root.Attribute("viewBox")?.Value ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (viewBox.Length != 4 || viewBox[0] != "0" || viewBox[1] != "0")
+                throw new InvalidDataException($"Unsupported SVG viewBox: {path}");
+            var width = Number(viewBox[2]);
+            var height = Number(viewBox[3]);
+            var href = root.Descendants()
+                           .FirstOrDefault(x => x.Name.LocalName == "image")
+                           ?.Attributes()
+                           .FirstOrDefault(x => x.Name.LocalName == "href")
+                           ?.Value;
+            var prefix = href?.StartsWith("data:image/png;base64,", StringComparison.Ordinal) == true
+                             ? "data:image/png;base64,"
+                         : href?.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) == true
+                             ? "data:image/jpeg;base64,"
+                             : null;
+            if (prefix is null)
+                throw new InvalidDataException($"Missing embedded hardware image: {path}");
+            var background = Convert.FromBase64String(href![prefix.Length..]);
+            var boxes = SvgCalloutLocator.Find(root);
+            var mapped = (shared?.Controls ?? [])
+                             .Where(x => x.Control.DeviceId == device.Id)
+                             .ToDictionary(x => x.Control.StableKey, x => x, StringComparer.Ordinal);
+            if (shared is not null)
+            {
+                var unknown = boxes.Keys
+                                  .Where(key => !mapped.ContainsKey(key) &&
+                                                !(key.EndsWith("-shifted", StringComparison.Ordinal) &&
+                                                  mapped.ContainsKey(key[..^ "-shifted".Length])))
+                                  .Order(StringComparer.Ordinal)
+                                  .ToArray();
+                if (unknown.Length > 0)
+                    throw new InvalidDataException(
+                        $"Hardware graphic {path} has callout identities absent from its shared Lua definition: {string.Join(", ",unknown)}.");
+            }
+            var controls = boxes
+                               .Select(pair =>
+                                       {
+                                           var box = pair.Value;
+                                           if (!mapped.TryGetValue(pair.Key, out var mapping))
+                                           {
+                                               if (!pair.Key.EndsWith("-shifted", StringComparison.Ordinal) ||
+                                                   !mapped.TryGetValue(pair.Key[..^ "-shifted".Length], out mapping))
+                                                   return null;
+                                           }
+                                           var label =
+                                               box.ElementsAfterSelf()
+                                                   .FirstOrDefault(x => x.Name.LocalName == "text" &&
+                                                                        x.Attribute("id")?.Value == "lbl-" + pair.Key)
+                                                   ?.Value.Trim() ??
+                                               pair.Key;
+                                           return new HardwareGraphicControl(
+                                               pair.Key, label, mapping.InputKey, Number(box.Attribute("x")?.Value),
+                                               Number(box.Attribute("y")?.Value), Number(box.Attribute("width")?.Value),
+                                               Number(box.Attribute("height")?.Value),
+                                               mapping.Control.Kind == global::Dcs.Ipia.Domain.ControlKind.Axis);
+                                       })
+                               .OfType<HardwareGraphicControl>()
+                               .OrderBy(x => x.Control, StringComparer.Ordinal)
+                               .ToArray();
+            var callouts = new List<UiLayerCallout>();
+            foreach (var row in rows)
+            {
+                var function = row.GetProperty("functionId").GetString()!;
+                if (template is null || !template.Bindings.TryGetValue(function, out var control) ||
+                    !boxes.TryGetValue(control, out var box))
+                    throw new InvalidDataException(
+                        $"No canonical graphic control for {device.StableKey}/{function} in {path}.");
+                var command = catalog.Commands.Single(
+                    x => x.Id == global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function", function));
+                var modifiers =
+                    string.Join(" + ", row.GetProperty("modifiers").EnumerateArray().Select(x => x.GetString()));
+                callouts.Add(new(callouts.Count + 1, control, command.Name, modifiers,
+                                 Number(box.Attribute("x")?.Value), Number(box.Attribute("y")?.Value),
+                                 Number(box.Attribute("width")?.Value),
+                                 Number(box.Attribute("height")?.Value)) { CommandId = command.DcsCommandId });
+            }
+            if (projected.Count > 0)
+            {
+                foreach (var binding in projected)
+                {
+                    var candidates = controls
+                                         .Where(x => x.IsAxis == (binding.Section == BindingSection.Axis) &&
+                                                     DcsInputKey.SamePhysicalInput(x.InputKey, binding.InputKey))
+                                         .ToArray();
+                    var control =
+                        (binding.Reformers.Count > 0
+                             ? candidates.FirstOrDefault(x => x.Control.EndsWith("-shifted", StringComparison.Ordinal))
+                             : candidates.FirstOrDefault(
+                                   x => !x.Control.EndsWith("-shifted", StringComparison.Ordinal))) ??
+                        candidates.FirstOrDefault();
+                    if (control is null)
+                        continue;
+                    callouts.Add(new(callouts.Count + 1, control.Control, binding.CommandName,
+                                     string.Join(" + ", binding.Reformers), control.X, control.Y, control.Width,
+                                     control.Height) { CommandId = binding.CommandId });
+                }
+            }
+            var canonical =
+                shared is null ? null : ModuleUiLayerBindingImporter.ResolveCanonicalProfile(import, shared, profile);
+            var canonicalPath =
+                canonical is null
+                    ? null
+                    : shared!.Provenance
+                          .Where(x => x.Path.StartsWith("assets/shared/ui-layer/input/UiLayer/",
+                                                        StringComparison.Ordinal) &&
+                                      x.Path.EndsWith("/" + canonical.SourceName, StringComparison.Ordinal))
+                          .Select(x => x.Path)
+                          .SingleOrDefault();
+            return new(device.DisplayName, profile.Instance, path, width, height, background,
+                       callouts) { Svg = svg, ProfileId = profile.Id, Controls = controls, SupportsUiLayer = supportsUi,
+                                   CanonicalUiLayerSourcePath = canonicalPath };
+        }
+        private static double Number(string? value) =>
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
+                ? parsed
+                : throw new InvalidDataException($"Invalid SVG coordinate: {value}");
+        #endregion END private helpers
     }
-    var label=box.ElementsAfterSelf().FirstOrDefault(x=>x.Name.LocalName=="text"&&
-     x.Attribute("id")?.Value=="lbl-"+pair.Key)?.Value.Trim()??pair.Key;
-    return new HardwareGraphicControl(pair.Key,label,mapping.InputKey,Number(box.Attribute("x")?.Value),
-     Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value),
-     mapping.Control.Kind==global::Dcs.Ipia.Domain.ControlKind.Axis);
-   }).OfType<HardwareGraphicControl>().OrderBy(x=>x.Control,StringComparer.Ordinal).ToArray();
-   var callouts=new List<UiLayerCallout>();
-   foreach(var row in rows) {
-    var function=row.GetProperty("functionId").GetString()!;
-    if(template is null||!template.Bindings.TryGetValue(function,out var control)||!boxes.TryGetValue(control,out var box))
-     throw new InvalidDataException($"No canonical graphic control for {device.StableKey}/{function} in {path}.");
-    var command=catalog.Commands.Single(x=>x.Id==global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function",function));
-    var modifiers=string.Join(" + ",row.GetProperty("modifiers").EnumerateArray().Select(x=>x.GetString()));
-    callouts.Add(new(callouts.Count+1,control,command.Name,modifiers,Number(box.Attribute("x")?.Value),
-     Number(box.Attribute("y")?.Value),Number(box.Attribute("width")?.Value),Number(box.Attribute("height")?.Value)) {CommandId=command.DcsCommandId});
-   }
-   if(projected.Count>0) {
-    foreach(var binding in projected) {
-     var candidates=controls.Where(x=>x.IsAxis==(binding.Section==BindingSection.Axis)&&
-      DcsInputKey.SamePhysicalInput(x.InputKey,binding.InputKey)).ToArray();
-     var control=(binding.Reformers.Count>0?
-      candidates.FirstOrDefault(x=>x.Control.EndsWith("-shifted",StringComparison.Ordinal)):
-      candidates.FirstOrDefault(x=>!x.Control.EndsWith("-shifted",StringComparison.Ordinal)))??
-      candidates.FirstOrDefault();
-     if(control is null)continue;
-     callouts.Add(new(callouts.Count+1,control.Control,binding.CommandName,string.Join(" + ",binding.Reformers),
-      control.X,control.Y,control.Width,control.Height) {CommandId=binding.CommandId});
-    }
-   }
-   var canonical=shared is null?null:ModuleUiLayerBindingImporter.ResolveCanonicalProfile(import,shared,profile);
-   var canonicalPath=canonical is null?null:shared!.Provenance.Where(x=>
-    x.Path.StartsWith("assets/shared/ui-layer/input/UiLayer/",StringComparison.Ordinal)&&
-    x.Path.EndsWith("/"+canonical.SourceName,StringComparison.Ordinal)).Select(x=>x.Path).SingleOrDefault();
-   return new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
-    Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi,CanonicalUiLayerSourcePath=canonicalPath
-   };
-  }
- private static double Number(string? value)=>double.TryParse(value,NumberStyles.Float,CultureInfo.InvariantCulture,out var parsed)&&parsed>0
-  ?parsed:throw new InvalidDataException($"Invalid SVG coordinate: {value}");
- #endregion END private helpers
 }
