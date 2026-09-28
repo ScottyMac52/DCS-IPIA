@@ -90,11 +90,20 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidDataException($"Unsupported SVG viewBox: {path}");
             var width = Number(viewBox[2]);
             var height = Number(viewBox[3]);
-            var href = root.Descendants()
-                           .FirstOrDefault(x => x.Name.LocalName == "image")
-                           ?.Attributes()
-                           .FirstOrDefault(x => x.Name.LocalName == "href")
-                           ?.Value;
+            if (Size(root, "width", path, "SVG canvas") != width ||
+                Size(root, "height", path, "SVG canvas") != height)
+                throw new InvalidDataException($"Hardware graphic {path} SVG canvas differs from its viewBox.");
+            var image = root.Descendants().FirstOrDefault(x => x.Name.LocalName == "image");
+            if (image is null)
+                throw new InvalidDataException($"Missing embedded hardware image: {path}");
+            var imageX = Coordinate(image, "x", path, "embedded image");
+            var imageY = Coordinate(image, "y", path, "embedded image");
+            var imageWidth = Size(image, "width", path, "embedded image");
+            var imageHeight = Size(image, "height", path, "embedded image");
+            if (imageX > width || imageY > height || imageWidth > width - imageX ||
+                imageHeight > height - imageY)
+                throw new InvalidDataException($"Hardware graphic {path} embedded image extends outside its viewBox.");
+            var href = image.Attributes().FirstOrDefault(x => x.Name.LocalName == "href")?.Value;
             var prefix = href?.StartsWith("data:image/png;base64,", StringComparison.Ordinal) == true
                              ? "data:image/png;base64,"
                          : href?.StartsWith("data:image/jpeg;base64,", StringComparison.Ordinal) == true
@@ -221,7 +230,7 @@ namespace Dcs.Ipia.Dcs
             if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&
                 double.IsFinite(parsed) && parsed >= 0)
                 return parsed;
-            throw new InvalidDataException($"Hardware graphic {path} callout {control} has invalid {attribute}: {value}.");
+            throw new InvalidDataException($"Hardware graphic {path} {control} has invalid {attribute}: {value}.");
         }
 
         private static double Size(XElement box, string attribute, string path, string control)
@@ -230,7 +239,7 @@ namespace Dcs.Ipia.Dcs
             if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&
                 double.IsFinite(parsed) && parsed > 0)
                 return parsed;
-            throw new InvalidDataException($"Hardware graphic {path} callout {control} has invalid {attribute}: {value}.");
+            throw new InvalidDataException($"Hardware graphic {path} {control} has invalid {attribute}: {value}.");
         }
         #endregion END private helpers
     }

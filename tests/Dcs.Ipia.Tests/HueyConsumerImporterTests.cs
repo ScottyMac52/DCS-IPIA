@@ -338,7 +338,7 @@ namespace Dcs.Ipia.Tests
                             $"<!-- callout:{control} -->{(device.StableKey=="logitech-throttle-quadrant"&&index==0?"<polyline/>":"<line/>")}<circle/><rect x='10' y='{10+index*30}' width='100' height='24'/><text id='lbl-{control}'>{control}</text>"));
                 graphics.Add(
                     $"assets/shared/hardware/svg/{device.StableKey}.svg",
-                    $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}'/>{callouts}</svg>");
+                    $"<svg xmlns='http://www.w3.org/2000/svg' width='960' height='2000' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}' x='0' y='0' width='960' height='2000'/>{callouts}</svg>");
             }
             var diagrams = UiLayerDiagramFactory.Create(imported, common.Catalog, graphics, common.SharedLua);
             Assert.Equal(imported.Configuration.Profiles.Count, diagrams.Count);
