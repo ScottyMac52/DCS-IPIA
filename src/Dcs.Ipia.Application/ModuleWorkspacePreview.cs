@@ -18,5 +18,7 @@ public sealed record ModuleWorkspacePreview(ConsumerImportResult Import,IReadOnl
  public string ModuleCommandSource {get;init;}="No linked module command source was found.";
  /// <summary>Reports a missing or invalid linked command source without discarding the module preview.</summary>
  public IReadOnlyList<ImportDiagnostic> CommandDiagnostics {get;init;}=[];
+ /// <summary>Gets pinned DCS-Common Lua texts needed to rebuild the module's UI Layer without a checkout.</summary>
+ public IReadOnlyDictionary<string,string> SharedLuaSources {get;init;}=new Dictionary<string,string>();
  #endregion END Public
 }

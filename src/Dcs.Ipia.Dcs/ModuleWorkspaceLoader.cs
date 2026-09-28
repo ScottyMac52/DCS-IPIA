@@ -40,7 +40,7 @@ public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
   var imported=new ConsumerSourceImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray(),Path.GetFileName(huey)));
   var (moduleCommands,commandSource,commandDiagnostics)=LoadLinkedCommands(huey,hueySources,imported.Configuration?.Module.DcsId);
-  if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
+  if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics,SharedLuaSources=UiLayerSources(sharedSources)};
 
   var kneeboardRoot=$"kneeboard/{imported.Configuration!.Module.DcsId}";
   var available=(await TrackedPathsAsync(huey,kneeboardRoot,kneeboardRoot,cancellationToken)).ToHashSet(StringComparer.Ordinal);
@@ -68,10 +68,13 @@ public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
   catch(Exception ex) when(ex is InvalidDataException or FormatException or System.Xml.XmlException or ArgumentException or InvalidOperationException or KeyNotFoundException) {
    graphicDiagnostics.Add(new("device-graphic-unavailable",$"DCS-Common hardware graphic: {ex.Message}",true));
   }
-  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics};
+  return new(imported,images,diagrams) {GraphicDiagnostics=graphicDiagnostics,UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics,SharedLuaSources=UiLayerSources(sharedSources)};
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static SortedDictionary<string,string> UiLayerSources(IReadOnlyDictionary<string,string> sources)=>
+  new SortedDictionary<string,string>(sources.Where(x=>x.Key.StartsWith("assets/shared/ui-layer/input/UiLayer/",StringComparison.Ordinal))
+   .ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal),StringComparer.Ordinal);
  private static (IReadOnlyList<CommandPaletteEntry> Commands,string Source,IReadOnlyList<ImportDiagnostic> Diagnostics)
   LoadLinkedCommands(string hueyRoot,IReadOnlyDictionary<string,string> sources,string? moduleId) {
   try {
