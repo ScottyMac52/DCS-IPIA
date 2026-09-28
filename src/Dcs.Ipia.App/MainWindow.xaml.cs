@@ -77,7 +77,8 @@ public partial class MainWindow : Window {
     await _configurations.ReplaceAsync(module);
     var saved=new EditorWorkspaceSnapshot(module,preview.Import.Pages,preview.Images,preview.Diagrams,
      importedView.ModuleCommands,preview.UiCommands,importedView.Draft?.Snapshot??[],
-     importedView.Labels,preview.Import.Sources);
+     importedView.Labels,preview.Import.Sources.Concat(preview.SharedLuaSources)
+      .ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal));
     await _workspaces.SaveAsync(saved);
     var persisted=await _workspaces.GetAsync(module.Module.Id)
      ??throw new InvalidDataException("The imported workspace could not be reopened from SQLite.");

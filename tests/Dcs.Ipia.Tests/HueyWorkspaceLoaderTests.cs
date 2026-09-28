@@ -66,6 +66,9 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
    Assert.Equal(12,result.Import.Provenance.Count);
    Assert.Equal(13,result.Import.UiFunctionKeys.Count);
+   Assert.Contains("assets/shared/ui-layer/input/UiLayer/modifiers.lua",result.SharedLuaSources.Keys);
+   Assert.Contains(result.SharedLuaSources.Keys,x=>x.EndsWith(".diff.lua",StringComparison.Ordinal));
+   Assert.DoesNotContain(result.SharedLuaSources.Keys,x=>x.StartsWith("assets/shared/hardware/",StringComparison.Ordinal));
    var authoredLabels=KneeboardLabelImporter.Import(result.Import.Metadata,result.Import.Configuration!);
    Assert.Equal(101,authoredLabels.Count);
    var mfd1=result.Import.Configuration!.Profiles.Single(x=>x.DeviceId=="tm-mfd"&&x.Instance=="MFD1");
@@ -85,7 +88,8 @@ public sealed class HueyWorkspaceLoaderTests {
    await new SqliteMigrationRunner(database).MigrateAsync();
    await new SqliteConfigurationRepository(database).ReplaceAsync(result.Import.Configuration);
    var workspace=new EditorWorkspaceSnapshot(result.Import.Configuration,result.Import.Pages,result.Images,
-    result.Diagrams,[],result.UiCommands,[],authoredLabels);
+    result.Diagrams,[],result.UiCommands,[],authoredLabels,
+    result.Import.Sources.Concat(result.SharedLuaSources).ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal));
    var repository=new SqliteEditorWorkspaceRepository(database);
    await repository.SaveAsync(workspace);
    var reopened=await repository.GetAsync(result.Import.Configuration.Module.Id);
@@ -94,6 +98,11 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal("Switch",reopened.Labels[mfd1Top.Key]);
    Assert.Equal("Arm Up",reopened.Labels[baseArm.Key]);
    Assert.Equal("Gun Up",reopened.Labels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
+   Assert.Equal(result.SharedLuaSources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
+    reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
+   var frozen=EditorSnapshotSerializer.Serialize(reopened);
+   Assert.Equal(reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
+    EditorSnapshotSerializer.Deserialize(frozen).Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
    Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);
    var preview=Assert.Single(result.Images);
    Assert.Equal("00-UH1H-CONTROL-OVERVIEW",preview.PageKey);
