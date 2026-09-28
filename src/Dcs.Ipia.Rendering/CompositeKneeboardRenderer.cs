@@ -20,8 +20,37 @@ namespace Dcs.Ipia.Rendering
         public static byte[] Render(UiLayerDiagram diagram, KneeboardComposite page,
                                     string footer = "DCS-IPIA • current draft preview")
         {
+            ArgumentNullException.ThrowIfNull(diagram);
+            ArgumentNullException.ThrowIfNull(page);
             ValidateGlyphs(page, footer);
-            return CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram, page, footer), 1200, 1600);
+            var device = CanonicalSvgRenderer.RenderCompleteScaled(
+                GraphicWithoutDynamicText(diagram.Svg), diagram.Width, diagram.Height,
+                Math.Min(2, (int)Math.Floor(4096 / Math.Max(diagram.Width, diagram.Height))));
+            using var deviceImage = SKImage.FromEncodedData(device) ??
+                                    throw new InvalidDataException("Could not decode the authored device image.");
+            using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
+                                throw new InvalidDataException("Could not allocate kneeboard surface.");
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColor.Parse("#06101d"));
+            using (var stripe = new SKPaint { Color = SKColor.Parse("#46d8ff") })
+                canvas.DrawRect(0, 0, 1200, 16, stripe);
+            var height = page.Legend.Count > 0 ? 1170 : 1350;
+            var scale = Math.Min(1130f / deviceImage.Width, height / (float)deviceImage.Height);
+            var width = deviceImage.Width * scale;
+            var fittedHeight = deviceImage.Height * scale;
+            var bounds = new SKRect(35 + (1130 - width) / 2, 155 + (height - fittedHeight) / 2,
+                                    35 + (1130 + width) / 2, 155 + (height + fittedHeight) / 2);
+            canvas.DrawImage(deviceImage, bounds, new SKSamplingOptions(SKFilterMode.Linear));
+            PaintLegend(canvas, page.Legend);
+            PaintPageText(canvas, page, footer);
+            canvas.Save();
+            canvas.Translate(bounds.Left, bounds.Top);
+            canvas.Scale(bounds.Width / (float)diagram.Width, bounds.Height / (float)diagram.Height);
+            PaintLabels(canvas, BuildDeviceSvg(diagram, page), page);
+            canvas.Restore();
+            using var image = surface.Snapshot();
+            using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+            return png.ToArray();
         }
         /// <summary>Builds the final-style page SVG for inspection and deterministic tests.</summary>
         /// <param name="diagram">Stored draw.io-generated device SVG.</param>
@@ -139,6 +168,105 @@ namespace Dcs.Ipia.Rendering
                 if (font.GetGlyphs(value).Any(x => x == 0))
                     throw new InvalidDataException("Kneeboard text contains a glyph absent from the pinned font: " +
                                                    value);
+        }
+        private static string GraphicWithoutDynamicText(string svg)
+        {
+            var source = XDocument.Parse(svg);
+            foreach (var label in source.Descendants().Where(x => x.Name.LocalName == "text" &&
+                        (x.Attribute("id")?.Value.StartsWith("lbl-", StringComparison.Ordinal) == true ||
+                         x.Attribute("id")?.Value.StartsWith("meta-", StringComparison.Ordinal) == true)).ToArray())
+                label.Remove();
+            return source.ToString(SaveOptions.DisableFormatting);
+        }
+        private static void PaintLegend(SKCanvas canvas, IReadOnlyList<KneeboardModifierLegend> legend)
+        {
+            if (legend.Count == 0)
+                return;
+            var bounds = new SKRect(54, 1350, 454, 1350 + 36 + legend.Count * 28);
+            using (var background = new SKPaint { Color = SKColor.Parse("#0b1726") })
+                canvas.DrawRoundRect(bounds, 8, 8, background);
+            using (var border = new SKPaint { Color = SKColor.Parse("#334155"), Style = SKPaintStyle.Stroke,
+                                              StrokeWidth = 1.5f })
+                canvas.DrawRoundRect(bounds, 8, 8, border);
+            for (var i = 0; i < legend.Count; i++)
+                using (var swatch = new SKPaint { Color = SKColor.Parse(legend[i].Color) })
+                    canvas.DrawRoundRect(new SKRect(66, 1382 + i * 28, 80, 1396 + i * 28), 2, 2, swatch);
+        }
+        private static void PaintPageText(SKCanvas canvas, KneeboardComposite page, string footer)
+        {
+            using var typeface = LabelTypeface();
+            Write(page.Title, 54, 80, 44, SKColors.White);
+            Write(page.Kicker, 56, 126, 20, SKColor.Parse("#ffc95c"));
+            if (page.Legend.Count > 0)
+            {
+                Write("SHIFT / MODIFIER", 66, 1372, 14, SKColor.Parse("#94a3b8"));
+                for (var i = 0; i < page.Legend.Count; i++)
+                    Write(page.Legend[i].Label, 88, 1394 + i * 28, 16, SKColor.Parse("#e2e8f0"));
+            }
+            if (footer.Length > 0)
+                Write(footer, 54, 1570, 18, SKColor.Parse("#8ea5bd"));
+            void Write(string value, float x, float y, float size, SKColor color)
+            {
+                using var font = new SKFont(typeface, size);
+                if (font.GetGlyphs(value).Any(x => x == 0))
+                    throw new InvalidDataException("Kneeboard text contains a glyph absent from the pinned font: " +
+                                                   value);
+                using var paint = new SKPaint { IsAntialias = true, Color = color };
+                canvas.DrawText(value, x, y, SKTextAlign.Left, font, paint);
+            }
+        }
+        private static void PaintLabels(SKCanvas canvas, string svg, KneeboardComposite page)
+        {
+            var source = XDocument.Parse(svg);
+            using var typeface = LabelTypeface();
+            foreach (var (control, variants) in page.Labels)
+            {
+                var label = source.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control);
+                if (label is null || variants.Count == 0)
+                    continue;
+                if (!float.TryParse(label.Attribute("x")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                                    out var x) ||
+                    !float.TryParse(label.Attribute("y")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                                    out var y))
+                    throw new InvalidDataException("Authored callout has no usable text position: " + control);
+                using var font = new SKFont(typeface, variants.Count > 1 ? 13 : 16);
+                for (var i = 0; i < variants.Count; i++)
+                {
+                    var variant = variants[i];
+                    if (font.GetGlyphs(variant.Text).Any(x => x == 0))
+                        throw new InvalidDataException("Callout text contains a glyph absent from the pinned font: " +
+                                                       variant.Text);
+                    var color = variant.Color == "#ffffff" && variant.Scope == AssignmentLayer.Module &&
+                                        variant.ModifierChord.Length == 0
+                                    ? label.Attribute("fill")?.Value ?? variant.Color
+                                    : variant.Color;
+                    using var paint =
+                        new SKPaint { IsAntialias = true,
+                                      Color = SKColor.TryParse(color, out var parsed) ? parsed : SKColors.White };
+                    canvas.DrawText(variant.Text, x, y + (i - (variants.Count - 1) / 2f) * 16, SKTextAlign.Left, font,
+                                    paint);
+                }
+            }
+            foreach (var (name, value) in page.CategoryLabels)
+            {
+                var label = source.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-" + name);
+                if (label is null)
+                    continue;
+                if (!float.TryParse(label.Attribute("x")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                                    out var x) ||
+                    !float.TryParse(label.Attribute("y")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                                    out var y))
+                    throw new InvalidDataException("Authored category has no usable text position: " + name);
+                using var font = new SKFont(typeface, 14);
+                if (font.GetGlyphs(value).Any(x => x == 0))
+                    throw new InvalidDataException("Category text contains a glyph absent from the pinned font: " +
+                                                   value);
+                var fill = label.Attribute("fill")?.Value ?? "#ffffff";
+                using var paint =
+                    new SKPaint { IsAntialias = true,
+                                  Color = SKColor.TryParse(fill, out var parsed) ? parsed : SKColors.White };
+                canvas.DrawText(value, x, y, SKTextAlign.Left, font, paint);
+            }
         }
         private static List<string> WrapLabel(string value)
         {
