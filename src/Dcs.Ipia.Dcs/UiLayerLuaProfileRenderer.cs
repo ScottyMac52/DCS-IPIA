@@ -93,7 +93,7 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static HashSet<string> RemovedModifiers(IReadOnlyDictionary<string, string> sources)
+        internal static HashSet<string> RemovedModifiers(IReadOnlyDictionary<string, string> sources)
         {
             if (!sources.TryGetValue("config/ui-layer-overlay.json", out var source))
                 return new(StringComparer.Ordinal);
