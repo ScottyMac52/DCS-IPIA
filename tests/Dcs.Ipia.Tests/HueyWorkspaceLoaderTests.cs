@@ -270,6 +270,28 @@ namespace Dcs.Ipia.Tests
                         "data:image/png;base64,", "data:image/gif;base64,", StringComparison.Ordinal);
                 Assert.Throws<InvalidDataException>(
                     () => UiLayerDiagramFactory.Create(result.Import, catalog, unsupportedImage));
+                var throttleSvg = graphics["assets/shared/hardware/svg/tm-warthog-throttle.svg"];
+                foreach (var (original, invalid) in new[] {
+                             ("x='10'", "x='950'"), ("x='10'", "x='NaN'"),
+                             ("x='10'", "x='-1'"), ("width='55'", "width='0'")
+                         })
+                {
+                    var malformed = new Dictionary<string, string>(graphics);
+                    malformed["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
+                        throttleSvg.Replace(original, invalid, StringComparison.Ordinal);
+                    var errors = new List<string>();
+                    var remaining = UiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
+                        (profile, error) => errors.Add($"{profile.DeviceId}: {error.Message}"));
+                    Assert.Equal(4, remaining.Count);
+                    Assert.Contains(errors, x => x.Contains("tm-warthog-throttle", StringComparison.Ordinal) &&
+                                                  x.Contains("warthog-thr-slew-push", StringComparison.Ordinal));
+                }
+                var atOrigin = new Dictionary<string, string>(graphics);
+                atOrigin["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
+                    throttleSvg.Replace("x='10'", "x='0'", StringComparison.Ordinal);
+                Assert.Contains(UiLayerDiagramFactory.Create(result.Import, catalog, atOrigin, sharedMap),
+                                x => x.Controls.Any(control => control.Control == "warthog-thr-slew-push" &&
+                                                             control.X == 0));
                 Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)), preview.Sha256);
                 Assert.Empty(result.GraphicDiagnostics);
                 solution["import"]!["commandSource"] = null;
