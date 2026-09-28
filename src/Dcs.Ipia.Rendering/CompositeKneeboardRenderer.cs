@@ -18,7 +18,8 @@ public static class CompositeKneeboardRenderer {
  /// <returns>The complete rendered PNG.</returns>
  public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview") {
   var outer=CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page,footer),1200,1600);
-  var device=RasterizeDevice(diagram,page);
+  var device=CanonicalSvgRenderer.RenderCompleteScaled(BuildDeviceSvg(diagram,page),diagram.Width,diagram.Height,
+   Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height))));
   using var pageImage=SKImage.FromEncodedData(outer);
   using var deviceImage=SKImage.FromEncodedData(device);
   using var surface=SKSurface.Create(new SKImageInfo(1200,1600))??
@@ -29,8 +30,14 @@ public static class CompositeKneeboardRenderer {
   var scale=Math.Min(1130f/deviceImage.Width,height/(float)deviceImage.Height);
   var width=deviceImage.Width*scale;
   var fittedHeight=deviceImage.Height*scale;
-  surface.Canvas.DrawImage(deviceImage,new SKRect(35+(1130-width)/2,155+(height-fittedHeight)/2,
-   35+(1130+width)/2,155+(height+fittedHeight)/2),sampling);
+  var bounds=new SKRect(35+(1130-width)/2,155+(height-fittedHeight)/2,
+   35+(1130+width)/2,155+(height+fittedHeight)/2);
+  surface.Canvas.DrawImage(deviceImage,bounds,sampling);
+  surface.Canvas.Save();
+  surface.Canvas.Translate(bounds.Left,bounds.Top);
+  surface.Canvas.Scale(bounds.Width/(float)diagram.Width,bounds.Height/(float)diagram.Height);
+  PaintLabels(surface.Canvas,BuildDeviceSvg(diagram,page),page);
+  surface.Canvas.Restore();
   using var image=surface.Snapshot();
   using var png=image.Encode(SKEncodedImageFormat.Png,100);
   return png.ToArray();
@@ -115,15 +122,7 @@ public static class CompositeKneeboardRenderer {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static byte[] RasterizeDevice(UiLayerDiagram diagram,KneeboardComposite page) {
-  var svg=BuildDeviceSvg(diagram,page);
-  var scale=Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height)));
-  var basePng=CanonicalSvgRenderer.RenderCompleteScaled(svg,diagram.Width,diagram.Height,scale);
-  using var original=SKImage.FromEncodedData(basePng);
-  using var surface=SKSurface.Create(new SKImageInfo(original.Width,original.Height))??
-   throw new InvalidDataException("Could not allocate labeled hardware surface.");
-  surface.Canvas.DrawImage(original,0,0,new SKSamplingOptions(SKFilterMode.Linear));
-  surface.Canvas.Scale(scale,scale);
+ private static void PaintLabels(SKCanvas canvas,string svg,KneeboardComposite page) {
   var source=XDocument.Parse(svg);
   foreach(var (control,variants) in page.Labels) {
    var label=source.Descendants().FirstOrDefault(x=>x.Attribute("id")?.Value=="lbl-"+control);
@@ -137,12 +136,9 @@ public static class CompositeKneeboardRenderer {
     var color=variant.Color=="#ffffff"&&variant.Scope==AssignmentLayer.Module&&variant.ModifierChord.Length==0?
      label.Attribute("fill")?.Value??variant.Color:variant.Color;
     using var paint=new SKPaint {IsAntialias=true,Color=SKColor.TryParse(color,out var parsed)?parsed:SKColors.White};
-    surface.Canvas.DrawText(variant.Text,x,y+(i-(variants.Count-1)/2f)*16,SKTextAlign.Left,font,paint);
+    canvas.DrawText(variant.Text,x,y+(i-(variants.Count-1)/2f)*16,SKTextAlign.Left,font,paint);
    }
   }
-  using var image=surface.Snapshot();
-  using var png=image.Encode(SKEncodedImageFormat.Png,100);
-  return png.ToArray();
  }
  private static List<string> WrapLabel(string value) {
   var words=value.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries);
