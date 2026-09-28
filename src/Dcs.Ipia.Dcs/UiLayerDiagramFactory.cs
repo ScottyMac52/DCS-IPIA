@@ -64,6 +64,14 @@ public static class UiLayerDiagramFactory {
    var boxes=SvgCalloutLocator.Find(root);
    var mapped=(shared?.Controls??[]).Where(x=>x.Control.DeviceId==device.Id)
     .ToDictionary(x=>x.Control.StableKey,x=>x,StringComparer.Ordinal);
+   if(shared is not null) {
+    var unknown=boxes.Keys.Where(key=>!mapped.ContainsKey(key)&&
+     !(key.EndsWith("-shifted",StringComparison.Ordinal)&&
+       mapped.ContainsKey(key[..^"-shifted".Length])))
+     .Order(StringComparer.Ordinal).ToArray();
+    if(unknown.Length>0)
+     throw new InvalidDataException($"Hardware graphic {path} has callout identities absent from its shared Lua definition: {string.Join(", ",unknown)}.");
+   }
    var controls=boxes.Select(pair=>{
     var box=pair.Value;
     if(!mapped.TryGetValue(pair.Key,out var mapping)) {
