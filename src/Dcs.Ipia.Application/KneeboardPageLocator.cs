@@ -12,6 +12,16 @@ namespace Dcs.Ipia.Application
         /// <returns>The stored PNG for the selected device, or null.</returns>
         public static KneeboardImageAsset? ForProfile(EditorWorkspaceSnapshot snapshot, Guid profileId)
         {
+            var key = PageKeyForProfile(snapshot, profileId);
+            return key is null ? null : snapshot.Images.FirstOrDefault(x => x.PageKey == key);
+        }
+
+        /// <summary>Finds the authored device page identity independently of an imported PNG.</summary>
+        /// <param name="snapshot">Saved module sources and page mapping.</param>
+        /// <param name="profileId">Selected editor device profile.</param>
+        /// <returns>The authored page key, or null when no page is mapped.</returns>
+        public static string? PageKeyForProfile(EditorWorkspaceSnapshot snapshot, Guid profileId)
+        {
             ArgumentNullException.ThrowIfNull(snapshot);
             var profile = snapshot.Configuration.Profiles.FirstOrDefault(x => x.Id == profileId);
             if (profile is null || snapshot.Sources is null ||
@@ -33,8 +43,7 @@ namespace Dcs.Ipia.Application
                 if (!page.TryGetProperty("profile", out var selected) || selected.GetString() != key ||
                     !page.TryGetProperty("file", out var file))
                     continue;
-                var pageKey = file.GetString();
-                return snapshot.Images.FirstOrDefault(x => x.PageKey == pageKey);
+                return file.GetString();
             }
             return null;
         }

@@ -28,6 +28,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("page-2", KneeboardPageLocator.ForProfile(snapshot, two.Id)?.PageKey);
             Assert.Equal("page-1", KneeboardPageLocator.ForProfile(snapshot, one.Id)?.PageKey);
             Assert.Null(KneeboardPageLocator.ForProfile(snapshot, Guid.NewGuid()));
+            Assert.Equal("page-2", KneeboardPageLocator.PageKeyForProfile(snapshot with { Images = [] }, two.Id));
         }
         #endregion END Public
     }

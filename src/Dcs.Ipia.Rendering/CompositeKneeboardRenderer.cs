@@ -20,29 +20,34 @@ namespace Dcs.Ipia.Rendering
         public static byte[] Render(UiLayerDiagram diagram, KneeboardComposite page,
                                     string footer = "DCS-IPIA • current draft preview")
         {
-            var outer = CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram, page, footer), 1200, 1600);
+            ArgumentNullException.ThrowIfNull(diagram);
+            ArgumentNullException.ThrowIfNull(page);
+            ValidateGlyphs(page, footer);
             var device = CanonicalSvgRenderer.RenderCompleteScaled(
-                BuildDeviceSvg(diagram, page), diagram.Width, diagram.Height,
+                GraphicWithoutDynamicText(diagram.Svg), diagram.Width, diagram.Height,
                 Math.Min(2, (int)Math.Floor(4096 / Math.Max(diagram.Width, diagram.Height))));
-            using var pageImage = SKImage.FromEncodedData(outer);
-            using var deviceImage = SKImage.FromEncodedData(device);
+            using var deviceImage = SKImage.FromEncodedData(device) ??
+                                    throw new InvalidDataException("Could not decode the authored device image.");
             using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
                                 throw new InvalidDataException("Could not allocate kneeboard surface.");
-            var sampling = new SKSamplingOptions(SKFilterMode.Linear);
-            surface.Canvas.DrawImage(pageImage, 0, 0, sampling);
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColor.Parse("#06101d"));
+            using (var stripe = new SKPaint { Color = SKColor.Parse("#46d8ff") })
+                canvas.DrawRect(0, 0, 1200, 16, stripe);
             var height = page.Legend.Count > 0 ? 1170 : 1350;
             var scale = Math.Min(1130f / deviceImage.Width, height / (float)deviceImage.Height);
             var width = deviceImage.Width * scale;
             var fittedHeight = deviceImage.Height * scale;
-            var bounds = new SKRect(35 + (1130 - width) / 2, 155 + (height - fittedHeight) / 2, 35 + (1130 + width) / 2,
-                                    155 + (height + fittedHeight) / 2);
-            surface.Canvas.DrawImage(deviceImage, bounds, sampling);
-            PaintPageText(surface.Canvas, page, footer);
-            surface.Canvas.Save();
-            surface.Canvas.Translate(bounds.Left, bounds.Top);
-            surface.Canvas.Scale(bounds.Width / (float)diagram.Width, bounds.Height / (float)diagram.Height);
-            PaintLabels(surface.Canvas, BuildDeviceSvg(diagram, page), page);
-            surface.Canvas.Restore();
+            var bounds = new SKRect(35 + (1130 - width) / 2, 155 + (height - fittedHeight) / 2,
+                                    35 + (1130 + width) / 2, 155 + (height + fittedHeight) / 2);
+            canvas.DrawImage(deviceImage, bounds, new SKSamplingOptions(SKFilterMode.Linear));
+            PaintLegend(canvas, page.Legend);
+            PaintPageText(canvas, page, footer);
+            canvas.Save();
+            canvas.Translate(bounds.Left, bounds.Top);
+            canvas.Scale(bounds.Width / (float)diagram.Width, bounds.Height / (float)diagram.Height);
+            PaintLabels(canvas, BuildDeviceSvg(diagram, page), page);
+            canvas.Restore();
             using var image = surface.Snapshot();
             using var png = image.Encode(SKEncodedImageFormat.Png, 100);
             return png.ToArray();
@@ -150,6 +155,42 @@ namespace Dcs.Ipia.Rendering
                          throw new InvalidDataException("The pinned kneeboard font is missing.");
             return SKTypeface.FromStream(source) ??
                    throw new InvalidDataException("The pinned kneeboard font is invalid.");
+        }
+        private static void ValidateGlyphs(KneeboardComposite page, string footer)
+        {
+            using var typeface = LabelTypeface();
+            using var font = new SKFont(typeface, 16);
+            var values = new[] { page.Title, page.Kicker, footer }
+                         .Concat(page.Legend.Select(x => x.Label))
+                         .Concat(page.Labels.Values.SelectMany(x => x.Select(y => y.Text)))
+                         .Concat(page.CategoryLabels.Values);
+            foreach (var value in values)
+                if (font.GetGlyphs(value).Any(x => x == 0))
+                    throw new InvalidDataException("Kneeboard text contains a glyph absent from the pinned font: " +
+                                                   value);
+        }
+        private static string GraphicWithoutDynamicText(string svg)
+        {
+            var source = XDocument.Parse(svg);
+            foreach (var label in source.Descendants().Where(x => x.Name.LocalName == "text" &&
+                        (x.Attribute("id")?.Value.StartsWith("lbl-", StringComparison.Ordinal) == true ||
+                         x.Attribute("id")?.Value.StartsWith("meta-", StringComparison.Ordinal) == true)).ToArray())
+                label.Remove();
+            return source.ToString(SaveOptions.DisableFormatting);
+        }
+        private static void PaintLegend(SKCanvas canvas, IReadOnlyList<KneeboardModifierLegend> legend)
+        {
+            if (legend.Count == 0)
+                return;
+            var bounds = new SKRect(54, 1350, 454, 1350 + 36 + legend.Count * 28);
+            using (var background = new SKPaint { Color = SKColor.Parse("#0b1726") })
+                canvas.DrawRoundRect(bounds, 8, 8, background);
+            using (var border = new SKPaint { Color = SKColor.Parse("#334155"), Style = SKPaintStyle.Stroke,
+                                              StrokeWidth = 1.5f })
+                canvas.DrawRoundRect(bounds, 8, 8, border);
+            for (var i = 0; i < legend.Count; i++)
+                using (var swatch = new SKPaint { Color = SKColor.Parse(legend[i].Color) })
+                    canvas.DrawRoundRect(new SKRect(66, 1382 + i * 28, 80, 1396 + i * 28), 2, 2, swatch);
         }
         private static void PaintPageText(SKCanvas canvas, KneeboardComposite page, string footer)
         {

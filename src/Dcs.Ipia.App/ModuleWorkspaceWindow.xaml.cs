@@ -464,7 +464,8 @@ namespace DcsIpia.Presentation
                         .SelectMany(x => x.Modifier.Split('+', StringSplitOptions.TrimEntries |
                                                                    StringSplitOptions.RemoveEmptyEntries)));
                 RefreshEditor();
-                EditorMessage.Text = "Assignments and labels saved to the local database.";
+                RefreshKneeboardPreview();
+                EditorMessage.Text = "Assignments and labels saved. Kneeboard pages now use the saved state.";
             }
             catch (Exception ex)
             {
@@ -570,6 +571,11 @@ namespace DcsIpia.Presentation
         }
         private void KneeboardList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            RefreshKneeboardPreview();
+        }
+
+        private void RefreshKneeboardPreview()
+        {
             if (KneeboardPreview is null || KneeboardCaption is null)
                 return;
             KneeboardPreview.Source = null;
@@ -579,15 +585,41 @@ namespace DcsIpia.Presentation
                 KneeboardCaption.Text = "No rendered kneeboard image is available.";
                 return;
             }
-            var asset = _viewModel.Images.FirstOrDefault(x => x.PageKey == _viewModel.PageKeys[index]);
-            if (asset is null)
-            {
-                KneeboardCaption.Text = "No stored PNG for this page.";
-                return;
-            }
             try
             {
-                using var stream = new MemoryStream(asset.Bytes);
+                var key = _viewModel.PageKeys[index];
+                byte[] bytes;
+                string caption;
+                if (_saved is null)
+                {
+                    var imported = _viewModel.Images.FirstOrDefault(x => x.PageKey == key) ??
+                                   throw new InvalidDataException("No imported PNG for this page.");
+                    bytes = imported.Bytes;
+                    caption = "Imported kneeboard: " + imported.Path;
+                }
+                else
+                {
+                    var page = _saved.Pages.Single(x => x.StableKey == key);
+                    var path = $"KNEEBOARD/{_saved.Configuration.Module.DcsId}/{key}.png";
+                    if (page.Kind == KneeboardPageKind.Device)
+                    {
+                        var diagram = _saved.Diagrams.Single(x =>
+                            KneeboardPageLocator.PageKeyForProfile(_saved, x.ProfileId) == key);
+                        var combined = KneeboardDraftProjection.CreateCombined(
+                            _saved, diagram, _saved.Assignments, _saved.Labels);
+                        bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
+                    }
+                    else if (page.Kind == KneeboardPageKind.Summary)
+                    {
+                        bytes = SnapshotSummaryKneeboardRenderer.Generate(_saved)[path];
+                    }
+                    else
+                    {
+                        throw new InvalidDataException("Unsupported saved kneeboard page: " + key);
+                    }
+                    caption = "Generated from saved assignments: " + path;
+                }
+                using var stream = new MemoryStream(bytes);
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
@@ -595,11 +627,11 @@ namespace DcsIpia.Presentation
                 bitmap.EndInit();
                 bitmap.Freeze();
                 KneeboardPreview.Source = bitmap;
-                KneeboardCaption.Text = "Stored kneeboard: " + asset.Path;
+                KneeboardCaption.Text = caption;
             }
             catch (Exception ex)
             {
-                KneeboardCaption.Text = ex.Message;
+                KneeboardCaption.Text = "Unable to generate this kneeboard: " + ex.Message;
             }
         }
         private void ConfirmClose(object? sender, CancelEventArgs e)
