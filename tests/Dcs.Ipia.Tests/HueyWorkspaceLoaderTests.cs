@@ -175,9 +175,17 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Contains(withoutHardwareMap,x=>x.Instance=="MFD1"&&!x.SupportsUiLayer);
    var mappedControl=Assert.Single(result.Diagrams.Single(x=>x.Instance=="MFD3").Controls.Take(1));
    var mfdDevice=catalog.Devices.Single(x=>x.StableKey=="tm-mfd");
-   var axisControl=new DeviceControl(Guid.NewGuid(),mfdDevice.Id,mappedControl.Control,mappedControl.Label,ControlKind.Axis,null);
-   var sharedMap=new SharedLuaImportResult([new SharedHardwareControl(axisControl,mappedControl.InputKey,"axis",null,null)],
-    [],[],[],[],[]);
+   var baseControl=mappedControl.Control.EndsWith("-shifted",StringComparison.Ordinal)?
+    mappedControl.Control[..^"-shifted".Length]:mappedControl.Control;
+   var axisControl=new DeviceControl(Guid.NewGuid(),mfdDevice.Id,baseControl,mappedControl.Label,ControlKind.Axis,null);
+   var canonicalLua=new DcsCommonLuaImporter().Import(new(new string('a',40),catalog,
+    Directory.GetFiles(lua,"*.lua",SearchOption.AllDirectories)
+     .Select(path=>new SharedLuaSource(Path.GetRelativePath(lua,path).Replace('\\','/'),File.ReadAllText(path))).ToArray()));
+   Assert.True(canonicalLua.Succeeded);
+   var sharedMap=new SharedLuaImportResult(canonicalLua.Controls.Select(control=>
+    control.Control.StableKey==baseControl?
+     new SharedHardwareControl(axisControl,control.InputKey,"axis",control.Group,control.Position):control).ToArray(),
+    canonicalLua.Profiles,canonicalLua.Bindings,canonicalLua.Modifiers,canonicalLua.Provenance,canonicalLua.Diagnostics);
    var withoutLabel=new Dictionary<string,string>(graphics);
    withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]=withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"]
     .Replace("id='lbl-"+mappedControl.Control+"'","id='other-label'",StringComparison.Ordinal);
@@ -223,6 +231,19 @@ public sealed class HueyWorkspaceLoaderTests {
    var linkedHtml=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Contains(linkedHtml.ModuleCommands,x=>x.Category=="ADF Set Control panel"&&x.Name=="ADF Band 190-400 kHz");
    Assert.Empty(linkedHtml.CommandDiagnostics);
+   var throttlePath=Path.Combine(common,"assets/shared/hardware/svg/tm-warthog-throttle.svg");
+   var throttleGraphic=File.ReadAllText(throttlePath);
+   File.WriteAllText(throttlePath,throttleGraphic.Replace("box:warthog-thr-slew-push",
+    "box:unmapped-hardware-control",StringComparison.Ordinal));
+   Git(common,"add","--all");
+   Git(common,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","unknown graphic control");
+   var withUnknownControl=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
+   Assert.True(withUnknownControl.Import.Succeeded);
+   Assert.Equal(4,withUnknownControl.Diagrams.Count);
+   Assert.Contains(withUnknownControl.GraphicDiagnostics,x=>x.Code=="device-graphic-unavailable"&&x.IsError&&
+    x.Message.Contains("unmapped-hardware-control",StringComparison.Ordinal)&&
+    x.Message.Contains("tm-warthog-throttle",StringComparison.Ordinal));
+   File.WriteAllText(throttlePath,throttleGraphic);
    var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
    File.WriteAllText(gripPath,"<svg broken");
    Git(common,"add","--all");
