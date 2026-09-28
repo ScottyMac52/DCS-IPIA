@@ -208,7 +208,12 @@ namespace Dcs.Ipia.Dcs
                         false));
                 var pageList = new List<KneeboardPage>();
                 var order = 0;
-                foreach (var item in kneeboard.GetProperty("summaryPages").EnumerateArray())
+                if (kneeboard.TryGetProperty("summaryPages", out var summaries) &&
+                    summaries.ValueKind != JsonValueKind.Array)
+                    throw new FormatException("Kneeboard summaryPages must be an array when present.");
+                foreach (var item in summaries.ValueKind == JsonValueKind.Array
+                             ? summaries.EnumerateArray().ToArray()
+                             : Array.Empty<JsonElement>())
                     pageList.Add(
                         new(StableIdentity.Create("kneeboard-page", $"{module.DcsId}/{RequiredText(item,"file")}"),
                             module.Id, null, KneeboardPageKind.Summary, RequiredText(item, "file"),

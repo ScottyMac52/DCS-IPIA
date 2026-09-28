@@ -482,6 +482,41 @@ namespace Dcs.Ipia.Tests
             Assert.True(result.Succeeded);
             Assert.False(result.Metadata.ContainsKey("config/ui-layer-overlay.json"));
         }
+        /// <summary>Modules such as A-4E can import device pages without authored summaries.</summary>
+        [Fact]
+        public void Summary_pages_are_optional_for_module_import()
+        {
+            var request = Fixture();
+            var sources = Replace(request, "config/kneeboard.json",
+                                  text =>
+                                  {
+                                      var root = JsonNode.Parse(text)!;
+                                      root.AsObject().Remove("summaryPages");
+                                      return root.ToJsonString();
+                                  });
+            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
+            Assert.DoesNotContain(result.Pages, x => x.Kind == KneeboardPageKind.Summary);
+            Assert.Contains(result.Pages, x => x.Kind == KneeboardPageKind.Device);
+        }
+
+        /// <summary>Malformed optional summary pages get a useful diagnostic.</summary>
+        [Fact]
+        public void Invalid_summary_page_shape_is_reported()
+        {
+            var request = Fixture();
+            var sources = Replace(request, "config/kneeboard.json",
+                                  text =>
+                                  {
+                                      var root = JsonNode.Parse(text)!;
+                                      root["summaryPages"] = new JsonObject();
+                                      return root.ToJsonString();
+                                  });
+            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Diagnostics,
+                            x => x.Message.Contains("summaryPages must be an array", StringComparison.Ordinal));
+        }
         /// <summary>Unknown source paths are rejected before any consumer files are read.</summary>
         [Fact]
         public void Unknown_source_path_is_rejected()
