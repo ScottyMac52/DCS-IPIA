@@ -27,23 +27,20 @@ public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
    SharedCatalogPaths[2],catalogSources[SharedCatalogPaths[2]],
    SharedCatalogPaths[3],catalogSources[SharedCatalogPaths[3]]));
   if(!catalog.Succeeded)throw new InvalidDataException($"DCS-Common catalog: {string.Join("; ",catalog.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message))}");
-  var sharedPaths=(await TrackedPathsAsync(common,"assets/shared/hardware/lua","assets/shared/ui-layer/input/UiLayer",cancellationToken)).Where(x=>x.EndsWith(".lua",StringComparison.Ordinal)).ToArray();
+  var sharedPaths=(await TrackedPathsAsync(common,cancellationToken,"assets/shared/hardware/lua","assets/shared/ui-layer/input/UiLayer")).Where(x=>x.EndsWith(".lua",StringComparison.Ordinal)).ToArray();
   var sharedSources=await ReadSourcesAsync(common,sharedPaths,cancellationToken);
   var shared=new DcsCommonLuaImporter().Import(new(commonCommit,catalog,sharedSources.Select(x=>new SharedLuaSource(x.Key,x.Value)).ToArray()));
   if(!shared.Succeeded)throw new InvalidDataException($"DCS-Common Lua: {string.Join("; ",shared.Diagnostics.Where(x=>x.IsError).Select(x=>x.Message))}");
-  var hueyPaths=(await TrackedPathsAsync(huey,"config","src/Config/Input",cancellationToken))
-   .Where(x=>x.StartsWith("config/",StringComparison.Ordinal)&&x.EndsWith(".json",StringComparison.Ordinal)
-    ||x.StartsWith("src/Config/Input/",StringComparison.Ordinal)&&
-     (x.EndsWith("/modifiers.lua",StringComparison.Ordinal)||
-      x.Contains("/joystick/",StringComparison.Ordinal)&&x.EndsWith(".diff.lua",StringComparison.Ordinal)))
-   .ToArray();
+  var hueyPaths=(await TrackedPathsAsync(huey,cancellationToken,
+    "config","src/Config/Input","README.md","docs","packaging/ovgme","scripts",".github/workflows/release.yml"))
+   .Where(ConsumerSourceImporter.IsSupportedSourcePath).ToArray();
   var hueySources=await ReadSourcesAsync(huey,hueyPaths,cancellationToken);
   var imported=new ConsumerSourceImporter().Import(new(hueyCommit,catalog,shared,hueySources.Select(x=>new ConsumerSource(x.Key,x.Value)).ToArray(),Path.GetFileName(huey)));
   var (moduleCommands,commandSource,commandDiagnostics)=LoadLinkedCommands(huey,hueySources,imported.Configuration?.Module.DcsId);
   if(!imported.Succeeded)return new(imported,[],[]) {UiCommands=catalog.Commands,ModuleCommands=moduleCommands,ModuleCommandSource=commandSource,CommandDiagnostics=commandDiagnostics,SharedLuaSources=UiLayerSources(sharedSources)};
 
   var kneeboardRoot=$"kneeboard/{imported.Configuration!.Module.DcsId}";
-  var available=(await TrackedPathsAsync(huey,kneeboardRoot,kneeboardRoot,cancellationToken)).ToHashSet(StringComparer.Ordinal);
+  var available=(await TrackedPathsAsync(huey,cancellationToken,kneeboardRoot)).ToHashSet(StringComparer.Ordinal);
   var images=new List<KneeboardImageAsset>();
   foreach(var page in imported.Pages) {
    var path=$"{kneeboardRoot}/{page.StableKey}.png";
@@ -120,8 +117,8 @@ public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
    throw new InvalidDataException($"Select the repository root, not a subfolder: {root}");
   return full;
  }
- private static async Task<string[]> TrackedPathsAsync(string root,string first,string second,CancellationToken ct) {
-  var output=await GitAsync(root,ct,"ls-tree","-r","-z","--name-only","HEAD","--",first,second);
+ private static async Task<string[]> TrackedPathsAsync(string root,CancellationToken ct,params string[] paths) {
+  var output=await GitAsync(root,ct,["ls-tree","-r","-z","--name-only","HEAD","--",..paths]);
   return output.Split('\0',StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
  }
  private static async Task<SortedDictionary<string,string>> ReadSourcesAsync(string root,IEnumerable<string> paths,CancellationToken ct) {
