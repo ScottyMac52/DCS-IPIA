@@ -223,6 +223,19 @@ public sealed class HueyWorkspaceLoaderTests {
    var linkedHtml=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.Contains(linkedHtml.ModuleCommands,x=>x.Category=="ADF Set Control panel"&&x.Name=="ADF Band 190-400 kHz");
    Assert.Empty(linkedHtml.CommandDiagnostics);
+   var throttlePath=Path.Combine(common,"assets/shared/hardware/svg/tm-warthog-throttle.svg");
+   var throttleGraphic=File.ReadAllText(throttlePath);
+   File.WriteAllText(throttlePath,throttleGraphic.Replace("box:warthog-thr-slew-push",
+    "box:unmapped-hardware-control",StringComparison.Ordinal));
+   Git(common,"add","--all");
+   Git(common,"-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","unknown graphic control");
+   var withUnknownControl=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
+   Assert.True(withUnknownControl.Import.Succeeded);
+   Assert.Equal(4,withUnknownControl.Diagrams.Count);
+   Assert.Contains(withUnknownControl.GraphicDiagnostics,x=>x.Code=="device-graphic-unavailable"&&x.IsError&&
+    x.Message.Contains("unmapped-hardware-control",StringComparison.Ordinal)&&
+    x.Message.Contains("tm-warthog-throttle",StringComparison.Ordinal));
+   File.WriteAllText(throttlePath,throttleGraphic);
    var gripPath=Path.Combine(common,"assets/shared/hardware/svg/grip-f18c.svg");
    File.WriteAllText(gripPath,"<svg broken");
    Git(common,"add","--all");
