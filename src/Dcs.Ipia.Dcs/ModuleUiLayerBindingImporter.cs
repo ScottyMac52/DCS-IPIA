@@ -17,21 +17,7 @@ public static class ModuleUiLayerBindingImporter {
   ArgumentNullException.ThrowIfNull(module);
   ArgumentNullException.ThrowIfNull(shared);
   ArgumentNullException.ThrowIfNull(profile);
-  var root=module.Metadata["config/kneeboard.json"];
-  if(!root.TryGetProperty("includeUiLayer",out var include)||include.ValueKind!=JsonValueKind.True)
-   return [];
-  var matches=shared.Profiles.Where(x=>x.DeviceId==profile.DeviceId).ToArray();
-  var canonical=matches.SingleOrDefault(x=>x.SourceName==profile.SourceName);
-  if(canonical is null) {
-   var byName=matches.Where(x=>NormalizeSourceName(x.SourceName)==NormalizeSourceName(profile.SourceName)).ToArray();
-   if(byName.Length==1)canonical=byName[0];
-   else {
-    var byInstance=matches.Where(x=>x.Instance is not null&&x.Instance==profile.Instance).ToArray();
-    if(byInstance.Length==1)canonical=byInstance[0];
-    else if(matches.Length==1&&module.Configuration!.Profiles.Count(x=>x.DeviceId==profile.DeviceId)==1)
-     canonical=matches[0];
-   }
-  }
+  var canonical=ResolveCanonicalProfile(module,shared,profile);
   if(canonical is null)return [];
   module.Metadata.TryGetValue("config/ui-layer-overlay.json",out var overlay);
   var removed=overlay.ValueKind==JsonValueKind.Object&&overlay.TryGetProperty("removedModifiers",out var removedValues)
@@ -61,6 +47,31 @@ public static class ModuleUiLayerBindingImporter {
    bindings.Add(new(profile.Id,section,command,name,BindingDisposition.Added,key,chord));
   }
   return bindings;
+ }
+ /// <summary>Finds the one canonical UI Layer profile for this module device, or none when disabled or ambiguous.</summary>
+ /// <param name="module">Validated module import with its UI Layer setting.</param>
+ /// <param name="shared">Pinned canonical UI Layer catalog.</param>
+ /// <param name="profile">Module device profile.</param>
+ /// <returns>A matched canonical profile, or null when selection is not safe.</returns>
+ public static DeviceProfile? ResolveCanonicalProfile(ConsumerImportResult module,SharedLuaImportResult shared,DeviceProfile profile) {
+  ArgumentNullException.ThrowIfNull(module);ArgumentNullException.ThrowIfNull(shared);ArgumentNullException.ThrowIfNull(profile);
+  var root=module.Metadata["config/kneeboard.json"];
+  if(!root.TryGetProperty("includeUiLayer",out var include)||include.ValueKind!=JsonValueKind.True)return null;
+  var matches=shared.Profiles.Where(x=>x.DeviceId==profile.DeviceId).ToArray();
+  var exact=matches.Where(x=>x.SourceName==profile.SourceName).ToArray();
+  if(exact.Length>1)return null;
+  var canonical=exact.SingleOrDefault();
+  if(canonical is null) {
+   var byName=matches.Where(x=>NormalizeSourceName(x.SourceName)==NormalizeSourceName(profile.SourceName)).ToArray();
+   if(byName.Length==1)canonical=byName[0];
+   else {
+    var byInstance=matches.Where(x=>x.Instance is not null&&x.Instance==profile.Instance).ToArray();
+    if(byInstance.Length==1)canonical=byInstance[0];
+    else if(matches.Length==1&&module.Configuration!.Profiles.Count(x=>x.DeviceId==profile.DeviceId)==1)
+     canonical=matches[0];
+   }
+  }
+  return canonical;
  }
  #endregion END Public
  #region BEGIN private helpers

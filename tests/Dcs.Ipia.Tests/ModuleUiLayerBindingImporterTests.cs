@@ -29,6 +29,7 @@ public sealed class ModuleUiLayerBindingImporterTests {
    """);
   var imported=new ConsumerImportResult(configuration,[],[],[],[],metadata,
    new Dictionary<string,string>(),[],[]);
+  Assert.Equal(sharedProfile,ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,shared,profile));
   var effective=ModuleUiLayerBindingImporter.Import(imported,shared,profile);
   Assert.Equal(2,effective.Count);
   Assert.DoesNotContain(effective,x=>x.CommandId=="BASE");
@@ -37,6 +38,7 @@ public sealed class ModuleUiLayerBindingImporterTests {
   var disabled=new ConsumerImportResult(configuration,[],[],[],[],
    ParseMetadata("""{"includeUiLayer":false}""",null),new Dictionary<string,string>(),[],[]);
   Assert.Empty(ModuleUiLayerBindingImporter.Import(disabled,shared,profile));
+  Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(disabled,shared,profile));
   Assert.Empty(ModuleUiLayerBindingImporter.Import(imported,shared,
    new DeviceProfile(Guid.NewGuid(),"other-panel",null,"Other","Other.diff.lua")));
   var removedOverlay=JsonDocument.Parse("""
@@ -48,6 +50,20 @@ public sealed class ModuleUiLayerBindingImporterTests {
   var removedImport=new ConsumerImportResult(configuration,[],[],[],[],removedMetadata,
    new Dictionary<string,string>(),[],[]);
   Assert.Empty(ModuleUiLayerBindingImporter.Import(removedImport,shared,profile));
+ }
+ /// <summary>Ambiguous canonical candidates never select an arbitrary device instance.</summary>
+ [Fact] public void ResolveCanonicalProfile_RejectsAmbiguousProfiles() {
+  var module=new DcsModule(Guid.NewGuid(),"TEST","Test module");
+  var profile=new DeviceProfile(Guid.NewGuid(),"test-panel",null,"Panel","Different.diff.lua");
+  var configuration=new ModuleConfiguration(module,[profile],[],[],"test@sha");
+  var candidates=new[] {
+   new DeviceProfile(Guid.NewGuid(),"test-panel",null,"UI","One.diff.lua"),
+   new DeviceProfile(Guid.NewGuid(),"test-panel",null,"UI","Two.diff.lua")
+  };
+  var shared=new SharedLuaImportResult([],candidates,[],[],[],[]);
+  var imported=new ConsumerImportResult(configuration,[],[],[],[],
+   ParseMetadata("""{"includeUiLayer":true}""",null),new Dictionary<string,string>(),[],[]);
+  Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,shared,profile));
  }
  #endregion END Public
  #region BEGIN private helpers
