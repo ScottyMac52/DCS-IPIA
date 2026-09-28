@@ -66,6 +66,55 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
                 workspace with { Configuration = config }));
         }
+        /// <summary>Validates paths and overlay removals before any archive is assembled.</summary>
+        [Fact]
+        public void RejectsUnsafePathsAndInvalidOverlay()
+        {
+            var workspace = Workspace();
+            var badModule = new ModuleConfiguration(new DcsModule(ModuleId, "../TEST", "Test"),
+                workspace.Configuration.Profiles, workspace.Configuration.Modifiers, [], "test");
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                workspace with { Configuration = badModule }));
+            var badProfile = new DeviceProfile(ProfileId, "Stick", null, "Stick", "../Stick.diff.lua");
+            var badConfig = new ModuleConfiguration(workspace.Configuration.Module, [badProfile],
+                workspace.Configuration.Modifiers, [], "test");
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                workspace with { Configuration = badConfig }));
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                workspace with { Diagrams = [workspace.Diagrams[0] with {
+                    CanonicalUiLayerSourcePath = "assets/shared/ui-layer/input/UiLayer/other/Stick.diff.lua"
+                }] }));
+            foreach (var overlay in new[] { """{"removedModifiers":["UNKNOWN"]}""",
+                                            """{"removedModifiers":["SHIFT","SHIFT"]}""",
+                                            """{"removedModifiers":true}""" })
+            {
+                var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+                sources["config/ui-layer-overlay.json"] = overlay;
+                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                    workspace with { Sources = sources }));
+            }
+        }
+
+        /// <summary>Module-only workspaces emit module Lua without requiring shared UI Layer sources.</summary>
+        [Fact]
+        public void GeneratesModuleOnlyPayloadAndEscapesModifierNames()
+        {
+            var workspace = Workspace();
+            var moduleOnly = workspace with {
+                Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }],
+                Sources = null
+            };
+            var result = SnapshotLuaPayloadRenderer.Generate(moduleOnly);
+            Assert.Equal(2, result.Count);
+            Assert.DoesNotContain(result.Keys, x => x.Contains("UiLayer", StringComparison.Ordinal));
+            var escaped = new DcsModifier("Quote \"Name\"", "Stick", "JOY_BTN9", ModifierMode.Hold);
+            var config = new ModuleConfiguration(workspace.Configuration.Module,
+                workspace.Configuration.Profiles, [escaped], [], "test");
+            var modified = SnapshotLuaPayloadRenderer.Generate(moduleOnly with { Configuration = config });
+            Assert.Equal(escaped.Name, Assert.Single(DcsLuaParser.ParseModifiers(
+                Text(modified, "Config/Input/TEST/modifiers.lua"))).Name);
+        }
+
         #endregion END Public
         #region BEGIN private helpers
         private static string Text(IReadOnlyDictionary<string, byte[]> output, string path) =>
