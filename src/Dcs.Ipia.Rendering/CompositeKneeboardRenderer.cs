@@ -24,13 +24,14 @@ public static class CompositeKneeboardRenderer {
   using var deviceImage=SKImage.FromEncodedData(device);
   using var surface=SKSurface.Create(new SKImageInfo(1200,1600))??
    throw new InvalidDataException("Could not allocate kneeboard surface.");
-  surface.Canvas.DrawImage(pageImage,0,0);
+  var sampling=new SKSamplingOptions(SKFilterMode.Linear);
+  surface.Canvas.DrawImage(pageImage,0,0,sampling);
   var height=page.Legend.Count>0?1170:1350;
   var scale=Math.Min(1130f/deviceImage.Width,height/(float)deviceImage.Height);
   var width=deviceImage.Width*scale;
   var fittedHeight=deviceImage.Height*scale;
   surface.Canvas.DrawImage(deviceImage,new SKRect(35+(1130-width)/2,155+(height-fittedHeight)/2,
-   35+(1130+width)/2,155+(height+fittedHeight)/2));
+   35+(1130+width)/2,155+(height+fittedHeight)/2),sampling);
   using var image=surface.Snapshot();
   using var png=image.Encode(SKEncodedImageFormat.Png,100);
   return png.ToArray();
