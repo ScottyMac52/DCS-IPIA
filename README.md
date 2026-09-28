@@ -1,21 +1,23 @@
 # DCS-IPIA
 
-DCS Input Profile Importer Application is the future data-driven authoring and build boundary for DCS profiles, hardware, UI Layer assignments, documentation, kneeboards, and OvGME packages. Existing DCS-Common and consumer pipelines remain authoritative until each module passes equivalence and receives explicit approval.
-
-Phase 0 establishes independently testable layers, transport-neutral application contracts, a local SQLite persistence foundation, deterministic output primitives, and automated quality gates. It does not migrate DCS-Common behavior or consumer data.
+DCS Input Profile Importer Application is the future data-driven authoring and build boundary for DCS profiles, hardware, UI Layer assignments, documentation, kneeboards, and OvGME packages. Existing DCS-Common and consumer pipelines remain authoritative until each module passes equivalence and receives explicit approval. The current published installer predates the database-backed assignment editor and simplified navigation; use current `main` to review those changes.
 
 ## Visual Studio
 
-Open `DCS-IPIA.sln` in Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK. The solution includes the WPF application, all six supporting libraries, and the test project. Build the solution and run tests from Test Explorer. Visual Studio 2022 cannot target .NET 10; the project remains on .NET 10.
+Open `DCS-IPIA.sln` in Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK. The solution includes the WPF application, supporting libraries, and tests. Build the solution and run tests from Test Explorer.
 
-## Read-only source preview
+## Module workspace
 
-On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release` and choose **Open source (read-only)**.
+On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release`.
 
-- For live DCS exports, select `Saved Games/DCS.../Config/Input/UH-1H/joystick` or its containing `UH-1H` directory. The app reads current `diff.lua` profiles and adjacent `modifiers.lua` directly, displays bindings and diagnostics, and leaves device identities unresolved where no shared catalog is supplied. A Saved Games joystick folder has no kneeboard PNG assets.
-- For the committed Huey sample, select the root of a local `DCS-UH-1H-Huey` Git checkout and then a local `DCS-Common` Git checkout. Git must be installed. The app reads their committed `HEAD` contents, excluding uncommitted changes. Its Kneeboard tab displays the **existing rendered PNGs** committed in the Huey repository. It does not regenerate them from the imported configuration.
+- Choose **Import module sources** for a committed module Git checkout plus DCS-Common checkout, or a Saved Games module/joystick folder. Repository imports read committed `HEAD`; source repositories remain unchanged.
+- Select an imported module and **Open module** to reopen its saved SQLite workspace. Assignments is the first section; Module controls and Module UI Layer are scopes of the same graphical editor.
+- Edit assignments, authored labels, and axis tuning in a draft, then explicitly **Save to database** or discard. The Kneeboard tab shows existing imported PNGs; **Rendered kneeboard…** composites the current selected device's Module and applicable UI Layer labels into a live preview.
+- Diagnostics, Sources and read-only Import details expose problems and provenance. The app does not yet validate a full immutable build or generate a release package from its saved edits.
 
-**View imported** reopens the last read-only result. The main workspace layout tabs still show sample design data. Edit, validation, and package building remain unavailable.
+## OvGME work
+
+[#50](https://github.com/ScottyMac52/DCS-IPIA/issues/50) tracks the complete snapshot-to-OvGME path under Phase 1 [#10](https://github.com/ScottyMac52/DCS-IPIA/issues/10). The packaging library assembles a deterministic ZIP from an explicit frozen file set with the consumer's README/VERSION, `Config/Input`, and `KNEEBOARD` layout. This assembler does not itself generate Lua or kneeboard PNGs, export a complete editor snapshot, or publish a release. Those gates remain open until demonstrated against a pinned consumer package.
 
 ## Build
 
