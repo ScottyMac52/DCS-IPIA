@@ -44,13 +44,16 @@ for path in files:
     public_end = next((i for i, line in enumerate(lines) if "#endregion END Public" in line), -1)
     for i, line in enumerate(lines):
         member = line.strip()
-        is_type = bool(re.search(r"\b(?:class|record|struct|enum|interface)\s+" + re.escape(name) + r"\b", member))
+        is_type = bool(re.search(r"\b(?:class|record|struct|enum|interface)\s+" + re.escape(name) + r"\b", member)) or (member.startswith("public ") and lines[i].find("record") >= 0 and i + 1 < len(lines) and lines[i + 1].lstrip().startswith(name + "("))
         is_constructor = member.startswith(f"public {name}(")
         public_member = member.startswith("public ") and not is_type and not is_constructor
         interface_member = path.parent.name == "Interfaces" and bool(re.match(r"Task(?:<.*>)?\s+\w+\(", member))
         if not (public_member or interface_member):
             continue
-        if i == 0 or not lines[i - 1].lstrip().startswith("///"):
+        preceding = i - 1
+        while preceding >= 0 and lines[preceding].lstrip().startswith("["):
+            preceding -= 1
+        if preceding < 0 or not lines[preceding].lstrip().startswith("///"):
             errors.append(f"{relative}:{i + 1}: public member needs an adjacent XML comment")
         if not (public_start < i < public_end):
             errors.append(f"{relative}:{i + 1}: public member outside the Public region")
