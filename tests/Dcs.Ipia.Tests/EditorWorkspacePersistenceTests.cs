@@ -1,6 +1,8 @@
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
+using Microsoft.Data.Sqlite;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -83,6 +85,59 @@ namespace Dcs.Ipia.Tests
             finally
             {
                 File.Delete(path);
+            }
+        }
+
+        /// <summary>A frozen workspace restores into an empty database without source files or a partial write.</summary>
+        /// <returns>Completion of the SQLite restore and rollback checks.</returns>
+        [Fact]
+        public async Task Frozen_workspace_restores_into_empty_database_atomically()
+        {
+            var sourcePath = Path.Combine(Path.GetTempPath(), $"ipia-source-{Guid.NewGuid():N}.db");
+            var targetPath = Path.Combine(Path.GetTempPath(), $"ipia-restored-{Guid.NewGuid():N}.db");
+            try
+            {
+                var sourceConnection = "Data Source=" + sourcePath + ";Pooling=False";
+                var targetConnection = "Data Source=" + targetPath + ";Pooling=False";
+                await new SqliteMigrationRunner(sourceConnection).MigrateAsync();
+                await new SqliteMigrationRunner(targetConnection).MigrateAsync();
+
+                var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
+                var profile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD1", "pilot-left", "MFD.diff.lua");
+                var configuration = new ModuleConfiguration(module, [profile], [], [], "pinned-source");
+                var slot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
+                                                   BindingSection.Axis, "JOY_X");
+                var filter = new AxisFilter(0.04, 1, 0.85, [0.2, -0.2], true, false, true, 0.9, 1);
+                var workspace = new EditorWorkspaceSnapshot(
+                    configuration, [], [], [], [new CommandPaletteEntry("PITCH", "Pitch", "Axes", true)], [],
+                    [new DraftAssignment(slot, new DraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module)) {
+                        Filter = filter
+                    }], new Dictionary<string, string> { [slot.Key] = "Cyclic pitch" },
+                    new Dictionary<string, string> { ["config/kneeboard.json"] = "{\"schemaVersion\":1}" });
+                await new SqliteEditorWorkspaceRepository(sourceConnection).SaveAsync(workspace);
+                var frozen = EditorSnapshotSerializer.Serialize(
+                    (await new SqliteEditorWorkspaceRepository(sourceConnection).GetAsync(module.Id))!);
+
+                var restored = EditorSnapshotSerializer.Deserialize(frozen);
+                var target = new SqliteEditorWorkspaceRepository(targetConnection);
+                await target.SaveAsync(restored);
+                var reopened = (await target.GetAsync(module.Id))!;
+                Assert.Equal(frozen, EditorSnapshotSerializer.Serialize(reopened));
+                Assert.Equal(filter, Assert.Single(reopened.Assignments).Filter);
+                Assert.Equal("Cyclic pitch", reopened.Labels[slot.Key]);
+                Assert.Equal("{\"schemaVersion\":1}", reopened.Sources!["config/kneeboard.json"]);
+
+                var collision = new ModuleConfiguration(new(Guid.NewGuid(), "UH-1H", "Duplicate"), [], [], [],
+                                                        "another-source");
+                await Assert.ThrowsAsync<SqliteException>(() => target.SaveAsync(
+                    workspace with { Configuration = collision, Assignments = [], Labels = new Dictionary<string, string>() }));
+                Assert.Equal(module.Id, Assert.Single(await target.ListAsync()));
+                Assert.Equal(frozen, EditorSnapshotSerializer.Serialize((await target.GetAsync(module.Id))!));
+            }
+            finally
+            {
+                File.Delete(sourcePath);
+                File.Delete(targetPath);
             }
         }
         #endregion END Public

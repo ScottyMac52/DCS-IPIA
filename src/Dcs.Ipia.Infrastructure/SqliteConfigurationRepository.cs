@@ -23,6 +23,14 @@ namespace Dcs.Ipia.Infrastructure
             ArgumentNullException.ThrowIfNull(configuration);
             await using var c = await Open(ct);
             await using var tx = await c.BeginTransactionAsync(ct);
+            await ReplaceInTransactionAsync(c, (SqliteTransaction)tx, configuration, ct);
+            await tx.CommitAsync(ct);
+        }
+
+        internal static async Task ReplaceInTransactionAsync(SqliteConnection c, SqliteTransaction tx,
+                                                              ModuleConfiguration configuration,
+                                                              CancellationToken ct)
+        {
             await Command(
                 c, tx,
                 "INSERT INTO modules(id,dcs_id,display_name,provenance) VALUES($id,$dcs,$name,$provenance) ON CONFLICT(id) DO UPDATE SET dcs_id=excluded.dcs_id,display_name=excluded.display_name,provenance=excluded.provenance",
@@ -60,7 +68,6 @@ namespace Dcs.Ipia.Infrastructure
                     ("$filter",
                      binding.Filter is null ? DBNull.Value : JsonSerializer.Serialize(binding.Filter, JsonOptions)))
                     .ExecuteNonQueryAsync(ct);
-            await tx.CommitAsync(ct);
         }
         /// <summary>Gets an item by its stable identifier.</summary>
         /// <param name="moduleId">The module identifier.</param>

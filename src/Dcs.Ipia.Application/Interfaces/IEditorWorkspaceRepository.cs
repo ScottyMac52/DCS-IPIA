@@ -13,7 +13,7 @@ namespace Dcs.Ipia.Application.Interfaces
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Saved module identifiers.</returns>
         Task<IReadOnlyList<Guid>> ListAsync(CancellationToken ct = default);
-        /// <summary>Atomically replaces the editor snapshot, including staged assignments.</summary>
+        /// <summary>Atomically replaces the module configuration and editor snapshot, including staged assignments.</summary>
         /// <param name="snapshot">Complete validated workspace.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A task completing after the transaction commits.</returns>

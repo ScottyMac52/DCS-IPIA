@@ -65,7 +65,14 @@ namespace Dcs.Ipia.Infrastructure
                 throw new ArgumentException("Assignments must belong to the stored module.", nameof(snapshot));
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
+            await using (var foreignKeys = connection.CreateCommand())
+            {
+                foreignKeys.CommandText = "PRAGMA foreign_keys=ON";
+                await foreignKeys.ExecuteNonQueryAsync(ct);
+            }
             await using var transaction = await connection.BeginTransactionAsync(ct);
+            await SqliteConfigurationRepository.ReplaceInTransactionAsync(
+                connection, (SqliteTransaction)transaction, snapshot.Configuration, ct);
             var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
             command.CommandText =
