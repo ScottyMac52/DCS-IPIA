@@ -72,7 +72,7 @@ public sealed class ModuleWorkspaceLoader:IModuleWorkspaceLoader {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static IReadOnlyDictionary<string,string> UiLayerSources(IReadOnlyDictionary<string,string> sources)=>
+ private static SortedDictionary<string,string> UiLayerSources(IReadOnlyDictionary<string,string> sources)=>
   new SortedDictionary<string,string>(sources.Where(x=>x.Key.StartsWith("assets/shared/ui-layer/input/UiLayer/",StringComparison.Ordinal))
    .ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal),StringComparer.Ordinal);
  private static (IReadOnlyList<CommandPaletteEntry> Commands,string Source,IReadOnlyList<ImportDiagnostic> Diagnostics)
