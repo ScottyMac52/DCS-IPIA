@@ -13,14 +13,16 @@ public static class CompositeKneeboardRenderer {
  /// <summary>Renders the combined device page to a 1200 by 1600 PNG without writing a repository.</summary>
  /// <param name="diagram">Stored draw.io-generated device SVG.</param>
  /// <param name="page">Current labels, authored page title and modifier legend.</param>
+ /// <param name="footer">Preview footer, or empty when exporting an authored page.</param>
  /// <returns>The complete rendered PNG.</returns>
- public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page)=>
-  CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page),1200,1600);
+ public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview")=>
+  CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page,footer),1200,1600);
  /// <summary>Builds the final-style page SVG for inspection and deterministic tests.</summary>
  /// <param name="diagram">Stored draw.io-generated device SVG.</param>
  /// <param name="page">Current combined labels and legend.</param>
+ /// <param name="footer">Preview footer, or empty to retain only the authored SVG footer.</param>
  /// <returns>One complete SVG page with device image and modifier legend.</returns>
- public static string BuildPageSvg(UiLayerDiagram diagram,KneeboardComposite page) {
+ public static string BuildPageSvg(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview") {
   ArgumentNullException.ThrowIfNull(diagram);
   ArgumentNullException.ThrowIfNull(page);
   var device=BuildDeviceSvg(diagram,page);
@@ -38,7 +40,7 @@ public static class CompositeKneeboardRenderer {
      <text x="56" y="126" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#ffc95c">{Escape(page.Kicker)}</text>
      <image href="data:image/png;base64,{encoded}" x="35" y="155" width="1130" height="{hardwareHeight}" preserveAspectRatio="xMidYMid meet"/>
    {legend}
-     <text x="54" y="1570" font-family="Arial,sans-serif" font-size="18" fill="#8ea5bd">DCS-IPIA • current draft preview</text>
+    {(footer.Length==0?"":$"<text x=\"54\" y=\"1570\" font-family=\"Arial,sans-serif\" font-size=\"18\" fill=\"#8ea5bd\">{Escape(footer)}</text>")}
    </svg>
    """;
  }

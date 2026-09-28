@@ -1,0 +1,82 @@
+using Dcs.Ipia.Application;
+using Dcs.Ipia.Domain;
+using Dcs.Ipia.Rendering;
+using Xunit;
+
+namespace Dcs.Ipia.Tests;
+
+/// <summary>Checks complete device PNG output from saved assignments and pinned SVGs.</summary>
+public sealed class SnapshotDeviceKneeboardRendererTests {
+ private static readonly Guid ModuleId=Guid.Parse("fc35b653-ea6d-4ec6-99d3-bcb22eb5d8d2");
+ private static readonly Guid ProfileId=Guid.Parse("529897fc-ab18-495d-97e6-1d23fac78c86");
+ #region BEGIN Public
+ /// <summary>One module and UI Layer image responds to a saved label while ignoring imported PNG bytes.</summary>
+ [Fact] public void GeneratesCombinedDevicePngFromSavedLabels() {
+  var workspace=Workspace();
+  var first=SnapshotDeviceKneeboardRenderer.Generate(workspace);
+  var bytes=Assert.Single(first).Value;
+  Assert.Equal(new byte[] {137,80,78,71,13,10,26,10},bytes.Take(8));
+  Assert.Contains("KNEEBOARD/TEST/01-DEVICE.png",first.Keys);
+  Assert.Equal(bytes,Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(workspace)).Value);
+  var slot=workspace.Assignments[0].Slot.Key;
+  var changed=workspace with {Labels=new Dictionary<string,string> {[slot]="Different saved callout"}};
+  Assert.NotEqual(bytes,Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(changed)).Value);
+  var page=KneeboardDraftProjection.CreateCombined(workspace,workspace.Diagrams[0],workspace.Assignments,workspace.Labels);
+  var svg=CompositeKneeboardRenderer.BuildPageSvg(workspace.Diagrams[0],page,"");
+  Assert.Contains("data-modifier-legend",svg,StringComparison.Ordinal);
+  Assert.DoesNotContain("current draft preview",svg,StringComparison.Ordinal);
+ }
+
+ /// <summary>Missing pinned manifest, page mapping, or graphic prevents a partial package.</summary>
+ [Fact] public void RequiresPinnedAuthoredPagesAndGraphic() {
+  var workspace=Workspace();
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {Sources=null}));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {Pages=[]}));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {Diagrams=[]}));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Sources=new Dictionary<string,string> {["config/kneeboard.json"]="{\"profiles\":{},\"pages\":[]}"}
+  }));
+ }
+
+ /// <summary>Unmapped and duplicate saved slots are rejected instead of omitting their labels.</summary>
+ [Fact] public void RejectsUnrepresentedSavedAssignments() {
+  var workspace=Workspace();
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Assignments=[..workspace.Assignments,workspace.Assignments[0]]
+  }));
+  var bad=workspace.Assignments[0] with {
+   Slot=workspace.Assignments[0].Slot with {InputKey="JOY_BTN99"}
+  };
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Assignments=[bad,workspace.Assignments[1]]
+  }));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Diagrams=[workspace.Diagrams[0] with {SupportsUiLayer=false}]
+  }));
+ }
+ #endregion END Public
+ #region BEGIN private helpers
+ private static EditorWorkspaceSnapshot Workspace() {
+  var module=new DcsModule(ModuleId,"TEST","Test module");
+  var profile=new DeviceProfile(ProfileId,"device",null,"Device","Device.diff.lua");
+  var configuration=new ModuleConfiguration(module,[profile],[],[],"fixture");
+  var page=new KneeboardPage(Guid.NewGuid(),ModuleId,Guid.NewGuid(),KneeboardPageKind.Device,
+   "01-DEVICE","Device",[],1);
+  var diagram=new UiLayerDiagram("Device",null,"device.svg",100,100,[],[]) {
+   ProfileId=ProfileId,Controls=[new("one","One","JOY_BTN1",0,0,10,10)],
+   Svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='20' y='20'>Old</text></svg>"
+  };
+  var moduleSlot=new DraftAssignmentSlot(ModuleId,ProfileId,AssignmentLayer.Module,BindingSection.Key,"JOY_BTN1");
+  var uiSlot=new DraftAssignmentSlot(ModuleId,ProfileId,AssignmentLayer.UiLayer,BindingSection.Key,"JOY_BTN1","SHIFT");
+  var assignments=new[] {
+   new DraftAssignment(moduleSlot,new("M","Module action",false,AssignmentLayer.Module)),
+   new DraftAssignment(uiSlot,new("U","UI action",false,AssignmentLayer.UiLayer))
+  };
+  const string source="{\"profiles\":{\"stick\":\"Device.diff.lua\"},\"pages\":[{\"profile\":\"stick\",\"file\":\"01-DEVICE\",\"title\":\"Device\"}]}";
+  return new(configuration,[page],
+   [new KneeboardImageAsset(page.StableKey,"old.png",[1,2,3],"ignored")],[diagram],[],[],assignments,
+   new Dictionary<string,string> {[moduleSlot.Key]="Saved base label"},
+   new Dictionary<string,string> {["config/kneeboard.json"]=source});
+ }
+ #endregion END private helpers
+}
