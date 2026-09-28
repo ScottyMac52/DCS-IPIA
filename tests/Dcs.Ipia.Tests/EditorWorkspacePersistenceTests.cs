@@ -123,7 +123,10 @@ namespace Dcs.Ipia.Tests
                 await target.SaveAsync(restored);
                 var reopened = (await target.GetAsync(module.Id))!;
                 Assert.Equal(frozen, EditorSnapshotSerializer.Serialize(reopened));
-                Assert.Equal(filter, Assert.Single(reopened.Assignments).Filter);
+                var restoredFilter = Assert.Single(reopened.Assignments).Filter!;
+                Assert.Equal(filter.Deadzone, restoredFilter.Deadzone);
+                Assert.Equal(filter.Curvature, restoredFilter.Curvature);
+                Assert.Equal(filter.HardwareDetentAB, restoredFilter.HardwareDetentAB);
                 Assert.Equal("Cyclic pitch", reopened.Labels[slot.Key]);
                 Assert.Equal("{\"schemaVersion\":1}", reopened.Sources!["config/kneeboard.json"]);
 
