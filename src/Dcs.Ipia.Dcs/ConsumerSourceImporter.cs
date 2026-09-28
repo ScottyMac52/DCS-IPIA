@@ -25,7 +25,7 @@ public sealed class ConsumerSourceImporter:IConsumerSourceImporter {
   if(diagnostics.Count>0)return Failure(diagnostics);
   var files=new SortedDictionary<string,string>(StringComparer.Ordinal);
   foreach(var source in request.Sources!) {
-   if(source is null||string.IsNullOrWhiteSpace(source.Path)||source.Path.StartsWith('/')||source.Path.Contains('\\')||source.Path.Split('/').Any(x=>x is "" or "." or "..")||!Allowed(source.Path))
+   if(source is null||string.IsNullOrWhiteSpace(source.Path)||source.Path.StartsWith('/')||source.Path.Contains('\\')||source.Path.Split('/').Any(x=>x is "" or "." or "..")||!IsSupportedSourcePath(source.Path))
     diagnostics.Add(new("invalid-path",$"Invalid or unsupported module source path: {source?.Path}",true));
    else if(!files.TryAdd(source.Path,source.Content))
     diagnostics.Add(new("duplicate-path",$"Duplicate module source: {source.Path}",true));
@@ -183,11 +183,18 @@ public sealed class ConsumerSourceImporter:IConsumerSourceImporter {
  }
  #endregion END Public
  #region BEGIN private helpers
- private static bool Allowed(string path)=>
+ /// <summary>Recognizes committed module inputs that can be retained as pinned text.</summary>
+ internal static bool IsSupportedSourcePath(string path)=>
   path.StartsWith("config/",StringComparison.Ordinal)&&path.EndsWith(".json",StringComparison.Ordinal)||
   path.StartsWith("src/Config/Input/",StringComparison.Ordinal)&&
    (path.EndsWith("/modifiers.lua",StringComparison.Ordinal)||
-    path.Contains("/joystick/",StringComparison.Ordinal)&&path.EndsWith(".diff.lua",StringComparison.Ordinal));
+    path.Contains("/joystick/",StringComparison.Ordinal)&&path.EndsWith(".diff.lua",StringComparison.Ordinal))||
+  path=="README.md"||
+  path.StartsWith("docs/",StringComparison.Ordinal)&&path.EndsWith(".md",StringComparison.Ordinal)||
+  path=="packaging/ovgme/README.TXT"||
+  path is "scripts/Build-OvGME.ps1" or "scripts/Build-Release.ps1" or
+   "scripts/Test-Package.ps1" or "scripts/version.mjs" or
+   ".github/workflows/release.yml";
  private static string RequiredText(JsonElement item,string property) {
   var value=item.GetProperty(property).GetString();
   return string.IsNullOrWhiteSpace(value)?throw new FormatException($"Missing {property}."):value;
