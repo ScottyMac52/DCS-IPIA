@@ -60,25 +60,25 @@ public sealed class HueyWorkspaceLoaderTests {
    solution["import"]!["commandSource"]=System.Text.Json.JsonSerializer.SerializeToNode(new {type="catalog-json",paths=new[]{catalogPath}});
    File.WriteAllText(solutionPath,solution.ToJsonString());
    foreach(var (path,content) in new[]{
-    ("README.md","# committed module readme\\n"),
-    ("docs/INSTALLATION.md","Committed installation notes\\n"),
-    ("packaging/ovgme/README.TXT","Committed package instructions\\n"),
-    ("scripts/Build-OvGME.ps1","Write-Output 'committed build'\\n"),
-    (".github/workflows/release.yml","name: Committed release\\n")
+    ("README.md","# committed module readme\n"),
+    ("docs/INSTALLATION.md","Committed installation notes\n"),
+    ("packaging/ovgme/README.TXT","Committed package instructions\n"),
+    ("scripts/Build-OvGME.ps1","Write-Output 'committed build'\n"),
+    (".github/workflows/release.yml","name: Committed release\n")
    }) {
     var target=Path.Combine(huey,path);
     Directory.CreateDirectory(Path.GetDirectoryName(target)!);
     File.WriteAllText(target,content);
    }
    Commit(common);Commit(huey);
-   File.WriteAllText(Path.Combine(huey,"README.md"),"# uncommitted readme\\n");
+   File.WriteAllText(Path.Combine(huey,"README.md"),"# uncommitted readme\n");
    File.WriteAllText(Path.Combine(huey,"config","kneeboard.json"),"{broken");
    var result=await new ModuleWorkspaceLoader().LoadAsync(common,huey);
    Assert.True(result.Import.Succeeded,string.Join("; ",result.Import.Diagnostics.Select(x=>x.Message)));
    Assert.Equal(5,result.Import.Configuration!.Profiles.Count);
    Assert.Equal(17,result.Import.Provenance.Count);
-   Assert.Equal("# committed module readme\\n",result.Import.Sources["README.md"]);
-   Assert.Equal("Committed installation notes\\n",result.Import.Sources["docs/INSTALLATION.md"]);
+   Assert.Equal("# committed module readme\n",result.Import.Sources["README.md"]);
+   Assert.Equal("Committed installation notes\n",result.Import.Sources["docs/INSTALLATION.md"]);
    Assert.Contains(result.Import.Provenance,x=>x.Path==".github/workflows/release.yml");
    Assert.Contains(result.Import.Provenance,x=>x.Path=="scripts/Build-OvGME.ps1");
    Assert.Equal(13,result.Import.UiFunctionKeys.Count);
@@ -116,12 +116,12 @@ public sealed class HueyWorkspaceLoaderTests {
    Assert.Equal("Gun Up",reopened.Labels[(baseArm with {ModifierChord="MOZA_F16_F18_BTN3"}).Key]);
    Assert.Equal(result.SharedLuaSources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
     reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
-   Assert.Equal("# committed module readme\\n",reopened.Sources["README.md"]);
-   Assert.Equal("Committed package instructions\\n",reopened.Sources["packaging/ovgme/README.TXT"]);
+   Assert.Equal("# committed module readme\n",reopened.Sources["README.md"]);
+   Assert.Equal("Committed package instructions\n",reopened.Sources["packaging/ovgme/README.TXT"]);
    var frozen=EditorSnapshotSerializer.Serialize(reopened);
    Assert.Equal(reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
     EditorSnapshotSerializer.Deserialize(frozen).Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
-   Assert.Equal("Write-Output 'committed build'\\n",
+   Assert.Equal("Write-Output 'committed build'\n",
     EditorSnapshotSerializer.Deserialize(frozen).Sources!["scripts/Build-OvGME.ps1"]);
    Assert.StartsWith("{\n",result.Import.Sources["config/kneeboard.json"],StringComparison.Ordinal);
    var preview=Assert.Single(result.Images);
