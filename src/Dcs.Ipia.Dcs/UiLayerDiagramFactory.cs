@@ -104,6 +104,16 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidDataException($"Missing embedded hardware image: {path}");
             var background = Convert.FromBase64String(href![prefix.Length..]);
             var boxes = SvgCalloutLocator.Find(root);
+            foreach (var (control, box) in boxes)
+            {
+                var x = Coordinate(box, "x", path, control);
+                var y = Coordinate(box, "y", path, control);
+                var boxWidth = Size(box, "width", path, control);
+                var boxHeight = Size(box, "height", path, control);
+                if (x > width || y > height || boxWidth > width - x || boxHeight > height - y)
+                    throw new InvalidDataException(
+                        $"Hardware graphic {path} callout {control} extends outside its {width}x{height} viewBox.");
+            }
             var mapped = (shared?.Controls ?? [])
                              .Where(x => x.Control.DeviceId == device.Id)
                              .ToDictionary(x => x.Control.StableKey, x => x, StringComparer.Ordinal);
@@ -136,9 +146,11 @@ namespace Dcs.Ipia.Dcs
                                                    ?.Value.Trim() ??
                                                pair.Key;
                                            return new HardwareGraphicControl(
-                                               pair.Key, label, mapping.InputKey, Number(box.Attribute("x")?.Value),
-                                               Number(box.Attribute("y")?.Value), Number(box.Attribute("width")?.Value),
-                                               Number(box.Attribute("height")?.Value),
+                                               pair.Key, label, mapping.InputKey,
+                                               Coordinate(box, "x", path, pair.Key),
+                                               Coordinate(box, "y", path, pair.Key),
+                                               Size(box, "width", path, pair.Key),
+                                               Size(box, "height", path, pair.Key),
                                                mapping.Control.Kind == global::Dcs.Ipia.Domain.ControlKind.Axis);
                                        })
                                .OfType<HardwareGraphicControl>()
@@ -157,9 +169,9 @@ namespace Dcs.Ipia.Dcs
                 var modifiers =
                     string.Join(" + ", row.GetProperty("modifiers").EnumerateArray().Select(x => x.GetString()));
                 callouts.Add(new(callouts.Count + 1, control, command.Name, modifiers,
-                                 Number(box.Attribute("x")?.Value), Number(box.Attribute("y")?.Value),
-                                 Number(box.Attribute("width")?.Value),
-                                 Number(box.Attribute("height")?.Value)) { CommandId = command.DcsCommandId });
+                                 Coordinate(box, "x", path, control), Coordinate(box, "y", path, control),
+                                 Size(box, "width", path, control),
+                                 Size(box, "height", path, control)) { CommandId = command.DcsCommandId });
             }
             if (projected.Count > 0)
             {
@@ -198,9 +210,28 @@ namespace Dcs.Ipia.Dcs
                                    CanonicalUiLayerSourcePath = canonicalPath };
         }
         private static double Number(string? value) =>
-            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&
+            double.IsFinite(parsed) && parsed > 0
                 ? parsed
                 : throw new InvalidDataException($"Invalid SVG coordinate: {value}");
+
+        private static double Coordinate(XElement box, string attribute, string path, string control)
+        {
+            var value = box.Attribute(attribute)?.Value;
+            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&
+                double.IsFinite(parsed) && parsed >= 0)
+                return parsed;
+            throw new InvalidDataException($"Hardware graphic {path} callout {control} has invalid {attribute}: {value}.");
+        }
+
+        private static double Size(XElement box, string attribute, string path, string control)
+        {
+            var value = box.Attribute(attribute)?.Value;
+            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&
+                double.IsFinite(parsed) && parsed > 0)
+                return parsed;
+            throw new InvalidDataException($"Hardware graphic {path} callout {control} has invalid {attribute}: {value}.");
+        }
         #endregion END private helpers
     }
 }
