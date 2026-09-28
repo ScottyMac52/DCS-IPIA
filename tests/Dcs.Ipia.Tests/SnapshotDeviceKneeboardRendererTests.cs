@@ -1,6 +1,7 @@
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using SkiaSharp;
 using Xunit;
 
 namespace Dcs.Ipia.Tests;
@@ -23,6 +24,17 @@ public sealed class SnapshotDeviceKneeboardRendererTests {
   var changedPage=KneeboardDraftProjection.CreateCombined(changed,changed.Diagrams[0],changed.Assignments,changed.Labels);
   Assert.Equal("Different saved callout",changedPage.Labels["one"][0].Text);
   Assert.Contains("Different saved callout",CompositeKneeboardRenderer.BuildDeviceSvg(changed.Diagrams[0],changedPage),StringComparison.Ordinal);
+  using(var surface=SKSurface.Create(new SKImageInfo(100,100))) {
+   surface.Canvas.Clear(SKColors.Black);
+   using var before=surface.Snapshot();
+   using var firstPng=before.Encode(SKEncodedImageFormat.Png,100);
+   using var font=new SKFont(SKTypeface.Default,16);
+   using var paint=new SKPaint {Color=SKColors.White,IsAntialias=true};
+   surface.Canvas.DrawText("Visible",20,30,SKTextAlign.Left,font,paint);
+   using var after=surface.Snapshot();
+   using var lastPng=after.Encode(SKEncodedImageFormat.Png,100);
+   Assert.NotEqual(firstPng.ToArray(),lastPng.ToArray());
+  }
   Assert.NotEqual(bytes,Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(changed)).Value);
   var page=KneeboardDraftProjection.CreateCombined(workspace,workspace.Diagrams[0],workspace.Assignments,workspace.Labels);
   var svg=CompositeKneeboardRenderer.BuildPageSvg(workspace.Diagrams[0],page,"");
