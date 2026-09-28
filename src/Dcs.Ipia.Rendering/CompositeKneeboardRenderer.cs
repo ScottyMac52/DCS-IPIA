@@ -18,8 +18,7 @@ public static class CompositeKneeboardRenderer {
  /// <returns>The complete rendered PNG.</returns>
  public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview") {
   var outer=CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page,footer),1200,1600);
-  var device=CanonicalSvgRenderer.RenderCompleteScaled(BuildDeviceSvg(diagram,page),diagram.Width,diagram.Height,
-   Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height))));
+  var device=RasterizeDevice(diagram,page);
   using var pageImage=SKImage.FromEncodedData(outer);
   using var deviceImage=SKImage.FromEncodedData(device);
   using var surface=SKSurface.Create(new SKImageInfo(1200,1600))??
@@ -116,6 +115,35 @@ public static class CompositeKneeboardRenderer {
  }
  #endregion END Public
  #region BEGIN private helpers
+ private static byte[] RasterizeDevice(UiLayerDiagram diagram,KneeboardComposite page) {
+  var svg=BuildDeviceSvg(diagram,page);
+  var scale=Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height)));
+  var basePng=CanonicalSvgRenderer.RenderCompleteScaled(svg,diagram.Width,diagram.Height,scale);
+  using var original=SKImage.FromEncodedData(basePng);
+  using var surface=SKSurface.Create(new SKImageInfo(original.Width,original.Height))??
+   throw new InvalidDataException("Could not allocate labeled hardware surface.");
+  surface.Canvas.DrawImage(original,0,0,new SKSamplingOptions(SKFilterMode.Linear));
+  surface.Canvas.Scale(scale,scale);
+  var source=XDocument.Parse(svg);
+  foreach(var (control,variants) in page.Labels) {
+   var label=source.Descendants().FirstOrDefault(x=>x.Attribute("id")?.Value=="lbl-"+control);
+   if(label is null||variants.Count==0)continue;
+   if(!float.TryParse(label.Attribute("x")?.Value,NumberStyles.Float,CultureInfo.InvariantCulture,out var x)||
+      !float.TryParse(label.Attribute("y")?.Value,NumberStyles.Float,CultureInfo.InvariantCulture,out var y))
+    throw new InvalidDataException("Authored callout has no usable text position: "+control);
+   using var font=new SKFont(SKTypeface.Default,variants.Count>1?13:16);
+   for(var i=0;i<variants.Count;i++) {
+    var variant=variants[i];
+    var color=variant.Color=="#ffffff"&&variant.Scope==AssignmentLayer.Module&&variant.ModifierChord.Length==0?
+     label.Attribute("fill")?.Value??variant.Color:variant.Color;
+    using var paint=new SKPaint {IsAntialias=true,Color=SKColor.TryParse(color,out var parsed)?parsed:SKColors.White};
+    surface.Canvas.DrawText(variant.Text,x,y+(i-(variants.Count-1)/2f)*16,SKTextAlign.Left,font,paint);
+   }
+  }
+  using var image=surface.Snapshot();
+  using var png=image.Encode(SKEncodedImageFormat.Png,100);
+  return png.ToArray();
+ }
  private static List<string> WrapLabel(string value) {
   var words=value.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries);
   var lines=new List<string>();
