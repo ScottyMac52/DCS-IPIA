@@ -57,8 +57,38 @@ public sealed class SnapshotDeviceKneeboardRendererTests {
    Diagrams=[workspace.Diagrams[0] with {SupportsUiLayer=false}]
   }));
  }
+ /// <summary>Ambiguous identities, extra pages and unsafe authored paths cannot make a partial export.</summary>
+ [Fact] public void RejectsAmbiguousAndUnsafePageMappings() {
+  var workspace=Workspace();
+  var source=workspace.Sources!["config/kneeboard.json"];
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(WithManifest(workspace,
+   source.Replace("{\"stick\":\"Device.diff.lua\"}",
+    "{\"a\":\"Device.diff.lua\",\"b\":\"Device.diff.lua\"}",StringComparison.Ordinal))));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(WithManifest(workspace,
+   source.Replace("\"file\":\"01-DEVICE\"",
+    "\"file\":\"../01-DEVICE\"",StringComparison.Ordinal))));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Pages=[..workspace.Pages,workspace.Pages[0] with {StableKey="02-ORPHAN"}]
+  }));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Pages=[..workspace.Pages,workspace.Pages[0]]
+  }));
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Diagrams=[workspace.Diagrams[0] with {Controls=[]}]
+  }));
+ }
+ /// <summary>A pinned font makes missing characters an explicit export error rather than an invisible label.</summary>
+ [Fact] public void RejectsGlyphsOutsidePinnedFont() {
+  var workspace=Workspace();
+  var slot=workspace.Assignments[0].Slot.Key;
+  Assert.Throws<InvalidDataException>(()=>SnapshotDeviceKneeboardRenderer.Generate(workspace with {
+   Labels=new Dictionary<string,string> {[slot]="Unsupported 🚀"}
+  }));
+ }
  #endregion END Public
  #region BEGIN private helpers
+ private static EditorWorkspaceSnapshot WithManifest(EditorWorkspaceSnapshot workspace,string manifest)=>
+  workspace with {Sources=new Dictionary<string,string> {["config/kneeboard.json"]=manifest}};
  private static EditorWorkspaceSnapshot Workspace() {
   var module=new DcsModule(ModuleId,"TEST","Test module");
   var profile=new DeviceProfile(ProfileId,"device",null,"Device","Device.diff.lua");
