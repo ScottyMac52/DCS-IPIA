@@ -43,6 +43,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains("data:image/png;base64,", outer, StringComparison.Ordinal);
             var png = CompositeKneeboardRenderer.Render(diagram, page);
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8));
+            Assert.Equal(CanonicalSvgRenderer.RenderComplete(outer, 1200, 1600), png);
         }
         /// <summary>Final-style labels wrap without losing the authored base color; modifier entries stay on one callout.</summary>
         [Fact]
