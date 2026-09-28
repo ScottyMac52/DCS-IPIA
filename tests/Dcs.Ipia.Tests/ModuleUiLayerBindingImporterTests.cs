@@ -64,6 +64,9 @@ public sealed class ModuleUiLayerBindingImporterTests {
   var imported=new ConsumerImportResult(configuration,[],[],[],[],
    ParseMetadata("""{"includeUiLayer":true}""",null),new Dictionary<string,string>(),[],[]);
   Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,shared,profile));
+  var duplicateExact=candidates.Select(x=>new DeviceProfile(x.Id,x.DeviceId,x.Instance,x.Role,profile.SourceName)).ToArray();
+  Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,
+   new SharedLuaImportResult([],duplicateExact,[],[],[],[]),profile));
  }
  #endregion END Public
  #region BEGIN private helpers
