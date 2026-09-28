@@ -99,8 +99,12 @@ public static class UiLayerDiagramFactory {
       control.X,control.Y,control.Width,control.Height) {CommandId=binding.CommandId});
     }
    }
+   var canonical=shared is null?null:ModuleUiLayerBindingImporter.ResolveCanonicalProfile(import,shared,profile);
+   var canonicalPath=canonical is null?null:shared!.Provenance.Where(x=>
+    x.Path.StartsWith("assets/shared/ui-layer/input/UiLayer/",StringComparison.Ordinal)&&
+    x.Path.EndsWith("/"+canonical.SourceName,StringComparison.Ordinal)).Select(x=>x.Path).SingleOrDefault();
    return new(device.DisplayName,profile.Instance,path,width,height,background,callouts) {
-    Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi
+    Svg=svg,ProfileId=profile.Id,Controls=controls,SupportsUiLayer=supportsUi,CanonicalUiLayerSourcePath=canonicalPath
    };
   }
  private static double Number(string? value)=>double.TryParse(value,NumberStyles.Float,CultureInfo.InvariantCulture,out var parsed)&&parsed>0
