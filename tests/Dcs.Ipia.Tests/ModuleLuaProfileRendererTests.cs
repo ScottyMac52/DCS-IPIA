@@ -32,7 +32,7 @@ public sealed class ModuleLuaProfileRendererTests {
   Assert.Contains(parsed,x=>x.CommandId=="New"&&x.CommandName=="New \"name\""&&x.Disposition==BindingDisposition.Added&&x.InputKey=="JOY_BTN1");
   Assert.Contains(parsed,x=>x.CommandId=="Other"&&x.Disposition==BindingDisposition.Changed);
   Assert.Contains(parsed,x=>x.CommandId=="Gone"&&x.Disposition==BindingDisposition.Removed);
-  var axis=Assert.Single(parsed.Where(x=>x.CommandId=="AxisNew"));
+  var axis=Assert.Single(parsed,x=>x.CommandId=="AxisNew");
   Assert.Equal(filter.Deadzone,axis.Filter?.Deadzone);
   Assert.Equal(filter.Curvature,axis.Filter?.Curvature);
   Assert.True(axis.Filter?.Invert);
