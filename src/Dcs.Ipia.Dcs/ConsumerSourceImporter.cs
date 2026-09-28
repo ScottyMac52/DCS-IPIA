@@ -117,6 +117,16 @@ public sealed class ConsumerSourceImporter:IConsumerSourceImporter {
     if(!profiles.Any(x=>x.SourceName==decision.Name))throw new FormatException($"Instance role references unknown profile {decision.Name}.");
    if(profiles.Count!=pageRows.GetArrayLength())
     throw new FormatException("Every kneeboard profile requires exactly one page.");
+   if(profiles.Select(x=>x.Id).Distinct().Count()!=profiles.Count)
+    throw new FormatException("Two kneeboard profiles resolve to the same device instance; assign distinct deviceInstance values.");
+   // Removed defaults may retain historical chords absent from the current modifiers file.
+   // Active assignments, however, must be installable with this module's definitions.
+   var definedModifiers=modifiers.Select(x=>x.Name).ToHashSet(StringComparer.Ordinal);
+   var missingModifiers=bindings.Where(x=>x.Disposition!=BindingDisposition.Removed)
+    .SelectMany(x=>x.Reformers).Distinct(StringComparer.Ordinal)
+    .Where(x=>!definedModifiers.Contains(x)).Order(StringComparer.Ordinal).ToArray();
+   if(missingModifiers.Length>0)
+    throw new FormatException($"Module bindings reference undefined modifiers: {string.Join(", ",missingModifiers)}.");
    var unused=files.Keys.Where(x=>x.StartsWith(profileRoot,StringComparison.Ordinal)&&
     x.EndsWith(".diff.lua",StringComparison.Ordinal)&&!profilePaths.Contains(x)).ToArray();
    if(unused.Length>0)diagnostics.Add(new("unreferenced-module-profiles",

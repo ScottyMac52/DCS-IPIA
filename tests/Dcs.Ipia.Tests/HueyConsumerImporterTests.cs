@@ -95,6 +95,33 @@ public sealed class HueyConsumerImporterTests {
   var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
   Assert.True(result.Succeeded);Assert.Contains(result.Diagnostics,x=>x.Code=="module-overlay-preserved");
  }
+ /// <summary>An active chord must use a modifier defined by the module itself.</summary>
+ [Fact] public void Undefined_active_modifier_rejects_the_whole_import() {
+  var request=Fixture();
+  var sources=request.Sources.Select(source=>
+   source.Path.Contains("F16 MFD 2 ",StringComparison.Ordinal)
+    ?source with {Content=source.Content.Replace("MOZA_F16_F18_BTN3","UNKNOWN_CHORD",StringComparison.Ordinal)}
+    :source).ToArray();
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);
+  Assert.Null(result.Configuration);Assert.Empty(result.Provenance);
+  Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source"&&
+   x.Message.Contains("undefined modifiers: UNKNOWN_CHORD",StringComparison.Ordinal));
+ }
+ /// <summary>Two page identities must not collapse onto one physical device instance.</summary>
+ [Fact] public void Duplicate_device_instance_rejects_the_whole_import() {
+  var request=Fixture();
+  var sources=Replace(request,"config/kneeboard.json",text=>{
+   var root=JsonNode.Parse(text)!;
+   root["pages"]![1]!["deviceInstance"]="MFD1";
+   return root.ToJsonString();
+  }).Where(x=>x.Path!="config/scaffold-instance-roles.json").ToArray();
+  var result=new ConsumerSourceImporter().Import(request with {Sources=sources});
+  Assert.False(result.Succeeded);
+  Assert.Null(result.Configuration);Assert.Empty(result.Provenance);
+  Assert.Contains(result.Diagnostics,x=>x.Code=="invalid-huey-source"&&
+   x.Message.Contains("same device instance",StringComparison.Ordinal));
+ }
  /// <summary>Malformed authored JSON yields a diagnostic and no partial configuration.</summary>
  [Fact] public void Malformed_json_is_atomic() {
   var request=Fixture();var sources=Replace(request,"config/kneeboard.json",_=>"{");
