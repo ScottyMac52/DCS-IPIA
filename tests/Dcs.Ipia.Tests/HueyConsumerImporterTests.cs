@@ -33,6 +33,28 @@ public sealed class HueyConsumerImporterTests {
   Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source.Content))),result.Provenance.Single(x=>x.Path==source.Path).Sha256);
   Assert.All(result.Provenance,x=>{Assert.Equal(request.Commit,x.Commit);Assert.Equal("UH-1H",x.Repository);});
  }
+ /// <summary>Documentation and release inputs are pinned without interpreting generated content as authored bindings.</summary>
+ [Fact] public void Preserves_committed_documentation_and_release_contract_texts() {
+  var request=Fixture();
+  ConsumerSource[] references=[
+   new("README.md","# Huey\n"),
+   new("docs/INSTALLATION.md","Install notes\n"),
+   new("docs/devices/TM-MFD-1-MAPPINGS.md","Device mappings\n"),
+   new("packaging/ovgme/README.TXT","Package instructions\n"),
+   new("scripts/Build-OvGME.ps1","Write-Output 'build'\n"),
+   new(".github/workflows/release.yml","name: Release\n")
+  ];
+  var imported=new ConsumerSourceImporter().Import(request with {Sources=[..request.Sources,..references]});
+  Assert.True(imported.Succeeded,string.Join("; ",imported.Diagnostics.Select(x=>x.Message)));
+  Assert.Equal(5,imported.Configuration!.Profiles.Count);
+  Assert.Equal(request.Sources.Count+references.Length,imported.Provenance.Count);
+  foreach(var source in references) {
+   Assert.Equal(source.Content,imported.Sources[source.Path]);
+   Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source.Content))),
+    imported.Provenance.Single(x=>x.Path==source.Path).Sha256);
+   Assert.False(imported.Metadata.ContainsKey(source.Path));
+  }
+ }
  /// <summary>Repeat imports preserve ordering, stable IDs, and content hashes.</summary>
  [Fact] public void Repeated_import_is_deterministic() {
   var request=Fixture();var importer=new ConsumerSourceImporter();
