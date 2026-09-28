@@ -15,23 +15,19 @@ namespace DcsIpia.Presentation
         private readonly IDcsFolderImporter _folderImporter;
         private readonly IAppSettingsService _settings;
         private readonly IEditorWorkspaceRepository _workspaces;
-        private readonly IModuleConfigurationRepository _configurations;
         private ModuleWorkspaceViewModel? _lastViewModel;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
         /// <param name="settings">The validated user preference service.</param>
         /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
-        /// <param name="configurations">Relational module configuration store.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
-                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
-                          IModuleConfigurationRepository configurations)
+                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _workspaces = workspaces ?? throw new ArgumentNullException(nameof(workspaces));
-            _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             InitializeComponent();
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
@@ -105,7 +101,6 @@ namespace DcsIpia.Presentation
                     if (authored > 0 && importedView.Labels.Count == 0)
                         throw new InvalidDataException(
                             "No authored kneeboard labels matched the imported module bindings.");
-                    await _configurations.ReplaceAsync(module);
                     var saved = new EditorWorkspaceSnapshot(
                         module, preview.Import.Pages, preview.Images, preview.Diagrams, importedView.ModuleCommands,
                         preview.UiCommands, importedView.Draft?.Snapshot ?? [], importedView.Labels,
