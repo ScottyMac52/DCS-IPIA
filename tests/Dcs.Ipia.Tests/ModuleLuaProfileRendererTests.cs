@@ -1,6 +1,7 @@
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Xunit;
 
 namespace Dcs.Ipia.Tests;
 
