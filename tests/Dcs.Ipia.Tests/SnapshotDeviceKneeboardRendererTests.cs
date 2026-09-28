@@ -20,6 +20,9 @@ public sealed class SnapshotDeviceKneeboardRendererTests {
   Assert.Equal(bytes,Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(workspace)).Value);
   var slot=workspace.Assignments[0].Slot.Key;
   var changed=workspace with {Labels=new Dictionary<string,string> {[slot]="Different saved callout"}};
+  var changedPage=KneeboardDraftProjection.CreateCombined(changed,changed.Diagrams[0],changed.Assignments,changed.Labels);
+  Assert.Equal("Different saved callout",changedPage.Labels["one"][0].Text);
+  Assert.Contains("Different saved callout",CompositeKneeboardRenderer.BuildDeviceSvg(changed.Diagrams[0],changedPage),StringComparison.Ordinal);
   Assert.NotEqual(bytes,Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(changed)).Value);
   var page=KneeboardDraftProjection.CreateCombined(workspace,workspace.Diagrams[0],workspace.Assignments,workspace.Labels);
   var svg=CompositeKneeboardRenderer.BuildPageSvg(workspace.Diagrams[0],page,"");
@@ -64,7 +67,7 @@ public sealed class SnapshotDeviceKneeboardRendererTests {
    "01-DEVICE","Device",[],1);
   var diagram=new UiLayerDiagram("Device",null,"device.svg",100,100,[],[]) {
    ProfileId=ProfileId,Controls=[new("one","One","JOY_BTN1",0,0,10,10)],
-   Svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='20' y='20'>Old</text></svg>"
+   Svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='20' y='20' fill='white'>Old</text></svg>"
   };
   var moduleSlot=new DraftAssignmentSlot(ModuleId,ProfileId,AssignmentLayer.Module,BindingSection.Key,"JOY_BTN1");
   var uiSlot=new DraftAssignmentSlot(ModuleId,ProfileId,AssignmentLayer.UiLayer,BindingSection.Key,"JOY_BTN1","SHIFT");
