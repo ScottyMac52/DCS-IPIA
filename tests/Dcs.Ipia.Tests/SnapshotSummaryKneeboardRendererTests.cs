@@ -37,6 +37,29 @@ public sealed class SnapshotSummaryKneeboardRendererTests {
     "Flight controls","Unsupported 🚀",StringComparison.Ordinal)}
   }));
  }
+ /// <summary>Rejects malformed rows and manifest drift instead of silently emitting an incomplete PNG.</summary>
+ [Fact] public void RejectsMalformedAuthoredSummaryRows() {
+  var workspace=Workspace();
+  static EditorWorkspaceSnapshot With(EditorWorkspaceSnapshot saved,string manifest)=>saved with {
+   Sources=new Dictionary<string,string> {["config/kneeboard.json"]=manifest}
+  };
+  const string valid="""{"summaryPages":[{"type":"summary","file":"00-OVERVIEW","title":"CONTROL OVERVIEW","kicker":"PHYSICAL CONTROLLERS","items":[{"key":"STICK","text":"Flight controls","accent":"red"}]}]}""";
+  var blue=valid.Replace("\"accent\":\"red\"","\"accent\":\"blue\"",StringComparison.Ordinal);
+  Assert.Equal(new byte[] {137,80,78,71,13,10,26,10},
+   Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(With(workspace,blue))).Value.Take(8));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,"{}")));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,
+   """{"summaryPages":[]}""")));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,
+   valid.Replace("\"items\":[{\"key\":\"STICK\",\"text\":\"Flight controls\",\"accent\":\"red\"}]",
+    "\"items\":[]",StringComparison.Ordinal))));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,
+   valid.Replace("\"accent\":\"red\"","\"accent\":\"orange\"",StringComparison.Ordinal))));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,
+   valid.Replace("\"title\":\"CONTROL OVERVIEW\"","\"title\":\"\"",StringComparison.Ordinal))));
+  Assert.Throws<InvalidDataException>(()=>SnapshotSummaryKneeboardRenderer.Generate(With(workspace,
+   valid.Replace("Flight controls",new string('A',200),StringComparison.Ordinal))));
+ }
  #endregion END Public
  #region BEGIN private helpers
  private static EditorWorkspaceSnapshot Workspace() {
