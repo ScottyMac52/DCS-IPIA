@@ -47,8 +47,7 @@ public sealed class OvGmePackageBuilderTests {
  [InlineData("/Config/Input/UH-1H/joystick/bad.diff.lua")]
  [InlineData("Config/Input/UH-1H/joystick/bad.txt")]
  [InlineData("Config/Input/F-16C/joystick/bad.diff.lua")]
- [InlineData("README.TXT")]
- public void Rejects_unsafe_or_unexpected_paths(string path) {
+ [InlineData("README.TXT")] public void Rejects_unsafe_or_unexpected_paths(string path) {
   var payload=BasePayload();payload[path]=Profile;
   Assert.Throws<ArgumentException>(()=>OvGmePackageBuilder.Build(Input(payload)));
  }
@@ -73,8 +72,7 @@ public sealed class OvGmePackageBuilderTests {
  [InlineData("../escape","UH-1H","v1")]
  [InlineData("Package","UH/1H","v1")]
  [InlineData("Package","UH-1H","v1/../../bad")]
- [InlineData("Package","UH-1H","")]
- public void Rejects_bad_identifiers(string packageId,string moduleId,string version) {
+ [InlineData("Package","UH-1H","")] public void Rejects_bad_identifiers(string packageId,string moduleId,string version) {
   Assert.Throws<ArgumentException>(()=>OvGmePackageBuilder.Build(new(packageId,moduleId,version,BasePayload())));
  }
  #endregion END Public
