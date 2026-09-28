@@ -87,7 +87,7 @@ namespace Dcs.Ipia.Dcs
                 slot.ModifierChord.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
                 assignment.Filter);
         }
-        private static string Write(IReadOnlyList<DcsBinding> bindings)
+        internal static string Write(IReadOnlyList<DcsBinding> bindings)
         {
             var text = new StringBuilder("local diff = {\n");
             foreach (var section in new[] { (Section: BindingSection.Key, Name: "keyDiffs"),
