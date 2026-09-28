@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Dcs.Ipia.Application;
+using SkiaSharp;
 
 namespace Dcs.Ipia.Rendering;
 
@@ -15,8 +16,25 @@ public static class CompositeKneeboardRenderer {
  /// <param name="page">Current labels, authored page title and modifier legend.</param>
  /// <param name="footer">Preview footer, or empty when exporting an authored page.</param>
  /// <returns>The complete rendered PNG.</returns>
- public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview")=>
-  CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page,footer),1200,1600);
+ public static byte[] Render(UiLayerDiagram diagram,KneeboardComposite page,string footer="DCS-IPIA • current draft preview") {
+  var outer=CanonicalSvgRenderer.RenderComplete(BuildPageSvg(diagram,page,footer),1200,1600);
+  var device=CanonicalSvgRenderer.RenderCompleteScaled(BuildDeviceSvg(diagram,page),diagram.Width,diagram.Height,
+   Math.Min(2,(int)Math.Floor(4096/Math.Max(diagram.Width,diagram.Height))));
+  using var pageImage=SKImage.FromEncodedData(outer);
+  using var deviceImage=SKImage.FromEncodedData(device);
+  using var surface=SKSurface.Create(new SKImageInfo(1200,1600))??
+   throw new InvalidDataException("Could not allocate kneeboard surface.");
+  surface.Canvas.DrawImage(pageImage,0,0);
+  var height=page.Legend.Count>0?1170:1350;
+  var scale=Math.Min(1130f/deviceImage.Width,height/(float)deviceImage.Height);
+  var width=deviceImage.Width*scale;
+  var fittedHeight=deviceImage.Height*scale;
+  surface.Canvas.DrawImage(deviceImage,new SKRect(35+(1130-width)/2,155+(height-fittedHeight)/2,
+   35+(1130+width)/2,155+(height+fittedHeight)/2));
+  using var image=surface.Snapshot();
+  using var png=image.Encode(SKEncodedImageFormat.Png,100);
+  return png.ToArray();
+ }
  /// <summary>Builds the final-style page SVG for inspection and deterministic tests.</summary>
  /// <param name="diagram">Stored draw.io-generated device SVG.</param>
  /// <param name="page">Current combined labels and legend.</param>
