@@ -66,7 +66,7 @@ namespace Dcs.Ipia.Tests
                         var mime = device == "grip-f18c" ? "jpeg" : "png";
                         File.WriteAllText(
                             path,
-                            $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'>\n  <image href='data:image/{mime};base64,{Convert.ToBase64String(image)}'/>\n{rects}\n</svg>");
+                            $"<svg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 960 720'>\n  <image href='data:image/{mime};base64,{Convert.ToBase64String(image)}' x='0' y='0' width='960' height='720'/>\n{rects}\n</svg>");
                     }
                 }
                 var catalogPath = Path.Combine(temp, "UH-1H-commands.json");
@@ -270,6 +270,33 @@ namespace Dcs.Ipia.Tests
                         "data:image/png;base64,", "data:image/gif;base64,", StringComparison.Ordinal);
                 Assert.Throws<InvalidDataException>(
                     () => UiLayerDiagramFactory.Create(result.Import, catalog, unsupportedImage));
+                var mfdSvg = graphics["assets/shared/hardware/svg/tm-mfd.svg"];
+                foreach (var (original, invalid, expected) in new[] {
+                             ("<svg xmlns='http://www.w3.org/2000/svg' width='960'", 
+                              "<svg xmlns='http://www.w3.org/2000/svg' width='1000'", "SVG canvas"),
+                             (" x='0' y='0' width='960' height='720'/>",
+                              " x='950' y='0' width='960' height='720'/>", "embedded image"),
+                             (" x='0' y='0' width='960' height='720'/>",
+                              " x='NaN' y='0' width='960' height='720'/>", "embedded image"),
+                             (" x='0' y='0' width='960' height='720'/>",
+                              " x='0' y='0' width='0' height='720'/>", "embedded image")
+                         })
+                {
+                    var malformed = new Dictionary<string, string>(graphics);
+                    malformed["assets/shared/hardware/svg/tm-mfd.svg"] =
+                        mfdSvg.Replace(original, invalid, StringComparison.Ordinal);
+                    var errors = new List<string>();
+                    var remaining = UiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
+                        (profile, error) => errors.Add($"{profile.DeviceId}: {error.Message}"));
+                    Assert.Equal(2, remaining.Count);
+                    Assert.Contains(errors, x => x.Contains("tm-mfd.svg", StringComparison.Ordinal) &&
+                                                  x.Contains(expected, StringComparison.Ordinal));
+                }
+                var insetImage = new Dictionary<string, string>(graphics);
+                insetImage["assets/shared/hardware/svg/tm-mfd.svg"] = mfdSvg.Replace(
+                    " x='0' y='0' width='960' height='720'/>",
+                    " x='100' y='50' width='600' height='500'/>", StringComparison.Ordinal);
+                Assert.Equal(5, UiLayerDiagramFactory.Create(result.Import, catalog, insetImage, sharedMap).Count);
                 var throttleSvg = graphics["assets/shared/hardware/svg/tm-warthog-throttle.svg"];
                 foreach (var (original, invalid) in new[] {
                              ("x='10'", "x='950'"), ("x='10'", "x='NaN'"),
