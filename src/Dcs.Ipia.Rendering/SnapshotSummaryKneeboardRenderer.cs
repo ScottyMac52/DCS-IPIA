@@ -13,7 +13,7 @@ public static class SnapshotSummaryKneeboardRenderer {
  /// <returns>Package-relative PNG paths and bytes in ordinal order.</returns>
  public static IReadOnlyDictionary<string,byte[]> Generate(EditorWorkspaceSnapshot workspace) {
   ArgumentNullException.ThrowIfNull(workspace);
-  if(workspace.Sources?.TryGetValue("config/kneeboard.json",out var source)!=true)
+  if(workspace.Sources?.TryGetValue("config/kneeboard.json",out var source)!=true||source is null)
    throw new InvalidDataException("A pinned authored kneeboard manifest is required.");
   using var document=JsonDocument.Parse(source);
   if(!document.RootElement.TryGetProperty("summaryPages",out var summaries)||summaries.ValueKind!=JsonValueKind.Array)
