@@ -33,13 +33,18 @@ namespace Dcs.Ipia.Tests
             using var stream = new MemoryStream(first.Bytes);
             using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
             var root = "DCS-UH-1H-Components-v1-OVGME/";
+            // OvGME's GME_ZipIsValidMod requires a real directory entry whose
+            // first segment equals the ZIP basename; nested file paths do not count.
+            Assert.Contains(zip.Entries, x => x.FullName == root && x.Name.Length == 0);
+            Assert.Contains(zip.Entries, x => x.FullName == root + "Config/Input/UiLayer/joystick/" &&
+                                             x.Name.Length == 0);
             Assert.Equal(
                 [
                     "README.TXT", "VERSION.TXT", root + "Config/Input/UH-1H/joystick/MFD.diff.lua",
                     root + "Config/Input/UH-1H/modifiers.lua", root + "Config/Input/UiLayer/joystick/MFD.diff.lua",
                     root + "Config/Input/UiLayer/modifiers.lua", root + "KNEEBOARD/UH-1H/01-MFD.png"
                 ],
-                zip.Entries.Select(x => x.FullName));
+                zip.Entries.Where(x => x.Name.Length > 0).Select(x => x.FullName));
             Assert.All(zip.Entries, x => Assert.Equal(1980, x.LastWriteTime.Year));
             using var reader = new StreamReader(zip.GetEntry("README.TXT")!.Open());
             Assert.Contains("Install relative to your DCS Saved Games root.", reader.ReadToEnd(),
