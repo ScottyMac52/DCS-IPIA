@@ -16,6 +16,8 @@ namespace Dcs.Ipia.Dcs
         public static string Render(EditorWorkspaceSnapshot workspace, Guid profileId)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            if (WorkspaceManagement.Read(workspace) is { } managed)
+                return RenderManaged(workspace, profileId, managed);
             var config = workspace.Configuration;
             if (config.Profiles.All(x => x.Id != profileId))
                 throw new ArgumentException("Profile is outside this module.", nameof(profileId));
@@ -93,6 +95,23 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static string RenderManaged(EditorWorkspaceSnapshot workspace, Guid profileId, WorkspaceManagement managed)
+        {
+            if (!managed.Devices.Any(x => x.ProfileId == profileId && x.Layer == AssignmentLayer.UiLayer))
+                throw new InvalidDataException("Device is outside the module UI Layer.");
+            var path = "config/ipia-ui-" + profileId.ToString("N") + ".lua";
+            var source = workspace.Sources?.GetValueOrDefault(path) ??
+                         throw new InvalidDataException("The managed UI Layer profile source is missing.");
+            var bindings = DcsLuaParser.ParseProfile(source, profileId);
+            var modifiers = managed.Modifiers.Where(x => x.Layer == AssignmentLayer.UiLayer)
+                .Select(x => new DcsModifier(x.Name, x.NativeDevice, x.Key, x.Mode));
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                modifiers, bindings, workspace.Configuration.Provenance);
+            var assignments = workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
+                .Select(x => x with { Slot = x.Slot with { Layer = AssignmentLayer.Module },
+                                     Command = x.Command with { Layer = AssignmentLayer.Module } }).ToArray();
+            return ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = assignments }, profileId);
+        }
         internal static HashSet<string> RemovedModifiers(IReadOnlyDictionary<string, string> sources)
         {
             if (!sources.TryGetValue("config/ui-layer-overlay.json", out var source))
@@ -126,3 +145,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

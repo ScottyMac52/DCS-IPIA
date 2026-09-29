@@ -1,5 +1,6 @@
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Dcs;
 
 namespace DcsIpia.Presentation
 {
@@ -97,9 +98,7 @@ namespace DcsIpia.Presentation
                 x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer));
             Draft = new DraftAssignmentService(
                 saved.Configuration, moduleCommands.Concat(uiCommands), saved.Assignments,
-                saved.Diagrams.SelectMany(x => x.Callouts)
-                    .SelectMany(x => x.Modifier.Split('+', StringSplitOptions.TrimEntries |
-                                                               StringSplitOptions.RemoveEmptyEntries)));
+                WorkspaceStructureEditor.UiModifierNames(saved));
             DraftNote = "Changes remain pending until Save to database.";
             WindowTitle = saved.Configuration.Module.DisplayName + " · database assignment editor";
             Commit = "Saved in local SQLite database";
@@ -296,3 +295,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

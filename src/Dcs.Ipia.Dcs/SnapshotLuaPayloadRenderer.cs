@@ -15,6 +15,8 @@ namespace Dcs.Ipia.Dcs
         public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            if (WorkspaceManagement.Read(workspace) is { } managed)
+                return GenerateManaged(workspace, managed);
             var config = workspace.Configuration;
             var moduleId = config.Module.DcsId;
             SafeSegment(moduleId);
@@ -68,6 +70,33 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static Dictionary<string, byte[]> GenerateManaged(EditorWorkspaceSnapshot workspace, WorkspaceManagement managed)
+        {
+            SafeSegment(workspace.Configuration.Module.DcsId);
+            if (managed.Devices.Any(x => !Enum.IsDefined(x.Layer) || workspace.Configuration.Profiles.All(p => p.Id != x.ProfileId)) ||
+                managed.Devices.GroupBy(x => (x.ProfileId, x.Layer)).Any(x => x.Count() > 1) ||
+                workspace.Assignments.Any(x => !managed.Devices.Any(d => d.ProfileId == x.Slot.ProfileId && d.Layer == x.Slot.Layer)))
+                throw new InvalidDataException("Managed device membership differs from saved assignments or profiles.");
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (var device in managed.Devices)
+            {
+                SafeFile(device.FileName);
+                var folder = device.Layer == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
+                var content = device.Layer == AssignmentLayer.Module
+                    ? ModuleLuaProfileRenderer.Render(workspace, device.ProfileId)
+                    : UiLayerLuaProfileRenderer.Render(workspace, device.ProfileId);
+                Add(result, $"Config/Input/{folder}/joystick/{device.FileName}", content);
+            }
+            foreach (var scope in new[] { AssignmentLayer.Module, AssignmentLayer.UiLayer })
+            {
+                var folder = scope == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
+                var modifiers = managed.Modifiers.Where(x => x.Layer == scope)
+                    .Select(x => new DcsModifier(x.Name, x.NativeDevice, x.Key, x.Mode));
+                if (scope == AssignmentLayer.Module || managed.Devices.Any(x => x.Layer == scope))
+                    Add(result, $"Config/Input/{folder}/modifiers.lua", WriteModifiers(modifiers));
+            }
+            return result;
+        }
         private static void Add(Dictionary<string, byte[]> payload, string path, string content)
         {
             if (!payload.TryAdd(path, Encoding.UTF8.GetBytes(content)))
@@ -75,7 +104,7 @@ namespace Dcs.Ipia.Dcs
         }
         private static void SafeFile(string name)
         {
-            if (!name.EndsWith(".diff.lua", StringComparison.Ordinal) ||
+            if (!name.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains('/') || name.Contains('\\') || name.Contains(':') ||
                 name is "." or ".." || name.Contains("..", StringComparison.Ordinal))
                 throw new InvalidDataException("Unsafe DCS profile filename: " + name);
@@ -110,3 +139,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
