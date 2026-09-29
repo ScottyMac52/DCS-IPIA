@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
+using Dcs.Ipia.Domain;
 
 namespace Dcs.Ipia.Dcs
 {
@@ -110,8 +111,60 @@ namespace Dcs.Ipia.Dcs
                 CommandDiagnostics = commandDiagnostics, SharedLuaSources = UiLayerSources(sharedSources)
             };
         }
+        /// <summary>Pins the available shared hardware and default filenames for offline device authoring.</summary>
+        /// <param name="commonRoot">DCS-Common checkout root.</param>
+        /// <param name="cancellationToken">Cancellation token for Git reads.</param>
+        /// <returns>Shared hardware catalog and canonical Lua sources.</returns>
+        public async Task<IReadOnlyDictionary<string, string>> LoadHardwareAsync(string commonRoot, CancellationToken cancellationToken = default)
+        {
+            var common = await RepositoryRootAsync(commonRoot, cancellationToken);
+            var commit = (await GitAsync(common, cancellationToken, "rev-parse", "HEAD")).Trim();
+            var sources = await ReadSourcesAsync(common, SharedCatalogPaths, cancellationToken);
+            var catalog = new DcsCommonCatalogImporter().Import(new(commit,
+                SharedCatalogPaths[0], sources[SharedCatalogPaths[0]], SharedCatalogPaths[1], sources[SharedCatalogPaths[1]],
+                SharedCatalogPaths[2], sources[SharedCatalogPaths[2]], SharedCatalogPaths[3], sources[SharedCatalogPaths[3]]));
+            var paths = (await TrackedPathsAsync(common, cancellationToken, "assets/shared/hardware/lua", "assets/shared/ui-layer/input/UiLayer"))
+                .Where(x => x.EndsWith(".lua", StringComparison.Ordinal)).ToArray();
+            var lua = await ReadSourcesAsync(common, paths, cancellationToken);
+            var shared = new DcsCommonLuaImporter().Import(new(commit, catalog, lua.Select(x => new SharedLuaSource(x.Key, x.Value)).ToArray()));
+            if (!catalog.Succeeded || !shared.Succeeded)
+                throw new InvalidDataException("The shared hardware catalog or Lua controls are invalid.");
+            return await HardwareSourcesAsync(common, catalog, shared, lua, cancellationToken);
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static async Task<IReadOnlyDictionary<string, string>> HardwareSourcesAsync(string common,
+            SharedCatalogImportResult catalog, SharedLuaImportResult shared, IReadOnlyDictionary<string, string> lua,
+            CancellationToken cancellationToken)
+        {
+            var graphics = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var path in await TrackedPathsAsync(common, cancellationToken, "assets/shared/hardware/svg"))
+                if (path.EndsWith(".svg", StringComparison.Ordinal))
+                    graphics[path] = await GitAsync(common, cancellationToken, "show", "HEAD:" + path);
+            var module = new DcsModule(Guid.NewGuid(), "IPIA", "Shared hardware");
+            var choices = new List<WorkspaceHardware>();
+            foreach (var device in catalog.Devices)
+            {
+                var path = $"assets/shared/hardware/svg/{device.StableKey}.svg";
+                if (!graphics.ContainsKey(path))
+                    continue;
+                foreach (var key in new[] { device.StableKey }.Concat(device.Aliases))
+                {
+                    var defaults = shared.Profiles.FirstOrDefault(x => x.DeviceId == key);
+                    var file = defaults?.SourceName ?? device.DisplayName + ".diff.lua";
+                    var profile = new DeviceProfile(Guid.NewGuid(), key, defaults?.Instance, key, file);
+                    using var metadata = JsonDocument.Parse("""{"includeUiLayer":true,"pages":[]}""");
+                    var import = new ConsumerImportResult(new ModuleConfiguration(module, [profile], [], [], "shared hardware"),
+                        [], [], [], [], new Dictionary<string, JsonElement> { ["config/kneeboard.json"] = metadata.RootElement.Clone() },
+                        new Dictionary<string, string>(), [], []);
+                    var diagram = UiLayerDiagramFactory.Create(import, catalog, graphics, shared).Single();
+                    choices.Add(new(key, device.DisplayName, file, diagram with { Callouts = [] }));
+                }
+            }
+            var result = UiLayerSources(lua);
+            result["config/ipia-hardware.json"] = JsonSerializer.Serialize(choices);
+            return result;
+        }
         private static SortedDictionary<string, string> UiLayerSources(IReadOnlyDictionary<string, string> sources) =>
             new SortedDictionary<string, string>(
                 sources.Where(x => x.Key.StartsWith("assets/shared/ui-layer/input/UiLayer/", StringComparison.Ordinal))
@@ -266,3 +319,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

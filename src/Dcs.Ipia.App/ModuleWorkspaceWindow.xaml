@@ -45,6 +45,113 @@
     <TabControl x:Name="ImportedTabs" Grid.Row="1" TabStripPlacement="Left" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" ItemContainerStyle="{DynamicResource NavigationItem}"
                 AutomationProperties.Name="Imported module data">
+      <TabItem Header="Devices">
+        <DockPanel Margin="12">
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="Devices" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock Text="Manage this module's devices and its UI Layer devices. Clear all assignments and modifier activators before removing a device." TextWrapping="Wrap" Margin="0,6"/>
+            <WrapPanel>
+              <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <ComboBox x:Name="DevicesScope" Width="160" SelectionChanged="ManagementScopeChanged">
+                <ComboBoxItem Content="Module"/><ComboBoxItem Content="Module UI Layer"/>
+              </ComboBox>
+              <Button Content="Load shared hardware…" Click="LoadHardwareClicked" Margin="12,0,0,0" Padding="10,5"/>
+            </WrapPanel>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <TextBlock x:Name="DevicesMessage" TextWrapping="Wrap"/>
+            <WrapPanel Margin="0,8,0,0">
+              <Button Content="Save to database" Click="SaveClicked" Padding="16,6"/>
+              <Button Content="Discard draft" Click="DiscardClicked" Margin="8,0" Padding="16,6"/>
+            </WrapPanel>
+          </StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="380"/></Grid.ColumnDefinitions>
+            <DataGrid x:Name="ManagedDevices" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" SelectionChanged="ManagedDeviceSelected" Margin="0,0,12,0">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Profile filename" Binding="{Binding FileName}" Width="*"/>
+                <DataGridTextColumn Header="Instance" Binding="{Binding Instance}" Width="100"/>
+                <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <GroupBox Grid.Column="1" Header="Device" Padding="12">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                  <TextBlock Text="Shared hardware"/>
+                  <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" SelectionChanged="ManagedHardwareChanged" Margin="0,4,0,10"/>
+                  <TextBlock Text="Default diff.lua filename (editable)"/>
+                  <TextBox x:Name="ManagedFileName" Margin="0,4,0,10"/>
+                  <TextBlock Text="Instance (optional)"/><TextBox x:Name="ManagedInstance" Margin="0,4,0,10"/>
+                  <TextBlock Text="Role (optional)"/><TextBox x:Name="ManagedRole" Margin="0,4,0,10"/>
+                  <GroupBox x:Name="MfdLabelFields" Header="Module MFD labels" Padding="8" Margin="0,0,0,10" IsEnabled="False">
+                    <StackPanel>
+                      <TextBlock Text="Left"/><TextBox x:Name="MfdLeft"/>
+                      <TextBlock Text="Right"/><TextBox x:Name="MfdRight"/>
+                      <TextBlock Text="Top"/><TextBox x:Name="MfdTop"/>
+                      <TextBlock Text="Middle"/><TextBox x:Name="MfdMiddle"/>
+                    </StackPanel>
+                  </GroupBox>
+                  <WrapPanel>
+                    <Button Content="New" Click="NewDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Add" Click="AddDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Update" Click="UpdateDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Remove" Click="RemoveDeviceClicked" Padding="10,6"/>
+                  </WrapPanel>
+                  <Button Content="Clear all assignments on this device" Click="ClearDeviceAssignmentsClicked" Padding="10,6" Margin="0,12,0,0"/>
+                </StackPanel>
+              </ScrollViewer>
+            </GroupBox>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Modifiers">
+        <DockPanel Margin="12">
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Text="Modifiers" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock Text="A modifier requires a device and a shared digital control. Removal checks all devices in Module and UI Layer." TextWrapping="Wrap" Margin="0,6"/>
+            <WrapPanel>
+              <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <ComboBox x:Name="ModifiersScope" Width="160" SelectionChanged="ManagementScopeChanged">
+                <ComboBoxItem Content="Module"/><ComboBoxItem Content="Module UI Layer"/>
+              </ComboBox>
+            </WrapPanel>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <TextBlock x:Name="ModifiersMessage" TextWrapping="Wrap"/>
+            <WrapPanel Margin="0,8,0,0">
+              <Button Content="Save to database" Click="SaveClicked" Padding="16,6"/>
+              <Button Content="Discard draft" Click="DiscardClicked" Margin="8,0" Padding="16,6"/>
+            </WrapPanel>
+          </StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="380"/></Grid.ColumnDefinitions>
+            <DataGrid x:Name="ManagedModifiers" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" SelectionChanged="ManagedModifierSelected" Margin="0,0,12,0">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Device" Binding="{Binding NativeDevice}" Width="*"/>
+                <DataGridTextColumn Header="Control" Binding="{Binding Key}" Width="100"/>
+                <DataGridTextColumn Header="Semantic Layer" Binding="{Binding SemanticLayer}" Width="*"/>
+                <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="70"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <GroupBox Grid.Column="1" Header="Modifier" Padding="12">
+              <StackPanel>
+                <TextBlock Text="Device"/><ComboBox x:Name="ModifierDevice" DisplayMemberPath="FileName" SelectionChanged="ModifierDeviceChanged" Margin="0,4,0,10"/>
+                <TextBlock Text="Shared control"/><ComboBox x:Name="ModifierControl" DisplayMemberPath="Label" Margin="0,4,0,10"/>
+                <TextBlock Text="Name"/><TextBox x:Name="ModifierName" Margin="0,4,0,10"/>
+                <TextBlock Text="Semantic Layer"/><TextBox x:Name="ModifierSemantic" Margin="0,4,0,10"/>
+                <TextBlock Text="Mode"/><ComboBox x:Name="ModifierModeChoice" Margin="0,4,0,16"/>
+                <WrapPanel>
+                  <Button Content="New" Click="NewModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                  <Button Content="Add" Click="AddModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                  <Button Content="Update" Click="UpdateModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                  <Button Content="Remove" Click="RemoveModifierClicked" Padding="10,6"/>
+                </WrapPanel>
+              </StackPanel>
+            </GroupBox>
+          </Grid>
+        </DockPanel>
+      </TabItem>
       <TabItem Header="Assignments">
         <DockPanel Margin="12">
           <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -181,3 +288,4 @@
     </DockPanel>
   </Grid>
 </Window>
+
