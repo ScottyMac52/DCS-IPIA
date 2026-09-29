@@ -45,6 +45,48 @@ namespace Dcs.Ipia.Tests
                          Bytes(zip, root + "KNEEBOARD/TEST/01-DEVICE.png").Take(8));
         }
 
+        /// <summary>The selected output folder receives a matching ZIP and standalone checksum.</summary>
+        [Fact]
+        public void WritesArtifactsAndProtectsExistingBuild()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "ipia-ovgme-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var package = SnapshotOvGmeComposer.Build(Workspace(), "v1");
+                var paths = OvGmeArtifactWriter.Write(package, folder);
+                Assert.Equal(package.Bytes, File.ReadAllBytes(paths.ArchivePath));
+                Assert.Equal(package.ChecksumLine, File.ReadAllText(paths.ChecksumPath));
+                Assert.Equal(package.Sha256, paths.Sha256);
+                Assert.Throws<IOException>(() => OvGmeArtifactWriter.Write(package, folder));
+                Assert.Equal(package.Bytes, File.ReadAllBytes(paths.ArchivePath));
+                Assert.Equal(2, Directory.GetFiles(folder).Length);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        /// <summary>Invalid packages cannot leave misleading output in the selected folder.</summary>
+        [Fact]
+        public void RejectsMismatchedPackageBeforeWriting()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "ipia-ovgme-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var package = SnapshotOvGmeComposer.Build(Workspace(), "v1");
+                Assert.Throws<InvalidDataException>(() =>
+                    OvGmeArtifactWriter.Write(package with { Sha256 = new string('0', 64) }, folder));
+                Assert.Empty(Directory.GetFiles(folder));
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
         /// <summary>A saved assignment changes both generated files, while missing assets fail closed.</summary>
         [Fact]
         public void EditsChangeLuaAndPngAndMissingAssetsRejectBuild()

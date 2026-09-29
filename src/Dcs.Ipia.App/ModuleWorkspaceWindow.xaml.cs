@@ -32,6 +32,7 @@ namespace DcsIpia.Presentation
         private Point? _dragStart;
         private bool _updatingInspector;
         private bool _updatingFilters;
+        private bool _building;
         private AssignmentLayer? _categoryScope;
         /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>
         /// <param name="viewModel">Persisted editor data or a source preview.</param>
@@ -62,6 +63,7 @@ namespace DcsIpia.Presentation
                 ImportedTabs.SelectedItem = DiagnosticsTab;
             Closing += ConfirmClose;
             RefreshEditor();
+            UpdateBuildAvailability();
         }
         #region BEGIN Public
         #endregion END Public
@@ -113,6 +115,7 @@ namespace DcsIpia.Presentation
         }
         private void RefreshEditor()
         {
+            UpdateBuildAvailability();
             if (Diagram is null || Commands is null || DeviceTitle is null)
                 return;
             var diagram = CurrentDiagram;
@@ -412,6 +415,7 @@ namespace DcsIpia.Presentation
             if (_calloutText.TryGetValue(slot.Key, out var label))
                 label.Text = LabelEditor.Text;
             PendingSummary.Text = "Pending label or assignment changes";
+            UpdateBuildAvailability();
         }
         private void RefreshInspector()
         {
@@ -466,10 +470,12 @@ namespace DcsIpia.Presentation
                 RefreshEditor();
                 RefreshKneeboardPreview();
                 EditorMessage.Text = "Assignments and labels saved. Kneeboard pages now use the saved state.";
+                UpdateBuildAvailability();
             }
             catch (Exception ex)
             {
                 EditorMessage.Text = "Database save failed: " + ex.Message;
+                UpdateBuildAvailability();
             }
         }
         private void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e)
@@ -496,6 +502,7 @@ namespace DcsIpia.Presentation
                 EditorMessage.Text =
                     $"{imported.Count} authored Module labels staged. Save to database to keep them, or Discard draft.";
                 PendingSummary.Text = "Pending label changes";
+                UpdateBuildAvailability();
             }
             catch (Exception ex)
                 when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
@@ -512,6 +519,7 @@ namespace DcsIpia.Presentation
                     _labels[pair.Key] = pair.Value;
             RefreshEditor();
             EditorMessage.Text = "Pending edits discarded.";
+            UpdateBuildAvailability();
         }
         private void RenderClicked(object sender, RoutedEventArgs e)
         {
@@ -634,13 +642,58 @@ namespace DcsIpia.Presentation
                 KneeboardCaption.Text = "Unable to generate this kneeboard: " + ex.Message;
             }
         }
+        private bool HasPendingChanges() =>
+            _draft?.HasChanges == true ||
+            _saved is not null &&
+            (_labels.Count != _saved.Labels.Count ||
+             _labels.Any(x => !_saved.Labels.TryGetValue(x.Key, out var original) || original != x.Value));
+
+        private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();
+
+        private void UpdateBuildAvailability()
+        {
+            if (BuildButton is null || PackageVersion is null)
+                return;
+            BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
+                                    !_viewModel.HasErrors && !HasPendingChanges() &&
+                                    !string.IsNullOrWhiteSpace(PackageVersion.Text);
+        }
+
+        private async void BuildClicked(object sender, RoutedEventArgs e)
+        {
+            if (_saved is null || !BuildButton.IsEnabled)
+                return;
+            _building = true;
+            UpdateBuildAvailability();
+            BuildStatus.Text = "Validating and composing the saved OvGME package…";
+            try
+            {
+                var snapshot = _saved;
+                var version = PackageVersion.Text.Trim();
+                var package = await Task.Run(() => SnapshotOvGmeComposer.Build(snapshot, version));
+                var picker = new OpenFolderDialog { Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
+                if (picker.ShowDialog(this) != true)
+                {
+                    BuildStatus.Text = "Package build cancelled; no files were written.";
+                    return;
+                }
+                var written = OvGmeArtifactWriter.Write(package, picker.FolderName);
+                BuildStatus.Text = $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}";
+            }
+            catch (Exception ex)
+            {
+                BuildStatus.Text = "OvGME build failed: " + ex.Message;
+            }
+            finally
+            {
+                _building = false;
+                UpdateBuildAvailability();
+            }
+        }
+
         private void ConfirmClose(object? sender, CancelEventArgs e)
         {
-            var labelsChanged =
-                _saved is not null &&
-                (_labels.Count != _saved.Labels.Count ||
-                 _labels.Any(x => !_saved.Labels.TryGetValue(x.Key, out var original) || original != x.Value));
-            if ((_draft?.HasChanges == true || labelsChanged) &&
+            if (HasPendingChanges() &&
                 MessageBox.Show(this, "Discard unsaved assignment and label changes?", "Pending changes",
                                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 e.Cancel = true;
