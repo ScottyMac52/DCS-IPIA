@@ -188,6 +188,132 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("RADAR", page.CategoryLabels["mfd-category-middle"]);
             Assert.Contains("meta-mfd-category-middle", saved.Diagrams[0].Svg);
         }
+        /// <summary>Adding an existing physical device to the other scope reuses its profile and permits a shared filename.</summary>
+        [Fact]
+        public void ReusesPhysicalProfilesAcrossScopes()
+        {
+            var saved = Workspace();
+            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            var ui = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = WorkspaceStructureEditor.RemoveDevice(saved, ui);
+            var hardware = WorkspaceStructureEditor.Hardware(saved)[0];
+            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", null, null);
+            Assert.Single(saved.Configuration.Profiles);
+            Assert.True(saved.Diagrams[0].SupportsUiLayer);
+            Assert.Equal(2, WorkspaceStructureEditor.Describe(saved).Devices.Count);
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Duplicate.diff.lua", null, null));
+            saved = WorkspaceStructureEditor.RemoveDevice(saved, WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.Module));
+            Assert.Single(saved.Configuration.Profiles);
+            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "MODULE.DIFF.LUA", "  ", "  ");
+            Assert.Equal("MODULE.DIFF.LUA", saved.Configuration.Profiles[0].SourceName);
+            Assert.Contains("Config/Input/TEST/joystick/MODULE.DIFF.LUA", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
+        }
+        /// <summary>Unused hardware replacement regenerates its device page rather than retaining old graphic metadata.</summary>
+        [Fact]
+        public void ReplacesUnusedHardwareAndResetsAuthoredPage()
+        {
+            var saved = Workspace();
+            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            var hardware = new WorkspaceHardware("replacement", "Replacement", "Replacement.diff.lua",
+                saved.Diagrams[0] with { Device = "Replacement", Controls = [new("new-button", "New button", "JOY_BTN4", 0, 0, 10, 10, false)] });
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, "Replacement.diff.lua", "SECOND", "Aux", hardware: hardware);
+            Assert.Equal("replacement", saved.Configuration.Profiles[0].DeviceId);
+            Assert.Equal("new-button", Assert.Single(saved.Diagrams[0].Controls).Control);
+            Assert.DoesNotContain(saved.Pages, x => x.StableKey == "01-STICK");
+            Assert.Equal("Replacement · SECOND", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
+            Assert.Contains("Config/Input/TEST/joystick/Replacement.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
+        }
+        /// <summary>Device identity edits cannot merge separate instances or collide across scope filenames.</summary>
+        [Fact]
+        public void RejectsDuplicateInstancesAndCrossScopeFilenames()
+        {
+            var saved = Workspace();
+            var hardware = WorkspaceStructureEditor.Hardware(saved)[0];
+            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Aux.diff.lua", "SECOND", "Aux");
+            var added = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua");
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", null, null));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", "SECOND", null));
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", " SECOND ", " Aux ");
+            Assert.Equal("SECOND", WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua").Instance);
+        }
+        /// <summary>Invalid native filenames are rejected before save or export.</summary>
+        /// <param name="file">Unsafe or incomplete native filename.</param>
+        [Theory]
+        [InlineData("")]
+        [InlineData("Stick.lua")]
+        [InlineData("a\\b.diff.lua")]
+        [InlineData("a:b.diff.lua")]
+        [InlineData("a..b.diff.lua")]
+        [InlineData("a\tb.diff.lua")]
+        [InlineData("a?b.diff.lua")]
+        public void RejectsUnsafeNativeFilenames(string file)
+        {
+            var saved = Workspace();
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, WorkspaceStructureEditor.Hardware(saved)[0], AssignmentLayer.Module, file, "SECOND", null));
+        }
+        /// <summary>Modifier validation rejects missing devices, malformed names, duplicate controls, and scope moves.</summary>
+        [Fact]
+        public void RejectsInvalidModifierDefinitionsAndScopeMoves()
+        {
+            var saved = Workspace();
+            var candidate = new WorkspaceModifier(AssignmentLayer.Module, ProfileId, "NEW", "JOY_BTN1", "New", ModifierMode.Hold, "");
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { ProfileId = Guid.NewGuid() }));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " " }));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = "A\tB" }));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Mode = (ModifierMode)99 }));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Key = "JOY_BTN2" }));
+            var existing = WorkspaceStructureEditor.Describe(saved).Modifiers.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, existing, candidate with { Layer = AssignmentLayer.UiLayer }));
+            saved = WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " NEW ", SemanticLayer = " New " });
+            Assert.Equal("New", WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Name == "NEW").SemanticLayer);
+            var ui = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = WorkspaceStructureEditor.SetModifier(saved, ui, ui with { Key = "JOY_BTN1" });
+            Assert.Equal("JOY_BTN1", WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer).Key);
+        }
+        /// <summary>Managed exports reject duplicate memberships, unknown profiles, missing sources, and duplicate output paths.</summary>
+        [Fact]
+        public void RejectsCorruptManagedExports()
+        {
+            var saved = Workspace();
+            var modifier = WorkspaceStructureEditor.Describe(saved).Modifiers[0];
+            saved = WorkspaceStructureEditor.SetModifier(saved, modifier, modifier with { SemanticLayer = "Flight" });
+            var state = WorkspaceStructureEditor.Describe(saved);
+            EditorWorkspaceSnapshot WithState(WorkspaceManagement invalid) => saved with {
+                Sources = new Dictionary<string, string>(saved.Sources!) { [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) }
+            };
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [.. state.Devices, state.Devices[0]] })));
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { ProfileId = Guid.NewGuid() }] })));
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { Layer = (AssignmentLayer)99 }] })));
+            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(WithState(state with { Devices = [] }), ProfileId));
+            var sources = new Dictionary<string, string>(saved.Sources!);
+            sources.Remove("config/ipia-ui-" + ProfileId.ToString("N") + ".lua");
+            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(saved with { Sources = sources }, ProfileId));
+            var duplicate = new DeviceProfile(Guid.NewGuid(), "other", null, "Other", "Other.diff.lua");
+            var configuration = new ModuleConfiguration(saved.Configuration.Module, [.. saved.Configuration.Profiles, duplicate],
+                saved.Configuration.Modifiers, saved.Configuration.Bindings, saved.Configuration.Provenance);
+            var badPaths = WithState(state with { Devices = [.. state.Devices, new(duplicate.Id, AssignmentLayer.Module, "Stick.diff.lua", null, null)] });
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(badPaths with { Configuration = configuration }));
+        }
+        /// <summary>Module MFD edits take precedence over earlier per-layer authored category labels and permit clearing them.</summary>
+        [Fact]
+        public void MfdLabelEditsOverrideLayerMetadataAndCanBeCleared()
+        {
+            var saved = Workspace("tm-mfd");
+            var sources = new Dictionary<string, string>(saved.Sources!);
+            sources["config/kneeboard.json"] = sources["config/kneeboard.json"].Replace("\"categoryLabels\":{}", "\"categoryLabels\":{},\"layers\":[{\"categoryLabels\":{\"top\":\"OLD\"}},{\"labels\":{}}]", StringComparison.Ordinal);
+            saved = saved with { Sources = sources };
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEW", ["middle"] = "MID" });
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEWER", ["middle"] = "MID" });
+            Assert.Equal("NEWER", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-top"]);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string>());
+            Assert.Equal("", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-middle"]);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static EditorWorkspaceSnapshot Workspace(string deviceId = "stick")

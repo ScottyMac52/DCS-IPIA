@@ -125,6 +125,8 @@ namespace Dcs.Ipia.Dcs
                             SupportsUiLayer = state.Devices.Any(d => d.ProfileId == profile.Id && d.Layer == AssignmentLayer.UiLayer) } : x).ToArray()
                 };
                 workspace = SetSource(workspace, UiSource(profile.Id), ModuleLuaProfileRenderer.Write([]));
+                workspace = Manifest(workspace, replacement, profile.SourceName, true);
+                workspace = Manifest(workspace, replacement, null, false);
                 profile = replacement;
             }
             var identity = instance ?? role;
@@ -372,6 +374,11 @@ namespace Dcs.Ipia.Dcs
                 if (categories is null) page["categoryLabels"] = categories = new JsonObject();
                 foreach (var name in new[] { "left", "right", "top", "middle" })
                     categories[name] = labels.GetValueOrDefault(name) ?? "";
+                if (page["layers"] is JsonArray layers)
+                    foreach (var layer in layers)
+                        if (layer?["categoryLabels"] is JsonObject layerCategories)
+                            foreach (var name in new[] { "left", "right", "top", "middle" })
+                                layerCategories.Remove(name);
             }
             var diagrams = workspace.Diagrams.Select(d => {
                 if (d.ProfileId != id || string.IsNullOrEmpty(labels.GetValueOrDefault("middle"))) return d;

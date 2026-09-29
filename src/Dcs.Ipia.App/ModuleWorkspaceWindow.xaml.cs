@@ -98,6 +98,7 @@ namespace DcsIpia.Presentation
             if (_working is null)
                 return (layer == AssignmentLayer.Module ? _viewModel.ModuleModifierChoices : _viewModel.UiModifierChoices).ToArray();
             return Enumerable.Repeat("Base", 1).Concat(WorkspaceStructureEditor.Describe(_working).Modifiers.Where(x => x.Layer == layer).Select(x => x.Name))
+                .Concat(layer == AssignmentLayer.UiLayer ? WorkspaceStructureEditor.UiModifierNames(_working) : [])
                 .Concat((_draft?.Snapshot ?? []).Where(x => x.Slot.Layer == layer && x.Slot.ModifierChord.Length > 0)
                     .Select(x => x.Slot.ModifierChord.Replace("+", " + ", StringComparison.Ordinal)))
                 .Distinct(StringComparer.Ordinal).ToArray();
