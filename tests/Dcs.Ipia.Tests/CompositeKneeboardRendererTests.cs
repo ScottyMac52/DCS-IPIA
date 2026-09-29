@@ -95,6 +95,29 @@ namespace Dcs.Ipia.Tests
             Assert.True(HasText(bitmap, 440, 590));
             Assert.True(HasText(bitmap, 610, 760));
         }
+        /// <summary>Right anchored and wrapped callouts retain their authored SVG position in the PNG.</summary>
+        [Fact]
+        public void PaintsRightAnchoredWrappedCalloutAndCenteredCategory()
+        {
+            const string svg =
+                "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='50' y='50' text-anchor='end' fill='white'>Old</text><text id='meta-category' x='50' y='20' text-anchor='middle' fill='white'>Old</text></svg>";
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
+            var page = new KneeboardComposite(
+                "Device", "",
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                    ["one"] = [new("Long function name for a control", "#ffffff", AssignmentLayer.Module, "")]
+                }, new Dictionary<string, string> { ["category"] = "LONG CATEGORY TITLE HERE" }, []);
+            var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            var label = Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "lbl-one");
+            Assert.Equal("end", label.Attribute("text-anchor")?.Value);
+            Assert.Equal(2, label.Elements().Count());
+            var category = Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "meta-category");
+            Assert.Equal("middle", category.Attribute("text-anchor")?.Value);
+            Assert.Equal(2, category.Elements().Count());
+            using var bitmap = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page, ""));
+            Assert.Equal(1200, bitmap.Width);
+            Assert.Equal(1600, bitmap.Height);
+        }
         /// <summary>Unassigned callouts stay blank and a single UI Layer label keeps its scope color.</summary>
         [Fact]
         public void Clears_unassigned_callouts_and_colors_single_ui_label()
