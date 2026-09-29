@@ -1,6 +1,7 @@
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using SkiaSharp;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -46,8 +47,34 @@ namespace Dcs.Ipia.Tests
             };
             var image = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Take(8));
+            using var bitmap = SKBitmap.Decode(image);
+            Assert.Equal(SKColor.Parse("#142b52"), bitmap.GetPixel(400, 300));
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 1000));
         }
 
+        /// <summary>The complete shared summary palette occupies the authored card positions.</summary>
+        [Fact]
+        public void UsesSharedCardPaletteForOverviewAndVoicePages()
+        {
+            var workspace = Workspace();
+            var accents = new[] { "cyan", "gold", "red", "blue", "orange", "purple", "green", "unknown" };
+            var items = accents.Select((accent, index) =>
+                                         new { key = "D" + index, text = "Voice command " + index, accent });
+            var manifest = System.Text.Json.JsonSerializer.Serialize(new {
+                summaryPages = new[] { new { type = "summary", file = "00-OVERVIEW",
+                                              title = "VAICOM OVERVIEW", kicker = "VOICE CONTROLS", items } }
+            });
+            var updated = workspace with {
+                Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
+            };
+            using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 300));
+            Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 300));
+            Assert.Equal(SKColor.Parse("#38131c"), bitmap.GetPixel(400, 470));
+            Assert.Equal(SKColor.Parse("#412511"), bitmap.GetPixel(400, 640));
+            Assert.Equal(SKColor.Parse("#153526"), bitmap.GetPixel(400, 810));
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(880, 810));
+        }
         /// <summary>Missing or ambiguous authored pages and unsupported text fail closed.</summary>
         [Fact]
         public void RejectsIncompleteOverview()
@@ -92,10 +119,19 @@ namespace Dcs.Ipia.Tests
                     workspace,
                     valid.Replace("\"items\":[{\"key\":\"STICK\",\"text\":\"Flight controls\",\"accent\":\"red\"}]",
                                   "\"items\":[]", StringComparison.Ordinal))));
-            Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
-                    With(workspace,
-                         valid.Replace("\"accent\":\"red\"", "\"accent\":\"orange\"", StringComparison.Ordinal))));
+            var tooMany = System.Text.Json.JsonSerializer.Serialize(new {
+                summaryPages = new[] { new { type = "summary", file = "00-OVERVIEW",
+                                              title = "CONTROL OVERVIEW", kicker = "PHYSICAL CONTROLLERS",
+                                              items = Enumerable.Range(0, 15).Select(i => new {
+                                                  key = "D" + i, text = "Controls", accent = "blue"
+                                              }) } }
+            });
+            Assert.Throws<InvalidDataException>(() => SnapshotSummaryKneeboardRenderer.Generate(
+                With(workspace, tooMany)));
+            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
+                         Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(With(
+                             workspace, valid.Replace("\"accent\":\"red\"", "\"accent\":\"orange\"",
+                                                      StringComparison.Ordinal)))).Value.Take(8));
             Assert.Throws<InvalidDataException>(
                 () => SnapshotSummaryKneeboardRenderer.Generate(
                     With(workspace,

@@ -5,13 +5,11 @@ using SkiaSharp;
 
 namespace Dcs.Ipia.Rendering
 {
-    /// <summary>Renders authored summary pages from a pinned workspace manifest.</summary>
+    /// <summary>Renders DCS-Common's authored two-column summary cards from a saved manifest.</summary>
     public static class SnapshotSummaryKneeboardRenderer
     {
         #region BEGIN Public
-        /// <summary>Generates every overview PNG without reading imported images or a source checkout.</summary>
-        /// <param name="workspace">Frozen saved module workspace.</param>
-        /// <returns>Package-relative PNG paths and bytes in ordinal order.</returns>
+        /// <summary>Generates every overview PNG from the pinned workspace rather than imported images.</summary>
         public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
@@ -24,6 +22,7 @@ namespace Dcs.Ipia.Rendering
             var pages = workspace.Pages.Where(x => x.Kind == KneeboardPageKind.Summary).ToArray();
             if (summaries.GetArrayLength() != pages.Length)
                 throw new InvalidDataException("Summary pages differ from the pinned manifest.");
+            var ordered = workspace.Pages.OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal).ToArray();
             var results = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (var summary in summaries.EnumerateArray())
             {
@@ -32,58 +31,102 @@ namespace Dcs.Ipia.Rendering
                     pages.Count(x => x.StableKey == key && x.ModuleId == workspace.Configuration.Module.Id) != 1)
                     throw new InvalidDataException("Missing or unsafe authored summary page: " + key);
                 if (!summary.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array ||
-                    items.GetArrayLength() is < 1 or > 10)
-                    throw new InvalidDataException("The summary requires one to ten authored device rows.");
+                    items.GetArrayLength() is < 1 or > 14)
+                    throw new InvalidDataException("The summary requires one to fourteen authored device cards.");
+                var index = Array.FindIndex(ordered, x => x.Kind == KneeboardPageKind.Summary && x.StableKey == key);
                 var path = $"KNEEBOARD/{workspace.Configuration.Module.DcsId}/{key}.png";
-                if (!results.TryAdd(path, Render(summary, items)))
+                if (!results.TryAdd(path, Render(summary, items, index + 1, ordered.Length)))
                     throw new InvalidDataException("Duplicate summary page: " + key);
             }
             return results;
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static byte[] Render(JsonElement summary, JsonElement items)
+        private static byte[] Render(JsonElement summary, JsonElement items, int page, int total)
         {
-            using var stream =
-                typeof(CompositeKneeboardRenderer)
-                    .Assembly.GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.ttf") ??
+            using var stream = typeof(CompositeKneeboardRenderer).Assembly
+                .GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.ttf") ??
                 throw new InvalidDataException("The pinned kneeboard font is missing.");
             using var typeface = SKTypeface.FromStream(stream) ??
                                  throw new InvalidDataException("The pinned kneeboard font is invalid.");
             using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
                                 throw new InvalidDataException("Could not allocate kneeboard surface.");
             var canvas = surface.Canvas;
-            canvas.Clear(SKColor.Parse("#06101d"));
-            using (var stripe = new SKPaint { Color = SKColor.Parse("#46d8ff") })
-                canvas.DrawRect(0, 0, 1200, 16, stripe);
-            Write(summary.GetProperty("title").GetString() ?? "", 54, 82, 42, SKColors.White);
-            Write(summary.GetProperty("kicker").GetString() ?? "", 56, 130, 19, SKColor.Parse("#ffc95c"));
+            canvas.Clear(SKColor.Parse("#07111d"));
+            Box(new SKRect(48, 48, 1152, 1552), 28, "#0a1629", "#2c4566", 3);
+            Box(new SKRect(48, 48, 1152, 168), 28, "#12253d");
+            Write(summary.GetProperty("title").GetString() ?? "", 96, 118, 38, "#f4f8fb");
+            Write(summary.GetProperty("kicker").GetString() ?? "", 96, 154, 18, "#63d7ff");
             var index = 0;
             foreach (var item in items.EnumerateArray())
             {
-                var step = Math.Min(230, 1250 / items.GetArrayLength());
-                var top = 190 + index++ * step;
-                var accent = item.GetProperty("accent").GetString() switch { "red" => "#dc2626", "blue" => "#2563eb",
-                                                                             "purple" => "#7c3aed", "cyan" => "#0891b2",
-                                                                             _ => throw new InvalidDataException(
-                                                                                 "Unsupported summary accent.") };
-                using (var bar = new SKPaint { Color = SKColor.Parse(accent) })
-                    canvas.DrawRoundRect(new SKRect(54, top, 66, top + Math.Min(145, step - 12)), 5, 5, bar);
-                Write(item.GetProperty("key").GetString() ?? "", 90, top + 38, step < 150 ? 28 : 32, SKColors.White);
-                Write(item.GetProperty("text").GetString() ?? "", 90, top + 76, step < 150 ? 18 : 20, SKColor.Parse("#e2e8f0"));
+                var x = 96 + index % 2 * 480;
+                var y = 220 + index / 2 * 170;
+                var (fill, stroke) = Accent(item.GetProperty("accent").GetString());
+                Box(new SKRect(x, y, x + 420, y + 130), 16, fill, stroke, 2);
+                Box(new SKRect(x + 16, y + 14, x + 102, y + 116), 12, "#07111d", stroke, 2);
+                Write(item.GetProperty("key").GetString() ?? "", x + 59, y + 69, 22, stroke, SKTextAlign.Center);
+                var lines = Wrap(item.GetProperty("text").GetString() ?? "");
+                Write(lines[0], x + 122, y + 42, 18, "#f5f9ff", maxWidth: 290);
+                if (lines.Length > 1)
+                    Write(lines[1], x + 122, y + 70, 16, "#dbe7f4", maxWidth: 290);
+                index++;
             }
+            Write("DCS-Common shared kneeboard renderer", 96, 1520, 18, "#88a3ba");
+            Write($"{page} / {total}", 1104, 1520, 18, "#88a3ba", SKTextAlign.Right);
             using var image = surface.Snapshot();
             using var png = image.Encode(SKEncodedImageFormat.Png, 100);
             return png.ToArray();
-            void Write(string value, float x, float y, float size, SKColor color)
+
+            void Box(SKRect bounds, float radius, string fill, string? stroke = null, float strokeWidth = 0)
+            {
+                using var background = new SKPaint { IsAntialias = true, Color = SKColor.Parse(fill) };
+                canvas.DrawRoundRect(bounds, radius, radius, background);
+                if (stroke is null)
+                    return;
+                using var border = new SKPaint { IsAntialias = true, Color = SKColor.Parse(stroke),
+                                                 Style = SKPaintStyle.Stroke, StrokeWidth = strokeWidth };
+                canvas.DrawRoundRect(bounds, radius, radius, border);
+            }
+            void Write(string value, float x, float y, float size, string color,
+                       SKTextAlign alignment = SKTextAlign.Left, float maxWidth = 1040)
             {
                 using var font = new SKFont(typeface, size);
                 if (value.Length == 0 || font.GetGlyphs(value).Any(glyph => glyph == 0) ||
-                    font.MeasureText(value) > 1040)
+                    font.MeasureText(value) > maxWidth)
                     throw new InvalidDataException("Summary text is empty, unsupported, or too wide: " + value);
-                using var paint = new SKPaint { IsAntialias = true, Color = color };
-                canvas.DrawText(value, x, y, SKTextAlign.Left, font, paint);
+                using var paint = new SKPaint { IsAntialias = true, Color = SKColor.Parse(color) };
+                canvas.DrawText(value, x, y, alignment, font, paint);
             }
+        }
+        private static (string Fill, string Stroke) Accent(string? name) => name switch
+        {
+            "cyan" => ("#15314e", "#46d8ff"),
+            "gold" => ("#3e2d12", "#ffc95c"),
+            "red" => ("#38131c", "#ff6b76"),
+            "blue" => ("#142b52", "#579dff"),
+            "orange" => ("#412511", "#ff9d45"),
+            "purple" => ("#301b46", "#bd7cff"),
+            "green" => ("#153526", "#5fda91"),
+            _ => ("#15314e", "#46d8ff")
+        };
+        private static string[] Wrap(string value)
+        {
+            var words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            var lines = new List<string>();
+            foreach (var word in words)
+            {
+                if (lines.Count == 0 || lines[^1].Length + 1 + word.Length > 28)
+                    lines.Add(word);
+                else
+                    lines[^1] += " " + word;
+            }
+            if (lines.Count == 0)
+                return [""];
+            if (lines.Count <= 2)
+                return lines.ToArray();
+            var clipped = lines[1].TrimEnd('.', ',', ';', ':') + "…";
+            return [lines[0], clipped];
         }
         #endregion END private helpers
     }

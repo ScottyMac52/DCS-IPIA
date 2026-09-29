@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Rendering;
+using SkiaSharp;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -66,6 +67,56 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("black", label.Attribute("fill")?.Value);
             Assert.Equal(2, label.Elements().Count());
             Assert.DoesNotContain("data-modifier-legend", CompositeKneeboardRenderer.BuildPageSvg(diagram, page));
+        }
+        /// <summary>The PNG respects the hardware SVG's centered callout anchor and wraps its two lines.</summary>
+        [Fact]
+        public void PaintsCenteredAuthoredCalloutInsteadOfForcingLeftAlignment()
+        {
+            const string svg =
+                "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='50' y='50' text-anchor='middle' fill='white'>Old</text></svg>";
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
+            var page = new KneeboardComposite(
+                "Device", "",
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                    ["one"] = [new("MMMM", "#ffffff", AssignmentLayer.Module, "")]
+                }, new Dictionary<string, string>(), []);
+            using var bitmap = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page, ""));
+            static bool HasText(SKBitmap image, int start, int end)
+            {
+                for (var y = 650; y < 830; y++)
+                    for (var x = start; x < end; x++)
+                    {
+                        var color = image.GetPixel(x, y);
+                        if (color.Red > 180 && color.Green > 180 && color.Blue > 180)
+                            return true;
+                    }
+                return false;
+            }
+            Assert.True(HasText(bitmap, 440, 590));
+            Assert.True(HasText(bitmap, 610, 760));
+        }
+        /// <summary>Right anchored and wrapped callouts retain their authored SVG position in the PNG.</summary>
+        [Fact]
+        public void PaintsRightAnchoredWrappedCalloutAndCenteredCategory()
+        {
+            const string svg =
+                "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='50' y='50' text-anchor='end' fill='white'>Old</text><text id='meta-category' x='50' y='20' text-anchor='middle' fill='white'>Old</text></svg>";
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
+            var page = new KneeboardComposite(
+                "Device", "",
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                    ["one"] = [new("Long function name for a control", "#ffffff", AssignmentLayer.Module, "")]
+                }, new Dictionary<string, string> { ["category"] = "LONG CATEGORY TITLE HERE" }, []);
+            var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            var label = Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "lbl-one");
+            Assert.Equal("end", label.Attribute("text-anchor")?.Value);
+            Assert.Equal(2, label.Elements().Count());
+            var category = Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "meta-category");
+            Assert.Equal("middle", category.Attribute("text-anchor")?.Value);
+            Assert.Equal(2, category.Elements().Count());
+            using var bitmap = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page, ""));
+            Assert.Equal(1200, bitmap.Width);
+            Assert.Equal(1600, bitmap.Height);
         }
         /// <summary>Unassigned callouts stay blank and a single UI Layer label keeps its scope color.</summary>
         [Fact]
