@@ -66,7 +66,7 @@ namespace Dcs.Ipia.Rendering
                 Box(new SKRect(x, y, x + 420, y + 130), 16, fill, stroke, 2);
                 Box(new SKRect(x + 16, y + 14, x + 102, y + 116), 12, "#07111d", stroke, 2);
                 Write(item.GetProperty("key").GetString() ?? "", x + 59, y + 69, 22, stroke, SKTextAlign.Center);
-                var lines = Wrap(item.GetProperty("text").GetString() ?? "");
+                var lines = Wrap(item.GetProperty("text").GetString() ?? "", typeface);
                 Write(lines[0], x + 122, y + 42, 18, "#f5f9ff", maxWidth: 290);
                 if (lines.Length > 1)
                     Write(lines[1], x + 122, y + 70, 16, "#dbe7f4", maxWidth: 290);
@@ -110,23 +110,44 @@ namespace Dcs.Ipia.Rendering
             "green" => ("#153526", "#5fda91"),
             _ => ("#15314e", "#46d8ff")
         };
-        private static string[] Wrap(string value)
+        private static string[] Wrap(string value, SKTypeface typeface)
         {
+            const float maxWidth = 290;
+            const int maxCharacters = 28;
+            using var firstFont = new SKFont(typeface, 18);
+            using var secondFont = new SKFont(typeface, 16);
             var words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
             var lines = new List<string>();
             foreach (var word in words)
             {
-                if (lines.Count == 0 || lines[^1].Length + 1 + word.Length > 28)
+                var font = lines.Count == 0 ? firstFont : secondFont;
+                if (font.MeasureText(word) > maxWidth)
+                    throw new InvalidDataException("Summary word is too wide for a card: " + word);
+                if (lines.Count == 0)
+                {
                     lines.Add(word);
+                    continue;
+                }
+                font = lines.Count == 1 ? firstFont : secondFont;
+                var candidate = lines[^1] + " " + word;
+                if (candidate.Length <= maxCharacters && font.MeasureText(candidate) <= maxWidth)
+                    lines[^1] = candidate;
                 else
-                    lines[^1] += " " + word;
+                    lines.Add(word);
             }
             if (lines.Count == 0)
                 return [""];
             if (lines.Count <= 2)
                 return lines.ToArray();
-            var clipped = lines[1].TrimEnd('.', ',', ';', ':') + "…";
-            return [lines[0], clipped];
+            var second = lines[1];
+            while (second.Length + 1 > maxCharacters || secondFont.MeasureText(second + "…") > maxWidth)
+            {
+                var space = second.LastIndexOf(' ');
+                if (space < 0)
+                    throw new InvalidDataException("Summary text is too wide for a card: " + value);
+                second = second[..space];
+            }
+            return [lines[0], second.TrimEnd('.', ',', ';', ':') + "…"];
         }
         #endregion END private helpers
     }

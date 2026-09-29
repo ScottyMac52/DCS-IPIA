@@ -52,6 +52,28 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 1000));
         }
 
+        /// <summary>Renders the complete Hornet overview and VAICOM text from the authored manifest.</summary>
+        [Fact]
+        public void GeneratesHornetOverviewAndVaicomSummary()
+        {
+            var workspace = Workspace();
+            var overview = workspace.Pages[0] with { StableKey = "00-FA18C-CONTROL-OVERVIEW" };
+            var voice = overview with { Id = Guid.NewGuid(), StableKey = "01-VAICOM-OVERVIEW", Order = 1 };
+            const string manifest = """{"summaryPages":[{"type":"summary","file":"00-FA18C-CONTROL-OVERVIEW","title":"F/A-18C USED DEVICES","kicker":"PHYSICAL CONTROLLERS USED BY THIS CONFIGURATION","items":[{"key":"Left DDI","text":"Left DDI • OSBs • navigation • radar • FLIR • EW/RWR • stores","accent":"blue"},{"key":"Right MFD","text":"Right DDI • OSBs • SA/TSD • HARM • FLIR • weapons • engines","accent":"blue"},{"key":"MPCD","text":"MPCD • OSBs • checklist • FCS • fuel • stores • menu","accent":"blue"},{"key":"STICK","text":"MOZA Hornet • flight • trim • weapons • sensor control • AP/NWS","accent":"red"},{"key":"PDCP","text":"ALR-67 RWR • ALQ-165 ASPJ • threat display • ECM • VDI","accent":"purple"},{"key":"PEDALS","text":"TPR • rudder • left/right wheel brakes","accent":"blue"},{"key":"THROTTLE","text":"Warthog • comms • radar elevation • countermeasures • speedbrake • lights","accent":"blue"},{"key":"PTO2","text":"CarrierAce • gear • flaps • hook • launch bar • wing fold • refuel • lights","accent":"cyan"},{"key":"ICP","text":"ViperAce • keypad • COMM/IFF • A-A/A-G data entry","accent":"cyan"}]},{"type":"summary","file":"01-VAICOM-OVERVIEW","title":"VAICOM PRO + WARTHOG PTT","kicker":"AUTOHOTKEY V2 • VOICEATTACK / VAICOM PRO","items":[{"key":"TX1","text":"Warthog MIC forward / Joy6 -> VHF AM -> Left Ctrl + Left Alt + Left Shift + 1","accent":"blue"},{"key":"TX2","text":"Warthog MIC right / Joy3 -> UHF -> Left Ctrl + Left Alt + Left Shift + 2","accent":"blue"},{"key":"TX3","text":"Warthog MIC down / Joy4 -> VHF FM -> Left Ctrl + Left Alt + Left Shift + 3","accent":"blue"},{"key":"TX4","text":"Warthog MIC left / Joy5 -> AUTO -> Left Ctrl + Left Alt + Left Shift + 4","accent":"blue"},{"key":"TX5","text":"Warthog MIC push / Joy2 -> Interphone -> Left Ctrl + Left Alt + Left Shift + 5","accent":"blue"}]}]}""";
+            var updated = workspace with {
+                Pages = [overview, voice],
+                Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
+            };
+            var images = SnapshotSummaryKneeboardRenderer.Generate(updated);
+            Assert.Equal(2, images.Count);
+            foreach (var file in new[] { "00-FA18C-CONTROL-OVERVIEW", "01-VAICOM-OVERVIEW" })
+            {
+                using var bitmap = SKBitmap.Decode(images["KNEEBOARD/TEST/" + file + ".png"]);
+                Assert.Equal(1200, bitmap.Width);
+                Assert.Equal(1600, bitmap.Height);
+            }
+        }
+
         /// <summary>The complete shared summary palette occupies the authored card positions.</summary>
         [Fact]
         public void UsesSharedCardPaletteForOverviewAndVoicePages()
