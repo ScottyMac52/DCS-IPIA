@@ -79,7 +79,7 @@ namespace Dcs.Ipia.Tests
             Directory.CreateDirectory(folder);
             try
             {
-                Assert.Throws<InvalidDataException>(() => Dcs.Ipia.Dcs.OvGmeArtifactWriter.Write(bad, folder));
+                Assert.Throws<InvalidDataException>(() => global::Dcs.Ipia.Dcs.OvGmeArtifactWriter.Write(bad, folder));
                 Assert.Empty(Directory.GetFiles(folder));
             }
             finally
