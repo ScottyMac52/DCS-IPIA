@@ -161,19 +161,21 @@
               </DataGrid.Columns>
             </DataGrid>
             <GroupBox Grid.Column="1" Header="Modifier" Padding="12">
-              <StackPanel>
-                <TextBlock Text="Device"/><ComboBox x:Name="ModifierDevice" DisplayMemberPath="FileName" SelectionChanged="ModifierDeviceChanged" Margin="0,4,0,10"/>
-                <TextBlock Text="Shared control"/><ComboBox x:Name="ModifierControl" DisplayMemberPath="Label" Margin="0,4,0,10"/>
-                <TextBlock Text="Name"/><TextBox x:Name="ModifierName" Margin="0,4,0,10"/>
-                <TextBlock Text="Semantic Layer"/><TextBox x:Name="ModifierSemantic" Margin="0,4,0,10"/>
-                <TextBlock Text="Mode"/><ComboBox x:Name="ModifierModeChoice" Margin="0,4,0,16"/>
-                <WrapPanel>
-                  <Button Content="New" Click="NewModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
-                  <Button Content="Add" Click="AddModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
-                  <Button Content="Update" Click="UpdateModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
-                  <Button Content="Remove" Click="RemoveModifierClicked" Padding="10,6"/>
-                </WrapPanel>
-              </StackPanel>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                  <TextBlock Text="Device"/><ComboBox x:Name="ModifierDevice" DisplayMemberPath="FileName" SelectionChanged="ModifierDeviceChanged" Margin="0,4,0,10"/>
+                  <TextBlock Text="Shared control"/><ComboBox x:Name="ModifierControl" DisplayMemberPath="Label" Margin="0,4,0,10"/>
+                  <TextBlock Text="Name"/><TextBox x:Name="ModifierName" Margin="0,4,0,10"/>
+                  <TextBlock Text="Semantic Layer"/><TextBox x:Name="ModifierSemantic" Margin="0,4,0,10"/>
+                  <TextBlock Text="Mode"/><ComboBox x:Name="ModifierModeChoice" Margin="0,4,0,16"/>
+                  <WrapPanel>
+                    <Button Content="New" Click="NewModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Add" Click="AddModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Update" Click="UpdateModifierClicked" Padding="10,6" Margin="0,0,6,0"/>
+                    <Button Content="Remove" Click="RemoveModifierClicked" Padding="10,6"/>
+                  </WrapPanel>
+                </StackPanel>
+              </ScrollViewer>
             </GroupBox>
           </Grid>
         </DockPanel>
