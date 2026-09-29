@@ -164,8 +164,17 @@
       </TabItem>
     </TabControl>
     <DockPanel Grid.Row="2" Margin="0,16,0,0">
-      <TextBlock Text="Draft only · no changes are written to either repository."
-                 VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <StackPanel DockPanel.Dock="Left" MaxWidth="800">
+        <WrapPanel>
+          <TextBlock Text="Package version:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <TextBox x:Name="PackageVersion" Width="110" ToolTip="Version included in the ZIP filename"
+                   TextChanged="BuildVersionChanged" AutomationProperties.Name="OvGME package version"/>
+          <Button x:Name="BuildButton" Content="Build OvGME package…" IsEnabled="False"
+                  Margin="10,0,0,0" Padding="12,7" Click="BuildClicked"/>
+        </WrapPanel>
+        <TextBlock x:Name="BuildStatus" Text="Build uses saved database state. Save pending edits first."
+                   Margin="0,5,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+      </StackPanel>
       <Button x:Name="WorkspaceSettingsButton" Content="Settings" DockPanel.Dock="Right" Margin="0,0,8,0" Padding="12,7" Click="SettingsClicked"/>
       <Button Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Right" MinWidth="90"
               Padding="12,7" Click="Close_Click"/>
