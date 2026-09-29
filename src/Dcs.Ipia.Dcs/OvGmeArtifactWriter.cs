@@ -1,5 +1,4 @@
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
 using Dcs.Ipia.Packaging;
 
@@ -21,10 +20,7 @@ namespace Dcs.Ipia.Dcs
             if (package.FileName != Path.GetFileName(package.FileName) ||
                 !package.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Invalid archive file name.");
-            var hash = Convert.ToHexStringLower(SHA256.HashData(package.Bytes));
-            if (!string.Equals(hash, package.Sha256, StringComparison.Ordinal) ||
-                package.ChecksumLine != $"{hash}  {package.FileName}\n")
-                throw new InvalidDataException("Archive checksum does not match its bytes.");
+            var hash = OvGmePackageVerifier.Verify(package);
             var archive = Path.Combine(folder, package.FileName);
             var checksum = Path.Combine(folder, "SHA256SUMS.txt");
             if (File.Exists(archive) || File.Exists(checksum))
@@ -36,6 +32,9 @@ namespace Dcs.Ipia.Dcs
             {
                 File.WriteAllBytes(temporaryArchive, package.Bytes);
                 File.WriteAllText(temporaryChecksum, package.ChecksumLine, new UTF8Encoding(false));
+                OvGmePackageVerifier.Verify(package with { Bytes = File.ReadAllBytes(temporaryArchive) });
+                if (File.ReadAllText(temporaryChecksum, Encoding.UTF8) != package.ChecksumLine)
+                    throw new InvalidDataException("Written checksum differs from the verified archive.");
                 File.Move(temporaryArchive, archive);
                 movedArchive = true;
                 File.Move(temporaryChecksum, checksum);

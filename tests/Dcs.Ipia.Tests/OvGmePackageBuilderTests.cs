@@ -52,6 +52,41 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(Png, Read(zip.GetEntry(root + "KNEEBOARD/UH-1H/01-MFD.png")!));
             Assert.Equal("v1", Encoding.UTF8.GetString(Read(zip.GetEntry("VERSION.TXT")!)));
         }
+        /// <summary>The verifier reads the finished archive, including its required explicit root directory.</summary>
+        [Fact]
+        public void VerifiesCompletedArchiveAndRejectsMalformedRepackedBytes()
+        {
+            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            Assert.Equal(package.Sha256, OvGmePackageVerifier.Verify(package));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                package with { Sha256 = new string('0', 64) }));
+            var root = package.FileName[..^".zip".Length] + "/";
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != root)));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, _ => true, root + "Config/Input/UH-1H/joystick/rogue.txt")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, _ => true, root + "KNEEBOARD/UH-1H/01-mfd.png")));
+        }
+
+        /// <summary>A rejected archive leaves the chosen output folder untouched.</summary>
+        [Fact]
+        public void WriterRejectsMalformedArchiveWithoutPublishingArtifacts()
+        {
+            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            var bad = Repack(package, path => path != package.FileName[..^".zip".Length] + "/");
+            var folder = Path.Combine(Path.GetTempPath(), "ipia-verify-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Assert.Throws<InvalidDataException>(() => Dcs.Ipia.Dcs.OvGmeArtifactWriter.Write(bad, folder));
+                Assert.Empty(Directory.GetFiles(folder));
+            }
+            finally
+            {
+                Directory.Delete(folder);
+            }
+        }
         /// <summary>Partial or surprising payloads never become plausible release archives.</summary>
         [Theory]
         [InlineData("Config/Input/UH-1H/joystick/../bad.diff.lua")]
@@ -102,6 +137,34 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static OvGmePackage Repack(OvGmePackage package, Func<string, bool> include,
+                                            string? extra = null)
+        {
+            using var input = new MemoryStream(package.Bytes);
+            using var original = new ZipArchive(input, ZipArchiveMode.Read);
+            using var output = new MemoryStream();
+            using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+            {
+                foreach (var entry in original.Entries.Where(x => include(x.FullName)))
+                {
+                    var copy = zip.CreateEntry(entry.FullName);
+                    if (entry.FullName.EndsWith('/'))
+                        continue;
+                    using var source = entry.Open();
+                    using var destination = copy.Open();
+                    source.CopyTo(destination);
+                }
+                if (extra is not null)
+                {
+                    using var destination = zip.CreateEntry(extra).Open();
+                    destination.Write(Profile);
+                }
+            }
+            var bytes = output.ToArray();
+            var sha = Convert.ToHexStringLower(SHA256.HashData(bytes));
+            return package with { Bytes = bytes, Sha256 = sha,
+                                  ChecksumLine = $"{sha}  {package.FileName}\n" };
+        }
         private static OvGmePackageInput Input(IReadOnlyDictionary<string, byte[]> payload) =>
             new("DCS-UH-1H-Components", "UH-1H", "v1", payload);
         private static Dictionary<string, byte[]> BasePayload() =>
