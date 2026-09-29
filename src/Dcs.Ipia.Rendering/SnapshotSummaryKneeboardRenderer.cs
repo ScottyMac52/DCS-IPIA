@@ -139,15 +139,17 @@ namespace Dcs.Ipia.Rendering
                 return [""];
             if (lines.Count <= 2)
                 return lines.ToArray();
+            const string ellipsis = "...";
             var second = lines[1];
-            while (second.Length + 1 > maxCharacters || secondFont.MeasureText(second + "…") > maxWidth)
+            while (second.Length + ellipsis.Length > maxCharacters ||
+                   secondFont.MeasureText(second + ellipsis) > maxWidth)
             {
                 var space = second.LastIndexOf(' ');
                 if (space < 0)
                     throw new InvalidDataException("Summary text is too wide for a card: " + value);
                 second = second[..space];
             }
-            return [lines[0], second.TrimEnd('.', ',', ';', ':') + "…"];
+            return [lines[0], second.TrimEnd('.', ',', ';', ':') + ellipsis];
         }
         #endregion END private helpers
     }
