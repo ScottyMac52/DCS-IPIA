@@ -125,6 +125,7 @@ namespace DcsIpia.Presentation
                 var workspace = _working;
                 var state = workspace is null ? null : WorkspaceStructureEditor.Describe(workspace);
                 ManagedDevices.ItemsSource = state?.Devices.Where(x => x.Layer == DeviceManagementLayer).ToArray();
+                ModifierRemoveButton.IsEnabled = false;
                 ManagedModifiers.ItemsSource = state?.Modifiers.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ModifierDevice.ItemsSource = state?.Devices.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ManagedHardware.ItemsSource = workspace is null ? null : WorkspaceStructureEditor.Hardware(workspace);
@@ -254,7 +255,9 @@ namespace DcsIpia.Presentation
         }
         private void ManagedModifierSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (_managementRefreshing || ManagedModifiers.SelectedItem is not WorkspaceModifier modifier || _working is null) return;
+            if (ModifierRemoveButton is null || _managementRefreshing) return;
+            ModifierRemoveButton.IsEnabled = ManagedModifiers.SelectedItem is WorkspaceModifier selected && !WorkspaceStructureEditor.IsDefaultKeyboardModifier(selected);
+            if (ManagedModifiers.SelectedItem is not WorkspaceModifier modifier || _working is null) return;
             ModifierName.Text = modifier.Name;
             ModifierSemantic.Text = modifier.SemanticLayer;
             ModifierModeChoice.SelectedItem = modifier.Mode;
