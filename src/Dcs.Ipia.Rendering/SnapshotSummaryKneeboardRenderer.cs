@@ -32,8 +32,8 @@ namespace Dcs.Ipia.Rendering
                     pages.Count(x => x.StableKey == key && x.ModuleId == workspace.Configuration.Module.Id) != 1)
                     throw new InvalidDataException("Missing or unsafe authored summary page: " + key);
                 if (!summary.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array ||
-                    items.GetArrayLength() is < 1 or > 8)
-                    throw new InvalidDataException("The summary requires one to eight authored device rows.");
+                    items.GetArrayLength() is < 1 or > 10)
+                    throw new InvalidDataException("The summary requires one to ten authored device rows.");
                 var path = $"KNEEBOARD/{workspace.Configuration.Module.DcsId}/{key}.png";
                 if (!results.TryAdd(path, Render(summary, items)))
                     throw new InvalidDataException("Duplicate summary page: " + key);
@@ -61,14 +61,16 @@ namespace Dcs.Ipia.Rendering
             var index = 0;
             foreach (var item in items.EnumerateArray())
             {
-                var top = 205 + index++ * Math.Min(230, 1180 / items.GetArrayLength());
+                var step = Math.Min(230, 1250 / items.GetArrayLength());
+                var top = 190 + index++ * step;
                 var accent = item.GetProperty("accent").GetString() switch { "red" => "#dc2626", "blue" => "#2563eb",
+                                                                             "purple" => "#7c3aed", "cyan" => "#0891b2",
                                                                              _ => throw new InvalidDataException(
                                                                                  "Unsupported summary accent.") };
                 using (var bar = new SKPaint { Color = SKColor.Parse(accent) })
-                    canvas.DrawRoundRect(new SKRect(54, top, 66, top + 145), 5, 5, bar);
-                Write(item.GetProperty("key").GetString() ?? "", 90, top + 45, 32, SKColors.White);
-                Write(item.GetProperty("text").GetString() ?? "", 90, top + 96, 20, SKColor.Parse("#e2e8f0"));
+                    canvas.DrawRoundRect(new SKRect(54, top, 66, top + Math.Min(145, step - 12)), 5, 5, bar);
+                Write(item.GetProperty("key").GetString() ?? "", 90, top + 38, step < 150 ? 28 : 32, SKColors.White);
+                Write(item.GetProperty("text").GetString() ?? "", 90, top + 76, step < 150 ? 18 : 20, SKColor.Parse("#e2e8f0"));
             }
             using var image = surface.Snapshot();
             using var png = image.Encode(SKEncodedImageFormat.Png, 100);

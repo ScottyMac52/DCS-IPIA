@@ -71,6 +71,31 @@ namespace Dcs.Ipia.Tests
                 () => SnapshotDeviceKneeboardRenderer.Generate(
                     workspace with { Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }] }));
         }
+        /// <summary>Base and shifted POV spellings in one profile map to their actual DCS keys.</summary>
+        [Fact]
+        public void ResolvesMixedPovSpellingsByModifierChord()
+        {
+            var workspace = Workspace();
+            var bindings = new[] {
+                new DcsBinding(ProfileId, BindingSection.Key, "trim", "Trim", BindingDisposition.Added,
+                               "JOY_BTN_POV1_D"),
+                new DcsBinding(ProfileId, BindingSection.Key, "view", "View", BindingDisposition.Added,
+                               "JOY_POV1_D", ["SHIFT"])
+            };
+            workspace = workspace with {
+                Configuration = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                    [new DcsModifier("SHIFT", "Device", "JOY_BTN3", ModifierMode.Hold)], bindings, "fixture")
+            };
+            var baseControl = new HardwareGraphicControl("trim", "Trim", "JOY_POV1_D", 0, 0, 10, 10);
+            var diagram = workspace.Diagrams[0] with { Controls = [baseControl] };
+            Assert.Equal("JOY_BTN_POV1_D",
+                         KneeboardDraftProjection.SlotForControl(workspace, diagram, baseControl,
+                             AssignmentLayer.Module, "")?.InputKey);
+            Assert.Equal("JOY_POV1_D",
+                         KneeboardDraftProjection.SlotForControl(workspace, diagram, baseControl,
+                             AssignmentLayer.Module, "SHIFT")?.InputKey);
+        }
+
         /// <summary>Ambiguous identities, extra pages and unsafe authored paths cannot make a partial export.</summary>
         [Fact]
         public void RejectsAmbiguousAndUnsafePageMappings()
