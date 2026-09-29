@@ -141,7 +141,21 @@ namespace Dcs.Ipia.Rendering
                 else if (id?.StartsWith("meta-", StringComparison.Ordinal) == true)
                 {
                     label.RemoveNodes();
-                    label.Value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
+                    label.SetAttributeValue("font-size", "16");
+                    label.SetAttributeValue("font-weight", "700");
+                    var value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
+                    var lines = WrapLabel(value, 16);
+                    if (value.Length == 0)
+                        continue;
+                    var x = label.Attribute("x")?.Value ?? "0";
+                    if (lines.Count == 1)
+                        label.Value = lines[0];
+                    else
+                        for (var i = 0; i < lines.Count; i++)
+                            label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
+                                                   new XAttribute("dy", i == 0 ? -8 : 16),
+                                                   new XAttribute("font-size", 16),
+                                                   new XAttribute("font-weight", "700"), lines[i]));
                 }
             }
             return root.ToString(SaveOptions.DisableFormatting);
@@ -219,62 +233,72 @@ namespace Dcs.Ipia.Rendering
         {
             var source = XDocument.Parse(svg);
             using var typeface = LabelTypeface();
-            foreach (var (control, variants) in page.Labels)
+            foreach (var control in page.Labels.Keys)
             {
                 var label = source.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control);
-                if (label is null || variants.Count == 0)
-                    continue;
-                if (!float.TryParse(label.Attribute("x")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
-                                    out var x) ||
-                    !float.TryParse(label.Attribute("y")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
-                                    out var y))
-                    throw new InvalidDataException("Authored callout has no usable text position: " + control);
-                using var font = new SKFont(typeface, variants.Count > 1 ? 13 : 16);
-                for (var i = 0; i < variants.Count; i++)
-                {
-                    var variant = variants[i];
-                    if (font.GetGlyphs(variant.Text).Any(x => x == 0))
-                        throw new InvalidDataException("Callout text contains a glyph absent from the pinned font: " +
-                                                       variant.Text);
-                    var color = variant.Color == "#ffffff" && variant.Scope == AssignmentLayer.Module &&
-                                        variant.ModifierChord.Length == 0
-                                    ? label.Attribute("fill")?.Value ?? variant.Color
-                                    : variant.Color;
-                    using var paint =
-                        new SKPaint { IsAntialias = true,
-                                      Color = SKColor.TryParse(color, out var parsed) ? parsed : SKColors.White };
-                    canvas.DrawText(variant.Text, x, y + (i - (variants.Count - 1) / 2f) * 16, SKTextAlign.Left, font,
-                                    paint);
-                }
+                if (label is not null && label.Value.Length > 0)
+                    PaintText(label, "callout");
             }
-            foreach (var (name, value) in page.CategoryLabels)
+            foreach (var name in page.CategoryLabels.Keys)
             {
                 var label = source.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-" + name);
-                if (label is null)
-                    continue;
-                if (!float.TryParse(label.Attribute("x")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
-                                    out var x) ||
-                    !float.TryParse(label.Attribute("y")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture,
-                                    out var y))
-                    throw new InvalidDataException("Authored category has no usable text position: " + name);
-                using var font = new SKFont(typeface, 14);
-                if (font.GetGlyphs(value).Any(x => x == 0))
-                    throw new InvalidDataException("Category text contains a glyph absent from the pinned font: " +
-                                                   value);
-                var fill = label.Attribute("fill")?.Value ?? "#ffffff";
-                using var paint =
-                    new SKPaint { IsAntialias = true,
-                                  Color = SKColor.TryParse(fill, out var parsed) ? parsed : SKColors.White };
-                canvas.DrawText(value, x, y, SKTextAlign.Left, font, paint);
+                if (label is not null && label.Value.Length > 0)
+                    PaintText(label, "category");
             }
+
+            void PaintText(XElement label, string kind)
+            {
+                var x = Position(label, "x", kind);
+                var y = Position(label, "y", kind);
+                var alignment = label.Attribute("text-anchor")?.Value switch
+                {
+                    "middle" => SKTextAlign.Center,
+                    "end" => SKTextAlign.Right,
+                    _ => SKTextAlign.Left
+                };
+                var spans = label.Elements().Where(element => element.Name.LocalName == "tspan").ToArray();
+                if (spans.Length == 0)
+                {
+                    Draw(label.Value, x, y, Size(label, 16),
+                         label.Attribute("fill")?.Value ?? "#ffffff");
+                    return;
+                }
+                foreach (var span in spans)
+                {
+                    x = span.Attribute("x") is null ? x : Position(span, "x", kind);
+                    y += Position(span, "dy", kind);
+                    Draw(span.Value, x, y, Size(span, 16),
+                         span.Attribute("fill")?.Value ?? label.Attribute("fill")?.Value ?? "#ffffff");
+                }
+
+                void Draw(string value, float textX, float textY, float size, string color)
+                {
+                    using var font = new SKFont(typeface, size);
+                    if (font.GetGlyphs(value).Any(glyph => glyph == 0))
+                        throw new InvalidDataException("Kneeboard text contains a glyph absent from the pinned font: " +
+                                                       value);
+                    using var paint = new SKPaint { IsAntialias = true,
+                                                    Color = SKColor.TryParse(color, out var parsed)
+                                                                ? parsed : SKColors.White };
+                    canvas.DrawText(value, textX, textY, alignment, font, paint);
+                }
+            }
+            static float Position(XElement element, string attribute, string kind) =>
+                float.TryParse(element.Attribute(attribute)?.Value, NumberStyles.Float,
+                               CultureInfo.InvariantCulture, out var position)
+                    ? position
+                    : throw new InvalidDataException("Authored " + kind + " has no usable " + attribute + " position.");
+            static float Size(XElement element, float fallback) =>
+                float.TryParse(element.Attribute("font-size")?.Value, NumberStyles.Float,
+                               CultureInfo.InvariantCulture, out var size) && size > 0 ? size : fallback;
         }
-        private static List<string> WrapLabel(string value)
+        private static List<string> WrapLabel(string value, int max = 18)
         {
             var words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
             var lines = new List<string>();
             foreach (var word in words)
             {
-                if (lines.Count == 0 || lines[^1].Length + 1 + word.Length > 18)
+                if (lines.Count == 0 || lines[^1].Length + 1 + word.Length > max)
                     lines.Add(word);
                 else
                     lines[^1] += " " + word;
@@ -282,7 +306,7 @@ namespace Dcs.Ipia.Rendering
             if (lines.Count <= 2)
                 return lines.Count == 0 ?[""] : lines;
             var tail = string.Join(" ", lines.Skip(1));
-            return [lines[0], tail[..Math.Min(17, tail.Length)].TrimEnd() + "…"];
+            return [lines[0], tail[..Math.Min(max - 1, tail.Length)].TrimEnd() + "…"];
         }
         private static string BuildLegend(IReadOnlyList<KneeboardModifierLegend> legend)
         {

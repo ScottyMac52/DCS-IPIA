@@ -1,6 +1,7 @@
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using SkiaSharp;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -46,6 +47,9 @@ namespace Dcs.Ipia.Tests
             };
             var image = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Take(8));
+            using var bitmap = SKBitmap.Decode(image);
+            Assert.Equal(SKColor.Parse("#142b52"), bitmap.GetPixel(400, 300));
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 1000));
         }
 
         /// <summary>Missing or ambiguous authored pages and unsupported text fail closed.</summary>
@@ -92,10 +96,10 @@ namespace Dcs.Ipia.Tests
                     workspace,
                     valid.Replace("\"items\":[{\"key\":\"STICK\",\"text\":\"Flight controls\",\"accent\":\"red\"}]",
                                   "\"items\":[]", StringComparison.Ordinal))));
-            Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
-                    With(workspace,
-                         valid.Replace("\"accent\":\"red\"", "\"accent\":\"orange\"", StringComparison.Ordinal))));
+            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
+                         Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(With(
+                             workspace, valid.Replace("\"accent\":\"red\"", "\"accent\":\"orange\"",
+                                                      StringComparison.Ordinal)))).Value.Take(8));
             Assert.Throws<InvalidDataException>(
                 () => SnapshotSummaryKneeboardRenderer.Generate(
                     With(workspace,
