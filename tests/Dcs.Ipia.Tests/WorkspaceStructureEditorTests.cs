@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -129,6 +130,36 @@ namespace Dcs.Ipia.Tests
             Assert.All(DcsLuaParser.ParseModifiers(lua), x => Assert.Equal("Renamed stick", x.Device));
             Assert.Contains("Config/Input/TEST/joystick/Renamed stick.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
         }
+        /// <summary>Saved device membership, semantic modifiers, and the hardware catalog reopen without source checkouts.</summary>
+        /// <returns>Completion of the SQLite round trip.</returns>
+        [Fact]
+        public async Task ReopensManagementAndHardwareFromSqlite()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ipia-managed-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var saved = Workspace();
+                var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", saved.Diagrams[0]);
+                saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Custom.diff.lua", "AUX", null);
+                var added = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Custom.diff.lua");
+                saved = WorkspaceStructureEditor.SetModifier(saved, null,
+                    new(AssignmentLayer.Module, added.ProfileId, "AUX_SHIFT", "JOY_BTN2", "Auxiliary", ModifierMode.Toggle, ""));
+                var sources = new Dictionary<string, string>(saved.Sources!) { ["config/ipia-hardware.json"] = JsonSerializer.Serialize(new[] { hardware }) };
+                saved = saved with { Sources = sources };
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(saved);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                Assert.Equal("Custom.diff.lua", WorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == added.ProfileId).FileName);
+                var modifier = WorkspaceStructureEditor.Describe(restored).Modifiers.Single(x => x.Name == "AUX_SHIFT");
+                Assert.Equal("Auxiliary", modifier.SemanticLayer);
+                Assert.Equal(ModifierMode.Toggle, modifier.Mode);
+                Assert.Equal("Other.diff.lua", Assert.Single(WorkspaceStructureEditor.Hardware(restored)).DefaultFileName);
+                Assert.Contains("Config/Input/TEST/joystick/Custom.diff.lua", SnapshotLuaPayloadRenderer.Generate(restored).Keys);
+            }
+            finally { File.Delete(path); }
+        }
         /// <summary>Module MFD edits reach the combined kneeboard, including its middle callout.</summary>
         [Fact]
         public void UpdatesMfdCategoryLabels()
@@ -168,7 +199,8 @@ namespace Dcs.Ipia.Tests
                 ["assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua"] = """local diff = { ["keyDiffs"] = { ["VOICE"] = { ["name"] = "Voice", ["added"] = { [1] = { ["key"] = "JOY_BTN1", ["reformers"] = { [1] = "UI_SHIFT" } } } }, ["UNMAPPED"] = { ["name"] = "Unmapped", ["added"] = { [1] = { ["key"] = "JOY_BTN99", ["reformers"] = { [1] = "UI_SHIFT" } } } } } } return diff"""
             };
             return new(config, [new KneeboardPage(Guid.NewGuid(), ModuleId, null, KneeboardPageKind.Device, "01-STICK", "Stick", [], 0)],
-                [], [diagram], [], [], assignments, new Dictionary<string, string> { [assignments[0].Slot.Key] = "My label" }, sources);
+                [], [diagram], [new CommandPaletteEntry("FLIGHT", "Flight", "Flight", false)],
+                [new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "VOICE", "Voice", "UI", false)], assignments, new Dictionary<string, string> { [assignments[0].Slot.Key] = "My label" }, sources);
         }
         #endregion END private helpers
     }

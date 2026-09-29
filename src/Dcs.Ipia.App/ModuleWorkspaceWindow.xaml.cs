@@ -171,7 +171,7 @@ namespace DcsIpia.Presentation
             try
             {
                 SetManagementMessage("Loading committed shared hardware…");
-                var hardware = await new ModuleWorkspaceLoader().LoadHardwareAsync(picker.FolderName);
+                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(picker.FolderName);
                 RunStructureEdit(workspace => {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
@@ -302,7 +302,8 @@ namespace DcsIpia.Presentation
             var previous = Layers.SelectedItem as string ?? "Base";
             var choices = ModifierChoicesFor(CurrentLayer);
             Layers.ItemsSource = choices;
-            Layers.SelectedItem = choices.Contains(previous, StringComparer.Ordinal) ? previous : "Base";
+            Layers.SelectedItem = choices.Contains(previous, StringComparer.Ordinal) ? previous
+                : previous != "Base" && choices.Length == 2 ? choices[1] : "Base";
             RefreshDeviceChoices();
             RefreshEditor();
         }

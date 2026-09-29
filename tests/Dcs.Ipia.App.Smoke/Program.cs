@@ -28,8 +28,10 @@ namespace Dcs.Ipia.App.Smoke
             folderWindow.Show();
             folderWindow.UpdateLayout();
             var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
-            if (!folderWindow.IsVisible || folderTabs.SelectedIndex != 2)
+            if (!folderWindow.IsVisible || (folderTabs.SelectedItem as TabItem)?.Header?.ToString() != "Diagnostics")
                 throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
+            if (!folderTabs.Items.Cast<TabItem>().Take(3).Select(x => x.Header.ToString()).SequenceEqual(new[] { "Devices", "Modifiers", "Assignments" }))
+                throw new InvalidOperationException("Devices and Modifiers must precede Assignments.");
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             var mfd = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
             var configuration = new ModuleConfiguration(
@@ -120,6 +122,14 @@ namespace Dcs.Ipia.App.Smoke
             savedWindow.UpdateLayout();
             if (!savedWindow.IsVisible || ((Canvas)savedWindow.FindName("Diagram")!).Children.Count == 0)
                 throw new InvalidOperationException("Database-backed graphical assignment editor did not display.");
+            var managedDevices = (DataGrid)savedWindow.FindName("ManagedDevices")!;
+            managedDevices.SelectedIndex = 0;
+            if (managedDevices.Items.Count != 1 || ((TextBox)savedWindow.FindName("ManagedFileName")!).Text != "MFD3.diff.lua" ||
+                !((GroupBox)savedWindow.FindName("MfdLabelFields")!).IsEnabled)
+                throw new InvalidOperationException("The Devices editor did not show the stored module MFD and its editable fields.");
+            var managedModifiers = (DataGrid)savedWindow.FindName("ManagedModifiers")!;
+            if (managedModifiers.Items.Count != 1 || ((WorkspaceModifier)managedModifiers.Items[0]).Name != "MOZA_F16_F18_BTN3")
+                throw new InvalidOperationException("The Modifiers editor did not show the stored module definitions.");
             var layers = (ComboBox)savedWindow.FindName("Layers")!;
             var scope = (ComboBox)savedWindow.FindName("Scope")!;
             string Caption(string control)
@@ -226,3 +236,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END Public
     }
 }
+

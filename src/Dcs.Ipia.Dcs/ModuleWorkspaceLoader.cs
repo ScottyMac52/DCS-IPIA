@@ -115,7 +115,7 @@ namespace Dcs.Ipia.Dcs
         /// <param name="commonRoot">DCS-Common checkout root.</param>
         /// <param name="cancellationToken">Cancellation token for Git reads.</param>
         /// <returns>Shared hardware catalog and canonical Lua sources.</returns>
-        public async Task<IReadOnlyDictionary<string, string>> LoadHardwareAsync(string commonRoot, CancellationToken cancellationToken = default)
+        public static async Task<IReadOnlyDictionary<string, string>> LoadHardwareAsync(string commonRoot, CancellationToken cancellationToken = default)
         {
             var common = await RepositoryRootAsync(commonRoot, cancellationToken);
             var commit = (await GitAsync(common, cancellationToken, "rev-parse", "HEAD")).Trim();

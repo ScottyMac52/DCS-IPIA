@@ -20,11 +20,11 @@ namespace Dcs.Ipia.Dcs
                 return settings;
             var devices = workspace.Configuration.Profiles.Select(x =>
                 new WorkspaceDevice(x.Id, AssignmentLayer.Module, x.SourceName, x.Instance, x.Role)).ToList();
-            foreach (var diagram in workspace.Diagrams.Where(x => x.SupportsUiLayer && x.CanonicalUiLayerSourcePath is not null))
+            foreach (var diagram in workspace.Diagrams.Where(x => x.SupportsUiLayer))
             {
                 var profile = workspace.Configuration.Profiles.Single(x => x.Id == diagram.ProfileId);
                 devices.Add(new(profile.Id, AssignmentLayer.UiLayer,
-                    Path.GetFileName(diagram.CanonicalUiLayerSourcePath!), profile.Instance, profile.Role));
+                    diagram.CanonicalUiLayerSourcePath is null ? profile.SourceName : Path.GetFileName(diagram.CanonicalUiLayerSourcePath), profile.Instance, profile.Role));
             }
             var modifiers = workspace.Configuration.Modifiers.Select(x => ImportModifier(workspace, devices, x, AssignmentLayer.Module)).ToList();
             if (workspace.Sources?.TryGetValue("assets/shared/ui-layer/input/UiLayer/modifiers.lua", out var lua) == true)

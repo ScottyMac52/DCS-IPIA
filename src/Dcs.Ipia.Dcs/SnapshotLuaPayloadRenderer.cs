@@ -67,7 +67,7 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static IReadOnlyDictionary<string, byte[]> GenerateManaged(EditorWorkspaceSnapshot workspace, WorkspaceManagement managed)
+        private static Dictionary<string, byte[]> GenerateManaged(EditorWorkspaceSnapshot workspace, WorkspaceManagement managed)
         {
             SafeSegment(workspace.Configuration.Module.DcsId);
             var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
