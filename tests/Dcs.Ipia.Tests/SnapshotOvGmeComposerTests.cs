@@ -31,6 +31,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(new[] {
                 "README.TXT", "VERSION.TXT",
                 root + "Config/Input/TEST/joystick/Stick.diff.lua",
+                root + "Config/Input/TEST/modifiers.lua",
                 root + "Config/Input/UiLayer/joystick/Stick.diff.lua",
                 root + "Config/Input/UiLayer/modifiers.lua",
                 root + "KNEEBOARD/TEST/00-OVERVIEW.png",

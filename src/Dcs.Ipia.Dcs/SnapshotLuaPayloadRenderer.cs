@@ -28,8 +28,15 @@ namespace Dcs.Ipia.Dcs
                 Add(result, modulePrefix + "joystick/" + profile.SourceName,
                     ModuleLuaProfileRenderer.Render(workspace, profile.Id));
             }
-            if (config.Modifiers.Count > 0)
-                Add(result, modulePrefix + "modifiers.lua", WriteModifiers(config.Modifiers));
+            if (workspace.Sources is null ||
+                !workspace.Sources.TryGetValue(SharedRoot + "modifiers.lua", out var source))
+                throw new InvalidDataException("The saved workspace lacks canonical keyboard modifiers; re-import it.");
+            var modifiers = DcsLuaParser.ParseModifiers(source);
+            var moduleNames = config.Modifiers.Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var moduleModifiers = config.Modifiers.Concat(
+                modifiers.Where(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase) &&
+                                     !moduleNames.Contains(x.Name))).ToArray();
+            Add(result, modulePrefix + "modifiers.lua", WriteModifiers(moduleModifiers));
             var uiProfiles = workspace.Diagrams.Where(x => x.SupportsUiLayer &&
                                                             x.CanonicalUiLayerSourcePath is not null).ToArray();
             if (workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
@@ -37,10 +44,6 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidDataException("Saved UI Layer assignments have no pinned profile.");
             if (uiProfiles.Length == 0)
                 return result;
-            if (workspace.Sources is null ||
-                !workspace.Sources.TryGetValue(SharedRoot + "modifiers.lua", out var source))
-                throw new InvalidDataException("The saved workspace lacks canonical UI Layer modifiers; re-import it.");
-            var modifiers = DcsLuaParser.ParseModifiers(source);
             var removed = UiLayerLuaProfileRenderer.RemovedModifiers(workspace.Sources);
             if (removed.Any(x => !modifiers.Any(y => y.Name == x)))
                 throw new InvalidDataException("An overlay removes an unknown canonical UI Layer modifier.");
