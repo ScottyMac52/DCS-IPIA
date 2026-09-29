@@ -95,14 +95,14 @@ namespace Dcs.Ipia.Tests
             }
         }
 
-        /// <summary>Module-only workspaces emit module Lua without requiring shared UI Layer sources.</summary>
+        /// <summary>Module-only workspaces retain pinned keyboard defaults without exporting UI Layer profiles.</summary>
         [Fact]
         public void GeneratesModuleOnlyPayloadAndEscapesModifierNames()
         {
             var workspace = Workspace();
             var moduleOnly = workspace with {
                 Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }],
-                Sources = null
+                Sources = workspace.Sources
             };
             var result = SnapshotLuaPayloadRenderer.Generate(moduleOnly);
             Assert.Equal(2, result.Count);
@@ -113,6 +113,32 @@ namespace Dcs.Ipia.Tests
             var modified = SnapshotLuaPayloadRenderer.Generate(moduleOnly with { Configuration = config });
             Assert.Equal(escaped.Name, Assert.Single(DcsLuaParser.ParseModifiers(
                 Text(modified, "Config/Input/TEST/modifiers.lua"))).Name);
+        }
+
+        /// <summary>Keyboard defaults come from pinned shared Lua and are added once without importing device modifiers.</summary>
+        [Fact]
+        public void IncludesCanonicalKeyboardModifiersInModuleOnlyOutput()
+        {
+            var workspace = Workspace();
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            var names = new[] { "LAlt", "LCtrl", "LShift", "LWin", "RAlt", "RCtrl", "RShift", "RWin" };
+            sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] =
+                "local modifiers = {\n" + string.Join("\n", names.Select(name =>
+                    $"[\"{name}\"] = {{ [\"device\"] = \"Keyboard\", [\"key\"] = \"{name}\", [\"switch\"] = false }},")) +
+                "\n}\nreturn modifiers\n";
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                [..workspace.Configuration.Modifiers, new DcsModifier("LCtrl", "Keyboard", "LCtrl", ModifierMode.Hold)],
+                [], "test");
+            var output = SnapshotLuaPayloadRenderer.Generate(workspace with {
+                Configuration = config,
+                Sources = sources,
+                Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }]
+            });
+            var modifiers = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
+            Assert.Equal(9, modifiers.Count);
+            Assert.All(names, name => Assert.Single(modifiers, item => item.Name == name && item.Device == "Keyboard"));
+            Assert.Contains(modifiers, item => item.Name == "MOD");
+            Assert.DoesNotContain(output.Keys, path => path.Contains("UiLayer", StringComparison.Ordinal));
         }
 
         #endregion END Public
