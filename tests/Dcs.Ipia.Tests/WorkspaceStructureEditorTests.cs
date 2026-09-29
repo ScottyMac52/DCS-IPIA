@@ -314,6 +314,47 @@ namespace Dcs.Ipia.Tests
             saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string>());
             Assert.Equal("", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-middle"]);
         }
+        /// <summary>Default keyboard modifiers remain protected in both scopes even after every assignment is cleared.</summary>
+        /// <param name="key">Built-in keyboard modifier key.</param>
+        [Theory]
+        [InlineData("LAlt")]
+        [InlineData("LCtrl")]
+        [InlineData("LShift")]
+        [InlineData("LWin")]
+        [InlineData("RAlt")]
+        [InlineData("RCtrl")]
+        [InlineData("RShift")]
+        [InlineData("RWin")]
+        public void ProtectsDefaultKeyboardModifiersEvenWhenUnused(string key)
+        {
+            var saved = Workspace();
+            saved = saved with {
+                Configuration = new ModuleConfiguration(saved.Configuration.Module, saved.Configuration.Profiles,
+                    [.. saved.Configuration.Modifiers, new(key, "Keyboard", key, ModifierMode.Hold)],
+                    saved.Configuration.Bindings, saved.Configuration.Provenance)
+            };
+            var sources = new Dictionary<string, string>(saved.Sources!);
+            sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] =
+                "local modifiers = { [\"UI_SHIFT\"] = { [\"device\"] = \"Stick\", [\"key\"] = \"JOY_BTN2\", [\"switch\"] = false }, " +
+                "[\"" + key + "\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"" + key + "\", [\"switch\"] = false } } return modifiers";
+            saved = saved with { Sources = sources };
+            Assert.Equal(2, WorkspaceStructureEditor.Describe(saved).Modifiers.Count(x => x.Name == key));
+            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
+            Assert.Empty(saved.Assignments);
+            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.Where(x => x.Name == key))
+            {
+                Assert.True(WorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
+                var error = Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(saved, modifier));
+                Assert.Contains("Default keyboard modifiers", error.Message);
+                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, modifier,
+                    modifier with { ProfileId = ProfileId, Key = "JOY_BTN1", Name = "MOVED" }));
+            }
+            var payload = SnapshotLuaPayloadRenderer.Generate(saved);
+            Assert.Contains("\"" + key + "\"", Encoding.UTF8.GetString(payload["Config/Input/TEST/modifiers.lua"]));
+            Assert.Contains("\"" + key + "\"", Encoding.UTF8.GetString(payload["Config/Input/UiLayer/modifiers.lua"]));
+            Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, ProfileId, key, key, key, ModifierMode.Hold, "Stick")));
+            Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, Guid.Empty, "CUSTOM", "K", "Custom", ModifierMode.Hold, "Keyboard")));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static EditorWorkspaceSnapshot Workspace(string deviceId = "stick")

@@ -36,10 +36,16 @@ namespace Dcs.Ipia.Dcs
                     .ToHashSet(StringComparer.Ordinal);
                 modifiers.AddRange(DcsLuaParser.ParseModifiers(lua).Where(x => !removed.Contains(x.Name))
                     .Select(x => ImportModifier(workspace, devices, x, AssignmentLayer.UiLayer))
-                    .Where(x => x.ProfileId != Guid.Empty || used.Contains(x.Name)));
+                    .Where(x => x.ProfileId != Guid.Empty || used.Contains(x.Name) || IsDefaultKeyboardModifier(x)));
             }
             return new(devices, modifiers);
         }
+        /// <summary>Identifies the built-in left and right keyboard modifier keys.</summary>
+        /// <param name="modifier">Imported or saved modifier definition.</param>
+        /// <returns>True for a protected default keyboard modifier.</returns>
+        public static bool IsDefaultKeyboardModifier(WorkspaceModifier modifier) =>
+            modifier.NativeDevice.Equals("Keyboard", StringComparison.OrdinalIgnoreCase) &&
+            modifier.Key is "LAlt" or "LCtrl" or "LShift" or "LWin" or "RAlt" or "RCtrl" or "RShift" or "RWin";
         /// <summary>Gets pinned shared hardware choices, including existing graphics for older workspaces.</summary>
         /// <param name="workspace">Stored shared assets.</param>
         /// <returns>Shared hardware choices.</returns>
@@ -178,6 +184,8 @@ namespace Dcs.Ipia.Dcs
         /// <returns>Updated immutable draft.</returns>
         public static EditorWorkspaceSnapshot SetModifier(EditorWorkspaceSnapshot workspace, WorkspaceModifier? current, WorkspaceModifier candidate)
         {
+            if (current is not null && IsDefaultKeyboardModifier(current))
+                throw new InvalidOperationException("Default keyboard modifier definitions cannot be changed.");
             workspace = Prepare(workspace);
             var state = Describe(workspace);
             var device = state.Devices.SingleOrDefault(x => x.ProfileId == candidate.ProfileId && x.Layer == candidate.Layer)
@@ -205,6 +213,8 @@ namespace Dcs.Ipia.Dcs
         /// <returns>Updated immutable draft.</returns>
         public static EditorWorkspaceSnapshot RemoveModifier(EditorWorkspaceSnapshot workspace, WorkspaceModifier modifier)
         {
+            if (IsDefaultKeyboardModifier(modifier))
+                throw new InvalidOperationException("Default keyboard modifiers cannot be removed.");
             workspace = Prepare(workspace);
             var state = Describe(workspace);
             var names = state.Modifiers.Where(x => x.Name == modifier.Name || x.SemanticLayer == modifier.SemanticLayer)
