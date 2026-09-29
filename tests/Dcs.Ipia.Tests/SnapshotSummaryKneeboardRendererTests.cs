@@ -28,6 +28,26 @@ namespace Dcs.Ipia.Tests
             };
             Assert.NotEqual(first.Value, Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(changed)).Value);
         }
+        /// <summary>A nine-device overview supports the authored Hornet palette.</summary>
+        [Fact]
+        public void GeneratesNineRowOverviewWithPurpleAndCyanAccents()
+        {
+            var workspace = Workspace();
+            var items = Enumerable.Range(1, 9)
+                                  .Select(i => new { key = "DEVICE " + i, text = "Controls " + i,
+                                                     accent = i == 5 ? "purple" : i == 9 ? "cyan" : "blue" });
+            var manifest = System.Text.Json.JsonSerializer.Serialize(new {
+                summaryPages = new[] { new { type = "summary", file = "00-OVERVIEW",
+                                              title = "CONTROL OVERVIEW", kicker = "PHYSICAL CONTROLLERS",
+                                              items } }
+            });
+            var updated = workspace with {
+                Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
+            };
+            var image = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
+            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Take(8));
+        }
+
         /// <summary>Missing or ambiguous authored pages and unsupported text fail closed.</summary>
         [Fact]
         public void RejectsIncompleteOverview()

@@ -186,7 +186,8 @@ namespace Dcs.Ipia.Application
                 return null;
             var effectiveChord = hasShiftedPair ? "" : chord;
             var section = control.IsAxis ? BindingSection.Axis : BindingSection.Key;
-            var input = DcsInputKey.Resolve(snapshot.Configuration, diagram.ProfileId, section, control.InputKey);
+            var input = DcsInputKey.Resolve(snapshot.Configuration, diagram.ProfileId, section, control.InputKey,
+                                            scope == AssignmentLayer.Module ? effectiveChord : null);
             return new(snapshot.Configuration.Module.Id, diagram.ProfileId, scope, section, input, effectiveChord);
         }
         #endregion END Public

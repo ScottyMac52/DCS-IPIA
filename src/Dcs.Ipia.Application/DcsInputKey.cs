@@ -21,8 +21,19 @@ namespace Dcs.Ipia.Application
         /// <param name="hardwareKey">Key from the shared hardware definition.</param>
         /// <returns>The profile key, or the DCS POV spelling for an unassigned control.</returns>
         public static string Resolve(ModuleConfiguration configuration, Guid profileId, BindingSection section,
-                                     string hardwareKey)
+                                     string hardwareKey, string? modifierChord = null)
         {
+            if (modifierChord is not null)
+            {
+                var inLayer = configuration.Bindings
+                    .Where(x => x.ProfileId == profileId && x.Section == section &&
+                                x.Disposition == BindingDisposition.Added &&
+                                SamePhysicalInput(x.InputKey, hardwareKey) &&
+                                string.Join("+", x.Reformers) == modifierChord)
+                    .Select(x => x.InputKey).Distinct(StringComparer.Ordinal).ToArray();
+                if (inLayer.Length == 1)
+                    return inLayer[0];
+            }
             var actual = configuration.Bindings
                              .Where(x => x.ProfileId == profileId && x.Section == section &&
                                          SamePhysicalInput(x.InputKey, hardwareKey))
