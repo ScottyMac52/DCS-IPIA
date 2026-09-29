@@ -5,9 +5,6 @@ using Dcs.Ipia.Packaging;
 
 namespace Dcs.Ipia.Dcs
 {
-    /// <summary>Paths and digest of a locally written OvGME archive.</summary>
-    public sealed record OvGmeArtifactPaths(string ArchivePath, string ChecksumPath, string Sha256);
-
     /// <summary>Writes a validated package and its checksum without replacing another build.</summary>
     public static class OvGmeArtifactWriter
     {
