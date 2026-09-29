@@ -27,6 +27,7 @@ namespace Dcs.Ipia.Tests
             using var stream = new MemoryStream(first.Bytes);
             using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
             var root = "DCS-TEST-Components-v1-OVGME/";
+            Assert.Contains(zip.Entries, x => x.FullName == root && x.Name.Length == 0);
             Assert.Equal(new[] {
                 "README.TXT", "VERSION.TXT",
                 root + "Config/Input/TEST/joystick/Stick.diff.lua",
@@ -34,7 +35,7 @@ namespace Dcs.Ipia.Tests
                 root + "Config/Input/UiLayer/modifiers.lua",
                 root + "KNEEBOARD/TEST/00-OVERVIEW.png",
                 root + "KNEEBOARD/TEST/01-DEVICE.png"
-            }, zip.Entries.Select(x => x.FullName));
+            }, zip.Entries.Where(x => x.Name.Length > 0).Select(x => x.FullName));
             Assert.Contains(DcsLuaParser.ParseProfile(Text(zip, root + "Config/Input/TEST/joystick/Stick.diff.lua"),
                                                        ProfileId), x => x.CommandId == "M");
             Assert.Contains(DcsLuaParser.ParseProfile(Text(zip, root + "Config/Input/UiLayer/joystick/Stick.diff.lua"),

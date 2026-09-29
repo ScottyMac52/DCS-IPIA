@@ -66,6 +66,17 @@ namespace Dcs.Ipia.Packaging
             {
                 Add(zip, "README.TXT", Encoding.UTF8.GetBytes(readme));
                 Add(zip, "VERSION.TXT", Encoding.UTF8.GetBytes(input.Version));
+                // OvGME scans actual ZIP directory entries for the folder matching
+                // the archive basename. File paths alone do not make a Mod-Archive.
+                var directories = new SortedSet<string>(StringComparer.Ordinal) { root + "/" };
+                foreach (var (path, _) in files)
+                {
+                    var fullPath = root + "/" + path;
+                    for (var slash = fullPath.IndexOf('/'); slash >= 0; slash = fullPath.IndexOf('/', slash + 1))
+                        directories.Add(fullPath[..(slash + 1)]);
+                }
+                foreach (var directory in directories)
+                    AddDirectory(zip, directory);
                 foreach (var (path, bytes) in files.OrderBy(x => x.Key, StringComparer.Ordinal))
                     Add(zip, $"{root}/{path}", bytes);
             }
@@ -87,6 +98,12 @@ namespace Dcs.Ipia.Packaging
             if (string.IsNullOrWhiteSpace(path) || path.Contains('\\') || path.Contains(':') || path.StartsWith('/') ||
                 path.Split('/').Any(x => x is "" or "." or ".."))
                 throw new ArgumentException($"Unsafe package path: {path}", nameof(path));
+        }
+        private static void AddDirectory(ZipArchive zip, string path)
+        {
+            var entry = zip.CreateEntry(path, CompressionLevel.NoCompression);
+            entry.LastWriteTime = FixedTimestamp;
+            entry.ExternalAttributes = (int)FileAttributes.Directory << 16;
         }
         private static void Add(ZipArchive zip, string path, byte[] bytes)
         {
