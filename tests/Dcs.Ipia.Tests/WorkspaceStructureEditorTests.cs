@@ -117,7 +117,8 @@ namespace Dcs.Ipia.Tests
             foreach (var layer in new[] { AssignmentLayer.Module, AssignmentLayer.UiLayer })
                 saved = WorkspaceStructureEditor.SetModifier(saved, null,
                     new(layer, ProfileId, "EXTRA", "JOY_BTN1", "Extra Layer", ModifierMode.Hold, ""));
-            Assert.Contains("EXTRA", WorkspaceStructureEditor.UiModifierNames(saved));\n            var commands = saved.Assignments.Select(x => x.Command).Distinct();
+            Assert.Contains("EXTRA", WorkspaceStructureEditor.UiModifierNames(saved));
+            var commands = saved.Assignments.Select(x => x.Command).Distinct();
             var draft = new DraftAssignmentService(saved.Configuration, commands, saved.Assignments, WorkspaceStructureEditor.UiModifierNames(saved));
             var slot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "EXTRA");
             Assert.Equal(DraftOutcome.Applied, draft.Assign(slot, new("VOICE", "Voice", false, AssignmentLayer.UiLayer), OccupiedDestinationBehavior.ReplaceInDraft).Outcome);
@@ -159,6 +160,18 @@ namespace Dcs.Ipia.Tests
                 Assert.Contains("Config/Input/TEST/joystick/Custom.diff.lua", SnapshotLuaPayloadRenderer.Generate(restored).Keys);
             }
             finally { File.Delete(path); }
+        }
+        /// <summary>Export rejects a saved assignment whose device membership was removed outside the editor.</summary>
+        [Fact]
+        public void RejectsMembershipDriftRatherThanDroppingAssignments()
+        {
+            var saved = Workspace();
+            var module = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
+            saved = WorkspaceStructureEditor.SetModifier(saved, module, module with { SemanticLayer = "Flight" });
+            var state = WorkspaceStructureEditor.Describe(saved);
+            var invalid = state with { Devices = state.Devices.Where(x => x.Layer != AssignmentLayer.UiLayer).ToArray() };
+            var sources = new Dictionary<string, string>(saved.Sources!) { [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) };
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(saved with { Sources = sources }));
         }
         /// <summary>Module MFD edits reach the combined kneeboard, including its middle callout.</summary>
         [Fact]

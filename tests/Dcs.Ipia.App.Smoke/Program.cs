@@ -11,6 +11,7 @@ namespace Dcs.Ipia.App.Smoke
     /// <summary>Opens both read-only WPF preview modes on a Windows CI runner.</summary>
     public static class Program
     {
+        private static readonly string[] NavigationHeaders = ["Devices", "Modifiers", "Assignments"];
         #region BEGIN Public
         [STAThread]
         /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
@@ -30,7 +31,7 @@ namespace Dcs.Ipia.App.Smoke
             var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
             if (!folderWindow.IsVisible || (folderTabs.SelectedItem as TabItem)?.Header?.ToString() != "Diagnostics")
                 throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
-            if (!folderTabs.Items.Cast<TabItem>().Take(3).Select(x => x.Header.ToString()).SequenceEqual(new[] { "Devices", "Modifiers", "Assignments" }))
+            if (!folderTabs.Items.Cast<TabItem>().Take(3).Select(x => x.Header.ToString()).SequenceEqual(NavigationHeaders))
                 throw new InvalidOperationException("Devices and Modifiers must precede Assignments.");
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             var mfd = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");

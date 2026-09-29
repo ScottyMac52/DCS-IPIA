@@ -97,7 +97,7 @@ namespace DcsIpia.Presentation
         {
             if (_working is null)
                 return (layer == AssignmentLayer.Module ? _viewModel.ModuleModifierChoices : _viewModel.UiModifierChoices).ToArray();
-            return new[] { "Base" }.Concat(WorkspaceStructureEditor.Describe(_working).Modifiers.Where(x => x.Layer == layer).Select(x => x.Name))
+            return Enumerable.Repeat("Base", 1).Concat(WorkspaceStructureEditor.Describe(_working).Modifiers.Where(x => x.Layer == layer).Select(x => x.Name))
                 .Concat((_draft?.Snapshot ?? []).Where(x => x.Slot.Layer == layer && x.Slot.ModifierChord.Length > 0)
                     .Select(x => x.Slot.ModifierChord.Replace("+", " + ", StringComparison.Ordinal)))
                 .Distinct(StringComparer.Ordinal).ToArray();
@@ -109,7 +109,7 @@ namespace DcsIpia.Presentation
             var devices = _working is null ? _viewModel.UiDiagrams : _working.Diagrams.Where(x =>
                 WorkspaceStructureEditor.Describe(_working).Devices.Any(d => d.ProfileId == x.ProfileId && d.Layer == CurrentLayer)).ToArray();
             DeviceChoice.ItemsSource = devices;
-            DeviceChoice.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selected) ?? devices.FirstOrDefault();
+            DeviceChoice.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selected) ?? (devices.Count > 0 ? devices[0] : null);
             var layer = Layers.SelectedItem as string ?? "Base";
             var choices = ModifierChoicesFor(CurrentLayer);
             Layers.ItemsSource = choices;
@@ -127,6 +127,12 @@ namespace DcsIpia.Presentation
                 ManagedModifiers.ItemsSource = state?.Modifiers.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ModifierDevice.ItemsSource = state?.Devices.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ManagedHardware.ItemsSource = workspace is null ? null : WorkspaceStructureEditor.Hardware(workspace);
+                if (workspace?.Sources?.TryGetValue("config/ipia-hardware-diagnostics.json", out var diagnostics) == true)
+                {
+                    var errors = JsonSerializer.Deserialize<string[]>(diagnostics) ?? [];
+                    if (errors.Length > 0) DevicesMessage.Text = "Unavailable shared hardware: " + string.Join("; ", errors);
+                }
+
             }
             finally { _managementRefreshing = false; }
         }

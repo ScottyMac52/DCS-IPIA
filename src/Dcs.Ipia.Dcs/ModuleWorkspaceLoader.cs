@@ -143,6 +143,7 @@ namespace Dcs.Ipia.Dcs
                     graphics[path] = await GitAsync(common, cancellationToken, "show", "HEAD:" + path);
             var module = new DcsModule(Guid.NewGuid(), "IPIA", "Shared hardware");
             var choices = new List<WorkspaceHardware>();
+            var errors = new List<string>();
             foreach (var device in catalog.Devices)
             {
                 var path = $"assets/shared/hardware/svg/{device.StableKey}.svg";
@@ -157,12 +158,15 @@ namespace Dcs.Ipia.Dcs
                     var import = new ConsumerImportResult(new ModuleConfiguration(module, [profile], [], [], "shared hardware"),
                         [], [], [], [], new Dictionary<string, JsonElement> { ["config/kneeboard.json"] = metadata.RootElement.Clone() },
                         new Dictionary<string, string>(), [], []);
-                    var diagram = UiLayerDiagramFactory.Create(import, catalog, graphics, shared).Single();
-                    choices.Add(new(key, device.DisplayName, file, diagram with { Callouts = [] }));
+                    var diagram = UiLayerDiagramFactory.Create(import, catalog, graphics, shared,
+                        (profile, error) => errors.Add(profile.DeviceId + ": " + error.Message)).SingleOrDefault();
+                    if (diagram is not null)
+                        choices.Add(new(key, device.DisplayName, file, diagram with { Callouts = [] }));
                 }
             }
             var result = UiLayerSources(lua);
             result["config/ipia-hardware.json"] = JsonSerializer.Serialize(choices);
+            result["config/ipia-hardware-diagnostics.json"] = JsonSerializer.Serialize(errors);
             return result;
         }
         private static SortedDictionary<string, string> UiLayerSources(IReadOnlyDictionary<string, string> sources) =>

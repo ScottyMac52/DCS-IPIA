@@ -70,6 +70,10 @@ namespace Dcs.Ipia.Dcs
         private static Dictionary<string, byte[]> GenerateManaged(EditorWorkspaceSnapshot workspace, WorkspaceManagement managed)
         {
             SafeSegment(workspace.Configuration.Module.DcsId);
+            if (managed.Devices.Any(x => !Enum.IsDefined(x.Layer) || workspace.Configuration.Profiles.All(p => p.Id != x.ProfileId)) ||
+                managed.Devices.GroupBy(x => (x.ProfileId, x.Layer)).Any(x => x.Count() > 1) ||
+                workspace.Assignments.Any(x => !managed.Devices.Any(d => d.ProfileId == x.Slot.ProfileId && d.Layer == x.Slot.Layer)))
+                throw new InvalidDataException("Managed device membership differs from saved assignments or profiles.");
             var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (var device in managed.Devices)
             {
@@ -97,7 +101,7 @@ namespace Dcs.Ipia.Dcs
         }
         private static void SafeFile(string name)
         {
-            if (!name.EndsWith(".diff.lua", StringComparison.Ordinal) ||
+            if (!name.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains('/') || name.Contains('\\') || name.Contains(':') ||
                 name is "." or ".." || name.Contains("..", StringComparison.Ordinal))
                 throw new InvalidDataException("Unsafe DCS profile filename: " + name);
