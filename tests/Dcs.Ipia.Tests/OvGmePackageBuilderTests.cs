@@ -67,6 +67,26 @@ namespace Dcs.Ipia.Tests
                 Repack(package, _ => true, root + "Config/Input/UH-1H/joystick/rogue.txt")));
             Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
                 Repack(package, _ => true, root + "KNEEBOARD/UH-1H/01-mfd.png")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                package with { FileName = "wrong.zip" }));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != "README.TXT")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != "VERSION.TXT")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != root + "Config/Input/UH-1H/joystick/MFD.diff.lua")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != root + "KNEEBOARD/UH-1H/01-MFD.png")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, path => path != root + "KNEEBOARD/UH-1H/")));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(package, _ => true, root + "Config/Input/UH-1H/joystick/empty.diff.lua", true)));
+            var uiPayload = BasePayload();
+            uiPayload["Config/Input/UiLayer/joystick/MFD.diff.lua"] = Profile;
+            uiPayload["Config/Input/UiLayer/modifiers.lua"] = Encoding.UTF8.GetBytes("return {}");
+            var uiPackage = OvGmePackageBuilder.Build(Input(uiPayload));
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+                Repack(uiPackage, path => !path.EndsWith("/UiLayer/modifiers.lua", StringComparison.Ordinal))));
         }
 
         /// <summary>A rejected archive leaves the chosen output folder untouched.</summary>
@@ -138,7 +158,7 @@ namespace Dcs.Ipia.Tests
         #endregion END Public
         #region BEGIN private helpers
         private static OvGmePackage Repack(OvGmePackage package, Func<string, bool> include,
-                                            string? extra = null)
+                                            string? extra = null, bool empty = false)
         {
             using var input = new MemoryStream(package.Bytes);
             using var original = new ZipArchive(input, ZipArchiveMode.Read);
@@ -157,7 +177,7 @@ namespace Dcs.Ipia.Tests
                 if (extra is not null)
                 {
                     using var destination = zip.CreateEntry(extra).Open();
-                    destination.Write(Profile);
+                    if (!empty)\n                        destination.Write(Profile);
                 }
             }
             var bytes = output.ToArray();
