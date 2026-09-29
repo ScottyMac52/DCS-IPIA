@@ -136,7 +136,7 @@ namespace Dcs.Ipia.Dcs
                 device.Layer == AssignmentLayer.Module || !state.Devices.Any(x => x.ProfileId == profile.Id && x.Layer == AssignmentLayer.Module) ? updated.FileName : profile.SourceName, identity, role);
             var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id && x.Layer == device.Layer
                 ? x with { NativeDevice = Native(updated.FileName) } : x).ToArray();
-            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x == device ? updated : x.ProfileId == profile.Id ? x with { Instance = instance } : x).ToArray(), Modifiers = modifiers });
+            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance } : x).ToArray(), Modifiers = modifiers });
             if (device.Layer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd" && mfdLabels is not null)
                 workspace = MfdLabels(workspace, profile.Id, mfdLabels);
             return workspace;
@@ -153,13 +153,13 @@ namespace Dcs.Ipia.Dcs
             var modifiers = state.Modifiers.Count(x => x.ProfileId == device.ProfileId);
             if (assignments + modifiers > 0)
                 throw new InvalidOperationException($"This device is used by {assignments} assignment(s) and {modifiers} modifier(s) across Module and UI Layer. Clear assignments and move or remove modifiers first.");
-            state = state with { Devices = state.Devices.Where(x => x != device).ToArray() };
+            state = state with { Devices = state.Devices.Where(x => x.ProfileId != device.ProfileId || x.Layer != device.Layer).ToArray() };
             workspace = Store(workspace, state);
             if (state.Devices.Any(x => x.ProfileId == device.ProfileId))
             {
                 var remaining = state.Devices.First(x => x.ProfileId == device.ProfileId);
                 var retained = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
-                workspace = RenameProfile(workspace, retained, remaining.FileName, remaining.Instance ?? remaining.Role, remaining.Role);
+                workspace = RenameProfile(workspace, retained, remaining.FileName, retained.Instance, remaining.Role);
                 return SetUiSupport(workspace, device.ProfileId);
             }
             var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
@@ -298,7 +298,7 @@ namespace Dcs.Ipia.Dcs
         }
         private static void ValidateMembership(WorkspaceManagement state, WorkspaceDevice device, WorkspaceDevice? current)
         {
-            if (!Enum.IsDefined(device.Layer) || state.Devices.Any(x => x != current && (x.Layer == device.Layer || x.ProfileId != device.ProfileId) && x.FileName.Equals(device.FileName, StringComparison.OrdinalIgnoreCase)))
+            if (!Enum.IsDefined(device.Layer) || state.Devices.Any(x => (current is null || x.ProfileId != current.ProfileId || x.Layer != current.Layer) && (x.Layer == device.Layer || x.ProfileId != device.ProfileId) && x.FileName.Equals(device.FileName, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("That filename already belongs to another device or instance.");
         }
         private static EditorWorkspaceSnapshot RenameProfile(EditorWorkspaceSnapshot workspace, DeviceProfile profile, string file, string? instance, string? role)
