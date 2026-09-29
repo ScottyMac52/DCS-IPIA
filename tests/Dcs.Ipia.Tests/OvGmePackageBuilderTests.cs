@@ -177,7 +177,8 @@ namespace Dcs.Ipia.Tests
                 if (extra is not null)
                 {
                     using var destination = zip.CreateEntry(extra).Open();
-                    if (!empty)\n                        destination.Write(Profile);
+                    if (!empty)
+                        destination.Write(Profile);
                 }
             }
             var bytes = output.ToArray();
