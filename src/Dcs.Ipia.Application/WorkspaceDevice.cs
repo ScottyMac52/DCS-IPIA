@@ -8,6 +8,7 @@ namespace Dcs.Ipia.Application
     /// <param name="FileName">Editable DCS diff.lua filename.</param>
     /// <param name="Instance">Optional physical instance.</param>
     /// <param name="Role">Optional semantic role.</param>
+    /// <param name="PhysicalGuid">Optional native DirectInput GUID, separate from ProfileId.</param>
     public sealed record WorkspaceDevice(Guid ProfileId, AssignmentLayer Layer, string FileName,
-                                         string? Instance, string? Role);
+                                         string? Instance, string? Role, Guid? PhysicalGuid = null);
 }

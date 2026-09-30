@@ -27,6 +27,9 @@ namespace DcsIpia.Presentation
         private EditorWorkspaceSnapshot? _saved;
         private DraftAssignmentService? _draft;
         private EditorWorkspaceSnapshot? _working;
+        private readonly IConnectedDeviceDiscovery _deviceDiscovery;
+        private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
+        private bool _discoveryBusy;
         private bool _structureDirty;
         private bool _managementRefreshing;
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
@@ -41,12 +44,14 @@ namespace DcsIpia.Presentation
         /// <param name="viewModel">Persisted editor data or a source preview.</param>
         /// <param name="settings">Occupied destination preference.</param>
         /// <param name="repository">Local editor database.</param>
+        /// <param name="deviceDiscovery">Optional native device discovery adapter.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
-                                     IEditorWorkspaceRepository? repository = null)
+                                     IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
             _repository = repository;
+            _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -71,6 +76,7 @@ namespace DcsIpia.Presentation
             ModifierModeChoice.SelectedIndex = 0;
             RefreshManagement();
             RefreshDeviceChoices();
+            Loaded += async (_, _) => { if (_working is not null) await RefreshDetectedDevicesAsync(); };
             Closing += ConfirmClose;
             RefreshEditor();
             UpdateBuildAvailability();
@@ -183,19 +189,74 @@ namespace DcsIpia.Presentation
                 RunStructureEdit(workspace => {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
-                        if (pair.Key == "config/ipia-hardware.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
+                        if (pair.Key is "config/ipia-hardware.json" or "config/ipia-device-map.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
                     return workspace with { Sources = sources };
                 });
             }
             catch (Exception ex) { SetManagementMessage("Shared hardware could not be loaded: " + ex.Message); }
         }
+        private async void RefreshDetectedDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDetectedDevicesAsync();
+        private async void ChooseSavedGamesClicked(object sender, RoutedEventArgs e)
+        {
+            var picker = new OpenFolderDialog { Title = "Select Saved Games or your DCS folder" };
+            if (picker.ShowDialog(this) != true) return;
+            _savedGamesRoot = picker.FolderName;
+            await RefreshDetectedDevicesAsync();
+        }
+        private async Task RefreshDetectedDevicesAsync()
+        {
+            if (_discoveryBusy) return;
+            _discoveryBusy = true;
+            RefreshDetectedDevicesButton.IsEnabled = false;
+            var selected = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.PhysicalGuid;
+            try
+            {
+                DetectedDevicesMessage.Text = "Reading connected controllers and Saved Games profiles…";
+                var errors = new List<string>();
+                var choices = await Task.Run(() => {
+                    IReadOnlyList<DetectedDcsDevice> connected = [];
+                    IReadOnlyList<DetectedDcsDevice> profiles = [];
+                    try { connected = _deviceDiscovery.Discover(); }
+                    catch (Exception ex) { errors.Add("Connected controllers: " + ex.Message); }
+                    try { profiles = SavedGamesDeviceDiscovery.Discover(_savedGamesRoot); }
+                    catch (Exception ex) { errors.Add("Saved Games: " + ex.Message + " Choose the correct folder above."); }
+                    return DcsPhysicalIdentity.Merge(connected, profiles);
+                });
+                DetectedDevice.ItemsSource = choices;
+                DetectedDevice.SelectedItem = choices.FirstOrDefault(x => x.PhysicalGuid == selected);
+                DetectedDevicesMessage.Text = choices.Count + " physical device(s). Select a device, then verify shared hardware. " + string.Join(" ", errors);
+            }
+            finally { _discoveryBusy = false; RefreshDetectedDevicesButton.IsEnabled = true; }
+        }
+        private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_managementRefreshing || DetectedDevice.SelectedItem is not DetectedDcsDevice device || _working is null) return;
+            if (ManagedDevices.SelectedItem is WorkspaceDevice) return;
+            var match = DetectedDeviceHardwareMatcher.Match(_working, device);
+            ManagedHardware.SelectedItem = match is null ? null :
+                (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.SingleOrDefault(x => x.DeviceId == match.DeviceId);
+            ManagedFileName.Text = device.FileName;
+            DetectedDevicesMessage.Text = match is null
+                ? "Physical GUID found. Select the matching shared hardware; the installed grip may require your choice."
+                : "Physical GUID found. Shared hardware recognized; filename remains editable.";
+        }
+        private string NewDeviceFileName()
+        {
+            var guid = DcsPhysicalIdentity.FromFileName(ManagedFileName.Text.Trim());
+            if (guid is null) throw new InvalidOperationException("Select a detected device, or enter its GUID-qualified DCS filename.");
+            if (DetectedDevice.SelectedItem is DetectedDcsDevice selected && guid != selected.PhysicalGuid)
+                throw new InvalidOperationException("Keep the selected physical device GUID in the filename.");
+            return ManagedFileName.Text;
+        }
         private void NewDeviceClicked(object sender, RoutedEventArgs e)
         {
             ManagedDevices.SelectedItem = null;
+            DetectedDevice.IsEnabled = true;
+            DetectedDevice.SelectedItem = null;
             ManagedHardware.IsEnabled = true;
             ManagedInstance.Text = "";
             ManagedRole.Text = "";
-            ManagedFileName.Text = (ManagedHardware.SelectedItem as WorkspaceHardware)?.DefaultFileName ?? "";
+            ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
             MfdLeft.Text = MfdRight.Text = MfdTop.Text = MfdMiddle.Text = "";
             MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId == "tm-mfd";
         }
@@ -203,12 +264,13 @@ namespace DcsIpia.Presentation
         {
             if (_managementRefreshing || ManagedFileName is null) return;
             if (ManagedDevices.SelectedItem is not WorkspaceDevice selected || _working?.Configuration.Profiles.FirstOrDefault(x => x.Id == selected.ProfileId)?.DeviceId != (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId)
-                ManagedFileName.Text = (ManagedHardware.SelectedItem as WorkspaceHardware)?.DefaultFileName ?? "";
+                ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
             MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId == "tm-mfd";
         }
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_managementRefreshing || ManagedDevices.SelectedItem is not WorkspaceDevice device || _working is null) return;
+            DetectedDevice.IsEnabled = false;
             var profile = _working.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
             ManagedHardware.SelectedItem = (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.FirstOrDefault(x => x.DeviceId == profile.DeviceId);
             ManagedHardware.IsEnabled = true;
@@ -226,7 +288,7 @@ namespace DcsIpia.Presentation
         private void AddDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
                 throw new InvalidOperationException("Select shared hardware."), DeviceManagementLayer,
-                ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text));
+                NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text));
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,

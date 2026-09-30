@@ -20,6 +20,9 @@ namespace Dcs.Ipia.App.Smoke
         {
             var app = new DcsIpia.Presentation.App();
             app.InitializeComponent();
+            var detected = new WindowsConnectedDeviceDiscovery().Discover();
+            if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
+                throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");
             var profile =
                 new DeviceProfile(Guid.NewGuid(), "F16 MFD 3", null, "unresolved device", "F16 MFD 3.diff.lua");
             var folder =

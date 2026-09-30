@@ -19,12 +19,12 @@ namespace Dcs.Ipia.Dcs
             if (settings is not null)
                 return settings;
             var devices = workspace.Configuration.Profiles.Select(x =>
-                new WorkspaceDevice(x.Id, AssignmentLayer.Module, x.SourceName, x.Instance, x.Role)).ToList();
+                new WorkspaceDevice(x.Id, AssignmentLayer.Module, x.SourceName, x.Instance, x.Role, DcsPhysicalIdentity.FromFileName(x.SourceName))).ToList();
             foreach (var diagram in workspace.Diagrams.Where(x => x.SupportsUiLayer))
             {
                 var profile = workspace.Configuration.Profiles.Single(x => x.Id == diagram.ProfileId);
                 devices.Add(new(profile.Id, AssignmentLayer.UiLayer,
-                    diagram.CanonicalUiLayerSourcePath is null ? profile.SourceName : Path.GetFileName(diagram.CanonicalUiLayerSourcePath), profile.Instance, profile.Role));
+                    diagram.CanonicalUiLayerSourcePath is null ? profile.SourceName : Path.GetFileName(diagram.CanonicalUiLayerSourcePath), profile.Instance, profile.Role, DcsPhysicalIdentity.FromFileName(profile.SourceName)));
             }
             var modifiers = workspace.Configuration.Modifiers.Select(x => ImportModifier(workspace, devices, x, AssignmentLayer.Module)).ToList();
             if (workspace.Sources?.TryGetValue("assets/shared/ui-layer/input/UiLayer/modifiers.lua", out var lua) == true)
@@ -74,17 +74,19 @@ namespace Dcs.Ipia.Dcs
             ValidateFile(fileName);
             instance = Optional(instance);
             role = Optional(role);
-            var identity = instance ?? role;
-            var profile = workspace.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == hardware.DeviceId && x.Instance == identity);
+            var physicalGuid = DcsPhysicalIdentity.FromFileName(fileName.Trim());
+            var identity = instance ?? role ?? physicalGuid?.ToString("D");
+            var profile = workspace.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == hardware.DeviceId &&
+                (physicalGuid is not null ? state.Devices.Any(d => d.ProfileId == x.Id && (d.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(d.FileName)) == physicalGuid) : x.Instance == identity));
             if (profile is not null && state.Devices.Any(x => x.ProfileId == profile.Id && x.Layer == layer))
-                throw new InvalidOperationException("This device already belongs to that scope. Supply a unique instance or role.");
+                throw new InvalidOperationException("This physical device already belongs to that scope. Select a different physical unit or scope.");
             var isNew = profile is null;
             profile ??= new(Guid.NewGuid(), hardware.DeviceId, identity, role ?? hardware.DeviceId, fileName.Trim());
-            var membership = new WorkspaceDevice(profile.Id, layer, fileName.Trim(), instance, role);
+            var membership = new WorkspaceDevice(profile.Id, layer, fileName.Trim(), instance, role, physicalGuid);
             ValidateMembership(state, membership, null);
             if (isNew)
             {
-                var diagram = hardware.Diagram with { ProfileId = profile.Id, Instance = identity, Callouts = [], SupportsUiLayer = layer == AssignmentLayer.UiLayer };
+                var diagram = hardware.Diagram with { ProfileId = profile.Id, Instance = instance ?? role, Callouts = [], SupportsUiLayer = layer == AssignmentLayer.UiLayer };
                 workspace = workspace with {
                     Configuration = Configuration(workspace, workspace.Configuration.Profiles.Append(profile), workspace.Configuration.Modifiers, workspace.Configuration.Bindings),
                     Diagrams = [.. workspace.Diagrams, diagram]
@@ -96,7 +98,8 @@ namespace Dcs.Ipia.Dcs
                 workspace = SetSource(workspace, UiSource(profile.Id), ModuleLuaProfileRenderer.Write([]));
             if (layer == AssignmentLayer.Module && profile.SourceName != membership.FileName)
                 workspace = RenameProfile(workspace, profile, membership.FileName, identity, role);
-            return SetUiSupport(Store(workspace, state with { Devices = [.. state.Devices, membership] }), profile.Id);
+            workspace = SetUiSupport(Store(workspace, state with { Devices = [.. state.Devices, membership] }), profile.Id);
+            return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role } : x).ToArray() };
         }
         /// <summary>Updates identity, filename, and module MFD category labels.</summary>
         /// <param name="workspace">Current staged workspace.</param>
@@ -115,7 +118,12 @@ namespace Dcs.Ipia.Dcs
             ValidateFile(fileName);
             instance = Optional(instance);
             role = Optional(role);
-            var updated = device with { FileName = fileName.Trim(), Instance = instance, Role = role };
+            var physicalGuid = device.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(device.FileName);
+            var fileGuid = DcsPhysicalIdentity.FromFileName(fileName.Trim());
+            if (physicalGuid is not null && fileGuid != physicalGuid)
+                throw new InvalidOperationException("Keep this physical device GUID in the filename. Add a different physical device separately.");
+            physicalGuid ??= fileGuid;
+            var updated = device with { FileName = fileName.Trim(), Instance = instance, Role = role, PhysicalGuid = physicalGuid };
             ValidateMembership(state, updated, device);
             var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
             if (hardware is not null && hardware.DeviceId != profile.DeviceId)
@@ -135,14 +143,15 @@ namespace Dcs.Ipia.Dcs
                 workspace = Manifest(workspace, replacement, null, false);
                 profile = replacement;
             }
-            var identity = instance ?? role;
+            var identity = instance ?? role ?? physicalGuid?.ToString("D");
             if (workspace.Configuration.Profiles.Any(x => x.Id != profile.Id && x.DeviceId == profile.DeviceId && x.Instance == identity))
                 throw new InvalidOperationException("Another device already uses that instance or role.");
             workspace = RenameProfile(workspace, profile,
                 device.Layer == AssignmentLayer.Module || !state.Devices.Any(x => x.ProfileId == profile.Id && x.Layer == AssignmentLayer.Module) ? updated.FileName : profile.SourceName, identity, role);
             var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id && x.Layer == device.Layer
                 ? x with { NativeDevice = Native(updated.FileName) } : x).ToArray();
-            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance } : x).ToArray(), Modifiers = modifiers });
+            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance, PhysicalGuid = physicalGuid } : x).ToArray(), Modifiers = modifiers });
+            workspace = workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role } : x).ToArray() };
             if (device.Layer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd" && mfdLabels is not null)
                 workspace = MfdLabels(workspace, profile.Id, mfdLabels);
             return workspace;
@@ -308,6 +317,9 @@ namespace Dcs.Ipia.Dcs
         }
         private static void ValidateMembership(WorkspaceManagement state, WorkspaceDevice device, WorkspaceDevice? current)
         {
+            if (device.PhysicalGuid is { } guid && state.Devices.Any(x => x.ProfileId != device.ProfileId &&
+                (x.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(x.FileName)) == guid))
+                throw new InvalidOperationException("This physical GUID already belongs to another shared hardware profile.");
             if (!Enum.IsDefined(device.Layer) || state.Devices.Any(x => (current is null || x.ProfileId != current.ProfileId || x.Layer != current.Layer) && (x.Layer == device.Layer || x.ProfileId != device.ProfileId) && x.FileName.Equals(device.FileName, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("That filename already belongs to another device or instance.");
         }
