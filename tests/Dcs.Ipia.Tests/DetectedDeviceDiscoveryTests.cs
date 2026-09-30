@@ -76,6 +76,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(First, found.PhysicalGuid);
                 Assert.False(found.Connected);
                 Assert.Equal(file, found.FileName);
+                Assert.Equal(found, Assert.Single(SavedGamesDeviceDiscovery.Discover(Path.Combine(root, "DCS"))));
                 Assert.Throws<DirectoryNotFoundException>(() => SavedGamesDeviceDiscovery.Discover(Path.Combine(root, "missing")));
                 Assert.Throws<ArgumentException>(() => SavedGamesDeviceDiscovery.Discover(" "));
                 Directory.Delete(Path.Combine(root, "DCS"), true);

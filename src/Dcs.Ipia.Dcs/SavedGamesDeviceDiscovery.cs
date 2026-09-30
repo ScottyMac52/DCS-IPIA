@@ -16,7 +16,11 @@ namespace Dcs.Ipia.Dcs
             var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = false,
                 AttributesToSkip = FileAttributes.ReparsePoint };
             var devices = new List<DetectedDcsDevice>();
-            foreach (var file in Directory.EnumerateFiles(root, "*", options))
+            var directInput = Path.Combine(root, "Config", "Input");
+            var inputs = Directory.Exists(directInput) ? new[] { directInput }
+                : Directory.EnumerateDirectories(root, "DCS*", SearchOption.TopDirectoryOnly)
+                    .Select(x => Path.Combine(x, "Config", "Input")).Where(Directory.Exists).ToArray();
+            foreach (var file in inputs.SelectMany(input => Directory.EnumerateFiles(input, "*", options)))
             {
                 if (!string.Equals(Path.GetFileName(Path.GetDirectoryName(file)), "joystick", StringComparison.OrdinalIgnoreCase)) continue;
                 var name = Path.GetFileName(file);
