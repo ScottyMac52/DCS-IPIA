@@ -81,11 +81,13 @@ namespace Dcs.Ipia.Dcs
             var root = module.Metadata["config/kneeboard.json"];
             if (!root.TryGetProperty("includeUiLayer", out var include) || include.ValueKind != JsonValueKind.True)
                 return null;
+            // The consumer identifies the installed hardware. A bare base filename can
+            // receive a different shared device key, but still names the same physical profile.
+            var physical = shared.Profiles.Where(x => x.SourceName == profile.SourceName).ToArray();
+            if (physical.Length > 0)
+                return physical.Length == 1 ? physical[0] : null;
             var matches = shared.Profiles.Where(x => x.DeviceId == profile.DeviceId).ToArray();
-            var exact = matches.Where(x => x.SourceName == profile.SourceName).ToArray();
-            if (exact.Length > 1)
-                return null;
-            var canonical = exact.SingleOrDefault();
+            DeviceProfile? canonical = null;
             if (canonical is null)
             {
                 var byName =

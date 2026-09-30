@@ -10,6 +10,29 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleUiLayerBindingImporterTests
     {
         #region BEGIN Public
+        /// <summary>An authored grip identity does not lose the canonical profile for its physical base filename.</summary>
+        [Fact]
+        public void ResolvesSamePhysicalFilenameAcrossDeviceClassification()
+        {
+            const string file = "MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua";
+            var profile = new DeviceProfile(Guid.NewGuid(), "moza-ab9-hornet-grip", null, "Grip", file);
+            var canonical = new DeviceProfile(Guid.NewGuid(), "moza-ab9", null, "UI", file);
+            var configuration = new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "UH-1H", "Huey"),
+                [profile], [], [], "test");
+            var imported = new ConsumerImportResult(configuration, [], [], [], [],
+                ParseMetadata("""{"includeUiLayer":true}""", null), new Dictionary<string, string>(), [], []);
+            var shared = new SharedLuaImportResult([], [canonical],
+                [new(canonical.Id, BindingSection.Key, "UI", "Recenter VR", BindingDisposition.Added, "JOY_BTN4")],
+                [], [], []);
+            Assert.Equal(canonical, ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported, shared, profile));
+            Assert.Equal(profile.Id, Assert.Single(ModuleUiLayerBindingImporter.Import(imported, shared, profile)).ProfileId);
+            var different = new DeviceProfile(Guid.NewGuid(), canonical.DeviceId, null, "UI", "Other base.diff.lua");
+            Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,
+                new SharedLuaImportResult([], [different], [], [], [], []), profile));
+            var duplicate = new DeviceProfile(Guid.NewGuid(), profile.DeviceId, null, "UI", file);
+            Assert.Null(ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported,
+                new SharedLuaImportResult([], [canonical, duplicate], [], [], [], []), profile));
+        }
         /// <summary>Canonical assignments are selected per device and changed by authored overlay rows.</summary>
         [Fact]
         public void Composes_shared_bindings_with_module_clear_and_assignment()
