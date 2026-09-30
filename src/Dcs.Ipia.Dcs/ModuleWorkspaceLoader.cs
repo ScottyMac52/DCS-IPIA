@@ -166,6 +166,7 @@ namespace Dcs.Ipia.Dcs
             }
             var result = UiLayerSources(lua);
             result["config/ipia-hardware.json"] = JsonSerializer.Serialize(choices);
+            result["config/ipia-device-map.json"] = JsonSerializer.Serialize(catalog.DeviceMap);
             result["config/ipia-hardware-diagnostics.json"] = JsonSerializer.Serialize(errors);
             return result;
         }

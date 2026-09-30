@@ -103,6 +103,13 @@
             <GroupBox Grid.Column="1" Header="Device" Padding="12">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
+                  <TextBlock Text="Detected device"/>
+                  <ComboBox x:Name="DetectedDevice" DisplayMemberPath="Title" SelectionChanged="DetectedDeviceChanged" Margin="0,4,0,8"/>
+                  <WrapPanel Margin="0,0,0,8">
+                    <Button x:Name="RefreshDetectedDevicesButton" Content="Refresh devices" Click="RefreshDetectedDevicesClicked" Padding="8,5"/>
+                    <Button Content="Saved Games folder…" Click="ChooseSavedGamesClicked" Padding="8,5" Margin="6,0,0,0"/>
+                  </WrapPanel>
+                  <TextBlock x:Name="DetectedDevicesMessage" TextWrapping="Wrap" Margin="0,0,0,10"/>
                   <TextBlock Text="Shared hardware"/>
                   <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" SelectionChanged="ManagedHardwareChanged" Margin="0,4,0,10"/>
                   <TextBlock Text="Default diff.lua filename (editable)"/>
