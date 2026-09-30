@@ -51,10 +51,15 @@ namespace Dcs.Ipia.Dcs
             var imported = new ConsumerSourceImporter().Import(
                 new(hueyCommit, catalog, shared, hueySources.Select(x => new ConsumerSource(x.Key, x.Value)).ToArray(),
                     Path.GetFileName(huey)));
+            var uncommitted = await UncommittedSourcesAsync(huey, cancellationToken);
+            if (uncommitted.Length > 0)
+                imported = imported with { Diagnostics = [..imported.Diagnostics, new(
+                    "uncommitted-module-sources",
+                    $"Local changes were not imported: {string.Join(", ", uncommitted)}. Commit the module changes, then use Import Module again.", false)] };
             var (moduleCommands, commandSource, commandDiagnostics) =
                 LoadLinkedCommands(huey, hueySources, imported.Configuration?.Module.DcsId);
             if (!imported.Succeeded)
-                return new(imported, [], []) { UiCommands = catalog.Commands, ModuleCommands = moduleCommands,
+                return new(imported, [], []) { ModuleCommit = hueyCommit, UncommittedSourcePaths = uncommitted, UiCommands = catalog.Commands, ModuleCommands = moduleCommands,
                                                ModuleCommandSource = commandSource,
                                                CommandDiagnostics = commandDiagnostics,
                                                SharedLuaSources = UiLayerSources(sharedSources) };
@@ -106,6 +111,7 @@ namespace Dcs.Ipia.Dcs
                     new("device-graphic-unavailable", $"DCS-Common hardware graphic: {ex.Message}", true));
             }
             return new(imported, images, diagrams) {
+                ModuleCommit = hueyCommit, UncommittedSourcePaths = uncommitted,
                 GraphicDiagnostics = graphicDiagnostics, UiCommands = catalog.Commands,
                 ModuleCommands = moduleCommands,         ModuleCommandSource = commandSource,
                 CommandDiagnostics = commandDiagnostics,
@@ -257,6 +263,15 @@ namespace Dcs.Ipia.Dcs
                                                            : StringComparison.Ordinal))
                 throw new InvalidDataException($"Select the repository root, not a subfolder: {root}");
             return full;
+        }
+        private static async Task<string[]> UncommittedSourcesAsync(string root, CancellationToken ct)
+        {
+            var changed = await GitAsync(root, ct, "diff", "--name-only", "--no-renames", "-z", "HEAD", "--");
+            var untracked = await GitAsync(root, ct, "ls-files", "--others", "--exclude-standard", "-z");
+            return (changed + untracked).Split('\0', StringSplitOptions.RemoveEmptyEntries)
+                .Where(path => ConsumerSourceImporter.IsSupportedSourcePath(path) ||
+                    (path.StartsWith("kneeboard/", StringComparison.Ordinal) && path.EndsWith(".png", StringComparison.Ordinal)))
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         }
         private static async Task<string[]> TrackedPathsAsync(string root, CancellationToken ct, params string[] paths)
         {

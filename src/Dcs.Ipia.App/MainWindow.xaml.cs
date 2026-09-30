@@ -140,7 +140,10 @@ namespace DcsIpia.Presentation
                     _lastViewModel = new ModuleWorkspaceViewModel(persisted);
                     await RefreshSavedModulesAsync(module.Module.Id);
                     ImportStatus.Text =
-                        $"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues; select the module to reopen.";
+                        $"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues. Imported committed revision {preview.ModuleCommit}. Commit local changes and import again to refresh.";
+                    if (preview.UncommittedSourcePaths.Count > 0)
+                        ImportStatus.Text += Environment.NewLine + "WARNING: Local changes were excluded: " +
+                            string.Join(", ", preview.UncommittedSourcePaths) + ". Commit these files, then use Import Module again.";
                 }
                 ShowImported();
             }
@@ -175,6 +178,7 @@ namespace DcsIpia.Presentation
                     return;
                 }
                 _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                ImportStatus.Text = SavedWorkspaceStatus(saved);
                 ShowImported();
             }
             catch (Exception ex)
@@ -193,13 +197,15 @@ namespace DcsIpia.Presentation
                 ImportStatus.Text =
                     saved is null
                         ? "The selected module is no longer in the database."
-                        : $"Selected {saved.Configuration.Module.DisplayName} ({saved.Configuration.Module.DcsId}) from SQLite.";
+                        : SavedWorkspaceStatus(saved);
             }
             catch (Exception ex)
             {
                 ShowImportError("Unable to select saved module: " + ex.Message);
             }
         }
+        private static string SavedWorkspaceStatus(EditorWorkspaceSnapshot saved) =>
+            $"Opened saved workspace for {saved.Configuration.Module.DisplayName} ({saved.Configuration.Provenance}). Repository changes are not reloaded here. Commit module changes, then use Import Module to refresh.";
         private async Task RefreshSavedModulesAsync(Guid? selected = null)
         {
             var previous = selected ?? (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
