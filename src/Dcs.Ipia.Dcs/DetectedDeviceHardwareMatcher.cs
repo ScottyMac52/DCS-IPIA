@@ -18,7 +18,9 @@ namespace Dcs.Ipia.Dcs
             if (workspace.Sources?.TryGetValue("config/ipia-device-map.json", out var source) == true)
             {
                 var map = JsonSerializer.Deserialize<SharedDeviceMap>(source);
-                var rule = map?.Rules.FirstOrDefault(r => r.Patterns.Any(p => device.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
+                var name = device.Name.Replace(" - ", " ", StringComparison.Ordinal);
+                var rule = map?.Rules.FirstOrDefault(r => r.Patterns.Any(p =>
+                    name.Contains(p.Replace(" - ", " ", StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase)));
                 if (rule is not null) return choices.SingleOrDefault(x => x.DeviceId == rule.DeviceKey);
             }
             var matches = choices.Where(x => DcsPhysicalIdentity.FromFileName(x.DefaultFileName) is not null &&

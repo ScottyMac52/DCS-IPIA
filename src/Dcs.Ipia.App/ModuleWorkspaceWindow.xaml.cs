@@ -135,6 +135,8 @@ namespace DcsIpia.Presentation
                 ManagedModifiers.ItemsSource = state?.Modifiers.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ModifierDevice.ItemsSource = state?.Devices.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ManagedHardware.ItemsSource = workspace is null ? null : WorkspaceStructureEditor.Hardware(workspace);
+                if (workspace is not null && workspace.Sources?.ContainsKey("config/ipia-hardware.json") != true)
+                    DevicesMessage.Text = "Shared hardware catalog is missing. Click Load shared hardware… and select DCS-Common, then Save to database. Existing assignments are preserved.";
                 if (workspace?.Sources?.TryGetValue("config/ipia-hardware-diagnostics.json", out var diagnostics) == true)
                 {
                     var errors = JsonSerializer.Deserialize<string[]>(diagnostics) ?? [];
@@ -189,9 +191,10 @@ namespace DcsIpia.Presentation
                 RunStructureEdit(workspace => {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
-                        if (pair.Key is "config/ipia-hardware.json" or "config/ipia-device-map.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
+                        if (pair.Key is "config/ipia-hardware.json" or "config/ipia-device-map.json" or "config/ipia-hardware-diagnostics.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
                     return workspace with { Sources = sources };
                 });
+                MatchSelectedDetectedDevice();
             }
             catch (Exception ex) { SetManagementMessage("Shared hardware could not be loaded: " + ex.Message); }
         }
@@ -228,7 +231,8 @@ namespace DcsIpia.Presentation
             }
             finally { _discoveryBusy = false; RefreshDetectedDevicesButton.IsEnabled = true; }
         }
-        private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e)
+        private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e) => MatchSelectedDetectedDevice();
+        private void MatchSelectedDetectedDevice()
         {
             if (_managementRefreshing || DetectedDevice.SelectedItem is not DetectedDcsDevice device || _working is null) return;
             if (ManagedDevices.SelectedItem is WorkspaceDevice) return;
@@ -237,7 +241,9 @@ namespace DcsIpia.Presentation
                 (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.SingleOrDefault(x => x.DeviceId == match.DeviceId);
             ManagedFileName.Text = device.FileName;
             DetectedDevicesMessage.Text = match is null
-                ? "Physical GUID found. Select the matching shared hardware; the installed grip may require your choice."
+                ? _working.Sources?.ContainsKey("config/ipia-hardware.json") != true
+                    ? "Physical GUID found, but the shared hardware catalog is missing. Click Load shared hardware… and select DCS-Common."
+                    : "Physical GUID found. Select the matching shared hardware; the installed grip may require your choice."
                 : "Physical GUID found. Shared hardware recognized; filename remains editable.";
         }
         private string NewDeviceFileName()
@@ -984,4 +990,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-

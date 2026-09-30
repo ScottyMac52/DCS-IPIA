@@ -108,7 +108,8 @@ namespace Dcs.Ipia.Dcs
             return new(imported, images, diagrams) {
                 GraphicDiagnostics = graphicDiagnostics, UiCommands = catalog.Commands,
                 ModuleCommands = moduleCommands,         ModuleCommandSource = commandSource,
-                CommandDiagnostics = commandDiagnostics, SharedLuaSources = UiLayerSources(sharedSources)
+                CommandDiagnostics = commandDiagnostics,
+                SharedLuaSources = await HardwareSourcesAsync(common, catalog, shared, sharedSources, cancellationToken)
             };
         }
         /// <summary>Pins the available shared hardware and default filenames for offline device authoring.</summary>
@@ -324,4 +325,3 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
-
