@@ -60,7 +60,7 @@ namespace DcsIpia.Presentation
         {
             if (BindingRows is null) return;
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;
-            if (ClearLayerChoice is null) return;
+            if (ClearLayerChoice is null || ProfilePaths.SelectedItem is not string) return;
             var selected = ClearLayerChoice.SelectedItem as string ?? "Base";
             ClearLayerChoice.ItemsSource = Enumerable.Repeat("Base", 1).Concat(
                 DcsLuaParser.ParseModifiers(_draft.Sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]).Select(x => x.Name))
@@ -100,7 +100,7 @@ namespace DcsIpia.Presentation
             {
                 _draft = edit();
                 _dirty = true;
-                BindingRows.ItemsSource = SharedUiLayerBindingEditor.Bindings(_draft, ProfilePath());
+                ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
                 if (SourcePaths.SelectedItem is string path) SourceText.Text = _draft.Sources[path];
                 EditorStatus.Text = "Change staged. Save a new revision to keep it, or discard the draft.";
                 Buttons();
@@ -130,6 +130,7 @@ namespace DcsIpia.Presentation
             _dirty = false;
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;
             if (SourcePaths.SelectedItem is string source) SourceText.Text = _draft.Sources[source];
+            ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
             EditorStatus.Text = "Draft discarded.";
             Buttons();
         }
