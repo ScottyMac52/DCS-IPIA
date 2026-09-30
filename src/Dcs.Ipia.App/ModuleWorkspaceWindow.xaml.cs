@@ -294,7 +294,7 @@ namespace DcsIpia.Presentation
             MfdLeft.Text = labels.GetValueOrDefault("mfd-category-left") ?? "";
             MfdRight.Text = labels.GetValueOrDefault("mfd-category-right") ?? "";
             MfdTop.Text = labels.GetValueOrDefault("mfd-category-top") ?? "";
-            MfdBottom.Text = labels.GetValueOrDefault("mfd-category-middle") ?? "";
+            MfdBottom.Text = labels.GetValueOrDefault("mfd-category-bottom") ?? "";
             MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd";
         }
         private void AddDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
@@ -306,7 +306,7 @@ namespace DcsIpia.Presentation
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,
-                new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["middle"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
+                new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
                 DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
                 DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
         private void RemoveDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>

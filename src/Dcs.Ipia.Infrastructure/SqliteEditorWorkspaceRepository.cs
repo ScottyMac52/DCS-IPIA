@@ -38,9 +38,11 @@ namespace Dcs.Ipia.Infrastructure
             if (payload.Version < 3)
             {
                 snapshot = EditorWorkspaceUpgrade.RestorePovAliases(snapshot);
-                await SaveAsync(snapshot, ct);
             }
-            return snapshot;
+            var upgraded = MfdCategoryLabelUpgrade.Apply(snapshot);
+            if (payload.Version < 3 || !ReferenceEquals(snapshot, upgraded))
+                await SaveAsync(upgraded, ct);
+            return upgraded;
         }
         /// <inheritdoc/>
         public async Task<IReadOnlyList<Guid>> ListAsync(CancellationToken ct = default)
