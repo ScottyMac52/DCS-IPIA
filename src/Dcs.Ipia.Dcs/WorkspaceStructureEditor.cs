@@ -20,7 +20,11 @@ namespace Dcs.Ipia.Dcs
                 return settings;
             var devices = workspace.Configuration.Profiles.Select(x =>
                 new WorkspaceDevice(x.Id, AssignmentLayer.Module, x.SourceName, x.Instance, x.Role, DcsPhysicalIdentity.FromFileName(x.SourceName))).ToList();
-            foreach (var diagram in workspace.Diagrams.Where(x => x.SupportsUiLayer))
+            // Hardware templates describe capability, not membership in this module's UI Layer.
+            // Keep authored usage visible even without a pinned source so validation cannot discard it.
+            foreach (var diagram in workspace.Diagrams.Where(x => x.SupportsUiLayer &&
+                (x.CanonicalUiLayerSourcePath is not null || x.Callouts.Count > 0 ||
+                    workspace.Assignments.Any(a => a.Slot.ProfileId == x.ProfileId && a.Slot.Layer == AssignmentLayer.UiLayer))))
             {
                 var profile = workspace.Configuration.Profiles.Single(x => x.Id == diagram.ProfileId);
                 devices.Add(new(profile.Id, AssignmentLayer.UiLayer,
