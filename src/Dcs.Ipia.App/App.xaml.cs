@@ -45,6 +45,8 @@ namespace DcsIpia.Presentation
                         _ => new SqliteConfigurationRepository(connectionString))
                     .AddSingleton<IEditorWorkspaceRepository>(
                         _ => new SqliteEditorWorkspaceRepository(connectionString))
+                    .AddSingleton<ISharedUiLayerWorkspaceRepository>(
+                        _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
                     .AddSingleton<IModuleWorkspaceLoader, ModuleWorkspaceLoader>()
                     .AddSingleton<IDcsFolderImporter, DcsFolderImporter>()
                     .AddTransient<MainWindow>()

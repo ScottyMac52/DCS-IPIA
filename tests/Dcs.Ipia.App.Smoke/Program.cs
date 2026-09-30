@@ -21,6 +21,14 @@ namespace Dcs.Ipia.App.Smoke
             var app = new DcsIpia.Presentation.App();
             app.InitializeComponent();
             global::Dcs.Ipia.Dcs.BundledSharedCatalog.Validate(global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root);
+            var defaultsWindow = new SharedUiLayerWorkspaceWindow(new SharedUiLayerWorkspace(1, new string('a', 40),
+                new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
+            defaultsWindow.Show();
+            defaultsWindow.UpdateLayout();
+            var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
+            if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
+                throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
+            defaultsWindow.Close();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
                 throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");

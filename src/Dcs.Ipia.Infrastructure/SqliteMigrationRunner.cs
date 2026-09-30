@@ -37,6 +37,10 @@ namespace Dcs.Ipia.Infrastructure
             {
                 await Execute(c, tx, """CREATE TABLE app_preferences(id INTEGER NOT NULL PRIMARY KEY CHECK(id=1),schema_version INTEGER NOT NULL,theme TEXT NOT NULL,occupied_destination_behavior TEXT NOT NULL); INSERT INTO schema_migrations VALUES(4,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
             }
+            if (!await Applied(c, tx, 5, ct))
+            {
+                await Execute(c, tx, """CREATE TABLE shared_ui_layer_revisions(revision INTEGER NOT NULL PRIMARY KEY CHECK(revision>0),source_commit TEXT NOT NULL,sources_json TEXT NOT NULL,content_sha256 TEXT NOT NULL); INSERT INTO schema_migrations VALUES(5,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
+            }
             await tx.CommitAsync(ct);
         }
         #endregion END Public
