@@ -262,6 +262,7 @@ namespace DcsIpia.Presentation
             ManagedInstance.Text = "";
             ManagedRole.Text = "";
             ManagedKneeboardTitle.Text = "";
+            ManagedKneeboardSubtitle.Text = "";
             KneeboardTitleFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module;
             ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
             MfdLeft.Text = MfdRight.Text = MfdTop.Text = MfdMiddle.Text = "";
@@ -287,6 +288,7 @@ namespace DcsIpia.Presentation
             var diagram = _working.Diagrams.Single(x => x.ProfileId == device.ProfileId);
             var page = KneeboardDraftProjection.CreateCombined(_working, diagram, _draft?.Snapshot ?? _working.Assignments, _labels);
             ManagedKneeboardTitle.Text = page.Title;
+            ManagedKneeboardSubtitle.Text = page.Kicker;
             KneeboardTitleFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module;
             var labels = page.CategoryLabels;
             MfdLeft.Text = labels.GetValueOrDefault("mfd-category-left") ?? "";
@@ -299,12 +301,14 @@ namespace DcsIpia.Presentation
             WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
                 throw new InvalidOperationException("Select shared hardware."), DeviceManagementLayer,
                 NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text,
-                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null));
+                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null,
+                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardSubtitle.Text) ? ManagedKneeboardSubtitle.Text : null));
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,
                 new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["middle"] = MfdMiddle.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
-                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null));
+                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
+                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
         private void RemoveDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.RemoveDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to remove.")));
