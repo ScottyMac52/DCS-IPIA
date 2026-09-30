@@ -129,7 +129,7 @@
                       <TextBlock Text="Left"/><TextBox x:Name="MfdLeft"/>
                       <TextBlock Text="Right"/><TextBox x:Name="MfdRight"/>
                       <TextBlock Text="Top"/><TextBox x:Name="MfdTop"/>
-                      <TextBlock Text="Middle"/><TextBox x:Name="MfdMiddle"/>
+                      <TextBlock Text="Bottom"/><TextBox x:Name="MfdBottom"/>
                     </StackPanel>
                   </GroupBox>
                   <WrapPanel>
