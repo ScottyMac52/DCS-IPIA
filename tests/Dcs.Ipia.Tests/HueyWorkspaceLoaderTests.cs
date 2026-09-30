@@ -94,6 +94,10 @@ namespace Dcs.Ipia.Tests
                     Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                     File.WriteAllText(target, content);
                 }
+                var alternateSolution = System.Text.Json.Nodes.JsonNode.Parse(solution.ToJsonString())!;
+                alternateSolution["import"]!["commandSource"] = System.Text.Json.JsonSerializer.SerializeToNode(
+                    new { type = "catalog-json", paths = new[] { "missing-alternate-catalog.json" } });
+                File.WriteAllText(Path.Combine(huey, "config", "UH-1H.repo.dcs-scaffold.dcs-scaffold.json"), alternateSolution.ToJsonString());
                 Commit(common);
                 Commit(huey);
                 File.WriteAllText(Path.Combine(huey, "README.md"), "# uncommitted readme\n");
@@ -106,7 +110,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Contains(result.Import.Diagnostics, x => x.Code == "uncommitted-module-sources" && !x.IsError);
                 Assert.Equal(result.Import.Provenance[0].Commit, result.ModuleCommit);
                 Assert.Equal(5, result.Import.Configuration!.Profiles.Count);
-                Assert.Equal(17, result.Import.Provenance.Count);
+                Assert.Equal(18, result.Import.Provenance.Count);
                 Assert.Equal("# committed module readme\n", result.Import.Sources["README.md"]);
                 Assert.Equal("Committed installation notes\n", result.Import.Sources["docs/INSTALLATION.md"]);
                 Assert.Contains(result.Import.Provenance, x => x.Path == ".github/workflows/release.yml");

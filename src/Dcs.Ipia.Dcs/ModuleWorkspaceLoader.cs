@@ -195,6 +195,8 @@ namespace Dcs.Ipia.Dcs
                 var solution = sources
                                    .Where(x => x.Key.StartsWith("config/", StringComparison.Ordinal) &&
                                                x.Key.EndsWith(".dcs-scaffold.json", StringComparison.Ordinal))
+                                   .OrderBy(x => x.Key == $"config/{moduleId}.dcs-scaffold.json" ? 0 : 1)
+                                   .ThenBy(x => x.Key, StringComparer.Ordinal)
                                    .FirstOrDefault(x =>
                                                    {
                                                        using var candidate = JsonDocument.Parse(x.Value);

@@ -589,6 +589,48 @@ namespace Dcs.Ipia.Tests
                                                      x.Message.Contains("01-TM-MFD-1", StringComparison.Ordinal));
             Assert.Equal(5, result.Pages.Count);
         }
+
+        /// <summary>Saved repo-input variants do not make the canonical module solution ambiguous.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Multiple_consumer_solutions_use_canonical_solution_and_preserve_variants(bool reverse)
+        {
+            var request = Fixture();
+            var canonical = request.Sources.Single(x => x.Path == "config/UH-1H.dcs-scaffold.json");
+            var alternate = JsonNode.Parse(canonical.Content)!;
+            alternate["import"]!["displayName"] = "Alternate saved solution";
+            alternate["import"]!["profilesDirectory"] = "repo/joystick";
+            var variant = new ConsumerSource("config/UH-1H.repo.dcs-scaffold.dcs-scaffold.json", alternate.ToJsonString());
+            ConsumerSource[] sources = [..request.Sources, variant];
+            if (reverse) Array.Reverse(sources);
+
+            var imported = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var expected = new ConsumerSourceImporter().Import(request);
+            Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
+            Assert.Equal(expected.Configuration!.Module.DisplayName, imported.Configuration!.Module.DisplayName);
+            Assert.Equal(expected.Configuration.Modifiers, imported.Configuration.Modifiers);
+            Assert.Equal(variant.Content, imported.Sources[variant.Path]);
+            Assert.Contains(imported.Provenance, x => x.Path == variant.Path);
+        }
+        /// <summary>Without a canonical filename, matching saved solutions have stable path precedence.</summary>
+        [Fact]
+        public void Multiple_named_solutions_without_canonical_name_have_deterministic_selection()
+        {
+            var request = Fixture();
+            var canonical = request.Sources.Single(x => x.Path == "config/UH-1H.dcs-scaffold.json");
+            var first = canonical with { Path = "config/A.dcs-scaffold.json" };
+            var alternate = JsonNode.Parse(canonical.Content)!;
+            alternate["import"]!["displayName"] = "Alternate saved solution";
+            var second = new ConsumerSource("config/Z.dcs-scaffold.json", alternate.ToJsonString());
+            var remaining = request.Sources.Where(x => x != canonical).ToArray();
+            var forward = new ConsumerSourceImporter().Import(request with { Sources = [first, second, ..remaining] });
+            var reverse = new ConsumerSourceImporter().Import(request with { Sources = [second, first, ..remaining] });
+            Assert.True(forward.Succeeded);
+            Assert.True(reverse.Succeeded);
+            Assert.Equal(forward.Configuration!.Module, reverse.Configuration!.Module);
+            Assert.NotEqual("Alternate saved solution", forward.Configuration.Module.DisplayName);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static ConsumerSource[] Replace(ConsumerImportRequest request, string path,
