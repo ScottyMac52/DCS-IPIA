@@ -28,7 +28,6 @@ namespace Dcs.Ipia.App.Smoke
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
-            defaultsWindow.Close();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
                 throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");
@@ -39,6 +38,7 @@ namespace Dcs.Ipia.App.Smoke
                                           [new("bad-profile", "One other device profile could not be parsed.", true)]);
             var folderWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
             folderWindow.Show();
+            defaultsWindow.Close();
             folderWindow.UpdateLayout();
             var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
             if (!folderWindow.IsVisible || (folderTabs.SelectedItem as TabItem)?.Header?.ToString() != "Diagnostics")
