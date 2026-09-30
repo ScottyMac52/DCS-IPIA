@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows.Controls;
+using System.Windows;
+using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
@@ -25,6 +27,7 @@ namespace Dcs.Ipia.App.Smoke
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
+            VerifySharedDefaultBindingEditor();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
@@ -247,6 +250,56 @@ namespace Dcs.Ipia.App.Smoke
             return 0;
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static void VerifySharedDefaultBindingEditor()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ipia-default-editor-smoke-" + Guid.NewGuid().ToString("N") + ".db");
+            var connection = "Data Source=" + path + ";Pooling=False";
+            try
+            {
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var seed = global::Dcs.Ipia.Dcs.SharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult();
+                var first = repository.SaveAsync(seed).GetAwaiter().GetResult();
+                var window = new SharedUiLayerWorkspaceWindow(first, repository);
+                window.Show();
+                var profiles = (ComboBox)window.FindName("ProfilePaths")!;
+                profiles.SelectedIndex = 0;
+                var profilePath = (string)profiles.SelectedItem;
+                var rows = (DataGrid)window.FindName("BindingRows")!;
+                var selected = rows.Items.OfType<DcsBinding>().First(x => x.Section == BindingSection.Key && x.Disposition != BindingDisposition.Removed);
+                rows.SelectedItem = selected;
+                ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
+                var update = (Button)window.FindName("UpdateBindingButton")!;
+                update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var save = (Button)window.FindName("SaveDefaultsButton")!;
+                if (!save.IsEnabled) throw new InvalidOperationException("Shared default binding edit was not staged.");
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (save.IsEnabled || !rows.Items.OfType<DcsBinding>().Any(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId))
+                    throw new InvalidOperationException("Discard did not restore the saved shared bindings.");
+                rows.SelectedItem = rows.Items.OfType<DcsBinding>().First(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId);
+                ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
+                update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var status = (TextBlock)window.FindName("EditorStatus")!;
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                while (!status.Text.StartsWith("Shared default revision saved", StringComparison.Ordinal))
+                {
+                    if (DateTime.UtcNow > deadline || status.Text.StartsWith("Defaults were not saved", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Shared binding save failed: " + status.Text);
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                var saved = repository.GetAsync().GetAwaiter().GetResult()!;
+                if (saved.Revision != 2 || !global::Dcs.Ipia.Dcs.SharedUiLayerBindingEditor.Bindings(saved, profilePath)
+                    .Any(x => x.InputKey == "JOY_BTN999" && x.CommandId == selected.CommandId) || save.IsEnabled)
+                    throw new InvalidOperationException("Shared binding revision did not reopen correctly.");
+                if (repository.GetAsync(1).GetAwaiter().GetResult()!.Sources[profilePath] != first.Sources[profilePath])
+                    throw new InvalidOperationException("Shared binding save changed revision history.");
+                window.Close();
+                System.Console.WriteLine("Shared default binding editor staged, discarded, saved and reopened an independent revision.");
+            }
+            finally { File.Delete(path); }
+        }
+        #endregion END private helpers
     }
 }
-
