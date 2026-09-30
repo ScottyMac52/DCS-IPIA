@@ -46,7 +46,7 @@ namespace Dcs.Ipia.Tests
                 using (var overlays = JsonDocument.Parse(
                            File.ReadAllText(Path.Combine(common, "assets/shared/ui-layer/hardware-overlays.json"))))
                 {
-                    foreach (var device in new[] { "tm-mfd", "grip-f18c", "tm-warthog-throttle" })
+                    foreach (var device in new[] { "tm-mfd", "grip-f18c", "tm-warthog-throttle", "tm-warthog-grip" })
                     {
                         var controls = device == "tm-warthog-throttle" ? new[] { "warthog-thr-slew-push" }
                                                                        : overlays.RootElement.GetProperty("devices")
@@ -147,6 +147,13 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal("Gun Up", reopened.Labels[(baseArm with { ModifierChord = "MOZA_F16_F18_BTN3" }).Key]);
                 Assert.Equal(result.SharedLuaSources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
                              reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
+                Assert.Contains("config/ipia-device-map.json", reopened.Sources.Keys);
+                Assert.Equal(result.SharedLuaSources["config/ipia-hardware.json"], reopened.Sources["config/ipia-hardware.json"]);
+                Assert.DoesNotContain(reopened.Configuration.Profiles, x => x.DeviceId == "ava-base-f16c");
+                var ava = Assert.Single(WorkspaceStructureEditor.Hardware(reopened), x => x.DeviceId == "ava-base-f16c");
+                Assert.NotEmpty(ava.Diagram.Controls);
+                Assert.Equal("ava-base-f16c", DetectedDeviceHardwareMatcher.Match(reopened,
+                    new(Guid.NewGuid(), "AVA [R] - Viper", true))!.DeviceId);
                 Assert.Equal("# committed module readme\n", reopened.Sources["README.md"]);
                 Assert.Equal("Committed package instructions\n", reopened.Sources["packaging/ovgme/README.TXT"]);
                 var frozen = EditorSnapshotSerializer.Serialize(reopened);
