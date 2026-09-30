@@ -10,6 +10,10 @@ namespace Dcs.Ipia.Application
                                                 IReadOnlyList<UiLayerDiagram> Diagrams)
     {
         #region BEGIN Public
+        /// <summary>Gets the exact committed module revision read by the repository loader.</summary>
+        public string ModuleCommit { get; init; } = string.Empty;
+        /// <summary>Gets staged, unstaged, and new module input paths excluded from the committed import.</summary>
+        public IReadOnlyList<string> UncommittedSourcePaths { get; init; } = [];
         /// <summary>Gets graphics problems that did not prevent the module and kneeboard preview.</summary>
         public IReadOnlyList<ImportDiagnostic> GraphicDiagnostics { get; init; } = [];
         /// <summary>Gets the validated DCS-Common UI Layer catalog, even when device graphics are unavailable.</summary>

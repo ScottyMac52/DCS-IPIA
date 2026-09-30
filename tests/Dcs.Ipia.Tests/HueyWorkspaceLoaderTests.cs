@@ -101,6 +101,10 @@ namespace Dcs.Ipia.Tests
                 var result = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.True(result.Import.Succeeded,
                             string.Join("; ", result.Import.Diagnostics.Select(x => x.Message)));
+                Assert.Contains("config/kneeboard.json", result.UncommittedSourcePaths);
+                Assert.Contains("README.md", result.UncommittedSourcePaths);
+                Assert.Contains(result.Import.Diagnostics, x => x.Code == "uncommitted-module-sources" && !x.IsError);
+                Assert.Equal(result.Import.Provenance[0].Commit, result.ModuleCommit);
                 Assert.Equal(5, result.Import.Configuration!.Profiles.Count);
                 Assert.Equal(17, result.Import.Provenance.Count);
                 Assert.Equal("# committed module readme\n", result.Import.Sources["README.md"]);
@@ -430,6 +434,72 @@ namespace Dcs.Ipia.Tests
             {
                 DeleteFixture(path);
             }
+        }
+
+        /// <summary>Saved modifier defaults are diagnosed until committed, then survive import, SQLite and output.</summary>
+        [Fact]
+        public async Task Keyboard_defaults_require_committed_reimport_and_survive_workspace_reopen()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "DcsIpiaModifiers-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(root);
+                var fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Huey");
+                foreach (var source in Directory.GetFiles(fixtures, "*", SearchOption.AllDirectories))
+                    Copy(source, root, Path.GetRelativePath(fixtures, source));
+                Commit(root);
+                var loader = new ModuleWorkspaceLoader();
+                const string modifierSourcePath = "src/Config/Input/UH-1H/modifiers.lua";
+                var modifierPath = Path.Combine(root, modifierSourcePath);
+                var original = File.ReadAllText(modifierPath);
+                string[] keys = ["LAlt", "LCtrl", "LShift", "LWin", "RAlt", "RCtrl", "RShift", "RWin"];
+                var definitions = string.Join("\n", keys.Select(key =>
+                    $"[\"{key}\"] = {{ [\"device\"] = \"Keyboard\", [\"key\"] = \"{key}\", [\"switch\"] = false }},"));
+                File.WriteAllText(modifierPath, original.Replace("local modifiers = {", "local modifiers = {\n" + definitions));
+                Git(root, "add", modifierSourcePath);
+                var extraPath = "src/Config/Input/UH-1H/joystick/new-device.diff.lua";
+                File.WriteAllText(Path.Combine(root, extraPath), "local diff = {}\nreturn diff\n");
+                File.WriteAllText(Path.Combine(root, "unrelated.txt"), "not an input");
+                var stale = await loader.LoadAsync(BundledSharedCatalog.Root, root);
+                Assert.True(stale.Import.Succeeded);
+                Assert.DoesNotContain(stale.Import.Configuration!.Modifiers, x => x.Device == "Keyboard");
+                Assert.Equal(new[] { extraPath, modifierSourcePath }.Order(StringComparer.Ordinal), stale.UncommittedSourcePaths);
+                Assert.Contains(stale.Import.Diagnostics, x => x.Code == "uncommitted-module-sources" &&
+                    !x.IsError && x.Message.Contains(modifierSourcePath, StringComparison.Ordinal));
+
+                File.Delete(Path.Combine(root, extraPath));
+                File.Delete(Path.Combine(root, "unrelated.txt"));
+                Commit(root);
+                var refreshed = await loader.LoadAsync(BundledSharedCatalog.Root, root);
+                Assert.True(refreshed.Import.Succeeded, string.Join("; ", refreshed.Import.Diagnostics.Select(x => x.Message)));
+                Assert.NotEqual(stale.ModuleCommit, refreshed.ModuleCommit);
+                Assert.Empty(refreshed.UncommittedSourcePaths);
+                Assert.DoesNotContain(refreshed.Import.Diagnostics, x => x.Code == "uncommitted-module-sources");
+                Assert.Equal(9, refreshed.Import.Configuration!.Modifiers.Count);
+                var snapshot = new EditorWorkspaceSnapshot(refreshed.Import.Configuration, refreshed.Import.Pages,
+                    refreshed.Images, refreshed.Diagrams, [], refreshed.UiCommands, [],
+                    KneeboardLabelImporter.Import(refreshed.Import.Metadata, refreshed.Import.Configuration),
+                    refreshed.Import.Sources.Concat(refreshed.SharedLuaSources).ToDictionary(x => x.Key, x => x.Value));
+                var database = "Data Source=" + Path.Combine(root, "workspace.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(database).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(database);
+                await repository.SaveAsync(snapshot);
+                var reopened = await repository.GetAsync(snapshot.Configuration.Module.Id);
+                Assert.NotNull(reopened);
+                var managed = WorkspaceStructureEditor.Describe(reopened).Modifiers
+                    .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
+                foreach (var key in keys)
+                {
+                    var modifier = Assert.Single(managed, x => x.Name == key);
+                    Assert.True(WorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
+                    Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(reopened, modifier));
+                }
+                var payload = SnapshotLuaPayloadRenderer.Generate(reopened);
+                var output = DcsLuaParser.ParseModifiers(System.Text.Encoding.UTF8.GetString(payload["Config/Input/UH-1H/modifiers.lua"]));
+                Assert.Equal(keys.Order(StringComparer.Ordinal),
+                    output.Where(x => x.Device == "Keyboard").Select(x => x.Name).Order(StringComparer.Ordinal));
+            }
+            finally { DeleteFixture(root); }
         }
         #endregion END Public
         #region BEGIN private helpers
