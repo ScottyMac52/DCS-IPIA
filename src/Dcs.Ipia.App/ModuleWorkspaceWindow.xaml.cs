@@ -315,6 +315,11 @@ namespace DcsIpia.Presentation
         private void ClearDeviceAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.ClearDeviceAssignments(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to clear.")));
+        private void ClearLayerAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            WorkspaceStructureEditor.ClearLayerAssignments(workspace,
+                WorkspaceStructureEditor.Describe(workspace).Devices.FirstOrDefault(x => x.ProfileId == CurrentDiagram?.ProfileId && x.Layer == CurrentLayer) ??
+                    throw new InvalidOperationException("Select a device to clear."),
+                Layers.SelectedItem is string layer && layer != "Base" ? layer : ""));
         private void ModifierDeviceChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ModifierControl is null || _managementRefreshing) return;

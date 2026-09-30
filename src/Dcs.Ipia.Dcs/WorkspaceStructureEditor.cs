@@ -272,6 +272,32 @@ namespace Dcs.Ipia.Dcs
                     DcsLuaParser.ParseProfile(source, device.ProfileId).Where(x => x.Disposition == BindingDisposition.Removed).ToArray()));
             return workspace;
         }
+        /// <summary>Clears one device's selected scope and modifier chord, including unmapped keys and axes.</summary>
+        /// <param name="workspace">Current staged workspace.</param>
+        /// <param name="device">Device and scope selected for clearing.</param>
+        /// <param name="modifierChord">Modifier names, or empty for Base.</param>
+        /// <returns>Updated reversible draft preserving other scopes and chords.</returns>
+        public static EditorWorkspaceSnapshot ClearLayerAssignments(EditorWorkspaceSnapshot workspace, WorkspaceDevice device, string modifierChord)
+        {
+            workspace = Prepare(workspace);
+            var chord = modifierChord.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
+            var normalized = string.Join("+", chord);
+            var cleared = workspace.Assignments.Where(x => x.Slot.ProfileId == device.ProfileId && x.Slot.Layer == device.Layer &&
+                x.Slot.ModifierChord == normalized).Select(x => x.Slot.Key).ToHashSet(StringComparer.Ordinal);
+            bool Keep(DcsBinding binding) => binding.Disposition == BindingDisposition.Removed ||
+                !binding.Reformers.Order(StringComparer.Ordinal).SequenceEqual(chord, StringComparer.Ordinal);
+            workspace = workspace with {
+                Assignments = workspace.Assignments.Where(x => !cleared.Contains(x.Slot.Key)).ToArray(),
+                Labels = workspace.Labels.Where(x => !cleared.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal)
+            };
+            if (device.Layer == AssignmentLayer.Module)
+                workspace = workspace with { Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers,
+                    workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId || Keep(x))) };
+            else if (workspace.Sources!.TryGetValue(UiSource(device.ProfileId), out var source))
+                workspace = SetSource(workspace, UiSource(device.ProfileId), ModuleLuaProfileRenderer.Write(
+                    DcsLuaParser.ParseProfile(source, device.ProfileId).Where(Keep).ToArray()));
+            return workspace;
+        }
         /// <summary>Gets UI Layer modifier names for assignment validation.</summary>
         /// <param name="workspace">Current workspace.</param>
         /// <returns>Declared modifier names.</returns>

@@ -54,11 +54,20 @@ namespace DcsIpia.Presentation
             SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !_saving;
             DiscardDefaultsButton.IsEnabled = _dirty && !_saving;
             BindingFields.IsEnabled = _repository is not null && !_saving;
+            ClearLayerButton.IsEnabled = _repository is not null && !_saving;
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
             if (BindingRows is null) return;
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;
+            if (ClearLayerChoice is null) return;
+            var selected = ClearLayerChoice.SelectedItem as string ?? "Base";
+            ClearLayerChoice.ItemsSource = Enumerable.Repeat("Base", 1).Concat(
+                DcsLuaParser.ParseModifiers(_draft.Sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]).Select(x => x.Name))
+                .Concat((BindingRows.ItemsSource as IEnumerable<DcsBinding> ?? []).Where(x => x.Reformers.Count > 0)
+                    .Select(x => string.Join(" + ", x.Reformers.Order(StringComparer.Ordinal))))
+                .Distinct(StringComparer.Ordinal).ToArray();
+            ClearLayerChoice.SelectedItem = (ClearLayerChoice.ItemsSource as IEnumerable<string>)!.Contains(selected) ? selected : "Base";
         }
         private void BindingSelected(object sender, SelectionChangedEventArgs e)
         {
@@ -82,6 +91,9 @@ namespace DcsIpia.Presentation
             (CommandChoice.SelectedItem as DraftCommand)?.Id ?? throw new InvalidOperationException("Select a command."),
             InputKey.Text, ModifierChord.Text.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
         private void RemoveBindingClicked(object sender, RoutedEventArgs e) => Edit(() => SharedUiLayerBindingEditor.Remove(_draft, ProfilePath(), SelectedBinding()));
+        private void ClearLayerClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerBindingEditor.ClearLayerAssignments(_draft, ProfilePath(),
+                ClearLayerChoice.SelectedItem is string layer && layer != "Base" ? layer : ""));
         private void Edit(Func<SharedUiLayerWorkspace> edit)
         {
             try
