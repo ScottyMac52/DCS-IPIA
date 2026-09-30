@@ -191,6 +191,69 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("RADAR", page.CategoryLabels["mfd-category-middle"]);
             Assert.Contains("meta-mfd-category-middle", saved.Diagrams[0].Svg);
         }
+        /// <summary>An unrelated hardware template cannot block an MFD role edit or become an empty UI profile.</summary>
+        /// <returns>Completion of the saved role round trip.</returns>
+        [Fact]
+        public async Task SavesMfdRoleWithUnboundUiHardwareTemplate()
+        {
+            var saved = Workspace("tm-mfd");
+            var templateId = Guid.NewGuid();
+            var configuration = saved.Configuration;
+            saved = saved with {
+                Configuration = new ModuleConfiguration(configuration.Module,
+                    [.. configuration.Profiles, new DeviceProfile(templateId, "grip-f18c", null, "Stick", "Hornet grip.diff.lua")],
+                    configuration.Modifiers, configuration.Bindings, configuration.Provenance),
+                Diagrams = [.. saved.Diagrams, saved.Diagrams[0] with {
+                    ProfileId = templateId, SupportsUiLayer = true, CanonicalUiLayerSourcePath = null, Callouts = [] }]
+            };
+            var importedPayload = SnapshotLuaPayloadRenderer.Generate(saved);
+            var device = Assert.Single(WorkspaceStructureEditor.Describe(saved).Devices,
+                x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD",
+                new Dictionary<string, string> { ["right"] = "AMPCD", ["top"] = "UI Layer" });
+            var path = Path.Combine(Path.GetTempPath(), "ipia-role-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(saved);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                var state = WorkspaceStructureEditor.Describe(restored);
+                var updated = Assert.Single(state.Devices, x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+                Assert.Equal("AMPCD", updated.Role);
+                Assert.Equal("MFD3", updated.Instance);
+                Assert.Equal(device.FileName, updated.FileName);
+                Assert.Equal("AMPCD", restored.Configuration.Profiles.Single(x => x.Id == ProfileId).Role);
+                Assert.DoesNotContain(state.Devices, x => x.ProfileId == templateId && x.Layer == AssignmentLayer.UiLayer);
+                Assert.True(restored.Diagrams.Single(x => x.ProfileId == templateId).SupportsUiLayer);
+                var page = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                Assert.Equal("AMPCD", page.CategoryLabels["mfd-category-right"]);
+                var payload = SnapshotLuaPayloadRenderer.Generate(restored);
+                Assert.Equal(importedPayload.Keys.Order(), payload.Keys.Order());
+                foreach (var entry in importedPayload)
+                    Assert.Equal(entry.Value, payload[entry.Key]);
+                Assert.Contains(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
+                    x => x.CommandId == "UNMAPPED");
+            }
+            finally { File.Delete(path); }
+        }
+        /// <summary>Missing pinned sources still reject actual UI assignments or authored callouts.</summary>
+        /// <param name="keepAssignments">Whether saved assignments or only callouts demonstrate UI Layer usage.</param>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void RejectsMissingSourceForActualUiUsage(bool keepAssignments)
+        {
+            var saved = Workspace("tm-mfd");
+            saved = saved with {
+                Diagrams = [saved.Diagrams[0] with { CanonicalUiLayerSourcePath = null,
+                    Callouts = keepAssignments ? [] : saved.Diagrams[0].Callouts }],
+                Assignments = keepAssignments ? saved.Assignments : saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module).ToArray()
+            };
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidDataException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
+        }
         /// <summary>Adding an existing physical device to the other scope reuses its profile and permits a shared filename.</summary>
         [Fact]
         public void ReusesPhysicalProfilesAcrossScopes()
