@@ -40,6 +40,8 @@
           <Button x:Name="ImportButton" Content="Import module sources" Padding="16,9"
                   Click="ImportModule_Click" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder."/>
         </StackPanel>
+        <Button x:Name="SharedDefaultsButton" Content="Shared default UI Layer" Click="SharedDefaults_Click"
+                HorizontalAlignment="Left" Padding="16,9" Margin="0,12,0,0"/>
       </StackPanel>
     </Border>
     <Border Grid.Row="2" Background="{DynamicResource StatusBackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,14,0,0">

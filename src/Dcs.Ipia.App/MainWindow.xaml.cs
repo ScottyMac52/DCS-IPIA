@@ -15,20 +15,25 @@ namespace DcsIpia.Presentation
         private readonly IDcsFolderImporter _folderImporter;
         private readonly IAppSettingsService _settings;
         private readonly IEditorWorkspaceRepository _workspaces;
+        private readonly ISharedUiLayerWorkspaceRepository? _sharedDefaults;
         private ModuleWorkspaceViewModel? _lastViewModel;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
         /// <param name="settings">The validated user preference service.</param>
         /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
+        /// <param name="sharedDefaults">Independent shared default revision storage.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
-                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces)
+                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
+                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _workspaces = workspaces ?? throw new ArgumentNullException(nameof(workspaces));
+            _sharedDefaults = sharedDefaults;
             InitializeComponent();
+            SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
@@ -37,6 +42,26 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private async void SharedDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            if (_sharedDefaults is null) return;
+            SharedDefaultsButton.IsEnabled = false;
+            try
+            {
+                var saved = await _sharedDefaults.GetAsync();
+                if (saved is null)
+                {
+                    var seed = await SharedUiLayerWorkspaceFactory.CreateAsync();
+                    saved = await _sharedDefaults.SaveAsync(seed);
+                }
+                new SharedUiLayerWorkspaceWindow(saved) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to open shared default UI Layer: " + ex.Message);
+            }
+            finally { SharedDefaultsButton.IsEnabled = true; }
+        }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)
         {
             ImportButton.IsEnabled = false;
