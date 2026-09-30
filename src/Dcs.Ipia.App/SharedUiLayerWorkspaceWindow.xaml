@@ -51,6 +51,35 @@
           </ScrollViewer>
         </Grid>
       </TabItem>
+      <TabItem Header="Commands">
+        <Grid Margin="10">
+          <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <DataGrid x:Name="CatalogRows" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+                    SelectionChanged="CatalogSelected" Margin="0,0,0,10">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Identity" Binding="{Binding Id}" Width="150"/>
+              <DataGridTextColumn Header="DCS command code" Binding="{Binding Command}" Width="*"/>
+              <DataGridTextColumn Header="Name" Binding="{Binding Label}" Width="180"/>
+              <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="260">
+            <StackPanel x:Name="CatalogFields">
+              <TextBlock Text="Catalog identity (stable after adding)"/><TextBox x:Name="CatalogIdentity" Margin="0,4,0,8"/>
+              <TextBlock Text="DCS command code"/><TextBox x:Name="CatalogCode" Margin="0,4,0,8"/>
+              <TextBlock Text="Name"/><TextBox x:Name="CatalogLabel" Margin="0,4,0,8"/>
+              <TextBlock Text="Category"/><TextBox x:Name="CatalogCategory" Margin="0,4,0,8"/>
+              <TextBlock Text="Command codes must come from DCS. Clear assignments before removing an entry or changing an assigned command's code." TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <WrapPanel>
+                <Button Content="New command" Click="NewCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="AddCommandButton" Content="Add" Click="AddCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="UpdateCommandButton" Content="Update" Click="UpdateCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="RemoveCommandButton" Content="Remove" Click="RemoveCommandClicked" Padding="10,6"/>
+              </WrapPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
       <TabItem Header="Sources (read-only)">
     <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

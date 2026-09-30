@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 
@@ -31,11 +30,10 @@ namespace Dcs.Ipia.Dcs
         /// <returns>Distinct UI Layer key commands.</returns>
         public static IReadOnlyList<DraftCommand> Commands(SharedUiLayerWorkspace workspace)
         {
-            var commands = Profiles(workspace).SelectMany(path => Bindings(workspace, path))
-                .Where(x => x.Section == BindingSection.Key).Select(x => new DraftCommand(x.CommandId, x.CommandName, false, AssignmentLayer.UiLayer)).ToList();
-            using var document = JsonDocument.Parse(workspace.Sources["assets/shared/ui-layer/functions.json"]);
-            commands.AddRange(document.RootElement.GetProperty("functions").EnumerateArray().Select(x =>
-                new DraftCommand(x.GetProperty("command").GetString()!, x.GetProperty("label").GetString()!, false, AssignmentLayer.UiLayer)));
+            var commands = SharedUiLayerCommandEditor.Commands(workspace)
+                .Select(x => new DraftCommand(x.Command, x.Label, false, AssignmentLayer.UiLayer)).ToList();
+            commands.AddRange(Profiles(workspace).SelectMany(path => Bindings(workspace, path))
+                .Where(x => x.Section == BindingSection.Key).Select(x => new DraftCommand(x.CommandId, x.CommandName, false, AssignmentLayer.UiLayer)));
             return commands.DistinctBy(x => x.Id).OrderBy(x => x.Name, StringComparer.Ordinal).ToArray();
         }
         /// <summary>Adds or updates one active key binding, rejecting stale rows, unknown modifiers, and occupied chords.</summary>
@@ -90,6 +88,7 @@ namespace Dcs.Ipia.Dcs
         /// <param name="workspace">Complete staged defaults.</param>
         public static void Validate(SharedUiLayerWorkspace workspace)
         {
+            SharedUiLayerCommandEditor.Commands(workspace);
             foreach (var path in Profiles(workspace))
             {
                 var active = Bindings(workspace, path).Where(x => x.Disposition != BindingDisposition.Removed).ToArray();
