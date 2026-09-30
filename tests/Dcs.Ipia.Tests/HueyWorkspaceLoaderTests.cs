@@ -104,7 +104,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Contains("config/kneeboard.json", result.UncommittedSourcePaths);
                 Assert.Contains("README.md", result.UncommittedSourcePaths);
                 Assert.Contains(result.Import.Diagnostics, x => x.Code == "uncommitted-module-sources" && !x.IsError);
-                Assert.Equal(result.Import.Provenance.First().Commit, result.ModuleCommit);
+                Assert.Equal(result.Import.Provenance[0].Commit, result.ModuleCommit);
                 Assert.Equal(5, result.Import.Configuration!.Profiles.Count);
                 Assert.Equal(17, result.Import.Provenance.Count);
                 Assert.Equal("# committed module readme\n", result.Import.Sources["README.md"]);
