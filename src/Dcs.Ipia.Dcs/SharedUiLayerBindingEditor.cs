@@ -75,6 +75,17 @@ namespace Dcs.Ipia.Dcs
             bindings.RemoveAt(CurrentIndex(bindings, current));
             return Store(workspace, path, bindings);
         }
+        /// <summary>Clears active keys and axes for one profile and modifier chord, retaining removal history.</summary>
+        /// <param name="workspace">Current draft defaults.</param>
+        /// <param name="path">Existing device profile.</param>
+        /// <param name="modifierChord">Modifier names, or empty for Base.</param>
+        /// <returns>Immutable draft retaining other profiles and chords.</returns>
+        public static SharedUiLayerWorkspace ClearLayerAssignments(SharedUiLayerWorkspace workspace, string path, string modifierChord)
+        {
+            var chord = modifierChord.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
+            return Store(workspace, path, Bindings(workspace, path).Where(x => x.Disposition == BindingDisposition.Removed ||
+                !x.Reformers.Order(StringComparer.Ordinal).SequenceEqual(chord, StringComparer.Ordinal)).ToArray());
+        }
         /// <summary>Checks modifier references and physical input conflicts before persisting a revision.</summary>
         /// <param name="workspace">Complete staged defaults.</param>
         public static void Validate(SharedUiLayerWorkspace workspace)

@@ -17,6 +17,25 @@ namespace Dcs.Ipia.Tests
         private static readonly Guid ModuleId = Guid.Parse("115c5cf8-c3ac-4d80-a512-5d92bd36856a");
         private static readonly Guid ProfileId = Guid.Parse("b2da76ec-5d9a-497d-9712-43864c304939");
         #region BEGIN Public
+        /// <summary>Layer clearing removes mapped and unmapped exports without affecting the other scope or original draft.</summary>
+        [Fact]
+        public void ClearsSelectedDeviceScopeAndChord()
+        {
+            var baseline = Workspace();
+            var moduleDevice = WorkspaceStructureEditor.Describe(baseline).Devices.Single(x => x.Layer == AssignmentLayer.Module);
+            var cleared = WorkspaceStructureEditor.ClearLayerAssignments(baseline, moduleDevice, "SHIFT");
+            Assert.Single(cleared.Assignments);
+            Assert.Empty(cleared.Labels);
+            Assert.Empty(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
+            Assert.Contains(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId), x => x.CommandId == "UNMAPPED");
+            var uiDevice = WorkspaceStructureEditor.Describe(cleared).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            var unchanged = WorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, "");
+            Assert.Single(unchanged.Assignments);
+            cleared = WorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, " UI_SHIFT ");
+            Assert.Empty(cleared.Assignments);
+            Assert.Empty(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
+            Assert.Equal(2, baseline.Assignments.Count);
+        }
         /// <summary>New devices use editable filenames, optional identity fields, and independent scope membership.</summary>
         [Fact]
         public void AddsUpdatesAndExportsScopeSpecificDevices()

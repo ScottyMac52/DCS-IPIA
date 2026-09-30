@@ -312,6 +312,15 @@ namespace Dcs.Ipia.App.Smoke
                 profiles.SelectedIndex = 0;
                 var profilePath = (string)profiles.SelectedItem;
                 var rows = (DataGrid)window.FindName("BindingRows")!;
+                var clearLayer = (ComboBox)window.FindName("ClearLayerChoice")!;
+                clearLayer.SelectedItem = "Base";
+                ((Button)window.FindName("ClearLayerButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (rows.Items.OfType<DcsBinding>().Any(x => x.Disposition != BindingDisposition.Removed && x.Reformers.Count == 0) ||
+                    !((Button)window.FindName("SaveDefaultsButton")!).IsEnabled)
+                    throw new InvalidOperationException("Shared layer clear did not stage all base keys and axes.");
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!rows.Items.OfType<DcsBinding>().Any(x => x.Disposition != BindingDisposition.Removed))
+                    throw new InvalidOperationException("Discard did not restore cleared shared layer bindings.");
                 var selected = rows.Items.OfType<DcsBinding>().First(x => x.Section == BindingSection.Key && x.Disposition != BindingDisposition.Removed);
                 rows.SelectedItem = selected;
                 ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";

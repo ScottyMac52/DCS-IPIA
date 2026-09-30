@@ -34,6 +34,26 @@ namespace Dcs.Ipia.Tests
             Assert.DoesNotContain(SharedUiLayerBindingEditor.Bindings(edited, PathKey), x => x.InputKey == "JOY_BTN4");
             Assert.Contains(SharedUiLayerBindingEditor.Commands(edited), x => x.Id == "UNMAPPED");
         }
+        /// <summary>Bulk clearing includes unmapped keys and axes while preserving history, other chords, and profiles.</summary>
+        [Fact]
+        public void ClearsOnlySelectedProfileLayer()
+        {
+            var baseline = Workspace();
+            var shifted = SharedUiLayerBindingEditor.Set(baseline, PathKey, null, "NEW", "JOY_BTN3", ["SHIFT"]);
+            var sources = new Dictionary<string, string>(shifted.Sources) { [PathKey.Replace("Stick", "Other", StringComparison.Ordinal)] = shifted.Sources[PathKey] };
+            shifted = shifted with { Sources = sources };
+            var cleared = SharedUiLayerBindingEditor.ClearLayerAssignments(shifted, PathKey, "");
+            var rows = SharedUiLayerBindingEditor.Bindings(cleared, PathKey);
+            Assert.Equal(2, rows.Count);
+            Assert.Contains(rows, x => x.Disposition == BindingDisposition.Removed);
+            Assert.Contains(rows, x => x.CommandId == "NEW");
+            Assert.Equal(shifted.Sources.Where(x => x.Key != PathKey), cleared.Sources.Where(x => x.Key != PathKey));
+            Assert.Equal(4, SharedUiLayerBindingEditor.Bindings(baseline, PathKey).Count);
+            cleared = SharedUiLayerBindingEditor.ClearLayerAssignments(cleared, PathKey, " SHIFT ");
+            Assert.Single(SharedUiLayerBindingEditor.Bindings(cleared, PathKey));
+            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.ClearLayerAssignments(baseline, "unknown", ""));
+            SharedUiLayerBindingEditor.Validate(cleared);
+        }
         /// <summary>Unsafe conflicts, unknown modifiers/commands, invalid selections, and protected rows fail without mutating defaults.</summary>
         [Fact]
         public void RejectsInvalidEditsAndProtectsHistory()

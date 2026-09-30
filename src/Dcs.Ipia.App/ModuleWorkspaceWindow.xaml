@@ -210,6 +210,7 @@
                 <ComboBoxItem Content="Module controls"/>
                 <ComboBoxItem Content="Module UI Layer"/>
               </ComboBox>
+              <Button Content="Clear layer assignments" Click="ClearLayerAssignmentsClicked" Margin="12,0,0,0" Padding="10,4"/>
               <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="16,0,6,0"/>
               <Slider x:Name="Zoom" Minimum="0.5" Maximum="3" Value="1" Width="140" ValueChanged="ZoomChanged"/>
               <Button Content="Rendered kneeboard…" Click="RenderClicked" Margin="16,0,0,0" Padding="10,4"/>
