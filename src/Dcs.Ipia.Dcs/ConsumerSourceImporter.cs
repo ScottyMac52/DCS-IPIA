@@ -73,8 +73,11 @@ namespace Dcs.Ipia.Dcs
                                     import.TryGetProperty("target", out var target) &&
                                     target.GetString() == "consumer" &&
                                     import.TryGetProperty("inputModuleId", out var id) && id.GetString() == dcsId)
+                        // A checkout can contain both its canonical solution and a saved repo-input variant.
+                        .OrderBy(x => x.Key == $"config/{dcsId}.dcs-scaffold.json" ? 0 : 1)
+                        .ThenBy(x => x.Key, StringComparer.Ordinal)
                         .Select(x => x.Value)
-                        .SingleOrDefault();
+                        .FirstOrDefault();
                 if (scaffold.ValueKind == JsonValueKind.Undefined ||
                     scaffold.GetProperty("schemaVersion").GetInt32() != 1)
                     throw new FormatException($"No schema v1 consumer scaffold matches {dcsId}.");
