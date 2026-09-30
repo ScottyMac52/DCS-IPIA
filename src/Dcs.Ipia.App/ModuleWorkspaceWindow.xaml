@@ -120,6 +120,8 @@
                     <StackPanel>
                       <TextBlock Text="Kneeboard title"/>
                       <TextBox x:Name="ManagedKneeboardTitle" Margin="0,4,0,0"/>
+                      <TextBlock Text="Kneeboard subtitle (optional)" Margin="0,8,0,0"/>
+                      <TextBox x:Name="ManagedKneeboardSubtitle" Margin="0,4,0,0"/>
                     </StackPanel>
                   </GroupBox>
                   <GroupBox x:Name="MfdLabelFields" Header="Module MFD labels" Padding="8" Margin="0,0,0,10" IsEnabled="False">

@@ -325,6 +325,53 @@ namespace Dcs.Ipia.Tests
                 device.Instance, device.Role, kneeboardTitle: title));
             Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
         }
+        /// <summary>Any device subtitle persists independently of its title, identity, bindings, and other pages.</summary>
+        /// <param name="deviceId">An MFD or ordinary shared device.</param>
+        /// <returns>Completion of the SQLite round trip.</returns>
+        [Theory]
+        [InlineData("stick")]
+        [InlineData("tm-mfd")]
+        public async Task SavesAndClearsKneeboardSubtitle(string deviceId)
+        {
+            var original = Workspace(deviceId);
+            var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", original.Diagrams[0]);
+            var saved = WorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
+                kneeboardSubtitle: "Auxiliary panel");
+            var before = SnapshotDeviceKneeboardRenderer.Generate(saved)["KNEEBOARD/TEST/01-STICK.png"];
+            var luaBefore = SnapshotLuaPayloadRenderer.Generate(saved);
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
+                kneeboardSubtitle: "  Center display & controls  ");
+            var path = Path.Combine(Path.GetTempPath(), "ipia-subtitle-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(saved);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                var page = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                Assert.Equal("Center display & controls", page.Kicker);
+                Assert.Equal("Stick", page.Title);
+                Assert.Equal("Auxiliary panel", KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[1], restored.Assignments, restored.Labels).Kicker);
+                Assert.Equal(original.Configuration.Profiles[0], restored.Configuration.Profiles.Single(x => x.Id == ProfileId));
+                Assert.Contains("Center display &amp; controls", CompositeKneeboardRenderer.BuildPageSvg(restored.Diagrams[0], page, ""));
+                Assert.NotEqual(before, SnapshotDeviceKneeboardRenderer.Generate(restored)["KNEEBOARD/TEST/01-STICK.png"]);
+                foreach (var entry in luaBefore)
+                    Assert.Equal(entry.Value, SnapshotLuaPayloadRenderer.Generate(restored)[entry.Key]);
+                var ui = WorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
+                restored = WorkspaceStructureEditor.UpdateDevice(restored, ui, ui.FileName, ui.Instance, ui.Role, kneeboardSubtitle: "UI change");
+                Assert.Equal(page.Kicker, KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
+                device = WorkspaceStructureEditor.Describe(restored).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+                restored = WorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName, device.Instance, device.Role, kneeboardSubtitle: "");
+                await repository.SaveAsync(restored);
+                restored = (await repository.GetAsync(ModuleId))!;
+                Assert.Equal("", KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
+                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName,
+                    device.Instance, device.Role, kneeboardSubtitle: "Invalid\nsubtitle"));
+            }
+            finally { File.Delete(path); }
+        }
         /// <summary>Adding an existing physical device to the other scope reuses its profile and permits a shared filename.</summary>
         [Fact]
         public void ReusesPhysicalProfilesAcrossScopes()

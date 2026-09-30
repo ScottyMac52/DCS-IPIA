@@ -70,9 +70,11 @@ namespace Dcs.Ipia.Dcs
         /// <param name="instance">Optional instance.</param>
         /// <param name="role">Optional role.</param>
         /// <param name="kneeboardTitle">Optional module device page heading.</param>
+        /// <param name="kneeboardSubtitle">Optional module device page subtitle.</param>
         /// <returns>Updated immutable draft.</returns>
         public static EditorWorkspaceSnapshot AddDevice(EditorWorkspaceSnapshot workspace, WorkspaceHardware hardware,
-            AssignmentLayer layer, string fileName, string? instance, string? role, string? kneeboardTitle = null)
+            AssignmentLayer layer, string fileName, string? instance, string? role, string? kneeboardTitle = null,
+            string? kneeboardSubtitle = null)
         {
             workspace = Prepare(workspace);
             var state = Describe(workspace);
@@ -106,6 +108,8 @@ namespace Dcs.Ipia.Dcs
             workspace = SetUiSupport(Store(workspace, state with { Devices = [.. state.Devices, membership] }), profile.Id);
             if (layer == AssignmentLayer.Module && kneeboardTitle is not null)
                 workspace = SetKneeboardTitle(workspace, profile.Id, kneeboardTitle);
+            if (layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
+                workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
             return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role ?? (isNew ? null : x.Instance) } : x).ToArray() };
         }
         /// <summary>Updates identity, filename, and module MFD category labels.</summary>
@@ -117,10 +121,11 @@ namespace Dcs.Ipia.Dcs
         /// <param name="mfdLabels">Module MFD left, right, top, and middle labels.</param>
         /// <param name="hardware">Optional replacement shared hardware; changing type requires an unused device.</param>
         /// <param name="kneeboardTitle">Optional module device page heading; null preserves its current title.</param>
+        /// <param name="kneeboardSubtitle">Optional module device page subtitle; null preserves it and empty clears it.</param>
         /// <returns>Updated immutable draft.</returns>
         public static EditorWorkspaceSnapshot UpdateDevice(EditorWorkspaceSnapshot workspace, WorkspaceDevice device,
             string fileName, string? instance, string? role, IReadOnlyDictionary<string, string>? mfdLabels = null, WorkspaceHardware? hardware = null,
-            string? kneeboardTitle = null)
+            string? kneeboardTitle = null, string? kneeboardSubtitle = null)
         {
             workspace = Prepare(workspace);
             var state = Describe(workspace);
@@ -167,6 +172,8 @@ namespace Dcs.Ipia.Dcs
                 workspace = MfdLabels(workspace, profile.Id, mfdLabels);
             if (device.Layer == AssignmentLayer.Module && kneeboardTitle is not null)
                 workspace = SetKneeboardTitle(workspace, profile.Id, kneeboardTitle);
+            if (device.Layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
+                workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
             return workspace;
         }
         /// <summary>Removes an unused membership after checking both scopes.</summary>
@@ -411,6 +418,17 @@ namespace Dcs.Ipia.Dcs
                 page!["title"] = title.Trim();
             workspace = workspace with { Pages = workspace.Pages.Select(x => pageKeys.Contains(x.StableKey)
                 ? x with { Title = title.Trim() } : x).ToArray() };
+            return SetSource(workspace, "config/kneeboard.json", root.ToJsonString());
+        }
+        private static EditorWorkspaceSnapshot SetKneeboardSubtitle(EditorWorkspaceSnapshot workspace, Guid id, string subtitle)
+        {
+            if (subtitle.Any(char.IsControl))
+                throw new InvalidOperationException("Enter a kneeboard subtitle without control characters.");
+            var profile = workspace.Configuration.Profiles.Single(x => x.Id == id);
+            var root = JsonNode.Parse(workspace.Sources!["config/kneeboard.json"])!;
+            var key = root["profiles"]!.AsObject().First(x => Path.GetFileName(x.Value!.GetValue<string>()) == profile.SourceName).Key;
+            foreach (var page in root["pages"]!.AsArray().Where(x => x?["profile"]?.GetValue<string>() == key))
+                page!["kicker"] = subtitle.Trim();
             return SetSource(workspace, "config/kneeboard.json", root.ToJsonString());
         }
         private static EditorWorkspaceSnapshot MfdLabels(EditorWorkspaceSnapshot workspace, Guid id, IReadOnlyDictionary<string, string> labels)
