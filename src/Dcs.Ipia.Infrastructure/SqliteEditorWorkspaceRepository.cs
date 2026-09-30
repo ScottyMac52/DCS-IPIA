@@ -87,6 +87,27 @@ namespace Dcs.Ipia.Infrastructure
             await command.ExecuteNonQueryAsync(ct);
             await transaction.CommitAsync(ct);
         }
+        /// <inheritdoc/>
+        public async Task<bool> DeleteAsync(Guid moduleId, CancellationToken ct = default)
+        {
+            if (moduleId == Guid.Empty)
+                throw new ArgumentException("A module identity is required.", nameof(moduleId));
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(ct);
+            await using (var foreignKeys = connection.CreateCommand())
+            {
+                foreignKeys.CommandText = "PRAGMA foreign_keys=ON";
+                await foreignKeys.ExecuteNonQueryAsync(ct);
+            }
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText = "DELETE FROM modules WHERE id=$id";
+            command.Parameters.AddWithValue("$id", moduleId.ToString("D"));
+            var deleted = await command.ExecuteNonQueryAsync(ct) > 0;
+            await transaction.CommitAsync(ct);
+            return deleted;
+        }
         #endregion END Public
     }
 }

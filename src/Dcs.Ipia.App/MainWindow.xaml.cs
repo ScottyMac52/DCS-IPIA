@@ -17,6 +17,7 @@ namespace DcsIpia.Presentation
         private readonly IEditorWorkspaceRepository _workspaces;
         private readonly ISharedUiLayerWorkspaceRepository? _sharedDefaults;
         private ModuleWorkspaceViewModel? _lastViewModel;
+        private bool _moduleOperationBusy;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -64,7 +65,7 @@ namespace DcsIpia.Presentation
         }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)
         {
-            ImportButton.IsEnabled = false;
+            SetModuleOperationBusy(true);
             try
             {
                 var selected =
@@ -155,8 +156,43 @@ namespace DcsIpia.Presentation
             }
             finally
             {
-                ImportButton.IsEnabled = true;
+                SetModuleOperationBusy(false);
             }
+        }
+        private async void DeleteModule_Click(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || SavedModules.SelectedItem is not SavedModuleChoice choice)
+                return;
+            if (MessageBox.Show(this,
+                $"Delete {choice.DisplayName} and all of its saved profiles, assignments, labels, and kneeboards from the local database? You can import it again from scratch.",
+                "Delete module", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+                return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var deleted = await _workspaces.DeleteAsync(choice.Id);
+                _lastViewModel = null;
+                await RefreshSavedModulesAsync();
+                ImportStatus.Text = deleted
+                    ? $"Deleted {choice.DisplayName} from the local database. Use Import module sources to start from scratch."
+                    : "The selected module is no longer in the database.";
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to delete module: " + ex.Message);
+            }
+            finally
+            {
+                SetModuleOperationBusy(false);
+            }
+        }
+        private void SetModuleOperationBusy(bool busy)
+        {
+            _moduleOperationBusy = busy;
+            SavedModules.IsEnabled = !busy;
+            ImportButton.IsEnabled = !busy;
+            OpenModuleButton.IsEnabled = !busy;
+            DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
         }
         private async void OpenSaved_Click(object sender, RoutedEventArgs e)
         {
@@ -173,6 +209,8 @@ namespace DcsIpia.Presentation
                     choice = (SavedModuleChoice)SavedModules.SelectedItem;
                 }
                 var saved = await _workspaces.GetAsync(choice.Id);
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                    return;
                 if (saved is null)
                 {
                     ImportStatus.Text = "The selected module is no longer in the database.";
@@ -190,11 +228,20 @@ namespace DcsIpia.Presentation
         }
         private async void SavedModuleChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SavedModules?.SelectedItem is not SavedModuleChoice choice)
+            if (DeleteModuleButton is not null)
+                DeleteModuleButton.IsEnabled = !_moduleOperationBusy && SavedModules?.SelectedItem is SavedModuleChoice;
+            if (_moduleOperationBusy)
                 return;
+            if (SavedModules?.SelectedItem is not SavedModuleChoice choice)
+            {
+                _lastViewModel = null;
+                return;
+            }
             try
             {
                 var saved = await _workspaces.GetAsync(choice.Id);
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                    return;
                 _lastViewModel = saved is null ? null : new ModuleWorkspaceViewModel(saved);
                 ImportStatus.Text =
                     saved is null

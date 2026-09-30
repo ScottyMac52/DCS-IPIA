@@ -28,6 +28,7 @@ namespace Dcs.Ipia.App.Smoke
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
             VerifySharedDefaultBindingEditor();
+            VerifyModuleDeleteButton();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
@@ -251,6 +252,50 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyModuleDeleteButton()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "ipia-module-delete-smoke-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(root);
+                var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var config = new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "UH-1H", "Huey"), [], [], [], "import");
+                repository.SaveAsync(new EditorWorkspaceSnapshot(config, [], [], [], [], [], [],
+                    new Dictionary<string, string>())).GetAwaiter().GetResult();
+                var settings = new SqliteAppSettingsService(connection, Path.Combine(root, "defaults.json"),
+                    Path.Combine(root, "user-settings.json"), Path.Combine(root, "theme.txt"));
+                var window = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(),
+                    new global::Dcs.Ipia.Dcs.DcsFolderImporter(), settings, repository);
+                var modules = (ComboBox)window.FindName("SavedModules")!;
+                var delete = (Button)window.FindName("DeleteModuleButton")!;
+                if (delete.IsEnabled || delete.Content?.ToString() != "Delete")
+                    throw new InvalidOperationException("Delete must be labeled and disabled without a selected module.");
+                window.Show();
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                while (modules.SelectedItem is null)
+                {
+                    if (DateTime.UtcNow > deadline)
+                        throw new InvalidOperationException("The saved module selector did not populate.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                window.UpdateLayout();
+                if (!delete.IsEnabled || delete.TranslatePoint(new Point(), window).X <
+                    modules.TranslatePoint(new Point(), window).X + modules.ActualWidth)
+                    throw new InvalidOperationException("Delete must be enabled to the right of the selected module.");
+                modules.SelectedIndex = -1;
+                if (delete.IsEnabled)
+                    throw new InvalidOperationException("Delete remained enabled after clearing the module selection.");
+                window.Close();
+            }
+            finally
+            {
+                SqliteConnection.ClearAllPools();
+                if (Directory.Exists(root))
+                    Directory.Delete(root, true);
+            }
+        }
         private static void VerifySharedDefaultBindingEditor()
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-default-editor-smoke-" + Guid.NewGuid().ToString("N") + ".db");
