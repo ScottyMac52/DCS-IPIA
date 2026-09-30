@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -60,8 +61,8 @@ namespace Dcs.Ipia.Tests
             try
             {
                 var connection = "Data Source=" + database + ";Pooling=False";
-                await new Dcs.Ipia.Infrastructure.SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new Dcs.Ipia.Infrastructure.SqliteEditorWorkspaceRepository(connection);
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var reopened = await repository.GetAsync(configuration.Module.Id);
                 Assert.NotNull(reopened);
