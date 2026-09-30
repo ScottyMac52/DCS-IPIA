@@ -16,7 +16,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
-            var command = connection.CreateCommand();
+            await using var command = connection.CreateCommand();
             command.CommandText = "SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
             command.Parameters.AddWithValue("$id", moduleId.ToString("D"));
             var json = await command.ExecuteScalarAsync(ct) as string;
@@ -47,7 +47,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
-            var command = connection.CreateCommand();
+            await using var command = connection.CreateCommand();
             command.CommandText = "SELECT module_id FROM editor_workspaces ORDER BY updated_utc DESC,module_id";
             var ids = new List<Guid>();
             await using var reader = await command.ExecuteReaderAsync(ct);
@@ -73,7 +73,7 @@ namespace Dcs.Ipia.Infrastructure
             await using var transaction = await connection.BeginTransactionAsync(ct);
             await SqliteConfigurationRepository.ReplaceInTransactionAsync(
                 connection, (SqliteTransaction)transaction, snapshot.Configuration, ct);
-            var command = connection.CreateCommand();
+            await using var command = connection.CreateCommand();
             command.Transaction = (SqliteTransaction)transaction;
             command.CommandText =
                 "INSERT INTO editor_workspaces(module_id,snapshot_json,updated_utc) VALUES($id,$json,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(module_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,updated_utc=excluded.updated_utc";

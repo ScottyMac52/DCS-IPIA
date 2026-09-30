@@ -31,33 +31,28 @@ namespace Dcs.Ipia.Infrastructure
                                                               ModuleConfiguration configuration,
                                                               CancellationToken ct)
         {
-            await Command(
+            await ExecuteCommandAsync(Command(
                 c, tx,
                 "INSERT INTO modules(id,dcs_id,display_name,provenance) VALUES($id,$dcs,$name,$provenance) ON CONFLICT(id) DO UPDATE SET dcs_id=excluded.dcs_id,display_name=excluded.display_name,provenance=excluded.provenance",
                 ("$id", configuration.Module.Id.ToString("D")), ("$dcs", configuration.Module.DcsId),
-                ("$name", configuration.Module.DisplayName), ("$provenance", configuration.Provenance))
-                .ExecuteNonQueryAsync(ct);
-            await Command(c, tx, "DELETE FROM device_profiles WHERE module_id=$id",
-                          ("$id", configuration.Module.Id.ToString("D")))
-                .ExecuteNonQueryAsync(ct);
-            await Command(c, tx, "DELETE FROM modifiers WHERE module_id=$id",
-                          ("$id", configuration.Module.Id.ToString("D")))
-                .ExecuteNonQueryAsync(ct);
+                ("$name", configuration.Module.DisplayName), ("$provenance", configuration.Provenance)), ct);
+            await ExecuteCommandAsync(Command(c, tx, "DELETE FROM device_profiles WHERE module_id=$id",
+                          ("$id", configuration.Module.Id.ToString("D"))), ct);
+            await ExecuteCommandAsync(Command(c, tx, "DELETE FROM modifiers WHERE module_id=$id",
+                          ("$id", configuration.Module.Id.ToString("D"))), ct);
             foreach (var profile in configuration.Profiles)
-                await Command(c, tx, "INSERT INTO device_profiles VALUES($id,$module,$device,$instance,$role,$source)",
+                await ExecuteCommandAsync(Command(c, tx, "INSERT INTO device_profiles VALUES($id,$module,$device,$instance,$role,$source)",
                               ("$id", profile.Id.ToString("D")), ("$module", configuration.Module.Id.ToString("D")),
                               ("$device", profile.DeviceId),
                               ("$instance", profile.Instance is null ? DBNull.Value : profile.Instance),
-                              ("$role", profile.Role), ("$source", profile.SourceName))
-                    .ExecuteNonQueryAsync(ct);
+                              ("$role", profile.Role), ("$source", profile.SourceName)), ct);
             foreach (var modifier in configuration.Modifiers)
-                await Command(c, tx, "INSERT INTO modifiers VALUES($module,$name,$device,$key,$mode)",
+                await ExecuteCommandAsync(Command(c, tx, "INSERT INTO modifiers VALUES($module,$name,$device,$key,$mode)",
                               ("$module", configuration.Module.Id.ToString("D")), ("$name", modifier.Name),
-                              ("$device", modifier.Device), ("$key", modifier.Key), ("$mode", (int)modifier.Mode))
-                    .ExecuteNonQueryAsync(ct);
+                              ("$device", modifier.Device), ("$key", modifier.Key), ("$mode", (int)modifier.Mode)), ct);
             var ordinal = 0;
             foreach (var binding in configuration.Bindings)
-                await Command(
+                await ExecuteCommandAsync(Command(
                     c, tx,
                     "INSERT INTO bindings VALUES($module,$ordinal,$profile,$section,$command,$name,$disposition,$key,$reformers,$filter)",
                     ("$module", configuration.Module.Id.ToString("D")), ("$ordinal", ordinal++),
@@ -66,8 +61,7 @@ namespace Dcs.Ipia.Infrastructure
                     ("$disposition", (int)binding.Disposition), ("$key", binding.InputKey),
                     ("$reformers", JsonSerializer.Serialize(binding.Reformers, JsonOptions)),
                     ("$filter",
-                     binding.Filter is null ? DBNull.Value : JsonSerializer.Serialize(binding.Filter, JsonOptions)))
-                    .ExecuteNonQueryAsync(ct);
+                     binding.Filter is null ? DBNull.Value : JsonSerializer.Serialize(binding.Filter, JsonOptions))), ct);
         }
         /// <summary>Gets an item by its stable identifier.</summary>
         /// <param name="moduleId">The module identifier.</param>
@@ -84,7 +78,7 @@ namespace Dcs.Ipia.Infrastructure
         public async Task<IReadOnlyList<ModuleConfiguration>> ListAsync(CancellationToken ct = default)
         {
             await using var c = await Open(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT id FROM modules ORDER BY dcs_id COLLATE NOCASE,id";
             var ids = new List<Guid>();
             await using (var r = await cmd.ExecuteReaderAsync(ct)) while (await r.ReadAsync(ct))
@@ -98,7 +92,7 @@ namespace Dcs.Ipia.Infrastructure
         #region BEGIN private helpers
         private static async Task<ModuleConfiguration?> Read(SqliteConnection c, Guid id, CancellationToken ct)
         {
-            var moduleCommand = c.CreateCommand();
+            await using var moduleCommand = c.CreateCommand();
             moduleCommand.CommandText = "SELECT dcs_id,display_name,provenance FROM modules WHERE id=$id";
             moduleCommand.Parameters.AddWithValue("$id", id.ToString("D"));
             string dcsId, name, provenance;
@@ -111,7 +105,7 @@ namespace Dcs.Ipia.Infrastructure
                 provenance = r.GetString(2);
             }
             var profiles = new List<DeviceProfile>();
-            var pc = c.CreateCommand();
+            await using var pc = c.CreateCommand();
             pc.CommandText =
                 "SELECT id,device_id,instance,role,source_name FROM device_profiles WHERE module_id=$id ORDER BY device_id,instance,id";
             pc.Parameters.AddWithValue("$id", id.ToString("D"));
@@ -119,13 +113,13 @@ namespace Dcs.Ipia.Infrastructure
                 profiles.Add(new(Guid.Parse(r.GetString(0)), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2),
                                  r.GetString(3), r.GetString(4)));
             var modifiers = new List<DcsModifier>();
-            var mc = c.CreateCommand();
+            await using var mc = c.CreateCommand();
             mc.CommandText = "SELECT name,device,key,mode FROM modifiers WHERE module_id=$id ORDER BY name";
             mc.Parameters.AddWithValue("$id", id.ToString("D"));
             await using (var r = await mc.ExecuteReaderAsync(ct)) while (await r.ReadAsync(ct))
                 modifiers.Add(new(r.GetString(0), r.GetString(1), r.GetString(2), (ModifierMode)r.GetInt32(3)));
             var bindings = new List<DcsBinding>();
-            var bc = c.CreateCommand();
+            await using var bc = c.CreateCommand();
             bc.CommandText =
                 "SELECT profile_id,section,command_id,command_name,disposition,input_key,reformers_json,filter_json FROM bindings WHERE module_id=$id ORDER BY ordinal";
             bc.Parameters.AddWithValue("$id", id.ToString("D"));
@@ -137,6 +131,11 @@ namespace Dcs.Ipia.Infrastructure
                                  r.GetString(3), (BindingDisposition)r.GetInt32(4), r.GetString(5), reformers, filter));
             }
             return new(new(id, dcsId, name), profiles, modifiers, bindings, provenance);
+        }
+        private static async Task ExecuteCommandAsync(SqliteCommand command, CancellationToken ct)
+        {
+            await using (command)
+                await command.ExecuteNonQueryAsync(ct);
         }
         private static SqliteCommand Command(SqliteConnection c, System.Data.Common.DbTransaction tx, string text,
                                              params(string Name, object Value)[] values)
@@ -152,7 +151,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             var c = new SqliteConnection(connectionString);
             await c.OpenAsync(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "PRAGMA foreign_keys=ON";
             await cmd.ExecuteNonQueryAsync(ct);
             return c;
