@@ -152,7 +152,9 @@ namespace Dcs.Ipia.Dcs
                 workspace = Manifest(workspace, replacement, null, false);
                 profile = replacement;
             }
-            var identity = instance ?? role ?? physicalGuid?.ToString("D");
+            var identityChanged = instance != device.Instance || role != device.Role;
+            var identity = identityChanged ? instance ?? role ?? physicalGuid?.ToString("D") : profile.Instance;
+            var diagramInstance = identityChanged ? instance ?? role : workspace.Diagrams.Single(x => x.ProfileId == profile.Id).Instance;
             if (workspace.Configuration.Profiles.Any(x => x.Id != profile.Id && x.DeviceId == profile.DeviceId && x.Instance == identity))
                 throw new InvalidOperationException("Another device already uses that instance or role.");
             workspace = RenameProfile(workspace, profile,
@@ -160,7 +162,7 @@ namespace Dcs.Ipia.Dcs
             var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id && x.Layer == device.Layer
                 ? x with { NativeDevice = Native(updated.FileName) } : x).ToArray();
             workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance, PhysicalGuid = physicalGuid } : x).ToArray(), Modifiers = modifiers });
-            workspace = workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role } : x).ToArray() };
+            workspace = workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = diagramInstance } : x).ToArray() };
             if (device.Layer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd" && mfdLabels is not null)
                 workspace = MfdLabels(workspace, profile.Id, mfdLabels);
             if (device.Layer == AssignmentLayer.Module && kneeboardTitle is not null)
