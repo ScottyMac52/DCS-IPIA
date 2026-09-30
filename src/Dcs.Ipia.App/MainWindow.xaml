@@ -32,11 +32,16 @@
         <TextBlock Style="{DynamicResource SectionTitle}" Text="Modules"/>
         <TextBlock Style="{DynamicResource Hint}" Margin="0,0,0,16"
                    Text="Open a saved module, or import module sources to get started."/>
-        <ComboBox x:Name="SavedModules" MinWidth="300" HorizontalAlignment="Left"
+        <StackPanel Orientation="Horizontal">
+          <ComboBox x:Name="SavedModules" MinWidth="300" HorizontalAlignment="Left"
                   DisplayMemberPath="DisplayName" AutomationProperties.Name="Saved module selection"
                   SelectionChanged="SavedModuleChanged"/>
+          <Button x:Name="DeleteModuleButton" Content="Delete" Padding="16,9" Margin="8,0,0,0"
+                  IsEnabled="False" Click="DeleteModule_Click" AutomationProperties.Name="Delete selected module"
+                  ToolTip="Delete the selected module and all of its saved data from the local database."/>
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-          <Button Content="Open module" Padding="16,9" Click="OpenSaved_Click" Margin="0,0,8,0"/>
+          <Button x:Name="OpenModuleButton" Content="Open module" Padding="16,9" Click="OpenSaved_Click" Margin="0,0,8,0"/>
           <Button x:Name="ImportButton" Content="Import module sources" Padding="16,9"
                   Click="ImportModule_Click" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder."/>
         </StackPanel>

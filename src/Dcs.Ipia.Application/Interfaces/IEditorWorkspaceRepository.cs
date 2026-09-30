@@ -18,6 +18,11 @@ namespace Dcs.Ipia.Application.Interfaces
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A task completing after the transaction commits.</returns>
         Task SaveAsync(EditorWorkspaceSnapshot snapshot, CancellationToken ct = default);
+        /// <summary>Atomically deletes a module and all of its configuration and editor data.</summary>
+        /// <param name="moduleId">Module identity to delete.</param>
+        /// <param name="ct">Cancellation token for the operation.</param>
+        /// <returns>True when the module existed and was deleted.</returns>
+        Task<bool> DeleteAsync(Guid moduleId, CancellationToken ct = default);
         #endregion END Public
     }
 }
