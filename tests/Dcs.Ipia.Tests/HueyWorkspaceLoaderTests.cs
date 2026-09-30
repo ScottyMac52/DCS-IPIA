@@ -96,7 +96,7 @@ namespace Dcs.Ipia.Tests
                 }
                 var alternateSolution = System.Text.Json.Nodes.JsonNode.Parse(solution.ToJsonString())!;
                 alternateSolution["import"]!["commandSource"] = System.Text.Json.JsonSerializer.SerializeToNode(
-                    new { type = "catalog-json", paths = new[] { "missing-alternate-catalog.json" } });
+                    new { type = "catalog-json", paths = MissingAlternateCatalogPaths });
                 File.WriteAllText(Path.Combine(huey, "config", "UH-1H.repo.dcs-scaffold.dcs-scaffold.json"), alternateSolution.ToJsonString());
                 Commit(common);
                 Commit(huey);
@@ -507,6 +507,7 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static readonly string[] MissingAlternateCatalogPaths = ["missing-alternate-catalog.json"];
         private static readonly string[] AdfCategory = ["ADF Set Control panel"];
         private static readonly string[] ViewCategory = ["View"];
         private static void DeleteFixture(string path)
