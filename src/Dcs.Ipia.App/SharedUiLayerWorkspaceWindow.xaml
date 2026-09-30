@@ -5,13 +5,49 @@
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
         WindowStartupLocation="CenterOwner">
   <Grid Margin="20">
-    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Margin="0,0,0,16">
       <TextBlock Style="{DynamicResource SectionTitle}" Text="Shared default UI Layer"/>
       <TextBlock x:Name="RevisionText"/>
-      <TextBlock Style="{DynamicResource Hint}" Text="Saved default sources · read-only preview"/>
+      <TextBlock Style="{DynamicResource Hint}" Text="Edit shared defaults independently. Existing modules retain their pinned sources."/>
     </StackPanel>
-    <Grid Grid.Row="1">
+    <TabControl Grid.Row="1">
+      <TabItem Header="Bindings">
+        <Grid Margin="10">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <StackPanel>
+            <TextBlock Text="Device profile"/>
+            <ComboBox x:Name="ProfilePaths" SelectionChanged="ProfileChanged" Margin="0,4,0,10"/>
+          </StackPanel>
+          <DataGrid x:Name="BindingRows" Grid.Row="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+                    SelectionChanged="BindingSelected" Margin="0,0,0,10">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="*"/>
+              <DataGridTextColumn Header="Input" Binding="{Binding InputKey}" Width="150"/>
+              <DataGridTextColumn Header="Modifiers" Binding="{Binding Reformers.Count}" Width="80"/>
+              <DataGridTextColumn Header="Section" Binding="{Binding Section}" Width="80"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Disposition}" Width="100"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" MaxHeight="260">
+            <StackPanel x:Name="BindingFields">
+              <TextBlock Text="Command"/><ComboBox x:Name="CommandChoice" DisplayMemberPath="Name" Margin="0,4,0,8"/>
+              <TextBlock Text="DCS input key (for example JOY_BTN1)"/><TextBox x:Name="InputKey" Margin="0,4,0,8"/>
+              <TextBlock Text="Modifier chord (names separated by +; blank for base)"/><TextBox x:Name="ModifierChord" Margin="0,4,0,8"/>
+              <TextBlock x:Name="DeclaredModifiers" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <TextBlock Text="Add/Update stages the selected key binding. Axis bindings and removal history remain read-only." TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <WrapPanel>
+                <Button Content="New binding" Click="NewBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button Content="Add" Click="AddBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="UpdateBindingButton" Content="Update" Click="UpdateBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button Content="Remove" Click="RemoveBindingClicked" Padding="10,6"/>
+              </WrapPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+      <TabItem Header="Sources (read-only)">
+    <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
       <ListBox x:Name="SourcePaths" SelectionChanged="SourceChanged" Margin="0,0,12,0"
                AutomationProperties.Name="Shared default source files"/>
@@ -19,5 +55,14 @@
                HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                AutomationProperties.Name="Saved shared default source text"/>
     </Grid>
+      </TabItem>
+    </TabControl>
+    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+      <TextBlock x:Name="EditorStatus" TextWrapping="Wrap"/>
+      <WrapPanel Margin="0,8,0,0">
+        <Button x:Name="SaveDefaultsButton" Content="Save new default revision" Click="SaveClicked" Padding="14,7" Margin="0,0,8,0"/>
+        <Button x:Name="DiscardDefaultsButton" Content="Discard draft" Click="DiscardClicked" Padding="14,7"/>
+      </WrapPanel>
+    </StackPanel>
   </Grid>
 </Window>
