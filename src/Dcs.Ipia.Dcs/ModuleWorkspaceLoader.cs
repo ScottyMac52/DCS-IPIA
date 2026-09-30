@@ -53,9 +53,10 @@ namespace Dcs.Ipia.Dcs
                     Path.GetFileName(huey)));
             var uncommitted = await UncommittedSourcesAsync(huey, cancellationToken);
             if (uncommitted.Length > 0)
-                imported = imported with { Diagnostics = [..imported.Diagnostics, new(
-                    "uncommitted-module-sources",
-                    $"Local changes were not imported: {string.Join(", ", uncommitted)}. Commit the module changes, then use Import Module again.", false)] };
+                imported = new ConsumerImportResult(imported.Configuration, imported.Instances, imported.Pages,
+                    imported.Usage, imported.UiFunctionKeys, imported.Metadata, imported.Sources, imported.Provenance,
+                    [..imported.Diagnostics, new("uncommitted-module-sources",
+                    $"Local changes were not imported: {string.Join(", ", uncommitted)}. Commit the module changes, then use Import Module again.", false)]);
             var (moduleCommands, commandSource, commandDiagnostics) =
                 LoadLinkedCommands(huey, hueySources, imported.Configuration?.Module.DcsId);
             if (!imported.Succeeded)
