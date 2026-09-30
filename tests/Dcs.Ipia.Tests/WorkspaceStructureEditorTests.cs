@@ -158,6 +158,9 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(ModifierMode.Toggle, modifier.Mode);
                 Assert.Equal("Other.diff.lua", Assert.Single(WorkspaceStructureEditor.Hardware(restored)).DefaultFileName);
                 Assert.Contains("Config/Input/TEST/joystick/Custom.diff.lua", SnapshotLuaPayloadRenderer.Generate(restored).Keys);
+                // Repository operations must release their native handles before returning.
+                File.Delete(path);
+                Assert.False(File.Exists(path));
             }
             finally { File.Delete(path); }
         }
