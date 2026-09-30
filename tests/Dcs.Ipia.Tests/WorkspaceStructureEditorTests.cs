@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Rendering;
 using Dcs.Ipia.Infrastructure;
 using Xunit;
 
@@ -253,6 +254,76 @@ namespace Dcs.Ipia.Tests
             };
             var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
             Assert.Throws<InvalidDataException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
+        }
+        /// <summary>Any module device can save a page heading independently of hardware, role, and other pages.</summary>
+        /// <param name="deviceId">MFD or ordinary shared hardware.</param>
+        /// <returns>Completion of the saved title round trip.</returns>
+        [Theory]
+        [InlineData("stick")]
+        [InlineData("tm-mfd")]
+        public async Task SavesKneeboardTitleForAnyModuleDevice(string deviceId)
+        {
+            var original = Workspace(deviceId);
+            var hardware = new WorkspaceHardware("other", "Other hardware", "Other.diff.lua", original.Diagrams[0]);
+            var saved = WorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", "Other role");
+            var payloadBefore = SnapshotLuaPayloadRenderer.Generate(saved);
+            var pngBefore = SnapshotDeviceKneeboardRenderer.Generate(saved);
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+            var originalProfile = saved.Configuration.Profiles.Single(x => x.Id == ProfileId);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
+                kneeboardTitle: "  F/A-18 AMPCD & Controls  ");
+            var path = Path.Combine(Path.GetTempPath(), "ipia-title-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(saved);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                var combined = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                Assert.Equal("F/A-18 AMPCD & Controls", combined.Title);
+                Assert.Equal("Controls", combined.Kicker);
+                Assert.Equal("F/A-18 AMPCD & Controls", restored.Pages.Single(x => x.StableKey == "01-STICK").Title);
+                Assert.Equal("other", restored.Pages.Single(x => x.StableKey != "01-STICK").Title);
+                Assert.Equal(originalProfile, restored.Configuration.Profiles.Single(x => x.Id == ProfileId));
+                Assert.Equal(original.Diagrams[0].Title, restored.Diagrams[0].Title);
+                Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(original, original.Diagrams[0], original.Assignments, original.Labels).Title);
+                Assert.Contains("F/A-18 AMPCD &amp; Controls", CompositeKneeboardRenderer.BuildPageSvg(restored.Diagrams[0], combined, ""));
+                var pngAfter = SnapshotDeviceKneeboardRenderer.Generate(restored);
+                Assert.NotEqual(pngBefore["KNEEBOARD/TEST/01-STICK.png"], pngAfter["KNEEBOARD/TEST/01-STICK.png"]);
+                Assert.Equal(pngBefore.Keys.Order(), pngAfter.Keys.Order());
+                var payloadAfter = SnapshotLuaPayloadRenderer.Generate(restored);
+                foreach (var entry in payloadBefore)
+                    Assert.Equal(entry.Value, payloadAfter[entry.Key]);
+            }
+            finally { File.Delete(path); }
+        }
+        /// <summary>New module devices accept an authored title while UI Layer edits preserve module headings.</summary>
+        [Fact]
+        public void AddsKneeboardTitleAndPreservesItDuringUiEdits()
+        {
+            var saved = Workspace();
+            var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", saved.Diagrams[0]);
+            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
+                kneeboardTitle: "Auxiliary controls");
+            Assert.Equal("Auxiliary controls", saved.Pages.Single(x => x.StableKey != "01-STICK").Title);
+            var ui = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, ui, ui.FileName, ui.Instance, ui.Role, kneeboardTitle: "UI title");
+            Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
+        }
+        /// <summary>Blank or multiline page headings fail validation without changing the original snapshot.</summary>
+        /// <param name="title">An invalid title.</param>
+        [Theory]
+        [InlineData(" ")]
+        [InlineData("Title\nLine")]
+        [InlineData("Title\0")]
+        public void RejectsInvalidKneeboardTitles(string title)
+        {
+            var saved = Workspace();
+            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName,
+                device.Instance, device.Role, kneeboardTitle: title));
+            Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
         }
         /// <summary>Adding an existing physical device to the other scope reuses its profile and permits a shared filename.</summary>
         [Fact]

@@ -116,6 +116,12 @@
                   <TextBox x:Name="ManagedFileName" Margin="0,4,0,10"/>
                   <TextBlock Text="Instance (optional)"/><TextBox x:Name="ManagedInstance" Margin="0,4,0,10"/>
                   <TextBlock Text="Role (optional)"/><TextBox x:Name="ManagedRole" Margin="0,4,0,10"/>
+                  <GroupBox x:Name="KneeboardTitleFields" Header="Module kneeboard" Padding="8" Margin="0,0,0,10">
+                    <StackPanel>
+                      <TextBlock Text="Kneeboard title"/>
+                      <TextBox x:Name="ManagedKneeboardTitle" Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </GroupBox>
                   <GroupBox x:Name="MfdLabelFields" Header="Module MFD labels" Padding="8" Margin="0,0,0,10" IsEnabled="False">
                     <StackPanel>
                       <TextBlock Text="Left"/><TextBox x:Name="MfdLeft"/>
@@ -323,4 +329,3 @@
     </DockPanel>
   </Grid>
 </Window>
-
