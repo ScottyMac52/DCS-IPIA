@@ -354,7 +354,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal("Center display & controls", page.Kicker);
                 Assert.Equal("Stick", page.Title);
                 Assert.Equal("Auxiliary panel", KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[1], restored.Assignments, restored.Labels).Kicker);
-                Assert.Equal(original.Configuration.Profiles[0], restored.Configuration.Profiles[0]);
+                Assert.Equal(original.Configuration.Profiles[0], restored.Configuration.Profiles.Single(x => x.Id == ProfileId));
                 Assert.Contains("Center display &amp; controls", CompositeKneeboardRenderer.BuildPageSvg(restored.Diagrams[0], page, ""));
                 Assert.NotEqual(before, SnapshotDeviceKneeboardRenderer.Generate(restored)["KNEEBOARD/TEST/01-STICK.png"]);
                 foreach (var entry in luaBefore)
