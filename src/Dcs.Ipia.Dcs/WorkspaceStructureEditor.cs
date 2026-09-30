@@ -99,7 +99,7 @@ namespace Dcs.Ipia.Dcs
             if (layer == AssignmentLayer.Module && profile.SourceName != membership.FileName)
                 workspace = RenameProfile(workspace, profile, membership.FileName, identity, role);
             workspace = SetUiSupport(Store(workspace, state with { Devices = [.. state.Devices, membership] }), profile.Id);
-            return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role } : x).ToArray() };
+            return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role ?? (isNew ? null : x.Instance) } : x).ToArray() };
         }
         /// <summary>Updates identity, filename, and module MFD category labels.</summary>
         /// <param name="workspace">Current staged workspace.</param>

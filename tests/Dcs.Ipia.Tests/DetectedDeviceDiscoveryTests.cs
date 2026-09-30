@@ -121,7 +121,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(2, saved.Configuration.Profiles.Count);
             var memberships = WorkspaceStructureEditor.Describe(saved).Devices;
             Assert.All(memberships, x => { Assert.Null(x.Instance); Assert.Null(x.Role); Assert.NotEqual(x.ProfileId, x.PhysicalGuid); });
-            Assert.Single(memberships.Select(x => x.ProfileId).Distinct().Where(id => memberships.Count(x => x.ProfileId == id) == 2));
+            Assert.Single(memberships.Select(x => x.ProfileId).Distinct(), id => memberships.Count(x => x.ProfileId == id) == 2);
             Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, first.FileName, "Another", null));
             Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware with { DeviceId = "other" }, AssignmentLayer.Module, "Other {" + First + "}.diff.lua", null, null));
             var device = memberships.First(x => x.PhysicalGuid == First && x.Layer == AssignmentLayer.Module);
