@@ -13,6 +13,64 @@ namespace Dcs.Ipia.Tests
         private static readonly Guid ProfileId = Guid.Parse("569a0227-0901-452c-807a-8da03166eaa3");
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         #region BEGIN Public
+        /// <summary>Previously saved workspaces recover a physical source link without losing edited UI commands.</summary>
+        [Fact]
+        public void RecoversSavedProfileLinkAndExportsEditedAssignments()
+        {
+            var original = Workspace();
+            var assignment = new DraftAssignment(
+                new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
+                new("EDITED_UI", "Edited UI", false, AssignmentLayer.UiLayer));
+            var saved = original with {
+                Diagrams = [original.Diagrams[0] with { CanonicalUiLayerSourcePath = null }],
+                Assignments = [..original.Assignments, assignment]
+            };
+            var recovered = PinnedUiLayerProfileRecovery.Restore(saved);
+            Assert.Equal(UiPath, recovered.Diagrams[0].CanonicalUiLayerSourcePath);
+            Assert.Same(saved.Assignments, recovered.Assignments);
+            Assert.Same(saved.Labels, recovered.Labels);
+            Assert.Same(saved.Sources, recovered.Sources);
+            Assert.Null(saved.Diagrams[0].CanonicalUiLayerSourcePath);
+            Assert.Same(recovered, PinnedUiLayerProfileRecovery.Restore(recovered));
+            SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var lua = Text(output, "Config/Input/UiLayer/joystick/Stick.diff.lua");
+            Assert.Contains(DcsLuaParser.ParseProfile(lua, ProfileId), x => x.CommandId == "EDITED_UI");
+            Assert.Equal(lua, UiLayerLuaProfileRenderer.Render(saved, ProfileId));
+        }
+
+        /// <summary>Recovery leaves disabled, unknown, unsafe, and unpinned profiles untouched and names unresolved devices.</summary>
+        [Fact]
+        public void DoesNotInventMissingProfileLinks()
+        {
+            var original = Workspace();
+            var unpinned = original with { Diagrams = [original.Diagrams[0] with { CanonicalUiLayerSourcePath = null }] };
+            var noSources = unpinned with { Sources = null };
+            Assert.Same(noSources, PinnedUiLayerProfileRecovery.Restore(noSources));
+            var disabled = unpinned with { Diagrams = [unpinned.Diagrams[0] with { SupportsUiLayer = false }] };
+            Assert.Same(disabled, PinnedUiLayerProfileRecovery.Restore(disabled));
+            var unknown = unpinned with { Diagrams = [unpinned.Diagrams[0] with { ProfileId = Guid.NewGuid() }] };
+            Assert.Same(unknown, PinnedUiLayerProfileRecovery.Restore(unknown));
+            var sources = new Dictionary<string, string> {
+                ["assets/shared/ui-layer/input/UiLayer/joystick/../Stick.diff.lua"] = "return {}",
+                ["assets/shared/ui-layer/input/UiLayer/joystick/Other.diff.lua"] = "return {}"
+            };
+            var missing = unpinned with {
+                Sources = sources,
+                Assignments = [new DraftAssignment(
+                    new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
+                    new("UI", "UI", false, AssignmentLayer.UiLayer))]
+            };
+            Assert.Same(missing, PinnedUiLayerProfileRecovery.Restore(missing));
+            var error = Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(missing));
+            Assert.Contains("Stick (Stick.diff.lua)", error.Message, StringComparison.Ordinal);
+            var orphan = missing with { Assignments = [missing.Assignments[0] with {
+                Slot = missing.Assignments[0].Slot with { ProfileId = Guid.NewGuid() }
+            }] };
+            Assert.Contains(orphan.Assignments[0].Slot.ProfileId.ToString("D"),
+                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(orphan)).Message,
+                StringComparison.Ordinal);
+        }
         /// <summary>Emits edited profiles and sorted modifier tables from the frozen workspace.</summary>
         [Fact]
         public void GeneratesModuleAndUiLuaWithEffectiveModifiers()
@@ -53,7 +111,8 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
                 workspace with { Sources = null }));
             Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
-                workspace with { Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }],
+                workspace with { Sources = workspace.Sources!.Where(x => x.Key != UiPath).ToDictionary(x => x.Key, x => x.Value),
+                                 Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }],
                                  Assignments = [..workspace.Assignments,
                                     new DraftAssignment(
                                         new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),

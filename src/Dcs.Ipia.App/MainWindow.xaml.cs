@@ -128,6 +128,8 @@ namespace DcsIpia.Presentation
                         preview.UiCommands, importedView.Draft?.Snapshot ?? [], importedView.Labels,
                         preview.Import.Sources.Concat(preview.SharedLuaSources)
                             .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
+                    saved = PinnedUiLayerProfileRecovery.Restore(saved);
+                    SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
                     await _workspaces.SaveAsync(saved);
                     var persisted =
                         await _workspaces.GetAsync(module.Module.Id) ??

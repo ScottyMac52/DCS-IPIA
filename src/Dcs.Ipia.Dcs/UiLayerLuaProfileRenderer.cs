@@ -16,6 +16,7 @@ namespace Dcs.Ipia.Dcs
         public static string Render(EditorWorkspaceSnapshot workspace, Guid profileId)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
                 return RenderManaged(workspace, profileId, managed);
             var config = workspace.Configuration;

@@ -15,6 +15,7 @@ namespace Dcs.Ipia.Dcs
         public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
                 return GenerateManaged(workspace, managed);
             var config = workspace.Configuration;
@@ -41,9 +42,7 @@ namespace Dcs.Ipia.Dcs
             Add(result, modulePrefix + "modifiers.lua", WriteModifiers(moduleModifiers));
             var uiProfiles = workspace.Diagrams.Where(x => x.SupportsUiLayer &&
                                                             x.CanonicalUiLayerSourcePath is not null).ToArray();
-            if (workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
-                .Any(x => uiProfiles.All(y => y.ProfileId != x.Slot.ProfileId)))
-                throw new InvalidDataException("Saved UI Layer assignments have no pinned profile.");
+            ValidateUiLayerProfiles(workspace);
             if (uiProfiles.Length == 0)
                 return result;
             var removed = UiLayerLuaProfileRenderer.RemovedModifiers(workspace.Sources);
@@ -67,6 +66,26 @@ namespace Dcs.Ipia.Dcs
             Add(result, "Config/Input/UiLayer/modifiers.lua",
                 WriteModifiers(modifiers.Where(x => !removed.Contains(x.Name))));
             return result;
+        }
+        /// <summary>Reports saved UI assignments that cannot resolve to a pinned physical profile.</summary>
+        /// <param name="workspace">Workspace to validate before saving or packaging.</param>
+        public static void ValidateUiLayerProfiles(EditorWorkspaceSnapshot workspace)
+        {
+            ArgumentNullException.ThrowIfNull(workspace);
+            workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
+            if (WorkspaceManagement.Read(workspace) is not null)
+                return;
+            var uiProfiles = workspace.Diagrams.Where(x => x.SupportsUiLayer &&
+                x.CanonicalUiLayerSourcePath is not null).ToArray();
+            var unresolved = workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
+                .Select(x => x.Slot.ProfileId).Distinct()
+                .Where(id => uiProfiles.All(x => x.ProfileId != id))
+                .Select(id => workspace.Configuration.Profiles.FirstOrDefault(x => x.Id == id) is { } profile
+                    ? $"{profile.DeviceId} ({profile.SourceName})" : id.ToString("D"))
+                .Order(StringComparer.Ordinal).ToArray();
+            if (unresolved.Length > 0)
+                throw new InvalidDataException("Saved UI Layer assignments have no pinned profile: " +
+                    string.Join("; ", unresolved) + ". Re-import with the matching shared UI Layer sources.");
         }
         #endregion END Public
         #region BEGIN private helpers

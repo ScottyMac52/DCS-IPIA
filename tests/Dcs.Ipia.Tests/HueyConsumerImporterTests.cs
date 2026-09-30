@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Infrastructure;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -12,6 +13,74 @@ namespace Dcs.Ipia.Tests
     public sealed class HueyConsumerImporterTests
     {
         #region BEGIN Public
+        /// <summary>The real Huey base filename pins its Hornet UI Layer through import, SQLite, and Lua packaging.</summary>
+        [Fact]
+        public async Task ExportsHueyUiLayerDespiteSharedBaseClassification()
+        {
+            var request = Fixture();
+            var shared = request.SharedLua!;
+            var catalog = request.Catalog!;
+            var imported = new ConsumerSourceImporter().Import(request);
+            Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
+            var configuration = imported.Configuration!;
+            var hornet = Assert.Single(configuration.Profiles, x => x.DeviceId == "moza-ab9-hornet-grip");
+            var canonical = Assert.Single(shared.Profiles, x => x.SourceName == hornet.SourceName);
+            Assert.Equal("moza-ab9", canonical.DeviceId);
+            Assert.Equal(canonical, ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported, shared, hornet));
+            var graphics = catalog.Devices.ToDictionary(
+                device => "assets/shared/hardware/svg/" + device.StableKey + ".svg",
+                device => "<svg xmlns='http://www.w3.org/2000/svg' width='4000' height='4000' viewBox='0 0 4000 4000'>" +
+                    "<image x='0' y='0' width='4000' height='4000' href='data:image/png;base64,AA=='/>" +
+                    string.Join("", shared.Controls.Where(x => x.Control.DeviceId == device.Id).Select(x => x.Control.StableKey)
+                        .Concat(catalog.Templates.Where(x => x.DeviceKey == device.StableKey).SelectMany(x => x.Bindings.Values))
+                        .Distinct(StringComparer.Ordinal).Select(
+                        (control, i) => $"<!-- box:{control} --><rect x='{i % 20 * 80}' y='{i / 20 * 60}' width='60' height='40'/>")) +
+                    "</svg>");
+            var diagrams = UiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
+            var hornetDiagram = Assert.Single(diagrams, x => x.ProfileId == hornet.Id);
+            Assert.EndsWith("/" + hornet.SourceName, hornetDiagram.CanonicalUiLayerSourcePath!, StringComparison.Ordinal);
+            Assert.Equal(3, hornetDiagram.Callouts.Count);
+            var assignments = diagrams.SelectMany(diagram => diagram.Callouts.Select(callout =>
+            {
+                var control = diagram.Controls.Single(x => x.Control == callout.Control);
+                return new DraftAssignment(new(configuration.Module.Id, diagram.ProfileId, AssignmentLayer.UiLayer,
+                    BindingSection.Key, control.InputKey, callout.Modifier.Replace(" + ", "+", StringComparison.Ordinal)),
+                    new(callout.CommandId, callout.Function, false, AssignmentLayer.UiLayer));
+            })).ToArray();
+            var luaRoot = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DcsCommon", "Lua");
+            var sources = imported.Sources.ToDictionary(x => x.Key, x => x.Value);
+            foreach (var file in Directory.GetFiles(luaRoot, "*.lua", SearchOption.AllDirectories))
+            {
+                var path = Path.GetRelativePath(luaRoot, file).Replace('\\', '/');
+                if (path.StartsWith("assets/shared/ui-layer/input/UiLayer/", StringComparison.Ordinal))
+                    sources[path] = File.ReadAllText(file);
+            }
+            var workspace = new EditorWorkspaceSnapshot(configuration, imported.Pages, [], diagrams, [],
+                catalog.Commands, assignments, KneeboardLabelImporter.Import(imported.Metadata, configuration), sources);
+            var database = Path.Combine(Path.GetTempPath(), "HueyUiLayer-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + database + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(workspace);
+                var reopened = await repository.GetAsync(configuration.Module.Id);
+                Assert.NotNull(reopened);
+                var output = SnapshotLuaPayloadRenderer.Generate(reopened);
+                var path = "Config/Input/UiLayer/joystick/" + hornet.SourceName;
+                var bindings = DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(output[path]), hornet.Id);
+                Assert.All(assignments.Where(x => x.Slot.ProfileId == hornet.Id), assignment =>
+                    Assert.Contains(bindings, x => x.CommandId == assignment.Command.Id && x.InputKey == assignment.Slot.InputKey));
+                var legacy = reopened with { Diagrams = reopened.Diagrams.Select(x => x.ProfileId == hornet.Id
+                    ? x with { CanonicalUiLayerSourcePath = null } : x).ToArray() };
+                Assert.Equal(output[path], SnapshotLuaPayloadRenderer.Generate(legacy)[path]);
+            }
+            finally
+            {
+                if (File.Exists(database))
+                    File.Delete(database);
+            }
+        }
         /// <summary>Real Huey sources retain five profiles, three MFD roles, pages, UI usage, labels, and exact source hashes.</summary>
         [Fact]
         public void Imports_real_huey_sources_without_losing_authored_metadata()

@@ -745,6 +745,8 @@ namespace DcsIpia.Presentation
             {
                 var updated = (_working ?? _saved) with { Assignments = _draft.Snapshot,
                                             Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal) };
+                updated = PinnedUiLayerProfileRecovery.Restore(updated);
+                SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 await _repository.SaveAsync(updated);
                 _saved = updated;
                 _working = updated;

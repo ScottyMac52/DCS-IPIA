@@ -90,7 +90,9 @@ namespace DcsIpia.Presentation
                   saved.Images,
                   saved.Diagrams) { ModuleCommands = saved.ModuleCommands, UiCommands = saved.UiCommands })
         {
+            saved = PinnedUiLayerProfileRecovery.Restore(saved);
             UiCommands = CommandPalette.FromUiLayer(saved.UiCommands);
+            UiDiagrams = saved.Diagrams;
             ModuleCommands = saved.ModuleCommands;
             var moduleCommands =
                 saved.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module));

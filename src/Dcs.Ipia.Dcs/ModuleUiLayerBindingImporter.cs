@@ -81,30 +81,21 @@ namespace Dcs.Ipia.Dcs
             var root = module.Metadata["config/kneeboard.json"];
             if (!root.TryGetProperty("includeUiLayer", out var include) || include.ValueKind != JsonValueKind.True)
                 return null;
+            // The consumer identifies the installed hardware. A bare base filename can
+            // receive a different shared device key, but still names the same physical profile.
+            var physical = shared.Profiles.Where(x => x.SourceName == profile.SourceName).ToArray();
+            if (physical.Length > 0)
+                return physical.Length == 1 ? physical[0] : null;
             var matches = shared.Profiles.Where(x => x.DeviceId == profile.DeviceId).ToArray();
-            var exact = matches.Where(x => x.SourceName == profile.SourceName).ToArray();
-            if (exact.Length > 1)
-                return null;
-            var canonical = exact.SingleOrDefault();
-            if (canonical is null)
-            {
-                var byName =
-                    matches.Where(x => NormalizeSourceName(x.SourceName) == NormalizeSourceName(profile.SourceName))
-                        .ToArray();
-                if (byName.Length == 1)
-                    canonical = byName[0];
-                else
-                {
-                    var byInstance =
-                        matches.Where(x => x.Instance is not null && x.Instance == profile.Instance).ToArray();
-                    if (byInstance.Length == 1)
-                        canonical = byInstance[0];
-                    else if (matches.Length == 1 &&
-                             module.Configuration!.Profiles.Count(x => x.DeviceId == profile.DeviceId) == 1)
-                        canonical = matches[0];
-                }
-            }
-            return canonical;
+            var byName = matches.Where(x => NormalizeSourceName(x.SourceName) == NormalizeSourceName(profile.SourceName))
+                .ToArray();
+            if (byName.Length == 1)
+                return byName[0];
+            var byInstance = matches.Where(x => x.Instance is not null && x.Instance == profile.Instance).ToArray();
+            if (byInstance.Length == 1)
+                return byInstance[0];
+            return matches.Length == 1 && module.Configuration!.Profiles.Count(x => x.DeviceId == profile.DeviceId) == 1
+                ? matches[0] : null;
         }
         #endregion END Public
         #region BEGIN private helpers

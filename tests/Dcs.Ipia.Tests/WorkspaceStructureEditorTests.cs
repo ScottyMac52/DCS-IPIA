@@ -297,21 +297,33 @@ namespace Dcs.Ipia.Tests
             }
             finally { File.Delete(path); }
         }
-        /// <summary>Missing pinned sources still reject actual UI assignments or authored callouts.</summary>
+        /// <summary>Available physical sources recover missing links; genuinely missing sources reject actual UI usage.</summary>
         /// <param name="keepAssignments">Whether saved assignments or only callouts demonstrate UI Layer usage.</param>
+        /// <param name="sourceAvailable">Whether the canonical source text is still pinned in the workspace.</param>
         [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public void RejectsMissingSourceForActualUiUsage(bool keepAssignments)
+        [InlineData(true, true)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        public void RecoversLinksButRejectsMissingSourcesForActualUiUsage(bool keepAssignments, bool sourceAvailable)
         {
             var saved = Workspace("tm-mfd");
+            var sourcePath = saved.Diagrams[0].CanonicalUiLayerSourcePath;
             saved = saved with {
+                Sources = sourceAvailable ? saved.Sources : saved.Sources!.Where(x => x.Key != sourcePath)
+                    .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal),
                 Diagrams = [saved.Diagrams[0] with { CanonicalUiLayerSourcePath = null,
                     Callouts = keepAssignments ? [] : saved.Diagrams[0].Callouts }],
                 Assignments = keepAssignments ? saved.Assignments : saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module).ToArray()
             };
             var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            Assert.Throws<InvalidDataException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
+            if (sourceAvailable)
+            {
+                var recovered = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD");
+                Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(recovered));
+            }
+            else
+                Assert.Throws<InvalidDataException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
         }
         /// <summary>Any module device can save a page heading independently of hardware, role, and other pages.</summary>
         /// <param name="deviceId">MFD or ordinary shared hardware.</param>
