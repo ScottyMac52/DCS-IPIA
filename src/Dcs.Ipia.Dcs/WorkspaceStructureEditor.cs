@@ -118,7 +118,7 @@ namespace Dcs.Ipia.Dcs
         /// <param name="fileName">Diff.lua filename.</param>
         /// <param name="instance">Optional instance.</param>
         /// <param name="role">Optional role.</param>
-        /// <param name="mfdLabels">Module MFD left, right, top, and middle labels.</param>
+        /// <param name="mfdLabels">Module MFD left, right, top, and bottom labels.</param>
         /// <param name="hardware">Optional replacement shared hardware; changing type requires an unused device.</param>
         /// <param name="kneeboardTitle">Optional module device page heading; null preserves its current title.</param>
         /// <param name="kneeboardSubtitle">Optional module device page subtitle; null preserves it and empty clears it.</param>
@@ -440,27 +440,31 @@ namespace Dcs.Ipia.Dcs
             {
                 var categories = page!["categoryLabels"] as JsonObject;
                 if (categories is null) page["categoryLabels"] = categories = new JsonObject();
-                foreach (var name in new[] { "left", "right", "top", "middle" })
+                categories.Remove("middle");
+                categories.Remove("mfd-category-middle");
+                foreach (var name in new[] { "left", "right", "top", "bottom" })
+                {
+                    categories.Remove("mfd-category-" + name);
                     categories[name] = labels.GetValueOrDefault(name) ?? "";
+                }
                 if (page["layers"] is JsonArray layers)
                     foreach (var layer in layers)
                         if (layer?["categoryLabels"] is JsonObject layerCategories)
-                            foreach (var name in new[] { "left", "right", "top", "middle" })
+                        {
+                            foreach (var name in new[] { "left", "right", "top", "bottom" })
+                            {
                                 layerCategories.Remove(name);
+                                layerCategories.Remove("mfd-category-" + name);
+                            }
+                            layerCategories.Remove("middle");
+                            layerCategories.Remove("mfd-category-middle");
+                        }
             }
             var diagrams = workspace.Diagrams.Select(d => {
-                if (d.ProfileId != id || string.IsNullOrEmpty(labels.GetValueOrDefault("middle"))) return d;
+                if (d.ProfileId != id) return d;
                 var svg = XDocument.Parse(d.Svg);
-                if (!svg.Descendants().Any(x => x.Attribute("id")?.Value == "meta-mfd-category-middle"))
-                {
-                    var top = svg.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-mfd-category-top");
-                    var bottom = svg.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-mfd-category-bottom");
-                    if (top is not null && bottom is not null)
-                        svg.Root!.Add(new XElement(top.Name, new XAttribute("id", "meta-mfd-category-middle"),
-                            new XAttribute("x", top.Attribute("x")!.Value),
-                            new XAttribute("y", (double.Parse(top.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture) + double.Parse(bottom.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture)) / 2),
-                            new XAttribute("text-anchor", "middle"), new XAttribute("fill", "#000000"), new XAttribute("font-size", "16")));
-                }
+                foreach (var obsolete in svg.Descendants().Where(x => x.Attribute("id")?.Value == "meta-mfd-category-middle").ToArray())
+                    obsolete.Remove();
                 return d with { Svg = svg.ToString(SaveOptions.DisableFormatting) };
             }).ToArray();
             return SetSource(workspace with { Diagrams = diagrams }, "config/kneeboard.json", root.ToJsonString());

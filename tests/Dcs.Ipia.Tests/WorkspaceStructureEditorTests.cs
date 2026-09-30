@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
@@ -177,20 +179,76 @@ namespace Dcs.Ipia.Tests
             var sources = new Dictionary<string, string>(saved.Sources!) { [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) };
             Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(saved with { Sources = sources }));
         }
-        /// <summary>Module MFD edits reach the combined kneeboard, including its middle callout.</summary>
+        /// <summary>Module MFD edits reach the combined kneeboard, including its bottom callout.</summary>
         [Fact]
         public void UpdatesMfdCategoryLabels()
         {
             var saved = Workspace("tm-mfd");
             var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
             saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null,
-                new Dictionary<string, string> { ["left"] = "COMM1", ["right"] = "COMM2", ["top"] = "UFC", ["middle"] = "RADAR" });
+                new Dictionary<string, string> { ["left"] = "COMM1", ["right"] = "COMM2", ["top"] = "UFC", ["bottom"] = "RADAR" });
             var page = KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels);
             Assert.Equal("COMM1", page.CategoryLabels["mfd-category-left"]);
             Assert.Equal("COMM2", page.CategoryLabels["mfd-category-right"]);
             Assert.Equal("UFC", page.CategoryLabels["mfd-category-top"]);
-            Assert.Equal("RADAR", page.CategoryLabels["mfd-category-middle"]);
-            Assert.Contains("meta-mfd-category-middle", saved.Diagrams[0].Svg);
+            Assert.Equal("RADAR", page.CategoryLabels["mfd-category-bottom"]);
+            Assert.Contains("meta-mfd-category-bottom", saved.Diagrams[0].Svg);
+            Assert.DoesNotContain("meta-mfd-category-middle", saved.Diagrams[0].Svg);
+            var svg = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(saved.Diagrams[0], page));
+            var bottom = svg.Descendants().Single(x => x.Attribute("id")?.Value == "meta-mfd-category-bottom");
+            Assert.Equal("RADAR", bottom.Value);
+            Assert.Equal("80", bottom.Attribute("y")?.Value);
+        }
+        /// <summary>Old MFD center metadata reopens as Bottom, retaining genuine Bottom labels and the authored footer.</summary>
+        /// <param name="authoredBottom">Whether a genuine Bottom label already exists.</param>
+        /// <param name="prefixed">Whether legacy category keys contain the MFD prefix.</param>
+        /// <returns>Completion of the persisted upgrade round trip.</returns>
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task RepairsLegacyMfdCategoryToBottom(bool authoredBottom, bool prefixed)
+        {
+            var saved = Workspace("tm-mfd");
+            var originalProfile = saved.Configuration.Profiles[0];
+            var root = JsonNode.Parse(saved.Sources!["config/kneeboard.json"])!;
+            var page = root["pages"]![0]!;
+            var prefix = prefixed ? "mfd-category-" : "";
+            page["categoryLabels"] = new JsonObject { [prefix + "middle"] = "LEGACY PAGE", ["top"] = "TOP" };
+            if (authoredBottom) page["categoryLabels"]![prefix + "bottom"] = "AUTHORED BOTTOM";
+            page["layers"] = new JsonArray(new JsonObject { ["categoryLabels"] = new JsonObject { [prefix + "middle"] = "LEGACY LAYER" } });
+            var sources = new Dictionary<string, string>(saved.Sources) { ["config/kneeboard.json"] = root.ToJsonString() };
+            var graphic = XDocument.Parse(saved.Diagrams[0].Svg);
+            graphic.Root!.Add(new XElement(graphic.Root.Name.Namespace + "text", new XAttribute("id", "meta-mfd-category-middle"), new XAttribute("x", "50"), new XAttribute("y", "50")));
+            graphic.Root.Add(new XElement(graphic.Root.Name.Namespace + "text", new XAttribute("id", "footer"), "KEEP FOOTER"));
+            saved = saved with { Sources = sources, Diagrams = [saved.Diagrams[0] with { Svg = graphic.ToString() }] };
+            var path = Path.Combine(Path.GetTempPath(), "ipia-bottom-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(saved);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                var combined = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                Assert.Equal(authoredBottom ? "AUTHORED BOTTOM" : "LEGACY LAYER", combined.CategoryLabels["mfd-category-bottom"]);
+                Assert.Equal("TOP", combined.CategoryLabels["mfd-category-top"]);
+                Assert.DoesNotContain("mfd-category-middle", combined.CategoryLabels.Keys);
+                Assert.DoesNotContain("middle", restored.Sources!["config/kneeboard.json"]);
+                Assert.DoesNotContain("meta-mfd-category-middle", restored.Diagrams[0].Svg);
+                var svg = XDocument.Parse(restored.Diagrams[0].Svg);
+                Assert.Equal("KEEP FOOTER", svg.Descendants().Single(x => x.Attribute("id")?.Value == "footer").Value);
+                Assert.Equal("80", svg.Descendants().Single(x => x.Attribute("id")?.Value == "meta-mfd-category-bottom").Attribute("y")?.Value);
+                Assert.Equal(originalProfile, restored.Configuration.Profiles[0]);
+                Assert.Equal(saved.Assignments.Select(x => x.Slot.Key), restored.Assignments.Select(x => x.Slot.Key));
+                foreach (var source in saved.Sources.Where(x => x.Key != "config/kneeboard.json"))
+                    Assert.Equal(source.Value, restored.Sources[source.Key]);
+                var reopened = (await repository.GetAsync(ModuleId))!;
+                Assert.Equal(restored.Sources["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
+                Assert.Equal(restored.Diagrams[0].Svg, reopened.Diagrams[0].Svg);
+            }
+            finally { File.Delete(path); }
         }
         /// <summary>An unrelated hardware template cannot block an MFD role edit or become an empty UI profile.</summary>
         /// <returns>Completion of the saved role round trip.</returns>
@@ -492,11 +550,11 @@ namespace Dcs.Ipia.Tests
             sources["config/kneeboard.json"] = sources["config/kneeboard.json"].Replace("\"categoryLabels\":{}", "\"categoryLabels\":{},\"layers\":[{\"categoryLabels\":{\"top\":\"OLD\"}},{\"labels\":{}}]", StringComparison.Ordinal);
             saved = saved with { Sources = sources };
             var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEW", ["middle"] = "MID" });
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEWER", ["middle"] = "MID" });
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEW", ["bottom"] = "MID" });
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEWER", ["bottom"] = "MID" });
             Assert.Equal("NEWER", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-top"]);
             saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string>());
-            Assert.Equal("", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-middle"]);
+            Assert.Equal("", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-bottom"]);
         }
         /// <summary>Default keyboard modifiers remain protected in both scopes even after every assignment is cleared.</summary>
         /// <param name="key">Built-in keyboard modifier key.</param>
