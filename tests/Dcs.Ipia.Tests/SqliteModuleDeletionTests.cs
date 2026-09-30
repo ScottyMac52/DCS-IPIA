@@ -1,4 +1,5 @@
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
