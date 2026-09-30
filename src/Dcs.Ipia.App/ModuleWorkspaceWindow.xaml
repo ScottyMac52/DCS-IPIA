@@ -81,7 +81,7 @@
               <ComboBox x:Name="DevicesScope" Width="160" SelectionChanged="ManagementScopeChanged">
                 <ComboBoxItem Content="Module"/><ComboBoxItem Content="Module UI Layer"/>
               </ComboBox>
-              <Button Content="Load shared hardware…" Click="LoadHardwareClicked" Margin="12,0,0,0" Padding="10,5"/>
+              <Button Content="Load built-in hardware" Click="LoadHardwareClicked" Margin="12,0,0,0" Padding="10,5"/>
             </WrapPanel>
           </StackPanel>
           <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">

@@ -20,6 +20,7 @@ namespace Dcs.Ipia.App.Smoke
         {
             var app = new DcsIpia.Presentation.App();
             app.InitializeComponent();
+            Dcs.Ipia.Dcs.BundledSharedCatalog.Validate(Dcs.Ipia.Dcs.BundledSharedCatalog.Root);
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
                 throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");

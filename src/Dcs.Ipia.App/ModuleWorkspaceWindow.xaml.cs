@@ -136,7 +136,7 @@ namespace DcsIpia.Presentation
                 ModifierDevice.ItemsSource = state?.Devices.Where(x => x.Layer == ModifierManagementLayer).ToArray();
                 ManagedHardware.ItemsSource = workspace is null ? null : WorkspaceStructureEditor.Hardware(workspace);
                 if (workspace is not null && workspace.Sources?.ContainsKey("config/ipia-hardware.json") != true)
-                    DevicesMessage.Text = "Shared hardware catalog is missing. Click Load shared hardware… and select DCS-Common, then Save to database. Existing assignments are preserved.";
+                    DevicesMessage.Text = "Shared hardware catalog is missing. Click Load built-in hardware, then Save to database. Existing assignments are preserved.";
                 if (workspace?.Sources?.TryGetValue("config/ipia-hardware-diagnostics.json", out var diagnostics) == true)
                 {
                     var errors = JsonSerializer.Deserialize<string[]>(diagnostics) ?? [];
@@ -182,12 +182,11 @@ namespace DcsIpia.Presentation
         }
         private async void LoadHardwareClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFolderDialog { Title = "Select the DCS-Common checkout for shared hardware" };
-            if (_working is null || picker.ShowDialog(this) != true) return;
+            if (_working is null) return;
             try
             {
                 SetManagementMessage("Loading committed shared hardware…");
-                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(picker.FolderName);
+                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
                 RunStructureEdit(workspace => {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
@@ -242,7 +241,7 @@ namespace DcsIpia.Presentation
             ManagedFileName.Text = device.FileName;
             DetectedDevicesMessage.Text = match is null
                 ? _working.Sources?.ContainsKey("config/ipia-hardware.json") != true
-                    ? "Physical GUID found, but the shared hardware catalog is missing. Click Load shared hardware… and select DCS-Common."
+                    ? "Physical GUID found, but the shared hardware catalog is missing. Click Load built-in hardware."
                     : "Physical GUID found. Select the matching shared hardware; the installed grip may require your choice."
                 : "Physical GUID found. Shared hardware recognized; filename remains editable.";
         }

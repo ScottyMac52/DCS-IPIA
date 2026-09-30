@@ -68,11 +68,8 @@ namespace DcsIpia.Presentation
                 }
                 else
                 {
-                    var common = new OpenFolderDialog { Title = "Select the DCS-Common Git repository root" };
-                    if (common.ShowDialog(this) != true)
-                        return;
-                    ImportStatus.Text = "Reading committed module, DCS-Common, and kneeboard PNG sources…";
-                    var preview = await _loader.LoadAsync(common.FolderName, folder);
+                    ImportStatus.Text = "Reading module sources, built-in shared hardware, and kneeboard PNGs…";
+                    var preview = await _loader.LoadAsync(BundledSharedCatalog.Root, folder);
                     if (!preview.Import.Succeeded)
                     {
                         ShowImportError(
