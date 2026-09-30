@@ -1,0 +1,451 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "ScottyMac52/DCS-Common",
+  "sourceCommit": "0e9ed14a9189b712477f2c647a348da0d8af321b",
+  "files": [
+    {
+      "path": "assets/shared/components/component-manifest.json",
+      "originalPath": "assets/shared/components/component-manifest.json",
+      "size": 413,
+      "gitBlob": "3742997834a73443df7fe0123d93fc4b8aa9dc73"
+    },
+    {
+      "path": "assets/shared/components/generic-control-panel.svg",
+      "originalPath": "assets/shared/components/generic-control-panel.svg",
+      "size": 802,
+      "gitBlob": "19250141e69a2d8e12651957c6ea66476079be66"
+    },
+    {
+      "path": "assets/shared/components/generic-hardware-outline.svg",
+      "originalPath": "assets/shared/components/generic-hardware-outline.svg",
+      "size": 696,
+      "gitBlob": "d07b17c5758e371a8465b9c682f690b7ea34df4e"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/grip-f18c.drawio",
+      "originalPath": "assets/shared/hardware/drawio/grip-f18c.drawio",
+      "size": 329010,
+      "gitBlob": "b25d4d96beb68162abd246579d15a1209ec29089"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/logitech-throttle-quadrant.drawio",
+      "originalPath": "assets/shared/hardware/drawio/logitech-throttle-quadrant.drawio",
+      "size": 815886,
+      "gitBlob": "faa96186bbbf4f1ae55b95c50a72e3c75a7b4006"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/moza-ab9.drawio",
+      "originalPath": "assets/shared/hardware/drawio/moza-ab9.drawio",
+      "size": 44436,
+      "gitBlob": "8ba3fcdc52a58532d054b45ad8fd5b1e0f7813e2"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/onyourtwelve-pdcp.drawio",
+      "originalPath": "assets/shared/hardware/drawio/onyourtwelve-pdcp.drawio",
+      "size": 146427,
+      "gitBlob": "90056c4e2322e37d57a44aee2e2f5d0a6f2e8d4a"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-mfd.drawio",
+      "originalPath": "assets/shared/hardware/drawio/tm-mfd.drawio",
+      "size": 240412,
+      "gitBlob": "29578e21cf426ddafeb87183859eff09203cc250"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-tpr.drawio",
+      "originalPath": "assets/shared/hardware/drawio/tm-tpr.drawio",
+      "size": 645812,
+      "gitBlob": "c50345ff11478b343e24e33d98ffa54dc4a6a077"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-warthog-grip.drawio",
+      "originalPath": "assets/shared/hardware/drawio/tm-warthog-grip.drawio",
+      "size": 192338,
+      "gitBlob": "825f8d8f23a2323395b0b4efd585a5af08476280"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-warthog-throttle.drawio",
+      "originalPath": "assets/shared/hardware/drawio/tm-warthog-throttle.drawio",
+      "size": 358522,
+      "gitBlob": "565140a1eef28b670554a05057e2385cde4d5688"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/viper-tqs-mission-pack.drawio",
+      "originalPath": "assets/shared/hardware/drawio/viper-tqs-mission-pack.drawio",
+      "size": 712486,
+      "gitBlob": "d969c8a300858e2197ef85617fb5c0ad22ed05f7"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/vkb-f14-gunfighter.drawio",
+      "originalPath": "assets/shared/hardware/drawio/vkb-f14-gunfighter.drawio",
+      "size": 665521,
+      "gitBlob": "0b5b01be5a34bf7b77356209883bf8199e3fe04a"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/winctrl-icp.drawio",
+      "originalPath": "assets/shared/hardware/drawio/winctrl-icp.drawio",
+      "size": 248038,
+      "gitBlob": "f64d19150c596d48389f2261602e30a9a7f9f8de"
+    },
+    {
+      "path": "assets/shared/hardware/drawio/winctrl-pto2.drawio",
+      "originalPath": "assets/shared/hardware/drawio/winctrl-pto2.drawio",
+      "size": 336221,
+      "gitBlob": "6898e1faaff694dbbe2eff4128798a4444e189e2"
+    },
+    {
+      "path": "assets/shared/hardware/export-config.json",
+      "originalPath": "assets/shared/hardware/export-config.json",
+      "size": 45,
+      "gitBlob": "e5a4cc539849f167b83d295ac9e6b66af9dd919a"
+    },
+    {
+      "path": "assets/shared/hardware/lua/grip-f18c.lua",
+      "originalPath": "assets/shared/hardware/lua/grip-f18c.lua",
+      "size": 3322,
+      "gitBlob": "4c07d38afcda5a02486f30175290783dddb442f7"
+    },
+    {
+      "path": "assets/shared/hardware/lua/logitech-throttle-quadrant.lua",
+      "originalPath": "assets/shared/hardware/lua/logitech-throttle-quadrant.lua",
+      "size": 1212,
+      "gitBlob": "9790c47798f5a1e0a2155be5130ed1a97a9ed0f7"
+    },
+    {
+      "path": "assets/shared/hardware/lua/moza-ab9.lua",
+      "originalPath": "assets/shared/hardware/lua/moza-ab9.lua",
+      "size": 282,
+      "gitBlob": "ccac4924e50c4da121027fc9eeef8b8bbf956d01"
+    },
+    {
+      "path": "assets/shared/hardware/lua/onyourtwelve-pdcp.lua",
+      "originalPath": "assets/shared/hardware/lua/onyourtwelve-pdcp.lua",
+      "size": 3049,
+      "gitBlob": "cc26c591a523f96bc90538364e041776b0761a38"
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-mfd.lua",
+      "originalPath": "assets/shared/hardware/lua/tm-mfd.lua",
+      "size": 3058,
+      "gitBlob": "46f2fcd284fc5e33107b74ac6a03de0e69b5d009"
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-tpr.lua",
+      "originalPath": "assets/shared/hardware/lua/tm-tpr.lua",
+      "size": 407,
+      "gitBlob": "4c266b25f90c37fcfea0d4670737c2414553aa63"
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-warthog-grip.lua",
+      "originalPath": "assets/shared/hardware/lua/tm-warthog-grip.lua",
+      "size": 2765,
+      "gitBlob": "ace4c9a4a4ff252411bbff36f72378f04d32ccbb"
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-warthog-throttle.lua",
+      "originalPath": "assets/shared/hardware/lua/tm-warthog-throttle.lua",
+      "size": 4953,
+      "gitBlob": "dc80fc6f94719dd753222df2eae4179ae8337817"
+    },
+    {
+      "path": "assets/shared/hardware/lua/viper-tqs-mission-pack.lua",
+      "originalPath": "assets/shared/hardware/lua/viper-tqs-mission-pack.lua",
+      "size": 8563,
+      "gitBlob": "2a5bfa74443ce3688ddfa8d02ccdf3d80aecb3cc"
+    },
+    {
+      "path": "assets/shared/hardware/lua/vkb-f14-gunfighter.lua",
+      "originalPath": "assets/shared/hardware/lua/vkb-f14-gunfighter.lua",
+      "size": 1705,
+      "gitBlob": "966c1a6f616f05d747d333f48745484ea858ed62"
+    },
+    {
+      "path": "assets/shared/hardware/lua/winctrl-icp.lua",
+      "originalPath": "assets/shared/hardware/lua/winctrl-icp.lua",
+      "size": 3926,
+      "gitBlob": "f15113e8ebf9233e0dd556fb3afa10e7560400d3"
+    },
+    {
+      "path": "assets/shared/hardware/lua/winctrl-pto2.lua",
+      "originalPath": "assets/shared/hardware/lua/winctrl-pto2.lua",
+      "size": 4635,
+      "gitBlob": "523d72a093ac76ecd3ba5deec9da46fca57be976"
+    },
+    {
+      "path": "assets/shared/hardware/manifest.json",
+      "originalPath": "assets/shared/hardware/manifest.json",
+      "size": 3425,
+      "gitBlob": "74083488cffe8a80b7174e8784352a0ab985e991"
+    },
+    {
+      "path": "assets/shared/hardware/scaffold-device-map.json",
+      "originalPath": "assets/shared/hardware/scaffold-device-map.json",
+      "size": 3784,
+      "gitBlob": "d4e16135323aabb3a7ae9eb20acae48a76756c5b"
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-icp-clean.png",
+      "originalPath": "assets/shared/hardware/source/f16c-icp-clean.png",
+      "size": 524702,
+      "gitBlob": "f34f0008b87c742f858753d3af0094a16f3c72e8"
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-warthog-grip-front.png",
+      "originalPath": "assets/shared/hardware/source/f16c-warthog-grip-front.png",
+      "size": 519742,
+      "gitBlob": "7951833cb17315483f51a72af7ec6bd555970562"
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-warthog-grip-rear.png",
+      "originalPath": "assets/shared/hardware/source/f16c-warthog-grip-rear.png",
+      "size": 64239,
+      "gitBlob": "47d426bfbab714f9563464eeb0df8c11f898f9ba"
+    },
+    {
+      "path": "assets/shared/hardware/source/f4u-logitech-throttle-quadrant.png",
+      "originalPath": "assets/shared/hardware/source/f4u-logitech-throttle-quadrant.png",
+      "size": 599478,
+      "gitBlob": "ac1a09ee23a37671558d2f45902c8ba1cbeb4c5d"
+    },
+    {
+      "path": "assets/shared/hardware/source/mfd-clean.png",
+      "originalPath": "assets/shared/hardware/source/mfd-clean.png",
+      "size": 172966,
+      "gitBlob": "e2753a0eb0467d19554fb0346f429e1bac16d35d"
+    },
+    {
+      "path": "assets/shared/hardware/source/moza-ab9.jpg",
+      "originalPath": "assets/shared/hardware/source/moza-ab9.jpg",
+      "size": 30975,
+      "gitBlob": "2a8d112a9c8da5731b3a70415935dcf4adb941a5"
+    },
+    {
+      "path": "assets/shared/hardware/source/pdcp-photo.jpeg",
+      "originalPath": "assets/shared/hardware/source/pdcp-photo.jpeg",
+      "size": 538570,
+      "gitBlob": "62700161e31b073ca7960541f969f55b62866626"
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-buttons-rgb.png",
+      "originalPath": "assets/shared/hardware/source/pto2-buttons-rgb.png",
+      "size": 222554,
+      "gitBlob": "835643c06e85f15289bb8a5c014ff1220f7ef947"
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-buttons.png",
+      "originalPath": "assets/shared/hardware/source/pto2-buttons.png",
+      "size": 268373,
+      "gitBlob": "f3b7495fdd1d7beaf6a611c11352771fd4cb02a1"
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-clean.png",
+      "originalPath": "assets/shared/hardware/source/pto2-clean.png",
+      "size": 146015,
+      "gitBlob": "15eb5c65f44707081ade261e509eecb1647af6f1"
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-ava-base.png",
+      "originalPath": "assets/shared/hardware/source/thrustmaster-ava-base.png",
+      "size": 169468,
+      "gitBlob": "5627ac4d243c65c8527034476d349e354d52d601"
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-f16c-grip.png",
+      "originalPath": "assets/shared/hardware/source/thrustmaster-f16c-grip.png",
+      "size": 318047,
+      "gitBlob": "80f8be60d6ba348cee89a8d0502c43c3d4b11833"
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-f18c-grip.png",
+      "originalPath": "assets/shared/hardware/source/thrustmaster-f18c-grip.png",
+      "size": 317742,
+      "gitBlob": "ad240fc629cba5887db60a0e440da61aa68ee03d"
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-tpr.png",
+      "originalPath": "assets/shared/hardware/source/thrustmaster-tpr.png",
+      "size": 481112,
+      "gitBlob": "6a892571e80f6d07de751f0f66e0d7ae59cecb40"
+    },
+    {
+      "path": "assets/shared/hardware/source/tm-warthog-throttle-blank.png",
+      "originalPath": "assets/shared/hardware/source/tm-warthog-throttle-blank.png",
+      "size": 242501,
+      "gitBlob": "d5271a85c117d11b0e395b66ee29be61435d582b"
+    },
+    {
+      "path": "assets/shared/hardware/source/viper-mission-pack-controls.png",
+      "originalPath": "assets/shared/hardware/source/viper-mission-pack-controls.png",
+      "size": 206620,
+      "gitBlob": "28370153479ba10e264363783da72a9ea0da7d20"
+    },
+    {
+      "path": "assets/shared/hardware/source/viper-tqs-handle-controls.png",
+      "originalPath": "assets/shared/hardware/source/viper-tqs-handle-controls.png",
+      "size": 268811,
+      "gitBlob": "2def5cdaa4b6927360d2d673523c58b8abdd19fc"
+    },
+    {
+      "path": "assets/shared/hardware/source/vkb-f14-grip-rear.png",
+      "originalPath": "assets/shared/hardware/source/vkb-f14-grip-rear.png",
+      "size": 228566,
+      "gitBlob": "dc05f0ec2371f8aa1174a598e495c23184e743d0"
+    },
+    {
+      "path": "assets/shared/hardware/source/vkb-f14-grip-side.png",
+      "originalPath": "assets/shared/hardware/source/vkb-f14-grip-side.png",
+      "size": 258845,
+      "gitBlob": "98f162ecbff28881294f53b2e6f51cc20a48f44a"
+    },
+    {
+      "path": "assets/shared/hardware/source/warthog-throttle-base.png",
+      "originalPath": "assets/shared/hardware/source/warthog-throttle-base.png",
+      "size": 56469,
+      "gitBlob": "cde8f04f061d13d3533bf2bbbca762a74f6cbdf3"
+    },
+    {
+      "path": "assets/shared/hardware/source/warthog-throttle-handles.png",
+      "originalPath": "assets/shared/hardware/source/warthog-throttle-handles.png",
+      "size": 52996,
+      "gitBlob": "09879f278766a066305b8579221f1970b624d24c"
+    },
+    {
+      "path": "assets/shared/hardware/SOURCES.md",
+      "originalPath": "assets/shared/hardware/SOURCES.md",
+      "size": 2805,
+      "gitBlob": "0c9b4edc3cc18698e6f29f0573481fe27e5fb813"
+    },
+    {
+      "path": "assets/shared/hardware/svg/grip-f18c.svg",
+      "originalPath": "assets/shared/hardware/svg/grip-f18c.svg",
+      "size": 325925,
+      "gitBlob": "ea11230a3ed11be3cac8099c047d505d52a972c7"
+    },
+    {
+      "path": "assets/shared/hardware/svg/logitech-throttle-quadrant.svg",
+      "originalPath": "assets/shared/hardware/svg/logitech-throttle-quadrant.svg",
+      "size": 805555,
+      "gitBlob": "adc516086c5c3dbc536bca030307385e2ee309b7"
+    },
+    {
+      "path": "assets/shared/hardware/svg/moza-ab9.svg",
+      "originalPath": "assets/shared/hardware/svg/moza-ab9.svg",
+      "size": 42717,
+      "gitBlob": "0a71f65472df3f8f1a6ec573c8a043a8f8688720"
+    },
+    {
+      "path": "assets/shared/hardware/svg/onyourtwelve-pdcp.svg",
+      "originalPath": "assets/shared/hardware/svg/onyourtwelve-pdcp.svg",
+      "size": 135090,
+      "gitBlob": "23f81ab30e6a43eefda7d7325b26cc31ce55511b"
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-mfd.svg",
+      "originalPath": "assets/shared/hardware/svg/tm-mfd.svg",
+      "size": 235029,
+      "gitBlob": "156520d871071f856cb088f1d29c8e134974ae16"
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-tpr.svg",
+      "originalPath": "assets/shared/hardware/svg/tm-tpr.svg",
+      "size": 643421,
+      "gitBlob": "aef94aeea37eb667479389e944ac9144fef6bed5"
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-warthog-grip.svg",
+      "originalPath": "assets/shared/hardware/svg/tm-warthog-grip.svg",
+      "size": 186604,
+      "gitBlob": "33143d27eaff86ac92d5a5d62d57fb9abf938083"
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-warthog-throttle.svg",
+      "originalPath": "assets/shared/hardware/svg/tm-warthog-throttle.svg",
+      "size": 356032,
+      "gitBlob": "c70be32b13a6163839b76b6a73564ecc8690c1de"
+    },
+    {
+      "path": "assets/shared/hardware/svg/viper-tqs-mission-pack.svg",
+      "originalPath": "assets/shared/hardware/svg/viper-tqs-mission-pack.svg",
+      "size": 671988,
+      "gitBlob": "642e804192af1edfbc42356a95854cb1a9307733"
+    },
+    {
+      "path": "assets/shared/hardware/svg/vkb-f14-gunfighter.svg",
+      "originalPath": "assets/shared/hardware/svg/vkb-f14-gunfighter.svg",
+      "size": 658814,
+      "gitBlob": "3359053f649a76451322d57c97e3e6de61e7a204"
+    },
+    {
+      "path": "assets/shared/hardware/svg/winctrl-icp.svg",
+      "originalPath": "assets/shared/hardware/svg/winctrl-icp.svg",
+      "size": 229795,
+      "gitBlob": "15e3b6a5d91c7e0c21b916de456ddc4296e988c3"
+    },
+    {
+      "path": "assets/shared/hardware/svg/winctrl-pto2.svg",
+      "originalPath": "assets/shared/hardware/svg/winctrl-pto2.svg",
+      "size": 317909,
+      "gitBlob": "2cd35cdeded1537e3144e8cdfee1608b672942e1"
+    },
+    {
+      "path": "assets/shared/ui-layer/functions.json",
+      "originalPath": "assets/shared/ui-layer/functions.json",
+      "size": 2053,
+      "gitBlob": "5a7b9b0c7a10b6d686852d1b88dbfabe1e9d4ff1"
+    },
+    {
+      "path": "assets/shared/ui-layer/hardware-overlays.json",
+      "originalPath": "assets/shared/ui-layer/hardware-overlays.json",
+      "size": 2344,
+      "gitBlob": "afb3fdf3fa6f073c4ae255ae33420947a8a29ac6"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/joystick/Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "size": 1606,
+      "gitBlob": "26c87da5a574552f4a237cd2fa16f6dfe624ec46"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "size": 5760,
+      "gitBlob": "7979a96fc392137702a869e38399ddccf0a72ee7"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+      "size": 1578,
+      "gitBlob": "df15f222507561141b36e8b9b7add28d2616a7a9"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/Viper TQS {C0A33440-3F54-11f1-8001-444553540000}.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/joystick/Viper TQS {C0A33440-3F54-11f1-8001-444553540000}.diff.lua",
+      "size": 266,
+      "gitBlob": "02b6dd3d4635726ce8cbe87b4c398b385affefba"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/VKBSim Gunfighter F14 {2D5CEC70-5189-11f1-8001-444553540000}.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/joystick/VKBSim Gunfighter F14 {2D5CEC70-5189-11f1-8001-444553540000}.diff.lua",
+      "size": 1514,
+      "gitBlob": "949bee13cba1919f5c2f14757bbd3c2e690e204b"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/keyboard/Keyboard.diff.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/keyboard/Keyboard.diff.lua",
+      "size": 269,
+      "gitBlob": "08432607face249c996221947b4923f08eecbeb7"
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/modifiers.lua",
+      "originalPath": "assets/shared/ui-layer/input/UiLayer/modifiers.lua",
+      "size": 1204,
+      "gitBlob": "a55512dc91c9ee84131c86bfa9932483b51277da"
+    },
+    {
+      "path": "DCS-Common-LICENSE.txt",
+      "originalPath": "LICENSE",
+      "size": 1071,
+      "gitBlob": "bf11b95d2d49be8991ee59323da8ac148b7461d2"
+    }
+  ]
+}

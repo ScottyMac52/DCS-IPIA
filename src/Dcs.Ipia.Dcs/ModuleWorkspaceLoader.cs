@@ -13,7 +13,7 @@ namespace Dcs.Ipia.Dcs
     {
         #region BEGIN Public
         /// <summary>Imports the committed repository heads without changing either checkout.</summary>
-        /// <param name="commonRoot">DCS-Common checkout root.</param>
+        /// <param name="commonRoot">Shared bundle or legacy DCS-Common checkout root.</param>
         /// <param name="hueyRoot">module checkout root.</param>
         /// <param name="cancellationToken">Cancellation token for Git reads.</param>
         /// <returns>A validated module import including original committed source text.</returns>
@@ -22,7 +22,7 @@ namespace Dcs.Ipia.Dcs
         {
             var common = await RepositoryRootAsync(commonRoot, cancellationToken);
             var huey = await RepositoryRootAsync(hueyRoot, cancellationToken);
-            var commonCommit = (await GitAsync(common, cancellationToken, "rev-parse", "HEAD")).Trim();
+            var commonCommit = await SourceCommitAsync(common, cancellationToken);
             var hueyCommit = (await GitAsync(huey, cancellationToken, "rev-parse", "HEAD")).Trim();
             var catalogSources = await ReadSourcesAsync(common, SharedCatalogPaths, cancellationToken);
             var catalog = new DcsCommonCatalogImporter().Import(
@@ -87,7 +87,7 @@ namespace Dcs.Ipia.Dcs
                 {
                     try
                     {
-                        graphics.Add(path, await GitAsync(common, cancellationToken, "show", $"HEAD:{path}"));
+                        graphics.Add(path, await SourceTextAsync(common, path, cancellationToken));
                     }
                     catch (InvalidDataException)
                     { /* The profile diagnostic below identifies the missing graphic. */
@@ -113,13 +113,13 @@ namespace Dcs.Ipia.Dcs
             };
         }
         /// <summary>Pins the available shared hardware and default filenames for offline device authoring.</summary>
-        /// <param name="commonRoot">DCS-Common checkout root.</param>
+        /// <param name="commonRoot">Shared bundle or legacy DCS-Common checkout root.</param>
         /// <param name="cancellationToken">Cancellation token for Git reads.</param>
         /// <returns>Shared hardware catalog and canonical Lua sources.</returns>
         public static async Task<IReadOnlyDictionary<string, string>> LoadHardwareAsync(string commonRoot, CancellationToken cancellationToken = default)
         {
             var common = await RepositoryRootAsync(commonRoot, cancellationToken);
-            var commit = (await GitAsync(common, cancellationToken, "rev-parse", "HEAD")).Trim();
+            var commit = await SourceCommitAsync(common, cancellationToken);
             var sources = await ReadSourcesAsync(common, SharedCatalogPaths, cancellationToken);
             var catalog = new DcsCommonCatalogImporter().Import(new(commit,
                 SharedCatalogPaths[0], sources[SharedCatalogPaths[0]], SharedCatalogPaths[1], sources[SharedCatalogPaths[1]],
@@ -141,7 +141,7 @@ namespace Dcs.Ipia.Dcs
             var graphics = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var path in await TrackedPathsAsync(common, cancellationToken, "assets/shared/hardware/svg"))
                 if (path.EndsWith(".svg", StringComparison.Ordinal))
-                    graphics[path] = await GitAsync(common, cancellationToken, "show", "HEAD:" + path);
+                    graphics[path] = await SourceTextAsync(common, path, cancellationToken);
             var module = new DcsModule(Guid.NewGuid(), "IPIA", "Shared hardware");
             var choices = new List<WorkspaceHardware>();
             var errors = new List<string>();
@@ -169,6 +169,9 @@ namespace Dcs.Ipia.Dcs
             result["config/ipia-hardware.json"] = JsonSerializer.Serialize(choices);
             result["config/ipia-device-map.json"] = JsonSerializer.Serialize(catalog.DeviceMap);
             result["config/ipia-hardware-diagnostics.json"] = JsonSerializer.Serialize(errors);
+            if (BundledSharedCatalog.IsRoot(common))
+                result["config/ipia-shared-assets-provenance.json"] = await File.ReadAllTextAsync(
+                    Path.Combine(common, "provenance.json"), cancellationToken);
             return result;
         }
         private static SortedDictionary<string, string> UiLayerSources(IReadOnlyDictionary<string, string> sources) =>
@@ -238,6 +241,12 @@ namespace Dcs.Ipia.Dcs
         private static async Task<string> RepositoryRootAsync(string root, CancellationToken ct)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(root);
+            if (BundledSharedCatalog.IsRoot(root))
+            {
+                ct.ThrowIfCancellationRequested();
+                BundledSharedCatalog.Validate(root);
+                return root;
+            }
             if (!Directory.Exists(root))
                 throw new DirectoryNotFoundException($"Selected folder does not exist: {root}");
             var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
@@ -251,6 +260,7 @@ namespace Dcs.Ipia.Dcs
         }
         private static async Task<string[]> TrackedPathsAsync(string root, CancellationToken ct, params string[] paths)
         {
+            if (BundledSharedCatalog.IsRoot(root)) return BundledSharedCatalog.Paths(paths);
             var output = await GitAsync(root, ct, ["ls-tree", "-r", "-z", "--name-only", "HEAD", "--", ..paths]);
             return output.Split('\0', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
         }
@@ -260,9 +270,14 @@ namespace Dcs.Ipia.Dcs
         {
             var values = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var path in paths)
-                values.Add(path, await GitAsync(root, ct, "show", $"HEAD:{path}"));
+                values.Add(path, await SourceTextAsync(root, path, ct));
             return values;
         }
+        private static async Task<string> SourceCommitAsync(string root, CancellationToken ct) =>
+            BundledSharedCatalog.IsRoot(root) ? BundledSharedCatalog.SourceCommit() :
+                (await GitAsync(root, ct, "rev-parse", "HEAD")).Trim();
+        private static Task<string> SourceTextAsync(string root, string path, CancellationToken ct) =>
+            BundledSharedCatalog.IsRoot(root) ? BundledSharedCatalog.ReadTextAsync(path, ct) : GitAsync(root, ct, "show", "HEAD:" + path);
         private static async Task<string> GitAsync(string root, CancellationToken ct, params string[] args)
         {
             using var process = new Process();

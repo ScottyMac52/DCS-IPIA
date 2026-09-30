@@ -1,0 +1,2 @@
+# Preserve imported shared source bytes on every checkout, including Windows.
+/data/shared-assets/** -text

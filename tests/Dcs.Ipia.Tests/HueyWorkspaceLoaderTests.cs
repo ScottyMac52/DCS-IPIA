@@ -395,6 +395,27 @@ namespace Dcs.Ipia.Tests
                 DeleteFixture(temp);
             }
         }
+        /// <summary>A committed consumer imports against packaged shared assets without a Common repository.</summary>
+        [Fact]
+        public async Task Imports_module_with_built_in_shared_assets()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "DcsIpiaBundled-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(root);
+                var fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Huey");
+                foreach (var source in Directory.GetFiles(fixtures, "*", SearchOption.AllDirectories))
+                    Copy(source, root, Path.GetRelativePath(fixtures, source));
+                Commit(root);
+                var preview = await new ModuleWorkspaceLoader().LoadAsync(BundledSharedCatalog.Root, root);
+                Assert.True(preview.Import.Succeeded, string.Join("; ", preview.Import.Diagnostics.Select(x => x.Message)));
+                Assert.NotEmpty(preview.Diagrams);
+                Assert.NotEmpty(preview.SharedLuaSources["config/ipia-hardware.json"]);
+                Assert.Contains("config/ipia-shared-assets-provenance.json", preview.SharedLuaSources.Keys);
+                Assert.NotEmpty(preview.Import.Provenance);
+            }
+            finally { DeleteFixture(root); }
+        }
         /// <summary>Selection must point at a repository root rather than a nested directory.</summary>
         [Fact]
         public async Task Rejects_non_repository_folder()
