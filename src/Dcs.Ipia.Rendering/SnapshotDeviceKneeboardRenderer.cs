@@ -51,8 +51,8 @@ namespace Dcs.Ipia.Rendering
                 var diagram = workspace.Diagrams.SingleOrDefault(x => x.ProfileId == profile.Id &&
                                                                       x.Controls.Count > 0 && x.Svg.Length > 0) ??
                               throw new InvalidDataException("No mapped authored SVG for " + profile.SourceName);
-                var assigned = workspace.Assignments.Where(x => x.Slot.ProfileId == profile.Id).ToArray();
-                if (assigned.Select(x => x.Slot.Key).Distinct(StringComparer.Ordinal).Count() != assigned.Length)
+                var assigned = DcsInputKey.CollapseAliases(workspace.Assignments.Where(x => x.Slot.ProfileId == profile.Id)).ToArray();
+                if (assigned.Select(x => DcsInputKey.PhysicalSlotKey(x.Slot)).Distinct(StringComparer.Ordinal).Count() != assigned.Length)
                     throw new InvalidDataException("Duplicate assignment slot for " + profile.SourceName);
                 foreach (var assignment in assigned)
                 {
@@ -62,7 +62,7 @@ namespace Dcs.Ipia.Rendering
                                                              .SlotForControl(workspace, diagram, control,
                                                                              assignment.Slot.Layer,
                                                                              assignment.Slot.ModifierChord)
-                                                             ?.Key == assignment.Slot.Key))
+                                                             is { } slot && DcsInputKey.PhysicalSlotKey(slot) == DcsInputKey.PhysicalSlotKey(assignment.Slot)))
                         throw new InvalidDataException("Assignment lacks a usable authored control: " +
                                                        assignment.Slot.Key);
                 }
@@ -77,3 +77,4 @@ namespace Dcs.Ipia.Rendering
         #endregion END Public
     }
 }
+

@@ -14,6 +14,29 @@ namespace Dcs.Ipia.Application
                                                                                            ToDcsKey(second),
                                                                                            StringComparison.Ordinal);
 
+        /// <summary>Gets a comparison key that treats known POV spellings as one assignment slot.</summary>
+        /// <param name="slot">Module, device, scope, section, input, and modifier chord.</param>
+        /// <returns>Physical slot identity without changing the stored input spelling.</returns>
+        public static string PhysicalSlotKey(DraftAssignmentSlot slot) =>
+            (slot with { InputKey = ToDcsKey(slot.InputKey) }).Key;
+
+        /// <summary>Collapses equivalent POV aliases while retaining conflicting assignments for validation.</summary>
+        /// <param name="assignments">Imported or previously saved assignments.</param>
+        /// <returns>One preferred original assignment per compatible alias group.</returns>
+        public static IReadOnlyList<DraftAssignment> CollapseAliases(IEnumerable<DraftAssignment> assignments) =>
+            assignments.GroupBy(x => PhysicalSlotKey(x.Slot), StringComparer.Ordinal)
+                .SelectMany(group => {
+                    var entries = group.ToArray();
+                    var first = entries[0];
+                    if (entries.Select(x => x.Slot.InputKey).Distinct(StringComparer.Ordinal).Count() < 2 ||
+                        entries.Any(x => x.Command.Id != first.Command.Id || x.Command.IsAxis != first.Command.IsAxis ||
+                            x.Command.Layer != first.Command.Layer ||
+                            System.Text.Json.JsonSerializer.Serialize(x.Filter) !=
+                            System.Text.Json.JsonSerializer.Serialize(first.Filter)))
+                        return entries;
+                    return [entries.FirstOrDefault(x => x.Slot.InputKey == ToDcsKey(x.Slot.InputKey)) ?? first];
+                }).ToArray();
+
         /// <summary>Uses the profile's actual DCS key when an authored hardware key has another spelling.</summary>
         /// <param name="configuration">Stored module bindings.</param>
         /// <param name="profileId">Device profile identity.</param>
@@ -50,3 +73,4 @@ namespace Dcs.Ipia.Application
         #endregion END private helpers
     }
 }
+
