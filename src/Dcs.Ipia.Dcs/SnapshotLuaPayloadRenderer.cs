@@ -39,12 +39,16 @@ namespace Dcs.Ipia.Dcs
             var moduleModifiers = config.Modifiers.Concat(
                 modifiers.Where(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase) &&
                                      !moduleNames.Contains(x.Name))).ToArray();
-            Add(result, modulePrefix + "modifiers.lua", WriteModifiers(moduleModifiers));
+            Add(result, modulePrefix + "modifiers.lua", WriteModifiers(
+                CompleteModifiers(workspace, AssignmentLayer.Module, moduleModifiers, result)));
             var uiProfiles = workspace.Diagrams.Where(x => x.SupportsUiLayer &&
                                                             x.CanonicalUiLayerSourcePath is not null).ToArray();
             ValidateUiLayerProfiles(workspace);
             if (uiProfiles.Length == 0)
+            {
+                ValidateModifierReferences(result);
                 return result;
+            }
             var removed = UiLayerLuaProfileRenderer.RemovedModifiers(workspace.Sources);
             if (removed.Any(x => !modifiers.Any(y => y.Name == x)))
                 throw new InvalidDataException("An overlay removes an unknown canonical UI Layer modifier.");
@@ -64,7 +68,9 @@ namespace Dcs.Ipia.Dcs
                     UiLayerLuaProfileRenderer.Render(workspace, diagram.ProfileId));
             }
             Add(result, "Config/Input/UiLayer/modifiers.lua",
-                WriteModifiers(modifiers.Where(x => !removed.Contains(x.Name))));
+                WriteModifiers(CompleteModifiers(workspace, AssignmentLayer.UiLayer,
+                    modifiers.Where(x => !removed.Contains(x.Name)), result)));
+            ValidateModifierReferences(result);
             return result;
         }
         /// <summary>Reports saved UI assignments that cannot resolve to a pinned physical profile.</summary>
@@ -112,9 +118,58 @@ namespace Dcs.Ipia.Dcs
                 var modifiers = managed.Modifiers.Where(x => x.Layer == scope)
                     .Select(x => new DcsModifier(x.Name, x.NativeDevice, x.Key, x.Mode));
                 if (scope == AssignmentLayer.Module || managed.Devices.Any(x => x.Layer == scope))
-                    Add(result, $"Config/Input/{folder}/modifiers.lua", WriteModifiers(modifiers));
+                    Add(result, $"Config/Input/{folder}/modifiers.lua", WriteModifiers(
+                        CompleteModifiers(workspace, scope, modifiers, result)));
             }
+            ValidateModifierReferences(result);
             return result;
+        }
+        private static DcsModifier[] CompleteModifiers(EditorWorkspaceSnapshot workspace, AssignmentLayer scope,
+            IEnumerable<DcsModifier> declared, IReadOnlyDictionary<string, byte[]> payload)
+        {
+            var result = declared.ToDictionary(x => x.Name, StringComparer.Ordinal);
+            var shared = workspace.Sources?.TryGetValue(SharedRoot + "modifiers.lua", out var sharedSource) == true
+                ? DcsLuaParser.ParseModifiers(sharedSource) : [];
+            if (scope == AssignmentLayer.Module)
+                foreach (var modifier in shared.Where(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase)))
+                    result.TryAdd(modifier.Name, modifier);
+            var folder = scope == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
+            var used = payload.Where(x => x.Key.StartsWith("Config/Input/" + folder + "/", StringComparison.Ordinal) &&
+                x.Key.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase))
+                .SelectMany(x => DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(x.Value), workspace.Configuration.Module.Id))
+                .Where(x => x.Disposition != BindingDisposition.Removed).SelectMany(x => x.Reformers).Distinct(StringComparer.Ordinal);
+            foreach (var name in used.Where(x => !result.ContainsKey(x)))
+            {
+                var current = scope == AssignmentLayer.Module ? workspace.Configuration.Modifiers : shared;
+                var definition = current.SingleOrDefault(x => x.Name == name);
+                if (definition is null && scope == AssignmentLayer.Module && workspace.Sources is not null)
+                {
+                    var paths = new[] { "src/Config/Input/" + folder + "/modifiers.lua", "Config/Input/" + folder + "/modifiers.lua" };
+                    var candidates = paths.Where(workspace.Sources.ContainsKey)
+                        .SelectMany(path => DcsLuaParser.ParseModifiers(workspace.Sources[path])).Where(x => x.Name == name).Distinct().ToArray();
+                    if (candidates.Length > 1)
+                        throw new InvalidDataException("Conflicting saved definitions for modifier " + name + ".");
+                    definition = candidates.SingleOrDefault();
+                }
+                if (definition is not null) result.Add(name, definition);
+            }
+            return result.Values.ToArray();
+        }
+        private static void ValidateModifierReferences(Dictionary<string, byte[]> payload)
+        {
+            foreach (var (path, bytes) in payload.Where(x => x.Key.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase)))
+            {
+                var folder = path[..path.LastIndexOf('/', path.LastIndexOf('/') - 1)];
+                var names = payload.TryGetValue(folder + "/modifiers.lua", out var table)
+                    ? DcsLuaParser.ParseModifiers(Encoding.UTF8.GetString(table)).Select(x => x.Name).ToHashSet(StringComparer.Ordinal)
+                    : new HashSet<string>(StringComparer.Ordinal);
+                var missing = DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(bytes), Guid.NewGuid())
+                    .Where(x => x.Disposition != BindingDisposition.Removed).SelectMany(x => x.Reformers)
+                    .Where(x => !names.Contains(x)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                if (missing.Length > 0)
+                    throw new InvalidDataException("Exported profile " + path + " references undeclared modifiers: " +
+                        string.Join(", ", missing) + ". Correct the modifier definitions before building the package.");
+            }
         }
         private static void Add(Dictionary<string, byte[]> payload, string path, string content)
         {
@@ -158,4 +213,3 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
-
