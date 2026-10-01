@@ -107,7 +107,7 @@ namespace Dcs.Ipia.Tests
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
-                var selected = WorkspaceStructureEditor.Hardware(first).First();
+                var selected = WorkspaceStructureEditor.Hardware(first)[0];
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
                     x.SourceName.Equals(selected.DefaultFileName, StringComparison.OrdinalIgnoreCase));
                 var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
