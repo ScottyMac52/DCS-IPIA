@@ -140,10 +140,24 @@ namespace Dcs.Ipia.Tests
         private static ModuleConfiguration Renamed(ModuleConfiguration configuration, string dcsId, string displayName) =>
             new(new DcsModule(configuration.Module.Id, dcsId, displayName), configuration.Profiles,
                 configuration.Modifiers, configuration.Bindings, configuration.Provenance);
-        private static EditorWorkspaceSnapshot Module(string id) =>
-            new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), id, "Module " + id), [], [], [], "test"),
-                [], [], [], [], [], [], new Dictionary<string, string> { ["label"] = "authored" },
+        private static EditorWorkspaceSnapshot Module(string id)
+        {
+            var module = new DcsModule(Guid.NewGuid(), id, "Module " + id);
+            var profile = new DeviceProfile(Guid.NewGuid(), "test-stick", null, "Stick", "Test stick.diff.lua");
+            var modifier = new DcsModifier("SHIFT", "Keyboard", "LShift", ModifierMode.Hold);
+            var filter = new AxisFilter(Deadzone: 3, Curvature: [1, 2, 3], Invert: true);
+            var configuration = new ModuleConfiguration(module, [profile], [modifier], [
+                new DcsBinding(profile.Id, BindingSection.Key, "key", "Key", BindingDisposition.Added, "JOY_BTN1", ["SHIFT"]),
+                new DcsBinding(profile.Id, BindingSection.Axis, "axis", "Axis", BindingDisposition.Added, "JOY_X", [], filter),
+                new DcsBinding(profile.Id, BindingSection.Key, "history", "History", BindingDisposition.Removed, "JOY_BTN2")
+            ], "test");
+            var assignment = new DraftAssignment(
+                new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", ""),
+                new("axis", "Axis", true, AssignmentLayer.Module)) { Filter = filter };
+            return new(configuration, [], [], [], [], [], [assignment],
+                new Dictionary<string, string> { [assignment.Slot.Key] = "authored" },
                 new Dictionary<string, string> { ["config/overlay"] = "module-owned" });
+        }
         #endregion END private helpers
     }
 }
