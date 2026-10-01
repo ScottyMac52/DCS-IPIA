@@ -29,6 +29,7 @@ namespace Dcs.Ipia.App.Smoke
             defaultsWindow.UpdateLayout();
             VerifySharedDefaultBindingEditor();
             VerifyModuleDeleteButton();
+            VerifyNewModuleForm();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
@@ -252,6 +253,18 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyNewModuleForm()
+        {
+            var window = new NewModuleWindow(null!, new SharedUiLayerWorkspace(7, new string('a', 40),
+                new Dictionary<string, string>()), new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" });
+            window.Show();
+            window.UpdateLayout();
+            if (window.FindName("DcsIdInput") is not TextBox || window.FindName("DisplayNameInput") is not TextBox ||
+                window.FindName("HardwareChoices") is not ListBox || window.FindName("CreateButton") is not Button ||
+                ((TextBlock)window.FindName("BaselineText")).Text.IndexOf("7", StringComparison.Ordinal) < 0)
+                throw new InvalidOperationException("New Module identity, hardware and baseline controls are missing.");
+            window.Close();
+        }
         private static void VerifyModuleDeleteButton()
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-module-delete-smoke-" + Guid.NewGuid().ToString("N"));
