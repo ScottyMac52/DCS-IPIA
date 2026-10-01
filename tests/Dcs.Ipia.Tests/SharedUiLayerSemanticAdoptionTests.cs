@@ -122,8 +122,8 @@ namespace Dcs.Ipia.Tests
             var assignments = rows.Where(x => x.Disposition != BindingDisposition.Removed && x.InputKey != "JOY_BTN99")
                 .Select(x => new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.UiLayer, x.Section, x.InputKey, ""),
                     new(x.CommandId, x.CommandName, x.Section == BindingSection.Axis, AssignmentLayer.UiLayer)) { Filter = x.Filter }).ToArray();
-            var state = new WorkspaceManagement([new(profile.Id, AssignmentLayer.Module, profile.FileName, null, "base"),
-                new(profile.Id, AssignmentLayer.UiLayer, profile.FileName, null, "ui-layer")],
+            var state = new WorkspaceManagement([new(profile.Id, AssignmentLayer.Module, profile.SourceName, null, "base"),
+                new(profile.Id, AssignmentLayer.UiLayer, profile.SourceName, null, "ui-layer")],
                 [new(AssignmentLayer.UiLayer, Guid.Empty, "SHIFT", "LShift", "SHIFT", ModifierMode.Hold, "Keyboard")]);
             var sources = new Dictionary<string, string>(baseline.Sources) {
                 [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state),

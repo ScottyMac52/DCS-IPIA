@@ -212,7 +212,7 @@ namespace Dcs.Ipia.Dcs
             return updated with { UiCommands = result.Values.OrderBy(x => x.DcsCommandId, StringComparer.Ordinal).ToArray(),
                 Assignments = assignments, Labels = labels };
         }
-        private static IReadOnlyList<DcsCommandDefinition> Commands(SharedUiLayerWorkspace defaults)
+        private static DcsCommandDefinition[] Commands(SharedUiLayerWorkspace defaults)
         {
             var catalog = StableIdentity.Create("catalog", "dcs-common-ui-layer");
             return SharedUiLayerCommandEditor.Commands(defaults).Select(x =>
