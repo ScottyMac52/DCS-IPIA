@@ -64,3 +64,10 @@ The prospective Lua payload must validate before adoption is saved. Reviewed wri
 
 Tests cover conflict decisions, explicit replacement, removals, kept source differences, invalid choices, missing baselines, backwards/same-identity revision checks, real SQLite atomicity, configuration-only and editor-payload races, verified rollback, module deletion and corrupt history rejection. Windows smoke records a baseline, adopts saved source changes, reopens them, restores prior sources/reference, and verifies cross-module isolation. Default binding/catalog propagation, independent shared-default kneeboard output and broader Steps 3–4 remain open under #83.
 
+
+
+## Reviewed inherited assignments and catalogs
+
+After choosing saved source changes, select **Review assignment/catalog changes**. The staged proposal compares the module's previous default, effective module bindings and new default by physical input and modifier chord. Matching inherited assignments update, including axes and filters; module overrides and explicit clears remain. Custom labels and removed-modifier overlays remain protected. Catalog labels and modifier Hold/Toggle changes use the same inheritance rule. Unmapped imported bindings and removal history remain in the emitted profiles. Ambiguous device matches stop the review.
+
+The decision grid shows every changed binding, catalog entry and modifier and whether it will propagate or preserve a module edit. Changing checked sources requires another review. Apply validates prospective Lua, then uses the existing atomic stale-review save and prior-state rollback. Other modules and saved default history are untouched.

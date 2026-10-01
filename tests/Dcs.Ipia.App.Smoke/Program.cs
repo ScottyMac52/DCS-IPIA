@@ -522,6 +522,9 @@ namespace Dcs.Ipia.App.Smoke
                 var adoptionRows = (DataGrid)window.FindName("AdoptionChoices")!;
                 if (!adoptionRows.Items.OfType<SharedUiLayerAdoptionChoice>().Any(x => x.Path == profilePath && x.TakeDefault && !x.Conflict))
                     throw new InvalidOperationException("Safe baseline source changes were not offered for adoption.");
+                ((Button)window.FindName("ReviewSemanticButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!((Button)window.FindName("AdoptDefaultsButton")!).IsEnabled)
+                    throw new InvalidOperationException(((TextBlock)window.FindName("AdoptionStatus")!).Text);
                 ((Button)window.FindName("AdoptDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 WaitModuleUpdate();
                 var adopted = modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!;
@@ -564,4 +567,5 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
