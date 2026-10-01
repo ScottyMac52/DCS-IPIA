@@ -44,7 +44,7 @@ namespace Dcs.Ipia.Tests
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 var sources = new SortedDictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "return {}",
+                    ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers",
                     ["assets/shared/ui-layer/functions.json"] = """{"schemaVersion":1,"functions":[{"id":"pause","command":"d3001pnilu3001cdnilvd1vpnilvunil","label":"Pause","category":"General"}]}"""
                 };
                 var commit = new string('a', 40);
