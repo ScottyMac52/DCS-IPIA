@@ -36,6 +36,7 @@ namespace DcsIpia.Presentation
                 DeclaredModifiers.Text = "Declared modifiers: " + string.Join(", ", DcsLuaParser.ParseModifiers(
                     workspace.Sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]).Select(x => x.Name));
             }
+            RefreshProfiles();
             RefreshModifiers();
             ProfilePaths.SelectedIndex = 0;
             Buttons();
@@ -58,6 +59,10 @@ namespace DcsIpia.Presentation
             BindingFields.IsEnabled = _repository is not null && !_saving;
             CatalogFields.IsEnabled = _repository is not null && !_saving;
             ModifierFields.IsEnabled = _repository is not null && !_saving;
+            DeviceFields.IsEnabled = _repository is not null && !_saving;
+            var deviceEditable = _repository is not null && !_saving &&
+                DeviceRows.SelectedItem is SharedUiLayerDeviceProfile profile && !profile.Protected;
+            RenameProfileButton.IsEnabled = RemoveProfileButton.IsEnabled = deviceEditable;
             var editable = _repository is not null && !_saving && ModifierRows.SelectedItem is DcsModifier selected &&
                 !SharedUiLayerModifierEditor.IsProtected(selected);
             UpdateModifierButton.IsEnabled = RemoveModifierButton.IsEnabled = editable;
@@ -126,6 +131,64 @@ namespace DcsIpia.Presentation
             SharedUiLayerCommandEditor.Set(_draft, SelectedCommand(), CommandFields()));
         private void RemoveCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
             SharedUiLayerCommandEditor.Remove(_draft, SelectedCommand()));
+        private void DeviceSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (DeviceFileName is null || DeviceRows.SelectedItem is not SharedUiLayerDeviceProfile profile) return;
+            DeviceFileName.Text = profile.FileName;
+            Buttons();
+        }
+        private void NewProfileClicked(object sender, RoutedEventArgs e)
+        {
+            DeviceRows.SelectedItem = null;
+            DeviceFileName.Text = "";
+            CloneProfileChoice.SelectedItem = null;
+            Buttons();
+        }
+        private SharedUiLayerDeviceProfile SelectedProfile() => DeviceRows.SelectedItem as SharedUiLayerDeviceProfile ??
+            throw new InvalidOperationException("Select a device profile.");
+        private void AddProfileClicked(object sender, RoutedEventArgs e)
+        {
+            var file = DeviceFileName.Text;
+            Edit(() => SharedUiLayerProfileEditor.Add(_draft, file, CloneProfileChoice.SelectedItem as SharedUiLayerDeviceProfile));
+            SelectProfile(file);
+        }
+        private void RenameProfileClicked(object sender, RoutedEventArgs e)
+        {
+            var file = DeviceFileName.Text;
+            Edit(() => SharedUiLayerProfileEditor.Rename(_draft, SelectedProfile(), file));
+            SelectProfile(file);
+        }
+        private void RemoveProfileClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerProfileEditor.Remove(_draft, SelectedProfile()));
+        private void SelectProfile(string file)
+        {
+            var profile = (DeviceRows.ItemsSource as IEnumerable<SharedUiLayerDeviceProfile>)?.FirstOrDefault(x => x.FileName == file);
+            if (profile is null) return;
+            DeviceRows.SelectedItem = profile;
+            ProfilePaths.SelectedItem = profile.Path;
+            SourcePaths.SelectedItem = profile.Path;
+            Buttons();
+        }
+        private void RefreshProfiles()
+        {
+            if (_repository is null) return;
+            var device = (DeviceRows.SelectedItem as SharedUiLayerDeviceProfile)?.Path;
+            var template = (CloneProfileChoice.SelectedItem as SharedUiLayerDeviceProfile)?.Path;
+            var binding = ProfilePaths.SelectedItem as string;
+            var source = SourcePaths.SelectedItem as string;
+            var profiles = SharedUiLayerProfileEditor.Profiles(_draft);
+            DeviceRows.ItemsSource = profiles;
+            DeviceRows.SelectedItem = profiles.FirstOrDefault(x => x.Path == device);
+            CloneProfileChoice.ItemsSource = profiles.Where(x => !x.Protected).ToArray();
+            CloneProfileChoice.SelectedItem = profiles.FirstOrDefault(x => x.Path == template && !x.Protected);
+            ProfilePaths.ItemsSource = profiles.Select(x => x.Path).ToArray();
+            ProfilePaths.SelectedItem = profiles.Any(x => x.Path == binding) ? binding :
+                (profiles.Count > 0 ? profiles[0].Path : null);
+            SourcePaths.ItemsSource = _draft.Sources.Keys.Order(StringComparer.Ordinal).ToArray();
+            SourcePaths.SelectedItem = source is not null && _draft.Sources.ContainsKey(source) ? source :
+                _draft.Sources.Keys.Order(StringComparer.Ordinal).FirstOrDefault();
+            if (SourcePaths.SelectedItem is null) SourceText.Text = "";
+        }
         private void ModifierSelected(object sender, SelectionChangedEventArgs e)
         {
             if (ModifierName is null || ModifierRows.SelectedItem is not DcsModifier modifier) return;
@@ -181,6 +244,7 @@ namespace DcsIpia.Presentation
             {
                 _draft = edit();
                 _dirty = true;
+                RefreshProfiles();
                 RefreshCommands();
                 RefreshModifiers();
                 ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
@@ -211,6 +275,7 @@ namespace DcsIpia.Presentation
         {
             _draft = _workspace;
             _dirty = false;
+            RefreshProfiles();
             RefreshCommands();
             RefreshModifiers();
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;

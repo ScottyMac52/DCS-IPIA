@@ -308,6 +308,44 @@ namespace Dcs.Ipia.App.Smoke
                 var first = repository.SaveAsync(seed).GetAwaiter().GetResult();
                 var window = new SharedUiLayerWorkspaceWindow(first, repository);
                 window.Show();
+                const string smokeFile = "Smoke controller {00000001-0000-0000-8001-444553540000}.diff.lua";
+                var deviceRows = (DataGrid)window.FindName("DeviceRows")!;
+                var cloneChoice = (ComboBox)window.FindName("CloneProfileChoice")!;
+                var template = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().First(x => !x.Protected);
+                void AddSmokeProfile(bool copy)
+                {
+                    ((Button)window.FindName("NewProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((TextBox)window.FindName("DeviceFileName")!).Text = smokeFile;
+                    cloneChoice.SelectedItem = copy ? cloneChoice.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().First(x => x.Path == template.Path) : null;
+                    ((Button)window.FindName("AddProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                AddSmokeProfile(true);
+                var copy = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.FileName == smokeFile);
+                if (copy.Source != template.Source || !((ComboBox)window.FindName("ProfilePaths")!).Items.Contains(copy.Path) ||
+                    !((ListBox)window.FindName("SourcePaths")!).Items.Contains(copy.Path))
+                    throw new InvalidOperationException("Shared profile clone did not preserve its source and refresh selectors.");
+                deviceRows.SelectedItem = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.Path == template.Path);
+                var renamedFile = "Smoke renamed " + template.FileName;
+                ((TextBox)window.FindName("DeviceFileName")!).Text = renamedFile;
+                ((Button)window.FindName("RenameProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var renamedProfile = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.FileName == renamedFile);
+                if (renamedProfile.Source != template.Source || !((ComboBox)window.FindName("ModifierDevice")!).Items.Contains(renamedFile[..^9]) ||
+                    ((DataGrid)window.FindName("ModifierRows")!).Items.OfType<DcsModifier>().Any(x => x.Device == template.FileName[..^9]))
+                    throw new InvalidOperationException("Shared profile rename lost bindings or native modifier references.");
+                ((Button)window.FindName("RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == renamedFile))
+                    throw new InvalidOperationException("A bound shared profile was removed.");
+                deviceRows.SelectedItem = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.Protected);
+                if (((Button)window.FindName("RenameProfileButton")!).IsEnabled || ((Button)window.FindName("RemoveProfileButton")!).IsEnabled)
+                    throw new InvalidOperationException("The default keyboard profile is editable.");
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == smokeFile || x.FileName == renamedFile))
+                    throw new InvalidOperationException("Discard did not restore the saved device profiles.");
+                AddSmokeProfile(false);
+                ((Button)window.FindName("RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == smokeFile))
+                    throw new InvalidOperationException("An empty unreferenced shared profile was not removed.");
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var modifierRows = (DataGrid)window.FindName("ModifierRows")!;
                 var modifierDevices = (ComboBox)window.FindName("ModifierDevice")!;
                 var nativeDevice = modifierDevices.Items.OfType<string>().First(x => x != "Keyboard");
@@ -389,6 +427,7 @@ namespace Dcs.Ipia.App.Smoke
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 AddCatalogCommand();
                 AddSmokeModifier();
+                AddSmokeProfile(false);
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var status = (TextBlock)window.FindName("EditorStatus")!;
                 var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -405,6 +444,9 @@ namespace Dcs.Ipia.App.Smoke
                     x.Name == "SMOKE_MODIFIER" && x.Device == nativeDevice && x.Key == "JOY_BTN9999" && x.Mode == ModifierMode.Hold) ||
                     global::Dcs.Ipia.Dcs.SharedUiLayerModifierEditor.Modifiers(repository.GetAsync(1).GetAwaiter().GetResult()!).Any(x => x.Name == "SMOKE_MODIFIER"))
                     throw new InvalidOperationException("Shared modifier revision did not reopen independently of its history.");
+                if (!global::Dcs.Ipia.Dcs.SharedUiLayerProfileEditor.Profiles(saved).Any(x => x.FileName == smokeFile && x.ActiveBindings == 0) ||
+                    global::Dcs.Ipia.Dcs.SharedUiLayerProfileEditor.Profiles(repository.GetAsync(1).GetAwaiter().GetResult()!).Any(x => x.FileName == smokeFile))
+                    throw new InvalidOperationException("Shared device additions did not reopen independently of revision history.");
                 if (saved.Revision != 2 || !global::Dcs.Ipia.Dcs.SharedUiLayerBindingEditor.Bindings(saved, profilePath)
                     .Any(x => x.InputKey == "JOY_BTN999" && x.CommandId == selected.CommandId) || save.IsEnabled)
                     throw new InvalidOperationException("Shared binding revision did not reopen correctly.");
@@ -418,4 +460,5 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
