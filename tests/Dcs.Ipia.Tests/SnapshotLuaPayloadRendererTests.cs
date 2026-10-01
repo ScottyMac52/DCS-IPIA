@@ -14,6 +14,53 @@ namespace Dcs.Ipia.Tests
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         private static readonly string[] ReferencedNames = ["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"];
         #region BEGIN Public
+        /// <summary>Case-only module names use the pinned native spelling without changing switch semantics or commands.</summary>
+        /// <param name="managed">Whether an older saved workspace has explicit device settings.</param>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReconcilesCaseOnlyNativeDeviceMismatch(bool managed)
+        {
+            const string oldName = "Viper TQS {C0A33440-3F54-11F1-8001-444553540000}";
+            const string nativeName = "Viper TQS {C0A33440-3F54-11f1-8001-444553540000}";
+            var saved = Workspace();
+            var profile = new DeviceProfile(ProfileId, "tqs", null, "TQS", oldName + ".diff.lua");
+            var modifiers = new[] { new DcsModifier("ARM_SELECT_1", oldName, "JOY_BTN55", ModifierMode.Toggle),
+                new DcsModifier("ARM_SELECT_2", oldName, "JOY_BTN25", ModifierMode.Toggle),
+                new DcsModifier("LCtrl", "Keyboard", "LCtrl", ModifierMode.Hold) };
+            var config = new ModuleConfiguration(saved.Configuration.Module, [profile], modifiers, [], "reported package");
+            var canonical = "assets/shared/ui-layer/input/UiLayer/joystick/" + nativeName + ".diff.lua";
+            var sources = saved.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources[canonical] = sources[UiPath];
+            sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"].Replace("Stick", nativeName, StringComparison.Ordinal);
+            if (managed)
+                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                    new(ProfileId, AssignmentLayer.Module, profile.SourceName, null, "TQS"),
+                    new(ProfileId, AssignmentLayer.UiLayer, nativeName + ".diff.lua", null, "TQS")
+                ], modifiers.Select(x => new WorkspaceModifier(AssignmentLayer.Module,
+                    x.Device == "Keyboard" ? Guid.Empty : ProfileId, x.Name, x.Key, x.Name, x.Mode, x.Device)).ToArray()));
+            var assignments = modifiers.Select(x => new DraftAssignment(
+                new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", x.Name),
+                new(x.Name + "_COMMAND", x.Name, false, AssignmentLayer.Module))).ToArray();
+            saved = saved with { Configuration = config, Sources = sources, Assignments = assignments,
+                Diagrams = [saved.Diagrams[0] with { CanonicalUiLayerSourcePath = canonical }] };
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            Assert.Contains("Config/Input/TEST/joystick/" + nativeName + ".diff.lua", output.Keys, StringComparer.Ordinal);
+            Assert.DoesNotContain("Config/Input/TEST/joystick/" + oldName + ".diff.lua", output.Keys, StringComparer.Ordinal);
+            var exported = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
+            Assert.Contains(exported, x => x.Name == "ARM_SELECT_1" && x.Device == nativeName && x.Key == "JOY_BTN55" && x.Mode == ModifierMode.Toggle);
+            Assert.Contains(exported, x => x.Name == "ARM_SELECT_2" && x.Device == nativeName && x.Key == "JOY_BTN25" && x.Mode == ModifierMode.Toggle);
+            Assert.Contains(exported, x => x.Name == "LCtrl" && x.Device == "Keyboard" && x.Mode == ModifierMode.Hold);
+            Assert.Equal(modifiers.Select(x => x.Name).Order(StringComparer.Ordinal),
+                DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/" + nativeName + ".diff.lua"), ProfileId)
+                    .SelectMany(x => x.Reformers).Order(StringComparer.Ordinal));
+            Assert.Equal(oldName + ".diff.lua", saved.Configuration.Profiles[0].SourceName);
+            Assert.Equal(oldName, saved.Configuration.Modifiers[0].Device);
+            // Without an observed native spelling, retain the stored identity instead of guessing.
+            var moduleOnly = saved with { Diagrams = [saved.Diagrams[0] with { SupportsUiLayer = false }] };
+            if (!managed)
+                Assert.Contains("Config/Input/TEST/joystick/" + oldName + ".diff.lua", SnapshotLuaPayloadRenderer.Generate(moduleOnly).Keys, StringComparer.Ordinal);
+        }
         /// <summary>Managed exports recover referenced declarations from current and pinned data while retaining exact names, keys, and modes.</summary>
         [Fact]
         public void CompletesDeclarationsForRenderedModifierAssignments()
@@ -324,3 +371,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

@@ -19,13 +19,25 @@ namespace Dcs.Ipia.Tests
         public void UsesNativePhysicalGuidAndCapturedFileName()
         {
             var device = new DetectedDcsDevice(First, "F16 MFD 3", true);
-            Assert.Equal("F16 MFD 3 {C5BE49A0-2342-11EE-8001-444553540000}.diff.lua", device.FileName);
+            Assert.Equal("F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua", device.FileName);
             Assert.Equal(First, DcsPhysicalIdentity.FromFileName(device.FileName));
             Assert.Equal("F16 MFD 3", DcsPhysicalIdentity.NameFromFileName(device.FileName));
             Assert.Contains("Connected", device.Title);
             var captured = device with { Connected = false, CapturedFileName = "Custom MFD {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua" };
             Assert.Equal(captured.CapturedFileName, captured.FileName);
             Assert.Contains("Saved profile", captured.Title);
+        }
+        /// <summary>The reported TQS GUID uses DCS casing while explicitly captured names remain byte-for-byte intact.</summary>
+        [Fact]
+        public void PreservesDcsNativeGuidSpelling()
+        {
+            var physical = Guid.Parse("C0A33440-3F54-11F1-8001-444553540000");
+            var detected = new DetectedDcsDevice(physical, "Viper TQS", true);
+            Assert.Equal("Viper TQS {C0A33440-3F54-11f1-8001-444553540000}.diff.lua", detected.FileName);
+            var captured = "Viper TQS {c0a33440-3f54-11f1-8001-444553540000}.diff.lua";
+            Assert.Equal(captured, (detected with { CapturedFileName = captured }).FileName);
+            var mixed = new DetectedDcsDevice(Guid.Parse("51FA60C0-CB32-11ED-800B-ABCDEF123456"), "MFD", true);
+            Assert.Equal("MFD {51FA60C0-CB32-11ed-800B-ABCDEF123456}.diff.lua", mixed.FileName);
         }
         /// <summary>Unqualified, malformed, or empty GUIDs cannot become physical identities.</summary>
         /// <param name="file">Invalid filename.</param>
@@ -165,3 +177,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
