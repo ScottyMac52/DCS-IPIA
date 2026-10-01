@@ -10,6 +10,12 @@ namespace Dcs.Ipia.Tests
     public sealed class SharedUiLayerImpactReviewerTests
     {
         private const string Root = "assets/shared/ui-layer/";
+        private static readonly string[] AllChanges = ["Added", "Updated", "Removed"];
+        private static readonly string[] ModuleNames = ["Name A (A)", "Name D (D)", "Name N (N)", "Name Z (Z)"];
+        private static readonly string[] LocalEvidence = ["Not pinned", "Different source", "Different source"];
+        private static readonly string[] BaselineEvidence = ["Not pinned", "Matches baseline", "Matches baseline"];
+        private static readonly string[] RenameChanges = ["Added", "Removed"];
+        private static readonly string[] RenameEvidence = ["Different source", "Matches baseline"];
         #region BEGIN Public
         /// <summary>Added, updated and removed sources retain exact evidence for every saved module.</summary>
         [Fact]
@@ -25,14 +31,14 @@ namespace Dcs.Ipia.Tests
             };
             var report = SharedUiLayerImpactReviewer.Review(baseline, proposal, modules);
             Assert.Equal(7, report.BaselineRevision);
-            Assert.Equal(new[] { "Added", "Updated", "Removed" }, report.Changes.Select(x => x.Change));
+            Assert.Equal(AllChanges, report.Changes.Select(x => x.Change));
             Assert.Equal(new[] { Root + "a", Root + "b", Root + "c" }, report.Changes.Select(x => x.Path));
-            Assert.Equal(new[] { "Name A (A)", "Name D (D)", "Name N (N)", "Name Z (Z)" }, report.Modules.Select(x => x.ModuleName));
+            Assert.Equal(ModuleNames, report.Modules.Select(x => x.ModuleName));
             Assert.Equal("Matches proposal", report.Modules[0].Status);
             Assert.All(report.Modules[0].Sources, x => Assert.Equal("Matches proposal", x.Status));
-            Assert.Equal(new[] { "Not pinned", "Different source", "Different source" }, report.Modules[1].Sources.Select(x => x.Status));
+            Assert.Equal(LocalEvidence, report.Modules[1].Sources.Select(x => x.Status));
             Assert.All(report.Modules[2].Sources, x => Assert.Equal("Not pinned", x.Status));
-            Assert.Equal(new[] { "Not pinned", "Matches baseline", "Matches baseline" }, report.Modules[3].Sources.Select(x => x.Status));
+            Assert.Equal(BaselineEvidence, report.Modules[3].Sources.Select(x => x.Status));
             Assert.All(report.Modules.Skip(1), x => Assert.Equal("Review required", x.Status));
             Assert.Equal("local", modules[2].Sources![Root + "b"]);
             Assert.Equal("old", baseline.Sources[Root + "b"]);
@@ -48,10 +54,10 @@ namespace Dcs.Ipia.Tests
             var proposal = baseline with { Sources = new Dictionary<string, string> { [Root + "File"] = "text\r\n" } };
             var empty = SharedUiLayerImpactReviewer.Review(baseline, proposal, []);
             Assert.Empty(empty.Modules);
-            Assert.Equal(new[] { "Added", "Removed" }, empty.Changes.Select(x => x.Change));
+            Assert.Equal(RenameChanges, empty.Changes.Select(x => x.Change));
             var module = Module("M", new Dictionary<string, string> { [Root + "File"] = "text\n", [Root + "file"] = "text\n" });
             var report = SharedUiLayerImpactReviewer.Review(baseline, proposal, [module]);
-            Assert.Equal(new[] { "Different source", "Matches baseline" }, report.Modules[0].Sources.Select(x => x.Status));
+            Assert.Equal(RenameEvidence, report.Modules[0].Sources.Select(x => x.Status));
         }
         /// <summary>Reports are independent of collection insertion order, including modules with the same DCS identity.</summary>
         [Fact]
@@ -121,4 +127,3 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
-
