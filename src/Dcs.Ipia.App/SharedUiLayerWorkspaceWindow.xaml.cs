@@ -1,3 +1,7 @@
+using System.Text.Json;
+using System.IO;
+using Microsoft.Win32;
+using Dcs.Ipia.Rendering;
 using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
@@ -20,6 +24,7 @@ namespace DcsIpia.Presentation
         private bool _adopting;
         private SharedUiLayerSemanticPlan? _semanticPlan;
         private string[] _semanticPaths = [];
+        private WorkspaceHardware[] _outputHardware = [];
         private readonly Dictionary<Guid, EditorWorkspaceSnapshot> _reviewedModules = [];
         /// <summary>Shows a stored revision and its original catalog and Lua source texts.</summary>
         /// <param name="workspace">Saved shared defaults.</param>
@@ -64,6 +69,10 @@ namespace DcsIpia.Presentation
         private void Buttons()
         {
             var busy = _saving || _reviewing || _adopting;
+            ExportSharedButton.IsEnabled = RebuildSharedButton.IsEnabled = !busy && !_dirty;
+            RestoreSharedButton.IsEnabled = _repository is not null && !busy && !_dirty;
+            LoadOutputHardwareButton.IsEnabled = !busy;
+            SetOutputHardwareButton.IsEnabled = _repository is not null && !busy && _outputHardware.Length > 0;
             ImpactModules.IsEnabled = AdoptionChoices.IsEnabled = !busy;
             var selectedModule = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.ModuleId;
             var canAdopt = !busy && !_dirty && _modules is IEditorWorkspaceUpdateRepository &&
@@ -278,6 +287,83 @@ namespace DcsIpia.Presentation
             SharedUiLayerCommandEditor.Set(_draft, SelectedCommand(), CommandFields()));
         private void RemoveCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
             SharedUiLayerCommandEditor.Remove(_draft, SelectedCommand()));
+        private async void LoadOutputHardwareClicked(object sender, RoutedEventArgs e)
+        {
+            _reviewing = true;
+            Buttons();
+            try
+            {
+                var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                _outputHardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+                OutputHardwareChoice.ItemsSource = _outputHardware;
+                EditorStatus.Text = "Select a joystick profile and output hardware, then stage the mapping.";
+            }
+            catch (Exception ex) { EditorStatus.Text = "Unable to load output hardware: " + ex.Message; }
+            finally { _reviewing = false; Buttons(); }
+        }
+        private void SetOutputHardwareClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerHardwareMapping.Set(_draft, SelectedProfile().Path,
+                OutputHardwareChoice.SelectedItem as WorkspaceHardware ?? throw new InvalidOperationException("Select output hardware.")));
+        private async Task<SharedUiLayerOutputSnapshot> FreezeOutputAsync()
+        {
+            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+            return SharedUiLayerOutputSerializer.Freeze(_workspace, BundledSharedCatalog.SourceCommit(),
+                SharedUiLayerHardwareMapping.Resolve(_workspace, hardware));
+        }
+        private async Task SaveOutputAsync(SharedUiLayerOutputSnapshot snapshot)
+        {
+            var dialog = new SaveFileDialog { Filter = "Shared defaults ZIP|*.zip", FileName = "IPIA-Shared-Defaults.zip" };
+            if (dialog.ShowDialog(this) != true) return;
+            var bytes = SharedUiLayerOutputArchive.Build(snapshot,
+                SharedUiLayerKneeboardRenderer.Generate(SharedUiLayerOutputSerializer.CreatePreview(snapshot)));
+            var temporary = dialog.FileName + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                await File.WriteAllBytesAsync(temporary, bytes);
+                File.Move(temporary, dialog.FileName, true);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            EditorStatus.Text = "Exported shared Lua, device kneeboards, full binding reference and verified snapshot.";
+        }
+        private async void ExportSharedClicked(object sender, RoutedEventArgs e)
+        {
+            if (_dirty || _saving || _reviewing || _adopting) return;
+            _saving = true;
+            Buttons();
+            try { await SaveOutputAsync(await FreezeOutputAsync()); }
+            catch (Exception ex) { EditorStatus.Text = "Shared output was not exported: " + ex.Message; }
+            finally { _saving = false; Buttons(); }
+        }
+        private async void ReadSharedClicked(object sender, RoutedEventArgs e)
+        {
+            if (_dirty || _saving || _reviewing || _adopting) return;
+            var dialog = new OpenFileDialog { Filter = "Shared defaults ZIP|*.zip" };
+            if (dialog.ShowDialog(this) != true) return;
+            _saving = true;
+            Buttons();
+            try
+            {
+                var snapshot = SharedUiLayerOutputArchive.Read(await File.ReadAllBytesAsync(dialog.FileName));
+                if (ReferenceEquals(sender, RebuildSharedButton)) await SaveOutputAsync(snapshot);
+                else
+                {
+                    if (_repository is null) throw new InvalidOperationException("Default revision storage is unavailable.");
+                    _workspace = await _repository.SaveAsync(snapshot.Defaults with { Revision = _workspace.Revision, ContentSha256 = null });
+                    _draft = _workspace;
+                    RevisionText.Text = "Revision " + _workspace.Revision;
+                    SourcePaths.ItemsSource = _workspace.Sources.Keys.Order(StringComparer.Ordinal).ToArray();
+                    SourcePaths.SelectedIndex = 0;
+                    ResetImpact("Restored defaults as a new revision. Refresh module impact before adoption.");
+                    RefreshProfiles();
+                    RefreshCommands();
+                    RefreshModifiers();
+                    EditorStatus.Text = "Verified shared defaults restored as a new revision. Modules retain their saved state.";
+                }
+            }
+            catch (Exception ex) { EditorStatus.Text = "Shared snapshot operation failed: " + ex.Message; }
+            finally { _saving = false; Buttons(); }
+        }
         private void DeviceSelected(object sender, SelectionChangedEventArgs e)
         {
             if (DeviceFileName is null || DeviceRows.SelectedItem is not SharedUiLayerDeviceProfile profile) return;
