@@ -14,8 +14,10 @@ namespace Dcs.Ipia.Tests
         private const string ProfilePath = Root + "input/UiLayer/joystick/Stick.diff.lua";
         #region BEGIN Public
         /// <summary>Overrides, clears and custom labels survive while inherited keys, axes and new defaults propagate.</summary>
-        [Fact]
-        public async Task Propagates_inheritance_and_preserves_module_edits_and_rollback()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task Propagates_inheritance_and_preserves_module_edits_and_rollback(bool managed)
         {
             var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
             var connection = "Data Source=" + file + ";Pooling=False";
@@ -25,7 +27,7 @@ namespace Dcs.Ipia.Tests
                 var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await defaults.SaveAsync(Defaults(false));
                 var target = await defaults.SaveAsync(Defaults(true) with { Revision = baseline.Revision });
-                var module = Module(baseline);
+                var module = Module(baseline, managed);
                 var original = EditorSnapshotSerializer.Serialize(module);
                 var plan = SharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
                 var assignments = plan.Workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer).ToArray();
@@ -123,7 +125,7 @@ namespace Dcs.Ipia.Tests
                 [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"LShift\", [\"switch\"] = false } }\nreturn modifiers"
             });
         }
-        private static EditorWorkspaceSnapshot Module(SharedUiLayerWorkspace baseline)
+        private static EditorWorkspaceSnapshot Module(SharedUiLayerWorkspace baseline, bool managed = true)
         {
             var module = new DcsModule(Guid.NewGuid(), "Test", "Test");
             var profile = new DeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
@@ -144,11 +146,21 @@ namespace Dcs.Ipia.Tests
                 .Concat(new[] { new HardwareGraphicControl("JOY_BTN3", "3", "JOY_BTN3", 0, 0, 10, 10),
                     new HardwareGraphicControl("JOY_BTN5", "5", "JOY_BTN5", 0, 0, 10, 10) }).ToArray();
             var catalog = StableIdentity.Create("catalog", "dcs-common-ui-layer");
-            return new(new(module, [profile], [], [], "test"), [], [],
+            var snapshot = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "test"), [], [],
                 [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = profile.Id, CanonicalUiLayerSourcePath = ProfilePath, Controls = controls }],
                 [], [new(StableIdentity.Create("ui-function", "old"), catalog, "OLD", "Old", "UI", false),
                     new(StableIdentity.Create("ui-function", "new"), catalog, "NEW", "New", "UI", false)], assignments,
                 new Dictionary<string, string> { [assignments[0].Slot.Key] = "my label" }, sources) { SharedDefault = baseline };
+            snapshot = snapshot with { Assignments = snapshot.Assignments.Append(new DraftAssignment(
+                new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN2", ""),
+                new("AIRCRAFT", "Aircraft function", false, AssignmentLayer.Module))).ToArray() };
+            if (managed) return snapshot;
+            sources.Remove(WorkspaceManagement.SourcePath);
+            sources.Remove("config/ipia-ui-" + profile.Id.ToString("N") + ".lua");
+            return snapshot with { Diagrams = [snapshot.Diagrams[0] with {
+                Callouts = controls.Select((x, i) => new UiLayerCallout(i + 1, x.Control, "Imported", "", x.X, x.Y, x.Width, x.Height)).ToArray()
+            }] };
+
         }
         #endregion END private helpers
     }
