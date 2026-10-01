@@ -21,11 +21,11 @@ namespace Dcs.Ipia.Application
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(assignments);
             ArgumentNullException.ThrowIfNull(labels);
-            var current = assignments
+            var current = DcsInputKey.CollapseAliases(assignments
                               .Where(x => x.Slot.ModuleId == snapshot.Configuration.Module.Id &&
                                           x.Slot.ProfileId == diagram.ProfileId)
-                              .ToArray();
-            var bySlot = current.ToDictionary(x => x.Slot.Key, x => x, StringComparer.Ordinal);
+                              .ToArray());
+            var bySlot = current.ToDictionary(x => DcsInputKey.PhysicalSlotKey(x.Slot), x => x, StringComparer.Ordinal);
             var pages = new List<KneeboardDraftPage>();
             foreach (var scope in diagram.SupportsUiLayer ? new[] { AssignmentLayer.Module, AssignmentLayer.UiLayer }
                                                           : [AssignmentLayer.Module])
@@ -43,8 +43,8 @@ namespace Dcs.Ipia.Application
                         var slot = SlotForControl(snapshot, diagram, control, scope, chord);
                         if (slot is null)
                             continue;
-                        captions[control.Control] = bySlot.TryGetValue(slot.Key, out var assignment)
-                                                        ? labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name
+                        captions[control.Control] = bySlot.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var assignment)
+                                                        ? labels.GetValueOrDefault(assignment.Slot.Key) ?? assignment.Command.Name
                                                         : "Unassigned";
                     }
                     pages.Add(new(scope, chord, captions));
@@ -66,11 +66,11 @@ namespace Dcs.Ipia.Application
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(assignments);
             ArgumentNullException.ThrowIfNull(labels);
-            var current = assignments
+            var current = DcsInputKey.CollapseAliases(assignments
                               .Where(x => x.Slot.ModuleId == snapshot.Configuration.Module.Id &&
                                           x.Slot.ProfileId == diagram.ProfileId)
-                              .ToArray();
-            var bySlot = current.ToDictionary(x => x.Slot.Key, x => x, StringComparer.Ordinal);
+                              .ToArray());
+            var bySlot = current.ToDictionary(x => DcsInputKey.PhysicalSlotKey(x.Slot), x => x, StringComparer.Ordinal);
             var moduleChords =
                 current.Where(x => x.Slot.Layer == AssignmentLayer.Module && x.Slot.ModifierChord.Length > 0)
                     .Select(x => x.Slot.ModifierChord)
@@ -95,9 +95,9 @@ namespace Dcs.Ipia.Application
                 void Add(AssignmentLayer scope, string chord, string color)
                 {
                     var slot = SlotForControl(snapshot, diagram, control, scope, chord);
-                    if (slot is null || !seen.Add(slot.Key) || !bySlot.TryGetValue(slot.Key, out var assignment))
+                    if (slot is null || !seen.Add(DcsInputKey.PhysicalSlotKey(slot)) || !bySlot.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var assignment))
                         return;
-                    var text = labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
+                    var text = labels.GetValueOrDefault(assignment.Slot.Key) ?? assignment.Command.Name;
                     entries.Add(new(text, color, scope, chord));
                     used.Add(scope + "\u001f" + chord);
                 }
@@ -258,3 +258,4 @@ namespace Dcs.Ipia.Application
         #endregion END private helpers
     }
 }
+

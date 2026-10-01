@@ -32,7 +32,7 @@ namespace Dcs.Ipia.Dcs
                                            x.Command.Layer != AssignmentLayer.Module))
                 throw new InvalidDataException("Saved assignment is outside the module or has the wrong input type.");
             var saved = new Dictionary<string, DraftAssignment>(StringComparer.Ordinal);
-            foreach (var assignment in moduleAssignments)
+            foreach (var assignment in DcsInputKey.CollapseAliases(moduleAssignments))
             {
                 if (!saved.TryAdd(
                         Slot(assignment.Slot.Section, assignment.Slot.InputKey, assignment.Slot.ModifierChord),
@@ -44,7 +44,10 @@ namespace Dcs.Ipia.Dcs
             }
             var active = original.Where(x => x.Disposition != BindingDisposition.Removed).ToArray();
             if (active.GroupBy(x => Slot(x.Section, x.InputKey, string.Join("+", x.Reformers)), StringComparer.Ordinal)
-                    .Any(x => x.Count() > 1))
+                    .Any(group => group.Count() > 1 &&
+                        (group.Select(x => x.InputKey).Distinct(StringComparer.Ordinal).Count() < 2 ||
+                         group.Any(x => x.CommandId != group.First().CommandId ||
+                                        !SameFilter(x.Filter, group.First().Filter)))))
                 throw new InvalidDataException(
                     "Multiple active DCS commands on one input cannot be represented by this editor.");
             var result = new List<DcsBinding>(original.Where(x => x.Disposition == BindingDisposition.Removed));
@@ -63,7 +66,7 @@ namespace Dcs.Ipia.Dcs
                 if (current.Command.Id == binding.CommandId && SameFilter(current.Filter, binding.Filter))
                     result.Add(binding);
                 else
-                    result.Add(ToBinding(profileId, current));
+                    result.Add(ToBinding(profileId, current with { Slot = current.Slot with { InputKey = binding.InputKey } }));
             }
             foreach (var (key, assignment) in saved)
                 if (!handled.Contains(key))
@@ -74,7 +77,8 @@ namespace Dcs.Ipia.Dcs
         #region BEGIN private helpers
         private static bool Mapped(UiLayerDiagram diagram, BindingSection section, string key) => diagram.Controls.Any(
             x => x.IsAxis == (section == BindingSection.Axis) && DcsInputKey.SamePhysicalInput(x.InputKey, key));
-        private static string Slot(BindingSection section, string key, string chord) => section + "\u001f" + key +
+        private static string Slot(BindingSection section, string key, string chord) => section + "\u001f" +
+            DcsInputKey.PhysicalSlotKey(new(Guid.Empty, Guid.Empty, AssignmentLayer.Module, section, key)) +
                                                                                         "\u001f" + chord;
         private static bool SameFilter(AxisFilter? a, AxisFilter? b) =>
             System.Text.Json.JsonSerializer.Serialize(a) == System.Text.Json.JsonSerializer.Serialize(b);
@@ -188,3 +192,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

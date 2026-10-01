@@ -34,17 +34,21 @@ namespace Dcs.Ipia.Application
                 if (!_allowed.TryAdd(CommandKey(command), command))
                     throw new ArgumentException("Duplicate catalog command ID in one layer.", nameof(commands));
             }
-            foreach (var assignment in assignments)
+            var initial = assignments.ToArray();
+            if (initial.Any(x => x is null))
+                throw new ArgumentException("Initial assignment is missing.", nameof(assignments));
+            foreach (var assignment in initial)
             {
-                if (assignment is null)
-                    throw new ArgumentException("Initial assignment is missing.", nameof(assignments));
-                if (assignment.Filter is not null && assignment.Slot.Section != BindingSection.Axis)
+                if (assignment.Filter is not null && assignment.Slot?.Section != BindingSection.Axis)
                     throw new ArgumentException("Only axis assignments may have tuning.", nameof(assignments));
                 if (!Validate(assignment.Slot, assignment.Command, out var reason))
                     throw new ArgumentException(reason, nameof(assignments));
-                if (!_original.TryAdd(assignment.Slot.Key, assignment))
+            }
+            foreach (var assignment in DcsInputKey.CollapseAliases(initial))
+            {
+                if (!_original.TryAdd(DcsInputKey.PhysicalSlotKey(assignment.Slot), assignment))
                     throw new ArgumentException("Two imported assignments occupy the same slot.", nameof(assignments));
-                _current.Add(assignment.Slot.Key, assignment);
+                _current.Add(DcsInputKey.PhysicalSlotKey(assignment.Slot), assignment);
             }
         }
         #region BEGIN Public
@@ -86,7 +90,7 @@ namespace Dcs.Ipia.Application
         {
             if (!Validate(destination, command, out var reason))
                 return Block(reason);
-            _current.TryGetValue(destination.Key, out var existing);
+            _current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var existing);
             var incoming = new DraftAssignment(destination, command) { Filter = existing?.Filter };
             if (existing == incoming)
                 return Unchanged();
@@ -123,10 +127,10 @@ namespace Dcs.Ipia.Application
         {
             if (!SameContext(source, destination, out var reason))
                 return Block(reason);
-            if (source.Key == destination.Key)
+            if (DcsInputKey.PhysicalSlotKey(source) == DcsInputKey.PhysicalSlotKey(destination))
                 return Unchanged();
-            if (!_current.TryGetValue(source.Key, out var first) ||
-                !_current.TryGetValue(destination.Key, out var second))
+            if (!_current.TryGetValue(DcsInputKey.PhysicalSlotKey(source), out var first) ||
+                !_current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var second))
                 return Block("Both controls must be assigned before swapping.");
             if (!Validate(destination, first.Command, out reason) || !Validate(source, second.Command, out reason))
                 return Block(reason);
@@ -145,7 +149,7 @@ namespace Dcs.Ipia.Application
                 return Block(reason);
             if (slot.Section != BindingSection.Axis)
                 return Block("Only an axis can be tuned.");
-            if (!_current.TryGetValue(slot.Key, out var prior))
+            if (!_current.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var prior))
                 return Block("Assign an axis command before tuning.");
             if (filter is not null && new double?[] { filter.Deadzone, filter.SaturationX, filter.SaturationY,
                                                       filter.HardwareDetentAB, filter.HardwareDetentMax }
@@ -164,7 +168,7 @@ namespace Dcs.Ipia.Application
         {
             if (!ValidateSlot(slot, out var reason))
                 return Block(reason);
-            return _current.TryGetValue(slot.Key, out var prior) ? Commit("Remove", [new(slot, prior, null)])
+            return _current.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var prior) ? Commit("Remove", [new(slot, prior, null)])
                                                                  : Unchanged();
         }
         /// <summary>Restores one slot to its imported value in an undoable operation.</summary>
@@ -174,8 +178,8 @@ namespace Dcs.Ipia.Application
         {
             if (!ValidateSlot(slot, out var reason))
                 return Block(reason);
-            _current.TryGetValue(slot.Key, out var prior);
-            _original.TryGetValue(slot.Key, out var imported);
+            _current.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var prior);
+            _original.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var imported);
             return prior == imported ? Unchanged() : Commit("Restore", [new(slot, prior, imported)]);
         }
         /// <summary>Reverses the last atomic operation, including both ends of a move or swap.</summary>
@@ -186,7 +190,7 @@ namespace Dcs.Ipia.Application
                 return Unchanged();
             var last = _history[^1];
             foreach (var change in last.Changes)
-                Set(change.Slot.Key, change.Before);
+                Set(DcsInputKey.PhysicalSlotKey(change.Slot), change.Before);
             _history.RemoveAt(_history.Count - 1);
             var reversed = last.Changes.Select(x => new DraftChange(x.Slot, x.After, x.Before)).ToArray();
             return new(DraftOutcome.Applied, "Undid " + last.Name,
@@ -207,13 +211,13 @@ namespace Dcs.Ipia.Application
         {
             if (!SameContext(source, destination, out var reason))
                 return Block(reason);
-            if (!_current.TryGetValue(source.Key, out var incoming))
+            if (!_current.TryGetValue(DcsInputKey.PhysicalSlotKey(source), out var incoming))
                 return Block("The source control has no assignment.");
             if (!Validate(destination, incoming.Command, out reason))
                 return Block(reason);
-            if (source.Key == destination.Key)
+            if (DcsInputKey.PhysicalSlotKey(source) == DcsInputKey.PhysicalSlotKey(destination))
                 return Unchanged();
-            _current.TryGetValue(destination.Key, out var existing);
+            _current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var existing);
             var moved = incoming with { Slot = destination };
             if (copy && existing == moved)
                 return Unchanged();
@@ -310,7 +314,7 @@ namespace Dcs.Ipia.Application
         private DraftResult Commit(string name, DraftChange[] changes)
         {
             foreach (var change in changes)
-                Set(change.Slot.Key, change.After);
+                Set(DcsInputKey.PhysicalSlotKey(change.Slot), change.After);
             var operation = new DraftOperation(name, Array.AsReadOnly(changes));
             _history.Add(operation);
             return new(DraftOutcome.Applied, name + " staged.", operation);
@@ -329,3 +333,4 @@ namespace Dcs.Ipia.Application
         #endregion END private helpers
     }
 }
+
