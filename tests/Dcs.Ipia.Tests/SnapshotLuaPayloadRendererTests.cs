@@ -12,6 +12,7 @@ namespace Dcs.Ipia.Tests
         private static readonly Guid ModuleId = Guid.Parse("2d4edb94-b44f-49f8-bf22-3382834784a8");
         private static readonly Guid ProfileId = Guid.Parse("569a0227-0901-452c-807a-8da03166eaa3");
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
+        private static readonly string[] ReferencedNames = ["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"];
         #region BEGIN Public
         /// <summary>Managed exports recover referenced declarations from current and pinned data while retaining exact names, keys, and modes.</summary>
         [Fact]
@@ -21,7 +22,7 @@ namespace Dcs.Ipia.Tests
             var arm1 = new DcsModifier("ARM_SELECT_1", "Stick", "JOY_BTN55", ModifierMode.Toggle);
             var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, [arm1], [], "fixture");
             var state = new WorkspaceManagement([
-                new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick", "Stick")
+                new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
             ], []);
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state);
@@ -35,7 +36,7 @@ namespace Dcs.Ipia.Tests
                   ["LCtrl"] = { ["device"] = "Keyboard", ["key"] = "LCtrl", ["switch"] = false }
                 } return modifiers
                 """;
-            var assignments = new[] { "ARM_SELECT_1", "ARM_SELECT_2", "LCtrl" }.Select(name => new DraftAssignment(
+            var assignments = ReferencedNames.Select(name => new DraftAssignment(
                 new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", name),
                 new(name + "_COMMAND", name, false, AssignmentLayer.Module))).ToArray();
             var saved = workspace with { Configuration = config, Sources = sources, Assignments = assignments };
@@ -45,7 +46,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains(definitions, x => x.Name == "ARM_SELECT_2" && x.Key == "JOY_BTN25" && x.Mode == ModifierMode.Toggle);
             Assert.Contains(definitions, x => x.Name == "LCtrl" && x.Device == "Keyboard" && x.Mode == ModifierMode.Hold);
             var rendered = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
-            Assert.Equal(["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"], rendered.SelectMany(x => x.Reformers).Order(StringComparer.Ordinal));
+            Assert.Equal(ReferencedNames, rendered.SelectMany(x => x.Reformers).Order(StringComparer.Ordinal));
             Assert.Empty(WorkspaceManagement.Read(saved)!.Modifiers);
             Assert.Single(saved.Configuration.Modifiers);
             Assert.Equal(3, saved.Assignments.Count);
@@ -74,7 +75,7 @@ namespace Dcs.Ipia.Tests
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             if (managed)
                 sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
-                    new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick", "Stick")
+                    new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
                 ], [new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "MOD", ModifierMode.Toggle, "Stick")]));
             var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key, "mod"),
                 new("COMMAND", "Command", axis, AssignmentLayer.Module));
