@@ -73,7 +73,7 @@ namespace Dcs.Ipia.Tests
                 var draft = Defaults(false) with { Revision = baseline.Revision };
                 var sources = new Dictionary<string, string>(draft.Sources) {
                     [Root + "functions.json"] = Catalog("Renamed"),
-                    [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { SHIFT = { device = 'Keyboard', key = 'RShift', switch = true } }\nreturn modifiers"
+                    [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"RShift\", [\"switch\"] = true } }\nreturn modifiers"
                 };
                 var target = await defaults.SaveAsync(draft with { Sources = sources });
                 var module = Module(baseline);
@@ -119,7 +119,7 @@ namespace Dcs.Ipia.Tests
             return new(0, new string('a', 40), new Dictionary<string, string> {
                 [ProfilePath] = Write(rows),
                 [Root + "functions.json"] = Catalog("Old"),
-                [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { SHIFT = { device = 'Keyboard', key = 'LShift', switch = false } }\nreturn modifiers"
+                [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"LShift\", [\"switch\"] = false } }\nreturn modifiers"
             });
         }
         private static EditorWorkspaceSnapshot Module(SharedUiLayerWorkspace baseline)
