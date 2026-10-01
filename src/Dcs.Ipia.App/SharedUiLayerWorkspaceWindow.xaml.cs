@@ -31,6 +31,7 @@ namespace DcsIpia.Presentation
             ProfilePaths.ItemsSource = SharedUiLayerBindingEditor.Profiles(workspace);
             if (repository is not null)
             {
+                CatalogRows.ItemsSource = SharedUiLayerCommandEditor.Commands(workspace);
                 CommandChoice.ItemsSource = SharedUiLayerBindingEditor.Commands(workspace);
                 DeclaredModifiers.Text = "Declared modifiers: " + string.Join(", ", DcsLuaParser.ParseModifiers(
                     workspace.Sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]).Select(x => x.Name));
@@ -54,6 +55,7 @@ namespace DcsIpia.Presentation
             SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !_saving;
             DiscardDefaultsButton.IsEnabled = _dirty && !_saving;
             BindingFields.IsEnabled = _repository is not null && !_saving;
+            CatalogFields.IsEnabled = _repository is not null && !_saving;
             ClearLayerButton.IsEnabled = _repository is not null && !_saving;
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
@@ -94,12 +96,48 @@ namespace DcsIpia.Presentation
         private void ClearLayerClicked(object sender, RoutedEventArgs e) => Edit(() =>
             SharedUiLayerBindingEditor.ClearLayerAssignments(_draft, ProfilePath(),
                 ClearLayerChoice.SelectedItem is string layer && layer != "Base" ? layer : ""));
+        private void CatalogSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (CatalogIdentity is null || CatalogRows.SelectedItem is not SharedUiLayerCommand entry) return;
+            CatalogIdentity.Text = entry.Id;
+            CatalogIdentity.IsReadOnly = true;
+            CatalogCode.Text = entry.Command;
+            CatalogLabel.Text = entry.Label;
+            CatalogCategory.Text = entry.Category;
+        }
+        private void NewCommandClicked(object sender, RoutedEventArgs e)
+        {
+            CatalogRows.SelectedItem = null;
+            CatalogIdentity.IsReadOnly = false;
+            CatalogIdentity.Text = CatalogCode.Text = CatalogLabel.Text = CatalogCategory.Text = "";
+        }
+        private SharedUiLayerCommand SelectedCommand() => CatalogRows.SelectedItem as SharedUiLayerCommand ??
+            throw new InvalidOperationException("Select a catalog command.");
+        private SharedUiLayerCommand CommandFields() => new(CatalogIdentity.Text.Trim(), CatalogCode.Text.Trim(),
+            CatalogLabel.Text.Trim(), CatalogCategory.Text.Trim());
+        private void AddCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerCommandEditor.Set(_draft, null, CommandFields()));
+        private void UpdateCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerCommandEditor.Set(_draft, SelectedCommand(), CommandFields()));
+        private void RemoveCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerCommandEditor.Remove(_draft, SelectedCommand()));
+        private void RefreshCommands()
+        {
+            if (_repository is null) return;
+            var code = (CommandChoice.SelectedItem as DraftCommand)?.Id;
+            var identity = (CatalogRows.SelectedItem as SharedUiLayerCommand)?.Id;
+            CatalogRows.ItemsSource = SharedUiLayerCommandEditor.Commands(_draft);
+            CatalogRows.SelectedItem = (CatalogRows.ItemsSource as IEnumerable<SharedUiLayerCommand>)!.FirstOrDefault(x => x.Id == identity);
+            CommandChoice.ItemsSource = SharedUiLayerBindingEditor.Commands(_draft);
+            CommandChoice.SelectedItem = (CommandChoice.ItemsSource as IEnumerable<DraftCommand>)!.FirstOrDefault(x => x.Id == code);
+        }
         private void Edit(Func<SharedUiLayerWorkspace> edit)
         {
             try
             {
                 _draft = edit();
                 _dirty = true;
+                RefreshCommands();
                 ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
                 if (SourcePaths.SelectedItem is string path) SourceText.Text = _draft.Sources[path];
                 EditorStatus.Text = "Change staged. Save a new revision to keep it, or discard the draft.";
@@ -128,6 +166,7 @@ namespace DcsIpia.Presentation
         {
             _draft = _workspace;
             _dirty = false;
+            RefreshCommands();
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;
             if (SourcePaths.SelectedItem is string source) SourceText.Text = _draft.Sources[source];
             ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));

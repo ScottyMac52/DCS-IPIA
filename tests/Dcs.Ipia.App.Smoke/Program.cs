@@ -308,6 +308,30 @@ namespace Dcs.Ipia.App.Smoke
                 var first = repository.SaveAsync(seed).GetAwaiter().GetResult();
                 var window = new SharedUiLayerWorkspaceWindow(first, repository);
                 window.Show();
+                var catalogRows = (DataGrid)window.FindName("CatalogRows")!;
+                var addCommand = (Button)window.FindName("AddCommandButton")!;
+                void AddCatalogCommand()
+                {
+                    ((TextBox)window.FindName("CatalogIdentity")!).Text = "smoke-command";
+                    ((TextBox)window.FindName("CatalogCode")!).Text = "SMOKE_COMMAND";
+                    ((TextBox)window.FindName("CatalogLabel")!).Text = "Smoke command";
+                    ((TextBox)window.FindName("CatalogCategory")!).Text = "General";
+                    addCommand.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                AddCatalogCommand();
+                catalogRows.SelectedItem = catalogRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerCommand>().Single(x => x.Id == "smoke-command");
+                ((TextBox)window.FindName("CatalogLabel")!).Text = "Updated smoke command";
+                ((TextBox)window.FindName("CatalogCategory")!).Text = "VR";
+                ((Button)window.FindName("UpdateCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!((ComboBox)window.FindName("CommandChoice")!).Items.OfType<DraftCommand>()
+                    .Any(x => x.Id == "SMOKE_COMMAND" && x.Name == "Updated smoke command"))
+                    throw new InvalidOperationException("Catalog changes did not refresh the binding command choices.");
+                ((Button)window.FindName("RemoveCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (catalogRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerCommand>().Any(x => x.Id == "smoke-command"))
+                    throw new InvalidOperationException("Unused catalog command was not removed.");
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (catalogRows.Items.Count != global::Dcs.Ipia.Dcs.SharedUiLayerCommandEditor.Commands(first).Count)
+                    throw new InvalidOperationException("Discard did not restore the shared command catalog.");
                 var profiles = (ComboBox)window.FindName("ProfilePaths")!;
                 profiles.SelectedIndex = 0;
                 var profilePath = (string)profiles.SelectedItem;
@@ -334,6 +358,7 @@ namespace Dcs.Ipia.App.Smoke
                 rows.SelectedItem = rows.Items.OfType<DcsBinding>().First(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId);
                 ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                AddCatalogCommand();
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var status = (TextBlock)window.FindName("EditorStatus")!;
                 var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -344,6 +369,8 @@ namespace Dcs.Ipia.App.Smoke
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
                 var saved = repository.GetAsync().GetAwaiter().GetResult()!;
+                if (!global::Dcs.Ipia.Dcs.SharedUiLayerCommandEditor.Commands(saved).Any(x => x.Id == "smoke-command"))
+                    throw new InvalidOperationException("Shared catalog command did not reopen in the saved revision.");
                 if (saved.Revision != 2 || !global::Dcs.Ipia.Dcs.SharedUiLayerBindingEditor.Bindings(saved, profilePath)
                     .Any(x => x.InputKey == "JOY_BTN999" && x.CommandId == selected.CommandId) || save.IsEnabled)
                     throw new InvalidOperationException("Shared binding revision did not reopen correctly.");

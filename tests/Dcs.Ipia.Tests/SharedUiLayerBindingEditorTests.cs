@@ -119,7 +119,7 @@ namespace Dcs.Ipia.Tests
         #endregion END Public
         #region BEGIN private helpers
         private static SharedUiLayerWorkspace Workspace() => new(1, new string('a', 40), new Dictionary<string, string> {
-            ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"command":"NEW","label":"New command"}]}""",
+            ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"id":"new","command":"NEW","label":"New command","category":"General"}]}""",
             ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = """local modifiers = { ["SHIFT"] = { ["device"] = "Stick", ["key"] = "JOY_BTN2", ["switch"] = false } } return modifiers""",
             [PathKey] = """
                 local diff = {
