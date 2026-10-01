@@ -55,7 +55,10 @@ namespace Dcs.Ipia.Dcs
                     ? null
                     : new SortedDictionary<string, string>(
                           workspace.Sources.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal),
-                          StringComparer.Ordinal));
+                          StringComparer.Ordinal))
+            {
+                SharedDefault = workspace.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(workspace.SharedDefault)
+            };
             var content =
                 JsonSerializer.Serialize(document, Options).Replace("\r\n", "\n", StringComparison.Ordinal) + "\n";
             return new(content, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content))));
@@ -78,7 +81,10 @@ namespace Dcs.Ipia.Dcs
                 throw new JsonException("Editor snapshot must contain exactly one module.");
             var workspace = new EditorWorkspaceSnapshot(configurations[0], document.Pages, document.Images,
                                                         document.Diagrams, document.ModuleCommands, document.UiCommands,
-                                                        document.Assignments, document.Labels, document.Sources);
+                                                        document.Assignments, document.Labels, document.Sources)
+            {
+                SharedDefault = document.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(document.SharedDefault)
+            };
             if (Serialize(workspace).Content != snapshot.Content)
                 throw new InvalidDataException("Editor snapshot is not canonical.");
             return workspace;

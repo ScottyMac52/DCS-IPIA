@@ -20,5 +20,11 @@ namespace Dcs.Ipia.Dcs.SnapshotModels
                            IReadOnlyList<KneeboardImageAsset> Images, IReadOnlyList<UiLayerDiagram> Diagrams,
                            IReadOnlyList<CommandPaletteEntry> ModuleCommands,
                            IReadOnlyList<DcsCommandDefinition> UiCommands, IReadOnlyList<DraftAssignment> Assignments,
-                           IReadOnlyDictionary<string, string> Labels, IReadOnlyDictionary<string, string>? Sources);
+                           IReadOnlyDictionary<string, string> Labels, IReadOnlyDictionary<string, string>? Sources)
+    {
+        #region BEGIN Public
+        /// <summary>Gets the verified shared default baseline needed for offline adoption review.</summary>
+        public SharedUiLayerWorkspace? SharedDefault { get; init; }
+        #endregion END Public
+    }
 }

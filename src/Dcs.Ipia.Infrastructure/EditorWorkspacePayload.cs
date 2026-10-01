@@ -21,6 +21,8 @@ namespace Dcs.Ipia.Infrastructure
         #region BEGIN Public
         /// <summary>Gets the stored snapshot schema version; absent in older SQLite records.</summary>
         public int Version { get; init; }
+        /// <summary>Gets portable shared default revision evidence when explicitly recorded.</summary>
+        public SharedUiLayerWorkspace? SharedDefault { get; init; }
         #endregion END Public
     }
 }
