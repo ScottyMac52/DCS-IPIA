@@ -32,6 +32,7 @@ namespace Dcs.Ipia.Tests
             var canonical = "assets/shared/ui-layer/input/UiLayer/joystick/" + nativeName + ".diff.lua";
             var sources = saved.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources[canonical] = sources[UiPath];
+            sources["config/ipia-ui-" + ProfileId.ToString("N") + ".lua"] = "local diff = { [\"keyDiffs\"] = {}, [\"axisDiffs\"] = {} } return diff";
             sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"].Replace("Stick", nativeName, StringComparison.Ordinal);
             if (managed)
                 sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
