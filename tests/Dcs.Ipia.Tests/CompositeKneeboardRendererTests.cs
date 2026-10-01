@@ -10,6 +10,30 @@ namespace Dcs.Ipia.Tests
     public sealed class CompositeKneeboardRendererTests
     {
         #region BEGIN Public
+        /// <summary>Activator labels survive rendering and descriptive legends fit the page in both SVG and PNG output.</summary>
+        [Fact]
+        public void RendersActivatorLabelsAndWideLegend()
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-selector' x='50' y='50' text-anchor='middle'>Old</text></svg>"
+            };
+            var description = "ARM_SELECT_1 — Button 55 — PROGRAM BIT [JOY_BTN55, Toggle]";
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                ["selector"] = [new("ARM_SELECT_1 (Toggle)", "#dc2626", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), [new(description, "#dc2626"), new(new string('W', 200), "#ea580c")]);
+            var device = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            Assert.Equal("ARM_SELECT_1(Toggle)", Assert.Single(device.Descendants(), x => x.Attribute("id")?.Value == "lbl-selector").Value);
+            var svg = XDocument.Parse(CompositeKneeboardRenderer.BuildPageSvg(diagram, page));
+            var legend = Assert.Single(svg.Descendants(), x => x.Attribute("data-modifier-legend")?.Value == "true");
+            Assert.Equal("1092", legend.Elements().First(x => x.Name.LocalName == "rect").Attribute("width")?.Value);
+            Assert.Contains(legend.Elements(), x => x.Value == description);
+            var longText = legend.Elements().Single(x => x.Value == new string('W', 200));
+            Assert.True(float.Parse(longText.Attribute("font-size")!.Value, System.Globalization.CultureInfo.InvariantCulture) < 16);
+            using var png = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page, ""));
+            Assert.Equal(1200, png.Width);
+            Assert.Equal(1600, png.Height);
+            Assert.NotEqual(SKColor.Parse("#06101d"), png.GetPixel(1100, 1360));
+        }
         /// <summary>One page contains Base, shifted, and UI Layer variants plus the DCS-Common-style legend.</summary>
         [Fact]
         public void Combines_all_scope_labels_on_one_png()
