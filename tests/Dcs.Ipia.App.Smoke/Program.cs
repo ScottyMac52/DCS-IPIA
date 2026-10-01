@@ -519,6 +519,10 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Saving defaults changed saved modules or retained a stale impact report.");
                 ReviewImpact();
                 impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
+                if (!((Button)window.FindName("ExportSharedButton")!).IsEnabled ||
+                    !((Button)window.FindName("RestoreSharedButton")!).IsEnabled ||
+                    !((Button)window.FindName("RebuildSharedButton")!).IsEnabled)
+                    throw new InvalidOperationException("Saved shared defaults did not enable independent output and restore.");
                 var adoptionRows = (DataGrid)window.FindName("AdoptionChoices")!;
                 if (!adoptionRows.Items.OfType<SharedUiLayerAdoptionChoice>().Any(x => x.Path == profilePath && x.TakeDefault && !x.Conflict))
                     throw new InvalidOperationException("Safe baseline source changes were not offered for adoption.");

@@ -94,6 +94,11 @@
           </DataGrid>
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="240">
             <StackPanel x:Name="DeviceFields">
+              <TextBlock Text="Output hardware for custom or ambiguous joystick profiles" TextWrapping="Wrap"/>
+              <Button x:Name="LoadOutputHardwareButton" Content="Load output hardware choices" Click="LoadOutputHardwareClicked" Padding="10,6"/>
+              <ComboBox x:Name="OutputHardwareChoice" DisplayMemberPath="Title" Margin="0,6,0,6"/>
+              <Button x:Name="SetOutputHardwareButton" Content="Stage selected output hardware" Click="SetOutputHardwareClicked" Padding="10,6"/>
+
               <TextBlock Text="Exact native DCS joystick filename, including {physical GUID}.diff.lua" TextWrapping="Wrap"/>
               <TextBox x:Name="DeviceFileName" Margin="0,4,0,8"/>
               <TextBlock Text="Copy from an existing joystick profile (blank creates an empty profile)" TextWrapping="Wrap"/>
@@ -211,6 +216,9 @@
       <TextBlock x:Name="EditorStatus" TextWrapping="Wrap"/>
       <WrapPanel Margin="0,8,0,0">
         <Button x:Name="SaveDefaultsButton" Content="Save new default revision" Click="SaveClicked" Padding="14,7" Margin="0,0,8,0"/>
+        <Button x:Name="ExportSharedButton" Content="Export shared defaults" Click="ExportSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
+        <Button x:Name="RestoreSharedButton" Content="Restore exported defaults" Click="ReadSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
+        <Button x:Name="RebuildSharedButton" Content="Rebuild exported defaults" Click="ReadSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
         <Button x:Name="DiscardDefaultsButton" Content="Discard draft" Click="DiscardClicked" Padding="14,7"/>
       </WrapPanel>
     </StackPanel>
