@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
+using Dcs.Ipia.Domain;
 using Microsoft.Data.Sqlite;
 
 namespace Dcs.Ipia.Infrastructure
@@ -155,7 +156,8 @@ namespace Dcs.Ipia.Infrastructure
             if (current is null || JsonSerializer.Serialize(current, JsonOptions) != JsonSerializer.Serialize(Payload(expected), JsonOptions) ||
                 JsonSerializer.Serialize(configuration, JsonOptions) != JsonSerializer.Serialize(expected.Configuration, JsonOptions))
                 throw new InvalidOperationException("The module changed after review. Reopen and review it again.");
-            var previousJson = JsonSerializer.Serialize(expected, JsonOptions);
+            var previousJson = JsonSerializer.Serialize(new ModuleUpdateHistoryPayload(
+                JsonSerializer.SerializeToElement(expected.Configuration, JsonOptions), Payload(expected)), JsonOptions);
             command.CommandText = "INSERT INTO module_update_history(module_id,snapshot_json,content_sha256) VALUES($id,$previous,$hash)";
             command.Parameters.AddWithValue("$previous", previousJson);
             command.Parameters.AddWithValue("$hash", Hash(previousJson));
@@ -179,9 +181,14 @@ namespace Dcs.Ipia.Infrastructure
             var json = reader.GetString(0);
             if (Hash(json) != reader.GetString(1))
                 throw new InvalidDataException("Prior module state failed its content check.");
-            var prior = JsonSerializer.Deserialize<EditorWorkspaceSnapshot>(json, JsonOptions) ??
+            var prior = JsonSerializer.Deserialize<ModuleUpdateHistoryPayload>(json, JsonOptions) ??
                 throw new InvalidDataException("The prior module state could not be read.");
-            return prior with { SharedDefault = prior.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(prior.SharedDefault) };
+            var editor = prior.Editor;
+            return new(ReadConfiguration(prior.Configuration), editor.Pages, editor.Images, editor.Diagrams,
+                editor.ModuleCommands, editor.UiCommands, editor.Assignments, editor.Labels, editor.Sources)
+            {
+                SharedDefault = editor.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(editor.SharedDefault)
+            };
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -189,6 +196,17 @@ namespace Dcs.Ipia.Infrastructure
             new(snapshot.Pages, snapshot.Images, snapshot.Diagrams, snapshot.ModuleCommands, snapshot.UiCommands,
                 snapshot.Assignments, snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = snapshot.SharedDefault };
         private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        private static ModuleConfiguration ReadConfiguration(JsonElement configuration) =>
+            new(configuration.GetProperty("Module").Deserialize<DcsModule>(JsonOptions)!,
+                configuration.GetProperty("Profiles").Deserialize<DeviceProfile[]>(JsonOptions)!,
+                configuration.GetProperty("Modifiers").Deserialize<DcsModifier[]>(JsonOptions)!,
+                configuration.GetProperty("Bindings").EnumerateArray().Select(binding => new DcsBinding(
+                    binding.GetProperty("ProfileId").GetGuid(), (BindingSection)binding.GetProperty("Section").GetInt32(),
+                    binding.GetProperty("CommandId").GetString()!, binding.GetProperty("CommandName").GetString()!,
+                    (BindingDisposition)binding.GetProperty("Disposition").GetInt32(), binding.GetProperty("InputKey").GetString()!,
+                    binding.GetProperty("Reformers").Deserialize<string[]>(JsonOptions),
+                    binding.GetProperty("Filter").Deserialize<AxisFilter>(JsonOptions))),
+                configuration.GetProperty("Provenance").GetString()!);
         #endregion END private helpers
     }
 }
