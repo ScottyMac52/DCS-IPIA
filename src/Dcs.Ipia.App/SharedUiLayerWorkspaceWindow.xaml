@@ -174,7 +174,7 @@
           <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MaxHeight="210" Margin="0,10,0,0">
             <StackPanel>
               <TextBlock Text="Saved revision adoption for the selected module" FontWeight="Bold"/>
-              <TextBlock Text="Take checked source files from the saved defaults. Unchecked files retain module sources. Existing module assignments, labels and overlays remain module-owned. Conflicts start unchecked. Save or discard the shared draft first." TextWrapping="Wrap" Margin="0,4,0,6"/>
+              <TextBlock Text="Take checked source files from the saved defaults. Unchecked files retain module sources. Review inherited assignment and catalog changes; module overrides, clears, custom labels and removed modifiers are preserved. Conflicts start unchecked. Save or discard the shared draft first." TextWrapping="Wrap" Margin="0,4,0,6"/>
               <DataGrid x:Name="AdoptionChoices" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="100"
                         AutomationProperties.Name="Reviewed source adoption choices">
                 <DataGrid.Columns>
@@ -184,9 +184,11 @@
                   <DataGridCheckBoxColumn Header="Conflict" Binding="{Binding Conflict}" IsReadOnly="True" Width="80"/>
                 </DataGrid.Columns>
               </DataGrid>
+              <DataGrid x:Name="SemanticChanges" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MaxHeight="160" AutomationProperties.Name="Assignment and catalog adoption decisions"/>
               <TextBlock x:Name="AdoptionStatus" TextWrapping="Wrap" Margin="0,6,0,6"/>
               <WrapPanel>
                 <Button x:Name="RecordBaselineButton" Content="Record this baseline" Click="RecordBaselineClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="ReviewSemanticButton" Content="Review assignment/catalog changes" Click="ReviewSemanticClicked" Padding="10,6" Margin="0,0,8,0"/>
                 <Button x:Name="AdoptDefaultsButton" Content="Apply selected defaults" Click="AdoptDefaultsClicked" Padding="10,6" Margin="0,0,8,0"/>
                 <Button x:Name="RollbackAdoptionButton" Content="Restore prior module state" Click="RollbackAdoptionClicked" Padding="10,6"/>
               </WrapPanel>
@@ -214,5 +216,6 @@
     </StackPanel>
   </Grid>
 </Window>
+
 
 

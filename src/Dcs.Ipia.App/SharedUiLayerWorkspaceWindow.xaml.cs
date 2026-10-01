@@ -18,6 +18,8 @@ namespace DcsIpia.Presentation
         private bool _saving;
         private bool _reviewing;
         private bool _adopting;
+        private SharedUiLayerSemanticPlan? _semanticPlan;
+        private string[] _semanticPaths = [];
         private readonly Dictionary<Guid, EditorWorkspaceSnapshot> _reviewedModules = [];
         /// <summary>Shows a stored revision and its original catalog and Lua source texts.</summary>
         /// <param name="workspace">Saved shared defaults.</param>
@@ -69,7 +71,8 @@ namespace DcsIpia.Presentation
             var hasBaseline = selectedModule is Guid selectedId && _reviewedModules.TryGetValue(selectedId, out var selectedSnapshot) &&
                 selectedSnapshot.SharedDefault is not null;
             RecordBaselineButton.IsEnabled = canAdopt && !hasBaseline;
-            AdoptDefaultsButton.IsEnabled = canAdopt && hasBaseline;
+            ReviewSemanticButton.IsEnabled = canAdopt && hasBaseline;
+            AdoptDefaultsButton.IsEnabled = canAdopt && hasBaseline && _semanticPlan is not null;
             RollbackAdoptionButton.IsEnabled = canAdopt;
             ImpactRefreshButton.IsEnabled = _modules is not null && !busy;
             SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !busy;
@@ -117,6 +120,8 @@ namespace DcsIpia.Presentation
             if (ImpactDetails is not null) ImpactDetails.ItemsSource = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.Sources;
             if (AdoptionChoices is null) return;
             AdoptionChoices.ItemsSource = null;
+            _semanticPlan = null;
+            if (SemanticChanges is not null) SemanticChanges.ItemsSource = null;
             try
             {
                 if (ImpactModules.SelectedItem is SharedUiLayerModuleImpact row && _reviewedModules.TryGetValue(row.ModuleId, out var module))
@@ -137,6 +142,8 @@ namespace DcsIpia.Presentation
             _reviewedModules.Clear();
             ImpactChanges.ItemsSource = ImpactModules.ItemsSource = ImpactDetails.ItemsSource = null;
             AdoptionChoices.ItemsSource = null;
+            _semanticPlan = null;
+            if (SemanticChanges is not null) SemanticChanges.ItemsSource = null;
             ImpactStatus.Text = message;
         }
         private EditorWorkspaceSnapshot ReviewedModule() =>
@@ -145,13 +152,32 @@ namespace DcsIpia.Presentation
         private async void RecordBaselineClicked(object sender, RoutedEventArgs e) => await UpdateModuleAsync(module =>
             module.SharedDefault is null ? SharedUiLayerRevisionReference.Attach(module, _workspace) :
                 throw new InvalidOperationException("The module already has a recorded baseline."), false);
-        private async void AdoptDefaultsClicked(object sender, RoutedEventArgs e)
+        private string[] SelectedPaths()
         {
             AdoptionChoices.CommitEdit(DataGridEditingUnit.Cell, true);
             AdoptionChoices.CommitEdit(DataGridEditingUnit.Row, true);
-            var paths = (AdoptionChoices.ItemsSource as IEnumerable<SharedUiLayerAdoptionChoice> ?? [])
-                .Where(x => x.TakeDefault).Select(x => x.Path).ToArray();
-            await UpdateModuleAsync(module => SharedUiLayerAdoption.Apply(module, _workspace, paths), true);
+            return (AdoptionChoices.ItemsSource as IEnumerable<SharedUiLayerAdoptionChoice> ?? [])
+                .Where(x => x.TakeDefault).Select(x => x.Path).Order(StringComparer.Ordinal).ToArray();
+        }
+        private void ReviewSemanticClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _semanticPlan = null;
+                _semanticPaths = SelectedPaths();
+                _semanticPlan = SharedUiLayerSemanticAdoption.Review(ReviewedModule(), _workspace, _semanticPaths);
+                SemanticChanges.ItemsSource = _semanticPlan.Changes;
+                AdoptionStatus.Text = $"Reviewed {_semanticPlan.Changes.Count} binding, catalog and modifier decisions. Apply saves this proposal atomically.";
+            }
+            catch (Exception ex) { AdoptionStatus.Text = "Unable to stage adoption: " + ex.Message; }
+            Buttons();
+        }
+        private async void AdoptDefaultsClicked(object sender, RoutedEventArgs e)
+        {
+            await UpdateModuleAsync(module => _semanticPlan is not null &&
+                module.Configuration.Module.Id == _semanticPlan.Workspace.Configuration.Module.Id &&
+                SelectedPaths().SequenceEqual(_semanticPaths, StringComparer.Ordinal)
+                    ? _semanticPlan.Workspace : throw new InvalidOperationException("Review assignment/catalog changes again after changing the source choices."), true);
         }
         private async Task UpdateModuleAsync(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> update, bool validateOutput)
         {
@@ -411,3 +437,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+
