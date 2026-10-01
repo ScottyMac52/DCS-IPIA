@@ -306,8 +306,38 @@ namespace Dcs.Ipia.App.Smoke
                 var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
                 var seed = global::Dcs.Ipia.Dcs.SharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult();
                 var first = repository.SaveAsync(seed).GetAwaiter().GetResult();
-                var window = new SharedUiLayerWorkspaceWindow(first, repository);
+                var modules = new SqliteEditorWorkspaceRepository(connection);
+                var pinnedSources = new Dictionary<string, string>(first.Sources, StringComparer.Ordinal);
+                var localSources = first.Sources.ToDictionary(x => x.Key, x => x.Value + "\n-- local source\n", StringComparer.Ordinal);
+                EditorWorkspaceSnapshot ImpactModule(string id, IReadOnlyDictionary<string, string>? sources) =>
+                    new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), id, "Impact " + id), [], [], [], "smoke"),
+                        [], [], [], [], [], [], new Dictionary<string, string>(), sources);
+                var pinnedModule = ImpactModule("PINNED", pinnedSources);
+                var localModule = ImpactModule("LOCAL", localSources);
+                modules.SaveAsync(pinnedModule).GetAwaiter().GetResult();
+                modules.SaveAsync(localModule).GetAwaiter().GetResult();
+                modules.SaveAsync(ImpactModule("UNKNOWN", null)).GetAwaiter().GetResult();
+                var window = new SharedUiLayerWorkspaceWindow(first, repository, modules);
                 window.Show();
+                var impactRows = (DataGrid)window.FindName("ImpactModules")!;
+                var impactChanges = (DataGrid)window.FindName("ImpactChanges")!;
+                var impactButton = (Button)window.FindName("ImpactRefreshButton")!;
+                void ReviewImpact()
+                {
+                    impactButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    var reviewDeadline = DateTime.UtcNow.AddSeconds(15);
+                    while (!impactButton.IsEnabled)
+                    {
+                        if (DateTime.UtcNow > reviewDeadline)
+                            throw new InvalidOperationException("Module impact review did not complete.");
+                        window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                    }
+                    if (impactRows.Items.OfType<SharedUiLayerModuleImpact>().Count() != 3)
+                        throw new InvalidOperationException("Module impact review did not load all saved modules.");
+                }
+                ReviewImpact();
+                if (impactChanges.Items.Count != 0 || impactRows.Items.OfType<SharedUiLayerModuleImpact>().Any(x => x.Status != "No default changes"))
+                    throw new InvalidOperationException("An unchanged default draft reports source changes.");
                 const string smokeFile = "Smoke controller {00000001-0000-0000-8001-444553540000}.diff.lua";
                 var deviceRows = (DataGrid)window.FindName("DeviceRows")!;
                 var cloneChoice = (ComboBox)window.FindName("CloneProfileChoice")!;
@@ -419,9 +449,23 @@ namespace Dcs.Ipia.App.Smoke
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var save = (Button)window.FindName("SaveDefaultsButton")!;
                 if (!save.IsEnabled) throw new InvalidOperationException("Shared default binding edit was not staged.");
+                if (impactRows.Items.Count != 0)
+                    throw new InvalidOperationException("An edit left a stale module impact report visible.");
+                ReviewImpact();
+                var pinnedImpact = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
+                var localImpact = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == localModule.Configuration.Module.Id);
+                if (pinnedImpact.Sources.Single(x => x.Path == profilePath).Status != "Matches baseline" ||
+                    localImpact.Sources.Single(x => x.Path == profilePath).Status != "Different source")
+                    throw new InvalidOperationException("Module impact evidence missed pinned or local source versions.");
+                impactRows.SelectedItem = localImpact;
+                if (!((DataGrid)window.FindName("ImpactDetails")!).Items.OfType<SharedUiLayerModuleSourceImpact>()
+                    .Any(x => x.Path == profilePath && x.Status == "Different source"))
+                    throw new InvalidOperationException("Module selection did not display source evidence.");
                 ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (save.IsEnabled || !rows.Items.OfType<DcsBinding>().Any(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId))
                     throw new InvalidOperationException("Discard did not restore the saved shared bindings.");
+                if (impactRows.Items.Count != 0)
+                    throw new InvalidOperationException("Discard left a stale impact report visible.");
                 rows.SelectedItem = rows.Items.OfType<DcsBinding>().First(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId);
                 ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -452,6 +496,30 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Shared binding revision did not reopen correctly.");
                 if (repository.GetAsync(1).GetAwaiter().GetResult()!.Sources[profilePath] != first.Sources[profilePath])
                     throw new InvalidOperationException("Shared binding save changed revision history.");
+                if (impactRows.Items.Count != 0 || modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != first.Sources[profilePath] ||
+                    modules.GetAsync(localModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != localSources[profilePath])
+                    throw new InvalidOperationException("Saving defaults changed saved modules or retained a stale impact report.");
+                ReviewImpact();
+                using (var broken = new SqliteConnection(connection))
+                {
+                    broken.Open();
+                    using var tamper = broken.CreateCommand();
+                    tamper.CommandText = "UPDATE editor_workspaces SET snapshot_json='{' WHERE module_id=$id";
+                    tamper.Parameters.AddWithValue("$id", localModule.Configuration.Module.Id.ToString("D"));
+                    tamper.ExecuteNonQuery();
+                }
+                impactButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var failedReviewDeadline = DateTime.UtcNow.AddSeconds(15);
+                while (!impactButton.IsEnabled)
+                {
+                    if (DateTime.UtcNow > failedReviewDeadline)
+                        throw new InvalidOperationException("Failed impact review did not restore controls.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                if (impactRows.Items.Count != 0 || impactChanges.Items.Count != 0 ||
+                    !((TextBlock)window.FindName("ImpactStatus")!).Text.StartsWith("Unable to review module impact", StringComparison.Ordinal) ||
+                    !((StackPanel)window.FindName("BindingFields")!).IsEnabled)
+                    throw new InvalidOperationException("Failed impact review retained stale results or disabled editing.");
                 window.Close();
                 System.Console.WriteLine("Shared default binding editor staged, discarded, saved and reopened an independent revision.");
             }
@@ -460,5 +528,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
-
 

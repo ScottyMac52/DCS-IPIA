@@ -138,6 +138,41 @@
           </ScrollViewer>
         </Grid>
       </TabItem>
+      <TabItem Header="Module impact">
+        <Grid Margin="10">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel>
+            <TextBlock Text="Review proposed shared source changes against saved modules before saving. Refresh after edits or module changes." TextWrapping="Wrap"/>
+            <TextBlock Text="Matches baseline: pinned source is unchanged. Different source: module has another source version. Not pinned: no source evidence. Matches proposal: source already agrees. This review does not apply changes to modules." TextWrapping="Wrap" Margin="0,6,0,6"/>
+            <Button x:Name="ImpactRefreshButton" Content="Refresh module impact" Click="ReviewImpactClicked" HorizontalAlignment="Left" Padding="10,6"/>
+            <TextBlock x:Name="ImpactStatus" Text="Refresh to review saved modules. Module adoption is a separate action." TextWrapping="Wrap" Margin="0,8,0,8"/>
+          </StackPanel>
+          <DataGrid x:Name="ImpactChanges" Grid.Row="1" MaxHeight="140" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,10"
+                    AutomationProperties.Name="Proposed shared source changes">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Source" Binding="{Binding Path}" Width="*"/>
+              <DataGridTextColumn Header="Change" Binding="{Binding Change}" Width="100"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+            <DataGrid x:Name="ImpactModules" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" SelectionChanged="ImpactModuleSelected" Margin="0,0,10,0"
+                      AutomationProperties.Name="Saved module impact summary">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Module" Binding="{Binding ModuleName}" Width="*"/>
+                <DataGridTextColumn Header="Review" Binding="{Binding Status}" Width="120"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <DataGrid x:Name="ImpactDetails" Grid.Column="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+                      AutomationProperties.Name="Selected module source evidence">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Source" Binding="{Binding Path}" Width="*"/>
+                <DataGridTextColumn Header="Evidence" Binding="{Binding Status}" Width="140"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+        </Grid>
+      </TabItem>
       <TabItem Header="Sources (read-only)">
     <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
