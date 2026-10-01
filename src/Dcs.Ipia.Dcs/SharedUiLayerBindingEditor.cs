@@ -88,6 +88,7 @@ namespace Dcs.Ipia.Dcs
         /// <param name="workspace">Complete staged defaults.</param>
         public static void Validate(SharedUiLayerWorkspace workspace)
         {
+            SharedUiLayerProfileEditor.Validate(workspace);
             SharedUiLayerModifierEditor.Validate(workspace);
             SharedUiLayerCommandEditor.Commands(workspace);
             foreach (var path in Profiles(workspace))
@@ -132,4 +133,5 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
 

@@ -80,6 +80,35 @@
           </ScrollViewer>
         </Grid>
       </TabItem>
+      <TabItem Header="Devices">
+        <Grid Margin="10">
+          <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <DataGrid x:Name="DeviceRows" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+                    SelectionChanged="DeviceSelected" Margin="0,0,0,10">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Native DCS filename" Binding="{Binding FileName}" Width="*"/>
+              <DataGridTextColumn Header="Active assignments" Binding="{Binding ActiveBindings}" Width="120"/>
+              <DataGridTextColumn Header="Modifiers" Binding="{Binding ModifierCount}" Width="80"/>
+              <DataGridCheckBoxColumn Header="Protected" Binding="{Binding Protected}" Width="80"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="240">
+            <StackPanel x:Name="DeviceFields">
+              <TextBlock Text="Exact native DCS joystick filename, including {physical GUID}.diff.lua" TextWrapping="Wrap"/>
+              <TextBox x:Name="DeviceFileName" Margin="0,4,0,8"/>
+              <TextBlock Text="Copy from an existing joystick profile (blank creates an empty profile)" TextWrapping="Wrap"/>
+              <ComboBox x:Name="CloneProfileChoice" DisplayMemberPath="FileName" Margin="0,4,0,8"/>
+              <TextBlock Text="Rename keeps the same physical GUID and updates modifier device names. Clear assignments and device modifiers before deleting. The keyboard profile is protected." TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <WrapPanel>
+                <Button x:Name="NewProfileButton" Content="New profile" Click="NewProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="AddProfileButton" Content="Add" Click="AddProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="RenameProfileButton" Content="Rename" Click="RenameProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="RemoveProfileButton" Content="Remove" Click="RemoveProfileClicked" Padding="10,6"/>
+              </WrapPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
       <TabItem Header="Modifiers">
         <Grid Margin="10">
           <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -129,4 +158,5 @@
     </StackPanel>
   </Grid>
 </Window>
+
 
