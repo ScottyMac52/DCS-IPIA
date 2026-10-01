@@ -124,7 +124,7 @@ namespace Dcs.Ipia.Dcs
             ValidateModifierReferences(result);
             return result;
         }
-        private static IReadOnlyList<DcsModifier> CompleteModifiers(EditorWorkspaceSnapshot workspace, AssignmentLayer scope,
+        private static DcsModifier[] CompleteModifiers(EditorWorkspaceSnapshot workspace, AssignmentLayer scope,
             IEnumerable<DcsModifier> declared, IReadOnlyDictionary<string, byte[]> payload)
         {
             var result = declared.ToDictionary(x => x.Name, StringComparer.Ordinal);
@@ -155,7 +155,7 @@ namespace Dcs.Ipia.Dcs
             }
             return result.Values.ToArray();
         }
-        private static void ValidateModifierReferences(IReadOnlyDictionary<string, byte[]> payload)
+        private static void ValidateModifierReferences(Dictionary<string, byte[]> payload)
         {
             foreach (var (path, bytes) in payload.Where(x => x.Key.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase)))
             {
