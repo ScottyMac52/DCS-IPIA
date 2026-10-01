@@ -156,17 +156,20 @@ namespace Dcs.Ipia.Dcs
                 var used = assignments.Any(x => x.Slot.Layer == AssignmentLayer.UiLayer &&
                     x.Slot.ModifierChord.Split('+').Contains(name, StringComparer.Ordinal));
                 var apply = inherited && !removed.Contains(name) && (proposed is not null || !used);
-                changes.Add(new("Modifier", "UI Layer", name, apply ? "Apply inherited change" : "Keep module modifier",
-                    current?.Key ?? "Absent", proposed?.Key ?? "Absent"));
+                var device = proposed is null ? null : state.Devices.FirstOrDefault(x => x.Layer == AssignmentLayer.UiLayer &&
+                    paths.TryGetValue(x.ProfileId, out var path) &&
+                    (Path.GetFileName(path)[..^9].Equals(proposed.Device, StringComparison.OrdinalIgnoreCase) ||
+                        DcsPhysicalIdentity.FromFileName(Path.GetFileName(path)) is Guid physical &&
+                        DcsPhysicalIdentity.FromFileName(proposed.Device + ".diff.lua") == physical));
+                var absentDevice = proposed is not null && proposed.Device != "Keyboard" && device is null;
+                if (apply && absentDevice && used)
+                    throw new InvalidDataException("The new modifier requires a UI device not present in this module: " + proposed!.Device);
+                if (absentDevice) apply = false;
+                changes.Add(new("Modifier", "UI Layer", name, apply ? "Apply inherited change" :
+                    absentDevice ? "Keep absent device" : "Keep module modifier", current?.Key ?? "Absent", proposed?.Key ?? "Absent"));
                 if (!apply) continue;
                 if (current is not null) result.Remove(current);
                 if (proposed is null) continue;
-                var device = state.Devices.FirstOrDefault(x => x.Layer == AssignmentLayer.UiLayer &&
-                    paths.TryGetValue(x.ProfileId, out var path) && (Path.GetFileName(path)[..^9].Equals(proposed.Device, StringComparison.OrdinalIgnoreCase) ||
-                        DcsPhysicalIdentity.FromFileName(Path.GetFileName(path)) is Guid physical &&
-                        DcsPhysicalIdentity.FromFileName(proposed.Device + ".diff.lua") == physical));
-                if (device is null && proposed.Device != "Keyboard")
-                    throw new InvalidDataException("The new modifier requires a UI device not present in this module: " + proposed.Device);
                 result.Add(new(AssignmentLayer.UiLayer, device?.ProfileId ?? Guid.Empty, proposed.Name, proposed.Key,
                     current?.SemanticLayer ?? proposed.Name, proposed.Mode, device is null ? "Keyboard" : device.FileName[..^9]));
             }

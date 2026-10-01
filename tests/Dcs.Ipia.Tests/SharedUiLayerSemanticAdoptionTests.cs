@@ -73,7 +73,7 @@ namespace Dcs.Ipia.Tests
                 var draft = Defaults(false) with { Revision = baseline.Revision };
                 var sources = new Dictionary<string, string>(draft.Sources) {
                     [Root + "functions.json"] = Catalog("Renamed"),
-                    [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"RShift\", [\"switch\"] = true } }\nreturn modifiers"
+                    [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"RShift\", [\"switch\"] = true }, [\"UNRELATED\"] = { [\"device\"] = \"Other\", [\"key\"] = \"JOY_BTN7\", [\"switch\"] = false } }\nreturn modifiers"
                 };
                 var target = await defaults.SaveAsync(draft with { Sources = sources });
                 var module = Module(baseline);
@@ -86,6 +86,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(ModifierMode.Toggle, modifier.Mode);
                 Assert.Equal("RShift", modifier.Key);
                 Assert.Contains(plan.Changes, x => x.Kind == "Modifier" && x.Decision == "Apply inherited change");
+                Assert.Contains(plan.Changes, x => x.Identity == "UNRELATED" && x.Decision == "Keep absent device");
                 Assert.Contains(plan.Changes, x => x.Kind == "Catalog" && x.Decision == "Apply inherited change");
                 Assert.Throws<ArgumentNullException>(() => SharedUiLayerSemanticAdoption.Review(module, target, null!));
                 Assert.Throws<ArgumentException>(() => SharedUiLayerSemanticAdoption.Review(module, target, ["not-selected"]));
