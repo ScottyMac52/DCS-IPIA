@@ -95,12 +95,21 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static string Write(IReadOnlyList<DcsBinding> rows)
+        {
+            var id = rows[0].ProfileId;
+            var module = new DcsModule(Guid.NewGuid(), "Test", "Test");
+            var config = new ModuleConfiguration(module, [new(id, "stick", null, "stick", "Stick.diff.lua")], [], rows, "test");
+            var snapshot = new EditorWorkspaceSnapshot(config, [], [],
+                [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = id }], [], [], [], new Dictionary<string, string>());
+            return ModuleLuaProfileRenderer.Render(snapshot, id);
+        }
         private static string Catalog(string name) => JsonSerializer.Serialize(new { schema = 1, functions = new[] {
             new { id = "old", command = "OLD", label = name, category = "UI" },
             new { id = "new", command = "NEW", label = "New", category = "UI" } } });
         private static SharedUiLayerWorkspace Defaults(bool changed)
         {
-            var id = Guid.Empty;
+            var id = Guid.NewGuid();
             var rows = new List<DcsBinding>();
             foreach (var key in new[] { "JOY_BTN1", "JOY_BTN2", "JOY_BTN3", "JOY_BTN99" })
                 rows.Add(new(id, BindingSection.Key, changed ? "NEW" : "OLD", changed ? "New" : "Old", BindingDisposition.Added, key));
@@ -108,7 +117,7 @@ namespace Dcs.Ipia.Tests
             rows.Add(new(id, BindingSection.Axis, "AXIS", "Axis", BindingDisposition.Added, "JOY_X", [], new(Deadzone: changed ? 9 : 2)));
             rows.Add(new(id, BindingSection.Key, "HISTORY", "History", BindingDisposition.Removed, "JOY_BTN90"));
             return new(0, new string('a', 40), new Dictionary<string, string> {
-                [ProfilePath] = ModuleLuaProfileRenderer.Write(rows),
+                [ProfilePath] = Write(rows),
                 [Root + "functions.json"] = Catalog("Old"),
                 [Root + "input/UiLayer/modifiers.lua"] = "return { SHIFT = { device = 'Keyboard', key = 'LShift', switch = false } }"
             });
@@ -127,7 +136,7 @@ namespace Dcs.Ipia.Tests
                 [new(AssignmentLayer.UiLayer, Guid.Empty, "SHIFT", "LShift", "SHIFT", ModifierMode.Hold, "Keyboard")]);
             var sources = new Dictionary<string, string>(baseline.Sources) {
                 [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state),
-                ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] = ModuleLuaProfileRenderer.Write(rows)
+                ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] = Write(rows)
             };
             var controls = rows.Where(x => x.Disposition != BindingDisposition.Removed && x.InputKey != "JOY_BTN99")
                 .Select(x => new HardwareGraphicControl(x.InputKey, x.InputKey, x.InputKey, 0, 0, 10, 10, x.Section == BindingSection.Axis))
