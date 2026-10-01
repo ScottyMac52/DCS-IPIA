@@ -88,13 +88,12 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(EditorSnapshotSerializer.Serialize(expected).Content, EditorSnapshotSerializer.Serialize(prior).Content);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => repository.SaveIfUnchangedAsync(expected, recorded));
                 var current = (await repository.GetAsync(module.Configuration.Module.Id))!;
-                var configEdit = current with { Configuration = current.Configuration with {
-                    Module = current.Configuration.Module with { DisplayName = "Changed name" } } };
+                var configEdit = current with { Configuration = Renamed(current.Configuration, "A", "Changed name") };
                 await repository.SaveAsync(configEdit);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => repository.SaveIfUnchangedAsync(current, current));
                 var latest = (await repository.GetAsync(module.Configuration.Module.Id))!;
                 await Assert.ThrowsAsync<SqliteException>(() => repository.SaveIfUnchangedAsync(latest, latest with {
-                    Configuration = latest.Configuration with { Module = latest.Configuration.Module with { DcsId = "B" } } }));
+                    Configuration = Renamed(latest.Configuration, "B", latest.Configuration.Module.DisplayName) }));
                 Assert.Equal(EditorSnapshotSerializer.Serialize(prior).Content,
                     EditorSnapshotSerializer.Serialize((await repository.GetPriorAsync(module.Configuration.Module.Id))!).Content);
                 await repository.SaveIfUnchangedAsync(latest, prior);
@@ -138,6 +137,9 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static ModuleConfiguration Renamed(ModuleConfiguration configuration, string dcsId, string displayName) =>
+            new(new DcsModule(configuration.Module.Id, dcsId, displayName), configuration.Profiles,
+                configuration.Modifiers, configuration.Bindings, configuration.Provenance);
         private static EditorWorkspaceSnapshot Module(string id) =>
             new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), id, "Module " + id), [], [], [], "test"),
                 [], [], [], [], [], [], new Dictionary<string, string> { ["label"] = "authored" },
@@ -145,4 +147,3 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
-
