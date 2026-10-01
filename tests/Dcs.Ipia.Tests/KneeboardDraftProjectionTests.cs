@@ -43,7 +43,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains(page.Legend, x => x.Label == "ARM_SELECT_2 — Button 25 — PROGRAM 1 [JOY_BTN25, Toggle]");
             Assert.DoesNotContain("axis", page.Labels.Keys);
             Assert.Empty(snapshot.Assignments);
-            Assert.Equal(assignments[1].Command.Name, "Base action");
+            Assert.Equal("Base action", assignments[1].Command.Name);
             var renamed = new ModuleConfiguration(module, [profile], [
                 new DcsModifier("NEW_SELECTOR", "Throttle {ABCD}", "JOY_BTN25", ModifierMode.Hold)
             ], [], "fixture");
