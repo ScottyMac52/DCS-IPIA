@@ -182,7 +182,8 @@ namespace DcsIpia.Presentation
             CloneProfileChoice.ItemsSource = profiles.Where(x => !x.Protected).ToArray();
             CloneProfileChoice.SelectedItem = profiles.FirstOrDefault(x => x.Path == template && !x.Protected);
             ProfilePaths.ItemsSource = profiles.Select(x => x.Path).ToArray();
-            ProfilePaths.SelectedItem = profiles.Any(x => x.Path == binding) ? binding : profiles.FirstOrDefault()?.Path;
+            ProfilePaths.SelectedItem = profiles.Any(x => x.Path == binding) ? binding :
+                (profiles.Count > 0 ? profiles[0].Path : null);
             SourcePaths.ItemsSource = _draft.Sources.Keys.Order(StringComparer.Ordinal).ToArray();
             SourcePaths.SelectedItem = source is not null && _draft.Sources.ContainsKey(source) ? source :
                 _draft.Sources.Keys.Order(StringComparer.Ordinal).FirstOrDefault();
@@ -286,5 +287,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
 
