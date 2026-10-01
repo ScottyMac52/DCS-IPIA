@@ -196,7 +196,7 @@ namespace Dcs.Ipia.Rendering
         {
             if (legend.Count == 0)
                 return;
-            var bounds = new SKRect(54, 1350, 454, 1350 + 36 + legend.Count * 28);
+            var bounds = new SKRect(54, 1350, 1146, 1350 + 36 + legend.Count * 28);
             using (var background = new SKPaint { Color = SKColor.Parse("#0b1726") })
                 canvas.DrawRoundRect(bounds, 8, 8, background);
             using (var border = new SKPaint { Color = SKColor.Parse("#334155"), Style = SKPaintStyle.Stroke,
@@ -215,7 +215,7 @@ namespace Dcs.Ipia.Rendering
             {
                 Write("SHIFT / MODIFIER", 66, 1372, 14, SKColor.Parse("#94a3b8"));
                 for (var i = 0; i < page.Legend.Count; i++)
-                    Write(page.Legend[i].Label, 88, 1394 + i * 28, 16, SKColor.Parse("#e2e8f0"));
+                    Write(page.Legend[i].Label, 88, 1394 + i * 28, LegendFontSize(page.Legend[i].Label), SKColor.Parse("#e2e8f0"));
             }
             if (footer.Length > 0)
                 Write(footer, 54, 1570, 18, SKColor.Parse("#8ea5bd"));
@@ -316,7 +316,7 @@ namespace Dcs.Ipia.Rendering
             var height = 36 + legend.Count * 28;
             result.Append(
                 CultureInfo.InvariantCulture,
-                $"<g data-modifier-legend=\"true\"><rect x=\"54\" y=\"1350\" width=\"400\" height=\"{height}\" rx=\"8\" fill=\"#0b1726\" stroke=\"#334155\" stroke-width=\"1.5\"/><text x=\"66\" y=\"1372\" font-family=\"Arial,sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#94a3b8\">SHIFT / MODIFIER</text>");
+                $"<g data-modifier-legend=\"true\"><rect x=\"54\" y=\"1350\" width=\"1092\" height=\"{height}\" rx=\"8\" fill=\"#0b1726\" stroke=\"#334155\" stroke-width=\"1.5\"/><text x=\"66\" y=\"1372\" font-family=\"Arial,sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#94a3b8\">SHIFT / MODIFIER</text>");
             for (var i = 0; i < legend.Count; i++)
             {
                 var y = 1382 + i * 28;
@@ -325,9 +325,16 @@ namespace Dcs.Ipia.Rendering
                     $"<rect x=\"66\" y=\"{y}\" width=\"14\" height=\"14\" rx=\"2\" fill=\"{Escape(legend[i].Color)}\"/>");
                 result.Append(
                     CultureInfo.InvariantCulture,
-                    $"<text x=\"88\" y=\"{y+12}\" font-family=\"Arial,sans-serif\" font-size=\"16\" fill=\"#e2e8f0\">{Escape(legend[i].Label)}</text>");
+                    $"<text x=\"88\" y=\"{y+12}\" font-family=\"Arial,sans-serif\" font-size=\"{LegendFontSize(legend[i].Label)}\" fill=\"#e2e8f0\">{Escape(legend[i].Label)}</text>");
             }
             return result.Append("</g>").ToString();
+        }
+        private static float LegendFontSize(string value)
+        {
+            using var typeface = LabelTypeface();
+            using var font = new SKFont(typeface, 16);
+            var width = font.MeasureText(value);
+            return width > 1040 ? 16 * 1040 / width : 16;
         }
         private static string Escape(string value) => SecurityElement.Escape(value) ?? "";
         #endregion END private helpers
