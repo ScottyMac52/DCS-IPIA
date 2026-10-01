@@ -17,7 +17,7 @@ namespace Dcs.Ipia.Dcs
             ArgumentNullException.ThrowIfNull(workspace);
             workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
-                return GenerateManaged(workspace, managed);
+                return ReconcileNativeDeviceNames(GenerateManaged(workspace, managed));
             var config = workspace.Configuration;
             var moduleId = config.Module.DcsId;
             SafeSegment(moduleId);
@@ -47,7 +47,7 @@ namespace Dcs.Ipia.Dcs
             if (uiProfiles.Length == 0)
             {
                 ValidateModifierReferences(result);
-                return result;
+                return ReconcileNativeDeviceNames(result);
             }
             var removed = UiLayerLuaProfileRenderer.RemovedModifiers(workspace.Sources);
             if (removed.Any(x => !modifiers.Any(y => y.Name == x)))
@@ -71,7 +71,7 @@ namespace Dcs.Ipia.Dcs
                 WriteModifiers(CompleteModifiers(workspace, AssignmentLayer.UiLayer,
                     modifiers.Where(x => !removed.Contains(x.Name)), result)));
             ValidateModifierReferences(result);
-            return result;
+            return ReconcileNativeDeviceNames(result);
         }
         /// <summary>Reports saved UI assignments that cannot resolve to a pinned physical profile.</summary>
         /// <param name="workspace">Workspace to validate before saving or packaging.</param>
@@ -171,6 +171,37 @@ namespace Dcs.Ipia.Dcs
                         string.Join(", ", missing) + ". Correct the modifier definitions before building the package.");
             }
         }
+        private static Dictionary<string, byte[]> ReconcileNativeDeviceNames(Dictionary<string, byte[]> payload)
+        {
+            // A pinned UI profile retains the native DCS spelling, including GUID case.
+            // Reconcile only case-equivalent names; renamed controllers and other physical units stay independent.
+            var names = payload.Keys.Where(path => path.StartsWith("Config/Input/UiLayer/joystick/", StringComparison.Ordinal))
+                .Select(Path.GetFileName).Where(file => file is not null && DcsPhysicalIdentity.FromFileName(file) is not null)
+                .Select(file => file![..^9]).ToDictionary(name => name, name => name, StringComparer.OrdinalIgnoreCase);
+            if (names.Count == 0) return payload;
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (path, bytes) in payload)
+            {
+                var target = path;
+                var content = bytes;
+                if (path.Contains("/joystick/", StringComparison.Ordinal) && path.EndsWith(".diff.lua", StringComparison.Ordinal))
+                {
+                    var native = Path.GetFileName(path)[..^9];
+                    if (names.TryGetValue(native, out var captured))
+                        target = path[..(path.LastIndexOf('/') + 1)] + captured + ".diff.lua";
+                }
+                else if (path.EndsWith("/modifiers.lua", StringComparison.Ordinal))
+                {
+                    var modifiers = DcsLuaParser.ParseModifiers(Encoding.UTF8.GetString(bytes)).Select(modifier =>
+                        new DcsModifier(modifier.Name, names.GetValueOrDefault(modifier.Device) ?? modifier.Device,
+                            modifier.Key, modifier.Mode));
+                    content = Encoding.UTF8.GetBytes(WriteModifiers(modifiers));
+                }
+                if (!result.TryAdd(target, content))
+                    throw new InvalidDataException("Two profiles resolve to the same native DCS filename: " + target);
+            }
+            return result;
+        }
         private static void Add(Dictionary<string, byte[]> payload, string path, string content)
         {
             if (!payload.TryAdd(path, Encoding.UTF8.GetBytes(content)))
@@ -213,3 +244,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

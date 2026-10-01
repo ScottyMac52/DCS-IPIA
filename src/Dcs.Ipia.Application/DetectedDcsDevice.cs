@@ -9,9 +9,17 @@ namespace Dcs.Ipia.Application
     {
         #region BEGIN Public
         /// <summary>Gets the captured filename or a native GUID-qualified default.</summary>
-        public string FileName => CapturedFileName ?? $"{Name} {{{PhysicalGuid.ToString("D").ToUpperInvariant()}}}.diff.lua";
+        public string FileName => CapturedFileName ?? $"{Name} {{{NativeGuid()}}}.diff.lua";
         /// <summary>Gets a physical-instance choice including its connection status.</summary>
         public string Title => FileName[..^9] + (Connected ? " · Connected" : " · Saved profile");
         #endregion END Public
+        #region BEGIN private helpers
+        private string NativeGuid()
+        {
+            var value = PhysicalGuid.ToString("D").ToUpperInvariant();
+            return value[..14] + value[14..18].ToLowerInvariant() + value[18..];
+        }
+        #endregion END private helpers
     }
 }
+
