@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # Validate dependent PRs before their base feature branch is merged.
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
