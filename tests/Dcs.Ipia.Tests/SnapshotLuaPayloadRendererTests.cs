@@ -13,6 +13,95 @@ namespace Dcs.Ipia.Tests
         private static readonly Guid ProfileId = Guid.Parse("569a0227-0901-452c-807a-8da03166eaa3");
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         #region BEGIN Public
+        /// <summary>Managed exports recover referenced declarations from current and pinned data while retaining exact names, keys, and modes.</summary>
+        [Fact]
+        public void CompletesDeclarationsForRenderedModifierAssignments()
+        {
+            var workspace = Workspace();
+            var arm1 = new DcsModifier("ARM_SELECT_1", "Stick", "JOY_BTN55", ModifierMode.Toggle);
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, [arm1], [], "fixture");
+            var state = new WorkspaceManagement([
+                new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick", "Stick")
+            ], []);
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state);
+            sources["src/Config/Input/TEST/modifiers.lua"] = """
+                local modifiers = {
+                  ["ARM_SELECT_2"] = { ["device"] = "Stick", ["key"] = "JOY_BTN25", ["switch"] = true }
+                } return modifiers
+                """;
+            sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = """
+                local modifiers = {
+                  ["LCtrl"] = { ["device"] = "Keyboard", ["key"] = "LCtrl", ["switch"] = false }
+                } return modifiers
+                """;
+            var assignments = new[] { "ARM_SELECT_1", "ARM_SELECT_2", "LCtrl" }.Select(name => new DraftAssignment(
+                new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", name),
+                new(name + "_COMMAND", name, false, AssignmentLayer.Module))).ToArray();
+            var saved = workspace with { Configuration = config, Sources = sources, Assignments = assignments };
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var definitions = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
+            Assert.Contains(arm1, definitions);
+            Assert.Contains(definitions, x => x.Name == "ARM_SELECT_2" && x.Key == "JOY_BTN25" && x.Mode == ModifierMode.Toggle);
+            Assert.Contains(definitions, x => x.Name == "LCtrl" && x.Device == "Keyboard" && x.Mode == ModifierMode.Hold);
+            var rendered = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
+            Assert.Equal(["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"], rendered.SelectMany(x => x.Reformers).Order(StringComparer.Ordinal));
+            Assert.Empty(WorkspaceManagement.Read(saved)!.Modifiers);
+            Assert.Single(saved.Configuration.Modifiers);
+            Assert.Equal(3, saved.Assignments.Count);
+            var explicitModifier = new WorkspaceModifier(AssignmentLayer.Module, ProfileId, arm1.Name, "JOY_BTN56", arm1.Name, ModifierMode.Hold, "Stick");
+            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state with { Modifiers = [explicitModifier] });
+            var edited = SnapshotLuaPayloadRenderer.Generate(saved);
+            Assert.Contains(DcsLuaParser.ParseModifiers(Text(edited, "Config/Input/TEST/modifiers.lua")),
+                x => x.Name == arm1.Name && x.Key == "JOY_BTN56" && x.Mode == ModifierMode.Hold);
+        }
+        /// <summary>Missing or case-mismatched reformers on keys and axes cannot silently produce a broken archive.</summary>
+        /// <param name="managed">Whether explicit device management is saved.</param>
+        /// <param name="axis">Whether the assignment is an axis.</param>
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public void RejectsUndeclaredReformers(bool managed, bool axis)
+        {
+            var workspace = Workspace();
+            var section = axis ? BindingSection.Axis : BindingSection.Key;
+            var key = axis ? "JOY_X" : "JOY_BTN1";
+            var diagram = workspace.Diagrams[0] with {
+                SupportsUiLayer = false, Controls = [new("control", "Control", key, 0, 0, 10, 10, axis)]
+            };
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            if (managed)
+                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                    new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick", "Stick")
+                ], [new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "MOD", ModifierMode.Toggle, "Stick")]));
+            var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key, "mod"),
+                new("COMMAND", "Command", axis, AssignmentLayer.Module));
+            var error = Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                workspace with { Sources = sources, Diagrams = [diagram], Assignments = [assignment] }));
+            Assert.Contains("undeclared modifiers: mod", error.Message);
+            Assert.Contains("Stick.diff.lua", error.Message);
+        }
+        /// <summary>Conflicting pinned definitions are rejected and unused historical reformers remain preserved.</summary>
+        [Fact]
+        public void RejectsConflictingRecoveryAndPreservesRemovalHistory()
+        {
+            var workspace = Workspace();
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources["src/Config/Input/TEST/modifiers.lua"] = """
+                local modifiers = { ["UNKNOWN"] = { ["device"] = "Stick", ["key"] = "JOY_BTN55", ["switch"] = true } } return modifiers
+                """;
+            sources["Config/Input/TEST/modifiers.lua"] = sources["src/Config/Input/TEST/modifiers.lua"].Replace("JOY_BTN55", "JOY_BTN25", StringComparison.Ordinal);
+            var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "UNKNOWN"),
+                new("COMMAND", "Command", false, AssignmentLayer.Module));
+            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources, Assignments = [assignment] }));
+            var removed = new DcsBinding(ProfileId, BindingSection.Key, "OLD", "History", BindingDisposition.Removed, "JOY_BTN8", ["UNKNOWN"]);
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, [removed], "fixture");
+            var output = SnapshotLuaPayloadRenderer.Generate(workspace with { Configuration = config });
+            Assert.Contains(DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId),
+                x => x.Disposition == BindingDisposition.Removed && x.Reformers.SequenceEqual(["UNKNOWN"]));
+        }
         /// <summary>Previously saved workspaces recover a physical source link without losing edited UI commands.</summary>
         [Fact]
         public void RecoversSavedProfileLinkAndExportsEditedAssignments()
