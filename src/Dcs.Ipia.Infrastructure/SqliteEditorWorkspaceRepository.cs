@@ -29,7 +29,10 @@ namespace Dcs.Ipia.Infrastructure
                 throw new InvalidDataException("The editor workspace has no stored module configuration.");
             var snapshot = new EditorWorkspaceSnapshot(configuration, payload.Pages, payload.Images, payload.Diagrams,
                                                        payload.ModuleCommands, payload.UiCommands, payload.Assignments,
-                                                       payload.Labels, payload.Sources);
+                                                       payload.Labels, payload.Sources)
+            {
+                SharedDefault = payload.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(payload.SharedDefault)
+            };
             if (payload.Version < 2)
             {
                 snapshot = EditorWorkspaceUpgrade.RestoreShiftedControls(snapshot);
@@ -65,6 +68,7 @@ namespace Dcs.Ipia.Infrastructure
                 throw new ArgumentException("A module identity is required.", nameof(snapshot));
             if (snapshot.Assignments.Any(x => x.Slot.ModuleId != snapshot.Configuration.Module.Id))
                 throw new ArgumentException("Assignments must belong to the stored module.", nameof(snapshot));
+            var reference = snapshot.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(snapshot.SharedDefault);
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
             await using (var foreignKeys = connection.CreateCommand())
@@ -73,6 +77,19 @@ namespace Dcs.Ipia.Infrastructure
                 await foreignKeys.ExecuteNonQueryAsync(ct);
             }
             await using var transaction = await connection.BeginTransactionAsync(ct);
+            await using (var existing = connection.CreateCommand())
+            {
+                existing.Transaction = (SqliteTransaction)transaction;
+                existing.CommandText = "SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
+                existing.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
+                if (await existing.ExecuteScalarAsync(ct) is string currentJson)
+                {
+                    var previous = JsonSerializer.Deserialize<EditorWorkspacePayload>(currentJson, JsonOptions)?.SharedDefault;
+                    if (previous is not null && (reference is null || previous.Revision != reference.Revision ||
+                        previous.ContentSha256 != reference.ContentSha256 || previous.SourceCommit != reference.SourceCommit))
+                        throw new InvalidOperationException("The module's shared default reference changed. Reopen it before saving; baseline changes require reviewed adoption.");
+                }
+            }
             await SqliteConfigurationRepository.ReplaceInTransactionAsync(
                 connection, (SqliteTransaction)transaction, snapshot.Configuration, ct);
             await using var command = connection.CreateCommand();
@@ -82,7 +99,7 @@ namespace Dcs.Ipia.Infrastructure
             command.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
             var payload = new EditorWorkspacePayload(snapshot.Pages, snapshot.Images, snapshot.Diagrams,
                                                      snapshot.ModuleCommands, snapshot.UiCommands, snapshot.Assignments,
-                                                     snapshot.Labels, snapshot.Sources) { Version = 3 };
+                                                     snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = reference };
             command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(payload, JsonOptions));
             await command.ExecuteNonQueryAsync(ct);
             await transaction.CommitAsync(ct);

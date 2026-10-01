@@ -47,3 +47,12 @@ Refresh before saving; draft edits, discard and save invalidate the report. Edit
 
 This slice introduces no adoption or propagation action. Persisted module references to default revision IDs and controlled adoption remain pending under #83 Step 2. Tests cover exact source classifications, additions/removals, missing evidence, stable ordering, invalid baseline comparisons and real SQLite isolation. Windows smoke verifies refresh, module selection, draft/discard/save invalidation and preserved module source versions.
 
+
+## Portable default revision references
+
+Module snapshots can now carry a verified shared default baseline, independently of their effective sources and authored overrides. The reference contains the revision number, source commit, original content hash and a frozen ordinal copy of all default source texts. Capturing the baseline does not adopt its bindings or replace module sources.
+
+SQLite reopen and immutable snapshot export/restore verify the reference digest. Baseline sources travel with the snapshot, so restoring into an empty database does not require external default history or a source checkout. Existing snapshots without this optional evidence retain their canonical format. Later default saves do not change an existing module reference. Ordinary module saves preserve the reference and reject removal/replacement from stale editors; changing a recorded baseline requires a reviewed adoption action. Module deletion leaves shared history intact.
+
+This foundation adds portable reference evidence; explicit baseline selection and controlled adoption UI follow in the next PR. Tests cover source isolation, invalid/unsigned references, old exports, SQLite reopen, immutable export/restore into an empty database, history preservation, stale reference guards and tamper detection.
+

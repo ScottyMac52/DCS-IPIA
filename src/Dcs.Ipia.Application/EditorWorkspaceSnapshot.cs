@@ -19,5 +19,11 @@ namespace Dcs.Ipia.Application
                                                  IReadOnlyList<DcsCommandDefinition> UiCommands,
                                                  IReadOnlyList<DraftAssignment> Assignments,
                                                  IReadOnlyDictionary<string, string> Labels,
-                                                 IReadOnlyDictionary<string, string>? Sources = null);
+                                                 IReadOnlyDictionary<string, string>? Sources = null)
+    {
+        #region BEGIN Public
+        /// <summary>Gets the verified default revision baseline; effective module sources and overrides remain separate.</summary>
+        public SharedUiLayerWorkspace? SharedDefault { get; init; }
+        #endregion END Public
+    }
 }
