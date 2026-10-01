@@ -13,16 +13,21 @@ namespace DcsIpia.Presentation
         private SharedUiLayerWorkspace _workspace;
         private SharedUiLayerWorkspace _draft;
         private readonly ISharedUiLayerWorkspaceRepository? _repository;
+        private readonly IEditorWorkspaceRepository? _modules;
         private bool _dirty;
         private bool _saving;
+        private bool _reviewing;
         /// <summary>Shows a stored revision and its original catalog and Lua source texts.</summary>
         /// <param name="workspace">Saved shared defaults.</param>
         /// <param name="repository">Revision storage, or null for a read-only preview.</param>
-        public SharedUiLayerWorkspaceWindow(SharedUiLayerWorkspace workspace, ISharedUiLayerWorkspaceRepository? repository = null)
+        /// <param name="modules">Saved module sources for read-only impact review.</param>
+        public SharedUiLayerWorkspaceWindow(SharedUiLayerWorkspace workspace, ISharedUiLayerWorkspaceRepository? repository = null,
+            IEditorWorkspaceRepository? modules = null)
         {
             _workspace = workspace;
             _draft = workspace;
             _repository = repository;
+            _modules = modules;
             InitializeComponent();
             RevisionText.Text = "Revision " + workspace.Revision;
             SourcePaths.ItemsSource = workspace.Sources.Keys.Order(StringComparer.Ordinal).ToArray();
@@ -41,7 +46,7 @@ namespace DcsIpia.Presentation
             ProfilePaths.SelectedIndex = 0;
             Buttons();
             Closing += (_, e) => {
-                if (_saving || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
+                if (_saving || _reviewing || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) e.Cancel = true;
             };
         }
@@ -54,19 +59,55 @@ namespace DcsIpia.Presentation
         }
         private void Buttons()
         {
-            SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !_saving;
-            DiscardDefaultsButton.IsEnabled = _dirty && !_saving;
-            BindingFields.IsEnabled = _repository is not null && !_saving;
-            CatalogFields.IsEnabled = _repository is not null && !_saving;
-            ModifierFields.IsEnabled = _repository is not null && !_saving;
-            DeviceFields.IsEnabled = _repository is not null && !_saving;
-            var deviceEditable = _repository is not null && !_saving &&
+            var busy = _saving || _reviewing;
+            ImpactRefreshButton.IsEnabled = _modules is not null && !busy;
+            SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !busy;
+            DiscardDefaultsButton.IsEnabled = _dirty && !busy;
+            BindingFields.IsEnabled = _repository is not null && !busy;
+            CatalogFields.IsEnabled = _repository is not null && !busy;
+            ModifierFields.IsEnabled = _repository is not null && !busy;
+            DeviceFields.IsEnabled = _repository is not null && !busy;
+            var deviceEditable = _repository is not null && !busy &&
                 DeviceRows.SelectedItem is SharedUiLayerDeviceProfile profile && !profile.Protected;
             RenameProfileButton.IsEnabled = RemoveProfileButton.IsEnabled = deviceEditable;
-            var editable = _repository is not null && !_saving && ModifierRows.SelectedItem is DcsModifier selected &&
+            var editable = _repository is not null && !busy && ModifierRows.SelectedItem is DcsModifier selected &&
                 !SharedUiLayerModifierEditor.IsProtected(selected);
             UpdateModifierButton.IsEnabled = RemoveModifierButton.IsEnabled = editable;
-            ClearLayerButton.IsEnabled = _repository is not null && !_saving;
+            ClearLayerButton.IsEnabled = _repository is not null && !busy;
+        }
+        private async void ReviewImpactClicked(object sender, RoutedEventArgs e)
+        {
+            if (_modules is null || _saving || _reviewing) return;
+            _reviewing = true;
+            ResetImpact("Reading saved module sources…");
+            Buttons();
+            try
+            {
+                var modules = new List<EditorWorkspaceSnapshot>();
+                foreach (var id in await _modules.ListAsync())
+                {
+                    var module = await _modules.GetAsync(id);
+                    if (module is not null) modules.Add(module);
+                }
+                var report = SharedUiLayerImpactReviewer.Review(_workspace, _draft, modules);
+                ImpactChanges.ItemsSource = report.Changes;
+                ImpactModules.ItemsSource = report.Modules;
+                ImpactModules.SelectedIndex = 0;
+                ImpactStatus.Text = $"Opened revision {report.BaselineRevision}: {report.Changes.Count} proposed source changes; " +
+                    $"{report.Modules.Count} saved modules reviewed. Review required: {report.Modules.Count(x => x.Status == "Review required")}. " +
+                    "This compares pinned source texts. Module assignments and overlays require separate adoption review.";
+            }
+            catch (Exception ex) { ResetImpact("Unable to review module impact: " + ex.Message); }
+            finally { _reviewing = false; Buttons(); }
+        }
+        private void ImpactModuleSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (ImpactDetails is not null) ImpactDetails.ItemsSource = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.Sources;
+        }
+        private void ResetImpact(string message = "Draft changed. Refresh the impact review before saving.")
+        {
+            ImpactChanges.ItemsSource = ImpactModules.ItemsSource = ImpactDetails.ItemsSource = null;
+            ImpactStatus.Text = message;
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -244,6 +285,7 @@ namespace DcsIpia.Presentation
             {
                 _draft = edit();
                 _dirty = true;
+                ResetImpact();
                 RefreshProfiles();
                 RefreshCommands();
                 RefreshModifiers();
@@ -256,7 +298,7 @@ namespace DcsIpia.Presentation
         }
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
-            if (_repository is null || !_dirty || _saving) return;
+            if (_repository is null || !_dirty || _saving || _reviewing) return;
             _saving = true;
             Buttons();
             try
@@ -265,6 +307,7 @@ namespace DcsIpia.Presentation
                 _workspace = await _repository.SaveAsync(_draft);
                 _draft = _workspace;
                 _dirty = false;
+                ResetImpact("Default revision saved. Refresh to compare the new baseline.");
                 RevisionText.Text = "Revision " + _workspace.Revision;
                 EditorStatus.Text = "Shared default revision saved. Existing module workspaces were not changed.";
             }
@@ -275,6 +318,7 @@ namespace DcsIpia.Presentation
         {
             _draft = _workspace;
             _dirty = false;
+            ResetImpact("Draft discarded. Refresh to compare the restored baseline.");
             RefreshProfiles();
             RefreshCommands();
             RefreshModifiers();

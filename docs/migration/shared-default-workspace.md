@@ -29,3 +29,21 @@ The **Devices** tab lists native profiles and their active key/axis assignments 
 Rename keeps the same physical GUID, preserves profile Lua exactly, and updates modifiers activated by that device to the new exact native name. Clear all active assignments and move or remove device modifier definitions before deleting a profile. Deleting removes that profile from the draft; older saved revisions retain its source and history. Duplicate filenames or GUIDs, unsafe paths, missing/stale templates and attempts to move an existing profile to another physical device are rejected.
 
 Device edits use the same **Save new default revision** and **Discard draft** workflow. Device, binding-profile, source-file and modifier-device selectors refresh together. Existing modules and their overrides remain unchanged. Tests cover exact clone/rename preservation, keyboard and reference guards, GUID identity, invalid/stale selections, persistence, immutable history and module isolation. Windows smoke exercises profile clone, rename, deletion guards, empty-profile removal, discard and save/reopen.
+
+## Module impact review
+
+The **Module impact** tab compares the opened saved default revision with the current draft and lists every added, updated or removed source in ordinal path order. **Refresh module impact** reads saved module snapshots and compares each changed source against their exact pinned texts. Select a module to see its source evidence:
+
+| Evidence | Meaning |
+| --- | --- |
+| Matches baseline | The module source agrees with the opened saved default. |
+| Matches proposal | The module source already agrees with the draft, including an absent removed source. |
+| Different source | The module has another source text; preserve and review that version. |
+| Not pinned | The module has no source evidence for this comparison; review is required. |
+
+A module requires review when any changed source differs from the proposal or lacks pinned evidence. With no draft source changes, the summary says **No default changes**. Missing catalog pins and older imports are reported conservatively. Exact filename case and Lua whitespace count as differences. This is source-level evidence, not a semantic assignment merge or a promise that a module can adopt safely. Module-owned assignments, labels, modifier edits and overlays still require their own adoption review.
+
+Refresh before saving; draft edits, discard and save invalidate the report. Editing is temporarily disabled while module snapshots load. A read failure clears the report and shows the error rather than presenting partial results. The report compares the opened revision and each module snapshot read during refresh; it is not a transactional cross-module snapshot. Refresh again after concurrent module changes. Shared default saves continue to leave saved module state untouched.
+
+This slice introduces no adoption or propagation action. Persisted module references to default revision IDs and controlled adoption remain pending under #83 Step 2. Tests cover exact source classifications, additions/removals, missing evidence, stable ordering, invalid baseline comparisons and real SQLite isolation. Windows smoke verifies refresh, module selection, draft/discard/save invalidation and preserved module source versions.
+

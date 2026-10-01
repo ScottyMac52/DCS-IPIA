@@ -55,7 +55,7 @@ namespace DcsIpia.Presentation
                     var seed = await SharedUiLayerWorkspaceFactory.CreateAsync();
                     saved = await _sharedDefaults.SaveAsync(seed);
                 }
-                new SharedUiLayerWorkspaceWindow(saved, _sharedDefaults) { Owner = this }.ShowDialog();
+                new SharedUiLayerWorkspaceWindow(saved, _sharedDefaults, _workspaces) { Owner = this }.ShowDialog();
             }
             catch (Exception ex)
             {
