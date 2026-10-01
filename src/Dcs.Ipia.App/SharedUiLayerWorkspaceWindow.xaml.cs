@@ -66,8 +66,8 @@ namespace DcsIpia.Presentation
             var selectedModule = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.ModuleId;
             var canAdopt = !busy && !_dirty && _modules is IEditorWorkspaceUpdateRepository &&
                 selectedModule is Guid id && _reviewedModules.ContainsKey(id);
-            var hasBaseline = selectedModule is Guid selectedId && _reviewedModules.TryGetValue(selectedId, out var selected) &&
-                selected.SharedDefault is not null;
+            var hasBaseline = selectedModule is Guid selectedId && _reviewedModules.TryGetValue(selectedId, out var selectedSnapshot) &&
+                selectedSnapshot.SharedDefault is not null;
             RecordBaselineButton.IsEnabled = canAdopt && !hasBaseline;
             AdoptDefaultsButton.IsEnabled = canAdopt && hasBaseline;
             RollbackAdoptionButton.IsEnabled = canAdopt;
@@ -411,4 +411,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
