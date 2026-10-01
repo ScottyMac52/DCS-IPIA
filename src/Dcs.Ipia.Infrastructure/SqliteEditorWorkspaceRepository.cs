@@ -1,13 +1,16 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
+using Dcs.Ipia.Domain;
 using Microsoft.Data.Sqlite;
 
 namespace Dcs.Ipia.Infrastructure
 {
     /// <summary>Reads and writes complete editor snapshots without consulting source repositories.</summary>
     /// <param name="connectionString">SQLite connection string.</param>
-    public sealed class SqliteEditorWorkspaceRepository(string connectionString) : IEditorWorkspaceRepository
+    public sealed class SqliteEditorWorkspaceRepository(string connectionString) : IEditorWorkspaceRepository, IEditorWorkspaceUpdateRepository
     {
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
         #region BEGIN Public
@@ -125,6 +128,85 @@ namespace Dcs.Ipia.Infrastructure
             await transaction.CommitAsync(ct);
             return deleted;
         }
+        /// <inheritdoc/>
+        public async Task SaveIfUnchangedAsync(EditorWorkspaceSnapshot expected, EditorWorkspaceSnapshot updated, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(expected);
+            ArgumentNullException.ThrowIfNull(updated);
+            var id = expected.Configuration.Module.Id;
+            if (id == Guid.Empty || updated.Configuration.Module.Id != id ||
+                updated.Assignments.Any(x => x.Slot.ModuleId != id))
+                throw new ArgumentException("Reviewed updates must belong to the same saved module.", nameof(updated));
+            var reference = updated.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(updated.SharedDefault);
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(ct);
+            await using (var foreignKeys = connection.CreateCommand())
+            {
+                foreignKeys.CommandText = "PRAGMA foreign_keys=ON";
+                await foreignKeys.ExecuteNonQueryAsync(ct);
+            }
+            await using var transaction = connection.BeginTransaction();
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
+            command.Parameters.AddWithValue("$id", id.ToString("D"));
+            var currentJson = await command.ExecuteScalarAsync(ct) as string;
+            var current = currentJson is null ? null : JsonSerializer.Deserialize<EditorWorkspacePayload>(currentJson, JsonOptions);
+            var configuration = await new SqliteConfigurationRepository(connectionString).GetAsync(id, ct);
+            if (current is null || JsonSerializer.Serialize(current, JsonOptions) != JsonSerializer.Serialize(Payload(expected), JsonOptions) ||
+                JsonSerializer.Serialize(configuration, JsonOptions) != JsonSerializer.Serialize(expected.Configuration, JsonOptions))
+                throw new InvalidOperationException("The module changed after review. Reopen and review it again.");
+            var previousJson = JsonSerializer.Serialize(new ModuleUpdateHistoryPayload(
+                JsonSerializer.SerializeToElement(expected.Configuration, JsonOptions), Payload(expected)), JsonOptions);
+            command.CommandText = "INSERT INTO module_update_history(module_id,snapshot_json,content_sha256) VALUES($id,$previous,$hash)";
+            command.Parameters.AddWithValue("$previous", previousJson);
+            command.Parameters.AddWithValue("$hash", Hash(previousJson));
+            await command.ExecuteNonQueryAsync(ct);
+            await SqliteConfigurationRepository.ReplaceInTransactionAsync(connection, transaction, updated.Configuration, ct);
+            command.CommandText = "UPDATE editor_workspaces SET snapshot_json=$json,updated_utc=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE module_id=$id";
+            command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(Payload(updated with { SharedDefault = reference }), JsonOptions));
+            await command.ExecuteNonQueryAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        /// <inheritdoc/>
+        public async Task<EditorWorkspaceSnapshot?> GetPriorAsync(Guid moduleId, CancellationToken ct = default)
+        {
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT snapshot_json,content_sha256 FROM module_update_history WHERE module_id=$id ORDER BY id DESC LIMIT 1";
+            command.Parameters.AddWithValue("$id", moduleId.ToString("D"));
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) return null;
+            var json = reader.GetString(0);
+            if (Hash(json) != reader.GetString(1))
+                throw new InvalidDataException("Prior module state failed its content check.");
+            var prior = JsonSerializer.Deserialize<ModuleUpdateHistoryPayload>(json, JsonOptions) ??
+                throw new InvalidDataException("The prior module state could not be read.");
+            var editor = prior.Editor;
+            return new(ReadConfiguration(prior.Configuration), editor.Pages, editor.Images, editor.Diagrams,
+                editor.ModuleCommands, editor.UiCommands, editor.Assignments, editor.Labels, editor.Sources)
+            {
+                SharedDefault = editor.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(editor.SharedDefault)
+            };
+        }
         #endregion END Public
+        #region BEGIN private helpers
+        private static EditorWorkspacePayload Payload(EditorWorkspaceSnapshot snapshot) =>
+            new(snapshot.Pages, snapshot.Images, snapshot.Diagrams, snapshot.ModuleCommands, snapshot.UiCommands,
+                snapshot.Assignments, snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = snapshot.SharedDefault };
+        private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        private static ModuleConfiguration ReadConfiguration(JsonElement configuration) =>
+            new(configuration.GetProperty("Module").Deserialize<DcsModule>(JsonOptions)!,
+                configuration.GetProperty("Profiles").Deserialize<DeviceProfile[]>(JsonOptions)!,
+                configuration.GetProperty("Modifiers").Deserialize<DcsModifier[]>(JsonOptions)!,
+                configuration.GetProperty("Bindings").EnumerateArray().Select(binding => new DcsBinding(
+                    binding.GetProperty("ProfileId").GetGuid(), (BindingSection)binding.GetProperty("Section").GetInt32(),
+                    binding.GetProperty("CommandId").GetString()!, binding.GetProperty("CommandName").GetString()!,
+                    (BindingDisposition)binding.GetProperty("Disposition").GetInt32(), binding.GetProperty("InputKey").GetString()!,
+                    binding.GetProperty("Reformers").Deserialize<string[]>(JsonOptions),
+                    binding.GetProperty("Filter").Deserialize<AxisFilter>(JsonOptions))),
+                configuration.GetProperty("Provenance").GetString()!);
+        #endregion END private helpers
     }
 }

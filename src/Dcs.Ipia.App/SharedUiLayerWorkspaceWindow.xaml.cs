@@ -17,6 +17,8 @@ namespace DcsIpia.Presentation
         private bool _dirty;
         private bool _saving;
         private bool _reviewing;
+        private bool _adopting;
+        private readonly Dictionary<Guid, EditorWorkspaceSnapshot> _reviewedModules = [];
         /// <summary>Shows a stored revision and its original catalog and Lua source texts.</summary>
         /// <param name="workspace">Saved shared defaults.</param>
         /// <param name="repository">Revision storage, or null for a read-only preview.</param>
@@ -46,7 +48,7 @@ namespace DcsIpia.Presentation
             ProfilePaths.SelectedIndex = 0;
             Buttons();
             Closing += (_, e) => {
-                if (_saving || _reviewing || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
+                if (_saving || _reviewing || _adopting || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) e.Cancel = true;
             };
         }
@@ -59,7 +61,16 @@ namespace DcsIpia.Presentation
         }
         private void Buttons()
         {
-            var busy = _saving || _reviewing;
+            var busy = _saving || _reviewing || _adopting;
+            ImpactModules.IsEnabled = AdoptionChoices.IsEnabled = !busy;
+            var selectedModule = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.ModuleId;
+            var canAdopt = !busy && !_dirty && _modules is IEditorWorkspaceUpdateRepository &&
+                selectedModule is Guid id && _reviewedModules.ContainsKey(id);
+            var hasBaseline = selectedModule is Guid selectedId && _reviewedModules.TryGetValue(selectedId, out var selectedSnapshot) &&
+                selectedSnapshot.SharedDefault is not null;
+            RecordBaselineButton.IsEnabled = canAdopt && !hasBaseline;
+            AdoptDefaultsButton.IsEnabled = canAdopt && hasBaseline;
+            RollbackAdoptionButton.IsEnabled = canAdopt;
             ImpactRefreshButton.IsEnabled = _modules is not null && !busy;
             SaveDefaultsButton.IsEnabled = _repository is not null && _dirty && !busy;
             DiscardDefaultsButton.IsEnabled = _dirty && !busy;
@@ -77,7 +88,7 @@ namespace DcsIpia.Presentation
         }
         private async void ReviewImpactClicked(object sender, RoutedEventArgs e)
         {
-            if (_modules is null || _saving || _reviewing) return;
+            if (_modules is null || _saving || _reviewing || _adopting) return;
             _reviewing = true;
             ResetImpact("Reading saved module sources…");
             Buttons();
@@ -90,6 +101,7 @@ namespace DcsIpia.Presentation
                     if (module is not null) modules.Add(module);
                 }
                 var report = SharedUiLayerImpactReviewer.Review(_workspace, _draft, modules);
+                foreach (var module in modules) _reviewedModules[module.Configuration.Module.Id] = module;
                 ImpactChanges.ItemsSource = report.Changes;
                 ImpactModules.ItemsSource = report.Modules;
                 ImpactModules.SelectedIndex = 0;
@@ -103,11 +115,79 @@ namespace DcsIpia.Presentation
         private void ImpactModuleSelected(object sender, SelectionChangedEventArgs e)
         {
             if (ImpactDetails is not null) ImpactDetails.ItemsSource = (ImpactModules.SelectedItem as SharedUiLayerModuleImpact)?.Sources;
+            if (AdoptionChoices is null) return;
+            AdoptionChoices.ItemsSource = null;
+            try
+            {
+                if (ImpactModules.SelectedItem is SharedUiLayerModuleImpact row && _reviewedModules.TryGetValue(row.ModuleId, out var module))
+                {
+                    AdoptionStatus.Text = module.SharedDefault is null
+                        ? "No recorded default baseline. Record this saved revision without changing module edits."
+                        : $"Module baseline: revision {module.SharedDefault.Revision}. Target: opened saved revision {_workspace.Revision}.";
+                    if (!_dirty && module.SharedDefault is not null)
+                        AdoptionChoices.ItemsSource = SharedUiLayerAdoption.Review(module, _workspace)
+                            .Select(x => new SharedUiLayerAdoptionChoice(x)).ToArray();
+                }
+            }
+            catch (Exception ex) { AdoptionStatus.Text = ex.Message; }
+            Buttons();
         }
         private void ResetImpact(string message = "Draft changed. Refresh the impact review before saving.")
         {
+            _reviewedModules.Clear();
             ImpactChanges.ItemsSource = ImpactModules.ItemsSource = ImpactDetails.ItemsSource = null;
+            AdoptionChoices.ItemsSource = null;
             ImpactStatus.Text = message;
+        }
+        private EditorWorkspaceSnapshot ReviewedModule() =>
+            ImpactModules.SelectedItem is SharedUiLayerModuleImpact row && _reviewedModules.TryGetValue(row.ModuleId, out var module)
+                ? module : throw new InvalidOperationException("Refresh impact and select a saved module.");
+        private async void RecordBaselineClicked(object sender, RoutedEventArgs e) => await UpdateModuleAsync(module =>
+            module.SharedDefault is null ? SharedUiLayerRevisionReference.Attach(module, _workspace) :
+                throw new InvalidOperationException("The module already has a recorded baseline."), false);
+        private async void AdoptDefaultsClicked(object sender, RoutedEventArgs e)
+        {
+            AdoptionChoices.CommitEdit(DataGridEditingUnit.Cell, true);
+            AdoptionChoices.CommitEdit(DataGridEditingUnit.Row, true);
+            var paths = (AdoptionChoices.ItemsSource as IEnumerable<SharedUiLayerAdoptionChoice> ?? [])
+                .Where(x => x.TakeDefault).Select(x => x.Path).ToArray();
+            await UpdateModuleAsync(module => SharedUiLayerAdoption.Apply(module, _workspace, paths), true);
+        }
+        private async Task UpdateModuleAsync(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> update, bool validateOutput)
+        {
+            if (_modules is not IEditorWorkspaceUpdateRepository repository || _saving || _reviewing || _adopting) return;
+            try
+            {
+                if (_dirty) throw new InvalidOperationException("Save or discard the shared draft before adopting a saved revision.");
+                var expected = ReviewedModule();
+                var updated = update(expected);
+                if (validateOutput) SnapshotLuaPayloadRenderer.Generate(updated);
+                _adopting = true;
+                Buttons();
+                await repository.SaveIfUnchangedAsync(expected, updated);
+                ResetImpact("Module baseline saved. Refresh impact to review the current state.");
+                AdoptionStatus.Text = "Reviewed update saved for the selected module. Prior state retained for rollback.";
+            }
+            catch (Exception ex) { AdoptionStatus.Text = "Module was not changed: " + ex.Message; }
+            finally { _adopting = false; Buttons(); }
+        }
+        private async void RollbackAdoptionClicked(object sender, RoutedEventArgs e)
+        {
+            if (_modules is not IEditorWorkspaceUpdateRepository repository || _saving || _reviewing || _adopting) return;
+            try
+            {
+                if (_dirty) throw new InvalidOperationException("Save or discard the shared draft before rollback.");
+                var expected = ReviewedModule();
+                _adopting = true;
+                Buttons();
+                var prior = await repository.GetPriorAsync(expected.Configuration.Module.Id) ??
+                    throw new InvalidOperationException("No prior reviewed module state is available.");
+                await repository.SaveIfUnchangedAsync(expected, prior);
+                ResetImpact("Prior module state restored. Refresh impact to review the restored baseline.");
+                AdoptionStatus.Text = "Rollback saved. Other modules and shared default history were not changed.";
+            }
+            catch (Exception ex) { AdoptionStatus.Text = "Module was not changed: " + ex.Message; }
+            finally { _adopting = false; Buttons(); }
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -331,4 +411,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
