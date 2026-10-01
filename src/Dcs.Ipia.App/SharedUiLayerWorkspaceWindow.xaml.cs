@@ -36,10 +36,11 @@ namespace DcsIpia.Presentation
                 DeclaredModifiers.Text = "Declared modifiers: " + string.Join(", ", DcsLuaParser.ParseModifiers(
                     workspace.Sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]).Select(x => x.Name));
             }
+            RefreshModifiers();
             ProfilePaths.SelectedIndex = 0;
             Buttons();
             Closing += (_, e) => {
-                if (_saving || _dirty && MessageBox.Show(this, "Discard pending shared default binding changes?", "Pending shared defaults",
+                if (_saving || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) e.Cancel = true;
             };
         }
@@ -56,6 +57,10 @@ namespace DcsIpia.Presentation
             DiscardDefaultsButton.IsEnabled = _dirty && !_saving;
             BindingFields.IsEnabled = _repository is not null && !_saving;
             CatalogFields.IsEnabled = _repository is not null && !_saving;
+            ModifierFields.IsEnabled = _repository is not null && !_saving;
+            var editable = _repository is not null && !_saving && ModifierRows.SelectedItem is DcsModifier selected &&
+                !SharedUiLayerModifierEditor.IsProtected(selected);
+            UpdateModifierButton.IsEnabled = RemoveModifierButton.IsEnabled = editable;
             ClearLayerButton.IsEnabled = _repository is not null && !_saving;
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
@@ -121,6 +126,45 @@ namespace DcsIpia.Presentation
             SharedUiLayerCommandEditor.Set(_draft, SelectedCommand(), CommandFields()));
         private void RemoveCommandClicked(object sender, RoutedEventArgs e) => Edit(() =>
             SharedUiLayerCommandEditor.Remove(_draft, SelectedCommand()));
+        private void ModifierSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (ModifierName is null || ModifierRows.SelectedItem is not DcsModifier modifier) return;
+            ModifierName.Text = modifier.Name;
+            ModifierDevice.SelectedItem = modifier.Device;
+            ModifierInput.Text = modifier.Key;
+            ModifierModeChoice.SelectedItem = modifier.Mode;
+            Buttons();
+        }
+        private void NewModifierClicked(object sender, RoutedEventArgs e)
+        {
+            ModifierRows.SelectedItem = null;
+            ModifierName.Text = ModifierInput.Text = "";
+            ModifierDevice.SelectedItem = null;
+            ModifierModeChoice.SelectedItem = ModifierMode.Hold;
+            Buttons();
+        }
+        private DcsModifier SelectedModifier() => ModifierRows.SelectedItem as DcsModifier ??
+            throw new InvalidOperationException("Select a modifier.");
+        private DcsModifier ModifierValue() => new(ModifierName.Text,
+            ModifierDevice.SelectedItem as string ?? throw new InvalidOperationException("Select a native device."),
+            ModifierInput.Text, ModifierModeChoice.SelectedItem is ModifierMode mode ? mode :
+                throw new InvalidOperationException("Select Hold or Toggle mode."));
+        private void AddModifierClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerModifierEditor.Set(_draft, null, ModifierValue()));
+        private void UpdateModifierClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerModifierEditor.Set(_draft, SelectedModifier(), ModifierValue()));
+        private void RemoveModifierClicked(object sender, RoutedEventArgs e) => Edit(() =>
+            SharedUiLayerModifierEditor.Remove(_draft, SelectedModifier()));
+        private void RefreshModifiers()
+        {
+            if (_repository is null) return;
+            var name = (ModifierRows.SelectedItem as DcsModifier)?.Name;
+            ModifierRows.ItemsSource = SharedUiLayerModifierEditor.Modifiers(_draft);
+            ModifierDevice.ItemsSource = SharedUiLayerModifierEditor.Devices(_draft);
+            ModifierModeChoice.ItemsSource = Enum.GetValues<ModifierMode>();
+            ModifierRows.SelectedItem = (ModifierRows.ItemsSource as IEnumerable<DcsModifier>)!.FirstOrDefault(x => x.Name == name);
+            DeclaredModifiers.Text = "Declared modifiers: " + string.Join(", ", SharedUiLayerModifierEditor.Modifiers(_draft).Select(x => x.Name));
+        }
         private void RefreshCommands()
         {
             if (_repository is null) return;
@@ -138,6 +182,7 @@ namespace DcsIpia.Presentation
                 _draft = edit();
                 _dirty = true;
                 RefreshCommands();
+                RefreshModifiers();
                 ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
                 if (SourcePaths.SelectedItem is string path) SourceText.Text = _draft.Sources[path];
                 EditorStatus.Text = "Change staged. Save a new revision to keep it, or discard the draft.";
@@ -167,6 +212,7 @@ namespace DcsIpia.Presentation
             _draft = _workspace;
             _dirty = false;
             RefreshCommands();
+            RefreshModifiers();
             BindingRows.ItemsSource = ProfilePaths.SelectedItem is string path ? SharedUiLayerBindingEditor.Bindings(_draft, path) : null;
             if (SourcePaths.SelectedItem is string source) SourceText.Text = _draft.Sources[source];
             ProfileChanged(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
@@ -176,3 +222,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

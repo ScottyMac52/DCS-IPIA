@@ -308,6 +308,35 @@ namespace Dcs.Ipia.App.Smoke
                 var first = repository.SaveAsync(seed).GetAwaiter().GetResult();
                 var window = new SharedUiLayerWorkspaceWindow(first, repository);
                 window.Show();
+                var modifierRows = (DataGrid)window.FindName("ModifierRows")!;
+                var modifierDevices = (ComboBox)window.FindName("ModifierDevice")!;
+                var nativeDevice = modifierDevices.Items.OfType<string>().First(x => x != "Keyboard");
+                void AddSmokeModifier()
+                {
+                    ((TextBox)window.FindName("ModifierName")!).Text = "SMOKE_MODIFIER";
+                    modifierDevices.SelectedItem = nativeDevice;
+                    ((TextBox)window.FindName("ModifierInput")!).Text = "JOY_BTN9999";
+                    ((ComboBox)window.FindName("ModifierModeChoice")!).SelectedItem = ModifierMode.Hold;
+                    ((Button)window.FindName("AddModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                AddSmokeModifier();
+                modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER");
+                ((ComboBox)window.FindName("ModifierModeChoice")!).SelectedItem = ModifierMode.Toggle;
+                ((Button)window.FindName("UpdateModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER").Mode != ModifierMode.Toggle ||
+                    !((ComboBox)window.FindName("ClearLayerChoice")!).Items.Contains("SMOKE_MODIFIER"))
+                    throw new InvalidOperationException("Shared modifier update did not refresh modes and layer choices.");
+                modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "LCtrl");
+                if (((Button)window.FindName("UpdateModifierButton")!).IsEnabled || ((Button)window.FindName("RemoveModifierButton")!).IsEnabled)
+                    throw new InvalidOperationException("Built-in keyboard defaults are editable.");
+                modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER");
+                ((Button)window.FindName("RemoveModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (modifierRows.Items.OfType<DcsModifier>().Any(x => x.Name == "SMOKE_MODIFIER"))
+                    throw new InvalidOperationException("Unused shared modifier was not removed.");
+                AddSmokeModifier();
+                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (modifierRows.Items.OfType<DcsModifier>().Any(x => x.Name == "SMOKE_MODIFIER"))
+                    throw new InvalidOperationException("Discard did not restore saved shared modifiers.");
                 var catalogRows = (DataGrid)window.FindName("CatalogRows")!;
                 var addCommand = (Button)window.FindName("AddCommandButton")!;
                 void AddCatalogCommand()
@@ -359,6 +388,7 @@ namespace Dcs.Ipia.App.Smoke
                 ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 AddCatalogCommand();
+                AddSmokeModifier();
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var status = (TextBlock)window.FindName("EditorStatus")!;
                 var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -371,6 +401,10 @@ namespace Dcs.Ipia.App.Smoke
                 var saved = repository.GetAsync().GetAwaiter().GetResult()!;
                 if (!global::Dcs.Ipia.Dcs.SharedUiLayerCommandEditor.Commands(saved).Any(x => x.Id == "smoke-command"))
                     throw new InvalidOperationException("Shared catalog command did not reopen in the saved revision.");
+                if (!global::Dcs.Ipia.Dcs.SharedUiLayerModifierEditor.Modifiers(saved).Any(x =>
+                    x.Name == "SMOKE_MODIFIER" && x.Device == nativeDevice && x.Key == "JOY_BTN9999" && x.Mode == ModifierMode.Hold) ||
+                    global::Dcs.Ipia.Dcs.SharedUiLayerModifierEditor.Modifiers(repository.GetAsync(1).GetAwaiter().GetResult()!).Any(x => x.Name == "SMOKE_MODIFIER"))
+                    throw new InvalidOperationException("Shared modifier revision did not reopen independently of its history.");
                 if (saved.Revision != 2 || !global::Dcs.Ipia.Dcs.SharedUiLayerBindingEditor.Bindings(saved, profilePath)
                     .Any(x => x.InputKey == "JOY_BTN999" && x.CommandId == selected.CommandId) || save.IsEnabled)
                     throw new InvalidOperationException("Shared binding revision did not reopen correctly.");
@@ -384,3 +418,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
