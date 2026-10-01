@@ -382,10 +382,14 @@ namespace DcsIpia.Presentation
                 return null;
             var layer = Layers.SelectedItem as string ?? "Base";
             var chord = layer == "Base" ? "" : layer.Replace(" + ", "+", StringComparison.Ordinal);
-            return KneeboardDraftProjection.SlotForControl(_working ?? _saved, diagram, control, CurrentLayer, chord);
+            var slot = KneeboardDraftProjection.SlotForControl(_working ?? _saved, diagram, control, CurrentLayer, chord);
+            if (slot is null)
+                return null;
+            return Assignment(slot)?.Slot ?? _saved.Assignments.FirstOrDefault(x =>
+                DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Slot ?? slot;
         }
         private DraftAssignment? Assignment(DraftAssignmentSlot slot) =>
-            _draft?.Snapshot.FirstOrDefault(x => x.Slot.Key == slot.Key);
+            _draft?.Snapshot.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
         private void DeviceChanged(object sender, SelectionChangedEventArgs e) => RefreshEditor();
         private void LayerChanged(object sender, SelectionChangedEventArgs e) => RefreshEditor();
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
@@ -473,7 +477,7 @@ namespace DcsIpia.Presentation
                                                FontSize = 11,
                                                Foreground = Brushes.Black };
                     _calloutText[slot.Key] = text;
-                    var original = _saved.Assignments.FirstOrDefault(x => x.Slot.Key == slot.Key);
+                    var original = _saved.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
                     var stateBrush = assignment is null                       ? Brushes.SlateGray
                                      : original is null                       ? Brushes.ForestGreen
                                      : original.Command == assignment.Command ? Brushes.White
@@ -614,7 +618,7 @@ namespace DcsIpia.Presentation
                              ((catalog is not null && catalog.IsAxis == target.IsAxis) ||
                               (source is not null && source.Slot.ProfileId == destination.ProfileId &&
                                source.Slot.Layer == destination.Layer && source.Slot.Section == destination.Section &&
-                               source.Slot.Key != destination.Key));
+                               DcsInputKey.PhysicalSlotKey(source.Slot) != DcsInputKey.PhysicalSlotKey(destination)));
             e.Effects = !compatible                                        ? DragDropEffects.None
                         : source is null                                   ? DragDropEffects.Copy
                         : (Keyboard.Modifiers & ModifierKeys.Control) != 0 ? DragDropEffects.Copy
@@ -722,7 +726,7 @@ namespace DcsIpia.Presentation
             CurrentCommand.Text =
                 slot is null
                     ? ""
-                    : _saved?.Assignments.FirstOrDefault(x => x.Slot.Key == slot.Key)?.Command.Name ?? "Unassigned";
+                    : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
             PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
             DefaultLabel.Text = _selected?.Label ?? "";
             _updatingInspector = true;
@@ -1007,3 +1011,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

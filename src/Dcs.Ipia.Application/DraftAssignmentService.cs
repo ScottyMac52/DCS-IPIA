@@ -37,12 +37,15 @@ namespace Dcs.Ipia.Application
             var initial = assignments.ToArray();
             if (initial.Any(x => x is null))
                 throw new ArgumentException("Initial assignment is missing.", nameof(assignments));
-            foreach (var assignment in DcsInputKey.CollapseAliases(initial))
+            foreach (var assignment in initial)
             {
-                if (assignment.Filter is not null && assignment.Slot.Section != BindingSection.Axis)
+                if (assignment.Filter is not null && assignment.Slot?.Section != BindingSection.Axis)
                     throw new ArgumentException("Only axis assignments may have tuning.", nameof(assignments));
                 if (!Validate(assignment.Slot, assignment.Command, out var reason))
                     throw new ArgumentException(reason, nameof(assignments));
+            }
+            foreach (var assignment in DcsInputKey.CollapseAliases(initial))
+            {
                 if (!_original.TryAdd(DcsInputKey.PhysicalSlotKey(assignment.Slot), assignment))
                     throw new ArgumentException("Two imported assignments occupy the same slot.", nameof(assignments));
                 _current.Add(DcsInputKey.PhysicalSlotKey(assignment.Slot), assignment);

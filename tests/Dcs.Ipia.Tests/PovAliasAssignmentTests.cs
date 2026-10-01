@@ -9,6 +9,7 @@ namespace Dcs.Ipia.Tests
     /// <summary>Exercises the IPI 5.7.1 F-16C Ava profile's simultaneous POV aliases through editing and packaging.</summary>
     public sealed class PovAliasAssignmentTests
     {
+        private static readonly string[] Directions = ["D", "L", "R", "U"];
         #region BEGIN Public
         /// <summary>Real scaffold bindings become four controls, render labels and PNGs, and preserve both original spellings.</summary>
         [Fact]
@@ -110,7 +111,7 @@ namespace Dcs.Ipia.Tests
             var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "F16", "Ava.diff.lua"));
             var bindings = DcsLuaParser.ParseProfile(source, profile.Id);
             var config = new ModuleConfiguration(module, [profile], [], bindings, "IPI 5.7.1");
-            var controls = new[] { "D", "L", "R", "U" }.Select((direction, index) =>
+            var controls = Directions.Select((direction, index) =>
                 new HardwareGraphicControl(direction, "POV " + direction, "JOY_BTN_POV1_" + direction, 0, index * 20, 20, 10)).ToArray();
             var diagram = new UiLayerDiagram("Ava", null, "ava.svg", 100, 100, [], []) {
                 ProfileId = profile.Id, Controls = controls, SupportsUiLayer = false,
