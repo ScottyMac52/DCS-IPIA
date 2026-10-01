@@ -77,6 +77,53 @@ namespace Dcs.Ipia.Tests
                 File.Delete(path);
             }
         }
+        /// <summary>Copies real internal defaults with fresh physical profiles and lossless native Lua for every joystick.</summary>
+        /// <returns>Completion of bundled hardware and SQLite integration checks.</returns>
+        [Fact]
+        public async Task Bundled_defaults_create_independent_editable_hardware_and_native_lua()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"ipia-create-hardware-{Guid.NewGuid():N}.db");
+            var connection = "Data Source=" + path + ";Pooling=False";
+            try
+            {
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var defaults = await new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(
+                    await SharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var first = NewModuleWorkspaceFactory.Create("NEW-ONE", "First aircraft", defaults, hardware);
+                var second = NewModuleWorkspaceFactory.Create("NEW-TWO", "Second aircraft", defaults, hardware);
+                Assert.NotEmpty(first.Configuration.Profiles);
+                Assert.NotEmpty(first.Assignments);
+                Assert.Empty(first.Configuration.Profiles.Select(x => x.Id).Intersect(second.Configuration.Profiles.Select(x => x.Id)));
+                Assert.All(first.Assignments, x => Assert.Equal(first.Configuration.Module.Id, x.Slot.ModuleId));
+                foreach (var profile in first.Configuration.Profiles)
+                {
+                    var diagram = first.Diagrams.Single(x => x.ProfileId == profile.Id);
+                    Assert.Contains(WorkspaceStructureEditor.Hardware(first), x => x.DeviceId == profile.DeviceId);
+                    Assert.Equal(defaults.Sources[diagram.CanonicalUiLayerSourcePath!],
+                        first.Sources!["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"]);
+                    Assert.NotEmpty(UiLayerLuaProfileRenderer.Render(first, profile.Id));
+                }
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(first);
+                await repository.SaveAsync(second);
+                var selected = WorkspaceStructureEditor.Hardware(first).First();
+                var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
+                    x.SourceName.Equals(selected.DefaultFileName, StringComparison.OrdinalIgnoreCase));
+                var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
+                    existing?.SourceName ?? selected.DefaultFileName, existing?.Instance, null);
+                await repository.SaveAsync(edited);
+                Assert.Contains(WorkspaceStructureEditor.Describe((await repository.GetAsync(first.Configuration.Module.Id))!).Devices,
+                    x => x.Layer == AssignmentLayer.Module);
+                Assert.DoesNotContain(WorkspaceStructureEditor.Describe((await repository.GetAsync(second.Configuration.Module.Id))!).Devices,
+                    x => x.Layer == AssignmentLayer.Module);
+                Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(edited));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
         #endregion END Public
     }
 }
