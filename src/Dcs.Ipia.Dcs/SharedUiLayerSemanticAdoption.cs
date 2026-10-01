@@ -76,7 +76,9 @@ namespace Dcs.Ipia.Dcs
                         DcsInputKey.SamePhysicalInput(x.InputKey, binding.InputKey))) continue;
                     var slot = new DraftAssignmentSlot(module.Configuration.Module.Id, device.ProfileId, AssignmentLayer.UiLayer,
                         binding.Section, binding.InputKey, string.Join("+", binding.Reformers));
-                    var original = module.Assignments.SingleOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
+                    var original = DcsInputKey.CollapseAliases(module.Assignments.Where(x =>
+                        x.Slot.Layer == AssignmentLayer.UiLayer && x.Slot.ProfileId == device.ProfileId))
+                        .SingleOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
                     if (original is not null) slot = original.Slot;
                     assignments.Add(new(slot, new(binding.CommandId, binding.CommandName,
                         binding.Section == BindingSection.Axis, AssignmentLayer.UiLayer)) { Filter = binding.Filter });
