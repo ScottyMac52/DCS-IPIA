@@ -95,7 +95,7 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => ModuleLuaProfileRenderer.Render(conflicting, first.Slot.ProfileId));
             var changedBinding = workspace.Configuration.Bindings.Select(x => x.InputKey == "JOY_POV1_D" && x.Disposition != BindingDisposition.Removed
                 ? new DcsBinding(x.ProfileId, x.Section, "CONFLICT", x.CommandName, x.Disposition, x.InputKey, x.Reformers, x.Filter) : x).ToArray();
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, [], changedBinding, "fixture");
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, changedBinding, "fixture");
             Assert.Throws<InvalidDataException>(() => ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = Draft(workspace).Snapshot }, first.Slot.ProfileId));
             second = first with { Slot = first.Slot with { InputKey = "JOY_BTN_POV1_D" }, Filter = new AxisFilter(Deadzone: 0.1) };
             Assert.Equal(2, DcsInputKey.CollapseAliases([first, second]).Count);
@@ -110,7 +110,8 @@ namespace Dcs.Ipia.Tests
             var profile = new DeviceProfile(Guid.NewGuid(), "ava-base-f16c", null, "Ava", "Ava.diff.lua");
             var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "F16", "Ava.diff.lua"));
             var bindings = DcsLuaParser.ParseProfile(source, profile.Id);
-            var config = new ModuleConfiguration(module, [profile], [], bindings, "IPI 5.7.1");
+            var modifiers = DcsLuaParser.ParseModifiers(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "F16", "modifiers.lua")));
+            var config = new ModuleConfiguration(module, [profile], modifiers, bindings, "IPI 5.7.1");
             var controls = Directions.Select((direction, index) =>
                 new HardwareGraphicControl(direction, "POV " + direction, "JOY_BTN_POV1_" + direction, 0, index * 20, 20, 10)).ToArray();
             var diagram = new UiLayerDiagram("Ava", null, "ava.svg", 100, 100, [], []) {
