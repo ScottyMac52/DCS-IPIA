@@ -499,6 +499,27 @@ namespace Dcs.Ipia.App.Smoke
                 if (impactRows.Items.Count != 0 || modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != first.Sources[profilePath] ||
                     modules.GetAsync(localModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != localSources[profilePath])
                     throw new InvalidOperationException("Saving defaults changed saved modules or retained a stale impact report.");
+                ReviewImpact();
+                using (var broken = new SqliteConnection(connection))
+                {
+                    broken.Open();
+                    using var tamper = broken.CreateCommand();
+                    tamper.CommandText = "UPDATE editor_workspaces SET snapshot_json='{' WHERE module_id=$id";
+                    tamper.Parameters.AddWithValue("$id", localModule.Configuration.Module.Id.ToString("D"));
+                    tamper.ExecuteNonQuery();
+                }
+                impactButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var failedReviewDeadline = DateTime.UtcNow.AddSeconds(15);
+                while (!impactButton.IsEnabled)
+                {
+                    if (DateTime.UtcNow > failedReviewDeadline)
+                        throw new InvalidOperationException("Failed impact review did not restore controls.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                if (impactRows.Items.Count != 0 || impactChanges.Items.Count != 0 ||
+                    !((TextBlock)window.FindName("ImpactStatus")!).Text.StartsWith("Unable to review module impact", StringComparison.Ordinal) ||
+                    !((StackPanel)window.FindName("BindingFields")!).IsEnabled)
+                    throw new InvalidOperationException("Failed impact review retained stale results or disabled editing.");
                 window.Close();
                 System.Console.WriteLine("Shared default binding editor staged, discarded, saved and reopened an independent revision.");
             }
@@ -507,5 +528,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
-
 
