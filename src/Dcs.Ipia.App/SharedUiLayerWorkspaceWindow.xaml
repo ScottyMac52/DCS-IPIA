@@ -140,7 +140,7 @@
       </TabItem>
       <TabItem Header="Module impact">
         <Grid Margin="10">
-          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <StackPanel>
             <TextBlock Text="Review proposed shared source changes against saved modules before saving. Refresh after edits or module changes." TextWrapping="Wrap"/>
             <TextBlock Text="Matches baseline: pinned source is unchanged. Different source: module has another source version. Not pinned: no source evidence. Matches proposal: source already agrees. This review does not apply changes to modules." TextWrapping="Wrap" Margin="0,6,0,6"/>
@@ -171,6 +171,27 @@
               </DataGrid.Columns>
             </DataGrid>
           </Grid>
+          <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MaxHeight="210" Margin="0,10,0,0">
+            <StackPanel>
+              <TextBlock Text="Saved revision adoption for the selected module" FontWeight="Bold"/>
+              <TextBlock Text="Take checked source files from the saved defaults. Unchecked files retain module sources. Existing module assignments, labels and overlays remain module-owned. Conflicts start unchecked. Save or discard the shared draft first." TextWrapping="Wrap" Margin="0,4,0,6"/>
+              <DataGrid x:Name="AdoptionChoices" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="100"
+                        AutomationProperties.Name="Reviewed source adoption choices">
+                <DataGrid.Columns>
+                  <DataGridCheckBoxColumn Header="Take default" Binding="{Binding TakeDefault, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                  <DataGridTextColumn Header="Source" Binding="{Binding Path}" IsReadOnly="True" Width="*"/>
+                  <DataGridTextColumn Header="Change" Binding="{Binding Change}" IsReadOnly="True" Width="80"/>
+                  <DataGridCheckBoxColumn Header="Conflict" Binding="{Binding Conflict}" IsReadOnly="True" Width="80"/>
+                </DataGrid.Columns>
+              </DataGrid>
+              <TextBlock x:Name="AdoptionStatus" TextWrapping="Wrap" Margin="0,6,0,6"/>
+              <WrapPanel>
+                <Button x:Name="RecordBaselineButton" Content="Record this baseline" Click="RecordBaselineClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="AdoptDefaultsButton" Content="Apply selected defaults" Click="AdoptDefaultsClicked" Padding="10,6" Margin="0,0,8,0"/>
+                <Button x:Name="RollbackAdoptionButton" Content="Restore prior module state" Click="RollbackAdoptionClicked" Padding="10,6"/>
+              </WrapPanel>
+            </StackPanel>
+          </ScrollViewer>
         </Grid>
       </TabItem>
       <TabItem Header="Sources (read-only)">

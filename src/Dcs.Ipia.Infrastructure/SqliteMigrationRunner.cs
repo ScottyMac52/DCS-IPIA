@@ -41,6 +41,10 @@ namespace Dcs.Ipia.Infrastructure
             {
                 await Execute(c, tx, """CREATE TABLE shared_ui_layer_revisions(revision INTEGER NOT NULL PRIMARY KEY CHECK(revision>0),source_commit TEXT NOT NULL,sources_json TEXT NOT NULL,content_sha256 TEXT NOT NULL); INSERT INTO schema_migrations VALUES(5,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
             }
+            if (!await Applied(c, tx, 6, ct))
+            {
+                await Execute(c, tx, """CREATE TABLE module_update_history(id INTEGER PRIMARY KEY AUTOINCREMENT,module_id TEXT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,snapshot_json TEXT NOT NULL,content_sha256 TEXT NOT NULL); INSERT INTO schema_migrations VALUES(6,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
+            }
             await tx.CommitAsync(ct);
         }
         #endregion END Public

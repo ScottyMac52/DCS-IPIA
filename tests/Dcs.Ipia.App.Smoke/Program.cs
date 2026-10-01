@@ -338,6 +338,24 @@ namespace Dcs.Ipia.App.Smoke
                 ReviewImpact();
                 if (impactChanges.Items.Count != 0 || impactRows.Items.OfType<SharedUiLayerModuleImpact>().Any(x => x.Status != "No default changes"))
                     throw new InvalidOperationException("An unchanged default draft reports source changes.");
+                void WaitModuleUpdate()
+                {
+                    var updateDeadline = DateTime.UtcNow.AddSeconds(15);
+                    while (!impactButton.IsEnabled)
+                    {
+                        if (DateTime.UtcNow > updateDeadline)
+                            throw new InvalidOperationException("Reviewed module update did not complete.");
+                        window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                    }
+                    if (((TextBlock)window.FindName("AdoptionStatus")!).Text.StartsWith("Module was not changed", StringComparison.Ordinal))
+                        throw new InvalidOperationException(((TextBlock)window.FindName("AdoptionStatus")!).Text);
+                }
+                impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
+                ((Button)window.FindName("RecordBaselineButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WaitModuleUpdate();
+                if (modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!.SharedDefault?.ContentSha256 != first.ContentSha256)
+                    throw new InvalidOperationException("Recording a module baseline did not reopen its verified reference.");
+                ReviewImpact();
                 const string smokeFile = "Smoke controller {00000001-0000-0000-8001-444553540000}.diff.lua";
                 var deviceRows = (DataGrid)window.FindName("DeviceRows")!;
                 var cloneChoice = (ComboBox)window.FindName("CloneProfileChoice")!;
@@ -499,6 +517,24 @@ namespace Dcs.Ipia.App.Smoke
                 if (impactRows.Items.Count != 0 || modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != first.Sources[profilePath] ||
                     modules.GetAsync(localModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != localSources[profilePath])
                     throw new InvalidOperationException("Saving defaults changed saved modules or retained a stale impact report.");
+                ReviewImpact();
+                impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
+                var adoptionRows = (DataGrid)window.FindName("AdoptionChoices")!;
+                if (!adoptionRows.Items.OfType<SharedUiLayerAdoptionChoice>().Any(x => x.Path == profilePath && x.TakeDefault && !x.Conflict))
+                    throw new InvalidOperationException("Safe baseline source changes were not offered for adoption.");
+                ((Button)window.FindName("AdoptDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WaitModuleUpdate();
+                var adopted = modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!;
+                if (adopted.SharedDefault?.Revision != 2 || adopted.Sources![profilePath] != saved.Sources[profilePath] ||
+                    modules.GetAsync(localModule.Configuration.Module.Id).GetAwaiter().GetResult()!.Sources![profilePath] != localSources[profilePath])
+                    throw new InvalidOperationException("Reviewed adoption did not preserve module isolation.");
+                ReviewImpact();
+                impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
+                ((Button)window.FindName("RollbackAdoptionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WaitModuleUpdate();
+                var rolledBack = modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!;
+                if (rolledBack.SharedDefault?.Revision != 1 || rolledBack.Sources![profilePath] != first.Sources[profilePath])
+                    throw new InvalidOperationException("Adoption rollback did not restore the prior baseline and sources.");
                 ReviewImpact();
                 using (var broken = new SqliteConnection(connection))
                 {
