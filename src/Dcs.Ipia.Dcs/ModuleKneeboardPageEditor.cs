@@ -79,8 +79,9 @@ namespace Dcs.Ipia.Dcs
                 var items = new JsonArray();
                 for (var i = 0; i < settings.Cards.Count; i++)
                 {
-                    var item = originalItems is not null && i < originalItems.Count
-                        ? originalItems[i]!.DeepClone().AsObject() : new JsonObject();
+                    var matching = originalItems?.Where(x => x?["key"]?.GetValue<string>() == settings.Cards[i].Key).ToArray() ?? [];
+                    var original = matching.Length == 1 ? matching[0] : originalItems is not null && i < originalItems.Count ? originalItems[i] : null;
+                    var item = original?.DeepClone().AsObject() ?? new JsonObject();
                     item["key"] = settings.Cards[i].Key;
                     item["text"] = settings.Cards[i].Text;
                     item["accent"] = settings.Cards[i].Accent;

@@ -38,6 +38,17 @@ namespace Dcs.Ipia.Tests
             updated = ModuleKneeboardPageEditor.Set(updated, null, summary);
             var summaryPage = updated.Pages.Single(x => x.Kind == KneeboardPageKind.Summary);
             var firstPng = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
+            var root = System.Text.Json.Nodes.JsonNode.Parse(updated.Sources!["config/kneeboard.json"])!;
+            root["summaryPages"]![0]!["custom"] = "page metadata";
+            root["summaryPages"]![0]!["items"]![0]!["custom"] = "stick metadata";
+            root["summaryPages"]![0]!["items"]![1]!["custom"] = "axis metadata";
+            updated = updated with { Sources = new Dictionary<string, string>(updated.Sources!) { ["config/kneeboard.json"] = root.ToJsonString() } };
+            var reordered = ModuleKneeboardPageEditor.Set(updated, summaryPage, summary with { Cards = [summary.Cards[1], summary.Cards[0]] });
+            using (var preserved = JsonDocument.Parse(reordered.Sources!["config/kneeboard.json"]))
+            {
+                Assert.Equal("page metadata", preserved.RootElement.GetProperty("summaryPages")[0].GetProperty("custom").GetString());
+                Assert.Equal("axis metadata", preserved.RootElement.GetProperty("summaryPages")[0].GetProperty("items")[0].GetProperty("custom").GetString());
+            }
             updated = ModuleKneeboardPageEditor.Set(updated, summaryPage, summary with { Cards = [new("STICK", "Weapon controls", "green")] });
             Assert.NotEqual(firstPng, Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
             var path = Path.Combine(Path.GetTempPath(), $"ipia-pages-{Guid.NewGuid():N}.db");

@@ -60,11 +60,11 @@ namespace Dcs.Ipia.Dcs
                 entry.Id.Any(char.IsWhiteSpace))
                 throw new InvalidOperationException("Enter a DCS command code, name and category without surrounding whitespace or control characters. Codes cannot contain spaces.");
         }
-        private static int CurrentIndex(IReadOnlyList<CommandPaletteEntry> entries, CommandPaletteEntry? current)
+        private static int CurrentIndex(List<CommandPaletteEntry> entries, CommandPaletteEntry? current)
         {
             if (current is null)
                 return -1;
-            var index = Array.FindIndex(entries.ToArray(), x => x.Id == current.Id);
+            var index = entries.FindIndex(x => x.Id == current.Id);
             if (index < 0 || entries[index] != current)
                 throw new InvalidOperationException("The selected command changed. Select it again.");
             return index;
