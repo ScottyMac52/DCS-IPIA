@@ -279,7 +279,8 @@ namespace Dcs.Ipia.App.Smoke
                     Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
                 };
                 var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
-                    new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""" });
+                    new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
+                        ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     commandFilePicker: html => html ? [htmlPath] : [jsonPath]);
@@ -356,9 +357,104 @@ namespace Dcs.Ipia.App.Smoke
                 ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
                     throw new InvalidOperationException("Discard did not restore the saved catalog after import.");
+                VerifyModuleSnapshotButtons(window, repository, configuration.Module.Id);
                 window.Close();
             }
             finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }
+        }
+        private static void VerifyModuleSnapshotButtons(ModuleWorkspaceWindow authoring, SqliteEditorWorkspaceRepository source, Guid moduleId)
+        {
+            var root = Path.Combine(Path.GetTempPath(), "ipia-module-output-smoke-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var snapshotPath = Path.Combine(root, "module.ipia-module.json");
+                var saved = source.GetAsync(moduleId).GetAwaiter().GetResult()!;
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: source,
+                    outputPathPicker: snapshot => snapshot ? snapshotPath : root);
+                editor.Show();
+                ((TextBox)editor.FindName("PackageVersion")!).Text = "1.2.3";
+                var validate = (Button)editor.FindName("ValidateModuleButton")!;
+                var export = (Button)editor.FindName("ExportModuleSnapshotButton")!;
+                var build = (Button)editor.FindName("BuildButton")!;
+                if (!validate.IsEnabled || !export.IsEnabled || !build.IsEnabled)
+                    throw new InvalidOperationException("Clean saved module output actions are unavailable.");
+                ClickWithDispatcherContext(validate);
+                WaitForOutput(editor, "Validated ");
+                ClickWithDispatcherContext(export);
+                WaitForOutput(editor, "Exported module snapshot:");
+                var snapshot = global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Read(File.ReadAllText(snapshotPath));
+                ClickWithDispatcherContext(build);
+                WaitForOutput(editor, "Wrote ");
+                var original = File.ReadAllBytes(Path.Combine(root, "DCS-AUTHORING-Components-1.2.3-OVGME.zip"));
+                if (!original.SequenceEqual(global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Build(snapshot).Bytes))
+                    throw new InvalidOperationException("UI build did not use the exported immutable inputs.");
+                ((TextBox)editor.FindName("AircraftCommandCode")!).Text = "UNSAVED";
+                ((TextBox)editor.FindName("AircraftCommandName")!).Text = "Pending";
+                ((TextBox)editor.FindName("AircraftCommandCategory")!).Text = "Keys";
+                ((Button)editor.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (validate.IsEnabled || export.IsEnabled || build.IsEnabled)
+                    throw new InvalidOperationException("Pending authoring edits did not disable saved output actions.");
+                ((Button)editor.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                editor.Close();
+
+                var connection = "Data Source=" + Path.Combine(root, "restore.db") + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var restored = new SqliteEditorWorkspaceRepository(connection);
+                var settings = new SqliteAppSettingsService(connection, Path.Combine(root, "defaults.json"),
+                    Path.Combine(root, "settings.json"), Path.Combine(root, "theme.txt"));
+                var main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(), new global::Dcs.Ipia.Dcs.DcsFolderImporter(),
+                    settings, restored, snapshotFilePicker: () => snapshotPath);
+                main.Show();
+                var restore = (Button)main.FindName("RestoreModuleSnapshotButton")!;
+                ClickWithDispatcherContext(restore);
+                var deadline = DateTime.UtcNow.AddSeconds(60);
+                while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Restored ", StringComparison.Ordinal))
+                {
+                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Module snapshot UI restore failed: " + ((TextBlock)main.FindName("ImportStatus")!).Text);
+                    main.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                if (((ComboBox)main.FindName("SavedModules")!).SelectedItem is null ||
+                    global::Dcs.Ipia.Dcs.EditorSnapshotSerializer.Serialize(restored.GetAsync(moduleId).GetAwaiter().GetResult()!) != snapshot.Workspace)
+                    throw new InvalidOperationException("Restored snapshot did not populate the saved module selector losslessly.");
+                ClickWithDispatcherContext(restore);
+                deadline = DateTime.UtcNow.AddSeconds(60);
+                while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Module snapshot was not restored:", StringComparison.Ordinal))
+                {
+                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Duplicate snapshot restore was not blocked.");
+                    main.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                if (restored.ListAsync().GetAwaiter().GetResult().Count != 1)
+                    throw new InvalidOperationException("Duplicate restore changed saved module membership.");
+                main.Close();
+                ((TextBox)authoring.FindName("PackageVersion")!).Text = "1.2.3";
+                if (!((Button)authoring.FindName("ExportModuleSnapshotButton")!).IsEnabled)
+                    throw new InvalidOperationException("Original module became dirty during isolated restore.");
+            }
+            finally { Directory.Delete(root, true); }
+        }
+        private static void ClickWithDispatcherContext(Button button)
+        {
+            var previous = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(button.Dispatcher));
+            try { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        }
+        private static void WaitForOutput(ModuleWorkspaceWindow editor, string prefix)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(60);
+            var status = (TextBlock)editor.FindName("BuildStatus")!;
+            while (!status.Text.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                if (status.Text.StartsWith("Module output failed:", StringComparison.Ordinal) || DateTime.UtcNow > deadline)
+                    throw new InvalidOperationException("Module output UI failed: " + status.Text);
+                editor.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            }
+            while (!((Button)editor.FindName("BuildButton")!).IsEnabled)
+            {
+                if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Output action did not release its busy state.");
+                editor.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            }
         }
         private static void VerifyNewModuleForm()
         {

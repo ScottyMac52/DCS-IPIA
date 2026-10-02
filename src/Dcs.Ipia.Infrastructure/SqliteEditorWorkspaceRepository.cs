@@ -10,7 +10,7 @@ namespace Dcs.Ipia.Infrastructure
 {
     /// <summary>Reads and writes complete editor snapshots without consulting source repositories.</summary>
     /// <param name="connectionString">SQLite connection string.</param>
-    public sealed class SqliteEditorWorkspaceRepository(string connectionString) : IEditorWorkspaceRepository, IEditorWorkspaceUpdateRepository
+    public sealed class SqliteEditorWorkspaceRepository(string connectionString) : IEditorWorkspaceCreationRepository, IEditorWorkspaceUpdateRepository
     {
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
         #region BEGIN Public
@@ -64,49 +64,9 @@ namespace Dcs.Ipia.Infrastructure
             return ids;
         }
         /// <inheritdoc/>
-        public async Task SaveAsync(EditorWorkspaceSnapshot snapshot, CancellationToken ct = default)
-        {
-            ArgumentNullException.ThrowIfNull(snapshot);
-            if (snapshot.Configuration.Module.Id == Guid.Empty)
-                throw new ArgumentException("A module identity is required.", nameof(snapshot));
-            if (snapshot.Assignments.Any(x => x.Slot.ModuleId != snapshot.Configuration.Module.Id))
-                throw new ArgumentException("Assignments must belong to the stored module.", nameof(snapshot));
-            var reference = snapshot.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(snapshot.SharedDefault);
-            await using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync(ct);
-            await using (var foreignKeys = connection.CreateCommand())
-            {
-                foreignKeys.CommandText = "PRAGMA foreign_keys=ON";
-                await foreignKeys.ExecuteNonQueryAsync(ct);
-            }
-            await using var transaction = await connection.BeginTransactionAsync(ct);
-            await using (var existing = connection.CreateCommand())
-            {
-                existing.Transaction = (SqliteTransaction)transaction;
-                existing.CommandText = "SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
-                existing.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
-                if (await existing.ExecuteScalarAsync(ct) is string currentJson)
-                {
-                    var previous = JsonSerializer.Deserialize<EditorWorkspacePayload>(currentJson, JsonOptions)?.SharedDefault;
-                    if (previous is not null && (reference is null || previous.Revision != reference.Revision ||
-                        previous.ContentSha256 != reference.ContentSha256 || previous.SourceCommit != reference.SourceCommit))
-                        throw new InvalidOperationException("The module's shared default reference changed. Reopen it before saving; baseline changes require reviewed adoption.");
-                }
-            }
-            await SqliteConfigurationRepository.ReplaceInTransactionAsync(
-                connection, (SqliteTransaction)transaction, snapshot.Configuration, ct);
-            await using var command = connection.CreateCommand();
-            command.Transaction = (SqliteTransaction)transaction;
-            command.CommandText =
-                "INSERT INTO editor_workspaces(module_id,snapshot_json,updated_utc) VALUES($id,$json,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(module_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,updated_utc=excluded.updated_utc";
-            command.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
-            var payload = new EditorWorkspacePayload(snapshot.Pages, snapshot.Images, snapshot.Diagrams,
-                                                     snapshot.ModuleCommands, snapshot.UiCommands, snapshot.Assignments,
-                                                     snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = reference };
-            command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(payload, JsonOptions));
-            await command.ExecuteNonQueryAsync(ct);
-            await transaction.CommitAsync(ct);
-        }
+        public Task SaveAsync(EditorWorkspaceSnapshot snapshot, CancellationToken ct = default) => SaveCoreAsync(snapshot, false, ct);
+        /// <inheritdoc/>
+        public Task CreateAsync(EditorWorkspaceSnapshot snapshot, CancellationToken ct = default) => SaveCoreAsync(snapshot, true, ct);
         /// <inheritdoc/>
         public async Task<bool> DeleteAsync(Guid moduleId, CancellationToken ct = default)
         {
@@ -192,6 +152,59 @@ namespace Dcs.Ipia.Infrastructure
         }
         #endregion END Public
         #region BEGIN private helpers
+        private async Task SaveCoreAsync(EditorWorkspaceSnapshot snapshot, bool createOnly, CancellationToken ct)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            if (snapshot.Configuration.Module.Id == Guid.Empty)
+                throw new ArgumentException("A module identity is required.", nameof(snapshot));
+            if (snapshot.Assignments.Any(x => x.Slot.ModuleId != snapshot.Configuration.Module.Id))
+                throw new ArgumentException("Assignments must belong to the stored module.", nameof(snapshot));
+            var reference = snapshot.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(snapshot.SharedDefault);
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(ct);
+            await using (var foreignKeys = connection.CreateCommand())
+            {
+                foreignKeys.CommandText = "PRAGMA foreign_keys=ON";
+                await foreignKeys.ExecuteNonQueryAsync(ct);
+            }
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+            if (createOnly)
+            {
+                await using var duplicate = connection.CreateCommand();
+                duplicate.Transaction = (SqliteTransaction)transaction;
+                duplicate.CommandText = "SELECT COUNT(*) FROM modules WHERE id=$id OR dcs_id=$dcs COLLATE NOCASE";
+                duplicate.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
+                duplicate.Parameters.AddWithValue("$dcs", snapshot.Configuration.Module.DcsId);
+                if (Convert.ToInt64(await duplicate.ExecuteScalarAsync(ct), System.Globalization.CultureInfo.InvariantCulture) != 0)
+                    throw new InvalidOperationException("That module identity or DCS folder is already saved. Restore into an empty database or remove the existing module first.");
+            }
+            await using (var existing = connection.CreateCommand())
+            {
+                existing.Transaction = (SqliteTransaction)transaction;
+                existing.CommandText = "SELECT snapshot_json FROM editor_workspaces WHERE module_id=$id";
+                existing.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
+                if (await existing.ExecuteScalarAsync(ct) is string currentJson)
+                {
+                    var previous = JsonSerializer.Deserialize<EditorWorkspacePayload>(currentJson, JsonOptions)?.SharedDefault;
+                    if (previous is not null && (reference is null || previous.Revision != reference.Revision ||
+                        previous.ContentSha256 != reference.ContentSha256 || previous.SourceCommit != reference.SourceCommit))
+                        throw new InvalidOperationException("The module's shared default reference changed. Reopen it before saving; baseline changes require reviewed adoption.");
+                }
+            }
+            await SqliteConfigurationRepository.ReplaceInTransactionAsync(
+                connection, (SqliteTransaction)transaction, snapshot.Configuration, ct);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            command.CommandText =
+                "INSERT INTO editor_workspaces(module_id,snapshot_json,updated_utc) VALUES($id,$json,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(module_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,updated_utc=excluded.updated_utc";
+            command.Parameters.AddWithValue("$id", snapshot.Configuration.Module.Id.ToString("D"));
+            var payload = new EditorWorkspacePayload(snapshot.Pages, snapshot.Images, snapshot.Diagrams,
+                                                     snapshot.ModuleCommands, snapshot.UiCommands, snapshot.Assignments,
+                                                     snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = reference };
+            command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(payload, JsonOptions));
+            await command.ExecuteNonQueryAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
         private static EditorWorkspacePayload Payload(EditorWorkspaceSnapshot snapshot) =>
             new(snapshot.Pages, snapshot.Images, snapshot.Diagrams, snapshot.ModuleCommands, snapshot.UiCommands,
                 snapshot.Assignments, snapshot.Labels, snapshot.Sources) { Version = 3, SharedDefault = snapshot.SharedDefault };
