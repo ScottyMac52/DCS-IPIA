@@ -17,7 +17,7 @@ namespace DcsIpia.Presentation
         private readonly IConnectedDeviceDiscovery _discovery;
         private readonly ObservableCollection<NewModuleDeviceSelection> _selections = [];
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
-        private string? _savedGamesRoot;
+        private string _savedGamesRoot = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         /// <summary>Initializes a creation form from verified internal assets.</summary>
         /// <param name="repository">Local module storage.</param>
         /// <param name="defaults">Saved shared defaults to pin.</param>

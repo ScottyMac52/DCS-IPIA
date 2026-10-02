@@ -668,7 +668,7 @@ namespace Dcs.Ipia.Tests
                 var other = new WorkspaceHardware("other", "Other", "Other.diff.lua", restored.Diagrams[0]);
                 var withOther = WorkspaceStructureEditor.AddDevice(restored, other, AssignmentLayer.Module,
                     new DetectedDcsDevice(Guid.NewGuid(), "Other", true).FileName, "Second", null);
-                var otherDevice = WorkspaceStructureEditor.Describe(withOther).Devices.Last();
+                var otherDevice = WorkspaceStructureEditor.Describe(withOther).Devices[^1];
                 Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(withOther, otherDevice, file, null, null));
             }
             finally { File.Delete(path); }
