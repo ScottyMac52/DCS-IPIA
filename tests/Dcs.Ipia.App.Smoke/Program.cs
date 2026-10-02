@@ -302,7 +302,7 @@ namespace Dcs.Ipia.App.Smoke
                 foreach (var buttonName in CommandImportButtons)
                 {
                     window.Dispatcher.BeginInvoke(new Action(() => {
-                        var reviewWindow = Application.Current.Windows.OfType<CommandImportReviewWindow>().Single();
+                        var reviewWindow = System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single();
                         if (((DataGrid)reviewWindow.FindName("ImportChanges")!).Items.Count != 1 ||
                             !((Button)reviewWindow.FindName("StageImportButton")!).IsEnabled)
                             throw new InvalidOperationException("Command import review did not expose the validated addition.");
@@ -314,7 +314,7 @@ namespace Dcs.Ipia.App.Smoke
                     !((ComboBox)window.FindName("Category")!).Items.Cast<string>().Contains("Flight"))
                     throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
                 window.Dispatcher.BeginInvoke(new Action(() => {
-                    Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().DialogResult = false;
+                    System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().DialogResult = false;
                 }));
                 ((Button)window.FindName("LoadCommandHtmlButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3) throw new InvalidOperationException("Cancelling import changed the catalog.");
@@ -349,7 +349,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Command imports and original sources did not reopen from SQLite.");
                 File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"EXTRA","name":"Discarded import","categoryPath":["Flight"],"type":"button"}]}""");
                 window.Dispatcher.BeginInvoke(new Action(() => {
-                    ((Button)Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((Button)System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }));
                 ((Button)window.FindName("LoadCommandJsonButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 4) throw new InvalidOperationException("The discardable import did not stage.");
