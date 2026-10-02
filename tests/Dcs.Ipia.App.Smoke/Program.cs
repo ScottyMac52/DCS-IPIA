@@ -371,19 +371,26 @@ namespace Dcs.Ipia.App.Smoke
                 var snapshotPath = Path.Combine(root, "module.ipia-module.json");
                 var saved = source.GetAsync(moduleId).GetAwaiter().GetResult()!;
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: source,
-                    outputPathPicker: snapshot => snapshot ? snapshotPath : root);
+                    outputPathPicker: snapshot => snapshot ? snapshotPath : root, documentationFolderPicker: () => root);
                 editor.Show();
                 ((TextBox)editor.FindName("PackageVersion")!).Text = "1.2.3";
                 var validate = (Button)editor.FindName("ValidateModuleButton")!;
                 var export = (Button)editor.FindName("ExportModuleSnapshotButton")!;
                 var build = (Button)editor.FindName("BuildButton")!;
-                if (!validate.IsEnabled || !export.IsEnabled || !build.IsEnabled)
+                var documentation = (Button)editor.FindName("ExportModuleDocumentationButton")!;
+                if (!validate.IsEnabled || !export.IsEnabled || !build.IsEnabled || !documentation.IsEnabled)
                     throw new InvalidOperationException("Clean saved module output actions are unavailable.");
                 ClickWithDispatcherContext(validate);
                 WaitForOutput(editor, "Validated ");
                 ClickWithDispatcherContext(export);
                 WaitForOutput(editor, "Exported module snapshot:");
                 var snapshot = global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Read(File.ReadAllText(snapshotPath));
+                ClickWithDispatcherContext(documentation);
+                WaitForOutput(editor, "Exported module documentation:");
+                var guides = global::Dcs.Ipia.Dcs.ModuleDocumentationWorkflow.Generate(snapshot);
+                foreach (var guide in guides)
+                    if (File.ReadAllText(Path.Combine(root, "DCS-AUTHORING-Components-1.2.3-Documentation", guide.Key)) != guide.Value)
+                        throw new InvalidOperationException("UI documentation differs from frozen snapshot output.");
                 ClickWithDispatcherContext(build);
                 WaitForOutput(editor, "Wrote ");
                 var original = File.ReadAllBytes(Path.Combine(root, "DCS-AUTHORING-Components-1.2.3-OVGME.zip"));
@@ -393,7 +400,7 @@ namespace Dcs.Ipia.App.Smoke
                 ((TextBox)editor.FindName("AircraftCommandName")!).Text = "Pending";
                 ((TextBox)editor.FindName("AircraftCommandCategory")!).Text = "Keys";
                 ((Button)editor.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (validate.IsEnabled || export.IsEnabled || build.IsEnabled)
+                if (validate.IsEnabled || export.IsEnabled || build.IsEnabled || documentation.IsEnabled)
                     throw new InvalidOperationException("Pending authoring edits did not disable saved output actions.");
                 ((Button)editor.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 editor.Close();
