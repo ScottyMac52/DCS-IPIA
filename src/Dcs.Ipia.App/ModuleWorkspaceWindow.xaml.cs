@@ -32,6 +32,8 @@ namespace DcsIpia.Presentation
         private bool _discoveryBusy;
         private bool _structureDirty;
         private bool _managementRefreshing;
+        private bool _authoringRefreshing;
+        private readonly List<ModuleSummaryCard> _summaryCards = [];
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TextBlock> _calloutText = new(StringComparer.Ordinal);
         private HardwareGraphicControl? _selected;
@@ -75,6 +77,11 @@ namespace DcsIpia.Presentation
             ModifierModeChoice.ItemsSource = Enum.GetValues<ModifierMode>();
             ModifierModeChoice.SelectedIndex = 0;
             RefreshManagement();
+            AuthoredPageKind.ItemsSource = Enum.GetValues<KneeboardPageKind>();
+            AuthoredPageKind.SelectedIndex = 0;
+            SummaryCardAccent.ItemsSource = new[] { "cyan", "gold", "red", "blue", "orange", "purple", "green" };
+            SummaryCardAccent.SelectedIndex = 0;
+            RefreshAuthoring();
             RefreshDeviceChoices();
             Loaded += async (_, _) => { if (_working is not null) await RefreshDetectedDevicesAsync(); };
             Closing += ConfirmClose;
@@ -84,6 +91,181 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private IReadOnlyList<CommandPaletteEntry> AircraftPalette() => CurrentLayer == AssignmentLayer.Module
+            ? _working?.ModuleCommands ?? _viewModel.ModuleCommands
+            : _working is null ? _viewModel.UiCommands : CommandPalette.FromUiLayer(_working.UiCommands);
+        private void RefreshAuthoring()
+        {
+            if (AuthoredCommands is null || AuthoredPages is null)
+                return;
+            var commandId = (AuthoredCommands.SelectedItem as CommandPaletteEntry)?.Id ?? AircraftCommandCode.Text;
+            var pageId = (AuthoredPages.SelectedItem as KneeboardPage)?.Id ?? _working?.Pages.FirstOrDefault(x => x.StableKey == AuthoredPageFile.Text)?.Id;
+            _authoringRefreshing = true;
+            AuthoredCommands.ItemsSource = _working?.ModuleCommands ?? [];
+            AuthoredCommands.SelectedItem = _working?.ModuleCommands.FirstOrDefault(x => x.Id == commandId);
+            AuthoredPages.ItemsSource = _working?.Pages ?? [];
+            AuthoredPages.SelectedItem = _working?.Pages.FirstOrDefault(x => x.Id == pageId);
+            AuthoredPageDevice.ItemsSource = _working?.Configuration.Profiles ?? [];
+            StageAircraftCommandButton.IsEnabled = _working is not null;
+            StageAuthoredPageButton.IsEnabled = _working is not null;
+            MissingDevicePagesButton.IsEnabled = _working is not null;
+            _authoringRefreshing = false;
+            AuthoredCommandSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
+            if (AuthoredPages.SelectedItem is KneeboardPage)
+                AuthoredPageSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
+            else
+                RemoveAuthoredPageButton.IsEnabled = false;
+        }
+        private void NewAircraftCommandClicked(object sender, RoutedEventArgs e)
+        {
+            AuthoredCommands.SelectedItem = null;
+            AircraftCommandCode.IsReadOnly = false;
+            AircraftCommandCode.Text = "";
+            AircraftCommandName.Text = "";
+            AircraftCommandCategory.Text = "";
+            AircraftCommandType.SelectedIndex = 0;
+        }
+        private void AuthoredCommandSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (_authoringRefreshing || AircraftCommandCode is null)
+                return;
+            if (AuthoredCommands.SelectedItem is not CommandPaletteEntry command)
+            {
+                AircraftCommandCode.IsReadOnly = false;
+                return;
+            }
+            AircraftCommandCode.IsReadOnly = true;
+            AircraftCommandCode.Text = command.Id;
+            AircraftCommandName.Text = command.Name;
+            AircraftCommandCategory.Text = command.Category;
+            AircraftCommandType.SelectedIndex = command.IsAxis ? 1 : 0;
+        }
+        private void StageAircraftCommandClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            ModuleCommandCatalogEditor.Set(workspace, AuthoredCommands.SelectedItem as CommandPaletteEntry,
+                new(AircraftCommandCode.Text, AircraftCommandName.Text, AircraftCommandCategory.Text, AircraftCommandType.SelectedIndex == 1)));
+        private void RemoveAircraftCommandClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            ModuleCommandCatalogEditor.Remove(workspace, AuthoredCommands.SelectedItem as CommandPaletteEntry ??
+                throw new InvalidOperationException("Select an aircraft command.")));
+        private void NewAuthoredPageClicked(object sender, RoutedEventArgs e)
+        {
+            AuthoredPages.SelectedItem = null;
+            AuthoredPageKind.IsEnabled = true;
+            AuthoredPageDevice.IsEnabled = AuthoredPageKind.SelectedItem is KneeboardPageKind.Device;
+            AuthoredPageDevice.SelectedIndex = 0;
+            AuthoredPageFile.Text = "overview";
+            AuthoredPageTitle.Text = "CONTROL OVERVIEW";
+            AuthoredPageSubtitle.Text = "CONTROLS";
+            AuthoredPageOrder.Text = (_working?.Pages.Count ?? 0).ToString(CultureInfo.InvariantCulture);
+            _summaryCards.Clear();
+            SummaryCards.ItemsSource = _summaryCards.ToArray();
+            RemoveAuthoredPageButton.IsEnabled = false;
+        }
+        private void AuthoredPageKindChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_authoringRefreshing || SummaryCardsGroup is null || AuthoredPageDevice is null)
+                return;
+            var summary = AuthoredPageKind.SelectedItem is KneeboardPageKind.Summary;
+            SummaryCardsGroup.IsEnabled = summary;
+            AuthoredPageDevice.IsEnabled = !summary && AuthoredPages.SelectedItem is null;
+        }
+        private void AuthoredPageSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (_authoringRefreshing || _working is null || AuthoredPages.SelectedItem is not KneeboardPage page)
+                return;
+            try
+            {
+                var settings = ModuleKneeboardPageEditor.Describe(_working, page);
+                _authoringRefreshing = true;
+                AuthoredPageKind.SelectedItem = settings.Kind;
+                AuthoredPageKind.IsEnabled = false;
+                AuthoredPageDevice.SelectedItem = _working.Configuration.Profiles.FirstOrDefault(x => x.Id == settings.ProfileId);
+                AuthoredPageDevice.IsEnabled = false;
+                AuthoredPageFile.Text = settings.File;
+                AuthoredPageTitle.Text = settings.Title;
+                AuthoredPageSubtitle.Text = settings.Subtitle;
+                AuthoredPageOrder.Text = settings.Order.ToString(CultureInfo.InvariantCulture);
+                _summaryCards.Clear();
+                _summaryCards.AddRange(settings.Cards);
+                SummaryCards.ItemsSource = _summaryCards.ToArray();
+                SummaryCardsGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
+                RemoveAuthoredPageButton.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
+            }
+            catch (Exception ex) { SetManagementMessage(ex.Message); }
+            finally { _authoringRefreshing = false; }
+        }
+        private ModuleKneeboardPageSettings PageSettings()
+        {
+            if (!int.TryParse(AuthoredPageOrder.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var order))
+                throw new InvalidOperationException("Enter a non-negative page order.");
+            var kind = AuthoredPageKind.SelectedItem is KneeboardPageKind selected ? selected : KneeboardPageKind.Device;
+            return new(kind, kind == KneeboardPageKind.Device ? (AuthoredPageDevice.SelectedItem as DeviceProfile)?.Id : null,
+                AuthoredPageFile.Text, AuthoredPageTitle.Text, AuthoredPageSubtitle.Text, order,
+                kind == KneeboardPageKind.Summary ? _summaryCards.ToArray() : []);
+        }
+        private void StageAuthoredPageClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+        {
+            var updated = ModuleKneeboardPageEditor.Set(workspace, AuthoredPages.SelectedItem as KneeboardPage, PageSettings());
+            SnapshotSummaryKneeboardRenderer.Generate(updated);
+            return updated;
+        });
+        private void MissingDevicePagesClicked(object sender, RoutedEventArgs e) => RunStructureEdit(ModuleKneeboardPageEditor.AddMissingDevicePages);
+        private void RemoveAuthoredPageClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            ModuleKneeboardPageEditor.Remove(workspace, AuthoredPages.SelectedItem as KneeboardPage ??
+                throw new InvalidOperationException("Select a summary page.")));
+        private void NewSummaryCardClicked(object sender, RoutedEventArgs e)
+        {
+            SummaryCards.SelectedItem = null;
+            SummaryCardKey.Text = "";
+            SummaryCardText.Text = "";
+        }
+        private void SummaryCardSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (SummaryCards.SelectedItem is not ModuleSummaryCard card || SummaryCardKey is null)
+                return;
+            SummaryCardKey.Text = card.Key;
+            SummaryCardText.Text = card.Text;
+            SummaryCardAccent.SelectedItem = card.Accent;
+        }
+        private void SetSummaryCardClicked(object sender, RoutedEventArgs e)
+        {
+            var card = new ModuleSummaryCard(SummaryCardKey.Text, SummaryCardText.Text, SummaryCardAccent.SelectedItem as string ?? "cyan");
+            var index = SummaryCards.SelectedItem is ModuleSummaryCard selected ? _summaryCards.IndexOf(selected) : -1;
+            if (index < 0) _summaryCards.Add(card);
+            else _summaryCards[index] = card;
+            SummaryCards.ItemsSource = _summaryCards.ToArray();
+            SummaryCards.SelectedItem = card;
+            PageAuthoringStatus.Text = "Card updated in the form. Stage page, then Save to database to keep it.";
+        }
+        private void RemoveSummaryCardClicked(object sender, RoutedEventArgs e)
+        {
+            if (SummaryCards.SelectedItem is ModuleSummaryCard selected)
+                _summaryCards.Remove(selected);
+            SummaryCards.ItemsSource = _summaryCards.ToArray();
+            PageAuthoringStatus.Text = "Card removed from the form. Stage page, then Save to database to keep it.";
+        }
+        private void PreviewAuthoredPageClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var settings = PageSettings();
+                var updated = ModuleKneeboardPageEditor.Set(EditSnapshot(), AuthoredPages.SelectedItem as KneeboardPage, settings);
+                var png = settings.Kind == KneeboardPageKind.Summary
+                    ? SnapshotSummaryKneeboardRenderer.Generate(updated)[$"KNEEBOARD/{updated.Configuration.Module.DcsId}/{settings.File}.png"]
+                    : CompositeKneeboardRenderer.Render(updated.Diagrams.Single(x => x.ProfileId == settings.ProfileId),
+                        KneeboardDraftProjection.CreateCombined(updated, updated.Diagrams.Single(x => x.ProfileId == settings.ProfileId), updated.Assignments, updated.Labels), "");
+                using var stream = new MemoryStream(png);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = stream;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                new Window { Title = "Draft page · " + settings.Title, Owner = this, Width = 850, Height = 900,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Content = new ScrollViewer { Content = new Image { Source = bitmap, Stretch = Stretch.Uniform } } }.ShowDialog();
+            }
+            catch (Exception ex) { SetManagementMessage("Page preview failed: " + ex.Message); }
+        }
         private AssignmentLayer DeviceManagementLayer => DevicesScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
         private AssignmentLayer ModifierManagementLayer => ModifiersScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
         private EditorWorkspaceSnapshot EditSnapshot()
@@ -158,6 +340,8 @@ namespace DcsIpia.Presentation
             EditorMessage.Text = message;
             DevicesMessage.Text = message;
             ModifiersMessage.Text = message;
+            CommandAuthoringStatus.Text = message;
+            PageAuthoringStatus.Text = message;
         }
         private void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit)
         {
@@ -170,6 +354,7 @@ namespace DcsIpia.Presentation
                 _labels.Clear();
                 foreach (var pair in updated.Labels) _labels[pair.Key] = pair.Value;
                 RefreshManagement();
+                RefreshAuthoring();
                 RefreshDeviceChoices();
                 RefreshEditor();
                 SetManagementMessage("Change staged. Save to database to keep it, or Discard draft.");
@@ -427,17 +612,16 @@ namespace DcsIpia.Presentation
                           (CurrentLayer == AssignmentLayer.Module ? "Module controls" : "Module UI Layer controls");
             EditorMessage.Text =
                 _saved is null ? "Import a module to SQLite or open a saved module to edit its controls." : "";
-            if (_categoryScope != CurrentLayer)
+            var available = AircraftPalette();
+            var categories = Enumerable.Repeat("All", 1).Concat(available.Select(x => x.Category).Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)).ToArray();
+            if (_categoryScope != CurrentLayer || !(CommandCategory.ItemsSource as string[] ?? []).SequenceEqual(categories, StringComparer.Ordinal))
             {
+                var selectedCategory = _categoryScope == CurrentLayer ? CommandCategory.SelectedItem as string : null;
                 _updatingFilters = true;
-                var available =
-                    CurrentLayer == AssignmentLayer.Module ? _viewModel.ModuleCommands : _viewModel.UiCommands;
-                CommandCategory.ItemsSource = Enumerable.Repeat("All", 1)
-                                                  .Concat(available.Select(x => x.Category)
-                                                              .Distinct(StringComparer.Ordinal)
-                                                              .Order(StringComparer.Ordinal))
-                                                  .ToArray();
-                CommandCategory.SelectedIndex = 0;
+                CommandCategory.ItemsSource = categories;
+                CommandCategory.SelectedItem = selectedCategory is not null && categories.Contains(selectedCategory, StringComparer.Ordinal)
+                    ? selectedCategory : "All";
                 _categoryScope = CurrentLayer;
                 _updatingFilters = false;
             }
@@ -565,7 +749,7 @@ namespace DcsIpia.Presentation
         {
             if (Commands is null || CommandCategory is null || CommandCount is null)
                 return;
-            var list = CurrentLayer == AssignmentLayer.Module ? _viewModel.ModuleCommands : _viewModel.UiCommands;
+            var list = AircraftPalette();
             var category = CommandCategory.SelectedItem as string;
             var filtered =
                 CommandPalette.Filter(list, CommandSearch.Text, category == "All" ? null : category)
@@ -576,7 +760,8 @@ namespace DcsIpia.Presentation
                 var layer = Layers.SelectedItem as string ?? "Base";
                 var chord = layer == "Base" ? "" : layer.Replace(" + ", "+", StringComparison.Ordinal);
                 var eligible =
-                    _viewModel.UiDiagrams.Where(x => CurrentLayer == AssignmentLayer.Module || x.SupportsUiLayer)
+                    (_working?.Diagrams ?? _viewModel.UiDiagrams).Where(x => _working is null ? CurrentLayer == AssignmentLayer.Module || x.SupportsUiLayer :
+                        WorkspaceStructureEditor.Describe(_working).Devices.Any(d => d.ProfileId == x.ProfileId && d.Layer == CurrentLayer))
                         .Select(x => x.ProfileId);
                 filtered = CommandBindingStateFilter
                                .Filter(filtered, _draft.Snapshot, CurrentLayer, eligible, CurrentDiagram?.ProfileId,
@@ -740,7 +925,7 @@ namespace DcsIpia.Presentation
                                      : assignment is null                 ? "Assign a command before tuning."
                                      : assignment.Filter is null          ? "No axis filter set."
                                                                           : "Axis filter staged.";
-            PendingSummary.Text = _structureDirty ? "Pending device or modifier changes" : _draft?.HasChanges == true ? "Pending assignments: " + _draft.History.Count
+            PendingSummary.Text = _structureDirty ? "Pending module authoring changes" : _draft?.HasChanges == true ? "Pending assignments: " + _draft.History.Count
                                                              : "No pending assignment changes";
         }
         private async void SaveClicked(object sender, RoutedEventArgs e)
@@ -770,9 +955,10 @@ namespace DcsIpia.Presentation
                 RefreshEditor();
                 RefreshKneeboardPreview();
                 RefreshManagement();
+                RefreshAuthoring();
                 RefreshDeviceChoices();
                 KneeboardList.ItemsSource = updated.Pages.Select(x => $"{x.Order:00}  ·  {x.Title}").ToArray();
-                SetManagementMessage("Devices, modifiers, assignments, and labels saved to database.");
+                SetManagementMessage("Commands, pages, devices, modifiers, assignments, and labels saved to database.");
                 UpdateBuildAvailability();
             }
             catch (Exception ex)
@@ -825,6 +1011,7 @@ namespace DcsIpia.Presentation
                     _labels[pair.Key] = pair.Value;
             RefreshEditor();
             RefreshManagement();
+            RefreshAuthoring();
             RefreshDeviceChoices();
             SetManagementMessage("Pending edits discarded.");
             UpdateBuildAvailability();
@@ -1003,7 +1190,7 @@ namespace DcsIpia.Presentation
         private void ConfirmClose(object? sender, CancelEventArgs e)
         {
             if (HasPendingChanges() &&
-                MessageBox.Show(this, "Discard unsaved device, modifier, assignment, and label changes?", "Pending changes",
+                MessageBox.Show(this, "Discard unsaved command, page, device, modifier, assignment, and label changes?", "Pending changes",
                                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 e.Cancel = true;
         }

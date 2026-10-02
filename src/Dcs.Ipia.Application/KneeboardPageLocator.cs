@@ -33,9 +33,9 @@ namespace Dcs.Ipia.Application
                 !root.TryGetProperty("pages", out var pages) || pages.ValueKind != JsonValueKind.Array)
                 return null;
             var key = profiles.EnumerateObject()
-                          .FirstOrDefault(x => string.Equals(Path.GetFileName(x.Value.GetString()), profile.SourceName,
-                                                             StringComparison.Ordinal))
-                          .Name;
+                          .Where(x => string.Equals(Path.GetFileName(x.Value.GetString()), profile.SourceName, StringComparison.Ordinal))
+                          .Select(x => x.Name)
+                          .FirstOrDefault();
             if (key is null)
                 return null;
             foreach (var page in pages.EnumerateArray())

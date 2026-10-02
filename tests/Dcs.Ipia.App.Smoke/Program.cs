@@ -30,6 +30,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifySharedDefaultBindingEditor();
             VerifyModuleDeleteButton();
             VerifyNewModuleForm();
+            VerifyModuleAuthoring();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
@@ -253,6 +254,70 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyModuleAuthoring()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ipia-authoring-smoke-" + Guid.NewGuid().ToString("N") + ".db");
+            var connection = "Data Source=" + path + ";Pooling=False";
+            try
+            {
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
+                var configuration = new ModuleConfiguration(new(Guid.NewGuid(), "AUTHORING", "Authoring"), [profile], [], [], "Created in IPIA");
+                var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
+                {
+                    ProfileId = profile.Id, Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
+                    Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
+                };
+                var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
+                    new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""" });
+                repository.SaveAsync(workspace).GetAwaiter().GetResult();
+                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository);
+                window.Show();
+                window.UpdateLayout();
+                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
+                if (((TextBox)window.FindName("ManagedFileName")!).Text != profile.SourceName)
+                    throw new InvalidOperationException("A newly created device without page metadata could not be selected.");
+                ((Button)window.FindName("MissingDevicePagesButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (((DataGrid)window.FindName("AuthoredPages")!).Items.Count != 1)
+                    throw new InvalidOperationException("Missing device pages did not initialize from the New Module manifest.");
+                ((TextBox)window.FindName("AircraftCommandCode")!).Text = "KEY";
+                ((TextBox)window.FindName("AircraftCommandName")!).Text = "Test action";
+                ((TextBox)window.FindName("AircraftCommandCategory")!).Text = "Keys";
+                ((Button)window.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var commands = (DataGrid)window.FindName("AuthoredCommands")!;
+                var palette = (ListBox)window.FindName("Commands")!;
+                if (commands.Items.Count != 1 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "KEY"))
+                    throw new InvalidOperationException("Authored aircraft command did not refresh the assignment palette.");
+                ((ComboBox)window.FindName("AuthoredPageKind")!).SelectedItem = KneeboardPageKind.Summary;
+                ((TextBox)window.FindName("AuthoredPageFile")!).Text = "overview";
+                ((TextBox)window.FindName("AuthoredPageTitle")!).Text = "OVERVIEW";
+                ((TextBox)window.FindName("AuthoredPageSubtitle")!).Text = "CONTROLS";
+                ((TextBox)window.FindName("SummaryCardKey")!).Text = "STICK";
+                ((TextBox)window.FindName("SummaryCardText")!).Text = "Flight controls";
+                ((Button)window.FindName("SetSummaryCardButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)window.FindName("StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (((DataGrid)window.FindName("AuthoredPages")!).Items.Count != 2)
+                    throw new InvalidOperationException("Authored summary page did not stage.");
+                ((Button)window.FindName("SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                while (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.Pages.Count != 2)
+                {
+                    if (DateTime.UtcNow > deadline)
+                        throw new InvalidOperationException("Commands and pages did not save to SQLite.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                ((TextBox)window.FindName("AircraftCommandName")!).Text = "Discarded name";
+                ((Button)window.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (((CommandPaletteEntry)commands.Items[0]).Name != "Test action")
+                    throw new InvalidOperationException("Discard did not restore the saved aircraft catalog.");
+                if (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands[0].Name != "Test action")
+                    throw new InvalidOperationException("Discard altered the saved aircraft catalog.");
+                window.Close();
+            }
+            finally { File.Delete(path); }
+        }
         private static void VerifyNewModuleForm()
         {
             var window = new NewModuleWindow(null!, new SharedUiLayerWorkspace(7, new string('a', 40),

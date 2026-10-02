@@ -128,8 +128,9 @@ namespace Dcs.Ipia.Application
                 {
                     var profileKey =
                         profiles.EnumerateObject()
-                            .FirstOrDefault(x => Path.GetFileName(x.Value.GetString()) == profile.SourceName)
-                            .Name;
+                            .Where(x => Path.GetFileName(x.Value.GetString()) == profile.SourceName)
+                            .Select(x => x.Name)
+                            .FirstOrDefault();
                     foreach (var page in pages.EnumerateArray())
                     {
                         if (!page.TryGetProperty("profile", out var key) || key.GetString() != profileKey)
