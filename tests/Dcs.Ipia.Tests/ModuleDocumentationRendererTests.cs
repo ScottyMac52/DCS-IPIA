@@ -30,7 +30,7 @@ namespace Dcs.Ipia.Tests
             var defaults = new ModuleDocumentationProfile("default/Keyboard.diff.lua", null,
                 [new(id, BindingSection.Key, "pause", "Pause", BindingDisposition.Added, "Pause")], []);
             var guides = ModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]);
-            Assert.Equal(new[] { "CONTROL-MAPPINGS.md", "INSTALLATION.md", "README.md", "THIRD-PARTY-ASSETS.md" }, guides.Keys);
+            Assert.Equal(GuideNames, guides.Keys);
             var controls = guides["CONTROL-MAPPINGS.md"];
             Assert.Contains("Pitch \\| &lt;script&gt;<br>\\*\\[link\\](url)", controls, StringComparison.Ordinal);
             Assert.Contains("A + B", controls, StringComparison.Ordinal);
@@ -66,5 +66,8 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<ArgumentNullException>(() => ModuleDocumentationRenderer.Render(workspace, "1", "digest", [], null!));
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static readonly string[] GuideNames = ["CONTROL-MAPPINGS.md", "INSTALLATION.md", "README.md", "THIRD-PARTY-ASSETS.md"];
+        #endregion END private helpers
     }
 }
