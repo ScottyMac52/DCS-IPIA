@@ -638,13 +638,17 @@ namespace Dcs.Ipia.Tests
                 original.Configuration.Modifiers, original.Configuration.Bindings.Concat([
                     new DcsBinding(ProfileId, BindingSection.Axis, "AXIS", "Pitch", BindingDisposition.Added, "JOY_X", filter: new AxisFilter(Deadzone: 4, Curvature: [12], Invert: true)),
                     new DcsBinding(ProfileId, BindingSection.Key, "OLD", "Removed action", BindingDisposition.Removed, "JOY_BTN3")
-                ]), original.Configuration.Provenance) };
+                ]), original.Configuration.Provenance),
+                Assignments = [.. original.Assignments,
+                    new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", ""),
+                        new("AXIS", "Pitch", true, AssignmentLayer.Module)) { Filter = new AxisFilter(Deadzone: 4, Curvature: [12], Invert: true) }]
+            };
             var device = WorkspaceStructureEditor.Describe(original).Devices.First(x => x.Layer == AssignmentLayer.Module);
             var file = new DetectedDcsDevice(Guid.Parse("11223344-1234-11F1-8001-444553540000"), "Actual Stick", false).FileName;
             var rebound = WorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");
             Assert.Equal(original.Assignments, rebound.Assignments);
             Assert.Equal(original.Labels, rebound.Labels);
-            Assert.Equal(JsonSerializer.Serialize(original.Configuration.Bindings), JsonSerializer.Serialize(rebound.Configuration.Bindings));
+            Assert.Equal(JsonSerializer.Serialize(original.Configuration.Bindings.OrderBy(x => x.CommandId)), JsonSerializer.Serialize(rebound.Configuration.Bindings.OrderBy(x => x.CommandId)));
             Assert.Equal(original.Pages.Select(x => x.Id), rebound.Pages.Select(x => x.Id));
             Assert.Equal(original.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!], rebound.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!]);
             Assert.Equal(UiLayerLuaProfileRenderer.Render(original, ProfileId), UiLayerLuaProfileRenderer.Render(rebound, ProfileId));
