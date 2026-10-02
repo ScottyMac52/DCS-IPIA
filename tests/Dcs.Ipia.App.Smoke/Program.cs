@@ -311,7 +311,7 @@ namespace Dcs.Ipia.App.Smoke
                     ((Button)window.FindName(buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }
                 if (commands.Items.Count != 3 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "a2001cdnil") ||
-                    !((ComboBox)window.FindName("Category")!).Items.Cast<string>().Contains("Flight"))
+                    !((ComboBox)window.FindName("CommandCategory")!).Items.Cast<string>().Contains("Flight"))
                     throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().DialogResult = false;
