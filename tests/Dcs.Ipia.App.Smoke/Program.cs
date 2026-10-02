@@ -14,6 +14,7 @@ namespace Dcs.Ipia.App.Smoke
     public static class Program
     {
         private static readonly string[] NavigationHeaders = ["Devices", "Modifiers", "Assignments"];
+        private static readonly string[] CommandImportButtons = ["LoadCommandJsonButton", "LoadCommandHtmlButton"];
         private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
             "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
         #region BEGIN Public
@@ -260,8 +261,14 @@ namespace Dcs.Ipia.App.Smoke
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-authoring-smoke-" + Guid.NewGuid().ToString("N") + ".db");
             var connection = "Data Source=" + path + ";Pooling=False";
+            var jsonPath = Path.Combine(Path.GetTempPath(), "ipia-command-smoke-" + Guid.NewGuid().ToString("N") + ".json");
+            var htmlRoot = Path.Combine(Path.GetTempPath(), "ipia-html-smoke-" + Guid.NewGuid().ToString("N"));
             try
             {
+                Directory.CreateDirectory(htmlRoot);
+                var htmlPath = Path.Combine(htmlRoot, "Stick.html");
+                File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"a2001cdnil","name":"Imported pitch","categoryPath":["Flight"],"type":"axis"}]}""");
+                File.WriteAllText(htmlPath, "<h1>Stick</h1><table><tr><td>JOY_BTN1</td><td>Imported button</td><td>Systems</td><td>d3011pnilu3011cd35vd1vpnilvu0</td></tr></table>");
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
@@ -274,7 +281,8 @@ namespace Dcs.Ipia.App.Smoke
                 var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
                     new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository);
+                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                    commandFilePicker: html => html ? [htmlPath] : [jsonPath]);
                 window.Show();
                 window.UpdateLayout();
                 ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
@@ -291,6 +299,25 @@ namespace Dcs.Ipia.App.Smoke
                 var palette = (ListBox)window.FindName("Commands")!;
                 if (commands.Items.Count != 1 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "KEY"))
                     throw new InvalidOperationException("Authored aircraft command did not refresh the assignment palette.");
+                foreach (var buttonName in CommandImportButtons)
+                {
+                    window.Dispatcher.BeginInvoke(new Action(() => {
+                        var reviewWindow = System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single();
+                        if (((DataGrid)reviewWindow.FindName("ImportChanges")!).Items.Count != 1 ||
+                            !((Button)reviewWindow.FindName("StageImportButton")!).IsEnabled)
+                            throw new InvalidOperationException("Command import review did not expose the validated addition.");
+                        ((Button)reviewWindow.FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }));
+                    ((Button)window.FindName(buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                if (commands.Items.Count != 3 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "a2001cdnil") ||
+                    !((ComboBox)window.FindName("CommandCategory")!).Items.Cast<string>().Contains("Flight"))
+                    throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().DialogResult = false;
+                }));
+                ((Button)window.FindName("LoadCommandHtmlButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (commands.Items.Count != 3) throw new InvalidOperationException("Cancelling import changed the catalog.");
                 ((ComboBox)window.FindName("AuthoredPageKind")!).SelectedItem = KneeboardPageKind.Summary;
                 ((TextBox)window.FindName("AuthoredPageFile")!).Text = "overview";
                 ((TextBox)window.FindName("AuthoredPageTitle")!).Text = "OVERVIEW";
@@ -309,16 +336,29 @@ namespace Dcs.Ipia.App.Smoke
                         throw new InvalidOperationException("Commands and pages did not save to SQLite.");
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
+                commands.SelectedItem = commands.Items.Cast<CommandPaletteEntry>().Single(x => x.Id == "KEY");
                 ((TextBox)window.FindName("AircraftCommandName")!).Text = "Discarded name";
                 ((Button)window.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (((CommandPaletteEntry)commands.Items[0]).Name != "Test action")
+                if (commands.Items.Cast<CommandPaletteEntry>().Single(x => x.Id == "KEY").Name != "Test action")
                     throw new InvalidOperationException("Discard did not restore the saved aircraft catalog.");
-                if (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands[0].Name != "Test action")
+                if (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Single(x => x.Id == "KEY").Name != "Test action")
                     throw new InvalidOperationException("Discard altered the saved aircraft catalog.");
+                var savedCommands = repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!;
+                if (savedCommands.ModuleCommands.Count != 3 || savedCommands.Sources!.Count(x => x.Key.StartsWith("config/ipia-command-imports/", StringComparison.Ordinal)) != 2)
+                    throw new InvalidOperationException("Command imports and original sources did not reopen from SQLite.");
+                File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"EXTRA","name":"Discarded import","categoryPath":["Flight"],"type":"button"}]}""");
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    ((Button)System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }));
+                ((Button)window.FindName("LoadCommandJsonButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (commands.Items.Count != 4) throw new InvalidOperationException("The discardable import did not stage.");
+                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
+                    throw new InvalidOperationException("Discard did not restore the saved catalog after import.");
                 window.Close();
             }
-            finally { File.Delete(path); }
+            finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }
         }
         private static void VerifyNewModuleForm()
         {

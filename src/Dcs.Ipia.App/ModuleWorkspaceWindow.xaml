@@ -287,7 +287,13 @@
       <TabItem Header="Commands">
         <Grid Margin="12">
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="Aircraft commands — changes apply to this module. Save to database to keep them." TextWrapping="Wrap" Margin="0,0,0,12"/>
+          <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Aircraft commands — changes apply to this module. Save to database to keep them." TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <WrapPanel>
+              <Button x:Name="LoadCommandJsonButton" Content="Load commands from JSON…" Click="LoadCommandJsonClicked" Padding="10,6"/>
+              <Button x:Name="LoadCommandHtmlButton" Content="Load commands from DCS HTML…" Click="LoadCommandHtmlClicked" Padding="10,6" Margin="8,0,0,0"/>
+            </WrapPanel>
+          </StackPanel>
           <Grid Grid.Row="1">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="320"/></Grid.ColumnDefinitions>
             <DataGrid x:Name="AuthoredCommands" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
