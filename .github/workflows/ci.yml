@@ -42,3 +42,8 @@ jobs:
         run: python3 scripts/check_csharp_layout.py
       - name: Check WPF theme resource contract
         run: python3 scripts/check_theme_resources.py
+
+      - name: Check pinned Common capability inventory
+        run: python3 scripts/check_common_migration.py --check
+      - name: Test migration inventory failure paths
+        run: python3 -m unittest discover -s tests/migration -p 'test_*.py'
