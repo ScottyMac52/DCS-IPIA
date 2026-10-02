@@ -16,6 +16,7 @@ namespace DcsIpia.Presentation
         private readonly IAppSettingsService _settings;
         private readonly IEditorWorkspaceRepository _workspaces;
         private readonly ISharedUiLayerWorkspaceRepository? _sharedDefaults;
+        private readonly Func<string?>? _snapshotFilePicker;
         private ModuleWorkspaceViewModel? _lastViewModel;
         private bool _moduleOperationBusy;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
@@ -24,16 +25,19 @@ namespace DcsIpia.Presentation
         /// <param name="settings">The validated user preference service.</param>
         /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
         /// <param name="sharedDefaults">Independent shared default revision storage.</param>
+        /// <param name="snapshotFilePicker">Optional snapshot file selection adapter.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
-                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null)
+                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _workspaces = workspaces ?? throw new ArgumentNullException(nameof(workspaces));
             _sharedDefaults = sharedDefaults;
+            _snapshotFilePicker = snapshotFilePicker;
             InitializeComponent();
+            RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
@@ -91,6 +95,30 @@ namespace DcsIpia.Presentation
             {
                 SetModuleOperationBusy(false);
             }
+        }
+        private async void RestoreModuleSnapshotClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || _workspaces is not IEditorWorkspaceCreationRepository repository) return;
+            var path = _snapshotFilePicker is null ? ChooseSnapshotFile() : _snapshotFilePicker();
+            if (path is null) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                ImportStatus.Text = "Verifying module snapshot, pinned assets and generated package…";
+                var json = await File.ReadAllTextAsync(path);
+                var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Read(json));
+                var restored = await ModuleSnapshotWorkflow.RestoreAsync(snapshot, repository);
+                _lastViewModel = new ModuleWorkspaceViewModel(restored);
+                await RefreshSavedModulesAsync(restored.Configuration.Module.Id);
+                ImportStatus.Text = $"Restored {restored.Configuration.Module.DisplayName} from verified snapshot. Open module to edit or build with package version {snapshot.Version}. Shared defaults and other modules were preserved.";
+            }
+            catch (Exception ex) { ImportStatus.Text = "Module snapshot was not restored: " + ex.Message; }
+            finally { SetModuleOperationBusy(false); }
+        }
+        private string? ChooseSnapshotFile()
+        {
+            var picker = new OpenFileDialog { Title = "Restore a verified IPIA module snapshot", Filter = "IPIA module snapshot|*.ipia-module.json" };
+            return picker.ShowDialog(this) == true ? picker.FileName : null;
         }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)
         {
@@ -222,6 +250,7 @@ namespace DcsIpia.Presentation
             ImportButton.IsEnabled = !busy;
             NewModuleButton.IsEnabled = !busy && _sharedDefaults is not null;
             OpenModuleButton.IsEnabled = !busy;
+            RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
         }
         private async void OpenSaved_Click(object sender, RoutedEventArgs e)

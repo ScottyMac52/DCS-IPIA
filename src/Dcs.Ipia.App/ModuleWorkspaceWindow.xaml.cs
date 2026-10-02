@@ -29,6 +29,7 @@ namespace DcsIpia.Presentation
         private EditorWorkspaceSnapshot? _working;
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
+        private readonly Func<bool, string?>? _outputPathPicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -49,15 +50,17 @@ namespace DcsIpia.Presentation
         /// <param name="repository">Local editor database.</param>
         /// <param name="deviceDiscovery">Optional native device discovery adapter.</param>
         /// <param name="commandFilePicker">Optional command-file selection adapter.</param>
+        /// <param name="outputPathPicker">Optional snapshot file or package folder selection adapter.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
-                                     Func<bool, IReadOnlyList<string>?>? commandFilePicker = null)
+                                     Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
             _repository = repository;
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
             _commandFilePicker = commandFilePicker;
+            _outputPathPicker = outputPathPicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -1205,38 +1208,61 @@ namespace DcsIpia.Presentation
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
                                     !_viewModel.HasErrors && !HasPendingChanges() &&
                                     !string.IsNullOrWhiteSpace(PackageVersion.Text);
+            ValidateModuleButton.IsEnabled = BuildButton.IsEnabled;
+            ExportModuleSnapshotButton.IsEnabled = BuildButton.IsEnabled;
         }
 
-        private async void BuildClicked(object sender, RoutedEventArgs e)
+        private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(null);
+        private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(true);
+        private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false);
+        private async Task RunOutputAsync(bool? snapshotExport)
         {
-            if (_saved is null || !BuildButton.IsEnabled)
-                return;
+            if (_saved is null || !BuildButton.IsEnabled) return;
             _building = true;
             UpdateBuildAvailability();
-            BuildStatus.Text = "Validating and composing the saved OvGME package…";
+            BuildStatus.Text = "Validating saved assignments, physical devices, pinned assets and generated output…";
             try
             {
-                var snapshot = _saved;
+                var saved = _saved;
                 var version = PackageVersion.Text.Trim();
-                var package = await Task.Run(() => SnapshotOvGmeComposer.Build(snapshot, version));
-                var picker = new OpenFolderDialog { Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
-                if (picker.ShowDialog(this) != true)
+                var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Freeze(saved, version));
+                if (snapshotExport is null)
                 {
-                    BuildStatus.Text = "Package build cancelled; no files were written.";
+                    BuildStatus.Text = $"Validated {saved.Configuration.Module.DisplayName}; Lua, device/summary pages and OvGME layout are complete. Snapshot SHA-256 {snapshot.Workspace.Sha256}";
                     return;
                 }
-                var written = OvGmeArtifactWriter.Write(package, picker.FolderName);
-                BuildStatus.Text = $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}";
+                var export = snapshotExport.Value;
+                var path = _outputPathPicker is null ? ChooseOutputPath(export) : _outputPathPicker(export);
+                if (path is null)
+                {
+                    BuildStatus.Text = "Output cancelled; no files were written.";
+                    return;
+                }
+                if (export)
+                {
+                    await Task.Run(() => ModuleSnapshotWorkflow.Write(snapshot, path));
+                    BuildStatus.Text = $"Exported module snapshot: {path} · SHA-256 {snapshot.Workspace.Sha256}. Restore preserves its module identity and package version.";
+                }
+                else
+                {
+                    var package = await Task.Run(() => ModuleSnapshotWorkflow.Build(snapshot));
+                    var written = OvGmeArtifactWriter.Write(package, path);
+                    BuildStatus.Text = $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}";
+                }
             }
-            catch (Exception ex)
+            catch (Exception ex) { BuildStatus.Text = "Module output failed: " + ex.Message; }
+            finally { _building = false; UpdateBuildAvailability(); }
+        }
+        private string? ChooseOutputPath(bool snapshot)
+        {
+            if (snapshot)
             {
-                BuildStatus.Text = "OvGME build failed: " + ex.Message;
+                var picker = new SaveFileDialog { Title = "Export module snapshot to a new file", Filter = "IPIA module snapshot|*.ipia-module.json",
+                    FileName = _saved!.Configuration.Module.DcsId + ".ipia-module.json", OverwritePrompt = false };
+                return picker.ShowDialog(this) == true ? picker.FileName : null;
             }
-            finally
-            {
-                _building = false;
-                UpdateBuildAvailability();
-            }
+            var folder = new OpenFolderDialog { Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
+            return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 
         private void ConfirmClose(object? sender, CancelEventArgs e)
