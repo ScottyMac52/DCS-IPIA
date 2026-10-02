@@ -628,6 +628,51 @@ namespace Dcs.Ipia.Tests
             Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, ProfileId, key, key, key, ModifierMode.Hold, "Stick")));
             Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, Guid.Empty, "CUSTOM", "K", "Custom", ModifierMode.Hold, "Keyboard")));
         }
+        /// <summary>Rebinding preserves authored data while changing exact native filenames and modifiers in both scopes.</summary>
+        /// <returns>Completion of real SQLite preservation checks.</returns>
+        [Fact]
+        public async Task RebindsBothScopesWithoutLosingProfileData()
+        {
+            var original = Workspace();
+            var device = WorkspaceStructureEditor.Describe(original).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            var file = new DetectedDcsDevice(Guid.Parse("11223344-1234-11F1-8001-444553540000"), "Actual Stick", false).FileName;
+            var rebound = WorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");
+            Assert.Equal(original.Assignments, rebound.Assignments);
+            Assert.Equal(original.Labels, rebound.Labels);
+            Assert.Equal(original.Configuration.Bindings, rebound.Configuration.Bindings);
+            Assert.Equal(original.Pages.Select(x => x.Id), rebound.Pages.Select(x => x.Id));
+            Assert.Equal(original.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!], rebound.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!]);
+            Assert.Equal(UiLayerLuaProfileRenderer.Render(original, ProfileId), UiLayerLuaProfileRenderer.Render(rebound, ProfileId));
+            Assert.Equal(ModuleLuaProfileRenderer.Render(original, ProfileId), ModuleLuaProfileRenderer.Render(rebound, ProfileId));
+            Assert.All(WorkspaceStructureEditor.Describe(rebound).Devices, x => Assert.Equal(file, x.FileName));
+            Assert.All(WorkspaceStructureEditor.Describe(rebound).Modifiers, x => Assert.Equal(file[..^9], x.NativeDevice));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(rebound, device, file, "Pilot", null));
+            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(original, device, "Generic.diff.lua", null, null));
+            var path = Path.Combine(Path.GetTempPath(), "ipia-rebind-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(rebound);
+                var restored = (await repository.GetAsync(ModuleId))!;
+                var output = SnapshotLuaPayloadRenderer.Generate(restored);
+                Assert.Contains("Config/Input/TEST/joystick/" + file, output.Keys);
+                Assert.Contains("Config/Input/UiLayer/joystick/" + file, output.Keys);
+                foreach (var scope in new[] { "TEST", "UiLayer" })
+                    Assert.Contains(file[..^9], Encoding.UTF8.GetString(output["Config/Input/" + scope + "/modifiers.lua"]));
+                Assert.Equal("Stick.diff.lua", original.Configuration.Profiles[0].SourceName);
+                var updated = WorkspaceStructureEditor.Describe(restored).Devices.First(x => x.Layer == AssignmentLayer.Module);
+                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(restored, updated,
+                    new DetectedDcsDevice(Guid.NewGuid(), "Other", true).FileName, null, null));
+                var other = new WorkspaceHardware("other", "Other", "Other.diff.lua", restored.Diagrams[0]);
+                var withOther = WorkspaceStructureEditor.AddDevice(restored, other, AssignmentLayer.Module,
+                    new DetectedDcsDevice(Guid.NewGuid(), "Other", true).FileName, "Second", null);
+                var otherDevice = WorkspaceStructureEditor.Describe(withOther).Devices.Last();
+                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(withOther, otherDevice, file, null, null));
+            }
+            finally { File.Delete(path); }
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static EditorWorkspaceSnapshot Workspace(string deviceId = "stick")

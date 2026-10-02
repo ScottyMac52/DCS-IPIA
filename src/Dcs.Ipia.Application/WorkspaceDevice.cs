@@ -10,5 +10,11 @@ namespace Dcs.Ipia.Application
     /// <param name="Role">Optional semantic role.</param>
     /// <param name="PhysicalGuid">Optional native DirectInput GUID, separate from ProfileId.</param>
     public sealed record WorkspaceDevice(Guid ProfileId, AssignmentLayer Layer, string FileName,
-                                         string? Instance, string? Role, Guid? PhysicalGuid = null);
+                                         string? Instance, string? Role, Guid? PhysicalGuid = null)
+    {
+        #region BEGIN Public
+        /// <summary>Gets a readable device label without duplicating the full native GUID.</summary>
+        public string Title => DcsDeviceDisplay.Label(FileName, Instance ?? Role ?? PhysicalGuid?.ToString("D"));
+        #endregion END Public
+    }
 }

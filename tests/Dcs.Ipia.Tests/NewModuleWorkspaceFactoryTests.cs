@@ -118,6 +118,9 @@ namespace Dcs.Ipia.Tests
                     x => x.Layer == AssignmentLayer.Module);
                 Assert.DoesNotContain(WorkspaceStructureEditor.Describe((await repository.GetAsync(second.Configuration.Module.Id))!).Devices,
                     x => x.Layer == AssignmentLayer.Module);
+                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(edited));
+                foreach (var device in WorkspaceStructureEditor.Describe(edited).Devices.DistinctBy(x => x.ProfileId).ToArray())
+                    edited = WorkspaceStructureEditor.RebindDevice(edited, device, device.FileName, device.Instance, device.Role);
                 Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(edited));
             }
             finally
