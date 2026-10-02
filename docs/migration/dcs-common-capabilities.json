@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceRepository": "ScottyMac52/DCS-Common",
   "sourceCommit": "f1c968e606414225db837e75426c0c930cc815c9",
-  "ipiaBaseline": "5b0d86dfe89b77a08feb5368f3c33d46696ca832",
+  "ipiaBaseline": "00f6efa3012eede8fdbdfd67bb20d63a307b13e2",
   "bundledSourceCommit": "0e9ed14a9189b712477f2c647a348da0d8af321b",
   "files": [
     {
@@ -1589,18 +1589,24 @@
     {
       "id": "complete-release",
       "title": "Complete-release bundle and documentation distribution",
-      "status": "migration-pending",
-      "owner": "Packaging",
+      "status": "implemented-parity-pending",
+      "owner": "Dcs / Packaging / tested release pipeline",
       "sourcePaths": [
         "scripts/Build-Release.ps1",
         "templates/consumer/Build-Release.ps1.tmpl"
       ],
       "targetEvidence": [
-        "src/Dcs.Ipia.Packaging/OvGmePackageBuilder.cs",
-        "docs/module-authoring.md"
+        "src/Dcs.Ipia.Dcs/ModuleCompleteReleaseWorkflow.cs",
+        "src/Dcs.Ipia.Packaging/CompleteReleaseArchive.cs",
+        "src/Dcs.Ipia.Packaging/CompleteReleaseVerifier.cs",
+        "tests/Dcs.Ipia.Tests/CompleteReleaseArchiveTests.cs",
+        "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
+        ".github/workflows/release.yml",
+        "scripts/Test-ApplicationRelease.ps1",
+        "docs/application-release.md"
       ],
-      "current": "The deployable ZIP is available; the separate Complete bundle with Documentation and optional integration assets is not implemented.",
-      "exitCriteria": "Compose deterministic OVGME/Documentation/VERSION/checksums from pinned inputs; preserve approved optional integration assets without inventing them."
+      "current": "Deterministic snapshot-only Complete export contains separate OvGME, Documentation and portable Snapshot payloads with exact internal/external checksums. Independent verification restores frozen inputs and compares generated output/guides. Application release candidates and publication run full quality, Windows UI and exact portable/installer/archive checks. Approved integration assets and legacy consumer golden release parity remain pending.",
+      "exitCriteria": "Compare pinned consumer Complete release layouts and document intentional differences; implement reviewed integration-asset adapters without inventing defaults. Preserve histories and prove consumer-specific rebuild/rollback before switching workflows."
     },
     {
       "id": "release-automation",

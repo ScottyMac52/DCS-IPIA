@@ -31,6 +31,7 @@ namespace DcsIpia.Presentation
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
         private readonly Func<string?>? _documentationFolderPicker;
+        private readonly Func<string?>? _completeReleaseFolderPicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -53,10 +54,11 @@ namespace DcsIpia.Presentation
         /// <param name="commandFilePicker">Optional command-file selection adapter.</param>
         /// <param name="outputPathPicker">Optional snapshot file or package folder selection adapter.</param>
         /// <param name="documentationFolderPicker">Optional parent folder selection for documentation export.</param>
+        /// <param name="completeReleaseFolderPicker">Optional parent folder selection for Complete release export.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
-                                     Func<string?>? documentationFolderPicker = null)
+                                     Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -65,6 +67,7 @@ namespace DcsIpia.Presentation
             _commandFilePicker = commandFilePicker;
             _outputPathPicker = outputPathPicker;
             _documentationFolderPicker = documentationFolderPicker;
+            _completeReleaseFolderPicker = completeReleaseFolderPicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -1215,13 +1218,15 @@ namespace DcsIpia.Presentation
             ValidateModuleButton.IsEnabled = BuildButton.IsEnabled;
             ExportModuleSnapshotButton.IsEnabled = BuildButton.IsEnabled;
             ExportModuleDocumentationButton.IsEnabled = BuildButton.IsEnabled;
+            ExportCompleteReleaseButton.IsEnabled = BuildButton.IsEnabled;
         }
 
         private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(null);
         private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(true);
         private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false);
         private async void ExportModuleDocumentationClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, true);
-        private async Task RunOutputAsync(bool? snapshotExport, bool documentation = false)
+        private async void ExportCompleteReleaseClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, false, true);
+        private async Task RunOutputAsync(bool? snapshotExport, bool documentation = false, bool completeRelease = false)
         {
             if (_saved is null || !BuildButton.IsEnabled) return;
             _building = true;
@@ -1238,14 +1243,21 @@ namespace DcsIpia.Presentation
                     return;
                 }
                 var export = snapshotExport.Value;
-                var path = documentation ? (_documentationFolderPicker is null ? ChooseDocumentationFolder() : _documentationFolderPicker())
+                var path = completeRelease ? (_completeReleaseFolderPicker is null ? ChooseCompleteReleaseFolder() : _completeReleaseFolderPicker())
+                    : documentation ? (_documentationFolderPicker is null ? ChooseDocumentationFolder() : _documentationFolderPicker())
                     : _outputPathPicker is null ? ChooseOutputPath(export) : _outputPathPicker(export);
                 if (path is null)
                 {
                     BuildStatus.Text = "Output cancelled; no files were written.";
                     return;
                 }
-                if (documentation)
+                if (completeRelease)
+                {
+                    var destination = Path.Combine(path, $"DCS-{saved.Configuration.Module.DcsId}-Components-{version}-Complete");
+                    await Task.Run(() => ModuleCompleteReleaseWorkflow.Write(snapshot, destination));
+                    BuildStatus.Text = $"Exported Complete release: {destination} · Verified frozen inputs SHA-256 {snapshot.Workspace.Sha256}";
+                }
+                else if (documentation)
                 {
                     var destination = Path.Combine(path, $"DCS-{saved.Configuration.Module.DcsId}-Components-{version}-Documentation");
                     await Task.Run(() => ModuleDocumentationWorkflow.Write(snapshot, destination));
@@ -1280,6 +1292,11 @@ namespace DcsIpia.Presentation
         private string? ChooseDocumentationFolder()
         {
             var folder = new OpenFolderDialog { Title = "Select parent folder for a new module documentation folder" };
+            return folder.ShowDialog(this) == true ? folder.FolderName : null;
+        }
+        private string? ChooseCompleteReleaseFolder()
+        {
+            var folder = new OpenFolderDialog { Title = "Select parent folder for a new Complete release and checksums" };
             return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 

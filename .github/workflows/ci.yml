@@ -47,3 +47,27 @@ jobs:
         run: python3 scripts/check_common_migration.py --check
       - name: Test migration inventory failure paths
         run: python3 -m unittest discover -s tests/migration -p 'test_*.py'
+
+  release-candidate:
+    needs: [dotnet, solution, csharp-layout]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Read candidate version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content release/version.json -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw 'Invalid candidate version.' }
+          "value=$version" >> $env:GITHUB_OUTPUT
+      - name: Test exact portable and installed release payload
+        shell: pwsh
+        run: ./scripts/Test-ApplicationRelease.ps1 -Version '${{ steps.version.outputs.value }}'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: DCS-IPIA-tested-release-candidate
+          path: release-assets/*
+          if-no-files-found: error
