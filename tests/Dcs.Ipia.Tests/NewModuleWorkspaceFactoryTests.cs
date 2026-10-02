@@ -108,7 +108,7 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
                 var selected = WorkspaceStructureEditor.Hardware(first)[0];
-                var fileName = new DetectedDcsDevice(Guid.NewGuid(), selected.Label, false).FileName;
+                var fileName = new DetectedDcsDevice(Guid.NewGuid(), "Offline test controller", false).FileName;
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
                     x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                 var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,

@@ -634,6 +634,11 @@ namespace Dcs.Ipia.Tests
         public async Task RebindsBothScopesWithoutLosingProfileData()
         {
             var original = Workspace();
+            original = original with { Configuration = new(original.Configuration.Module, original.Configuration.Profiles,
+                original.Configuration.Modifiers, original.Configuration.Bindings.Concat([
+                    new DcsBinding(ProfileId, BindingSection.Axis, "AXIS", "Pitch", BindingDisposition.Added, "JOY_X", filter: new AxisFilter(Deadzone: 4, Curvature: [12], Invert: true)),
+                    new DcsBinding(ProfileId, BindingSection.Key, "OLD", "Removed action", BindingDisposition.Removed, "JOY_BTN3")
+                ]), original.Configuration.Provenance) };
             var device = WorkspaceStructureEditor.Describe(original).Devices.First(x => x.Layer == AssignmentLayer.Module);
             var file = new DetectedDcsDevice(Guid.Parse("11223344-1234-11F1-8001-444553540000"), "Actual Stick", false).FileName;
             var rebound = WorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");

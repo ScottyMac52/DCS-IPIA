@@ -376,6 +376,9 @@ namespace Dcs.Ipia.App.Smoke
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
+                var dropdown = (ComboBox)editor.FindName("DeviceChoice")!;
+                if (dropdown.Items.Cast<UiLayerDiagram>().Any(x => x.Title.Contains(" {", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Assignment device labels still expose duplicate native GUIDs.");
                 var grid = (DataGrid)editor.FindName("ManagedDevices")!;
                 foreach (var device in grid.Items.Cast<WorkspaceDevice>().ToArray())
                 {
