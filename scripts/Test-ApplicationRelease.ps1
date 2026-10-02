@@ -37,7 +37,7 @@ try {
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
         $copy = Join-Path $installed $relative
-        if (-not (Test-Path $copy) -or (Get-FileHash $_.FullName).Hash -ne (Get-FileHash $copy).Hash) {
+        if (-not (Test-Path -LiteralPath $copy) -or (Get-FileHash -LiteralPath $_.FullName).Hash -ne (Get-FileHash -LiteralPath $copy).Hash) {
             throw "Installed file differs: $relative"
         }
     }
@@ -58,7 +58,7 @@ try {
             'native PNG rendering','installed payload hashes','silent install/uninstall')
     } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Output 'TEST-EVIDENCE.json') -Encoding utf8NoBOM
     $lines = Get-ChildItem $Output -File | Sort-Object Name | ForEach-Object {
-        "$( (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() )  $($_.Name)"
+        "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() )  $($_.Name)"
     }
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $Output).Path 'SHA256SUMS.txt'), ($lines -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
     Write-Output 'Portable, installed and archived executables verified; install/uninstall and exact payload checks passed.'
