@@ -28,6 +28,7 @@
         <WrapPanel Margin="0,8,0,8">
           <Button x:Name="RefreshDevicesButton" Content="Refresh devices" Click="RefreshDevicesClicked" Padding="10,6"/>
           <Button Content="Saved Games folder…" Click="SavedGamesClicked" Margin="8,0,0,0" Padding="10,6"/>
+          <Button x:Name="ManualFileButton" Content="Use typed filename" Click="ManualFileClicked" Margin="8,0,0,0" Padding="10,6"/>
         </WrapPanel>
         <Label Target="{Binding ElementName=HardwareChoices}" Content="Shared hardware template"/>
         <ComboBox x:Name="HardwareChoices" DisplayMemberPath="Title" SelectionChanged="HardwareChanged" AutomationProperties.Name="Initial module hardware"/>

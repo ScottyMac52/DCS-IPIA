@@ -339,6 +339,12 @@ namespace Dcs.Ipia.App.Smoke
                     {
                         ((TextBox)window.FindName("DcsIdInput")!).Text = "P47-D-30";
                         ((TextBox)window.FindName("DisplayNameInput")!).Text = "P-47D Thunderbolt";
+                        var physical = (ComboBox)window.FindName("PhysicalChoices")!;
+                        var offline = new DetectedDcsDevice(Guid.NewGuid(), "Captured offline unit", false);
+                        physical.ItemsSource = new[] { offline };
+                        physical.SelectedItem = offline;
+                        ((Button)window.FindName("ManualFileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        if (physical.SelectedItem is not null) throw new InvalidOperationException("Manual filename entry retained a stale discovered-unit GUID.");
                         var hardware = (ComboBox)window.FindName("HardwareChoices")!;
                         var rows = (ListBox)window.FindName("SelectedUnits")!;
                         var ids = CreationHardware;

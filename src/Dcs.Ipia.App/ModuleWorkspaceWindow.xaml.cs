@@ -383,6 +383,12 @@ namespace DcsIpia.Presentation
             catch (Exception ex) { SetManagementMessage("Shared hardware could not be loaded: " + ex.Message); }
         }
         private async void RefreshDetectedDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDetectedDevicesAsync();
+        private void ManualDeviceFileClicked(object sender, RoutedEventArgs e)
+        {
+            DetectedDevice.SelectedItem = null;
+            ManagedFileName.Focus();
+            DetectedDevicesMessage.Text = "Enter the unit's exact captured native filename, including its physical GUID.";
+        }
         private async void ChooseSavedGamesClicked(object sender, RoutedEventArgs e)
         {
             var picker = new OpenFolderDialog { Title = "Select Saved Games or your DCS folder" };

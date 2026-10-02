@@ -94,6 +94,12 @@ namespace DcsIpia.Presentation
             BaselineChoices.ItemsSource = resolved.Where(x => x.Value.Path == hardware.Diagram.Path)
                 .Select(x => System.IO.Path.GetFileName(x.Key)).ToArray();
         }
+        private void ManualFileClicked(object sender, RoutedEventArgs e)
+        {
+            PhysicalChoices.SelectedItem = null;
+            NativeFileInput.Focus();
+            CreationError.Text = "Enter the offline unit's captured native filename, including its physical GUID.";
+        }
         private void ClearBaselineClicked(object sender, RoutedEventArgs e) => BaselineChoices.SelectedItem = null;
         private void AddUnitClicked(object sender, RoutedEventArgs e)
         {
@@ -129,6 +135,8 @@ namespace DcsIpia.Presentation
             try
             {
                 NewModuleWorkspaceFactory.ValidateIdentity(DcsIdInput.Text, DisplayNameInput.Text);
+                if (!string.IsNullOrWhiteSpace(NativeFileInput.Text))
+                    throw new InvalidOperationException("Add the selected unit to the list before creating the module, or clear its filename.");
                 foreach (var id in await _repository.ListAsync())
                     if ((await _repository.GetAsync(id))?.Configuration.Module.DcsId.Equals(DcsIdInput.Text, StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidOperationException("That DCS input folder already has a saved module. Open it or choose another identity.");
