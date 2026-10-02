@@ -1,0 +1,1749 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "ScottyMac52/DCS-Common",
+  "sourceCommit": "f1c968e606414225db837e75426c0c930cc815c9",
+  "ipiaBaseline": "2cc96ccf87b1e027e115e576895c7ab73fff2666",
+  "bundledSourceCommit": "0e9ed14a9189b712477f2c647a348da0d8af321b",
+  "files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "mode": "100644",
+      "gitBlob": "89fffa8b67aee66a2576f027d3c65ca49a32a9e9",
+      "size": 9058
+    },
+    {
+      "path": ".github/workflows/export.yml",
+      "mode": "100644",
+      "gitBlob": "1d585c37a7d27dc58df12163e6e5cecba2c925d7",
+      "size": 1300
+    },
+    {
+      "path": ".github/workflows/main.yml",
+      "mode": "100644",
+      "gitBlob": "ef0ae9edb79eee3165c25b22240d15c9e206f755",
+      "size": 4344
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "mode": "100644",
+      "gitBlob": "34ede5125bc6208842e5d6ddc5cc9468cc74cbdd",
+      "size": 9346
+    },
+    {
+      "path": ".github/workflows/scaffold-app.yml",
+      "mode": "100644",
+      "gitBlob": "b95d533f51a58a86af8a460f6279e5cbfee85466",
+      "size": 2065
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "gitBlob": "bfb761f92e9f6278a65e2af35c6ce660e12cdd3c",
+      "size": 339
+    },
+    {
+      "path": "APPLY-ISSUE-54.ps1",
+      "mode": "100644",
+      "gitBlob": "f1c1acc980aa2365bb4a1f3377aabb507a69af42",
+      "size": 639
+    },
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "gitBlob": "bf11b95d2d49be8991ee59323da8ac148b7461d2",
+      "size": 1071
+    },
+    {
+      "path": "README-ISSUE-54.txt",
+      "mode": "100644",
+      "gitBlob": "7e2caf3f2ea298fa475bf9bcaa055fd6cd7df4b2",
+      "size": 870
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "gitBlob": "9e6c3b087705116fb4caf53c5f5a2760951bef8f",
+      "size": 7937
+    },
+    {
+      "path": "assets/shared/components/component-manifest.json",
+      "mode": "100644",
+      "gitBlob": "3742997834a73443df7fe0123d93fc4b8aa9dc73",
+      "size": 413
+    },
+    {
+      "path": "assets/shared/components/generic-control-panel.svg",
+      "mode": "100644",
+      "gitBlob": "19250141e69a2d8e12651957c6ea66476079be66",
+      "size": 802
+    },
+    {
+      "path": "assets/shared/components/generic-hardware-outline.svg",
+      "mode": "100644",
+      "gitBlob": "d07b17c5758e371a8465b9c682f690b7ea34df4e",
+      "size": 696
+    },
+    {
+      "path": "assets/shared/hardware/SOURCES.md",
+      "mode": "100644",
+      "gitBlob": "0c9b4edc3cc18698e6f29f0573481fe27e5fb813",
+      "size": 2805
+    },
+    {
+      "path": "assets/shared/hardware/drawio/grip-f18c.drawio",
+      "mode": "100644",
+      "gitBlob": "b25d4d96beb68162abd246579d15a1209ec29089",
+      "size": 329010
+    },
+    {
+      "path": "assets/shared/hardware/drawio/logitech-throttle-quadrant.drawio",
+      "mode": "100644",
+      "gitBlob": "faa96186bbbf4f1ae55b95c50a72e3c75a7b4006",
+      "size": 815886
+    },
+    {
+      "path": "assets/shared/hardware/drawio/moza-ab9.drawio",
+      "mode": "100644",
+      "gitBlob": "8ba3fcdc52a58532d054b45ad8fd5b1e0f7813e2",
+      "size": 44436
+    },
+    {
+      "path": "assets/shared/hardware/drawio/onyourtwelve-pdcp.drawio",
+      "mode": "100644",
+      "gitBlob": "90056c4e2322e37d57a44aee2e2f5d0a6f2e8d4a",
+      "size": 146427
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-mfd.drawio",
+      "mode": "100644",
+      "gitBlob": "29578e21cf426ddafeb87183859eff09203cc250",
+      "size": 240412
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-tpr.drawio",
+      "mode": "100644",
+      "gitBlob": "c50345ff11478b343e24e33d98ffa54dc4a6a077",
+      "size": 645812
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-warthog-grip.drawio",
+      "mode": "100644",
+      "gitBlob": "825f8d8f23a2323395b0b4efd585a5af08476280",
+      "size": 192338
+    },
+    {
+      "path": "assets/shared/hardware/drawio/tm-warthog-throttle.drawio",
+      "mode": "100644",
+      "gitBlob": "565140a1eef28b670554a05057e2385cde4d5688",
+      "size": 358522
+    },
+    {
+      "path": "assets/shared/hardware/drawio/viper-tqs-mission-pack.drawio",
+      "mode": "100644",
+      "gitBlob": "d969c8a300858e2197ef85617fb5c0ad22ed05f7",
+      "size": 712486
+    },
+    {
+      "path": "assets/shared/hardware/drawio/vkb-f14-gunfighter.drawio",
+      "mode": "100644",
+      "gitBlob": "0b5b01be5a34bf7b77356209883bf8199e3fe04a",
+      "size": 665521
+    },
+    {
+      "path": "assets/shared/hardware/drawio/winctrl-icp.drawio",
+      "mode": "100644",
+      "gitBlob": "f64d19150c596d48389f2261602e30a9a7f9f8de",
+      "size": 248038
+    },
+    {
+      "path": "assets/shared/hardware/drawio/winctrl-pto2.drawio",
+      "mode": "100644",
+      "gitBlob": "6898e1faaff694dbbe2eff4128798a4444e189e2",
+      "size": 336221
+    },
+    {
+      "path": "assets/shared/hardware/export-config.json",
+      "mode": "100644",
+      "gitBlob": "e5a4cc539849f167b83d295ac9e6b66af9dd919a",
+      "size": 45
+    },
+    {
+      "path": "assets/shared/hardware/lua/grip-f18c.lua",
+      "mode": "100644",
+      "gitBlob": "4c07d38afcda5a02486f30175290783dddb442f7",
+      "size": 3322
+    },
+    {
+      "path": "assets/shared/hardware/lua/logitech-throttle-quadrant.lua",
+      "mode": "100644",
+      "gitBlob": "9790c47798f5a1e0a2155be5130ed1a97a9ed0f7",
+      "size": 1212
+    },
+    {
+      "path": "assets/shared/hardware/lua/moza-ab9.lua",
+      "mode": "100644",
+      "gitBlob": "ccac4924e50c4da121027fc9eeef8b8bbf956d01",
+      "size": 282
+    },
+    {
+      "path": "assets/shared/hardware/lua/onyourtwelve-pdcp.lua",
+      "mode": "100644",
+      "gitBlob": "cc26c591a523f96bc90538364e041776b0761a38",
+      "size": 3049
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-mfd.lua",
+      "mode": "100644",
+      "gitBlob": "46f2fcd284fc5e33107b74ac6a03de0e69b5d009",
+      "size": 3058
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-tpr.lua",
+      "mode": "100644",
+      "gitBlob": "4c266b25f90c37fcfea0d4670737c2414553aa63",
+      "size": 407
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-warthog-grip.lua",
+      "mode": "100644",
+      "gitBlob": "ace4c9a4a4ff252411bbff36f72378f04d32ccbb",
+      "size": 2765
+    },
+    {
+      "path": "assets/shared/hardware/lua/tm-warthog-throttle.lua",
+      "mode": "100644",
+      "gitBlob": "dc80fc6f94719dd753222df2eae4179ae8337817",
+      "size": 4953
+    },
+    {
+      "path": "assets/shared/hardware/lua/viper-tqs-mission-pack.lua",
+      "mode": "100644",
+      "gitBlob": "2a5bfa74443ce3688ddfa8d02ccdf3d80aecb3cc",
+      "size": 8563
+    },
+    {
+      "path": "assets/shared/hardware/lua/vkb-f14-gunfighter.lua",
+      "mode": "100644",
+      "gitBlob": "966c1a6f616f05d747d333f48745484ea858ed62",
+      "size": 1705
+    },
+    {
+      "path": "assets/shared/hardware/lua/winctrl-icp.lua",
+      "mode": "100644",
+      "gitBlob": "f15113e8ebf9233e0dd556fb3afa10e7560400d3",
+      "size": 3926
+    },
+    {
+      "path": "assets/shared/hardware/lua/winctrl-pto2.lua",
+      "mode": "100644",
+      "gitBlob": "523d72a093ac76ecd3ba5deec9da46fca57be976",
+      "size": 4635
+    },
+    {
+      "path": "assets/shared/hardware/manifest.json",
+      "mode": "100644",
+      "gitBlob": "74083488cffe8a80b7174e8784352a0ab985e991",
+      "size": 3425
+    },
+    {
+      "path": "assets/shared/hardware/scaffold-device-map.json",
+      "mode": "100644",
+      "gitBlob": "d4e16135323aabb3a7ae9eb20acae48a76756c5b",
+      "size": 3784
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-icp-clean.png",
+      "mode": "100644",
+      "gitBlob": "f34f0008b87c742f858753d3af0094a16f3c72e8",
+      "size": 524702
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-warthog-grip-front.png",
+      "mode": "100644",
+      "gitBlob": "7951833cb17315483f51a72af7ec6bd555970562",
+      "size": 519742
+    },
+    {
+      "path": "assets/shared/hardware/source/f16c-warthog-grip-rear.png",
+      "mode": "100644",
+      "gitBlob": "47d426bfbab714f9563464eeb0df8c11f898f9ba",
+      "size": 64239
+    },
+    {
+      "path": "assets/shared/hardware/source/f4u-logitech-throttle-quadrant.png",
+      "mode": "100644",
+      "gitBlob": "ac1a09ee23a37671558d2f45902c8ba1cbeb4c5d",
+      "size": 599478
+    },
+    {
+      "path": "assets/shared/hardware/source/mfd-clean.png",
+      "mode": "100644",
+      "gitBlob": "e2753a0eb0467d19554fb0346f429e1bac16d35d",
+      "size": 172966
+    },
+    {
+      "path": "assets/shared/hardware/source/moza-ab9.jpg",
+      "mode": "100644",
+      "gitBlob": "2a8d112a9c8da5731b3a70415935dcf4adb941a5",
+      "size": 30975
+    },
+    {
+      "path": "assets/shared/hardware/source/pdcp-photo.jpeg",
+      "mode": "100644",
+      "gitBlob": "62700161e31b073ca7960541f969f55b62866626",
+      "size": 538570
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-buttons-rgb.png",
+      "mode": "100644",
+      "gitBlob": "835643c06e85f15289bb8a5c014ff1220f7ef947",
+      "size": 222554
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-buttons.png",
+      "mode": "100644",
+      "gitBlob": "f3b7495fdd1d7beaf6a611c11352771fd4cb02a1",
+      "size": 268373
+    },
+    {
+      "path": "assets/shared/hardware/source/pto2-clean.png",
+      "mode": "100644",
+      "gitBlob": "15eb5c65f44707081ade261e509eecb1647af6f1",
+      "size": 146015
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-ava-base.png",
+      "mode": "100644",
+      "gitBlob": "5627ac4d243c65c8527034476d349e354d52d601",
+      "size": 169468
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-f16c-grip.png",
+      "mode": "100644",
+      "gitBlob": "80f8be60d6ba348cee89a8d0502c43c3d4b11833",
+      "size": 318047
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-f18c-grip.png",
+      "mode": "100644",
+      "gitBlob": "ad240fc629cba5887db60a0e440da61aa68ee03d",
+      "size": 317742
+    },
+    {
+      "path": "assets/shared/hardware/source/thrustmaster-tpr.png",
+      "mode": "100644",
+      "gitBlob": "6a892571e80f6d07de751f0f66e0d7ae59cecb40",
+      "size": 481112
+    },
+    {
+      "path": "assets/shared/hardware/source/tm-warthog-throttle-blank.png",
+      "mode": "100644",
+      "gitBlob": "d5271a85c117d11b0e395b66ee29be61435d582b",
+      "size": 242501
+    },
+    {
+      "path": "assets/shared/hardware/source/viper-mission-pack-controls.png",
+      "mode": "100644",
+      "gitBlob": "28370153479ba10e264363783da72a9ea0da7d20",
+      "size": 206620
+    },
+    {
+      "path": "assets/shared/hardware/source/viper-tqs-handle-controls.png",
+      "mode": "100644",
+      "gitBlob": "2def5cdaa4b6927360d2d673523c58b8abdd19fc",
+      "size": 268811
+    },
+    {
+      "path": "assets/shared/hardware/source/vkb-f14-grip-rear.png",
+      "mode": "100644",
+      "gitBlob": "dc05f0ec2371f8aa1174a598e495c23184e743d0",
+      "size": 228566
+    },
+    {
+      "path": "assets/shared/hardware/source/vkb-f14-grip-side.png",
+      "mode": "100644",
+      "gitBlob": "98f162ecbff28881294f53b2e6f51cc20a48f44a",
+      "size": 258845
+    },
+    {
+      "path": "assets/shared/hardware/source/warthog-throttle-base.png",
+      "mode": "100644",
+      "gitBlob": "cde8f04f061d13d3533bf2bbbca762a74f6cbdf3",
+      "size": 56469
+    },
+    {
+      "path": "assets/shared/hardware/source/warthog-throttle-handles.png",
+      "mode": "100644",
+      "gitBlob": "09879f278766a066305b8579221f1970b624d24c",
+      "size": 52996
+    },
+    {
+      "path": "assets/shared/hardware/svg/grip-f18c.svg",
+      "mode": "100644",
+      "gitBlob": "ea11230a3ed11be3cac8099c047d505d52a972c7",
+      "size": 325925
+    },
+    {
+      "path": "assets/shared/hardware/svg/logitech-throttle-quadrant.svg",
+      "mode": "100644",
+      "gitBlob": "adc516086c5c3dbc536bca030307385e2ee309b7",
+      "size": 805555
+    },
+    {
+      "path": "assets/shared/hardware/svg/moza-ab9.svg",
+      "mode": "100644",
+      "gitBlob": "0a71f65472df3f8f1a6ec573c8a043a8f8688720",
+      "size": 42717
+    },
+    {
+      "path": "assets/shared/hardware/svg/onyourtwelve-pdcp.svg",
+      "mode": "100644",
+      "gitBlob": "23f81ab30e6a43eefda7d7325b26cc31ce55511b",
+      "size": 135090
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-mfd.svg",
+      "mode": "100644",
+      "gitBlob": "156520d871071f856cb088f1d29c8e134974ae16",
+      "size": 235029
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-tpr.svg",
+      "mode": "100644",
+      "gitBlob": "aef94aeea37eb667479389e944ac9144fef6bed5",
+      "size": 643421
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-warthog-grip.svg",
+      "mode": "100644",
+      "gitBlob": "33143d27eaff86ac92d5a5d62d57fb9abf938083",
+      "size": 186604
+    },
+    {
+      "path": "assets/shared/hardware/svg/tm-warthog-throttle.svg",
+      "mode": "100644",
+      "gitBlob": "c70be32b13a6163839b76b6a73564ecc8690c1de",
+      "size": 356032
+    },
+    {
+      "path": "assets/shared/hardware/svg/viper-tqs-mission-pack.svg",
+      "mode": "100644",
+      "gitBlob": "642e804192af1edfbc42356a95854cb1a9307733",
+      "size": 671988
+    },
+    {
+      "path": "assets/shared/hardware/svg/vkb-f14-gunfighter.svg",
+      "mode": "100644",
+      "gitBlob": "3359053f649a76451322d57c97e3e6de61e7a204",
+      "size": 658814
+    },
+    {
+      "path": "assets/shared/hardware/svg/winctrl-icp.svg",
+      "mode": "100644",
+      "gitBlob": "15e3b6a5d91c7e0c21b916de456ddc4296e988c3",
+      "size": 229795
+    },
+    {
+      "path": "assets/shared/hardware/svg/winctrl-pto2.svg",
+      "mode": "100644",
+      "gitBlob": "2cd35cdeded1537e3144e8cdfee1608b672942e1",
+      "size": 317909
+    },
+    {
+      "path": "assets/shared/ui-layer/functions.json",
+      "mode": "100644",
+      "gitBlob": "5a7b9b0c7a10b6d686852d1b88dbfabe1e9d4ff1",
+      "size": 2053
+    },
+    {
+      "path": "assets/shared/ui-layer/hardware-overlays.json",
+      "mode": "100644",
+      "gitBlob": "afb3fdf3fa6f073c4ae255ae33420947a8a29ac6",
+      "size": 2344
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+      "mode": "100644",
+      "gitBlob": "26c87da5a574552f4a237cd2fa16f6dfe624ec46",
+      "size": 1606
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "mode": "100644",
+      "gitBlob": "7979a96fc392137702a869e38399ddccf0a72ee7",
+      "size": 5760
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+      "mode": "100644",
+      "gitBlob": "df15f222507561141b36e8b9b7add28d2616a7a9",
+      "size": 1578
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/VKBSim Gunfighter F14 {2D5CEC70-5189-11f1-8001-444553540000}.diff.lua",
+      "mode": "100644",
+      "gitBlob": "949bee13cba1919f5c2f14757bbd3c2e690e204b",
+      "size": 1514
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/joystick/Viper TQS {C0A33440-3F54-11f1-8001-444553540000}.diff.lua",
+      "mode": "100644",
+      "gitBlob": "02b6dd3d4635726ce8cbe87b4c398b385affefba",
+      "size": 266
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/keyboard/Keyboard.diff.lua",
+      "mode": "100644",
+      "gitBlob": "08432607face249c996221947b4923f08eecbeb7",
+      "size": 269
+    },
+    {
+      "path": "assets/shared/ui-layer/input/UiLayer/modifiers.lua",
+      "mode": "100644",
+      "gitBlob": "a55512dc91c9ee84131c86bfa9932483b51277da",
+      "size": 1204
+    },
+    {
+      "path": "assets/source/sample-device.svg",
+      "mode": "100644",
+      "gitBlob": "69aa6f644678b5f0454bb57b14e030c9414801f8",
+      "size": 686
+    },
+    {
+      "path": "docs/centralized-kneeboard-generation-plan.md",
+      "mode": "100644",
+      "gitBlob": "64814ee075d749f2f984fd878430e922d02f225b",
+      "size": 1109
+    },
+    {
+      "path": "docs/consumer-repository-setup.md",
+      "mode": "100644",
+      "gitBlob": "78c7570a3d899f7f6812d914162fe4d73266d105",
+      "size": 22947
+    },
+    {
+      "path": "docs/definitive-ui-layer.md",
+      "mode": "100644",
+      "gitBlob": "ff730b1567ea821854c40f1df17f34f2a2ff9362",
+      "size": 5081
+    },
+    {
+      "path": "docs/drawio-hardware-workflow.md",
+      "mode": "100644",
+      "gitBlob": "0cb7c5c9718ed76eac9b0c7cdbcc737918b1bece",
+      "size": 4750
+    },
+    {
+      "path": "docs/input-source-recovery.md",
+      "mode": "100644",
+      "gitBlob": "e8e66d21c3d0b0286aa7195f0bb047b4ebb3e2cc",
+      "size": 1212
+    },
+    {
+      "path": "docs/ipi-authoring.md",
+      "mode": "100644",
+      "gitBlob": "bc3c4e3d87f8235a9e25faf36d597c6ba6049a7d",
+      "size": 8469
+    },
+    {
+      "path": "docs/module-ui-layer-overrides.md",
+      "mode": "100644",
+      "gitBlob": "f58ec47874c4be86012971052ee1bda0798ef48c",
+      "size": 1574
+    },
+    {
+      "path": "docs/profile-driven-kneeboards.md",
+      "mode": "100644",
+      "gitBlob": "0ffa719533b0fa6487ea268c9539b1d43300c5ee",
+      "size": 10844
+    },
+    {
+      "path": "docs/project-plans/consumer-scaffold-wpf.md",
+      "mode": "100644",
+      "gitBlob": "6a546b80455ffaad4057b2943edf298c4cf1b976",
+      "size": 18646
+    },
+    {
+      "path": "docs/project-plans/phase-0-decisions.md",
+      "mode": "100644",
+      "gitBlob": "a751b25fb99a0ece81508fee16fc498ae0276a1c",
+      "size": 881
+    },
+    {
+      "path": "docs/ui-layer-overlays.md",
+      "mode": "100644",
+      "gitBlob": "e41bb5ce91616af2b243a7bd46b5aaf3ec1b66c5",
+      "size": 5484
+    },
+    {
+      "path": "docs/workflow-contract.md",
+      "mode": "100644",
+      "gitBlob": "c3977fa6b428a22b207284d56686ccece5a2c070",
+      "size": 3583
+    },
+    {
+      "path": "examples/f14b-config.mjs",
+      "mode": "100644",
+      "gitBlob": "f59b703899ab09f2cd3cc22772590ee8a9377815",
+      "size": 1869
+    },
+    {
+      "path": "examples/modifiers-toggle-layer/README.md",
+      "mode": "100644",
+      "gitBlob": "78d0034ffcb834f41c48f18f0c661b38d9751888",
+      "size": 620
+    },
+    {
+      "path": "examples/modifiers-toggle-layer/kneeboard.json",
+      "mode": "100644",
+      "gitBlob": "e236b779c9c805651fc14d606fee2522ef8be10f",
+      "size": 1256
+    },
+    {
+      "path": "examples/modifiers-toggle-layer/modifiers.lua",
+      "mode": "100644",
+      "gitBlob": "712c983bf6d99c53c388c60b072a0061505d4fdc",
+      "size": 340
+    },
+    {
+      "path": "examples/modifiers-toggle-layer/profiles/mfd.diff.lua",
+      "mode": "100644",
+      "gitBlob": "d70c9fedba57810cfb73a8138ca18c4c9934daf6",
+      "size": 800
+    },
+    {
+      "path": "generate_test_articles.ps1",
+      "mode": "100644",
+      "gitBlob": "0cbab6cfa084e19a26bd91d301739a17a7f57c54",
+      "size": 1918
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "100644",
+      "gitBlob": "c7a7629bdcfc7b3641cf5027eebd402ba960130e",
+      "size": 17344
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "gitBlob": "35c1344eb619a0927db7f4c14ef42c75f41f9be4",
+      "size": 785
+    },
+    {
+      "path": "scripts/Build-OvGME.ps1",
+      "mode": "100644",
+      "gitBlob": "13aa52524c682d2323e9a78e6541cec7e29f699f",
+      "size": 2995
+    },
+    {
+      "path": "scripts/Build-Release.ps1",
+      "mode": "100644",
+      "gitBlob": "ad4c27316fd3d43dbc719e31edc2a12ecf453b13",
+      "size": 2082
+    },
+    {
+      "path": "scripts/create-drawio-hardware-sources.mjs",
+      "mode": "100644",
+      "gitBlob": "dbac07a67c9f27f185e1310181a1e0e15fcccea0",
+      "size": 5576
+    },
+    {
+      "path": "scripts/drawio-source.mjs",
+      "mode": "100644",
+      "gitBlob": "857c75cdc532e4d70af6fc76a5ecadb091172899",
+      "size": 749
+    },
+    {
+      "path": "scripts/effective-profile-applicability.mjs",
+      "mode": "100644",
+      "gitBlob": "5af78b029acd938a11d5ff577dd61f9420f14212",
+      "size": 3178
+    },
+    {
+      "path": "scripts/export-drawio-hardware.mjs",
+      "mode": "100644",
+      "gitBlob": "4c3189450fb40e3ea43cf650659bf5db5f9b36a4",
+      "size": 11736
+    },
+    {
+      "path": "scripts/generate-complete-build-mock.mjs",
+      "mode": "100644",
+      "gitBlob": "1cf5035454475166848aa42c403eff2eded67992",
+      "size": 6009
+    },
+    {
+      "path": "scripts/generate-test-articles.mjs",
+      "mode": "100644",
+      "gitBlob": "671d448d58a83251ddaa7737f933d5bf276ead68",
+      "size": 3279
+    },
+    {
+      "path": "scripts/ipi-authoring.mjs",
+      "mode": "100644",
+      "gitBlob": "dc98c5df6787b3d0bce2e744bab52c402b81ff4e",
+      "size": 10089
+    },
+    {
+      "path": "scripts/kneeboard-renderer.mjs",
+      "mode": "100644",
+      "gitBlob": "ab971ed41e57243c0b5e1098b6ac13b36e0a60e2",
+      "size": 13683
+    },
+    {
+      "path": "scripts/manage-ui-layer-catalog.mjs",
+      "mode": "100644",
+      "gitBlob": "5333db85e36130f924fd2f2f831f9b2ed2cf6163",
+      "size": 26164
+    },
+    {
+      "path": "scripts/module-ui-layer-overlay.mjs",
+      "mode": "100644",
+      "gitBlob": "07efd8aaf339eee146e1e7fa93bf0b2f30c3b508",
+      "size": 4878
+    },
+    {
+      "path": "scripts/package-ui-layer-input.mjs",
+      "mode": "100644",
+      "gitBlob": "7d63cc01a0bb0a6af6e8509714678d6d3860ae22",
+      "size": 18309
+    },
+    {
+      "path": "scripts/profile-driven-kneeboard.mjs",
+      "mode": "100644",
+      "gitBlob": "c6f69f99faaf2186f4fcdde6b02d33da8ceea4fd",
+      "size": 22442
+    },
+    {
+      "path": "scripts/profile-driven-kneeboard.test.mjs",
+      "mode": "100644",
+      "gitBlob": "9db463a75a4dbd0d5a699a8fff4f3476f39ff4c4",
+      "size": 7407
+    },
+    {
+      "path": "scripts/render-interactive-device.mjs",
+      "mode": "100644",
+      "gitBlob": "169d1c786e7237ea1fb905e693c5e088ccc7591a",
+      "size": 2604
+    },
+    {
+      "path": "scripts/render-kneeboard-example.mjs",
+      "mode": "100644",
+      "gitBlob": "c568107979c75b3e2c83e8a00715449244022df7",
+      "size": 304
+    },
+    {
+      "path": "scripts/render-scaffold-preview-selection.mjs",
+      "mode": "100644",
+      "gitBlob": "058746e6f5586bd26535584e9679b4ac70633b56",
+      "size": 1650
+    },
+    {
+      "path": "scripts/render-scaffold-preview.mjs",
+      "mode": "100644",
+      "gitBlob": "84a87976518df28f14c82e73b3c87bba1b15230d",
+      "size": 2345
+    },
+    {
+      "path": "scripts/scaffold-consumer.mjs",
+      "mode": "100644",
+      "gitBlob": "15300649403e1f17389d3d6b1eaf1dd473882cae",
+      "size": 94791
+    },
+    {
+      "path": "scripts/shared-hardware-consumer.mjs",
+      "mode": "100644",
+      "gitBlob": "5feb36c49c5519ed6840dd078b89c4adc9552378",
+      "size": 18957
+    },
+    {
+      "path": "scripts/shared-hardware-consumer.test.mjs",
+      "mode": "100644",
+      "gitBlob": "1b9d3c72cd95ffc10b2bef14b7dc1c64f06d0151",
+      "size": 4138
+    },
+    {
+      "path": "scripts/ui-layer-overlays.mjs",
+      "mode": "100644",
+      "gitBlob": "11ca3ca96602ebcfade22e6af7aaf7440bb2912d",
+      "size": 6464
+    },
+    {
+      "path": "scripts/ui-layer-utilization.mjs",
+      "mode": "100644",
+      "gitBlob": "f4ea515d9d64a4c6457811611b7420a3b7d82dd2",
+      "size": 5722
+    },
+    {
+      "path": "templates/consumer/Build-OvGME.ps1.tmpl",
+      "mode": "100644",
+      "gitBlob": "bb0ff194c83c1ad6307ac6d6e74f0e7a4efe3a8c",
+      "size": 2673
+    },
+    {
+      "path": "templates/consumer/Build-Release.ps1.tmpl",
+      "mode": "100644",
+      "gitBlob": "659ef67beca26f6a3851f6e8e7c14813fcd81fcf",
+      "size": 2438
+    },
+    {
+      "path": "templates/consumer/README.md.tmpl",
+      "mode": "100644",
+      "gitBlob": "39b3483e48017c6cb095e74bc6dfeedf9db2e4fd",
+      "size": 1740
+    },
+    {
+      "path": "templates/consumer/RELEASE-NOTES.md.tmpl",
+      "mode": "100644",
+      "gitBlob": "20cfa52349262260ae03d1ebd15380e6a865cb6b",
+      "size": 103
+    },
+    {
+      "path": "templates/consumer/Test-Package.ps1.tmpl",
+      "mode": "100644",
+      "gitBlob": "f43e89cd98cbba19c697b117eb420e94f26dae3f",
+      "size": 3555
+    },
+    {
+      "path": "templates/consumer/build-kneeboard.mjs.tmpl",
+      "mode": "100644",
+      "gitBlob": "ed872677c82a31e95cb17c4842988076440d9493",
+      "size": 2849
+    },
+    {
+      "path": "templates/consumer/build.yml.tmpl",
+      "mode": "100644",
+      "gitBlob": "42bb9a1245094b2c7e32fdf2bac1b9f012f6610b",
+      "size": 1176
+    },
+    {
+      "path": "templates/consumer/ovgme-README.TXT.tmpl",
+      "mode": "100644",
+      "gitBlob": "d4c45f5eb0b9964fb4fd1cd03fe85e77aabb3442",
+      "size": 158
+    },
+    {
+      "path": "templates/consumer/package.json.tmpl",
+      "mode": "100644",
+      "gitBlob": "5d9ee764086b49be7e2593884babeaaa21776878",
+      "size": 314
+    },
+    {
+      "path": "templates/consumer/release.yml.tmpl",
+      "mode": "100644",
+      "gitBlob": "cdee81ce102a2367a5921c3ff1115aa7a981d983",
+      "size": 1171
+    },
+    {
+      "path": "templates/consumer/test-kneeboard.mjs.tmpl",
+      "mode": "100644",
+      "gitBlob": "aa735879a0c9c13691bfee961f2c3be4d3d14657",
+      "size": 4601
+    },
+    {
+      "path": "templates/consumer/test-versioning.mjs.tmpl",
+      "mode": "100644",
+      "gitBlob": "9af8af13544d3d497a0236712440a91a029666ab",
+      "size": 702
+    },
+    {
+      "path": "templates/consumer/version.mjs.tmpl",
+      "mode": "100644",
+      "gitBlob": "5876bf4a733a0c7031b0d350b69824744ad6650d",
+      "size": 1639
+    },
+    {
+      "path": "test/complete-build-mock.test.mjs",
+      "mode": "100644",
+      "gitBlob": "0dccd8a39587b7885468e791563df7453627fde2",
+      "size": 6631
+    },
+    {
+      "path": "test/consumer-test-template.test.mjs",
+      "mode": "100644",
+      "gitBlob": "bf36ee602769ad3b1895b6bca4169d80645e85d2",
+      "size": 908
+    },
+    {
+      "path": "test/drawio-hardware.test.mjs",
+      "mode": "100644",
+      "gitBlob": "d825aca3f94e0a1bd70af7398fb1254872f8bc45",
+      "size": 10375
+    },
+    {
+      "path": "test/drawio-source.test.mjs",
+      "mode": "100644",
+      "gitBlob": "2b06cfea810f45c458e6d432fc39970770d866e1",
+      "size": 1141
+    },
+    {
+      "path": "test/embedded-image-integrity.test.mjs",
+      "mode": "100644",
+      "gitBlob": "a46c1f7a051c09cce58b0552ade04256ada6036d",
+      "size": 1894
+    },
+    {
+      "path": "test/interactive-device.test.mjs",
+      "mode": "100644",
+      "gitBlob": "87f6b334db9aefbc81027763e03731e9d16b014a",
+      "size": 6985
+    },
+    {
+      "path": "test/ipi-authoring.test.mjs",
+      "mode": "100644",
+      "gitBlob": "e91e4cec3612570dff130e3c5cc79b52339a07b1",
+      "size": 3246
+    },
+    {
+      "path": "test/kneeboard-renderer.test.mjs",
+      "mode": "100644",
+      "gitBlob": "63375b2e234d603678d668bb231103eebfb5418f",
+      "size": 4215
+    },
+    {
+      "path": "test/ovgme-template.test.mjs",
+      "mode": "100644",
+      "gitBlob": "cd91ddc484da80f1b22cb8776baa279faa6e6060",
+      "size": 1858
+    },
+    {
+      "path": "test/package-ui-layer-input.test.mjs",
+      "mode": "100644",
+      "gitBlob": "7f32a5adc52d3e17065d556c586bb009981a6841",
+      "size": 23965
+    },
+    {
+      "path": "test/profile-driven-kneeboard.test.mjs",
+      "mode": "100644",
+      "gitBlob": "84b56abd82b0d133a8508943aa5939841f753552",
+      "size": 9644
+    },
+    {
+      "path": "test/render-scaffold-preview-selection.test.mjs",
+      "mode": "100644",
+      "gitBlob": "d49e04e8f755b8642fda5a5d6a69dbc049ab64ed",
+      "size": 2063
+    },
+    {
+      "path": "test/scaffold-consumer.test.mjs",
+      "mode": "100644",
+      "gitBlob": "fd08d6cf5e279c097dd277dd805608e6b5607e05",
+      "size": 97673
+    },
+    {
+      "path": "test/shared-hardware-consumer.test.mjs",
+      "mode": "100644",
+      "gitBlob": "53e13eacef295a10db55c053c53e539256d81852",
+      "size": 6151
+    },
+    {
+      "path": "test/shared-hardware.test.mjs",
+      "mode": "100644",
+      "gitBlob": "1c810dbc2a15726855f5bd5b113a1d8edfe80e89",
+      "size": 24178
+    },
+    {
+      "path": "test/tm-mfd-rocker-map.test.mjs",
+      "mode": "100644",
+      "gitBlob": "84680ca5661f5c08f3ae1b81703ec20c9d7cbfc0",
+      "size": 1250
+    },
+    {
+      "path": "test/ui-layer-catalog.test.mjs",
+      "mode": "100644",
+      "gitBlob": "70a5775ceb881c695b6403ffc2b850e3c6d95a7e",
+      "size": 13637
+    },
+    {
+      "path": "test/ui-layer-overlays.test.mjs",
+      "mode": "100644",
+      "gitBlob": "fce399ee498d9ba49492da521b0a45cbe5bac17c",
+      "size": 5649
+    },
+    {
+      "path": "test/ui-layer-preview-render.test.mjs",
+      "mode": "100644",
+      "gitBlob": "cf928e90de4aed3f72024358f0fae547ab3a350a",
+      "size": 2832
+    },
+    {
+      "path": "test/ui-layer-utilization.test.mjs",
+      "mode": "100644",
+      "gitBlob": "6bacc20a296002329f1ea1a0a5e99762bcb3fa7a",
+      "size": 1952
+    },
+    {
+      "path": "test/workflow-scaffold-contract.test.mjs",
+      "mode": "100644",
+      "gitBlob": "ef4fa80b7b0c41df06e8bc3989f23b85855634d3",
+      "size": 1450
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/DcsConsumerScaffold.sln",
+      "mode": "100644",
+      "gitBlob": "340746d4c309b9d8b49e54f59329a956e11fa456",
+      "size": 1446
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/README.md",
+      "mode": "100644",
+      "gitBlob": "8dfe23c43c02b23577ae6758dc52c26e826b4e85",
+      "size": 18782
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/installer/installer.iss",
+      "mode": "100644",
+      "gitBlob": "a2c506ff253d742595b09cc2114debcf23195732",
+      "size": 1155
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/App.xaml",
+      "mode": "100644",
+      "gitBlob": "672ec2b4b2cbc40d2680483946a25f91eb01ef46",
+      "size": 280
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/App.xaml.cs",
+      "mode": "100644",
+      "gitBlob": "a8102dc03d4e99c0b906e550b18b1aaaafdcc209",
+      "size": 98
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ApplicationDisplayTitle.cs",
+      "mode": "100644",
+      "gitBlob": "1795942aefb5ab1e0ab52ca5f05c181619c1a27a",
+      "size": 488
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/DcsConsumerScaffold.csproj",
+      "mode": "100644",
+      "gitBlob": "f2d66e6f7ac7e2f8c55c0502247ed2ff0da3c984",
+      "size": 581
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/InteractivePreviewWindow.xaml",
+      "mode": "100644",
+      "gitBlob": "dace4ae3dc171230af0640dc71293554c9dac7db",
+      "size": 6162
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/InteractivePreviewWindow.xaml.cs",
+      "mode": "100644",
+      "gitBlob": "afa693c5a4569ab65163badd72da0ffe4f3d6aaf",
+      "size": 25826
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/MainWindow.xaml",
+      "mode": "100644",
+      "gitBlob": "b4526c215396a1c732e88ed657c0aec0c0675dbb",
+      "size": 32067
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/MainWindow.xaml.cs",
+      "mode": "100644",
+      "gitBlob": "0379f847b5a3dcb1298acfe64b6cea929d2bfe15",
+      "size": 25322
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/DcsCommandCatalogModels.cs",
+      "mode": "100644",
+      "gitBlob": "4eec698480c0081fa55ff3bc84d22fd9db9208de",
+      "size": 4418
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/InteractiveDevice.cs",
+      "mode": "100644",
+      "gitBlob": "701215d340e22287329b072c1b305af7bd7ff88a",
+      "size": 882
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/IpiAuthoringModels.cs",
+      "mode": "100644",
+      "gitBlob": "e8f76d0864b2a0b71f7acb1c1645fb208f6e5f19",
+      "size": 4613
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/PreviewModels.cs",
+      "mode": "100644",
+      "gitBlob": "cf8c54a204fdc3ebace356d91b207a91de225602",
+      "size": 19517
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/UiLayerCatalogModels.cs",
+      "mode": "100644",
+      "gitBlob": "e9d5d564c981e8654c716361ab518eca534119e0",
+      "size": 8770
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ModuleAuthoringWindow.xaml",
+      "mode": "100644",
+      "gitBlob": "610a9e011a86f0cef1580c3e678a02af93a5d369",
+      "size": 6034
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ModuleAuthoringWindow.xaml.cs",
+      "mode": "100644",
+      "gitBlob": "7748d125d2cec64aae897d954516da24ea1f86f7",
+      "size": 6312
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/CurrentLabelService.cs",
+      "mode": "100644",
+      "gitBlob": "00f7b36e55bcf361b1588c338c66c623877df12c",
+      "size": 20418
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/DcsCommandCatalogService.cs",
+      "mode": "100644",
+      "gitBlob": "051af1ba056644698af5b01a1f1d972ef28b0a2e",
+      "size": 5915
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/DcsHtmlCommandCatalogProvider.cs",
+      "mode": "100644",
+      "gitBlob": "bd8b00858b31529ebf5924f76dfd9c0afdbcf9da",
+      "size": 10776
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/IpiAuthoringService.cs",
+      "mode": "100644",
+      "gitBlob": "8aaf711886d07c541967ada72d970f76234d8d5f",
+      "size": 5889
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ModuleUiLayerOverlayService.cs",
+      "mode": "100644",
+      "gitBlob": "5ea2d71136ff6bd4c94dfc0152d3f206867727bd",
+      "size": 4742
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/PreviewComparisonService.cs",
+      "mode": "100644",
+      "gitBlob": "ccf6cf801c871b98cc047778f436f7c320dba3bd",
+      "size": 26328
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ProfilePathIdentityService.cs",
+      "mode": "100644",
+      "gitBlob": "2f9eb6d6510e43e0255f46d51e122fc3f00f0e0c",
+      "size": 773
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ScaffoldEngineService.cs",
+      "mode": "100644",
+      "gitBlob": "780adcf206e07e69391675b692b128658075aca9",
+      "size": 23257
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ScaffoldSolutionService.cs",
+      "mode": "100644",
+      "gitBlob": "e4ab6032a940991366f6b823b1c184536b31b9da",
+      "size": 9010
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerCatalogService.cs",
+      "mode": "100644",
+      "gitBlob": "331627c72b1d424cd3d4b5050ca25fcb0b25b4ca",
+      "size": 5638
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerEditorSelection.cs",
+      "mode": "100644",
+      "gitBlob": "db5664519ecf618894c9146339ac8f3e549620e0",
+      "size": 3179
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerImportService.cs",
+      "mode": "100644",
+      "gitBlob": "800a8fe4b6cb9aa6a22c3a7e0bdabe42e5ff7ce1",
+      "size": 12752
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerProjectionService.cs",
+      "mode": "100644",
+      "gitBlob": "5f71f214c35c1a407fa9ac53295c2c7286fd560f",
+      "size": 5702
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/UiLayerEditorWindow.xaml",
+      "mode": "100644",
+      "gitBlob": "4c1bcdaaf7f669a5debcc7ef3e5e372fcc97f475",
+      "size": 11256
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/UiLayerEditorWindow.xaml.cs",
+      "mode": "100644",
+      "gitBlob": "1487ad60397794bb524fda2533d5da0dd2154ed2",
+      "size": 14737
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ViewModels/MainViewModel.cs",
+      "mode": "100644",
+      "gitBlob": "25080b8f4b04b9252fc39a50509aee7f436449ba",
+      "size": 103105
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CommandAssignmentTests.cs",
+      "mode": "100644",
+      "gitBlob": "92fef4de0924e3b79a16feb70712eff5a470c913",
+      "size": 13291
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CommandLabelGroupingTests.cs",
+      "mode": "100644",
+      "gitBlob": "8dca81cf37ab0eb572f96441aac08c35e99d9bcc",
+      "size": 5572
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CurrentLabelServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "51c850592fb37de34e53150654a25c9cb922a5c4",
+      "size": 22506
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsCommandCatalogServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "54fdabe1a82abeb71520c51b8586b75320871298",
+      "size": 5000
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsConsumerScaffold.Tests.csproj",
+      "mode": "100644",
+      "gitBlob": "546eca96b6a44a156c80518337c08bd342348f2d",
+      "size": 839
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsHtmlCommandCatalogProviderTests.cs",
+      "mode": "100644",
+      "gitBlob": "815252585f4e6b96f231b5ed70846e7864ee57b8",
+      "size": 4968
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/InputSourceRecoveryTests.cs",
+      "mode": "100644",
+      "gitBlob": "874a6d0d30dcb593aff6cefb61c7cd1f54e234d1",
+      "size": 7740
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/InteractivePreviewTests.cs",
+      "mode": "100644",
+      "gitBlob": "334516dce1b6447132d0ebfee6fef9cf12126afc",
+      "size": 10060
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ModifierAuthoringTests.cs",
+      "mode": "100644",
+      "gitBlob": "e5762e8f98a1c039aed58d68a1e11b43b55dbe1d",
+      "size": 3160
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ModuleUiLayerOverlayTests.cs",
+      "mode": "100644",
+      "gitBlob": "7828a3753c055d4334caa64c71cecb5e2c6ed9d1",
+      "size": 4000
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/PreviewComparisonServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "a3e2040c5e7faabb387e5e9252640ba8fcc92b1e",
+      "size": 9370
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ProfilePathIdentityServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "9b994bc44ece6a7e5e7e71036c30a2ea0c9dc981",
+      "size": 3632
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldEngineServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "3c9db08fafb5b0b19d56ebb3fe5a3c5d14723c61",
+      "size": 9980
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldSolutionServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "3c102234829da990bbb430b538e0cdaa436f4aa0",
+      "size": 7203
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldSolutionViewModelTests.cs",
+      "mode": "100644",
+      "gitBlob": "c2b692494dcbc5362a1cf068a10b92ee8f3ed0a6",
+      "size": 11003
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/SharedDeviceAuthoringTests.cs",
+      "mode": "100644",
+      "gitBlob": "fce2a1c31cde2cb2c4e1f90c87dfd9168b0b95d3",
+      "size": 7607
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerCommandCatalogTests.cs",
+      "mode": "100644",
+      "gitBlob": "95d992af08949f389f3eb9b823e1dc5194365eea",
+      "size": 3379
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerEditorSelectionTests.cs",
+      "mode": "100644",
+      "gitBlob": "7e1c3c4b3d921f04691f751fb28df8d293d86a0e",
+      "size": 2550
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerImportServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "df1409fa46680982bba53a0fe0a75a0d5b6cf2a6",
+      "size": 8676
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerModeSelectionTests.cs",
+      "mode": "100644",
+      "gitBlob": "b85865d78c75255696938cdf021941763ac667ef",
+      "size": 4771
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerOwnershipTests.cs",
+      "mode": "100644",
+      "gitBlob": "323e58610f2fda619989997d98e86c1ff3241e58",
+      "size": 2217
+    },
+    {
+      "path": "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerProjectionServiceTests.cs",
+      "mode": "100644",
+      "gitBlob": "eecddf6956575960068db10607b97dc5de4c462a",
+      "size": 2944
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "shared-assets",
+      "title": "Shared hardware, components and visual inputs",
+      "status": "implemented-parity-pending",
+      "owner": "Domain / Rendering / versioned data",
+      "sourcePaths": [
+        "assets/shared/components/component-manifest.json",
+        "assets/shared/components/generic-control-panel.svg",
+        "assets/shared/components/generic-hardware-outline.svg",
+        "assets/shared/hardware/SOURCES.md",
+        "assets/shared/hardware/drawio/grip-f18c.drawio",
+        "assets/shared/hardware/drawio/logitech-throttle-quadrant.drawio",
+        "assets/shared/hardware/drawio/moza-ab9.drawio",
+        "assets/shared/hardware/drawio/onyourtwelve-pdcp.drawio",
+        "assets/shared/hardware/drawio/tm-mfd.drawio",
+        "assets/shared/hardware/drawio/tm-tpr.drawio",
+        "assets/shared/hardware/drawio/tm-warthog-grip.drawio",
+        "assets/shared/hardware/drawio/tm-warthog-throttle.drawio",
+        "assets/shared/hardware/drawio/viper-tqs-mission-pack.drawio",
+        "assets/shared/hardware/drawio/vkb-f14-gunfighter.drawio",
+        "assets/shared/hardware/drawio/winctrl-icp.drawio",
+        "assets/shared/hardware/drawio/winctrl-pto2.drawio",
+        "assets/shared/hardware/export-config.json",
+        "assets/shared/hardware/lua/grip-f18c.lua",
+        "assets/shared/hardware/lua/logitech-throttle-quadrant.lua",
+        "assets/shared/hardware/lua/moza-ab9.lua",
+        "assets/shared/hardware/lua/onyourtwelve-pdcp.lua",
+        "assets/shared/hardware/lua/tm-mfd.lua",
+        "assets/shared/hardware/lua/tm-tpr.lua",
+        "assets/shared/hardware/lua/tm-warthog-grip.lua",
+        "assets/shared/hardware/lua/tm-warthog-throttle.lua",
+        "assets/shared/hardware/lua/viper-tqs-mission-pack.lua",
+        "assets/shared/hardware/lua/vkb-f14-gunfighter.lua",
+        "assets/shared/hardware/lua/winctrl-icp.lua",
+        "assets/shared/hardware/lua/winctrl-pto2.lua",
+        "assets/shared/hardware/manifest.json",
+        "assets/shared/hardware/scaffold-device-map.json",
+        "assets/shared/hardware/source/f16c-icp-clean.png",
+        "assets/shared/hardware/source/f16c-warthog-grip-front.png",
+        "assets/shared/hardware/source/f16c-warthog-grip-rear.png",
+        "assets/shared/hardware/source/f4u-logitech-throttle-quadrant.png",
+        "assets/shared/hardware/source/mfd-clean.png",
+        "assets/shared/hardware/source/moza-ab9.jpg",
+        "assets/shared/hardware/source/pdcp-photo.jpeg",
+        "assets/shared/hardware/source/pto2-buttons-rgb.png",
+        "assets/shared/hardware/source/pto2-buttons.png",
+        "assets/shared/hardware/source/pto2-clean.png",
+        "assets/shared/hardware/source/thrustmaster-ava-base.png",
+        "assets/shared/hardware/source/thrustmaster-f16c-grip.png",
+        "assets/shared/hardware/source/thrustmaster-f18c-grip.png",
+        "assets/shared/hardware/source/thrustmaster-tpr.png",
+        "assets/shared/hardware/source/tm-warthog-throttle-blank.png",
+        "assets/shared/hardware/source/viper-mission-pack-controls.png",
+        "assets/shared/hardware/source/viper-tqs-handle-controls.png",
+        "assets/shared/hardware/source/vkb-f14-grip-rear.png",
+        "assets/shared/hardware/source/vkb-f14-grip-side.png",
+        "assets/shared/hardware/source/warthog-throttle-base.png",
+        "assets/shared/hardware/source/warthog-throttle-handles.png",
+        "assets/shared/hardware/svg/grip-f18c.svg",
+        "assets/shared/hardware/svg/logitech-throttle-quadrant.svg",
+        "assets/shared/hardware/svg/moza-ab9.svg",
+        "assets/shared/hardware/svg/onyourtwelve-pdcp.svg",
+        "assets/shared/hardware/svg/tm-mfd.svg",
+        "assets/shared/hardware/svg/tm-tpr.svg",
+        "assets/shared/hardware/svg/tm-warthog-grip.svg",
+        "assets/shared/hardware/svg/tm-warthog-throttle.svg",
+        "assets/shared/hardware/svg/viper-tqs-mission-pack.svg",
+        "assets/shared/hardware/svg/vkb-f14-gunfighter.svg",
+        "assets/shared/hardware/svg/winctrl-icp.svg",
+        "assets/shared/hardware/svg/winctrl-pto2.svg"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Dcs/BundledSharedCatalog.cs",
+        "tests/Dcs.Ipia.Tests/BundledSharedCatalogTests.cs"
+      ],
+      "current": "All current shared assets are distributed and Git-identity checked. Asset bytes alone do not establish exporter or consumer rendering parity.",
+      "exitCriteria": "Preserve stable device/control IDs, native filenames, binary bytes, licenses and provenance; verify every new bundle revision."
+    },
+    {
+      "id": "shared-ui",
+      "title": "Shared defaults, module overrides and UI projection",
+      "status": "implemented-parity-pending",
+      "owner": "Application / Dcs / Infrastructure",
+      "sourcePaths": [
+        "assets/shared/ui-layer/functions.json",
+        "assets/shared/ui-layer/hardware-overlays.json",
+        "assets/shared/ui-layer/input/UiLayer/joystick/Ava [R] Viper {F77212B0-00A8-11f1-8001-444553540000}.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/joystick/VKBSim Gunfighter F14 {2D5CEC70-5189-11f1-8001-444553540000}.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/joystick/Viper TQS {C0A33440-3F54-11f1-8001-444553540000}.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/keyboard/Keyboard.diff.lua",
+        "assets/shared/ui-layer/input/UiLayer/modifiers.lua",
+        "scripts/manage-ui-layer-catalog.mjs",
+        "scripts/module-ui-layer-overlay.mjs",
+        "scripts/package-ui-layer-input.mjs",
+        "scripts/ui-layer-overlays.mjs",
+        "scripts/ui-layer-utilization.mjs"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Application/SharedUiLayerRevisionReference.cs",
+        "src/Dcs.Ipia.Dcs/SnapshotLuaPayloadRenderer.cs",
+        "tests/Dcs.Ipia.Tests/ModuleUiLayerBindingImporterTests.cs"
+      ],
+      "current": "Versioned defaults, isolated overrides, reviewed adoption and native output are implemented; full consumer utilization parity is unmeasured.",
+      "exitCriteria": "Compare effective commands, removed bindings, keyboard ownership, modifier names/modes/chords and per-instance isolation against pinned consumers."
+    },
+    {
+      "id": "asset-authoring",
+      "title": "Draw.io creation, decoding and SVG export",
+      "status": "migration-pending",
+      "owner": "Rendering / asset authoring tools",
+      "sourcePaths": [
+        "docs/drawio-hardware-workflow.md",
+        "scripts/create-drawio-hardware-sources.mjs",
+        "scripts/drawio-source.mjs",
+        "scripts/export-drawio-hardware.mjs"
+      ],
+      "targetEvidence": [
+        "data/shared-assets/assets/shared/hardware/export-config.json",
+        "data/shared-assets/assets/shared/hardware/drawio/tm-mfd.drawio"
+      ],
+      "current": "Native sources and published SVGs are bundled; the Common exporter and draw.io authoring tools have not moved into IPIA.",
+      "exitCriteria": "Port supported native/compressed cells, UserObject IDs, anchors/connectors, embedded-image checks and watermarks; compare all 12 SVGs deterministically and visually."
+    },
+    {
+      "id": "profile-import",
+      "title": "Profile parsing, applicability and hardware resolution",
+      "status": "implemented-parity-pending",
+      "owner": "Dcs / Application",
+      "sourcePaths": [
+        "scripts/effective-profile-applicability.mjs",
+        "scripts/profile-driven-kneeboard.mjs",
+        "scripts/shared-hardware-consumer.mjs"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Dcs/DcsLuaParser.cs",
+        "src/Dcs.Ipia.Dcs/ModuleWorkspaceLoader.cs",
+        "tests/Dcs.Ipia.Tests/ModuleLuaProfileRendererTests.cs"
+      ],
+      "current": "Generic profile and command import/export is implemented; fixtures do not establish whole-consumer equivalence.",
+      "exitCriteria": "Compare every profile/instance, key/axis changed/removed/default history, sparse filters, modifiers, unknown controls and diagnostics; generation remains independent of consumer checkouts."
+    },
+    {
+      "id": "rendering",
+      "title": "Device, layered, interactive and summary rendering",
+      "status": "implemented-parity-pending",
+      "owner": "Rendering / App",
+      "sourcePaths": [
+        "scripts/kneeboard-renderer.mjs",
+        "scripts/render-interactive-device.mjs",
+        "scripts/render-kneeboard-example.mjs",
+        "scripts/render-scaffold-preview-selection.mjs",
+        "scripts/render-scaffold-preview.mjs"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Rendering/CompositeKneeboardRenderer.cs",
+        "src/Dcs.Ipia.Rendering/SnapshotSummaryKneeboardRenderer.cs",
+        "tests/Dcs.Ipia.Tests/SnapshotDeviceKneeboardRendererTests.cs"
+      ],
+      "current": "Current saved/draft pages are generated internally; consumer PNG/SVG geometry, legends, footer and pagination parity is pending.",
+      "exitCriteria": "Compare all pages and scopes/chords, callout/image alignment, unassigned labels, provenance/version footers and order; record every intentional visual difference."
+    },
+    {
+      "id": "module-authoring",
+      "title": "IPI editor, command loading and local authoring",
+      "status": "implemented-parity-pending",
+      "owner": "App / Application / Dcs",
+      "sourcePaths": [
+        "scripts/ipi-authoring.mjs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/App.xaml",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/App.xaml.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ApplicationDisplayTitle.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/InteractivePreviewWindow.xaml",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/InteractivePreviewWindow.xaml.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/MainWindow.xaml",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/MainWindow.xaml.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/DcsCommandCatalogModels.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/InteractiveDevice.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/IpiAuthoringModels.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/PreviewModels.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Models/UiLayerCatalogModels.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ModuleAuthoringWindow.xaml",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ModuleAuthoringWindow.xaml.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/CurrentLabelService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/DcsCommandCatalogService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/DcsHtmlCommandCatalogProvider.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/IpiAuthoringService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ModuleUiLayerOverlayService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/PreviewComparisonService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ProfilePathIdentityService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ScaffoldEngineService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/ScaffoldSolutionService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerCatalogService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerEditorSelection.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerImportService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/Services/UiLayerProjectionService.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/UiLayerEditorWindow.xaml",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/UiLayerEditorWindow.xaml.cs",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/ViewModels/MainViewModel.cs"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs",
+        "src/Dcs.Ipia.Dcs/ModuleCommandCatalogImport.cs",
+        "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
+        "tests/Dcs.Ipia.App.Smoke/Program.cs"
+      ],
+      "current": "SQLite authoring, commands, devices, cards and snapshot workflows are implemented; repository materialization is separate.",
+      "exitCriteria": "Preserve identities, categories, labels, modifiers, tuning, repeated units and save/discard; retain outstanding hardware/DCS verification in #111."
+    },
+    {
+      "id": "consumer-scaffolding",
+      "title": "Consumer templates, reports and repository materialization",
+      "status": "migration-pending",
+      "owner": "Application / Packaging export adapters",
+      "sourcePaths": [
+        "scripts/scaffold-consumer.mjs",
+        "templates/consumer/build-kneeboard.mjs.tmpl",
+        "templates/consumer/build.yml.tmpl",
+        "templates/consumer/package.json.tmpl",
+        "templates/consumer/release.yml.tmpl",
+        "templates/consumer/test-kneeboard.mjs.tmpl",
+        "templates/consumer/test-versioning.mjs.tmpl",
+        "templates/consumer/version.mjs.tmpl"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs",
+        "docs/new-module-creation.md"
+      ],
+      "current": "New Module removes the repository prerequisite; it does not emit consumer repositories, scaffold reports, version scripts or workflow mirrors.",
+      "exitCriteria": "Define reviewed snapshot projections/mirrors, preserve consumer-specific escape hatches, and prove clean rebuild/rollback before changing a consumer source of truth."
+    },
+    {
+      "id": "module-documentation",
+      "title": "Generated installation, control, integration and attribution guides",
+      "status": "migration-pending",
+      "owner": "Rendering / Application metadata",
+      "sourcePaths": [
+        "templates/consumer/README.md.tmpl",
+        "templates/consumer/RELEASE-NOTES.md.tmpl"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Rendering/ModuleMarkdownRenderer.cs",
+        "docs/module-authoring.md"
+      ],
+      "current": "The Markdown renderer emits a module list, not complete consumer guides. OvGME generation does not produce legacy documentation.",
+      "exitCriteria": "Generate installation/removal, device key/axis/modifier/UI mappings, empty/default/unmapped controls and provenance from frozen state; optional integrations require explicit module metadata."
+    },
+    {
+      "id": "module-packaging",
+      "title": "Native Lua, OvGME layout and verification",
+      "status": "implemented-parity-pending",
+      "owner": "Packaging / Dcs",
+      "sourcePaths": [
+        "scripts/Build-OvGME.ps1",
+        "templates/consumer/Build-OvGME.ps1.tmpl",
+        "templates/consumer/Test-Package.ps1.tmpl",
+        "templates/consumer/ovgme-README.TXT.tmpl"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Packaging/OvGmePackageVerifier.cs",
+        "src/Dcs.Ipia.Dcs/ModuleSnapshotWorkflow.cs",
+        "tests/Dcs.Ipia.Tests/SnapshotOvGmeComposerTests.cs"
+      ],
+      "current": "Verified deterministic snapshot-only OvGME is implemented; published consumer archive comparisons remain pending.",
+      "exitCriteria": "Compare exact paths/case, aircraft/UI profiles/modifiers, all PNGs, README/VERSION and checksums; exclude databases, machine paths and raw source assets."
+    },
+    {
+      "id": "complete-release",
+      "title": "Complete-release bundle and documentation distribution",
+      "status": "migration-pending",
+      "owner": "Packaging",
+      "sourcePaths": [
+        "scripts/Build-Release.ps1",
+        "templates/consumer/Build-Release.ps1.tmpl"
+      ],
+      "targetEvidence": [
+        "src/Dcs.Ipia.Packaging/OvGmePackageBuilder.cs",
+        "docs/module-authoring.md"
+      ],
+      "current": "The deployable ZIP is available; the separate Complete bundle with Documentation and optional integration assets is not implemented.",
+      "exitCriteria": "Compose deterministic OVGME/Documentation/VERSION/checksums from pinned inputs; preserve approved optional integration assets without inventing them."
+    },
+    {
+      "id": "release-automation",
+      "title": "App and consumer build, versioning and release adapters",
+      "status": "migration-pending",
+      "owner": "CI / Packaging / release metadata",
+      "sourcePaths": [
+        ".github/workflows/build.yml",
+        ".github/workflows/export.yml",
+        ".github/workflows/main.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/scaffold-app.yml",
+        ".gitignore",
+        "package-lock.json",
+        "package.json",
+        "tools/DcsConsumerScaffold/DcsConsumerScaffold.sln",
+        "tools/DcsConsumerScaffold/installer/installer.iss",
+        "tools/DcsConsumerScaffold/src/DcsConsumerScaffold/DcsConsumerScaffold.csproj"
+      ],
+      "targetEvidence": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "installer/installer.iss"
+      ],
+      "current": "IPIA uses four-part app tags and the shared .NET workflow; consumer regeneration/tag/complete-release behavior is not replaced.",
+      "exitCriteria": "Keep app installer versioning distinct from module releases; preserve tag target, notes, rollback and public history. Consumer publishing follows module parity approval."
+    },
+    {
+      "id": "verification",
+      "title": "Legacy tests and characterization contracts",
+      "status": "preserve-reference",
+      "owner": "Corresponding layer tests",
+      "sourcePaths": [
+        "scripts/profile-driven-kneeboard.test.mjs",
+        "scripts/shared-hardware-consumer.test.mjs",
+        "test/complete-build-mock.test.mjs",
+        "test/consumer-test-template.test.mjs",
+        "test/drawio-hardware.test.mjs",
+        "test/drawio-source.test.mjs",
+        "test/embedded-image-integrity.test.mjs",
+        "test/interactive-device.test.mjs",
+        "test/ipi-authoring.test.mjs",
+        "test/kneeboard-renderer.test.mjs",
+        "test/ovgme-template.test.mjs",
+        "test/package-ui-layer-input.test.mjs",
+        "test/profile-driven-kneeboard.test.mjs",
+        "test/render-scaffold-preview-selection.test.mjs",
+        "test/scaffold-consumer.test.mjs",
+        "test/shared-hardware-consumer.test.mjs",
+        "test/shared-hardware.test.mjs",
+        "test/tm-mfd-rocker-map.test.mjs",
+        "test/ui-layer-catalog.test.mjs",
+        "test/ui-layer-overlays.test.mjs",
+        "test/ui-layer-preview-render.test.mjs",
+        "test/ui-layer-utilization.test.mjs",
+        "test/workflow-scaffold-contract.test.mjs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CommandAssignmentTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CommandLabelGroupingTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/CurrentLabelServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsCommandCatalogServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsConsumerScaffold.Tests.csproj",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/DcsHtmlCommandCatalogProviderTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/InputSourceRecoveryTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/InteractivePreviewTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ModifierAuthoringTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ModuleUiLayerOverlayTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/PreviewComparisonServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ProfilePathIdentityServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldEngineServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldSolutionServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/ScaffoldSolutionViewModelTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/SharedDeviceAuthoringTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerCommandCatalogTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerEditorSelectionTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerImportServiceTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerModeSelectionTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerOwnershipTests.cs",
+        "tools/DcsConsumerScaffold/tests/DcsConsumerScaffold.Tests/UiLayerProjectionServiceTests.cs"
+      ],
+      "targetEvidence": [
+        "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
+        "tests/Dcs.Ipia.App.Smoke/Program.cs"
+      ],
+      "current": "Legacy tests remain evidence; 396 IPIA tests and 80/80 gates do not prove every legacy behavior has been ported.",
+      "exitCriteria": "Port unrepresented asset/import/render/docs/package/workflow behavior and golden cases; preserve independent coverage and real SQLite/Windows checks."
+    },
+    {
+      "id": "examples-and-history",
+      "title": "Examples, mock generation and historical utilities",
+      "status": "preserve-reference",
+      "owner": "Fixtures / preserved repository history",
+      "sourcePaths": [
+        "APPLY-ISSUE-54.ps1",
+        "README-ISSUE-54.txt",
+        "assets/source/sample-device.svg",
+        "examples/f14b-config.mjs",
+        "examples/modifiers-toggle-layer/README.md",
+        "examples/modifiers-toggle-layer/kneeboard.json",
+        "examples/modifiers-toggle-layer/modifiers.lua",
+        "examples/modifiers-toggle-layer/profiles/mfd.diff.lua",
+        "generate_test_articles.ps1",
+        "scripts/generate-complete-build-mock.mjs",
+        "scripts/generate-test-articles.mjs"
+      ],
+      "targetEvidence": [
+        "snapshots/fixtures/README.md",
+        "docs/migration/repository-inventory.md"
+      ],
+      "current": "These sources are retained for characterization and historical reference; deletion or product exposure is not authorized.",
+      "exitCriteria": "Review each utility before adapting it into fixtures or retiring execution; preserve repository history/tags/releases."
+    },
+    {
+      "id": "operator-guidance",
+      "title": "Licensing and authored operator/developer guidance",
+      "status": "preserve-reference",
+      "owner": "Documentation / provenance",
+      "sourcePaths": [
+        "LICENSE",
+        "README.md",
+        "docs/centralized-kneeboard-generation-plan.md",
+        "docs/consumer-repository-setup.md",
+        "docs/definitive-ui-layer.md",
+        "docs/input-source-recovery.md",
+        "docs/ipi-authoring.md",
+        "docs/module-ui-layer-overrides.md",
+        "docs/profile-driven-kneeboards.md",
+        "docs/project-plans/consumer-scaffold-wpf.md",
+        "docs/project-plans/phase-0-decisions.md",
+        "docs/ui-layer-overlays.md",
+        "docs/workflow-contract.md",
+        "tools/DcsConsumerScaffold/README.md"
+      ],
+      "targetEvidence": [
+        "data/shared-assets/DCS-Common-LICENSE.txt",
+        "docs/module-authoring.md",
+        "docs/migration/internal-shared-assets.md"
+      ],
+      "current": "MIT license is bundled; legacy operator guidance needs reconciliation with database/snapshot workflows.",
+      "exitCriteria": "Retain attribution/history, rewrite supported setup/authoring/ownership guidance and do not revive the retired DCS-UI-Layer pipeline."
+    }
+  ],
+  "knownGaps": [
+    {
+      "id": "missing-build-shared-hardware",
+      "evidence": "package.json",
+      "missingPath": "scripts/build-shared-hardware.mjs",
+      "description": "The build:shared-hardware npm entrypoint names a script absent from this pinned tree. Do not copy it into IPIA as a working command; characterize or replace it in the asset-authoring slice."
+    }
+  ]
+}
