@@ -108,10 +108,11 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
                 var selected = WorkspaceStructureEditor.Hardware(first)[0];
+                var fileName = Path.GetFileName(selected.DefaultFileName.Replace('\\\\', '/'));
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
-                    x.SourceName.Equals(selected.DefaultFileName, StringComparison.OrdinalIgnoreCase));
+                    x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                 var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
-                    existing?.SourceName ?? selected.DefaultFileName, existing?.Instance, null);
+                    existing?.SourceName ?? fileName, existing?.Instance, null);
                 await repository.SaveAsync(edited);
                 Assert.Contains(WorkspaceStructureEditor.Describe((await repository.GetAsync(first.Configuration.Module.Id))!).Devices,
                     x => x.Layer == AssignmentLayer.Module);

@@ -261,7 +261,7 @@ namespace Dcs.Ipia.App.Smoke
             window.UpdateLayout();
             if (window.FindName("DcsIdInput") is not TextBox || window.FindName("DisplayNameInput") is not TextBox ||
                 window.FindName("HardwareChoices") is not ListBox || window.FindName("CreateButton") is not Button ||
-                ((TextBlock)window.FindName("BaselineText")).Text.IndexOf("7", StringComparison.Ordinal) < 0)
+                ((TextBlock)window.FindName("BaselineText")).Text.IndexOf('7') < 0)
                 throw new InvalidOperationException("New Module identity, hardware and baseline controls are missing.");
             window.Close();
         }
