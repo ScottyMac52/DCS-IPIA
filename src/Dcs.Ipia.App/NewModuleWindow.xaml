@@ -1,0 +1,32 @@
+<Window x:Class="DcsIpia.Presentation.NewModuleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="New module" Width="560" Height="530" MinWidth="460" MinHeight="420"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+        WindowStartupLocation="CenterOwner">
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <StackPanel>
+      <TextBlock Text="Create a module" FontSize="24" FontWeight="Bold"/>
+      <TextBlock Text="Enter the exact DCS input folder name for this aircraft." TextWrapping="Wrap" Margin="0,12,0,8"/>
+      <Label Target="{Binding ElementName=DcsIdInput}" Content="DCS input folder"/>
+      <TextBox x:Name="DcsIdInput" AutomationProperties.Name="DCS input folder"/>
+      <Label Target="{Binding ElementName=DisplayNameInput}" Content="Display name"/>
+      <TextBox x:Name="DisplayNameInput" AutomationProperties.Name="Module display name"/>
+      <TextBlock x:Name="BaselineText" TextWrapping="Wrap" Margin="0,12,0,8"/>
+      <TextBlock Text="Select initial aircraft hardware (optional). Add physical instances and edit native filenames in Devices after creation."
+                 TextWrapping="Wrap" Margin="0,0,0,8"/>
+    </StackPanel>
+    <ListBox Grid.Row="1" x:Name="HardwareChoices" SelectionMode="Multiple" DisplayMemberPath="Title"
+             AutomationProperties.Name="Initial module hardware" Margin="0,8,0,8"/>
+    <StackPanel Grid.Row="2">
+      <TextBlock x:Name="CreationError" TextWrapping="Wrap" Margin="0,0,0,8"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel" IsCancel="True" Padding="16,8" Margin="0,0,8,0"/>
+        <Button x:Name="CreateButton" Content="Create module" IsDefault="True" Padding="16,8" Click="CreateClicked"/>
+      </StackPanel>
+    </StackPanel>
+  </Grid>
+</Window>

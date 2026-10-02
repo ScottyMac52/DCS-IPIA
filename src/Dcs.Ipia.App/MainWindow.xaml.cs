@@ -35,6 +35,7 @@ namespace DcsIpia.Presentation
             _sharedDefaults = sharedDefaults;
             InitializeComponent();
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
+            NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
@@ -62,6 +63,34 @@ namespace DcsIpia.Presentation
                 ShowImportError("Unable to open shared default UI Layer: " + ex.Message);
             }
             finally { SharedDefaultsButton.IsEnabled = true; }
+        }
+        private async void NewModule_Click(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || _sharedDefaults is null)
+                return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                ImportStatus.Text = "Loading internal hardware and shared defaults…";
+                var defaults = await _sharedDefaults.GetAsync() ??
+                    await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var dialog = new NewModuleWindow(_workspaces, defaults, hardware) { Owner = this };
+                if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
+                    return;
+                _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                await RefreshSavedModulesAsync(saved.Configuration.Module.Id);
+                ImportStatus.Text = $"Created {saved.Configuration.Module.DisplayName}; shared default revision {defaults.Revision} is pinned.";
+                ShowImported();
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to create module: " + ex.Message);
+            }
+            finally
+            {
+                SetModuleOperationBusy(false);
+            }
         }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)
         {
@@ -191,6 +220,7 @@ namespace DcsIpia.Presentation
             _moduleOperationBusy = busy;
             SavedModules.IsEnabled = !busy;
             ImportButton.IsEnabled = !busy;
+            NewModuleButton.IsEnabled = !busy && _sharedDefaults is not null;
             OpenModuleButton.IsEnabled = !busy;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
         }
@@ -254,7 +284,7 @@ namespace DcsIpia.Presentation
             }
         }
         private static string SavedWorkspaceStatus(EditorWorkspaceSnapshot saved) =>
-            $"Opened saved workspace for {saved.Configuration.Module.DisplayName} ({saved.Configuration.Provenance}). Repository changes are not reloaded here. Commit module changes, then use Import Module to refresh.";
+            $"Opened saved workspace for {saved.Configuration.Module.DisplayName} ({saved.Configuration.Provenance}). This workspace loads from SQLite. Use Import Module only to refresh an imported repository.";
         private async Task RefreshSavedModulesAsync(Guid? selected = null)
         {
             var previous = selected ?? (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
