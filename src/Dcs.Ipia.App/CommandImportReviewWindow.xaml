@@ -1,0 +1,34 @@
+<Window x:Class="DcsIpia.Presentation.CommandImportReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Review command import" Width="1050" Height="650" MinWidth="750" MinHeight="450"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="20">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+      <TextBlock x:Name="ImportHeading" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock x:Name="ImportSources" TextWrapping="Wrap" Margin="0,8,0,8"/>
+      <TextBlock Text="Adds new codes and updates matching names/categories. Commands absent from these files remain. Existing assignments, modifiers, custom labels and UI Layer commands are retained. DCS HTML exports contain device headings, so verify that all selected exports belong to this aircraft. This imports command definitions; HTML button/axis assignments are not applied."
+                 TextWrapping="Wrap"/>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <TextBlock x:Name="ImportError" TextWrapping="Wrap" Margin="0,0,0,10"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel" IsCancel="True" Padding="16,8" Margin="0,0,8,0"/>
+        <Button x:Name="StageImportButton" Content="Stage import" IsDefault="True" Click="StageClicked" Padding="16,8"/>
+      </StackPanel>
+    </StackPanel>
+    <DataGrid x:Name="ImportChanges" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AutomationProperties.Name="Command import changes">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="90"/>
+        <DataGridTextColumn Header="DCS code" Binding="{Binding Code}" Width="*"/>
+        <DataGridTextColumn Header="Old name" Binding="{Binding OldName}" Width="*"/>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+        <DataGridTextColumn Header="Old category" Binding="{Binding OldCategory}" Width="*"/>
+        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="*"/>
+        <DataGridTextColumn Header="Old type" Binding="{Binding OldType}" Width="75"/>
+        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="75"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

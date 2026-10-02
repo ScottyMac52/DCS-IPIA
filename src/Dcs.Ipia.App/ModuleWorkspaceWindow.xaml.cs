@@ -28,6 +28,7 @@ namespace DcsIpia.Presentation
         private DraftAssignmentService? _draft;
         private EditorWorkspaceSnapshot? _working;
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
+        private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -47,13 +48,16 @@ namespace DcsIpia.Presentation
         /// <param name="settings">Occupied destination preference.</param>
         /// <param name="repository">Local editor database.</param>
         /// <param name="deviceDiscovery">Optional native device discovery adapter.</param>
+        /// <param name="commandFilePicker">Optional command-file selection adapter.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
-                                     IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null)
+                                     IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
+                                     Func<bool, IReadOnlyList<string>?>? commandFilePicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
             _repository = repository;
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
+            _commandFilePicker = commandFilePicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -107,6 +111,8 @@ namespace DcsIpia.Presentation
             AuthoredPages.SelectedItem = _working?.Pages.FirstOrDefault(x => x.Id == pageId);
             AuthoredPageDevice.ItemsSource = _working?.Configuration.Profiles ?? [];
             StageAircraftCommandButton.IsEnabled = _working is not null;
+            LoadCommandJsonButton.IsEnabled = _working is not null;
+            LoadCommandHtmlButton.IsEnabled = _working is not null;
             StageAuthoredPageButton.IsEnabled = _working is not null;
             MissingDevicePagesButton.IsEnabled = _working is not null;
             _authoringRefreshing = false;
@@ -115,6 +121,31 @@ namespace DcsIpia.Presentation
                 AuthoredPageSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
             else
                 RemoveAuthoredPageButton.IsEnabled = false;
+        }
+        private void LoadCommandJsonClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(false);
+        private void LoadCommandHtmlClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(true);
+        private void LoadCommandFiles(bool html)
+        {
+            if (_working is null) return;
+            var paths = _commandFilePicker is null ? ChooseCommandFiles(html) : _commandFilePicker(html);
+            if (paths is null) return;
+            try
+            {
+                var review = ModuleCommandCatalogImport.ReadFiles(EditSnapshot(), paths, html);
+                var dialog = new CommandImportReviewWindow(_working.Configuration.Module.DisplayName, review) { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+                RunStructureEdit(workspace => ModuleCommandCatalogImport.Apply(workspace, review));
+            }
+            catch (Exception ex) { SetManagementMessage("Command import failed: " + ex.Message); }
+        }
+        private IReadOnlyList<string>? ChooseCommandFiles(bool html)
+        {
+            var picker = new OpenFileDialog {
+                Title = html ? "Select this aircraft's DCS Controls HTML exports" : "Select IPI command catalog JSON",
+                Filter = html ? "DCS Controls HTML|*.html;*.htm" : "IPI command catalog JSON|*.json",
+                Multiselect = html
+            };
+            return picker.ShowDialog(this) == true ? picker.FileNames : null;
         }
         private void NewAircraftCommandClicked(object sender, RoutedEventArgs e)
         {

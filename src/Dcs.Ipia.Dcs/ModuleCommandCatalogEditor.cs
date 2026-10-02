@@ -39,6 +39,38 @@ namespace Dcs.Ipia.Dcs
             }, entries);
         }
 
+        /// <summary>Atomically merges a reviewed command batch without removing commands absent from the input.</summary>
+        /// <param name="workspace">Current module draft.</param>
+        /// <param name="incoming">Imported command definitions.</param>
+        /// <returns>Draft with merged commands and refreshed aircraft assignment names.</returns>
+        public static EditorWorkspaceSnapshot Merge(EditorWorkspaceSnapshot workspace, IEnumerable<CommandPaletteEntry> incoming)
+        {
+            var imported = new Dictionary<string, CommandPaletteEntry>(StringComparer.Ordinal);
+            var entries = workspace.ModuleCommands.ToDictionary(x => x.Id, StringComparer.Ordinal);
+            foreach (var candidate in incoming)
+            {
+                Validate(candidate);
+                if (!imported.TryAdd(candidate.Id, candidate))
+                    throw new InvalidOperationException("Duplicate imported command code: " + candidate.Id);
+                if ((entries.TryGetValue(candidate.Id, out var current) && current.IsAxis != candidate.IsAxis && IsAssigned(workspace, current.Id)) ||
+                    workspace.Assignments.Any(x => x.Slot.Layer == AssignmentLayer.Module && x.Command.Id == candidate.Id &&
+                        (x.Slot.Section == BindingSection.Axis) != candidate.IsAxis) ||
+                    workspace.Configuration.Bindings.Any(x => x.CommandId == candidate.Id && x.Disposition != BindingDisposition.Removed &&
+                        (x.Section == BindingSection.Axis) != candidate.IsAxis && !workspace.Diagrams.Any(d => d.ProfileId == x.ProfileId &&
+                            d.Controls.Any(c => c.IsAxis == (x.Section == BindingSection.Axis) && DcsInputKey.SamePhysicalInput(c.InputKey, x.InputKey)))))
+                    throw new InvalidOperationException("Command " + candidate.Id + ": clear its assignments before changing its input type.");
+                entries[candidate.Id] = candidate;
+            }
+            var configuration = workspace.Configuration;
+            return Store(workspace with {
+                Configuration = new(configuration.Module, configuration.Profiles, configuration.Modifiers,
+                    configuration.Bindings.Select(x => imported.TryGetValue(x.CommandId, out var candidate)
+                        ? new DcsBinding(x.ProfileId, x.Section, x.CommandId, candidate.Name, x.Disposition, x.InputKey, x.Reformers, x.Filter) : x), configuration.Provenance),
+                Assignments = workspace.Assignments.Select(x => x.Slot.Layer == AssignmentLayer.Module && imported.TryGetValue(x.Command.Id, out var candidate)
+                    ? x with { Command = x.Command with { Name = candidate.Name, IsAxis = candidate.IsAxis } } : x).ToArray()
+            }, entries.Values);
+        }
+
         /// <summary>Removes an unused aircraft command while preserving imported history and other scopes.</summary>
         /// <param name="workspace">Current module draft.</param>
         /// <param name="current">Selected original entry.</param>
