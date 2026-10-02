@@ -18,8 +18,10 @@ namespace DcsIpia.Presentation
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            var releaseSmoke = e.Args.Length == 2 && e.Args[0] == "--release-smoke";
             var userFolder =
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCS-IPIA");
+                releaseSmoke ? Path.GetFullPath(e.Args[1]) :
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCS-IPIA");
             Directory.CreateDirectory(userFolder);
             var connectionString = new SqliteConnectionStringBuilder { DataSource = Path.Combine(userFolder, "ipia.db"),
                                                                        ForeignKeys = true }
@@ -53,6 +55,11 @@ namespace DcsIpia.Presentation
                     .BuildServiceProvider();
             MainWindow = _services.GetRequiredService<MainWindow>();
             MainWindow.Show();
+            if (releaseSmoke)
+            {
+                try { await PublishedApplicationSmoke.VerifyAsync(MainWindow, userFolder); Shutdown(0); }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(userFolder, "release-smoke.error"), ex.ToString()); Shutdown(1); }
+            }
         }
         /// <summary>Releases the service provider on application exit.</summary>
         /// <param name="e">The WPF exit event.</param>
