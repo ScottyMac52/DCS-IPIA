@@ -432,6 +432,7 @@
                    TextChanged="BuildVersionChanged" AutomationProperties.Name="OvGME package version"/>
           <Button x:Name="ValidateModuleButton" Content="Validate saved module" IsEnabled="False" Margin="10,0,0,0" Padding="12,7" Click="ValidateModuleClicked"/>
           <Button x:Name="ExportModuleSnapshotButton" Content="Export module snapshot…" IsEnabled="False" Margin="10,0,0,0" Padding="12,7" Click="ExportModuleSnapshotClicked"/>
+          <Button x:Name="ExportModuleDocumentationButton" Content="Export module documentation…" IsEnabled="False" Margin="10,0,0,0" Padding="12,7" Click="ExportModuleDocumentationClicked"/>
           <Button x:Name="BuildButton" Content="Build OvGME package…" IsEnabled="False"
                   Margin="10,0,0,0" Padding="12,7" Click="BuildClicked"/>
         </WrapPanel>

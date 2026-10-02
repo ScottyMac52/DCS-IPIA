@@ -31,6 +31,24 @@ namespace Dcs.Ipia.Tests
                 await repository.CreateAsync(original);
                 var saved = (await repository.GetAsync(original.Configuration.Module.Id))!;
                 var snapshot = ModuleSnapshotWorkflow.Freeze(saved, "2.3.4");
+                var guides = ModuleDocumentationWorkflow.Generate(snapshot);
+                Assert.Equal(4, guides.Count);
+                Assert.Contains(snapshot.Workspace.Sha256, guides["README.md"], StringComparison.Ordinal);
+                Assert.Contains("Pitch custom", guides["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                Assert.Contains("Toggle", guides["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                Assert.Contains("UiLayer", guides["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                Assert.Contains("Deadzone", guides["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                Assert.Contains("No active packaged diff", guides["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                var documentation = Path.Combine(root, "Documentation");
+                ModuleDocumentationWorkflow.Write(snapshot, documentation);
+                Assert.Throws<IOException>(() => ModuleDocumentationWorkflow.Write(snapshot, documentation));
+                foreach (var guide in guides) Assert.Equal(guide.Value, File.ReadAllText(Path.Combine(documentation, guide.Key)));
+                Assert.Throws<DirectoryNotFoundException>(() => ModuleDocumentationWorkflow.Write(snapshot, Path.Combine(root, "missing", "docs")));
+                var occupied = Path.Combine(root, "occupied");
+                File.WriteAllText(occupied, "keep");
+                Assert.Throws<IOException>(() => ModuleDocumentationWorkflow.Write(snapshot, occupied));
+                Assert.Equal("keep", File.ReadAllText(occupied));
+                Assert.Empty(Directory.GetDirectories(root, ".ipia-docs-*"));
                 var first = ModuleSnapshotWorkflow.Build(snapshot);
                 Assert.Equal(first.Sha256, OvGmePackageVerifier.Verify(first));
                 var file = Path.Combine(root, "aircraft.ipia-module.json");
@@ -48,6 +66,8 @@ namespace Dcs.Ipia.Tests
                 await ModuleSnapshotWorkflow.RestoreAsync(read, restoredRepository);
                 var reopened = (await restoredRepository.GetAsync(original.Configuration.Module.Id))!;
                 Assert.Equal(snapshot.Workspace, EditorSnapshotSerializer.Serialize(reopened));
+                Assert.Equal(guides.OrderBy(x => x.Key), ModuleDocumentationWorkflow.Generate(read).OrderBy(x => x.Key));
+                Assert.Equal(guides.OrderBy(x => x.Key), ModuleDocumentationWorkflow.Generate(ModuleSnapshotWorkflow.Freeze(reopened, "2.3.4")).OrderBy(x => x.Key));
                 Assert.Equal(original.SharedDefault!.ContentSha256, reopened.SharedDefault!.ContentSha256);
                 Assert.Null(await defaultsRepository.GetAsync());
                 Assert.Equal("Pitch custom", reopened.Labels.Values.Single());
@@ -61,6 +81,8 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(first.Bytes, second.Bytes);
                 Assert.Equal(first.ChecksumLine, second.ChecksumLine);
                 var changed = reopened with { Labels = reopened.Labels.ToDictionary(x => x.Key, _ => "Changed label") };
+                Assert.Contains("Changed label", ModuleDocumentationWorkflow.Generate(ModuleSnapshotWorkflow.Freeze(changed, "2.3.4"))["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
+                Assert.Contains("Pitch custom", ModuleDocumentationWorkflow.Generate(read)["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
                 Assert.NotEqual(first.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(changed, "2.3.4")).Bytes);
                 Assert.Equal(first.Bytes, ModuleSnapshotWorkflow.Build(read).Bytes);
                 using var stream = new MemoryStream(first.Bytes);
@@ -139,6 +161,7 @@ namespace Dcs.Ipia.Tests
                 await Assert.ThrowsAsync<InvalidDataException>(() => ModuleSnapshotWorkflow.RestoreAsync(corrupt, repository));
                 Assert.Empty(await repository.ListAsync());
                 Assert.Throws<InvalidDataException>(() => ModuleSnapshotWorkflow.Write(corrupt, artifact));
+                Assert.Throws<InvalidDataException>(() => ModuleDocumentationWorkflow.Write(corrupt, artifact));
                 Assert.False(File.Exists(artifact));
             }
             finally { File.Delete(path); File.Delete(artifact); }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceRepository": "ScottyMac52/DCS-Common",
   "sourceCommit": "f1c968e606414225db837e75426c0c930cc815c9",
-  "ipiaBaseline": "2cc96ccf87b1e027e115e576895c7ab73fff2666",
+  "ipiaBaseline": "5b0d86dfe89b77a08feb5368f3c33d46696ca832",
   "bundledSourceCommit": "0e9ed14a9189b712477f2c647a348da0d8af321b",
   "files": [
     {
@@ -1550,18 +1550,22 @@
     {
       "id": "module-documentation",
       "title": "Generated installation, control, integration and attribution guides",
-      "status": "migration-pending",
-      "owner": "Rendering / Application metadata",
+      "status": "implemented-parity-pending",
+      "owner": "Rendering / Dcs snapshot workflow",
       "sourcePaths": [
         "templates/consumer/README.md.tmpl",
         "templates/consumer/RELEASE-NOTES.md.tmpl"
       ],
       "targetEvidence": [
-        "src/Dcs.Ipia.Rendering/ModuleMarkdownRenderer.cs",
+        "src/Dcs.Ipia.Rendering/ModuleDocumentationRenderer.cs",
+        "src/Dcs.Ipia.Dcs/ModuleDocumentationWorkflow.cs",
+        "tests/Dcs.Ipia.Tests/ModuleDocumentationRendererTests.cs",
+        "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
+        "tests/Dcs.Ipia.App.Smoke/Program.cs",
         "docs/module-authoring.md"
       ],
-      "current": "The Markdown renderer emits a module list, not complete consumer guides. OvGME generation does not produce legacy documentation.",
-      "exitCriteria": "Generate installation/removal, device key/axis/modifier/UI mappings, empty/default/unmapped controls and provenance from frozen state; optional integrations require explicit module metadata."
+      "current": "Snapshot-derived README, installation/removal, exact generated Lua mappings/history/default baseline/unmapped controls, sparse axis tuning, labels and captured provenance/license guides export atomically from the saved module UI. Optional integration instructions require explicit frozen metadata. Legacy consumer/per-device document and integration-adapter parity remain pending.",
+      "exitCriteria": "Compare frozen consumer guides against legacy golden cases; review per-device output differences and map existing consumer-specific integration metadata into the explicit schema. Complete bundle distribution and manual DCS/consumer acceptance remain separate gates."
     },
     {
       "id": "module-packaging",

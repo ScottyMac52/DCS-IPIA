@@ -30,6 +30,7 @@ namespace DcsIpia.Presentation
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
+        private readonly Func<string?>? _documentationFolderPicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -51,9 +52,11 @@ namespace DcsIpia.Presentation
         /// <param name="deviceDiscovery">Optional native device discovery adapter.</param>
         /// <param name="commandFilePicker">Optional command-file selection adapter.</param>
         /// <param name="outputPathPicker">Optional snapshot file or package folder selection adapter.</param>
+        /// <param name="documentationFolderPicker">Optional parent folder selection for documentation export.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
-                                     Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null)
+                                     Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
+                                     Func<string?>? documentationFolderPicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -61,6 +64,7 @@ namespace DcsIpia.Presentation
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
             _commandFilePicker = commandFilePicker;
             _outputPathPicker = outputPathPicker;
+            _documentationFolderPicker = documentationFolderPicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -1210,12 +1214,14 @@ namespace DcsIpia.Presentation
                                     !string.IsNullOrWhiteSpace(PackageVersion.Text);
             ValidateModuleButton.IsEnabled = BuildButton.IsEnabled;
             ExportModuleSnapshotButton.IsEnabled = BuildButton.IsEnabled;
+            ExportModuleDocumentationButton.IsEnabled = BuildButton.IsEnabled;
         }
 
         private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(null);
         private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(true);
         private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false);
-        private async Task RunOutputAsync(bool? snapshotExport)
+        private async void ExportModuleDocumentationClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, true);
+        private async Task RunOutputAsync(bool? snapshotExport, bool documentation = false)
         {
             if (_saved is null || !BuildButton.IsEnabled) return;
             _building = true;
@@ -1232,13 +1238,20 @@ namespace DcsIpia.Presentation
                     return;
                 }
                 var export = snapshotExport.Value;
-                var path = _outputPathPicker is null ? ChooseOutputPath(export) : _outputPathPicker(export);
+                var path = documentation ? (_documentationFolderPicker is null ? ChooseDocumentationFolder() : _documentationFolderPicker())
+                    : _outputPathPicker is null ? ChooseOutputPath(export) : _outputPathPicker(export);
                 if (path is null)
                 {
                     BuildStatus.Text = "Output cancelled; no files were written.";
                     return;
                 }
-                if (export)
+                if (documentation)
+                {
+                    var destination = Path.Combine(path, $"DCS-{saved.Configuration.Module.DcsId}-Components-{version}-Documentation");
+                    await Task.Run(() => ModuleDocumentationWorkflow.Write(snapshot, destination));
+                    BuildStatus.Text = $"Exported module documentation: {destination} · Snapshot SHA-256 {snapshot.Workspace.Sha256}";
+                }
+                else if (export)
                 {
                     await Task.Run(() => ModuleSnapshotWorkflow.Write(snapshot, path));
                     BuildStatus.Text = $"Exported module snapshot: {path} · SHA-256 {snapshot.Workspace.Sha256}. Restore preserves its module identity and package version.";
@@ -1262,6 +1275,11 @@ namespace DcsIpia.Presentation
                 return picker.ShowDialog(this) == true ? picker.FileName : null;
             }
             var folder = new OpenFolderDialog { Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
+            return folder.ShowDialog(this) == true ? folder.FolderName : null;
+        }
+        private string? ChooseDocumentationFolder()
+        {
+            var folder = new OpenFolderDialog { Title = "Select parent folder for a new module documentation folder" };
             return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 
