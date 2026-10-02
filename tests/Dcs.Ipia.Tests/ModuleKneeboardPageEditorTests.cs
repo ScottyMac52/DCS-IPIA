@@ -95,7 +95,12 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Set(workspace, null, summary with { Cards = [new("KEY", "Description", "bad")] }));
             Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Set(workspace, null, summary with { Cards = Enumerable.Repeat(summary.Cards[0], 15).ToArray() }));
             Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Set(workspace, page, settings with { Cards = summary.Cards }));
-            var empty = workspace with { Pages = [], Images = [], Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" } };
+            var empty = workspace with { Pages = [], Images = [], Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = """{"includeUiLayer":true,"profiles":{},"pages":[]}""" } };
+            // This is the manifest shape produced by New Module, rather than an absent manifest.
+            Assert.Null(KneeboardPageLocator.PageKeyForProfile(empty, empty.Configuration.Profiles[0].Id));
+            Assert.Equal(empty.Diagrams[0].Title, KneeboardDraftProjection.CreateCombined(empty, empty.Diagrams[0], empty.Assignments, empty.Labels).Title);
+            using (var document = JsonDocument.Parse("{}"))
+                Assert.Throws<InvalidOperationException>(() => document.RootElement.EnumerateObject().FirstOrDefault().Name);
             var completed = ModuleKneeboardPageEditor.AddMissingDevicePages(empty);
             Assert.Single(completed.Pages);
             Assert.Equal(completed.Pages[0].Id, ModuleKneeboardPageEditor.AddMissingDevicePages(completed).Pages[0].Id);
