@@ -138,7 +138,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) { SetManagementMessage("Command import failed: " + ex.Message); }
         }
-        private IReadOnlyList<string>? ChooseCommandFiles(bool html)
+        private string[]? ChooseCommandFiles(bool html)
         {
             var picker = new OpenFileDialog {
                 Title = html ? "Select this aircraft's DCS Controls HTML exports" : "Select IPI command catalog JSON",

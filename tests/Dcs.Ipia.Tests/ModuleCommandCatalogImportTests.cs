@@ -48,7 +48,7 @@ namespace Dcs.Ipia.Tests
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
                 var repository = new SqliteEditorWorkspaceRepository(connection);
-                var other = Workspace();
+                var other = Workspace("OTHER");
                 await repository.SaveAsync(other);
                 await repository.SaveAsync(merged);
                 var reopened = (await repository.GetAsync(merged.Configuration.Module.Id))!;
@@ -129,6 +129,31 @@ namespace Dcs.Ipia.Tests
             }
             finally { Directory.Delete(root, true); }
         }
+        /// <summary>Imported axis definitions retain authored tuning and modifier chords on assigned controls.</summary>
+        [Fact]
+        public void Axis_import_retains_tuning_and_modifier_chords()
+        {
+            var original = Workspace();
+            var profile = original.Configuration.Profiles[0];
+            var filter = new AxisFilter(Deadzone: 3, Curvature: [12], Invert: true, Slider: true);
+            var slot = new DraftAssignmentSlot(original.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", "SHIFT");
+            original = original with {
+                Configuration = new(original.Configuration.Module, original.Configuration.Profiles,
+                    [new DcsModifier("SHIFT", "Test", "JOY_BTN2", ModifierMode.Hold)],
+                    original.Configuration.Bindings.Append(new DcsBinding(profile.Id, BindingSection.Axis, Axis, "Old pitch", BindingDisposition.Added, "JOY_X", ["SHIFT"], filter)),
+                    original.Configuration.Provenance),
+                Assignments = [.. original.Assignments, new DraftAssignment(slot, new(Axis, "Old pitch", true, AssignmentLayer.Module)) { Filter = filter }],
+                Diagrams = [original.Diagrams[0] with { Controls = [.. original.Diagrams[0].Controls, new HardwareGraphicControl("axis", "Pitch", "JOY_X", 20, 20, 10, 10, true)] }]
+            };
+            var review = ModuleCommandCatalogImport.Review(original, [new("commands.json", Json)], false);
+            Assert.Null(review.Error);
+            var updated = ModuleCommandCatalogImport.Apply(original, review);
+            Assert.Equal(filter, updated.Configuration.Bindings.Single(x => x.CommandId == Axis).Filter);
+            Assert.Equal(filter, updated.Assignments.Single(x => x.Command.Id == Axis).Filter);
+            Assert.Equal("SHIFT", updated.Assignments.Single(x => x.Command.Id == Axis).Slot.ModifierChord);
+            Assert.Equal("Pitch", updated.Assignments.Single(x => x.Command.Id == Axis).Command.Name);
+            Assert.Equal(original.Configuration.Modifiers, updated.Configuration.Modifiers);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private const string Button = "d3011pnilu3011cd35vd1vpnilvu0";
@@ -136,9 +161,9 @@ namespace Dcs.Ipia.Tests
         private const string Json = """{"schemaVersion":1,"moduleId":"TEST","locale":"en","sourceFingerprint":"reference","commands":[{"bindingKey":"d3011pnilu3011cd35vd1vpnilvu0","name":"New name","rawName":"Original text","aliases":["Alternate"],"categoryPath":["Flight","Modes"],"type":"button","actions":{"down":3011},"source":{"provider":"dcs-controls-html-export"},"currentAssignments":[{"device":"Stick","combo":"JOY_BTN99"}]},{"bindingKey":"a2001cdnil","name":"Pitch","categoryPath":["Flight"],"type":"axis"}]}""";
         private static string Html(string device, string code, string name, string category) =>
             "<h1>" + device + "</h1><table><tr><td>JOY_BTN99</td><td>" + name + "</td><td>" + category + "</td><td>" + code + "</td></tr></table>";
-        private static EditorWorkspaceSnapshot Workspace()
+        private static EditorWorkspaceSnapshot Workspace(string dcsId = "TEST")
         {
-            var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
+            var module = new DcsModule(Guid.NewGuid(), dcsId, "Test");
             var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
             var slot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
             var configuration = new ModuleConfiguration(module, [profile], [], [
