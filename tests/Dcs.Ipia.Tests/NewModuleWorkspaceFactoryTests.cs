@@ -108,7 +108,7 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
                 var selected = WorkspaceStructureEditor.Hardware(first)[0];
-                var fileName = Path.GetFileName(selected.DefaultFileName.Replace('\\\\', '/'));
+                var fileName = Path.GetFileName(selected.DefaultFileName.Replace((char)92, '/'));
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
                     x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                 var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,

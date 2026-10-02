@@ -45,7 +45,7 @@ namespace DcsIpia.Presentation
                 var workspace = NewModuleWorkspaceFactory.Create(DcsIdInput.Text, DisplayNameInput.Text, _defaults, _hardwareSources);
                 foreach (var hardware in HardwareChoices.SelectedItems.Cast<WorkspaceHardware>())
                 {
-                    var fileName = Path.GetFileName(hardware.DefaultFileName.Replace('\\\\', '/'));
+                    var fileName = Path.GetFileName(hardware.DefaultFileName.Replace((char)92, '/'));
                     var inherited = workspace.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == hardware.DeviceId &&
                         x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                     workspace = WorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.Module,
