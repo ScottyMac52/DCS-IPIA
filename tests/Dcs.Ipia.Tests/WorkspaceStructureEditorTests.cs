@@ -639,7 +639,7 @@ namespace Dcs.Ipia.Tests
             var rebound = WorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");
             Assert.Equal(original.Assignments, rebound.Assignments);
             Assert.Equal(original.Labels, rebound.Labels);
-            Assert.Equal(original.Configuration.Bindings, rebound.Configuration.Bindings);
+            Assert.Equal(JsonSerializer.Serialize(original.Configuration.Bindings), JsonSerializer.Serialize(rebound.Configuration.Bindings));
             Assert.Equal(original.Pages.Select(x => x.Id), rebound.Pages.Select(x => x.Id));
             Assert.Equal(original.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!], rebound.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!]);
             Assert.Equal(UiLayerLuaProfileRenderer.Render(original, ProfileId), UiLayerLuaProfileRenderer.Render(rebound, ProfileId));

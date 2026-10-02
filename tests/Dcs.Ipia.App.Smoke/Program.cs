@@ -14,6 +14,8 @@ namespace Dcs.Ipia.App.Smoke
     public static class Program
     {
         private static readonly string[] NavigationHeaders = ["Devices", "Modifiers", "Assignments"];
+        private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
+            "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
         #region BEGIN Public
         [STAThread]
         /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
@@ -339,8 +341,7 @@ namespace Dcs.Ipia.App.Smoke
                         ((TextBox)window.FindName("DisplayNameInput")!).Text = "P-47D Thunderbolt";
                         var hardware = (ComboBox)window.FindName("HardwareChoices")!;
                         var rows = (ListBox)window.FindName("SelectedUnits")!;
-                        var ids = new[] { "tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
-                            "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp" };
+                        var ids = CreationHardware;
                         for (var i = 0; i < ids.Length; i++)
                         {
                             hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == ids[i]);
@@ -372,7 +373,7 @@ namespace Dcs.Ipia.App.Smoke
                 var state = global::Dcs.Ipia.Dcs.WorkspaceStructureEditor.Describe(created);
                 if (state.Devices.Count(x => x.Layer == AssignmentLayer.Module) != 11)
                     throw new InvalidOperationException("Repeated device rows were lost during creation.");
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), created, repository, new EmptyDeviceDiscovery());
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
                 var grid = (DataGrid)editor.FindName("ManagedDevices")!;
