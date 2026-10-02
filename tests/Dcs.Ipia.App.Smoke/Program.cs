@@ -379,12 +379,12 @@ namespace Dcs.Ipia.App.Smoke
                 var build = (Button)editor.FindName("BuildButton")!;
                 if (!validate.IsEnabled || !export.IsEnabled || !build.IsEnabled)
                     throw new InvalidOperationException("Clean saved module output actions are unavailable.");
-                validate.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext(validate);
                 WaitForOutput(editor, "Validated ");
-                export.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext(export);
                 WaitForOutput(editor, "Exported module snapshot:");
                 var snapshot = global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Read(File.ReadAllText(snapshotPath));
-                build.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext(build);
                 WaitForOutput(editor, "Wrote ");
                 var original = File.ReadAllBytes(Path.Combine(root, "DCS-AUTHORING-Components-1.2.3-OVGME.zip"));
                 if (!original.SequenceEqual(global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Build(snapshot).Bytes))
@@ -407,7 +407,7 @@ namespace Dcs.Ipia.App.Smoke
                     settings, restored, snapshotFilePicker: () => snapshotPath);
                 main.Show();
                 var restore = (Button)main.FindName("RestoreModuleSnapshotButton")!;
-                restore.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext(restore);
                 var deadline = DateTime.UtcNow.AddSeconds(60);
                 while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Restored ", StringComparison.Ordinal))
                 {
@@ -417,7 +417,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (((ComboBox)main.FindName("SavedModules")!).SelectedItem is null ||
                     global::Dcs.Ipia.Dcs.EditorSnapshotSerializer.Serialize(restored.GetAsync(moduleId).GetAwaiter().GetResult()!) != snapshot.Workspace)
                     throw new InvalidOperationException("Restored snapshot did not populate the saved module selector losslessly.");
-                restore.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext(restore);
                 deadline = DateTime.UtcNow.AddSeconds(60);
                 while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Module snapshot was not restored:", StringComparison.Ordinal))
                 {
@@ -432,6 +432,13 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Original module became dirty during isolated restore.");
             }
             finally { Directory.Delete(root, true); }
+        }
+        private static void ClickWithDispatcherContext(Button button)
+        {
+            var previous = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(button.Dispatcher));
+            try { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
         }
         private static void WaitForOutput(ModuleWorkspaceWindow editor, string prefix)
         {
