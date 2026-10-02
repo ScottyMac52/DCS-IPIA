@@ -95,7 +95,7 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="380"/></Grid.ColumnDefinitions>
             <DataGrid x:Name="ManagedDevices" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" SelectionChanged="ManagedDeviceSelected" Margin="0,0,12,0">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Profile filename" Binding="{Binding FileName}" Width="*"/>
+                <DataGridTextColumn Header="Device" Binding="{Binding Title}" Width="*"/>
                 <DataGridTextColumn Header="Instance" Binding="{Binding Instance}" Width="100"/>
                 <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
               </DataGrid.Columns>
@@ -108,11 +108,12 @@
                   <WrapPanel Margin="0,0,0,8">
                     <Button x:Name="RefreshDetectedDevicesButton" Content="Refresh devices" Click="RefreshDetectedDevicesClicked" Padding="8,5"/>
                     <Button Content="Saved Games folder…" Click="ChooseSavedGamesClicked" Padding="8,5" Margin="6,0,0,0"/>
+                    <Button Content="Use typed filename" Click="ManualDeviceFileClicked" Padding="8,5" Margin="6,0,0,0"/>
                   </WrapPanel>
                   <TextBlock x:Name="DetectedDevicesMessage" TextWrapping="Wrap" Margin="0,0,0,10"/>
                   <TextBlock Text="Shared hardware"/>
                   <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" SelectionChanged="ManagedHardwareChanged" Margin="0,4,0,10"/>
-                  <TextBlock Text="Default diff.lua filename (editable)"/>
+                  <TextBlock Text="Native DCS filename (exact output identity)"/>
                   <TextBox x:Name="ManagedFileName" Margin="0,4,0,10"/>
                   <TextBlock Text="Instance (optional)"/><TextBox x:Name="ManagedInstance" Margin="0,4,0,10"/>
                   <TextBlock Text="Role (optional)"/><TextBox x:Name="ManagedRole" Margin="0,4,0,10"/>
@@ -138,6 +139,7 @@
                     <Button Content="Update" Click="UpdateDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
                     <Button Content="Remove" Click="RemoveDeviceClicked" Padding="10,6"/>
                   </WrapPanel>
+                  <Button x:Name="RebindDeviceButton" Content="Rebind physical unit…" Click="RebindDeviceClicked" Padding="10,6" Margin="0,12,0,0"/>
                   <Button Content="Clear all assignments on this device" Click="ClearDeviceAssignmentsClicked" Padding="10,6" Margin="0,12,0,0"/>
                 </StackPanel>
               </ScrollViewer>
@@ -178,7 +180,7 @@
             <GroupBox Grid.Column="1" Header="Modifier" Padding="12">
               <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                  <TextBlock Text="Device"/><ComboBox x:Name="ModifierDevice" DisplayMemberPath="FileName" SelectionChanged="ModifierDeviceChanged" Margin="0,4,0,10"/>
+                  <TextBlock Text="Device"/><ComboBox x:Name="ModifierDevice" DisplayMemberPath="Title" SelectionChanged="ModifierDeviceChanged" Margin="0,4,0,10"/>
                   <TextBlock Text="Shared control"/><ComboBox x:Name="ModifierControl" DisplayMemberPath="Label" Margin="0,4,0,10"/>
                   <TextBlock Text="Name"/><TextBox x:Name="ModifierName" Margin="0,4,0,10"/>
                   <TextBlock Text="Semantic Layer"/><TextBox x:Name="ModifierSemantic" Margin="0,4,0,10"/>
@@ -198,7 +200,7 @@
       <TabItem Header="Assignments">
         <DockPanel Margin="12">
           <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-            <TextBlock x:Name="DeviceTitle" FontSize="20" FontWeight="SemiBold" Text="Module controls"/>
+            <TextBlock x:Name="DeviceTitle" FontSize="20" FontWeight="SemiBold" Text="Module controls" TextWrapping="Wrap"/>
             <TextBlock Text="Drag a command onto a callout, or drag an assigned callout onto another. Changes remain pending until Save to database." Margin="0,4" TextWrapping="Wrap"/>
             <WrapPanel>
               <TextBlock Text="Device:" VerticalAlignment="Center" Margin="0,0,8,0"/>

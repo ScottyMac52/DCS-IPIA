@@ -13,7 +13,7 @@ namespace Dcs.Ipia.Application
     {
         #region BEGIN Public
         /// <summary>Gets the display name, including a physical instance when present.</summary>
-        public string Title => Instance is null ? Device : $"{Device} · {Instance}";
+        public string Title => DcsDeviceDisplay.Label(Device, Instance);
         /// <summary>Gets the exact validated draw.io-generated SVG from the committed shared repository.</summary>
         public string Svg { get; init; } = string.Empty;
         /// <summary>Gets the imported device profile identity; never inferred from a Saved Games filename.</summary>

@@ -383,6 +383,12 @@ namespace DcsIpia.Presentation
             catch (Exception ex) { SetManagementMessage("Shared hardware could not be loaded: " + ex.Message); }
         }
         private async void RefreshDetectedDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDetectedDevicesAsync();
+        private void ManualDeviceFileClicked(object sender, RoutedEventArgs e)
+        {
+            DetectedDevice.SelectedItem = null;
+            ManagedFileName.Focus();
+            DetectedDevicesMessage.Text = "Enter the unit's exact captured native filename, including its physical GUID.";
+        }
         private async void ChooseSavedGamesClicked(object sender, RoutedEventArgs e)
         {
             var picker = new OpenFolderDialog { Title = "Select Saved Games or your DCS folder" };
@@ -419,7 +425,12 @@ namespace DcsIpia.Presentation
         private void MatchSelectedDetectedDevice()
         {
             if (_managementRefreshing || DetectedDevice.SelectedItem is not DetectedDcsDevice device || _working is null) return;
-            if (ManagedDevices.SelectedItem is WorkspaceDevice) return;
+            if (ManagedDevices.SelectedItem is WorkspaceDevice)
+            {
+                ManagedFileName.Text = device.FileName;
+                DetectedDevicesMessage.Text = "Physical unit selected. Use Rebind physical unit to review and stage the change for both scopes.";
+                return;
+            }
             var match = DetectedDeviceHardwareMatcher.Match(_working, device);
             ManagedHardware.SelectedItem = match is null ? null :
                 (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.SingleOrDefault(x => x.DeviceId == match.DeviceId);
@@ -463,7 +474,7 @@ namespace DcsIpia.Presentation
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_managementRefreshing || ManagedDevices.SelectedItem is not WorkspaceDevice device || _working is null) return;
-            DetectedDevice.IsEnabled = false;
+            DetectedDevice.IsEnabled = true;
             var profile = _working.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
             ManagedHardware.SelectedItem = (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.FirstOrDefault(x => x.DeviceId == profile.DeviceId);
             ManagedHardware.IsEnabled = true;
@@ -494,6 +505,16 @@ namespace DcsIpia.Presentation
                 new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
                 DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
                 DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+        private void RebindDeviceClicked(object sender, RoutedEventArgs e)
+        {
+            if (ManagedDevices.SelectedItem is not WorkspaceDevice selected) return;
+            var file = ManagedFileName.Text.Trim();
+            if (MessageBox.Show(this, "Rebind this profile in both aircraft and UI Layer scopes?\n\n" + selected.FileName +
+                "\n→ " + file + "\n\nAssignments, labels, filters and modifier references will be retained. Save to keep the staged change.",
+                "Rebind physical unit", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            RunStructureEdit(workspace => WorkspaceStructureEditor.RebindDevice(workspace, selected,
+                NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text));
+        }
         private void RemoveDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.RemoveDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to remove.")));
@@ -1198,4 +1219,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-

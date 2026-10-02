@@ -15,6 +15,7 @@ namespace Dcs.Ipia.Dcs
         public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            ModulePhysicalBindingReview.Validate(workspace);
             workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
                 return ReconcileNativeDeviceNames(GenerateManaged(workspace, managed));
@@ -244,4 +245,5 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
 

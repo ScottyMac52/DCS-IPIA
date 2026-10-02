@@ -14,6 +14,8 @@ namespace Dcs.Ipia.App.Smoke
     public static class Program
     {
         private static readonly string[] NavigationHeaders = ["Devices", "Modifiers", "Assignments"];
+        private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
+            "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
         #region BEGIN Public
         [STAThread]
         /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
@@ -320,15 +322,82 @@ namespace Dcs.Ipia.App.Smoke
         }
         private static void VerifyNewModuleForm()
         {
-            var window = new NewModuleWindow(null!, new SharedUiLayerWorkspace(7, new string('a', 40),
-                new Dictionary<string, string>()), new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" });
-            window.Show();
-            window.UpdateLayout();
-            if (window.FindName("DcsIdInput") is not TextBox || window.FindName("DisplayNameInput") is not TextBox ||
-                window.FindName("HardwareChoices") is not ListBox || window.FindName("CreateButton") is not Button ||
-                ((TextBlock)window.FindName("BaselineText")).Text.IndexOf('7') < 0)
-                throw new InvalidOperationException("New Module identity, hardware and baseline controls are missing.");
-            window.Close();
+            var path = Path.Combine(Path.GetTempPath(), "ipia-creation-smoke-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(
+                    global::Dcs.Ipia.Dcs.SharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+                var sources = global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader.LoadHardwareAsync(
+                    global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root).GetAwaiter().GetResult();
+                var window = new NewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery());
+                Exception? failure = null;
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    try
+                    {
+                        ((TextBox)window.FindName("DcsIdInput")!).Text = "P47-D-30";
+                        ((TextBox)window.FindName("DisplayNameInput")!).Text = "P-47D Thunderbolt";
+                        var physical = (ComboBox)window.FindName("PhysicalChoices")!;
+                        var offline = new DetectedDcsDevice(Guid.NewGuid(), "Captured offline unit", false);
+                        physical.ItemsSource = new[] { offline };
+                        physical.SelectedItem = offline;
+                        ((Button)window.FindName("ManualFileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        if (physical.SelectedItem is not null) throw new InvalidOperationException("Manual filename entry retained a stale discovered-unit GUID.");
+                        var hardware = (ComboBox)window.FindName("HardwareChoices")!;
+                        var rows = (ListBox)window.FindName("SelectedUnits")!;
+                        var ids = CreationHardware;
+                        for (var i = 0; i < ids.Length; i++)
+                        {
+                            hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == ids[i]);
+                            var choice = (WorkspaceHardware)hardware.SelectedItem;
+                            ((TextBox)window.FindName("NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), choice.Label, false).FileName;
+                            ((TextBox)window.FindName("UnitInstance")!).Text = "Unit " + i;
+                            if (i == 0) ((ComboBox)window.FindName("BaselineChoices")!).SelectedIndex = 0;
+                            ((Button)window.FindName("AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                            if (rows.Items.Count != i + 1) throw new InvalidOperationException("Repeated physical-unit selection did not add an independent row: " + ((TextBlock)window.FindName("CreationError")!).Text);
+                        }
+                        hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().First(x => x.Label.Contains("Pendular", StringComparison.OrdinalIgnoreCase));
+                        ((TextBox)window.FindName("NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), "T-Pendular Rudder", false).FileName;
+                        ((Button)window.FindName("AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        if (rows.Items.Count != 11) throw new InvalidOperationException("The reported rudder choice was not staged.");
+                        ((Button)window.FindName("CreateButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }
+                    catch (Exception ex) { failure = ex; window.Close(); }
+                }));
+                var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+                timeout.Tick += (_, _) => {
+                    failure = new InvalidOperationException("New Module creation timed out: " + ((TextBlock)window.FindName("CreationError")!).Text);
+                    window.Close();
+                };
+                timeout.Start();
+                window.ShowDialog();
+                timeout.Stop();
+                if (failure is not null) throw failure;
+                var created = window.CreatedWorkspace ?? throw new InvalidOperationException("Physical-unit creation did not reopen from SQLite.");
+                var state = global::Dcs.Ipia.Dcs.WorkspaceStructureEditor.Describe(created);
+                if (state.Devices.Count(x => x.Layer == AssignmentLayer.Module) != 11)
+                    throw new InvalidOperationException("Repeated device rows were lost during creation.");
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                editor.Show();
+                editor.UpdateLayout();
+                var dropdown = (ComboBox)editor.FindName("DeviceChoice")!;
+                if (dropdown.Items.Cast<UiLayerDiagram>().Any(x => x.Title.Contains(" {", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Assignment device labels still expose duplicate native GUIDs.");
+                var grid = (DataGrid)editor.FindName("ManagedDevices")!;
+                foreach (var device in grid.Items.Cast<WorkspaceDevice>().ToArray())
+                {
+                    grid.SelectedItem = device;
+                    editor.UpdateLayout();
+                    if (((TextBox)editor.FindName("ManagedFileName")!).Text != device.FileName)
+                        throw new InvalidOperationException("New-module physical device selection failed.");
+                }
+                if (editor.FindName("RebindDeviceButton") is not Button)
+                    throw new InvalidOperationException("Explicit physical rebinding is missing.");
+                editor.Close();
+            }
+            finally { File.Delete(path); }
         }
         private static void VerifyModuleDeleteButton()
         {
@@ -649,5 +718,3 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
-
-

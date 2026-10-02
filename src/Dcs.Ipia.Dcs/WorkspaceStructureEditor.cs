@@ -110,7 +110,9 @@ namespace Dcs.Ipia.Dcs
                 workspace = SetKneeboardTitle(workspace, profile.Id, kneeboardTitle);
             if (layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
                 workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
-            return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role ?? (isNew ? null : x.Instance) } : x).ToArray() };
+            if (physicalGuid is { } reviewed)
+                workspace = ModulePhysicalBindingReview.Confirm(workspace, profile.Id, reviewed);
+            return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role ?? (isNew ? physicalGuid?.ToString("D") : x.Instance) } : x).ToArray() };
         }
         /// <summary>Updates identity, filename, and module MFD category labels.</summary>
         /// <param name="workspace">Current staged workspace.</param>
@@ -175,6 +177,43 @@ namespace Dcs.Ipia.Dcs
             if (device.Layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
                 workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
             return workspace;
+        }
+        /// <summary>Explicitly rebinds both scopes to another physical unit while retaining all authored profile data.</summary>
+        /// <param name="workspace">Current staged workspace.</param>
+        /// <param name="device">Reviewed membership to rebind.</param>
+        /// <param name="fileName">Actual GUID-qualified native filename.</param>
+        /// <param name="instance">Human instance label.</param>
+        /// <param name="role">Optional role.</param>
+        /// <returns>Updated module-owned identities and modifier references.</returns>
+        public static EditorWorkspaceSnapshot RebindDevice(EditorWorkspaceSnapshot workspace, WorkspaceDevice device,
+            string fileName, string? instance, string? role)
+        {
+            workspace = Prepare(workspace);
+            var state = Describe(workspace);
+            if (!state.Devices.Contains(device))
+                throw new InvalidOperationException("The device changed. Select it again before rebinding.");
+            ValidateFile(fileName);
+            var guid = DcsPhysicalIdentity.FromFileName(fileName.Trim())
+                ?? throw new InvalidOperationException("Enter the physical unit's GUID-qualified native DCS filename.");
+            instance = Optional(instance);
+            role = Optional(role);
+            var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
+            var identity = instance ?? role ?? guid.ToString("D");
+            if (workspace.Configuration.Profiles.Any(x => x.Id != profile.Id && x.DeviceId == profile.DeviceId && x.Instance == identity))
+                throw new InvalidOperationException("Another device already uses that instance or role.");
+            var memberships = state.Devices.Select(x => x.ProfileId == profile.Id
+                ? x with { FileName = fileName.Trim(), PhysicalGuid = guid, Instance = instance, Role = role } : x).ToArray();
+            foreach (var updated in memberships.Where(x => x.ProfileId == profile.Id))
+                ValidateMembership(state, updated, state.Devices.Single(x => x.ProfileId == profile.Id && x.Layer == updated.Layer));
+            var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id
+                ? x with { NativeDevice = Native(fileName.Trim()) } : x).ToArray();
+            workspace = RenameProfile(workspace, profile, fileName.Trim(), identity, role);
+            workspace = Store(workspace, state with { Devices = memberships, Modifiers = modifiers });
+            workspace = ModulePhysicalBindingReview.Confirm(workspace, profile.Id, guid);
+            return workspace with {
+                Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Device = DcsPhysicalIdentity.NameFromFileName(fileName.Trim()), Instance = instance ?? role ?? guid.ToString("D") } : x).ToArray(),
+                Images = []
+            };
         }
         /// <summary>Removes an unused membership after checking both scopes.</summary>
         /// <param name="workspace">Current staged workspace.</param>

@@ -108,7 +108,7 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
                 var selected = WorkspaceStructureEditor.Hardware(first)[0];
-                var fileName = Path.GetFileName(selected.DefaultFileName.Replace((char)92, '/'));
+                var fileName = new DetectedDcsDevice(Guid.NewGuid(), "Offline test controller", false).FileName;
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
                     x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                 var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
@@ -118,6 +118,9 @@ namespace Dcs.Ipia.Tests
                     x => x.Layer == AssignmentLayer.Module);
                 Assert.DoesNotContain(WorkspaceStructureEditor.Describe((await repository.GetAsync(second.Configuration.Module.Id))!).Devices,
                     x => x.Layer == AssignmentLayer.Module);
+                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(edited));
+                foreach (var device in WorkspaceStructureEditor.Describe(edited).Devices.DistinctBy(x => x.ProfileId).ToArray())
+                    edited = WorkspaceStructureEditor.RebindDevice(edited, device, device.FileName, device.Instance, device.Role);
                 Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(edited));
             }
             finally
