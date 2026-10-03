@@ -35,7 +35,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(other.Id, Assert.Single(workspace.Configuration.Profiles).Id);
             Assert.Equal("device-" + other.Id.ToString("N"), Assert.Single(workspace.Pages).StableKey);
             Assert.Equal(0, workspace.Pages[0].Order);
-            Assert.False(ModuleKneeboardPageEditor.CanRemove(workspace, workspace.Pages[0]));
+            Assert.True(ModuleKneeboardPageEditor.CanRemove(workspace, workspace.Pages[0]));
         }
 
         /// <summary>Deletion removes all filename aliases and compacts remaining page orders through SQLite reopening.</summary>

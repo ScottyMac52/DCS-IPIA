@@ -13,15 +13,18 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleKneeboardPageEditorTests
     {
         #region BEGIN Public
-        /// <summary>A live generated device identity protects its page even if its manifest row is missing.</summary>
+        /// <summary>A live generated device page can be removed even if its manifest row is missing.</summary>
         [Fact]
-        public void ProtectsLiveGeneratedDevicePageWithoutManifestRow()
+        public void RemovesLiveGeneratedDevicePageWithoutManifestRow()
         {
             var workspace = Workspace();
             var live = workspace.Pages[0] with { StableKey = "device-" + workspace.Configuration.Profiles[0].Id.ToString("N") };
             workspace = workspace with { Pages = [live], Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" } };
-            Assert.False(ModuleKneeboardPageEditor.CanRemove(workspace, live));
-            Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Remove(workspace, live));
+            Assert.True(ModuleKneeboardPageEditor.CanRemove(workspace, live));
+            var removed = ModuleKneeboardPageEditor.Remove(workspace, live);
+            Assert.Empty(removed.Pages);
+            Assert.Equal(workspace.Configuration, removed.Configuration);
+            Assert.Equal(workspace.Assignments, removed.Assignments);
         }
 
         /// <summary>Already orphaned device pages can be removed without deleting a live device's page.</summary>
@@ -103,7 +106,18 @@ namespace Dcs.Ipia.Tests
                 var removed = ModuleKneeboardPageEditor.Remove(reopened, reopened.Pages.Single(x => x.Kind == KneeboardPageKind.Summary));
                 Assert.Single(removed.Pages);
                 Assert.Empty(SnapshotSummaryKneeboardRenderer.Generate(removed));
-                Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Remove(removed, removed.Pages[0]));
+                removed = ModuleKneeboardPageEditor.Remove(removed, removed.Pages[0]);
+                await repository.SaveAsync(removed);
+                var withoutPages = (await repository.GetAsync(removed.Configuration.Module.Id))!;
+                Assert.Empty(withoutPages.Pages);
+                Assert.Empty(withoutPages.Images);
+                Assert.Equal(reopened.Configuration.Profiles, withoutPages.Configuration.Profiles);
+                Assert.Equal(reopened.Assignments, withoutPages.Assignments);
+                Assert.Empty(JsonNode.Parse(withoutPages.Sources!["config/kneeboard.json"])!["pages"]!.AsArray());
+                Assert.Empty(JsonNode.Parse(withoutPages.Sources!["config/kneeboard.json"])!["profiles"]!.AsObject());
+                var restored = ModuleKneeboardPageEditor.AddMissingDevicePages(withoutPages);
+                Assert.Single(restored.Pages);
+                Assert.Equal(reopened.Assignments, restored.Assignments);
             }
             finally { File.Delete(path); }
         }

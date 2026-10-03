@@ -335,7 +335,7 @@ namespace DcsIpia.Presentation
         private void MissingDevicePagesClicked(object sender, RoutedEventArgs e) => RunStructureEdit(ModuleKneeboardPageEditor.AddMissingDevicePages);
         private void RemoveAuthoredPageClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             ModuleKneeboardPageEditor.Remove(workspace, AuthoredPages.SelectedItem as KneeboardPage ??
-                throw new InvalidOperationException("Select a summary or orphan page.")));
+                throw new InvalidOperationException("Select a page.")));
         private void NewSummaryCardClicked(object sender, RoutedEventArgs e)
         {
             SummaryCards.SelectedItem = null;

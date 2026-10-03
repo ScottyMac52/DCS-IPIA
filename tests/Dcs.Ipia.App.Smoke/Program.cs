@@ -289,7 +289,12 @@ namespace Dcs.Ipia.App.Smoke
                 var pages = (DataGrid)window.FindName("AuthoredPages")!;
                 var removePage = (Button)window.FindName("RemoveAuthoredPageButton")!;
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == live.Id);
-                if (removePage.IsEnabled) throw new InvalidOperationException("A live device page was deletable independently.");
+                if (!removePage.IsEnabled) throw new InvalidOperationException("A live device page could not be removed.");
+                removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 2 || ((DataGrid)window.FindName("ManagedDevices")!).Items.Count != 1)
+                    throw new InvalidOperationException("Page removal did not retain its device.");
+                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore the live device page.");
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == orphan.Id);
                 if (!removePage.IsEnabled) throw new InvalidOperationException("An orphan page could not be removed.");
                 removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
