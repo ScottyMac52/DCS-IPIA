@@ -33,6 +33,7 @@ namespace DcsIpia.Presentation
         private readonly Func<string?>? _documentationFolderPicker;
         private readonly Func<string?>? _completeReleaseFolderPicker;
         private readonly Func<string?>? _integrationFilePicker;
+        private readonly Func<string?>? _axisDefaultsFilePicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -57,11 +58,12 @@ namespace DcsIpia.Presentation
         /// <param name="documentationFolderPicker">Optional parent folder selection for documentation export.</param>
         /// <param name="completeReleaseFolderPicker">Optional parent folder selection for Complete release export.</param>
         /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
+        /// <param name="axisDefaultsFilePicker">Optional cleared-axis DCS profile selection adapter.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
-                                     Func<string?>? integrationFilePicker = null)
+                                     Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -72,6 +74,7 @@ namespace DcsIpia.Presentation
             _documentationFolderPicker = documentationFolderPicker;
             _completeReleaseFolderPicker = completeReleaseFolderPicker;
             _integrationFilePicker = integrationFilePicker;
+            _axisDefaultsFilePicker = axisDefaultsFilePicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -189,6 +192,27 @@ namespace DcsIpia.Presentation
         {
             if (IntegrationInstructions.SelectedItem is ModuleIntegrationInstruction entry)
                 RunStructureEdit(workspace => ModuleIntegrationImport.Remove(workspace, entry.Name));
+        }
+        private void ImportAxisDefaultsClicked(object sender, RoutedEventArgs e)
+        {
+            if (_working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device)
+            {
+                SetManagementMessage("Select a device before importing its DCS axis defaults.");
+                return;
+            }
+            var picker = new OpenFileDialog { Title = "Select the DCS profile saved after clearing all axes", Filter = "DCS diff profile|*.diff.lua" };
+            var path = _axisDefaultsFilePicker is null ? (picker.ShowDialog(this) == true ? picker.FileName : null) : _axisDefaultsFilePicker();
+            if (path is null) return;
+            try
+            {
+                var source = File.ReadAllText(path);
+                var workspace = EditSnapshot();
+                var removals = ModuleAxisDefaults.Review(workspace, device.ProfileId, device.Layer, source);
+                var review = new AxisDefaultsReviewWindow(workspace, device, removals) { Owner = this };
+                if (review.ShowDialog() != true) return;
+                RunStructureEdit(current => ModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source));
+            }
+            catch (Exception ex) { SetManagementMessage("Axis default import failed: " + ex.Message); }
         }
         private void LoadCommandJsonClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(false);
         private void LoadCommandHtmlClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(true);

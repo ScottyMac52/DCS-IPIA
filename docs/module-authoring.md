@@ -54,6 +54,16 @@ Choose **Export Complete release…** with clean saved inputs and a package vers
 
 Verification independently reads paths and checksums, verifies the nested deployable ZIP, validates/restores the portable snapshot in memory, and regenerates the archive and guides for exact comparison. It rejects stale guides, version mismatches, corrupt/duplicate/unsafe entries, missing snapshots and unexpected local database files. Rebuilding a restored snapshot reproduces the Complete ZIP; existing output folders are protected.
 
+## Suppress inherited DCS axis defaults
+
+An empty axis diff does not clear the game's default axes. On **Devices**, select the device and scope, then choose **Import DCS axis defaults…**. First back up the device's current DCS controls. In DCS Controls for this aircraft (or UI Layer), reset that device's axes to defaults, clear all its axes, and save its profile as a `.diff.lua`. Restore your backed-up controls afterward. Import the cleared profile into IPIA and review the destination and each command/axis/modifier combination before staging. DCS diff files do not encode the aircraft identity; verify the selected aircraft and scope yourself.
+
+The import replaces the baseline for that device and scope. **Save to database** retains it; **Discard draft** undoes it. Aircraft and module-owned UI Layer baselines are independent and do not change the shared UI default. Keys in the capture are ignored. Files containing no axis removals, any active axes or duplicate removal combinations are rejected.
+
+Exports suppress the captured defaults except exact command/axis/chord combinations still assigned in IPIA. Reusing `JOY_X` for Pitch still removes a captured Roll default on `JOY_X`; a shifted assignment does not retain an unshifted default. Imported axes missing authored hardware controls, cleared axes and replaced commands also emit explicit removals. Intended filters and modifier chords remain. Device/layer clears retain axis removals, so defaults do not return after clearing assignments.
+
+The original capture is stored with the module and portable snapshot. Complete/OVGME builds and source-free restores use the saved capture. No capture can suppress defaults absent from that file; recapture after changing DCS default bindings or aircraft versions. An axis-less device still needs its DCS baseline to remove inherited axes. Verify the installed package in DCS before considering in-game acceptance complete.
+
 ## Maintain integration instructions
 
 Open **Documentation → Load integration instructions…**. Choose one explicit JSON instruction file or an existing consumer Markdown guide such as `docs/OPENKNEEBOARD-VAICOM.md`. Review the destination module and full previous/proposed text, then **Stage import**. Groups with matching names (ignoring case) are updated; other groups remain. Original basenames, decoded UTF-8 source texts and source hashes are retained in portable snapshots. A selected Markdown guide is captured verbatim under its basename, including historical paths; those paths are not automatically rewritten or asserted to match this release. Check them against the generated installation and control mappings.
