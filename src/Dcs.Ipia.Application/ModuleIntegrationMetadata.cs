@@ -58,13 +58,13 @@ namespace Dcs.Ipia.Application
             if (fields.Distinct(StringComparer.Ordinal).Count() != fields.Length || fields.Any(x => !allowed.Contains(x, StringComparer.Ordinal)))
                 throw new InvalidDataException("Duplicate or unsupported integration metadata field. Only instruction metadata is supported; scripts and configuration files are not imported.");
         }
-        private static void Validate(IReadOnlyList<ModuleIntegrationInstruction> entries)
+        private static void Validate(ModuleIntegrationInstruction[] entries)
         {
-            if (entries.Count > 64) throw new InvalidDataException("At most 64 integration instruction groups are supported.");
+            if (entries.Length > 64) throw new InvalidDataException("At most 64 integration instruction groups are supported.");
             if (entries.Any(x => string.IsNullOrWhiteSpace(x.Name) || x.Name.Length > 200 || x.Name.Any(char.IsControl) ||
                 string.IsNullOrWhiteSpace(x.Instructions) || x.Instructions.Length > 65536 || x.Instructions.Contains('\0')))
                 throw new InvalidDataException("Each integration requires a printable name (up to 200 characters) and instructions (up to 64 KiB, without NUL).");
-            if (entries.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != entries.Count)
+            if (entries.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != entries.Length)
                 throw new InvalidDataException("Integration names must be unique, ignoring case.");
         }
         #endregion END private helpers
