@@ -13,7 +13,7 @@ namespace Dcs.Ipia.Application
         public static IReadOnlyList<ModuleIntegrationInstruction> Parse(string source, string moduleDcsId)
         {
             ArgumentNullException.ThrowIfNull(source);
-            if (source.Length > 1048576) throw new InvalidDataException("Integration metadata exceeds 1 MiB of text.");
+            CheckSize(source);
             try
             {
                 using var json = JsonDocument.Parse(source);
@@ -44,14 +44,20 @@ namespace Dcs.Ipia.Application
         {
             var ordered = entries.OrderBy(x => x.Name, StringComparer.Ordinal).ToArray();
             Validate(ordered);
-            return JsonSerializer.Serialize(new {
+            var source = JsonSerializer.Serialize(new {
                 schemaVersion = 1,
                 moduleDcsId,
                 integrations = ordered.Select(x => new { name = x.Name, instructions = x.Instructions })
             }) + "\n";
+            CheckSize(source);
+            return source;
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void CheckSize(string source)
+        {
+            if (source.Length > 1048576) throw new InvalidDataException("Integration metadata exceeds 1 MiB of text.");
+        }
         private static void CheckFields(JsonElement value, string[] allowed)
         {
             var fields = value.EnumerateObject().Select(x => x.Name).ToArray();

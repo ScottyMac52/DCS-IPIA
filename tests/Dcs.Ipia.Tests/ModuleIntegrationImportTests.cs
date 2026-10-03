@@ -40,7 +40,7 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => ModuleIntegrationImport.Apply(workspace, review with { Instructions = [new("Changed", "Forged")] }));
             var canonical = ModuleIntegrationMetadata.Serialize([new("Z", "last"), new("A", "first")], "TEST");
             Assert.Equal(canonical, ModuleIntegrationMetadata.Serialize([new("A", "first"), new("Z", "last")], "TEST"));
-            Assert.Equal(new[] { "A", "Z" }, ModuleIntegrationMetadata.Parse(canonical, "TEST").Select(x => x.Name));
+            Assert.Equal(OrderedNames, ModuleIntegrationMetadata.Parse(canonical, "TEST").Select(x => x.Name));
             Assert.Throws<InvalidDataException>(() => ModuleIntegrationMetadata.Parse(canonical, "OTHER"));
             Assert.Throws<ArgumentNullException>(() => ModuleIntegrationMetadata.Parse(null!, "TEST"));
         }
@@ -115,6 +115,7 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => ModuleIntegrationMetadata.Serialize([new("X", new string('x', 65537))], "TEST"));
             Assert.Throws<InvalidDataException>(() => ModuleIntegrationMetadata.Serialize(Enumerable.Range(0, 65).Select(x => new ModuleIntegrationInstruction("X" + x, "guide")), "TEST"));
             Assert.Throws<InvalidDataException>(() => ModuleIntegrationMetadata.Parse(new string('x', 1048577), "TEST"));
+            Assert.Throws<InvalidDataException>(() => ModuleIntegrationMetadata.Serialize(Enumerable.Range(0, 25).Select(x => new ModuleIntegrationInstruction("X" + x, new string('x', 50000))), "TEST"));
             var workspace = Workspace();
             var review = ModuleIntegrationImport.Review(workspace, "guide.json", Json("X", "guide"));
             var changed = workspace with { Sources = new Dictionary<string, string> { ["custom.json"] = "changed" } };
@@ -122,6 +123,7 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static readonly string[] OrderedNames = ["A", "Z"];
         private static string Json(string name, string instructions) => JsonSerializer.Serialize(new {
             schemaVersion = 1, integrations = new[] { new { name, instructions } }
         });
