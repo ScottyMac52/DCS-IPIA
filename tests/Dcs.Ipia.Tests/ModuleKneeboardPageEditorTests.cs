@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
@@ -12,6 +13,37 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleKneeboardPageEditorTests
     {
         #region BEGIN Public
+        /// <summary>A live generated device identity protects its page even if its manifest row is missing.</summary>
+        [Fact]
+        public void ProtectsLiveGeneratedDevicePageWithoutManifestRow()
+        {
+            var workspace = Workspace();
+            var live = workspace.Pages[0] with { StableKey = "device-" + workspace.Configuration.Profiles[0].Id.ToString("N") };
+            workspace = workspace with { Pages = [live], Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" } };
+            Assert.False(ModuleKneeboardPageEditor.CanRemove(workspace, live));
+            Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Remove(workspace, live));
+        }
+
+        /// <summary>Already orphaned device pages can be removed without deleting a live device's page.</summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void RemovesOrphanDevicePagesWithoutADevice(bool keepManifestRow)
+        {
+            var workspace = Workspace();
+            var orphan = workspace.Pages[0];
+            var root = JsonNode.Parse(workspace.Sources!["config/kneeboard.json"])!;
+            root["profiles"]!.AsObject().Remove("p");
+            if (!keepManifestRow) root["pages"]!.AsArray().Clear();
+            workspace = workspace with { Sources = new Dictionary<string, string>(workspace.Sources!) { ["config/kneeboard.json"] = root.ToJsonString() } };
+            var removed = ModuleKneeboardPageEditor.Remove(workspace, orphan);
+            Assert.Empty(removed.Pages);
+            Assert.Empty(removed.Images);
+            Assert.Single(removed.Configuration.Profiles);
+            Assert.Single(removed.Assignments);
+            Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Remove(Workspace(), orphan));
+        }
+
         /// <summary>Renames device output and stages summary cards without losing metadata, labels or assignments.</summary>
         /// <returns>Completion of real SQLite save/reopen.</returns>
         [Fact]
@@ -120,7 +152,8 @@ namespace Dcs.Ipia.Tests
             var page = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Device, "device", "Test device", [], 0);
             var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
             {
-                ProfileId = profile.Id, Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
+                ProfileId = profile.Id,
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
                 Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
             };
             var command = new CommandPaletteEntry("FIRE", "Fire", "Keys", false);

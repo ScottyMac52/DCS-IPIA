@@ -36,6 +36,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifyNewModuleForm();
             VerifySavedGamesImportForm();
             VerifyModuleAuthoring();
+            VerifyDevicePageDeletion();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
@@ -259,6 +260,66 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyDevicePageDeletion()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ipia-page-deletion-smoke-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var module = new DcsModule(Guid.NewGuid(), "PAGE-DELETE", "Page deletion");
+                var profile = new DeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
+                var live = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Device, "live", "Stick", [], 0);
+                var orphan = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Device, "orphan", "Deleted device", [], 4);
+                var summary = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Summary, "summary", "Summary", [], 9);
+                var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
+                    ProfileId = profile.Id, SupportsUiLayer = false,
+                    Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'/>",
+                    Controls = [new("button", "Button", "JOY_BTN1", 0, 0, 10, 10)]
+                };
+                var workspace = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [live, orphan, summary], [], [diagram], [], [], [],
+                    new Dictionary<string, string>(), new Dictionary<string, string> {
+                        ["config/kneeboard.json"] = """{"profiles":{"p":"src/Config/Input/PAGE-DELETE/joystick/Stick.diff.lua"},"pages":[{"profile":"p","file":"live","title":"Stick"},{"profile":"missing","file":"orphan","title":"Deleted device"}],"summaryPages":[{"file":"summary","title":"Summary","kicker":"CONTROLS","items":[{"key":"STICK","text":"Controls","accent":"cyan"}]}]}""",
+                        ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
+                    });
+                repository.SaveAsync(workspace).GetAwaiter().GetResult();
+                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                window.Show();
+                var pages = (DataGrid)window.FindName("AuthoredPages")!;
+                var removePage = (Button)window.FindName("RemoveAuthoredPageButton")!;
+                pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == live.Id);
+                if (removePage.IsEnabled) throw new InvalidOperationException("A live device page was deletable independently.");
+                pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == orphan.Id);
+                if (!removePage.IsEnabled) throw new InvalidOperationException("An orphan page could not be removed.");
+                removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore the orphan draft.");
+                pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == orphan.Id);
+                removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ClickWithDispatcherContext((Button)window.FindName("SaveAuthoringButton")!);
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                while (repository.GetAsync(module.Id).GetAwaiter().GetResult()!.Pages.Count != 2)
+                {
+                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Orphan removal did not save.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
+                ((Button)window.FindName("RemoveManagedDeviceButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 1 || pages.Items.Cast<KneeboardPage>().Single().Id != summary.Id || pages.Items.Cast<KneeboardPage>().Single().Order != 0)
+                    throw new InvalidOperationException("Device removal did not remove its page and compact order.");
+                ClickWithDispatcherContext((Button)window.FindName("SaveAuthoringButton")!);
+                deadline = DateTime.UtcNow.AddSeconds(15);
+                while (repository.GetAsync(module.Id).GetAwaiter().GetResult()!.Pages.Count != 1)
+                {
+                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Device deletion did not save.");
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                }
+                window.Close();
+            }
+            finally { File.Delete(path); }
+        }
+
         private static void VerifyModuleAuthoring()
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-authoring-smoke-" + Guid.NewGuid().ToString("N") + ".db");

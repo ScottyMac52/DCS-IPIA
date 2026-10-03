@@ -137,7 +137,7 @@
                     <Button Content="New" Click="NewDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
                     <Button Content="Add" Click="AddDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
                     <Button Content="Update" Click="UpdateDeviceClicked" Padding="10,6" Margin="0,0,6,0"/>
-                    <Button Content="Remove" Click="RemoveDeviceClicked" Padding="10,6"/>
+                    <Button x:Name="RemoveManagedDeviceButton" Content="Remove" Click="RemoveDeviceClicked" Padding="10,6"/>
                   </WrapPanel>
                   <Button x:Name="RebindDeviceButton" Content="Rebind physical unit…" Click="RebindDeviceClicked" Padding="10,6" Margin="0,12,0,0"/>
                   <Button Content="Clear all assignments on this device" Click="ClearDeviceAssignmentsClicked" Padding="10,6" Margin="0,12,0,0"/>
@@ -379,7 +379,7 @@
                   <Button x:Name="StageAuthoredPageButton" Content="Stage page" Click="StageAuthoredPageClicked" Padding="10,6" Margin="0,0,8,0"/>
                   <Button Content="Preview draft" Click="PreviewAuthoredPageClicked" Padding="10,6"/>
                 </StackPanel>
-                <Button x:Name="RemoveAuthoredPageButton" Content="Remove summary page" Click="RemoveAuthoredPageClicked" Padding="10,6" Margin="0,8,0,0"/>
+                <Button x:Name="RemoveAuthoredPageButton" Content="Remove page" Click="RemoveAuthoredPageClicked" Padding="10,6" Margin="0,8,0,0"/>
                 <TextBlock Text="Each device uses one combined page with its pinned hardware layout. Device headings and output names can be edited; summary cards follow their listed order."
                            TextWrapping="Wrap" Margin="0,12,0,0"/>
               </StackPanel>
