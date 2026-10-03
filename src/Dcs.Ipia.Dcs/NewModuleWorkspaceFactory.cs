@@ -59,7 +59,7 @@ namespace Dcs.Ipia.Dcs
                 profiles.FirstOrDefault(p => p.SourceName[..^9].Equals(x.Device, StringComparison.OrdinalIgnoreCase))?.Id ?? Guid.Empty,
                 x.Name, x.Key, x.Name, x.Mode, x.Device)).ToArray();
             sources[WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement(devices, modifiers));
-            sources["config/kneeboard.json"] = """{"includeUiLayer":true,"profiles":{},"pages":[],"labels":{}}""";
+            sources["config/kneeboard.json"] = """{"includeUiLayer":true,"profiles":{},"pages":[],"summaryPages":[],"labels":{}}""";
             sources["config/ipia-created-module.json"] = JsonSerializer.Serialize(new { schemaVersion = 1, moduleId = module.Id, dcsId = module.DcsId });
             var result = new EditorWorkspaceSnapshot(new(module, profiles, [], [], "Created in IPIA"), [], [], diagrams, [],
                 commands, assignments, new Dictionary<string, string>(), sources) { SharedDefault = defaults };

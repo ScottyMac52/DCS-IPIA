@@ -5,6 +5,7 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
+using Dcs.Ipia.Rendering;
 using Xunit;
 
 namespace Dcs.Ipia.Tests
@@ -50,6 +51,7 @@ namespace Dcs.Ipia.Tests
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
+                Assert.Empty(SnapshotSummaryKneeboardRenderer.Generate(reopened));
                 var payload = SnapshotLuaPayloadRenderer.Generate(reopened);
                 Assert.Equal(folder.Sources["keyboard/Keyboard.diff.lua"], Encoding.UTF8.GetString(payload["Config/Input/" + module + "/keyboard/Keyboard.diff.lua"]));
                 var first = DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(payload["Config/Input/" + module + "/joystick/" + profile.SourceName]), profile.Id);
