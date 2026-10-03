@@ -19,7 +19,7 @@ namespace DcsIpia.Presentation
             ModuleId = configuration.Module.Id;
             ModuleDcsId = configuration.Module.DcsId;
             ImportedBindings = configuration.Bindings;
-            WindowTitle = configuration.Module.DisplayName + " · assignment editor";
+            WindowTitle = configuration.Module.DisplayName + " · assignment editor · " + ApplicationVersion.Label;
             Summary =
                 $"{configuration.Module.DisplayName} · {configuration.Profiles.Count} profiles · {configuration.Bindings.Count} bindings · {result.Pages.Count} pages";
             Commit = $"{configuration.Module.DcsId} commit: {result.Provenance[0].Commit}";
@@ -102,7 +102,7 @@ namespace DcsIpia.Presentation
                 saved.Configuration, moduleCommands.Concat(uiCommands), saved.Assignments,
                 WorkspaceStructureEditor.UiModifierNames(saved));
             DraftNote = "Changes remain pending until Save to database.";
-            WindowTitle = saved.Configuration.Module.DisplayName + " · database assignment editor";
+            WindowTitle = saved.Configuration.Module.DisplayName + " · database assignment editor · " + ApplicationVersion.Label;
             Commit = "Saved in local SQLite database";
             SourceNote = "Editor graphics, command catalogs, kneeboards, labels and assignments loaded from SQLite.";
             Labels = new Dictionary<string, string>(saved.Labels, StringComparer.Ordinal);
@@ -119,7 +119,7 @@ namespace DcsIpia.Presentation
             SourceFolder = folder.Folder;
             ModuleDcsId = null;
             ImportedBindings = folder.Bindings;
-            WindowTitle = "DCS Saved Games · joystick source preview";
+            WindowTitle = "DCS Saved Games · joystick source preview · " + ApplicationVersion.Label;
             Summary =
                 $"{folder.Profiles.Count} local profiles · {folder.Bindings.Count} bindings · {folder.Modifiers.Count} modifiers";
             Commit = $"Source folder: {folder.Folder}";
@@ -297,4 +297,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-

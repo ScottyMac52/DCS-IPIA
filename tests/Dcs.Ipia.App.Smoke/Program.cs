@@ -50,6 +50,8 @@ namespace Dcs.Ipia.App.Smoke
                                           [new("bad-profile", "One other device profile could not be parsed.", true)]);
             var folderWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
             folderWindow.Show();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(folderWindow.Title, @" · version \d+\.\d+\.\d+\.\d+$"))
+                throw new InvalidOperationException("Workspace title must show only a four-part application version.");
             defaultsWindow.Close();
             folderWindow.UpdateLayout();
             var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
@@ -597,6 +599,8 @@ namespace Dcs.Ipia.App.Smoke
                 var main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(), new global::Dcs.Ipia.Dcs.DcsFolderImporter(),
                     settings, restored, snapshotFilePicker: () => snapshotPath);
                 main.Show();
+                if (main.Title != "DCS-IPIA — Modules · " + ApplicationVersion.Label)
+                    throw new InvalidOperationException("Main window title did not include the application version.");
                 var restore = (Button)main.FindName("RestoreModuleSnapshotButton")!;
                 ClickWithDispatcherContext(restore);
                 var deadline = DateTime.UtcNow.AddSeconds(60);
