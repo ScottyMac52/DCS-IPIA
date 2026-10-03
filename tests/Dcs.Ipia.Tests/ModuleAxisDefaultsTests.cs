@@ -45,6 +45,10 @@ namespace Dcs.Ipia.Tests
             Assert.Contains(bindings, x => x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Removed);
             Assert.Contains(bindings, x => x.InputKey == "JOY_RZ" && x.Reformers.Single() == "SHIFT");
             Assert.DoesNotContain(bindings, x => x.Section == BindingSection.Key);
+            var restored = imported with { Configuration = new(imported.Configuration.Module, imported.Configuration.Profiles, [],
+                [new(ProfileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Removed, "JOY_X")], "test") };
+            Assert.DoesNotContain(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
+                x => x.CommandId == "a2001cdnil" && x.Disposition == BindingDisposition.Removed);
             var shifted = imported with { Assignments = [assignment with { Slot = assignment.Slot with { ModifierChord = "SHIFT" } }] };
             Assert.Contains(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(shifted, ProfileId), ProfileId),
                 x => x.CommandId == "a2001cdnil" && x.Reformers.Count == 0 && x.Disposition == BindingDisposition.Removed);

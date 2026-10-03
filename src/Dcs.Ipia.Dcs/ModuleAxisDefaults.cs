@@ -47,11 +47,12 @@ namespace Dcs.Ipia.Dcs
         public static IReadOnlyList<DcsBinding> Apply(EditorWorkspaceSnapshot workspace, Guid profileId,
             AssignmentLayer layer, IReadOnlyList<DcsBinding> bindings)
         {
-            if (workspace.Sources is null || !workspace.Sources.TryGetValue(PathFor(profileId, layer), out var source))
-                return bindings;
+            var defaults = workspace.Sources is not null && workspace.Sources.TryGetValue(PathFor(profileId, layer), out var source)
+                ? Parse(source, profileId) : [];
             var active = bindings.Where(x => x.Section == BindingSection.Axis && x.Disposition != BindingDisposition.Removed)
                 .Select(Identity).ToHashSet(StringComparer.Ordinal);
-            return bindings.Concat(Parse(source, profileId).Where(x => !active.Contains(Identity(x))))
+            return bindings.Concat(defaults).Where(x => x.Section != BindingSection.Axis ||
+                    x.Disposition != BindingDisposition.Removed || !active.Contains(Identity(x)))
                 .DistinctBy(x => x.Disposition + "\u001f" + Identity(x)).ToArray();
         }
         #endregion END Public
