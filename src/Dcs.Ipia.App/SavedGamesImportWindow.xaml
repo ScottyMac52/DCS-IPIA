@@ -1,0 +1,44 @@
+<Window x:Class="DcsIpia.Presentation.SavedGamesImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Import Saved Games module" Width="1000" Height="750" MinWidth="750" MinHeight="550"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Top">
+      <TextBlock Text="Import Saved Games profiles" FontSize="24" FontWeight="Bold"/>
+      <TextBlock x:Name="ImportSummary" TextWrapping="Wrap" Margin="0,12,0,8"/>
+      <TextBlock Text="Verify the aircraft input folder and every hardware choice. Suggestions come from the hardware catalog; choose a template manually for unrecognized devices. Each physical unit remains separate."
+                 TextWrapping="Wrap" Margin="0,0,0,8"/>
+      <Label Target="{Binding ElementName=DcsIdInput}" Content="Destination DCS input folder"/>
+      <TextBox x:Name="DcsIdInput" AutomationProperties.Name="Imported module DCS input folder"/>
+      <Label Target="{Binding ElementName=DisplayNameInput}" Content="Module display name"/>
+      <TextBox x:Name="DisplayNameInput" AutomationProperties.Name="Imported module display name"/>
+      <TextBlock Text="Imported axis removals suppress inherited defaults. Empty profiles remain devices. Unchanged DCS default keys are absent from diff files. Keys outside the selected hardware drawing are retained in exports; choose the matching template to edit them. Load a command JSON or Controls HTML afterward for the complete command palette."
+                 TextWrapping="Wrap" Margin="0,12,0,8"/>
+      <TextBlock Text="The module receives a separate copy of your saved UI Layer defaults. Review its copied physical units in Devices before packaging. Module keyboard profiles are retained as captured files."
+                 TextWrapping="Wrap" Margin="0,0,0,8"/>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <TextBlock x:Name="ImportError" TextWrapping="Wrap" Margin="0,0,0,8"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel" IsCancel="True" Padding="16,8" Margin="0,0,8,0"/>
+        <Button x:Name="ImportSavedGamesButton" Content="Import module" IsDefault="True" Click="ImportClicked" Padding="16,8"/>
+      </StackPanel>
+    </StackPanel>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ItemsControl x:Name="ProfileChoices" AutomationProperties.Name="Saved Games profile hardware review">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="0,8,0,12">
+              <TextBlock Text="{Binding FileName}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding Summary}" Margin="0,4,0,4"/>
+              <ComboBox ItemsSource="{Binding HardwareChoices}" DisplayMemberPath="Title"
+                        SelectedItem="{Binding Hardware, Mode=TwoWay}" AutomationProperties.Name="Profile hardware template"/>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

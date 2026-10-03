@@ -145,9 +145,22 @@ namespace DcsIpia.Presentation
                             string.Join("; ", result.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
                         return;
                     }
-                    _lastViewModel = new ModuleWorkspaceViewModel(result);
-                    ImportStatus.Text =
-                        $"Read {result.Profiles.Count} local profiles and {result.Bindings.Count} bindings. {result.Diagnostics.Count(x=>x.IsError)} issues; open Diagnostics in the preview. Import again to reopen.";
+                    if (!result.Succeeded)
+                    {
+                        ShowImportError("Saved Games profiles need attention: " + string.Join("; ", result.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
+                        return;
+                    }
+                    if (_sharedDefaults is null)
+                        throw new InvalidOperationException("Shared UI Layer storage is required to create an editable module.");
+                    var defaults = await _sharedDefaults.GetAsync() ??
+                        await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
+                    var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                    var review = new SavedGamesImportWindow(result, defaults, hardware, _workspaces) { Owner = this };
+                    if (review.ShowDialog() != true || review.ImportedWorkspace is not { } persisted)
+                        return;
+                    _lastViewModel = new ModuleWorkspaceViewModel(persisted);
+                    await RefreshSavedModulesAsync(persisted.Configuration.Module.Id);
+                    ImportStatus.Text = $"Imported {result.Profiles.Count} Saved Games devices and {result.Bindings.Count} bindings into an editable module. Axis removals and captured keyboard profiles are retained. Load a command JSON or Controls HTML for the complete command palette.";
                 }
                 else
                 {

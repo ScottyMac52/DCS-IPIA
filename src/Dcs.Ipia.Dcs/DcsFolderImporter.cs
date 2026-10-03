@@ -31,6 +31,7 @@ namespace Dcs.Ipia.Dcs
             var profiles = new List<DeviceProfile>();
             var bindings = new List<DcsBinding>();
             var modifiers = new List<DcsModifier>();
+            var sources = new Dictionary<string, string>(StringComparer.Ordinal);
             var source = ProfileDirectory(folder);
             if (!Directory.Exists(source))
             {
@@ -47,8 +48,9 @@ namespace Dcs.Ipia.Dcs
             {
                 try
                 {
-                    modifiers.AddRange(
-                        DcsLuaParser.ParseModifiers(await File.ReadAllTextAsync(modifierPath, cancellationToken)));
+                    var text = await File.ReadAllTextAsync(modifierPath, cancellationToken);
+                    modifiers.AddRange(DcsLuaParser.ParseModifiers(text));
+                    sources["modifiers.lua"] = text;
                 }
                 catch (Exception ex) when (ex is IOException or FormatException or ArgumentException)
                 {
@@ -69,11 +71,13 @@ namespace Dcs.Ipia.Dcs
                     var guidStart = key.LastIndexOf(" {", StringComparison.Ordinal);
                     if (guidStart >= 0 && key.EndsWith('}'))
                         key = key[..guidStart];
-                    var id = StableIdentity.Create("dcs-saved-games-profile", key);
+                    var id = StableIdentity.Create("dcs-saved-games-profile", filename.ToUpperInvariant());
                     var profile = new DeviceProfile(id, key, null, "unresolved device", filename);
-                    var parsed = DcsLuaParser.ParseProfile(await File.ReadAllTextAsync(file, cancellationToken), id);
+                    var text = await File.ReadAllTextAsync(file, cancellationToken);
+                    var parsed = DcsLuaParser.ParseProfile(text, id);
                     profiles.Add(profile);
                     bindings.AddRange(parsed);
+                    sources["joystick/" + filename] = text;
                 }
                 catch (Exception ex) when (ex is IOException or FormatException or ArgumentException)
                 {
@@ -83,8 +87,23 @@ namespace Dcs.Ipia.Dcs
             if (profiles.Select(x => x.Id).Distinct().Count() != profiles.Count)
                 diagnostics.Add(new(
                     "ambiguous-profile",
-                    "Two files have the same GUID-independent filename. Resolve the duplicate before using stable identities.",
+                    "Two files resolve to the same native filename. Resolve the duplicate before importing.",
                     true));
+            var keyboard = Path.Combine(Directory.GetParent(source)!.FullName, "keyboard");
+            if (Directory.Exists(keyboard))
+                foreach (var file in Directory.GetFiles(keyboard, "*.diff.lua").Order(StringComparer.Ordinal))
+                {
+                    try
+                    {
+                        var text = await File.ReadAllTextAsync(file, cancellationToken);
+                        DcsLuaParser.ParseProfile(text, StableIdentity.Create("dcs-keyboard-profile", Path.GetFileName(file)));
+                        sources["keyboard/" + Path.GetFileName(file)] = text;
+                    }
+                    catch (Exception ex) when (ex is IOException or FormatException or ArgumentException)
+                    {
+                        diagnostics.Add(new("invalid-keyboard-profile", $"{file}: {ex.Message}", true));
+                    }
+                }
             var names = modifiers.Select(x => x.Name).ToHashSet(StringComparer.Ordinal);
             foreach (var missing in bindings.SelectMany(x => x.Reformers)
                          .Distinct(StringComparer.Ordinal)
@@ -94,7 +113,7 @@ namespace Dcs.Ipia.Dcs
                                     true));
             return new(folder, profiles.OrderBy(x => x.DeviceId, StringComparer.Ordinal).ToArray(),
                        bindings.OrderBy(x => x.ProfileId).ThenBy(x => x.CommandId, StringComparer.Ordinal).ToArray(),
-                       modifiers, diagnostics);
+                       modifiers, diagnostics) { Sources = sources };
         }
         #endregion END Public
         #region BEGIN private helpers
