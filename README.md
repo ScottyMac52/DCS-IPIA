@@ -22,6 +22,8 @@ The app validates and generates native aircraft/UI Layer Lua, device and summary
 
 The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.md) records all remaining Common authored tooling, documentation, consumer scaffolding and Complete-release gaps. Snapshot rebuild success does not establish full published-consumer parity or manual DCS success. [#83](https://github.com/ScottyMac52/DCS-IPIA/issues/83) and [roadmap #9](https://github.com/ScottyMac52/DCS-IPIA/issues/9) retain those acceptance gates. Existing consumers remain authoritative until their measured parity and rollback decisions are approved.
 
+[Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses IPIA-owned draw.io tooling to verify all twelve published hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
+
 ## Build
 
 ```powershell
