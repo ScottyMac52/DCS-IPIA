@@ -306,7 +306,7 @@ namespace Dcs.Ipia.Rendering
             if (lines.Count <= 2)
                 return lines.Count == 0 ?[""] : lines;
             var tail = string.Join(" ", lines.Skip(1));
-            return [lines[0], tail[..Math.Min(max - 1, tail.Length)].TrimEnd() + "…"];
+            return [lines[0], tail[..Math.Min(max - 3, tail.Length)].TrimEnd() + "..."];
         }
         private static string BuildLegend(IReadOnlyList<KneeboardModifierLegend> legend)
         {
