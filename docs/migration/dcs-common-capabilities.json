@@ -1434,11 +1434,15 @@
         "scripts/export-drawio-hardware.mjs"
       ],
       "targetEvidence": [
-        "data/shared-assets/assets/shared/hardware/export-config.json",
-        "data/shared-assets/assets/shared/hardware/drawio/tm-mfd.drawio"
+        "scripts/asset-authoring/drawio-source.mjs",
+        "scripts/asset-authoring/drawio-svg.mjs",
+        "scripts/asset-authoring/hardware-export.mjs",
+        "scripts/asset-authoring/export-hardware.mjs",
+        "tests/asset-authoring/exporter.test.mjs",
+        "docs/migration/drawio-export-parity.md"
       ],
-      "current": "Native sources and published SVGs are bundled; the Common exporter and draw.io authoring tools have not moved into IPIA.",
-      "exitCriteria": "Port supported native/compressed cells, UserObject IDs, anchors/connectors, embedded-image checks and watermarks; compare all 12 SVGs deterministically and visually."
+      "current": "Draw.io decoding and deterministic SVG export are internalized in IPIA-owned Node tooling. All 12 bundled outputs match exactly from native/compressed sources; independent exporter module 80/80 gates and Linux/Windows tests are enforced. Initial source creation and a hardware-authoring UI remain pending; no whole-consumer parity claim.",
+      "exitCriteria": "Keep exact all-12 SVG parity, stable IDs, anchors/connectors, masks, presentation fields, complete embedded images and optional watermarks. Migrate initial source creation separately; visually review authored changes before promoting a versioned bundle."
     },
     {
       "id": "profile-import",

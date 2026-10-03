@@ -1,0 +1,28 @@
+{
+  "sourceRepository": "ScottyMac52/DCS-Common",
+  "sourceCommit": "f1c968e606414225db837e75426c0c930cc815c9",
+  "license": "MIT, copyright (c) 2026 Scott McIntosh; repository LICENSE applies",
+  "files": [
+    {
+      "source": "scripts/drawio-source.mjs",
+      "path": "scripts/asset-authoring/drawio-source.mjs",
+      "gitBlob": "857c75cdc532e4d70af6fc76a5ecadb091172899"
+    },
+    {
+      "source": "scripts/export-drawio-hardware.mjs",
+      "path": "scripts/asset-authoring/drawio-svg.mjs",
+      "gitBlob": "4c3189450fb40e3ea43cf650659bf5db5f9b36a4"
+    },
+    {
+      "source": "test/drawio-source.test.mjs",
+      "path": "tests/asset-authoring/drawio-source.test.mjs",
+      "gitBlob": "2b06cfea810f45c458e6d432fc39970770d866e1"
+    },
+    {
+      "source": "test/drawio-hardware.test.mjs",
+      "path": "tests/asset-authoring/drawio-hardware.test.mjs",
+      "gitBlob": "d825aca3f94e0a1bd70af7398fb1254872f8bc45"
+    }
+  ],
+  "changes": "Pure renderer separated from file/CLI orchestration; IPIA bundled input paths; read-only default/new output folder protection; path, duplicate, geometry and complete-image validation; UserObject edge normalization. Tests retain pinned legacy cases and add exact all-device compressed/native parity and failures."
+}

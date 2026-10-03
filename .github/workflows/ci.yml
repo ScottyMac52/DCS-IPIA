@@ -48,8 +48,30 @@ jobs:
       - name: Test migration inventory failure paths
         run: python3 -m unittest discover -s tests/migration -p 'test_*.py'
 
+  asset-authoring:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test exporter behavior and all twelve pinned SVGs
+        run: node --test --experimental-test-coverage --test-coverage-include="scripts/asset-authoring/*.mjs" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=asset-authoring-coverage.info tests/asset-authoring/*.test.mjs
+      - name: Enforce independent exporter module 80/80 coverage
+        run: python scripts/check_asset_coverage.py asset-authoring-coverage.info
+      - uses: actions/upload-artifact@v7
+        with:
+          name: asset-authoring-coverage-${{ matrix.os }}
+          path: asset-authoring-coverage.info
+
   release-candidate:
-    needs: [dotnet, solution, csharp-layout]
+    needs: [dotnet, solution, csharp-layout, asset-authoring]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
