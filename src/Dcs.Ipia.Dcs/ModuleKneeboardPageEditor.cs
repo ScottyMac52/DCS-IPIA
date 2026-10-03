@@ -101,20 +101,54 @@ namespace Dcs.Ipia.Dcs
             }, root);
         }
 
-        /// <summary>Removes an overview page without affecting devices or assignments.</summary>
+        /// <summary>Reports whether a summary or orphan page can be removed without deleting a live device page.</summary>
+        /// <param name="workspace">Current module draft.</param>
+        /// <param name="page">Selected page.</param>
+        /// <returns>True when no live device owns the page.</returns>
+        public static bool CanRemove(EditorWorkspaceSnapshot workspace, KneeboardPage page)
+        {
+            Current(workspace, page);
+            if (page.Kind != KneeboardPageKind.Device) return true;
+            var root = Document(workspace);
+            var rows = Rows(root, page.Kind).Where(x => string.Equals(x?["file"]?.GetValue<string>(), page.StableKey, StringComparison.OrdinalIgnoreCase));
+            return !workspace.Configuration.Profiles.Any(profile => page.StableKey == DeviceKey(profile) ||
+                rows.Any(row => row?["profile"]?.GetValue<string>() is { } key &&
+                    (key == DeviceKey(profile) || FileName(root["profiles"]?[key]?.GetValue<string>())
+                        .Equals(profile.SourceName, StringComparison.OrdinalIgnoreCase))));
+        }
+
+        /// <summary>Removes an overview or orphan page and compacts page order without affecting devices or assignments.</summary>
         /// <param name="workspace">Current module draft.</param>
         /// <param name="current">Selected overview page.</param>
         /// <returns>Updated module draft.</returns>
         public static EditorWorkspaceSnapshot Remove(EditorWorkspaceSnapshot workspace, KneeboardPage current)
         {
             Current(workspace, current);
-            if (current.Kind == KneeboardPageKind.Device)
+            if (!CanRemove(workspace, current))
                 throw new InvalidOperationException("Each device requires one combined page. Edit its page or remove the device.");
             var root = Document(workspace);
-            var rows = Rows(root, current.Kind);
-            rows.Remove(rows.Single(x => x?["file"]?.GetValue<string>() == current.StableKey));
-            return Store(workspace with { Pages = workspace.Pages.Where(x => x.Id != current.Id).ToArray(),
-                Images = workspace.Images.Where(x => x.PageKey != current.StableKey).ToArray() }, root);
+            return WithoutPages(workspace, root, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { current.StableKey });
+        }
+
+        /// <summary>Removes every manifest alias and page owned by a deleted profile, preserving other physical units.</summary>
+        /// <param name="workspace">Current module draft.</param>
+        /// <param name="profile">Profile whose final device membership is being removed.</param>
+        /// <returns>Draft with associated pages, cached images and mappings removed and remaining orders compacted.</returns>
+        public static EditorWorkspaceSnapshot RemoveDevicePages(EditorWorkspaceSnapshot workspace, DeviceProfile profile)
+        {
+            if (!workspace.Configuration.Profiles.Contains(profile))
+                throw new InvalidOperationException("Select a current device from this module.");
+            var root = Document(workspace);
+            var profiles = root["profiles"]!.AsObject();
+            var keys = profiles.Where(x => x.Key == DeviceKey(profile) ||
+                FileName(x.Value?.GetValue<string>()).Equals(profile.SourceName, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
+            keys.Add(DeviceKey(profile));
+            var pages = Rows(root, KneeboardPageKind.Device).Where(x => keys.Contains(x?["profile"]?.GetValue<string>() ?? ""))
+                .Select(x => x!["file"]!.GetValue<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            pages.Add(DeviceKey(profile));
+            foreach (var key in keys) profiles.Remove(key);
+            return WithoutPages(workspace, root, pages);
         }
 
         /// <summary>Creates missing combined pages for every pinned device, including inherited UI Layer devices.</summary>
@@ -131,6 +165,26 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static string DeviceKey(DeviceProfile profile) => "device-" + profile.Id.ToString("N");
+        private static string FileName(string? path) => (path ?? "").Replace('\\', '/').Split('/')[^1];
+        private static EditorWorkspaceSnapshot WithoutPages(EditorWorkspaceSnapshot workspace, JsonObject root, HashSet<string> keys)
+        {
+            var removedProfiles = Rows(root, KneeboardPageKind.Device).Where(x => keys.Contains(x?["file"]?.GetValue<string>() ?? ""))
+                .Select(x => x?["profile"]?.GetValue<string>()).Where(x => x is not null).ToArray();
+            foreach (var kind in new[] { KneeboardPageKind.Device, KneeboardPageKind.Summary })
+            {
+                var rows = Rows(root, kind);
+                foreach (var row in rows.Where(x => keys.Contains(x?["file"]?.GetValue<string>() ?? "")).ToArray())
+                    rows.Remove(row);
+            }
+            foreach (var profile in removedProfiles)
+                if (!Rows(root, KneeboardPageKind.Device).Any(x => x?["profile"]?.GetValue<string>() == profile))
+                    root["profiles"]!.AsObject().Remove(profile!);
+            var pages = workspace.Pages.Where(x => !keys.Contains(x.StableKey))
+                .OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal)
+                .Select((page, order) => page with { Order = order }).ToArray();
+            return Store(workspace with { Pages = pages, Images = workspace.Images.Where(x => !keys.Contains(x.PageKey)).ToArray() }, root);
+        }
         private static void Validate(ModuleKneeboardPageSettings settings)
         {
             if (!Enum.IsDefined(settings.Kind) || settings.Order < 0 ||

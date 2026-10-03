@@ -8,6 +8,8 @@ Choose **Pages** to author kneeboards. **Add missing device pages** supplies one
 
 For an overview, choose **Summary**, enter a safe output name, heading, subtitle and order, then add one to fourteen cards. Each card has a heading, description and palette accent. Cards render in listed order, in the existing two-column layout. Edit or remove summary pages as needed.
 
+Removing a device's final Module/UI Layer membership removes its combined pages, profile mappings and cached images. A page remains while the device still belongs to the other scope. Remaining page orders are compacted without changing their stable output names. If an older workspace already contains a device page with no live device mapping, select it in **Pages** and choose **Remove page**. Pages owned by live devices remain protected. Save or discard these changes with the rest of the module.
+
 **Preview draft** renders the page from current form values and pending assignments without saving. **Stage page** validates and stages the page. Existing unedited manifest fields, callout/category labels and per-card metadata remain preserved.
 
 Use **Save to database** to persist all staged command, page, device, modifier, assignment and label changes together. **Discard draft** restores the last saved workspace. Reopen a module to load these definitions from SQLite; source repositories are not required.

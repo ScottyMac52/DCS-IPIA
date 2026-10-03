@@ -448,30 +448,25 @@ namespace Dcs.Ipia.Dcs
         }
         private static EditorWorkspaceSnapshot Manifest(EditorWorkspaceSnapshot workspace, DeviceProfile profile, string? oldFile, bool remove)
         {
+            if (remove) return ModuleKneeboardPageEditor.RemoveDevicePages(workspace, profile);
             var root = JsonNode.Parse(workspace.Sources!["config/kneeboard.json"])!.AsObject();
             var profiles = root["profiles"] as JsonObject;
             if (profiles is null) root["profiles"] = profiles = new JsonObject();
-            var key = profiles.FirstOrDefault(x => oldFile is not null && Path.GetFileName(x.Value?.GetValue<string>()) == oldFile).Key;
-            key ??= "device-" + profile.Id.ToString("N");
+            var keys = profiles.Where(x => oldFile is not null &&
+                (x.Value?.GetValue<string>() ?? "").Replace('\\', '/').Split('/')[^1].Equals(oldFile, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
+            if (keys.Count == 0) keys.Add("device-" + profile.Id.ToString("N"));
+            var key = keys.First();
             var pages = root["pages"] as JsonArray;
             if (pages is null) root["pages"] = pages = new JsonArray();
-            var affected = pages.Where(x => x?["profile"]?.GetValue<string>() == key).ToArray();
-            var pageKeys = affected.Select(x => x!["file"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
-            if (remove)
+            var affected = pages.Where(x => keys.Contains(x?["profile"]?.GetValue<string>() ?? "")).ToArray();
+            foreach (var alias in keys)
+                profiles[alias] = $"src/Config/Input/{workspace.Configuration.Module.DcsId}/joystick/{profile.SourceName}";
+            if (affected.Length == 0)
             {
-                profiles.Remove(key);
-                foreach (var page in affected) pages.Remove(page);
-                workspace = workspace with { Pages = workspace.Pages.Where(x => !pageKeys.Contains(x.StableKey)).ToArray(), Images = workspace.Images.Where(x => !pageKeys.Contains(x.PageKey)).ToArray() };
-            }
-            else
-            {
-                profiles[key] = $"src/Config/Input/{workspace.Configuration.Module.DcsId}/joystick/{profile.SourceName}";
-                if (affected.Length == 0)
-                {
-                    var pageKey = "device-" + profile.Id.ToString("N");
-                    pages.Add(new JsonObject { ["file"] = pageKey, ["profile"] = key, ["title"] = workspace.Diagrams.Single(x => x.ProfileId == profile.Id).Title, ["kicker"] = "MODULE DEVICE", ["categoryLabels"] = new JsonObject() });
-                    workspace = workspace with { Pages = [.. workspace.Pages, new KneeboardPage(Guid.NewGuid(), workspace.Configuration.Module.Id, null, KneeboardPageKind.Device, pageKey, profile.DeviceId, [], workspace.Pages.Count)] };
-                }
+                var pageKey = "device-" + profile.Id.ToString("N");
+                pages.Add(new JsonObject { ["file"] = pageKey, ["profile"] = key, ["title"] = workspace.Diagrams.Single(x => x.ProfileId == profile.Id).Title, ["kicker"] = "MODULE DEVICE", ["categoryLabels"] = new JsonObject() });
+                workspace = workspace with { Pages = [.. workspace.Pages, new KneeboardPage(Guid.NewGuid(), workspace.Configuration.Module.Id, null, KneeboardPageKind.Device, pageKey, profile.DeviceId, [], workspace.Pages.Count)] };
             }
             return SetSource(workspace, "config/kneeboard.json", root.ToJsonString());
         }

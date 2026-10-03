@@ -17,6 +17,77 @@ namespace Dcs.Ipia.Tests
         private static readonly Guid ModuleId = Guid.Parse("115c5cf8-c3ac-4d80-a512-5d92bd36856a");
         private static readonly Guid ProfileId = Guid.Parse("b2da76ec-5d9a-497d-9712-43864c304939");
         #region BEGIN Public
+        /// <summary>Deleting one physical unit keeps another unit of the same hardware type and its page.</summary>
+        [Fact]
+        public void KeepsOtherUnitsAndRemainingScopePages()
+        {
+            var workspace = Workspace();
+            var hardware = new WorkspaceHardware("stick", "Stick", "Other.diff.lua", workspace.Diagrams[0]);
+            workspace = WorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.Module, "Other.diff.lua", "SECOND", null);
+            var other = workspace.Configuration.Profiles.Single(x => x.Id != ProfileId);
+            workspace = WorkspaceStructureEditor.ClearDeviceAssignments(workspace, WorkspaceStructureEditor.Describe(workspace).Devices.First(x => x.ProfileId == ProfileId));
+            foreach (var modifier in WorkspaceStructureEditor.Describe(workspace).Modifiers.ToArray())
+                workspace = WorkspaceStructureEditor.RemoveModifier(workspace, modifier);
+            var members = WorkspaceStructureEditor.Describe(workspace).Devices.Where(x => x.ProfileId == ProfileId).ToArray();
+            workspace = WorkspaceStructureEditor.RemoveDevice(workspace, members[0]);
+            Assert.Contains(workspace.Pages, x => x.StableKey == "01-STICK");
+            workspace = WorkspaceStructureEditor.RemoveDevice(workspace, members[1]);
+            Assert.Equal(other.Id, Assert.Single(workspace.Configuration.Profiles).Id);
+            Assert.Equal("device-" + other.Id.ToString("N"), Assert.Single(workspace.Pages).StableKey);
+            Assert.Equal(0, workspace.Pages[0].Order);
+            Assert.False(ModuleKneeboardPageEditor.CanRemove(workspace, workspace.Pages[0]));
+        }
+
+        /// <summary>Deletion removes all filename aliases and compacts remaining page orders through SQLite reopening.</summary>
+        [Theory]
+        [InlineData("src/Config/Input/TEST/joystick/Stick.diff.lua")]
+        [InlineData("src/Config/Input/TEST/joystick/STICK.DIFF.LUA")]
+        [InlineData("src\\Config\\Input\\TEST\\joystick\\Stick.diff.lua")]
+        public async Task RemovesAllDevicePageAliasesAndRenumbers(string mappedPath)
+        {
+            var saved = Workspace();
+            var root = JsonNode.Parse(saved.Sources!["config/kneeboard.json"])!.AsObject();
+            root["profiles"]!["stick"] = mappedPath;
+            root["profiles"]!["alias"] = mappedPath;
+            root["pages"]!.AsArray().Add(new JsonObject { ["profile"] = "alias", ["file"] = "02-ALIAS", ["title"] = "Alias" });
+            var summary = new KneeboardPage(Guid.NewGuid(), ModuleId, null, KneeboardPageKind.Summary, "03-SUMMARY", "Summary", [], 9);
+            saved = saved with
+            {
+                Pages = [.. saved.Pages, new(Guid.NewGuid(), ModuleId, null, KneeboardPageKind.Device, "02-ALIAS", "Alias", [], 5), summary],
+                Images = [new("01-STICK", "old.png", [1], "old"), new("02-ALIAS", "alias.png", [2], "old")],
+                Sources = new Dictionary<string, string>(saved.Sources!) { ["config/kneeboard.json"] = root.ToJsonString() }
+            };
+            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            saved = WorkspaceStructureEditor.UpdateDevice(saved, WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module),
+                "Renamed stick.diff.lua", null, null);
+            var before = saved;
+            foreach (var membership in WorkspaceStructureEditor.Describe(saved).Devices.ToArray())
+                saved = WorkspaceStructureEditor.RemoveDevice(saved, membership);
+            Assert.Equal(summary.Id, Assert.Single(saved.Pages).Id);
+            Assert.Equal(0, saved.Pages[0].Order);
+            Assert.Empty(saved.Images);
+            using var manifest = JsonDocument.Parse(saved.Sources!["config/kneeboard.json"]);
+            Assert.Empty(manifest.RootElement.GetProperty("profiles").EnumerateObject());
+            Assert.Empty(manifest.RootElement.GetProperty("pages").EnumerateArray());
+            var path = Path.Combine(Path.GetTempPath(), "ipia-deletion-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(before);
+                await repository.SaveAsync(saved);
+                var reopened = (await repository.GetAsync(ModuleId))!;
+                Assert.Equal(summary.Id, Assert.Single(reopened.Pages).Id);
+                Assert.Equal(0, reopened.Pages[0].Order);
+                Assert.Empty(reopened.Configuration.Profiles);
+                Assert.Empty(reopened.Images);
+            }
+            finally { File.Delete(path); }
+        }
+
         /// <summary>Layer clearing removes mapped and unmapped exports without affecting the other scope or original draft.</summary>
         [Fact]
         public void ClearsSelectedDeviceScopeAndChord()
