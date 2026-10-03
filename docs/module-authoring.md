@@ -54,6 +54,18 @@ Choose **Export Complete release…** with clean saved inputs and a package vers
 
 Verification independently reads paths and checksums, verifies the nested deployable ZIP, validates/restores the portable snapshot in memory, and regenerates the archive and guides for exact comparison. It rejects stale guides, version mismatches, corrupt/duplicate/unsafe entries, missing snapshots and unexpected local database files. Rebuilding a restored snapshot reproduces the Complete ZIP; existing output folders are protected.
 
+## Import an editable module from Saved Games
+
+Use **Import module sources** and select the module input folder or its `joystick` subfolder. Review the destination DCS input folder and display name: copied or renamed folders do not prove the aircraft identity. Every joystick profile appears in the hardware review, including empty profiles and profiles containing only removals. Hardware suggestions use the bundled recognition rules; confirm each choice and select an appropriate template for unrecognized devices. Repeated controller names retain distinct physical GUIDs.
+
+Choose **Import module** to create and reopen a new SQLite workspace. Existing modules with the same DCS input identity are protected from replacement. Cancel or correct a failed review without changing your source files. Imports with malformed profiles or unresolved modifier references are blocked rather than partially saved.
+
+To start with inherited axes suppressed, back up your existing controls, reset the device's axes to defaults in DCS, clear all axes and save its profile. Leave keys alone, then import the module folder. Captured axis removal entries are retained automatically; they need no separate default import. Assign the desired axes in IPIA. Unchanged DCS default key bindings are absent from diff files and are not reconstructed. No aircraft-specific default commands or physical axes are inferred.
+
+Explicit mapped key and axis assignments become editable bindings, including modifiers and axis tuning. Unmapped imported keys remain in native exports; select the hardware that represents those keys to edit them. An active imported axis missing from the chosen hardware blocks import so it cannot be silently removed. The command palette initially contains only commands found in the profiles; load the module command JSON or DCS Controls HTML for its complete catalog.
+
+Module keyboard profiles are captured with the folder and included unchanged in package exports and portable snapshots. They are not joystick device rows. The saved shared UI Layer revision is copied independently, using the existing module creation behavior; review/rebind its copied physical units before packaging. Reopening, rendering and exporting use SQLite and the frozen sources, without rereading Saved Games.
+
 ## Suppress inherited DCS axis defaults
 
 An empty axis diff does not clear the game's default axes. On **Devices**, select the device and scope, then choose **Import DCS axis defaults…**. First back up the device's current DCS controls. In DCS Controls for this aircraft (or UI Layer), reset that device's axes to defaults, clear all its axes, and save its profile as a `.diff.lua`. Restore your backed-up controls afterward. Import the cleared profile into IPIA and review the destination and each command/axis/modifier combination before staging. DCS diff files do not encode the aircraft identity; verify the selected aircraft and scope yourself.

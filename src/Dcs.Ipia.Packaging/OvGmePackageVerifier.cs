@@ -68,6 +68,7 @@ namespace Dcs.Ipia.Packaging
                         .Contains("Install relative to your DCS Saved Games root.", StringComparison.Ordinal))
                     throw new InvalidDataException("OvGME module identity or README is invalid.");
                 var joystick = root + "Config/Input/" + module + "/joystick/";
+                var keyboard = root + "Config/Input/" + module + "/keyboard/";
                 var ui = root + "Config/Input/UiLayer/";
                 var knee = root + "KNEEBOARD/" + module + "/";
                 var moduleProfile = false;
@@ -82,6 +83,10 @@ namespace Dcs.Ipia.Packaging
                         path.EndsWith(".diff.lua", StringComparison.Ordinal) &&
                         !path[joystick.Length..].Contains('/'))
                         valid = moduleProfile = true;
+                    else if (path.StartsWith(keyboard, StringComparison.Ordinal) &&
+                             path.EndsWith(".diff.lua", StringComparison.Ordinal) &&
+                             !path[keyboard.Length..].Contains('/'))
+                        valid = true;
                     else if (path == root + "Config/Input/" + module + "/modifiers.lua")
                         valid = true;
                     else if (path.StartsWith(ui + "joystick/", StringComparison.Ordinal) ||

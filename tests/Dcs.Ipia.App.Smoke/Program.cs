@@ -34,6 +34,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifySharedDefaultBindingEditor();
             VerifyModuleDeleteButton();
             VerifyNewModuleForm();
+            VerifySavedGamesImportForm();
             VerifyModuleAuthoring();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
@@ -645,6 +646,71 @@ namespace Dcs.Ipia.App.Smoke
                 }
                 if (editor.FindName("RebindDeviceButton") is not Button)
                     throw new InvalidOperationException("Explicit physical rebinding is missing.");
+                editor.Close();
+            }
+            finally { File.Delete(path); }
+        }
+        private static void VerifySavedGamesImportForm()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ipia-saved-games-smoke-" + Guid.NewGuid().ToString("N") + ".db");
+            try
+            {
+                var connection = "Data Source=" + path + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(
+                    SharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+                var sources = ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
+                var first = new DeviceProfile(Guid.NewGuid(), "F16 MFD", null, "unresolved device", new DetectedDcsDevice(Guid.NewGuid(), "F16 MFD", false).FileName);
+                var second = new DeviceProfile(Guid.NewGuid(), "F16 MFD", null, "unresolved device", new DetectedDcsDevice(Guid.NewGuid(), "F16 MFD", false).FileName);
+                var empty = new DeviceProfile(Guid.NewGuid(), "Unknown panel", null, "unresolved device", new DetectedDcsDevice(Guid.NewGuid(), "Unknown panel", false).FileName);
+                var folder = new DcsFolderImportResult("CUSTOM-HELICOPTER/joystick", [first, second, empty], [
+                    new(first.Id, BindingSection.Key, "CUSTOM_KEY", "Custom key", BindingDisposition.Added, "JOY_BTN1"),
+                    new(second.Id, BindingSection.Axis, "a9200cdnil", "Captured default", BindingDisposition.Removed, "JOY_X")
+                ], [], []);
+                var cancelled = new SavedGamesImportWindow(folder, defaults, sources, repository);
+                cancelled.Dispatcher.BeginInvoke(new Action(() => cancelled.DialogResult = false));
+                cancelled.ShowDialog();
+                if (repository.ListAsync().GetAwaiter().GetResult().Count != 0)
+                    throw new InvalidOperationException("Cancel saved a partial Saved Games module.");
+                var window = new SavedGamesImportWindow(folder, defaults, sources, repository);
+                Exception? failure = null;
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    try
+                    {
+                        var rows = ((ItemsControl)window.FindName("ProfileChoices")!).Items.Cast<SavedGamesProfileChoice>().ToArray();
+                        if (rows.Length != 3 || rows[0].Hardware?.DeviceId != "tm-mfd" || rows[1].Hardware?.DeviceId != "tm-mfd" || rows[2].Hardware is not null)
+                            throw new InvalidOperationException("Hardware suggestions lost repeated units or guessed an unknown panel.");
+                        var import = (Button)window.FindName("ImportSavedGamesButton")!;
+                        import.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        if (!((TextBlock)window.FindName("ImportError")!).Text.Contains("Choose hardware", StringComparison.Ordinal) || repository.ListAsync().GetAwaiter().GetResult().Count != 0)
+                            throw new InvalidOperationException("Unresolved hardware saved a partial module.");
+                        rows[2].Hardware = rows[2].HardwareChoices.Single(x => x.DeviceId == "tm-mfd");
+                        ((TextBox)window.FindName("DcsIdInput")!).Text = "CUSTOM-HELICOPTER";
+                        ((TextBox)window.FindName("DisplayNameInput")!).Text = "Custom helicopter";
+                        ClickWithDispatcherContext(import);
+                    }
+                    catch (Exception ex) { failure = ex; window.Close(); }
+                }));
+                var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+                timeout.Tick += (_, _) => {
+                    failure = new InvalidOperationException("Saved Games import timed out: " + ((TextBlock)window.FindName("ImportError")!).Text);
+                    window.Close();
+                };
+                timeout.Start();
+                window.ShowDialog();
+                timeout.Stop();
+                if (failure is not null) throw failure;
+                var saved = window.ImportedWorkspace ?? throw new InvalidOperationException("Saved Games import did not reopen an editable module.");
+                var devices = WorkspaceStructureEditor.Describe(saved).Devices.Where(x => x.Layer == AssignmentLayer.Module).ToArray();
+                if (devices.Length != 3 || !DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(saved, devices.Single(x => x.FileName == second.SourceName).ProfileId), second.Id)
+                    .Any(x => x.Disposition == BindingDisposition.Removed))
+                    throw new InvalidOperationException("Empty or removal-only profiles did not survive import.");
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                editor.Show();
+                editor.UpdateLayout();
+                if (((DataGrid)editor.FindName("ManagedDevices")!).Items.Count == 0 || ((ComboBox)editor.FindName("DeviceChoice")!).Items.Count == 0)
+                    throw new InvalidOperationException("Saved Games devices remained invisible in the editable workspace.");
                 editor.Close();
             }
             finally { File.Delete(path); }

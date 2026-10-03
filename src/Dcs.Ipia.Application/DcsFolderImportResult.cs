@@ -32,6 +32,8 @@ namespace Dcs.Ipia.Application
         public IReadOnlyList<DcsModifier> Modifiers { get; }
         /// <summary>Gets path-specific diagnostics.</summary>
         public IReadOnlyList<ImportDiagnostic> Diagnostics { get; }
+        /// <summary>Gets frozen relative profile and modifier source text for portable recovery.</summary>
+        public IReadOnlyDictionary<string, string> Sources { get; init; } = new Dictionary<string, string>();
         /// <summary>Gets whether at least one profile was imported without an error.</summary>
         public bool Succeeded => Profiles.Count > 0 && !Diagnostics.Any(x => x.IsError);
         #endregion END Public

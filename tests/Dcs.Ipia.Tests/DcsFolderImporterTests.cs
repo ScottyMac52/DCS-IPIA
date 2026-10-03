@@ -32,9 +32,9 @@ namespace Dcs.Ipia.Tests
                 Directory.Delete(root, true);
             }
         }
-        /// <summary>Machine GUIDs do not define the local display profile identity.</summary>
+        /// <summary>Changing physical GUIDs changes profile identity without changing the display name.</summary>
         [Fact]
-        public async Task Profile_id_ignores_machine_guid()
+        public async Task Profile_id_preserves_physical_instance()
         {
             var root = CreateFixture();
             try
@@ -45,7 +45,7 @@ namespace Dcs.Ipia.Tests
                 File.Move(old, old.Replace("51FA60C0-CB32-11ed-800B-444553540000",
                                            "11111111-1111-1111-1111-111111111111", StringComparison.Ordinal));
                 var second = await importer.ImportAsync(root);
-                Assert.Equal(first.Profiles.Single(x => x.DeviceId == "F16 MFD 1").Id,
+                Assert.NotEqual(first.Profiles.Single(x => x.DeviceId == "F16 MFD 1").Id,
                              second.Profiles.Single(x => x.DeviceId == "F16 MFD 1").Id);
             }
             finally
@@ -53,9 +53,9 @@ namespace Dcs.Ipia.Tests
                 Directory.Delete(root, true);
             }
         }
-        /// <summary>Conflicting GUID variants of the same named profile are not merged silently.</summary>
+        /// <summary>Repeated controller names with different physical GUIDs remain separate profiles.</summary>
         [Fact]
-        public async Task Duplicate_profile_names_are_reported()
+        public async Task Repeated_device_names_preserve_both_physical_units()
         {
             var root = CreateFixture();
             try
@@ -64,8 +64,10 @@ namespace Dcs.Ipia.Tests
                 File.Copy(old, old.Replace("51FA60C0-CB32-11ed-800B-444553540000",
                                            "11111111-1111-1111-1111-111111111111", StringComparison.Ordinal));
                 var result = await new DcsFolderImporter().ImportAsync(root);
-                Assert.False(result.Succeeded);
-                Assert.Contains(result.Diagnostics, x => x.Code == "ambiguous-profile");
+                Assert.True(result.Succeeded);
+                Assert.Equal(2, result.Profiles.Count(x => x.DeviceId == "F16 MFD 1"));
+                Assert.Equal(result.Profiles.Count, result.Profiles.Select(x => x.Id).Distinct().Count());
+                Assert.DoesNotContain(result.Diagnostics, x => x.Code == "ambiguous-profile");
             }
             finally
             {
@@ -169,6 +171,31 @@ namespace Dcs.Ipia.Tests
             {
                 Directory.Delete(root, true);
             }
+        }
+        /// <summary>Keyboard source text is captured independently and malformed keyboard profiles prevent a partial import.</summary>
+        [Fact]
+        public async Task Keyboard_profiles_are_frozen_and_validated()
+        {
+            var root = CreateFixture();
+            try
+            {
+                var keyboard = Path.Combine(root, "keyboard");
+                Directory.CreateDirectory(keyboard);
+                var file = Path.Combine(keyboard, "Keyboard.diff.lua");
+                const string text = "local diff = {} return diff";
+                File.WriteAllText(file, text);
+                var result = await new DcsFolderImporter().ImportAsync(Path.Combine(root, "joystick"));
+                Assert.True(result.Succeeded);
+                Assert.Equal(text, result.Sources["keyboard/Keyboard.diff.lua"]);
+                Assert.Equal(5, result.Profiles.Count);
+                Assert.Contains("modifiers.lua", result.Sources.Keys);
+                File.WriteAllText(file, "invalid lua");
+                Assert.Equal(text, result.Sources["keyboard/Keyboard.diff.lua"]);
+                result = await new DcsFolderImporter().ImportAsync(root);
+                Assert.False(result.Succeeded);
+                Assert.Contains(result.Diagnostics, x => x.Code == "invalid-keyboard-profile");
+            }
+            finally { Directory.Delete(root, true); }
         }
         #endregion END Public
         #region BEGIN private helpers

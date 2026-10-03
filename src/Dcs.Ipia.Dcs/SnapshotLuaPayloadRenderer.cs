@@ -113,6 +113,17 @@ namespace Dcs.Ipia.Dcs
                     : UiLayerLuaProfileRenderer.Render(workspace, device.ProfileId);
                 Add(result, $"Config/Input/{folder}/joystick/{device.FileName}", content);
             }
+            if (workspace.Sources?.ContainsKey("config/ipia-saved-games-import.json") == true)
+            {
+                var prefix = "src/Config/Input/" + workspace.Configuration.Module.DcsId + "/keyboard/";
+                foreach (var source in workspace.Sources.Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal)))
+                {
+                    var fileName = source.Key[prefix.Length..];
+                    SafeFile(fileName);
+                    DcsLuaParser.ParseProfile(source.Value, workspace.Configuration.Module.Id);
+                    Add(result, "Config/Input/" + workspace.Configuration.Module.DcsId + "/keyboard/" + fileName, source.Value);
+                }
+            }
             foreach (var scope in new[] { AssignmentLayer.Module, AssignmentLayer.UiLayer })
             {
                 var folder = scope == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
@@ -245,5 +256,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
-
 

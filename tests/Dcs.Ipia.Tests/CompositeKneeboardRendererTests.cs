@@ -10,6 +10,22 @@ namespace Dcs.Ipia.Tests
     public sealed class CompositeKneeboardRendererTests
     {
         #region BEGIN Public
+        /// <summary>Truncated imported labels remain renderable with the pinned font.</summary>
+        [Fact]
+        public void RendersLongImportedControlLabels()
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text id='lbl-rocker' x='50' y='50'>Old</text></svg>"
+            };
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                ["rocker"] = [new("Rocker Switch - Down - Camera Pan Down", "#ffffff", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), []);
+            var image = CompositeKneeboardRenderer.Render(diagram, page);
+            using var bitmap = SKBitmap.Decode(image);
+            Assert.NotNull(bitmap);
+            Assert.DoesNotContain("…", CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+        }
+
         /// <summary>Activator labels survive rendering and descriptive legends fit the page in both SVG and PNG output.</summary>
         [Fact]
         public void RendersActivatorLabelsAndWideLegend()

@@ -21,6 +21,7 @@ namespace Dcs.Ipia.Packaging
             ArgumentNullException.ThrowIfNull(input.Payload);
             var modulePrefix = $"Config/Input/{input.ModuleId}/";
             var joystickPrefix = $"{modulePrefix}joystick/";
+            var keyboardPrefix = $"{modulePrefix}keyboard/";
             var uiPrefix = "Config/Input/UiLayer/";
             var kneePrefix = $"KNEEBOARD/{input.ModuleId}/";
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -35,13 +36,16 @@ namespace Dcs.Ipia.Packaging
                 var moduleProfile = path.StartsWith(joystickPrefix, StringComparison.Ordinal) &&
                                     path.EndsWith(".diff.lua", StringComparison.Ordinal);
                 var moduleModifier = path == $"{modulePrefix}modifiers.lua";
+                var keyboardProfile = path.StartsWith(keyboardPrefix, StringComparison.Ordinal) &&
+                                      path.EndsWith(".diff.lua", StringComparison.Ordinal) &&
+                                      !path[keyboardPrefix.Length..].Contains('/');
                 var uiProfile = path.StartsWith(uiPrefix, StringComparison.Ordinal) &&
                                 path.EndsWith(".diff.lua", StringComparison.Ordinal);
                 var uiModifier = path == $"{uiPrefix}modifiers.lua";
                 var kneeboard = path.StartsWith(kneePrefix, StringComparison.Ordinal) &&
                                 (path.EndsWith(".png", StringComparison.Ordinal) ||
                                  path.EndsWith(".svg", StringComparison.Ordinal));
-                if (!moduleProfile && !moduleModifier && !uiProfile && !uiModifier && !kneeboard)
+                if (!moduleProfile && !keyboardProfile && !moduleModifier && !uiProfile && !uiModifier && !kneeboard)
                     throw new ArgumentException($"Unexpected OvGME payload path: {path}", nameof(input));
                 files.Add(new(path, bytes));
             }

@@ -12,6 +12,21 @@ namespace Dcs.Ipia.Tests
         private static readonly byte[] Profile = Encoding.UTF8.GetBytes("return { [\"added\"] = {} }");
         private static readonly byte[] Png = [137, 80, 78, 71, 13, 10, 26, 10];
         #region BEGIN Public
+        /// <summary>Captured aircraft keyboard diffs survive packaging and independent archive verification.</summary>
+        [Fact]
+        public void PackagesModuleKeyboardProfiles()
+        {
+            var payload = BasePayload();
+            payload["Config/Input/UH-1H/keyboard/Keyboard.diff.lua"] = Profile;
+            var package = OvGmePackageBuilder.Build(Input(payload));
+            OvGmePackageVerifier.Verify(package);
+            using var stream = new MemoryStream(package.Bytes);
+            using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+            Assert.Equal(Profile, Read(zip.GetEntry("DCS-UH-1H-Components-v1-OVGME/Config/Input/UH-1H/keyboard/Keyboard.diff.lua")!));
+            var nested = Repack(package, _ => true, "DCS-UH-1H-Components-v1-OVGME/Config/Input/UH-1H/keyboard/nested/Keyboard.diff.lua");
+            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(nested));
+        }
+
         /// <summary>Archive structure matches the consumer package contract, independent of input order.</summary>
         [Fact]
         public void Builds_complete_deterministic_archive()
@@ -114,6 +129,8 @@ namespace Dcs.Ipia.Tests
         [InlineData("/Config/Input/UH-1H/joystick/bad.diff.lua")]
         [InlineData("Config/Input/UH-1H/joystick/bad.txt")]
         [InlineData("Config/Input/F-16C/joystick/bad.diff.lua")]
+        [InlineData("Config/Input/UH-1H/keyboard/nested/Keyboard.diff.lua")]
+        [InlineData("Config/Input/UH-1H/keyboard/Keyboard.txt")]
         [InlineData("README.TXT")]
         public void Rejects_unsafe_or_unexpected_paths(string path)
         {
