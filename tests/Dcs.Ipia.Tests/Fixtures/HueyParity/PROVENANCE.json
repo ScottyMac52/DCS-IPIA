@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "repository": "ScottyMac52/DCS-UH-1H-Huey",
+  "sourceCommit": "77d924cce220355860e8f026cff3524bac531e29",
+  "release": "v3.1.1",
+  "workflowRun": 35558158045,
+  "artifactId": 10620389932,
+  "artifactSha256": "b98da84ab465987091e76902e0017d2f3fd424d99e7af3d7ae6d84730dd921fb",
+  "ovgmeSha256": "3a4b6a33f8676e2e1872505791938fbb08f8e3ec641c8a74e3b6569b57b06421",
+  "completeSha256": "cc2b5abca2513c41c1db23c04757b9d7a72aad97e23afb1d1b165ab87562e48b",
+  "files": [
+    {
+      "path": "Expected/Config/Input/UH-1H/joystick/F16 MFD 1 {51FA60C0-CB32-11ed-800B-444553540000}.diff.lua",
+      "sha256": "41bb707e33a4ff9f428a276c5d970ed9c6bfb101224dd469f61b84a809e40946",
+      "bytes": 2754
+    },
+    {
+      "path": "Expected/Config/Input/UH-1H/joystick/F16 MFD 2 {51FA39B0-CB32-11ed-8008-444553540000}.diff.lua",
+      "sha256": "88f105fd524debf33b078fcd780a424e43bde28dd345beb2c178f658bd4f82b7",
+      "bytes": 4040
+    },
+    {
+      "path": "Expected/Config/Input/UH-1H/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "sha256": "da83503077e818668da0b720620a251db924d995d4a647fd0d1302a3395d4ded",
+      "bytes": 2642
+    },
+    {
+      "path": "Expected/Config/Input/UH-1H/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+      "sha256": "55dccac5f3b25f28bed3ca9cd33910b03827a888ef05f12444adea8e32da0394",
+      "bytes": 6633
+    },
+    {
+      "path": "Expected/Config/Input/UH-1H/joystick/Throttle - HOTAS Warthog {5200C960-CB32-11ed-8020-444553540000}.diff.lua",
+      "sha256": "58cda65b319966530ad2697abadd4287c07ae829d2b022645703808033f07d31",
+      "bytes": 1189
+    },
+    {
+      "path": "Expected/Config/Input/UH-1H/modifiers.lua",
+      "sha256": "d7ac3ac1babf0c9f63601b392e4c3dbd08fd386d3266de0fe59ee0256c0d1701",
+      "bytes": 899
+    },
+    {
+      "path": "Expected/Config/Input/UiLayer/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "sha256": "6333e946223163f2585bda7f8bf0fb15dc914e6d135990400a5b1f9c98c0cdca",
+      "bytes": 2755
+    },
+    {
+      "path": "Expected/Config/Input/UiLayer/modifiers.lua",
+      "sha256": "9e6f1d576ff699aa8e8164ca63f3bb57da9f1a512969c2912867a23c7034b158",
+      "bytes": 936
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/00-UH1H-CONTROL-OVERVIEW.png",
+      "sha256": "8d168fac059a45a8bd2ec409dbd7b66422f40a85303f8473f8732075e732f7fa",
+      "bytes": 105124
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/00-UH1H-CONTROL-OVERVIEW.svg",
+      "sha256": "690c74a1cc53a9ed7eb2f35d88a0f88c7f23332eac72841ceecd0b1697d5ca39",
+      "bytes": 4564
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/01-TM-MFD-1.png",
+      "sha256": "7d6bb8ae76a86cb4d287a01a8850705c4bad123de4745f6784330982c79cc5ac",
+      "bytes": 197710
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/02-TM-MFD-2.png",
+      "sha256": "436999adbb3227597995ac62455c5ed28b3cacd4c92a375ef79eb80dd4f17ca2",
+      "bytes": 208220
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/03-TM-MFD-3.png",
+      "sha256": "22866f5b3b72b22180f85a429e1f82943fb4e83b988cae1a842f8e793417843b",
+      "bytes": 212971
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/04-MOZA-AB9-HORNET-GRIP.png",
+      "sha256": "ef3b31a94e4461e30278b9e0b4e4d7bbf169601c9bf3a7f6f5681a8e72a14867",
+      "bytes": 366082
+    },
+    {
+      "path": "Expected/KNEEBOARD/UH-1H/05-TM-WARTHOG-THROTTLE.png",
+      "sha256": "9e930751c4315c34ff9cdf6a73b73d88cb0ad1639b9a5881f97228a200d85a38",
+      "bytes": 425181
+    },
+    {
+      "path": "Expected/README.TXT",
+      "sha256": "4bf022fc35b57949ba4ee6afda60aaf1d1448e14ac4ac9940a16432c86ac5c39",
+      "bytes": 134
+    },
+    {
+      "path": "Expected/VERSION.TXT",
+      "sha256": "11b66d3032607cb6df8b0a8470a6856bdcb631ef3fafd9397b6bc8db6b6d19b2",
+      "bytes": 5
+    },
+    {
+      "path": "LegacyComplete/Documentation/CONTROL-MAPPINGS.md",
+      "sha256": "54fca4079681ca2e5f1e506a0063e53f63603e6f0ba8e630b15e5c01815e94c1",
+      "bytes": 8196
+    },
+    {
+      "path": "LegacyComplete/Documentation/INSTALLATION.md",
+      "sha256": "412c7b8a8636d1d19e0c2ab523f75680bd6285bbaa5f8484b76f2c92dc852d3b",
+      "bytes": 1388
+    },
+    {
+      "path": "LegacyComplete/Documentation/OPENKNEEBOARD-VAICOM.md",
+      "sha256": "24c847bd0b2fb63c0a8d9f7f6790b3d170c6cbac29616dcd966bec9219099065",
+      "bytes": 1029
+    },
+    {
+      "path": "LegacyComplete/Documentation/README.md",
+      "sha256": "07454d51735ff56539c041c9aab09cacde0a6e10e9c6f1dfc60ac1d4c8a73109",
+      "bytes": 1668
+    },
+    {
+      "path": "LegacyComplete/Documentation/RELEASE-NOTES.md",
+      "sha256": "98c8631e65123be7af9414c2df387fb9ca07d64466709937decb1ab1a5f86aff",
+      "bytes": 110
+    },
+    {
+      "path": "LegacyComplete/Documentation/THIRD-PARTY-ASSETS.md",
+      "sha256": "e69cd6ce8c11eb6ede3d98bbac0677849386bec7a59c048aa66e797b6f368dd0",
+      "bytes": 487
+    },
+    {
+      "path": "LegacyComplete/Documentation/devices/MOZA-AB9-HORNET-GRIP-MAPPINGS.md",
+      "sha256": "7b0a0a5c50986c6eac1a62f87853d5e3c45774ab8a9b3d19e0dff80aba3f2171",
+      "bytes": 2621
+    },
+    {
+      "path": "LegacyComplete/Documentation/devices/TM-MFD-1-MAPPINGS.md",
+      "sha256": "79dd35687217aaa30f2ccb94abb0e7f6c199495d4fceea521a133c341f3e4282",
+      "bytes": 1036
+    },
+    {
+      "path": "LegacyComplete/Documentation/devices/TM-MFD-2-MAPPINGS.md",
+      "sha256": "bfc484a3637f296bc44d472900356375ec70e84b3143248b6cfeb2f1ca3fee72",
+      "bytes": 1356
+    },
+    {
+      "path": "LegacyComplete/Documentation/devices/TM-MFD-3-MAPPINGS.md",
+      "sha256": "e82af38c6e4acb88d29f453fbad066d353c3f5d7db3f19de52efe2d36a503e5b",
+      "bytes": 1718
+    },
+    {
+      "path": "LegacyComplete/Documentation/devices/TM-WARTHOG-THROTTLE-MAPPINGS.md",
+      "sha256": "f2cdf7c650c2bdcaaa5f98dda53d9a05f0e93faca61ebe4f54fbe7f50a1566f4",
+      "bytes": 727
+    },
+    {
+      "path": "Source/LICENSE",
+      "sha256": "50f7efcae3770f7f16eb0376d8d81ecbc0985fd9d03494a0fa5aeb4260d2d414",
+      "bytes": 1092
+    },
+    {
+      "path": "Source/README.md",
+      "sha256": "07454d51735ff56539c041c9aab09cacde0a6e10e9c6f1dfc60ac1d4c8a73109",
+      "bytes": 1668
+    },
+    {
+      "path": "Source/config/UH-1H.dcs-scaffold.json",
+      "sha256": "16ed5ba12f24add63e2558b486d20d314407ca095f6657b7bcab8682ad84d82f",
+      "bytes": 2688
+    },
+    {
+      "path": "Source/config/kneeboard.json",
+      "sha256": "8cbb03226f649ae206376f24003ff978ddcefdbd3c1ed60fd64559a4f55218ac",
+      "bytes": 38080
+    },
+    {
+      "path": "Source/config/scaffold-device-overrides.json",
+      "sha256": "aa8c107217fc922c66034aea490b01fba0a2698c917362e969bae15e0344a6b5",
+      "bytes": 70
+    },
+    {
+      "path": "Source/config/scaffold-instance-roles.json",
+      "sha256": "7b48a79e530e1bad2b178c95af63488ae72c4e348c0318e56862b4311a2bbf71",
+      "bytes": 68
+    },
+    {
+      "path": "Source/config/scaffold.dcs-scaffold.json",
+      "sha256": "d2c6c9ea6f5fa9ff34d07001f61ca4331c22380d39a69f26e04b0aac39147934",
+      "bytes": 881
+    },
+    {
+      "path": "Source/config/ui-layer-overlay.json",
+      "sha256": "9a96ec7d8f9f36ffbc98c3a146f4c9465be21f8ff64051ac090823488eb89086",
+      "bytes": 205
+    },
+    {
+      "path": "Source/docs/CONTROL-MAPPINGS.md",
+      "sha256": "54fca4079681ca2e5f1e506a0063e53f63603e6f0ba8e630b15e5c01815e94c1",
+      "bytes": 8196
+    },
+    {
+      "path": "Source/docs/INSTALLATION.md",
+      "sha256": "412c7b8a8636d1d19e0c2ab523f75680bd6285bbaa5f8484b76f2c92dc852d3b",
+      "bytes": 1388
+    },
+    {
+      "path": "Source/docs/OPENKNEEBOARD-VAICOM.md",
+      "sha256": "24c847bd0b2fb63c0a8d9f7f6790b3d170c6cbac29616dcd966bec9219099065",
+      "bytes": 1029
+    },
+    {
+      "path": "Source/docs/THIRD-PARTY-ASSETS.md",
+      "sha256": "e69cd6ce8c11eb6ede3d98bbac0677849386bec7a59c048aa66e797b6f368dd0",
+      "bytes": 487
+    },
+    {
+      "path": "Source/docs/devices/MOZA-AB9-HORNET-GRIP-MAPPINGS.md",
+      "sha256": "7b0a0a5c50986c6eac1a62f87853d5e3c45774ab8a9b3d19e0dff80aba3f2171",
+      "bytes": 2621
+    },
+    {
+      "path": "Source/docs/devices/TM-MFD-1-MAPPINGS.md",
+      "sha256": "79dd35687217aaa30f2ccb94abb0e7f6c199495d4fceea521a133c341f3e4282",
+      "bytes": 1036
+    },
+    {
+      "path": "Source/docs/devices/TM-MFD-2-MAPPINGS.md",
+      "sha256": "bfc484a3637f296bc44d472900356375ec70e84b3143248b6cfeb2f1ca3fee72",
+      "bytes": 1356
+    },
+    {
+      "path": "Source/docs/devices/TM-MFD-3-MAPPINGS.md",
+      "sha256": "e82af38c6e4acb88d29f453fbad066d353c3f5d7db3f19de52efe2d36a503e5b",
+      "bytes": 1718
+    },
+    {
+      "path": "Source/docs/devices/TM-WARTHOG-THROTTLE-MAPPINGS.md",
+      "sha256": "f2cdf7c650c2bdcaaa5f98dda53d9a05f0e93faca61ebe4f54fbe7f50a1566f4",
+      "bytes": 727
+    },
+    {
+      "path": "Source/packaging/ovgme/README.TXT",
+      "sha256": "08fac58ef1cb40e19c33383535a27022f7977cad18212c221e843f1fbc7fbb40",
+      "bytes": 140
+    },
+    {
+      "path": "Source/scripts/Build-OvGME.ps1",
+      "sha256": "050e6059b8d3def010aced7817410ed4a9aff2755d4d691fa60c13c4a0b4ee07",
+      "bytes": 2577
+    },
+    {
+      "path": "Source/scripts/Test-Package.ps1",
+      "sha256": "f500ddac0317752e75fe2fc7296b8ceb83d9ad25cdf7d51a0135001d8bf1addf",
+      "bytes": 3526
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/joystick/F16 MFD 1 {51FA60C0-CB32-11ed-800B-444553540000}.diff.lua",
+      "sha256": "41bb707e33a4ff9f428a276c5d970ed9c6bfb101224dd469f61b84a809e40946",
+      "bytes": 2754
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/joystick/F16 MFD 2 {51FA39B0-CB32-11ed-8008-444553540000}.diff.lua",
+      "sha256": "88f105fd524debf33b078fcd780a424e43bde28dd345beb2c178f658bd4f82b7",
+      "bytes": 4040
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/joystick/F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.diff.lua",
+      "sha256": "da83503077e818668da0b720620a251db924d995d4a647fd0d1302a3395d4ded",
+      "bytes": 2642
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/joystick/MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua",
+      "sha256": "55dccac5f3b25f28bed3ca9cd33910b03827a888ef05f12444adea8e32da0394",
+      "bytes": 6633
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/joystick/Throttle - HOTAS Warthog {5200C960-CB32-11ed-8020-444553540000}.diff.lua",
+      "sha256": "58cda65b319966530ad2697abadd4287c07ae829d2b022645703808033f07d31",
+      "bytes": 1189
+    },
+    {
+      "path": "Source/src/Config/Input/UH-1H/modifiers.lua",
+      "sha256": "0aa3e26ad1c13f3e2e34002d5ea5f551f70f7234587495ac0145e3fe9d373341",
+      "bytes": 191
+    }
+  ]
+}

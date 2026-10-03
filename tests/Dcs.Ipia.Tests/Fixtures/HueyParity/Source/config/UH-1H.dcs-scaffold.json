@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "name": "UH-1H.dcs-scaffold",
+  "import": {
+    "target": "consumer",
+    "profilesDirectory": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\UH-1H\\joystick",
+    "modifiersPath": "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\Config\\Input\\UH-1H\\modifiers.lua",
+    "mozaGrip": "hornet",
+    "commonRoot": "C:\\Users\\vyper\\Source\\repos\\DCS-Common",
+    "outputDirectory": "C:\\Users\\vyper\\Source\\repos\\DCS-UH-1H-Huey",
+    "displayName": "UH-1H",
+    "inputModuleId": "UH-1H",
+    "kneeboardId": "UH-1H",
+    "commandSource": {
+      "type": "dcs-html",
+      "paths": [
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\F16 MFD 1 {51FA60C0-CB32-11ed-800B-444553540000}.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\F16 MFD 2 {51FA39B0-CB32-11ed-8008-444553540000}.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\F16 MFD 3 {C5BE49A0-2342-11ee-8001-444553540000}.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\Keyboard.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\Mouse.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\Throttle - HOTAS Warthog {5200C960-CB32-11ed-8020-444553540000}.html",
+        "C:\\Users\\vyper\\Saved Games\\DCS.openbeta\\InputLayoutsTxt\\UH-1H\\T-Pendular-Rudder {14ED3D40-3F58-11f1-8002-444553540000}.html"
+      ]
+    }
+  },
+  "decisions": {
+    "instanceRoles": {},
+    "semanticModifiers": {
+      "MOZA_F16_F18_BTN3": "MOZA_F16_F18_BTN3"
+    },
+    "removedProfiles": [
+      "ava-base-f16c",
+      "logitech-throttle-quadrant-1c8a8840-5386-11f1-8001-444553540000",
+      "logitech-throttle-quadrant-840bbbd0-2139-11f1-8001-444553540000",
+      "moza-ab9",
+      "onyourtwelve-pdcp",
+      "viper-tqs-mission-pack",
+      "vkb-f14-gunfighter",
+      "winctrl-icp",
+      "winctrl-pto2"
+    ],
+    "authoredModifiers": [
+      {
+        "name": "MOZA_F16_F18_BTN3",
+        "device": "MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}",
+        "key": "JOY_BTN3",
+        "mode": "hold",
+        "semanticModifier": "MOZA_F16_F18_BTN3",
+        "deviceId": "moza-ab9-hornet-grip"
+      }
+    ],
+    "authoredDevices": [
+      {
+        "deviceId": "moza-ab9-hornet-grip",
+        "profileFile": "MOZA AB9 FFB Base {71DA6210-432E-11f1-8001-444553540000}.diff.lua"
+      }
+    ]
+  }
+}
