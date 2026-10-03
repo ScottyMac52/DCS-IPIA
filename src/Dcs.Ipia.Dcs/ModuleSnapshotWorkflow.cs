@@ -36,6 +36,7 @@ namespace Dcs.Ipia.Dcs
                     workspace.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
                         .Concat(workspace.UiCommands.Select(x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer))),
                     workspace.Assignments, WorkspaceStructureEditor.UiModifierNames(workspace));
+            ModuleIntegrationImport.Instructions(workspace);
             var package = SnapshotOvGmeComposer.Build(workspace, snapshot.Version);
             OvGmePackageVerifier.Verify(package);
             return package;

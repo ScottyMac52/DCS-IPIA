@@ -121,6 +121,58 @@ namespace Dcs.Ipia.Tests
             finally { Directory.Delete(root, true); }
         }
 
+        /// <summary>A pinned consumer guide survives SQLite, portable restore and Complete export with identical deployable bytes.</summary>
+        /// <returns>Completion of isolated persistence, documentation and archive checks.</returns>
+        [Fact]
+        public async Task Imported_consumer_instructions_survive_restore_and_only_change_documentation()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "ipia-integration-roundtrip-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var workspace = await WorkspaceAsync();
+                var before = ModuleSnapshotWorkflow.Freeze(workspace, "1.2.3");
+                var reference = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Integrations", "huey-OPENKNEEBOARD-VAICOM.md");
+                var source = File.ReadAllText(reference);
+                // SHA-256 pins the exact legacy guide, including its historical page inventory.
+                var bytes = Encoding.UTF8.GetBytes(source);
+                Assert.Equal("24c847bd0b2fb63c0a8d9f7f6790b3d170c6cbac29616dcd966bec9219099065", Convert.ToHexStringLower(SHA256.HashData(bytes)));
+                var imported = ModuleIntegrationImport.Apply(workspace, ModuleIntegrationImport.ReadFile(workspace, reference));
+                var connection = "Data Source=" + Path.Combine(root, "source.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.CreateAsync(imported);
+                var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
+                Assert.Equal(source, Assert.Single(ModuleIntegrationImport.Instructions(reopened)).Instructions);
+                var snapshot = ModuleSnapshotWorkflow.Freeze(reopened, "1.2.3");
+                Assert.Equal(ModuleSnapshotWorkflow.Build(before).Bytes, ModuleSnapshotWorkflow.Build(snapshot).Bytes);
+                var guides = ModuleDocumentationWorkflow.Generate(snapshot);
+                Assert.Equal(5, guides.Count);
+                Assert.Contains("huey-OPENKNEEBOARD-VAICOM", guides["INTEGRATIONS.md"], StringComparison.Ordinal);
+                Assert.Contains("does not bundle an AutoHotkey/VAICOM PTT bridge", guides["INTEGRATIONS.md"], StringComparison.Ordinal);
+                Assert.Contains("earlier layout", guides["INTEGRATIONS.md"], StringComparison.Ordinal);
+                foreach (var line in source.Split('\n')) Assert.Contains("    " + line, guides["INTEGRATIONS.md"], StringComparison.Ordinal);
+                var portable = ModuleSnapshotWorkflow.Read(ModuleSnapshotWorkflow.Export(snapshot));
+                var target = "Data Source=" + Path.Combine(root, "empty.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(target).MigrateAsync();
+                var restored = new SqliteEditorWorkspaceRepository(target);
+                await ModuleSnapshotWorkflow.RestoreAsync(portable, restored);
+                var after = (await restored.GetAsync(workspace.Configuration.Module.Id))!;
+                var complete = ModuleCompleteReleaseWorkflow.Build(snapshot);
+                Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(ModuleSnapshotWorkflow.Freeze(after, "1.2.3")).Bytes);
+                var files = CompleteReleaseVerifier.Verify(complete);
+                Assert.Equal(guides["INTEGRATIONS.md"], Encoding.UTF8.GetString(files["Documentation/INTEGRATIONS.md"]));
+                Assert.Equal(snapshot, ModuleCompleteReleaseWorkflow.Verify(complete));
+                Assert.DoesNotContain(files.Keys, x => x.EndsWith(".ahk", StringComparison.Ordinal));
+                var removed = ModuleIntegrationImport.Remove(after, "huey-OPENKNEEBOARD-VAICOM");
+                Assert.DoesNotContain("PTT bridge", ModuleDocumentationWorkflow.Generate(ModuleSnapshotWorkflow.Freeze(removed, "1.2.3"))["INTEGRATIONS.md"], StringComparison.Ordinal);
+                Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(snapshot).Bytes);
+                var invalid = after with { Sources = new Dictionary<string, string>(after.Sources!) { ["config/integrations.json"] = "{}" } };
+                Assert.Throws<InvalidDataException>(() => ModuleSnapshotWorkflow.Freeze(invalid, "1.2.3"));
+            }
+            finally { Directory.Delete(root, true); }
+        }
+
         /// <summary>Duplicate module IDs and case-insensitive DCS identities cannot overwrite modules or shared revisions.</summary>
         /// <returns>Completion of insert-only storage checks.</returns>
         [Fact]
