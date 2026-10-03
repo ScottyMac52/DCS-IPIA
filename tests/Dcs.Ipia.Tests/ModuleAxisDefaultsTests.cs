@@ -85,7 +85,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(BindingDisposition.Removed, Assert.Single(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId)).Disposition);
         }
 
-        /// <summary>Invalid files, active axes and duplicate combinations cannot stage a baseline.</summary>
+        /// <summary>Clearing a chord removes its authored axis and preserves the other chord.</summary>
         [Fact]
         public void Clear_AssignedAxisRetainsRemovalForSelectedChord()
         {
