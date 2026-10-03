@@ -8,6 +8,8 @@ Choose **Pages** to author kneeboards. **Add missing device pages** supplies one
 
 For an overview, choose **Summary**, enter a safe output name, heading, subtitle and order, then add one to fourteen cards. Each card has a heading, description and palette accent. Cards render in listed order, in the existing two-column layout. Edit or remove summary pages as needed.
 
+Choose **Generate Summary** beside **Add missing device pages** to append a new overview of all current device pages, including pages without a device mapping. Each card shows the device page's title and its current page number. Existing pages and summaries remain unchanged; output names are chosen without collisions. More than fourteen device pages produce additional summary pages so every device page is included. Generated summaries can be edited, saved or discarded like any other page; generate another summary after changing the device pages to refresh the overview.
+
 Removing a device's final Module/UI Layer membership removes its combined pages, profile mappings and cached images. A page remains while the device still belongs to the other scope. Removing a page also clears its manifest entries and cached images. Remaining page orders are compacted without changing their stable output names. Save or discard these changes with the rest of the module.
 
 **Preview draft** renders the page from current form values and pending assignments without saving. **Stage page** validates and stages the page. Existing unedited manifest fields, callout/category labels and per-card metadata remain preserved.

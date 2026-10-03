@@ -132,6 +132,7 @@ namespace DcsIpia.Presentation
             LoadCommandHtmlButton.IsEnabled = _working is not null;
             StageAuthoredPageButton.IsEnabled = _working is not null;
             MissingDevicePagesButton.IsEnabled = _working is not null;
+            GenerateSummaryButton.IsEnabled = _working?.Pages.Any(x => x.Kind == KneeboardPageKind.Device) == true;
             RefreshIntegrationInstructions();
             _authoringRefreshing = false;
             AuthoredCommandSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
@@ -333,6 +334,7 @@ namespace DcsIpia.Presentation
             return updated;
         });
         private void MissingDevicePagesClicked(object sender, RoutedEventArgs e) => RunStructureEdit(ModuleKneeboardPageEditor.AddMissingDevicePages);
+        private void GenerateSummaryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(ModuleKneeboardPageEditor.GenerateSummary);
         private void RemoveAuthoredPageClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             ModuleKneeboardPageEditor.Remove(workspace, AuthoredPages.SelectedItem as KneeboardPage ??
                 throw new InvalidOperationException("Select a page.")));
