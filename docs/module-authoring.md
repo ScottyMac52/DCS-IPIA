@@ -44,12 +44,32 @@ With a clean saved module and a package version, choose **Export module document
 
 Mappings are parsed from the actual generated Lua, including aircraft and effective UI Layer profiles, exact native filenames, modifier activators/modes, added/changed/removed entries, custom labels and sparse axis filters. The separately captured shared UI revision is identified as a baseline. Authored controls with no active packaged diff are listed explicitly; this does not assert that the installed DCS game has no default binding. Captured source/image/SVG hashes, license/attribution texts and the rendering font license are retained.
 
-Optional integrations appear only when the snapshot explicitly contains `config/integrations.json`, with `schemaVersion: 1` and an `integrations` array of objects containing nonempty `name` and `instructions` strings. The guide preserves these instructions as captured text; it does not enable or package an integration. Import adapters/UI authoring for existing consumer integration metadata and legacy per-device document parity remain review gates. No VAICOM/OpenKneeboard/AutoHotkey configuration is invented for an aircraft.
+Optional integrations appear only when the snapshot explicitly contains `config/integrations.json`, with `schemaVersion: 1` and an `integrations` array of objects containing nonempty `name` and `instructions` strings. The guide preserves these instructions as captured text; it does not enable or package an integration. The Documentation tab now supports reviewed JSON and legacy Markdown imports; legacy per-device document parity and integration asset/configuration adapters remain review gates. No VAICOM/OpenKneeboard/AutoHotkey configuration is invented for an aircraft.
 
-Documentation remains separate from the deployable OvGME archive. The next Step 4 slice is the verified Complete release bundle. Automated checks cover source-free restore/reproduction, version/digest and mapping semantics, escaping, explicit integrations, existing-destination protection and the Windows export button/pending-edit guard. Consumer golden comparisons and manual in-game acceptance remain open under #83/#9/#111.
+Documentation remains separate from the deployable OvGME archive. Complete release distribution is available below. Automated checks cover source-free restore/reproduction, version/digest and mapping semantics, escaping, explicit integrations, existing-destination protection and the Windows export button/pending-edit guard. Consumer golden comparisons and manual in-game acceptance remain open under #83/#9/#111.
 
 ## Export a Complete module release
 
 Choose **Export Complete release…** with clean saved inputs and a package version. Select a parent folder; IPIA creates a new versioned Complete artifact folder containing the distribution ZIP and SHA256SUMS.txt. The ZIP contains separate `OVGME`, `Documentation` and `Snapshots` directories, version metadata, release notes and checksums for every included file. Extract it, verify checksums and install only the nested OvGME ZIP. The Complete distribution ZIP is not itself an OvGME mod.
 
 Verification independently reads paths and checksums, verifies the nested deployable ZIP, validates/restores the portable snapshot in memory, and regenerates the archive and guides for exact comparison. It rejects stale guides, version mismatches, corrupt/duplicate/unsafe entries, missing snapshots and unexpected local database files. Rebuilding a restored snapshot reproduces the Complete ZIP; existing output folders are protected.
+
+## Maintain integration instructions
+
+Open **Documentation → Load integration instructions…**. Choose one explicit JSON instruction file or an existing consumer Markdown guide such as `docs/OPENKNEEBOARD-VAICOM.md`. Review the destination module and full previous/proposed text, then **Stage import**. Groups with matching names (ignoring case) are updated; other groups remain. Original basenames, decoded UTF-8 source texts and source hashes are retained in portable snapshots. A selected Markdown guide is captured verbatim under its basename, including historical paths; those paths are not automatically rewritten or asserted to match this release. Check them against the generated installation and control mappings.
+
+Use **Save to database** to keep the draft, or **Discard draft** to undo it. **Remove selected instruction** removes the effective group; the original import evidence remains. Integration instructions share the module's Save/Discard transaction with commands, assignments, modifiers and pages. Saved groups reopen in SQLite and appear in `INTEGRATIONS.md` in both documentation and Complete exports. They do not change the nested deployable OvGME package or another module/shared default.
+
+JSON schema:
+
+```json
+{
+  "schemaVersion": 1,
+  "moduleDcsId": "P47-D-30",
+  "integrations": [
+    { "name": "Custom operator guidance", "instructions": "Describe this module's reviewed configuration here." }
+  ]
+}
+```
+
+`moduleDcsId` is optional on imported JSON; when supplied, it must match the destination exactly. Staged metadata always records the destination. Names must be unique ignoring case. Imports reject malformed/unsupported fields, wrong module identities, unsafe basenames and oversized text before staging; a changed module requires a fresh review. Up to 64 groups are supported, with printable names up to 200 characters and instructions up to 64 KiB. Instruction JSON is limited to 1 MiB of text and selected files to 4 MiB. Only UTF-8 JSON/Markdown instructions are loaded. Integration executables, scripts, credentials and configuration assets are not imported or deployed by this action. Consumer integration-asset adapters and full parity remain pending.

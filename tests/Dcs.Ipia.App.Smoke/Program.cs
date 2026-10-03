@@ -267,6 +267,7 @@ namespace Dcs.Ipia.App.Smoke
             {
                 Directory.CreateDirectory(htmlRoot);
                 var htmlPath = Path.Combine(htmlRoot, "Stick.html");
+                var integrationPath = Path.Combine(htmlRoot, "instructions.json");
                 File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"a2001cdnil","name":"Imported pitch","categoryPath":["Flight"],"type":"axis"}]}""");
                 File.WriteAllText(htmlPath, "<h1>Stick</h1><table><tr><td>JOY_BTN1</td><td>Imported button</td><td>Systems</td><td>d3011pnilu3011cd35vd1vpnilvu0</td></tr></table>");
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
@@ -283,7 +284,7 @@ namespace Dcs.Ipia.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
-                    commandFilePicker: html => html ? [htmlPath] : [jsonPath]);
+                    commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath);
                 window.Show();
                 window.UpdateLayout();
                 ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
@@ -357,10 +358,60 @@ namespace Dcs.Ipia.App.Smoke
                 ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
                     throw new InvalidOperationException("Discard did not restore the saved catalog after import.");
+                VerifyIntegrationInstructions(window, repository, configuration.Module.Id, integrationPath);
                 VerifyModuleSnapshotButtons(window, repository, configuration.Module.Id);
                 window.Close();
             }
             finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }
+        }
+        private static void VerifyIntegrationInstructions(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
+        {
+            var load = (Button)window.FindName("LoadIntegrationInstructionsButton")!;
+            var groups = (ListBox)window.FindName("IntegrationInstructions")!;
+            var text = (TextBox)window.FindName("IntegrationInstructionText")!;
+            File.WriteAllText(path, """{"schemaVersion":1,"moduleDcsId":"AUTHORING","integrations":[{"name":"OpenKneeboard","instructions":"Use this module's generated kneeboard folder."}]}""");
+            void Import(bool stage)
+            {
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    var review = System.Windows.Application.Current.Windows.OfType<IntegrationImportReviewWindow>().Single();
+                    if (!((TextBlock)review.FindName("IntegrationImportHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
+                        !((TextBox)review.FindName("IntegrationImportChanges")!).Text.Contains("Proposed:", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Instruction review did not show the module and complete proposal.");
+                    if (stage) ((Button)review.FindName("StageIntegrationImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    else review.DialogResult = false;
+                }));
+                load.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            Import(false);
+            if (groups.Items.Count != 0) throw new InvalidOperationException("Cancel changed module instructions.");
+            Import(true);
+            if (groups.Items.Count != 1 || !text.Text.Contains("generated kneeboard folder", StringComparison.Ordinal))
+                throw new InvalidOperationException("Integration instructions did not stage/display.");
+            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (groups.Items.Count != 0) throw new InvalidOperationException("Discard retained unsaved integration instructions.");
+            Import(true);
+            ClickWithDispatcherContext((Button)window.FindName("SaveIntegrationInstructionsButton")!);
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!repository.GetAsync(moduleId).GetAwaiter().GetResult()!.Sources!.ContainsKey("config/integrations.json"))
+            {
+                if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Integration instructions did not save to SQLite.");
+                window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            }
+            // Drain Save's continuation before removing the instruction from the next draft.
+            window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            ((Button)window.FindName("RemoveIntegrationInstructionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (groups.Items.Count != 0) throw new InvalidOperationException("Selected instruction did not remove.");
+            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (groups.Items.Count != 1) throw new InvalidOperationException("Discard did not restore saved instructions.");
+            var reopened = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(repository.GetAsync(moduleId).GetAwaiter().GetResult()!), repository: repository);
+            reopened.Show();
+            if (((ListBox)reopened.FindName("IntegrationInstructions")!).Items.Count != 1)
+                throw new InvalidOperationException("Saved integration instructions did not reopen.");
+            reopened.Close();
+            File.WriteAllText(path, "{}");
+            load.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (groups.Items.Count != 1 || !((TextBlock)window.FindName("IntegrationStatus")!).Text.StartsWith("Integration import failed:", StringComparison.Ordinal))
+                throw new InvalidOperationException("Malformed instruction import changed the draft or hid the error.");
         }
         private static void VerifyModuleSnapshotButtons(ModuleWorkspaceWindow authoring, SqliteEditorWorkspaceRepository source, Guid moduleId)
         {

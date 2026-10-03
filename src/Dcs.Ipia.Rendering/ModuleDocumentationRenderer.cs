@@ -31,7 +31,7 @@ namespace Dcs.Ipia.Rendering
                 ["THIRD-PARTY-ASSETS.md"] = Provenance(workspace)
             };
             if (workspace.Sources?.TryGetValue("config/integrations.json", out var integrations) == true)
-                documents["INTEGRATIONS.md"] = Integrations(integrations);
+                documents["INTEGRATIONS.md"] = Integrations(integrations, module.DcsId);
             documents["README.md"] = "# Module documentation\n\n" + identity +
                 "Generated from the same frozen inputs as the OvGME package. No live repository or database is consulted.\n\n" +
                 string.Join('\n', documents.Keys.Select(x => $"- [{x}]({x})")) +
@@ -128,18 +128,12 @@ namespace Dcs.Ipia.Rendering
             text.Append("\n## IPIA rendering font license\n\n").Append(Quoted(reader.ReadToEnd()));
             return text.ToString();
         }
-        private static string Integrations(string source)
+        private static string Integrations(string source, string moduleDcsId)
         {
-            using var json = JsonDocument.Parse(source);
-            if (json.RootElement.GetProperty("schemaVersion").GetInt32() != 1)
-                throw new InvalidDataException("Unsupported integration metadata schema.");
-            var entries = json.RootElement.GetProperty("integrations").EnumerateArray()
-                .Select(x => (Name: x.GetProperty("name").GetString(), Instructions: x.GetProperty("instructions").GetString())).ToArray();
-            if (entries.Any(x => string.IsNullOrWhiteSpace(x.Name) || string.IsNullOrWhiteSpace(x.Instructions)))
-                throw new InvalidDataException("Each declared integration requires a name and instructions.");
-            return "# Explicit module integrations\n\nThese instructions are captured module metadata. They do not install scripts or enable integrations.\n\n" +
-                string.Join('\n', entries.OrderBy(x => x.Name, StringComparer.Ordinal)
-                    .Select(x => "## " + Escape(x.Name!) + "\n\n" + Quoted(x.Instructions!)));
+            var entries = ModuleIntegrationMetadata.Parse(source, moduleDcsId);
+            return "# Explicit module integrations\n\nThese instructions are captured module metadata. They do not install scripts or enable integrations. " +
+                "Imported consumer guides may describe an earlier layout; check their paths and commands against this release's generated installation and control mappings.\n\n" +
+                string.Join('\n', entries.Select(x => "## " + Escape(x.Name) + "\n\n" + Quoted(x.Instructions)));
         }
         private static string Table(string[] headers, IEnumerable<string[]> values)
         {

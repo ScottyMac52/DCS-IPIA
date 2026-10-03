@@ -32,6 +32,7 @@ namespace DcsIpia.Presentation
         private readonly Func<bool, string?>? _outputPathPicker;
         private readonly Func<string?>? _documentationFolderPicker;
         private readonly Func<string?>? _completeReleaseFolderPicker;
+        private readonly Func<string?>? _integrationFilePicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _discoveryBusy;
         private bool _structureDirty;
@@ -55,10 +56,12 @@ namespace DcsIpia.Presentation
         /// <param name="outputPathPicker">Optional snapshot file or package folder selection adapter.</param>
         /// <param name="documentationFolderPicker">Optional parent folder selection for documentation export.</param>
         /// <param name="completeReleaseFolderPicker">Optional parent folder selection for Complete release export.</param>
+        /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
-                                     Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null)
+                                     Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
+                                     Func<string?>? integrationFilePicker = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -68,6 +71,7 @@ namespace DcsIpia.Presentation
             _outputPathPicker = outputPathPicker;
             _documentationFolderPicker = documentationFolderPicker;
             _completeReleaseFolderPicker = completeReleaseFolderPicker;
+            _integrationFilePicker = integrationFilePicker;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -125,12 +129,66 @@ namespace DcsIpia.Presentation
             LoadCommandHtmlButton.IsEnabled = _working is not null;
             StageAuthoredPageButton.IsEnabled = _working is not null;
             MissingDevicePagesButton.IsEnabled = _working is not null;
+            RefreshIntegrationInstructions();
             _authoringRefreshing = false;
             AuthoredCommandSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
             if (AuthoredPages.SelectedItem is KneeboardPage)
                 AuthoredPageSelected(this, new SelectionChangedEventArgs(ComboBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
             else
                 RemoveAuthoredPageButton.IsEnabled = false;
+        }
+        private void RefreshIntegrationInstructions()
+        {
+            if (IntegrationInstructions is null) return;
+            var selected = (IntegrationInstructions.SelectedItem as ModuleIntegrationInstruction)?.Name;
+            LoadIntegrationInstructionsButton.IsEnabled = _working is not null;
+            SaveIntegrationInstructionsButton.IsEnabled = _repository is not null;
+            try
+            {
+                IReadOnlyList<ModuleIntegrationInstruction> entries = _working is null ? [] : ModuleIntegrationImport.Instructions(_working);
+                IntegrationInstructions.ItemsSource = entries;
+                IntegrationInstructions.SelectedItem = entries.FirstOrDefault(x => x.Name == selected) ?? entries.FirstOrDefault();
+                IntegrationStatus.Text = entries.Count == 0 ? "No integration instructions are declared for this module." : "Select a group to inspect its captured instructions.";
+            }
+            catch (Exception ex)
+            {
+                IntegrationInstructions.ItemsSource = Array.Empty<ModuleIntegrationInstruction>();
+                IntegrationStatus.Text = "Integration metadata could not be read: " + ex.Message;
+            }
+            IntegrationInstructionSelected(this, new SelectionChangedEventArgs(ListBox.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
+        }
+        private void IntegrationInstructionSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (IntegrationInstructionText is null || RemoveIntegrationInstructionButton is null) return;
+            var selected = IntegrationInstructions.SelectedItem as ModuleIntegrationInstruction;
+            IntegrationInstructionText.Text = selected?.Instructions ?? "";
+            RemoveIntegrationInstructionButton.IsEnabled = selected is not null;
+        }
+        private void LoadIntegrationInstructionsClicked(object sender, RoutedEventArgs e)
+        {
+            if (_working is null) return;
+            var path = _integrationFilePicker is null ? ChooseIntegrationFile() : _integrationFilePicker();
+            if (path is null) return;
+            try
+            {
+                var workspace = EditSnapshot();
+                var review = ModuleIntegrationImport.ReadFile(workspace, path);
+                var dialog = new IntegrationImportReviewWindow(workspace, review) { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+                RunStructureEdit(current => ModuleIntegrationImport.Apply(current, review));
+            }
+            catch (Exception ex) { SetManagementMessage("Integration import failed: " + ex.Message); }
+        }
+        private string? ChooseIntegrationFile()
+        {
+            var picker = new OpenFileDialog { Title = "Select this module's integration instructions",
+                Filter = "Integration instructions|*.json;*.md|JSON instructions|*.json|Consumer Markdown guide|*.md" };
+            return picker.ShowDialog(this) == true ? picker.FileName : null;
+        }
+        private void RemoveIntegrationInstructionClicked(object sender, RoutedEventArgs e)
+        {
+            if (IntegrationInstructions.SelectedItem is ModuleIntegrationInstruction entry)
+                RunStructureEdit(workspace => ModuleIntegrationImport.Remove(workspace, entry.Name));
         }
         private void LoadCommandJsonClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(false);
         private void LoadCommandHtmlClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(true);
@@ -383,6 +441,7 @@ namespace DcsIpia.Presentation
             ModifiersMessage.Text = message;
             CommandAuthoringStatus.Text = message;
             PageAuthoringStatus.Text = message;
+            IntegrationStatus.Text = message;
         }
         private void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit)
         {
@@ -1003,6 +1062,7 @@ namespace DcsIpia.Presentation
                                             Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal) };
                 updated = PinnedUiLayerProfileRecovery.Restore(updated);
                 SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
+                ModuleIntegrationImport.Instructions(updated);
                 await _repository.SaveAsync(updated);
                 _saved = updated;
                 _working = updated;
@@ -1020,7 +1080,7 @@ namespace DcsIpia.Presentation
                 RefreshAuthoring();
                 RefreshDeviceChoices();
                 KneeboardList.ItemsSource = updated.Pages.Select(x => $"{x.Order:00}  ·  {x.Title}").ToArray();
-                SetManagementMessage("Commands, pages, devices, modifiers, assignments, and labels saved to database.");
+                SetManagementMessage("Commands, pages, devices, modifiers, assignments, labels, and integration instructions saved to database.");
                 UpdateBuildAvailability();
             }
             catch (Exception ex)

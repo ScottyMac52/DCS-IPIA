@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceRepository": "ScottyMac52/DCS-Common",
   "sourceCommit": "f1c968e606414225db837e75426c0c930cc815c9",
-  "ipiaBaseline": "00f6efa3012eede8fdbdfd67bb20d63a307b13e2",
+  "ipiaBaseline": "e49b0aeb064bce9e39368d0134b4ddb312e41e38",
   "bundledSourceCommit": "0e9ed14a9189b712477f2c647a348da0d8af321b",
   "files": [
     {
@@ -1562,10 +1562,14 @@
         "tests/Dcs.Ipia.Tests/ModuleDocumentationRendererTests.cs",
         "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
         "tests/Dcs.Ipia.App.Smoke/Program.cs",
-        "docs/module-authoring.md"
+        "docs/module-authoring.md",
+        "src/Dcs.Ipia.Application/ModuleIntegrationMetadata.cs",
+        "src/Dcs.Ipia.Dcs/ModuleIntegrationImport.cs",
+        "tests/Dcs.Ipia.Tests/ModuleIntegrationImportTests.cs",
+        "tests/Dcs.Ipia.Tests/Fixtures/Integrations/README.md"
       ],
-      "current": "Snapshot-derived README, installation/removal, exact generated Lua mappings/history/default baseline/unmapped controls, sparse axis tuning, labels and captured provenance/license guides export atomically from the saved module UI. Optional integration instructions require explicit frozen metadata. Legacy consumer/per-device document and integration-adapter parity remain pending.",
-      "exitCriteria": "Compare frozen consumer guides against legacy golden cases; review per-device output differences and map existing consumer-specific integration metadata into the explicit schema. Complete bundle distribution and manual DCS/consumer acceptance remain separate gates."
+      "current": "Snapshot-derived guides and Complete export are implemented. The Documentation editor reviews/stages explicit JSON or legacy Markdown integration instructions, retains hashed original sources, supports guarded removal and unified Save/Discard, and freezes the effective guide into portable snapshots. A pinned Huey consumer guide characterizes exact text preservation through SQLite, clean restore and deterministic Complete export, with unchanged deployable OvGME bytes. Full legacy per-device/document and integration-asset parity remain pending.",
+      "exitCriteria": "Compare every generated guide with pinned consumer golden cases and record intentional differences. Legacy instruction text is preserved as captured guidance, not asserted to match current generated paths. Implement approved integration-asset/configuration adapters separately; preserve manual consumer/DCS acceptance gates."
     },
     {
       "id": "module-packaging",
@@ -1605,7 +1609,7 @@
         "scripts/Test-ApplicationRelease.ps1",
         "docs/application-release.md"
       ],
-      "current": "Deterministic snapshot-only Complete export contains separate OvGME, Documentation and portable Snapshot payloads with exact internal/external checksums. Independent verification restores frozen inputs and compares generated output/guides. Application release candidates and publication run full quality, Windows UI and exact portable/installer/archive checks. Approved integration assets and legacy consumer golden release parity remain pending.",
+      "current": "Deterministic snapshot-only Complete export contains separate OvGME, Documentation and portable Snapshot payloads with exact internal/external checksums. Independent verification restores frozen inputs and compares generated output/guides. Application release candidates and publication run full quality, Windows UI and exact portable/installer/archive checks. Approved integration assets and legacy consumer golden release parity remain pending. Reviewed instruction imports survive source-free Complete rebuilds; executable/configuration integration assets remain pending.",
       "exitCriteria": "Compare pinned consumer Complete release layouts and document intentional differences; implement reviewed integration-asset adapters without inventing defaults. Preserve histories and prove consumer-specific rebuild/rollback before switching workflows."
     },
     {
