@@ -94,6 +94,8 @@ namespace Dcs.Ipia.Tests
         public void Clear_AssignedAxisRetainsRemovalForSelectedChord()
         {
             var workspace = Workspace();
+            workspace = workspace with { Configuration = new(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                [new("SHIFT", "Keyboard", "LShift", ModifierMode.Hold)], [], "test") };
             var command = new DraftCommand("a2001cdnil", "Pitch", true, AssignmentLayer.Module);
             var slot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             workspace = workspace with { Assignments = [new(slot, command), new(slot with { ModifierChord = "SHIFT" }, command)] };
