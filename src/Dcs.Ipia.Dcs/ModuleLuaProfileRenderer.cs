@@ -12,8 +12,9 @@ namespace Dcs.Ipia.Dcs
         /// <summary>Builds one profile without reading mutable source files or losing unmapped bindings.</summary>
         /// <param name="workspace">Frozen saved module workspace.</param>
         /// <param name="profileId">Stored device profile identity.</param>
+        /// <param name="defaultsLayer">Scope owning the captured default-axis evidence.</param>
         /// <returns>Canonical Lua text ending in one LF.</returns>
-        public static string Render(EditorWorkspaceSnapshot workspace, Guid profileId)
+        public static string Render(EditorWorkspaceSnapshot workspace, Guid profileId, AssignmentLayer defaultsLayer = AssignmentLayer.Module)
         {
             ArgumentNullException.ThrowIfNull(workspace);
             var config = workspace.Configuration;
@@ -57,12 +58,18 @@ namespace Dcs.Ipia.Dcs
                 var key = Slot(binding.Section, binding.InputKey, string.Join("+", binding.Reformers));
                 if (!Mapped(diagram, binding.Section, binding.InputKey))
                 {
-                    result.Add(binding);
+                    result.Add(binding.Section == BindingSection.Axis ? Removed(binding) : binding);
                     continue;
                 }
                 handled.Add(key);
                 if (!saved.TryGetValue(key, out var current))
+                {
+                    if (binding.Section == BindingSection.Axis)
+                        result.Add(Removed(binding));
                     continue;
+                }
+                if (binding.Section == BindingSection.Axis && current.Command.Id != binding.CommandId)
+                    result.Add(Removed(binding));
                 if (current.Command.Id == binding.CommandId && SameFilter(current.Filter, binding.Filter))
                     result.Add(binding);
                 else
@@ -71,10 +78,12 @@ namespace Dcs.Ipia.Dcs
             foreach (var (key, assignment) in saved)
                 if (!handled.Contains(key))
                     result.Add(ToBinding(profileId, assignment));
-            return Write(result);
+            return Write(ModuleAxisDefaults.Apply(workspace, profileId, defaultsLayer, result));
         }
         #endregion END Public
         #region BEGIN private helpers
+        internal static DcsBinding Removed(DcsBinding binding) => new(binding.ProfileId, binding.Section,
+            binding.CommandId, binding.CommandName, BindingDisposition.Removed, binding.InputKey, binding.Reformers, binding.Filter);
         private static bool Mapped(UiLayerDiagram diagram, BindingSection section, string key) => diagram.Controls.Any(
             x => x.IsAxis == (section == BindingSection.Axis) && DcsInputKey.SamePhysicalInput(x.InputKey, key));
         private static string Slot(BindingSection section, string key, string chord) => section + "\u001f" +
@@ -192,4 +201,3 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
-

@@ -84,15 +84,21 @@ namespace Dcs.Ipia.Dcs
                     continue;
                 handled.Add(key);
                 if (saved.TryGetValue(key, out var edit))
+                {
+                    if (binding.Section == BindingSection.Axis && edit.Command.Id != binding.CommandId)
+                        result.Add(ModuleLuaProfileRenderer.Removed(binding));
                     result.Add(edit.Command.Id == binding.CommandId &&
                                SameFilter(edit.Filter, binding.Filter) ? binding : FromAssignment(profileId, edit));
+                }
+                else if (binding.Section == BindingSection.Axis)
+                    result.Add(ModuleLuaProfileRenderer.Removed(binding));
                 else if (!baseline.Contains(key))
                     result.Add(binding);
             }
             foreach (var (key, edit) in saved)
                 if (!handled.Contains(key))
                     result.Add(FromAssignment(profileId, edit));
-            return ModuleLuaProfileRenderer.Write(result);
+            return ModuleLuaProfileRenderer.Write(ModuleAxisDefaults.Apply(workspace, profileId, AssignmentLayer.UiLayer, result));
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -111,7 +117,7 @@ namespace Dcs.Ipia.Dcs
             var assignments = workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
                 .Select(x => x with { Slot = x.Slot with { Layer = AssignmentLayer.Module },
                                      Command = x.Command with { Layer = AssignmentLayer.Module } }).ToArray();
-            return ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = assignments }, profileId);
+            return ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = assignments }, profileId, AssignmentLayer.UiLayer);
         }
         internal static HashSet<string> RemovedModifiers(IReadOnlyDictionary<string, string> sources)
         {
@@ -146,4 +152,3 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
-

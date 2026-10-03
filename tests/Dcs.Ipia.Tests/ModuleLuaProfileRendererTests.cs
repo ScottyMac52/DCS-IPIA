@@ -32,11 +32,12 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(rendered, ModuleLuaProfileRenderer.Render(workspace, ProfileId));
             Assert.EndsWith("return diff\n", rendered);
             var parsed = DcsLuaParser.ParseProfile(rendered, ProfileId);
-            Assert.Equal(4, parsed.Count);
+            Assert.Equal(5, parsed.Count);
             Assert.Contains(parsed, x => x.CommandId == "New" && x.CommandName == "New \"name\"" &&
                                          x.Disposition == BindingDisposition.Added && x.InputKey == "JOY_BTN1");
             Assert.Contains(parsed, x => x.CommandId == "Other" && x.Disposition == BindingDisposition.Changed);
             Assert.Contains(parsed, x => x.CommandId == "Gone" && x.Disposition == BindingDisposition.Removed);
+            Assert.Contains(parsed, x => x.CommandId == "AxisOld" && x.Disposition == BindingDisposition.Removed && x.InputKey == "JOY_X");
             var axis = Assert.Single(parsed, x => x.CommandId == "AxisNew");
             Assert.Equal(filter.Deadzone, axis.Filter?.Deadzone);
             Assert.Equal(filter.Curvature, axis.Filter?.Curvature);

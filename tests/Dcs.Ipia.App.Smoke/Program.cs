@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
 using DcsIpia.Presentation;
@@ -284,7 +285,8 @@ namespace Dcs.Ipia.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
-                    commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath);
+                    commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
+                    axisDefaultsFilePicker: () => Path.Combine(htmlRoot, "axes.diff.lua"));
                 window.Show();
                 window.UpdateLayout();
                 ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
@@ -359,10 +361,55 @@ namespace Dcs.Ipia.App.Smoke
                 if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
                     throw new InvalidOperationException("Discard did not restore the saved catalog after import.");
                 VerifyIntegrationInstructions(window, repository, configuration.Module.Id, integrationPath);
+                VerifyAxisDefaults(window, repository, configuration.Module.Id, Path.Combine(htmlRoot, "axes.diff.lua"));
                 VerifyModuleSnapshotButtons(window, repository, configuration.Module.Id);
                 window.Close();
             }
             finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }
+        }
+        private static void VerifyAxisDefaults(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
+        {
+            const string source = "local diff = { [\"axisDiffs\"] = { [\"a2002cdnil\"] = { [\"name\"] = \"Roll\", [\"removed\"] = { [1] = { [\"key\"] = \"JOY_X\" } } } } } return diff";
+            File.WriteAllText(path, source);
+            void Import(bool stage)
+            {
+                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
+                window.Dispatcher.BeginInvoke(new Action(() => {
+                    var review = System.Windows.Application.Current.Windows.OfType<AxisDefaultsReviewWindow>().Single();
+                    if (!((TextBlock)review.FindName("AxisDefaultsHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
+                        !((TextBox)review.FindName("AxisDefaultsChanges")!).Text.Contains("JOY_X", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Axis default review did not show its destination and removals.");
+                    if (stage) ((Button)review.FindName("StageAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    else review.DialogResult = false;
+                }));
+                ((Button)window.FindName("ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            Import(false);
+            if (((TextBlock)window.FindName("PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
+                throw new InvalidOperationException("Cancelled axis import changed the draft.");
+            Import(true);
+            if (!((TextBlock)window.FindName("PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
+                throw new InvalidOperationException("Axis import did not stage.");
+            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Import(true);
+            ClickWithDispatcherContext((Button)window.FindName("SaveIntegrationInstructionsButton")!);
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!repository.GetAsync(moduleId).GetAwaiter().GetResult()!.Sources!.Values.Contains(source, StringComparer.Ordinal))
+            {
+                if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Axis defaults did not save to SQLite.");
+                window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            }
+            window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            var reopened = repository.GetAsync(moduleId).GetAwaiter().GetResult()!;
+            var profile = reopened.Configuration.Profiles[0];
+            if (!DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(reopened, profile.Id), profile.Id)
+                .Any(x => x.InputKey == "JOY_X" && x.Disposition == BindingDisposition.Removed))
+                throw new InvalidOperationException("Saved axis defaults did not survive reopen/export.");
+            File.WriteAllText(path, "local diff = {} return diff");
+            ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
+            ((Button)window.FindName("ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (!((TextBlock)window.FindName("DevicesMessage")!).Text.StartsWith("Axis default import failed:", StringComparison.Ordinal))
+                throw new InvalidOperationException("Malformed axis import hid its error.");
         }
         private static void VerifyIntegrationInstructions(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
         {

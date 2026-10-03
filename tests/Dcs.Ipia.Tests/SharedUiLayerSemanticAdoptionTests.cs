@@ -103,8 +103,13 @@ namespace Dcs.Ipia.Tests
             var id = rows[0].ProfileId;
             var module = new DcsModule(Guid.NewGuid(), "Test", "Test");
             var config = new ModuleConfiguration(module, [new(id, "stick", null, "stick", "Stick.diff.lua")], [], rows, "test");
+            var axes = rows.Where(x => x.Section == BindingSection.Axis && x.Disposition != BindingDisposition.Removed).ToArray();
+            var assignments = axes.Select(x => new DraftAssignment(new(module.Id, id, AssignmentLayer.Module, BindingSection.Axis, x.InputKey),
+                new(x.CommandId, x.CommandName, true, AssignmentLayer.Module)) { Filter = x.Filter }).ToArray();
             var snapshot = new EditorWorkspaceSnapshot(config, [], [],
-                [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = id }], [], [], [], new Dictionary<string, string>());
+                [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = id,
+                    Controls = axes.Select(x => new HardwareGraphicControl(x.InputKey, x.InputKey, x.InputKey, 0, 0, 10, 10, true)).ToArray() }],
+                [], [], assignments, new Dictionary<string, string>());
             return ModuleLuaProfileRenderer.Render(snapshot, id);
         }
         private static string Catalog(string name) => JsonSerializer.Serialize(new { schema = 1, functions = new[] {

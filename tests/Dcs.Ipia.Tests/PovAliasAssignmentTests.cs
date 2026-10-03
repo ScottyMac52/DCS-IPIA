@@ -29,7 +29,9 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(workspace.Configuration.Bindings.Count, parsed.Count);
             foreach (var original in workspace.Configuration.Bindings)
                 Assert.Contains(parsed, x => x.CommandId == original.CommandId && x.InputKey == original.InputKey &&
-                    x.Disposition == original.Disposition && x.Reformers.SequenceEqual(original.Reformers));
+                    x.Disposition == (original.Section == BindingSection.Axis ? BindingDisposition.Removed : original.Disposition) &&
+                    x.Reformers.SequenceEqual(original.Reformers));
+            Assert.DoesNotContain(parsed, x => x.Section == BindingSection.Axis && x.Disposition != BindingDisposition.Removed);
             Assert.False(draft.HasChanges);
         }
 
@@ -47,7 +49,8 @@ namespace Dcs.Ipia.Tests
             var profile = slot.ProfileId;
             var cleared = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace with { Assignments = draft.Snapshot }, profile), profile);
             Assert.DoesNotContain(cleared, x => x.Disposition != BindingDisposition.Removed && DcsInputKey.SamePhysicalInput(x.InputKey, key));
-            Assert.Equal(workspace.Configuration.Bindings.Count(x => x.Disposition == BindingDisposition.Removed), cleared.Count(x => x.Disposition == BindingDisposition.Removed));
+            Assert.Equal(workspace.Configuration.Bindings.Count(x => x.Disposition == BindingDisposition.Removed || x.Section == BindingSection.Axis),
+                cleared.Count(x => x.Disposition == BindingDisposition.Removed));
             Assert.Equal(DraftOutcome.Applied, draft.Undo().Outcome);
             Assert.Equal(original, draft.Snapshot);
             var replacement = new DraftCommand("NEW", "Replacement", false, AssignmentLayer.Module);

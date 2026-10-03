@@ -300,7 +300,9 @@ namespace Dcs.Ipia.Dcs
         {
             workspace = Prepare(workspace);
             var cleared = workspace.Assignments.Where(x => x.Slot.ProfileId == device.ProfileId).Select(x => x.Slot.Key).ToHashSet(StringComparer.Ordinal);
-            var bindings = workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId || x.Disposition == BindingDisposition.Removed);
+            var bindings = workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId ||
+                x.Disposition == BindingDisposition.Removed || x.Section == BindingSection.Axis)
+                .Select(x => x.ProfileId == device.ProfileId && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x);
             workspace = workspace with {
                 Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, bindings),
                 Assignments = workspace.Assignments.Where(x => x.Slot.ProfileId != device.ProfileId).ToArray(),
@@ -308,7 +310,8 @@ namespace Dcs.Ipia.Dcs
             };
             if (workspace.Sources!.TryGetValue(UiSource(device.ProfileId), out var source))
                 workspace = SetSource(workspace, UiSource(device.ProfileId), ModuleLuaProfileRenderer.Write(
-                    DcsLuaParser.ParseProfile(source, device.ProfileId).Where(x => x.Disposition == BindingDisposition.Removed).ToArray()));
+                    DcsLuaParser.ParseProfile(source, device.ProfileId).Where(x => x.Disposition == BindingDisposition.Removed || x.Section == BindingSection.Axis)
+                        .Select(x => x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x).ToArray()));
             return workspace;
         }
         /// <summary>Clears one device's selected scope and modifier chord, including unmapped keys and axes.</summary>
@@ -331,10 +334,12 @@ namespace Dcs.Ipia.Dcs
             };
             if (device.Layer == AssignmentLayer.Module)
                 workspace = workspace with { Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers,
-                    workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId || Keep(x))) };
+                    workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId || Keep(x) || x.Section == BindingSection.Axis)
+                        .Select(x => x.ProfileId == device.ProfileId && !Keep(x) && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x)) };
             else if (workspace.Sources!.TryGetValue(UiSource(device.ProfileId), out var source))
                 workspace = SetSource(workspace, UiSource(device.ProfileId), ModuleLuaProfileRenderer.Write(
-                    DcsLuaParser.ParseProfile(source, device.ProfileId).Where(Keep).ToArray()));
+                    DcsLuaParser.ParseProfile(source, device.ProfileId).Where(x => Keep(x) || x.Section == BindingSection.Axis)
+                        .Select(x => !Keep(x) && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x).ToArray()));
             return workspace;
         }
         /// <summary>Gets UI Layer modifier names for assignment validation.</summary>

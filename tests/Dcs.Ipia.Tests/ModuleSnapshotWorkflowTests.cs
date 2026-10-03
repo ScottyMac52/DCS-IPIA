@@ -25,6 +25,10 @@ namespace Dcs.Ipia.Tests
             try
             {
                 var original = await WorkspaceAsync();
+                var defaultProfile = original.Configuration.Profiles.Single(x => x.DeviceId == "tm-mfd");
+                const string axisDefaults = "local diff = { [\"axisDiffs\"] = { [\"a2002cdnil\"] = { [\"name\"] = \"Roll\", [\"removed\"] = { [1] = { [\"key\"] = \"JOY_X\" }, [2] = { [\"key\"] = \"JOY_Y\" }, [3] = { [\"key\"] = \"JOY_Z\" }, [4] = { [\"key\"] = \"JOY_RZ\" } } } } } return diff";
+                original = ModuleAxisDefaults.Import(original, defaultProfile.Id, AssignmentLayer.Module, axisDefaults);
+                original = ModuleAxisDefaults.Import(original, defaultProfile.Id, AssignmentLayer.UiLayer, axisDefaults);
                 var connection = "Data Source=" + Path.Combine(root, "original.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
                 var repository = new SqliteEditorWorkspaceRepository(connection);
@@ -101,6 +105,14 @@ namespace Dcs.Ipia.Tests
                 var second = ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(reopened, "2.3.4"));
                 Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(ModuleSnapshotWorkflow.Freeze(reopened, "2.3.4")).Bytes);
                 Assert.Equal(first.Bytes, second.Bytes);
+                Assert.Contains(axisDefaults, reopened.Sources!.Values);
+                var payload = SnapshotLuaPayloadRenderer.Generate(reopened);
+                foreach (var scope in new[] { "ROUNDTRIP", "UiLayer" })
+                {
+                    var removals = DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(payload["Config/Input/" + scope + "/joystick/" + defaultProfile.SourceName]), defaultProfile.Id);
+                    Assert.Equal(4, removals.Count(x => x.Section == BindingSection.Axis && x.Disposition == BindingDisposition.Removed));
+                    Assert.DoesNotContain(removals, x => x.Section == BindingSection.Axis && x.Disposition != BindingDisposition.Removed);
+                }
                 Assert.Equal(first.ChecksumLine, second.ChecksumLine);
                 var changed = reopened with { Labels = reopened.Labels.ToDictionary(x => x.Key, _ => "Changed label") };
                 Assert.Contains("Changed label", ModuleDocumentationWorkflow.Generate(ModuleSnapshotWorkflow.Freeze(changed, "2.3.4"))["CONTROL-MAPPINGS.md"], StringComparison.Ordinal);
