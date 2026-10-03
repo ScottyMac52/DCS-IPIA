@@ -1388,7 +1388,8 @@
       ],
       "targetEvidence": [
         "src/Dcs.Ipia.Dcs/BundledSharedCatalog.cs",
-        "tests/Dcs.Ipia.Tests/BundledSharedCatalogTests.cs"
+        "tests/Dcs.Ipia.Tests/BundledSharedCatalogTests.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "All current shared assets are distributed and Git-identity checked. Asset bytes alone do not establish exporter or consumer rendering parity.",
       "exitCriteria": "Preserve stable device/control IDs, native filenames, binary bytes, licenses and provenance; verify every new bundle revision."
@@ -1417,7 +1418,8 @@
       "targetEvidence": [
         "src/Dcs.Ipia.Application/SharedUiLayerRevisionReference.cs",
         "src/Dcs.Ipia.Dcs/SnapshotLuaPayloadRenderer.cs",
-        "tests/Dcs.Ipia.Tests/ModuleUiLayerBindingImporterTests.cs"
+        "tests/Dcs.Ipia.Tests/ModuleUiLayerBindingImporterTests.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "Versioned defaults, isolated overrides, reviewed adoption and native output are implemented; full consumer utilization parity is unmeasured.",
       "exitCriteria": "Compare effective commands, removed bindings, keyboard ownership, modifier names/modes/chords and per-instance isolation against pinned consumers."
@@ -1425,7 +1427,7 @@
     {
       "id": "asset-authoring",
       "title": "Draw.io creation, decoding and SVG export",
-      "status": "migration-pending",
+      "status": "preserve-reference",
       "owner": "Rendering / asset authoring tools",
       "sourcePaths": [
         "docs/drawio-hardware-workflow.md",
@@ -1439,10 +1441,11 @@
         "scripts/asset-authoring/hardware-export.mjs",
         "scripts/asset-authoring/export-hardware.mjs",
         "tests/asset-authoring/exporter.test.mjs",
-        "docs/migration/drawio-export-parity.md"
+        "docs/migration/drawio-export-parity.md",
+        "docs/migration/application-completion.md"
       ],
-      "current": "Draw.io decoding and deterministic SVG export are internalized in IPIA-owned Node tooling. All 12 bundled outputs match exactly from native/compressed sources; independent exporter module 80/80 gates and Linux/Windows tests are enforced. Initial source creation and a hardware-authoring UI remain pending; no whole-consumer parity claim.",
-      "exitCriteria": "Keep exact all-12 SVG parity, stable IDs, anchors/connectors, masks, presentation fields, complete embedded images and optional watermarks. Migrate initial source creation separately; visually review authored changes before promoting a versioned bundle."
+      "current": "IPIA owns verified draw.io decoding/SVG export. Desktop draw.io remains the source creation and graphical editing tool by explicit user scope decision on 2026-10-03. IPIA has no Common runtime checkout dependency.",
+      "exitCriteria": "Keep exporter parity and independent coverage green. Source creation/bootstrap and a graphical draw.io editor inside IPIA are excluded from application completion."
     },
     {
       "id": "profile-import",
@@ -1457,7 +1460,8 @@
       "targetEvidence": [
         "src/Dcs.Ipia.Dcs/DcsLuaParser.cs",
         "src/Dcs.Ipia.Dcs/ModuleWorkspaceLoader.cs",
-        "tests/Dcs.Ipia.Tests/ModuleLuaProfileRendererTests.cs"
+        "tests/Dcs.Ipia.Tests/ModuleLuaProfileRendererTests.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "Generic profile and command import/export is implemented; fixtures do not establish whole-consumer equivalence.",
       "exitCriteria": "Compare every profile/instance, key/axis changed/removed/default history, sparse filters, modifiers, unknown controls and diagnostics; generation remains independent of consumer checkouts."
@@ -1477,7 +1481,8 @@
       "targetEvidence": [
         "src/Dcs.Ipia.Rendering/CompositeKneeboardRenderer.cs",
         "src/Dcs.Ipia.Rendering/SnapshotSummaryKneeboardRenderer.cs",
-        "tests/Dcs.Ipia.Tests/SnapshotDeviceKneeboardRendererTests.cs"
+        "tests/Dcs.Ipia.Tests/SnapshotDeviceKneeboardRendererTests.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "Current saved/draft pages are generated internally; consumer PNG/SVG geometry, legends, footer and pagination parity is pending.",
       "exitCriteria": "Compare all pages and scopes/chords, callout/image alignment, unassigned labels, provenance/version footers and order; record every intentional visual difference."
@@ -1524,7 +1529,8 @@
         "src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs",
         "src/Dcs.Ipia.Dcs/ModuleCommandCatalogImport.cs",
         "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
-        "tests/Dcs.Ipia.App.Smoke/Program.cs"
+        "tests/Dcs.Ipia.App.Smoke/Program.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "SQLite authoring, commands, devices, cards and snapshot workflows are implemented; repository materialization is separate.",
       "exitCriteria": "Preserve identities, categories, labels, modifiers, tuning, repeated units and save/discard; retain outstanding hardware/DCS verification in #111."
@@ -1532,7 +1538,7 @@
     {
       "id": "consumer-scaffolding",
       "title": "Consumer templates, reports and repository materialization",
-      "status": "migration-pending",
+      "status": "preserve-reference",
       "owner": "Application / Packaging export adapters",
       "sourcePaths": [
         "scripts/scaffold-consumer.mjs",
@@ -1546,10 +1552,11 @@
       ],
       "targetEvidence": [
         "src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs",
-        "docs/new-module-creation.md"
+        "docs/new-module-creation.md",
+        "docs/migration/application-completion.md"
       ],
-      "current": "New Module removes the repository prerequisite; it does not emit consumer repositories, scaffold reports, version scripts or workflow mirrors.",
-      "exitCriteria": "Define reviewed snapshot projections/mirrors, preserve consumer-specific escape hatches, and prove clean rebuild/rollback before changing a consumer source of truth."
+      "current": "Existing module creation, Saved Games import, consumer repository import and snapshot package generation provide the application workflow. Legacy consumer repository/script generation remains a preserved optional workflow.",
+      "exitCriteria": "Legacy repository scaffolding is excluded from application completion by user decision on 2026-10-03; preserve history rather than requiring duplicate script generation in IPIA."
     },
     {
       "id": "module-documentation",
@@ -1570,7 +1577,8 @@
         "src/Dcs.Ipia.Application/ModuleIntegrationMetadata.cs",
         "src/Dcs.Ipia.Dcs/ModuleIntegrationImport.cs",
         "tests/Dcs.Ipia.Tests/ModuleIntegrationImportTests.cs",
-        "tests/Dcs.Ipia.Tests/Fixtures/Integrations/README.md"
+        "tests/Dcs.Ipia.Tests/Fixtures/Integrations/README.md",
+        "docs/migration/application-completion.md"
       ],
       "current": "Snapshot-derived guides and Complete export are implemented. The Documentation editor reviews/stages explicit JSON or legacy Markdown integration instructions, retains hashed original sources, supports guarded removal and unified Save/Discard, and freezes the effective guide into portable snapshots. A pinned Huey consumer guide characterizes exact text preservation through SQLite, clean restore and deterministic Complete export, with unchanged deployable OvGME bytes. Full legacy per-device/document and integration-asset parity remain pending.",
       "exitCriteria": "Compare every generated guide with pinned consumer golden cases and record intentional differences. Legacy instruction text is preserved as captured guidance, not asserted to match current generated paths. Implement approved integration-asset/configuration adapters separately; preserve manual consumer/DCS acceptance gates."
@@ -1589,7 +1597,8 @@
       "targetEvidence": [
         "src/Dcs.Ipia.Packaging/OvGmePackageVerifier.cs",
         "src/Dcs.Ipia.Dcs/ModuleSnapshotWorkflow.cs",
-        "tests/Dcs.Ipia.Tests/SnapshotOvGmeComposerTests.cs"
+        "tests/Dcs.Ipia.Tests/SnapshotOvGmeComposerTests.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "Verified deterministic snapshot-only OvGME is implemented; published consumer archive comparisons remain pending.",
       "exitCriteria": "Compare exact paths/case, aircraft/UI profiles/modifiers, all PNGs, README/VERSION and checksums; exclude databases, machine paths and raw source assets."
@@ -1611,7 +1620,8 @@
         "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
         ".github/workflows/release.yml",
         "scripts/Test-ApplicationRelease.ps1",
-        "docs/application-release.md"
+        "docs/application-release.md",
+        "docs/migration/application-completion.md"
       ],
       "current": "Deterministic snapshot-only Complete export contains separate OvGME, Documentation and portable Snapshot payloads with exact internal/external checksums. Independent verification restores frozen inputs and compares generated output/guides. Application release candidates and publication run full quality, Windows UI and exact portable/installer/archive checks. Approved integration assets and legacy consumer golden release parity remain pending. Reviewed instruction imports survive source-free Complete rebuilds; executable/configuration integration assets remain pending.",
       "exitCriteria": "Compare pinned consumer Complete release layouts and document intentional differences; implement reviewed integration-asset adapters without inventing defaults. Preserve histories and prove consumer-specific rebuild/rollback before switching workflows."
@@ -1619,7 +1629,7 @@
     {
       "id": "release-automation",
       "title": "App and consumer build, versioning and release adapters",
-      "status": "migration-pending",
+      "status": "preserve-reference",
       "owner": "CI / Packaging / release metadata",
       "sourcePaths": [
         ".github/workflows/build.yml",
@@ -1637,10 +1647,11 @@
       "targetEvidence": [
         ".github/workflows/ci.yml",
         ".github/workflows/release.yml",
-        "installer/installer.iss"
+        "installer/installer.iss",
+        "docs/migration/application-completion.md"
       ],
-      "current": "IPIA uses four-part app tags and the shared .NET workflow; consumer regeneration/tag/complete-release behavior is not replaced.",
-      "exitCriteria": "Keep app installer versioning distinct from module releases; preserve tag target, notes, rollback and public history. Consumer publishing follows module parity approval."
+      "current": "IPIA uses four-part application versions and a tested installer/portable release pipeline. Module snapshots generate deterministic versioned OvGME and Complete releases. Legacy consumer tagging/workflow generation is outside application completion scope.",
+      "exitCriteria": "Keep application release checks green and app versions separate from module versions. Repository cutover/tagging/archiving is an optional per-repository decision, not an application completion blocker."
     },
     {
       "id": "verification",
@@ -1696,7 +1707,8 @@
       ],
       "targetEvidence": [
         "tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs",
-        "tests/Dcs.Ipia.App.Smoke/Program.cs"
+        "tests/Dcs.Ipia.App.Smoke/Program.cs",
+        "docs/migration/application-completion.md"
       ],
       "current": "Legacy tests remain evidence; 396 IPIA tests and 80/80 gates do not prove every legacy behavior has been ported.",
       "exitCriteria": "Port unrepresented asset/import/render/docs/package/workflow behavior and golden cases; preserve independent coverage and real SQLite/Windows checks."
@@ -1721,7 +1733,8 @@
       ],
       "targetEvidence": [
         "snapshots/fixtures/README.md",
-        "docs/migration/repository-inventory.md"
+        "docs/migration/repository-inventory.md",
+        "docs/migration/application-completion.md"
       ],
       "current": "These sources are retained for characterization and historical reference; deletion or product exposure is not authorized.",
       "exitCriteria": "Review each utility before adapting it into fixtures or retiring execution; preserve repository history/tags/releases."
@@ -1750,7 +1763,8 @@
       "targetEvidence": [
         "data/shared-assets/DCS-Common-LICENSE.txt",
         "docs/module-authoring.md",
-        "docs/migration/internal-shared-assets.md"
+        "docs/migration/internal-shared-assets.md",
+        "docs/migration/application-completion.md"
       ],
       "current": "MIT license is bundled; legacy operator guidance needs reconciliation with database/snapshot workflows.",
       "exitCriteria": "Retain attribution/history, rewrite supported setup/authoring/ownership guidance and do not revive the retired DCS-UI-Layer pipeline."

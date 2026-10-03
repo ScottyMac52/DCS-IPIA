@@ -22,6 +22,8 @@ jobs:
 
   solution:
     runs-on: windows-latest
+    env:
+      IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -31,6 +33,12 @@ jobs:
         run: dotnet build DCS-IPIA.sln --configuration Release
       - name: Run tests on Windows
         run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: huey-release-parity
+          path: ${{ runner.temp }}/huey-parity
+          if-no-files-found: warn
       - name: Open both WPF import previews
         run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
 
