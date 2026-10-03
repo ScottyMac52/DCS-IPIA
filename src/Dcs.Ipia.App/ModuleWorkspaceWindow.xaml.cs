@@ -147,7 +147,7 @@ namespace DcsIpia.Presentation
             {
                 IReadOnlyList<ModuleIntegrationInstruction> entries = _working is null ? [] : ModuleIntegrationImport.Instructions(_working);
                 IntegrationInstructions.ItemsSource = entries;
-                IntegrationInstructions.SelectedItem = entries.FirstOrDefault(x => x.Name == selected) ?? entries.FirstOrDefault();
+                IntegrationInstructions.SelectedItem = entries.FirstOrDefault(x => x.Name == selected) ?? (entries.Count > 0 ? entries[0] : null);
                 IntegrationStatus.Text = entries.Count == 0 ? "No integration instructions are declared for this module." : "Select a group to inspect its captured instructions.";
             }
             catch (Exception ex)
