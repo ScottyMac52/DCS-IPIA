@@ -37,6 +37,7 @@ namespace DcsIpia.Presentation
             _sharedDefaults = sharedDefaults;
             _snapshotFilePicker = snapshotFilePicker;
             InitializeComponent();
+            Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             NewModuleButton.IsEnabled = _sharedDefaults is not null;

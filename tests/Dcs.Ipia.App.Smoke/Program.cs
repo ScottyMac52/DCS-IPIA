@@ -50,6 +50,8 @@ namespace Dcs.Ipia.App.Smoke
                                           [new("bad-profile", "One other device profile could not be parsed.", true)]);
             var folderWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
             folderWindow.Show();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(folderWindow.Title, @" · version \d+\.\d+\.\d+\.\d+$"))
+                throw new InvalidOperationException("Workspace title must show only a four-part application version.");
             defaultsWindow.Close();
             folderWindow.UpdateLayout();
             var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
@@ -288,6 +290,16 @@ namespace Dcs.Ipia.App.Smoke
                 window.Show();
                 var pages = (DataGrid)window.FindName("AuthoredPages")!;
                 var removePage = (Button)window.FindName("RemoveAuthoredPageButton")!;
+                ((Button)window.FindName("GenerateSummaryButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 4 || pages.Items.Cast<KneeboardPage>().Count(x => x.Kind == KneeboardPageKind.Summary) != 2)
+                    throw new InvalidOperationException("Generate Summary did not append a summary page.");
+                var generated = pages.Items.Cast<KneeboardPage>().Single(x => x.StableKey == "summary-2");
+                pages.SelectedItem = generated;
+                var cards = (ListBox)window.FindName("SummaryCards")!;
+                if (cards.Items.Count != 2 || cards.Items.Cast<ModuleSummaryCard>().Last().Text != "Deleted device")
+                    throw new InvalidOperationException("Generated summary did not include all device pages.");
+                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore pages after summary generation.");
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == live.Id);
                 if (!removePage.IsEnabled) throw new InvalidOperationException("A live device page could not be removed.");
                 removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -587,6 +599,8 @@ namespace Dcs.Ipia.App.Smoke
                 var main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(), new global::Dcs.Ipia.Dcs.DcsFolderImporter(),
                     settings, restored, snapshotFilePicker: () => snapshotPath);
                 main.Show();
+                if (main.Title != "DCS-IPIA — Modules · " + ApplicationVersion.Label)
+                    throw new InvalidOperationException("Main window title did not include the application version.");
                 var restore = (Button)main.FindName("RestoreModuleSnapshotButton")!;
                 ClickWithDispatcherContext(restore);
                 var deadline = DateTime.UtcNow.AddSeconds(60);

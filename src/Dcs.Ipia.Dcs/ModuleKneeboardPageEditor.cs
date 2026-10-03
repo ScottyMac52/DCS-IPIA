@@ -143,6 +143,28 @@ namespace Dcs.Ipia.Dcs
             return WithoutPages(workspace, root, pages);
         }
 
+        /// <summary>Appends summaries listing all current device pages in display order, with up to fourteen cards per summary.</summary>
+        /// <param name="workspace">Current module draft.</param>
+        /// <returns>Draft with new summary pages and all existing pages preserved.</returns>
+        public static EditorWorkspaceSnapshot GenerateSummary(EditorWorkspaceSnapshot workspace)
+        {
+            var cards = workspace.Pages.OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal)
+                .Select((page, index) => (Page: page, Number: index + 1))
+                .Where(x => x.Page.Kind == KneeboardPageKind.Device)
+                .Select(x => new ModuleSummaryCard(x.Number.ToString("D2", System.Globalization.CultureInfo.InvariantCulture), x.Page.Title, "cyan")).ToArray();
+            if (cards.Length == 0)
+                throw new InvalidOperationException("Add device pages before generating a summary.");
+            foreach (var batch in cards.Chunk(14))
+            {
+                var file = "summary";
+                for (var suffix = 2; workspace.Pages.Any(x => x.StableKey.Equals(file, StringComparison.OrdinalIgnoreCase)); suffix++)
+                    file = "summary-" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                workspace = Set(workspace, null, new(KneeboardPageKind.Summary, null, file,
+                    workspace.Configuration.Module.DisplayName + " — Summary", "DEVICE PAGES", workspace.Pages.Max(x => x.Order) + 1, batch));
+            }
+            return workspace;
+        }
+
         /// <summary>Creates missing combined pages for every pinned device, including inherited UI Layer devices.</summary>
         /// <param name="workspace">Current module draft.</param>
         /// <returns>Draft with existing pages preserved and missing device pages appended.</returns>

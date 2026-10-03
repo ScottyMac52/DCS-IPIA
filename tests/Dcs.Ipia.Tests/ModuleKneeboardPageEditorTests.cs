@@ -13,6 +13,55 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleKneeboardPageEditorTests
     {
         #region BEGIN Public
+        /// <summary>Summary generation includes every device page in display order, preserving existing pages and saved state.</summary>
+        /// <returns>Completion of real SQLite save and reopen.</returns>
+        [Fact]
+        public async Task GeneratesSummaryFromAllDevicePagesAndReopens()
+        {
+            var workspace = Workspace();
+            var template = workspace.Pages[0];
+            workspace = workspace with { Pages = Enumerable.Range(0, 15).Select(i => template with
+                { Id = Guid.NewGuid(), StableKey = "device-" + i, Title = "Device " + i, Order = i * 2 }).Reverse().ToArray() };
+            workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+                new(KneeboardPageKind.Summary, null, "summary", "Existing", "CONTROLS", 1, [new("OLD", "Keep", "cyan")]));
+            var generated = ModuleKneeboardPageEditor.GenerateSummary(workspace);
+            Assert.Equal(workspace.Configuration, generated.Configuration);
+            Assert.Equal(workspace.Assignments, generated.Assignments);
+            Assert.All(workspace.Pages, page => Assert.Contains(page, generated.Pages));
+            var summaries = generated.Pages.Where(x => x.Kind == KneeboardPageKind.Summary && x.StableKey != "summary").ToArray();
+            Assert.Equal(2, summaries.Length);
+            var cards = summaries.SelectMany(x => ModuleKneeboardPageEditor.Describe(generated, x).Cards).ToArray();
+            Assert.Equal(Enumerable.Range(0, 15).Select(i => "Device " + i), cards.Select(x => x.Text));
+            Assert.Equal("01", cards[0].Key);
+            Assert.Equal("03", cards[1].Key);
+            Assert.Equal(14, ModuleKneeboardPageEditor.Describe(generated, summaries[0]).Cards.Count);
+            Assert.Equal(3, SnapshotSummaryKneeboardRenderer.Generate(generated).Count);
+            var again = ModuleKneeboardPageEditor.GenerateSummary(generated);
+            Assert.Equal(5, again.Pages.Count(x => x.Kind == KneeboardPageKind.Summary));
+            var path = Path.Combine(Path.GetTempPath(), $"ipia-summary-{Guid.NewGuid():N}.db");
+            var connection = "Data Source=" + path + ";Pooling=False";
+            try
+            {
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(generated);
+                var reopened = (await repository.GetAsync(generated.Configuration.Module.Id))!;
+                Assert.Equal(generated.Pages.Select(x => (x.Id, x.StableKey, x.Title, x.Order)),
+                    reopened.Pages.Select(x => (x.Id, x.StableKey, x.Title, x.Order)));
+                Assert.Equal(generated.Sources!["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
+                Assert.Equal(3, SnapshotSummaryKneeboardRenderer.Generate(reopened).Count);
+            }
+            finally { File.Delete(path); }
+        }
+
+        /// <summary>No device pages means there is no valid summary to generate.</summary>
+        [Fact]
+        public void SummaryGenerationRequiresDevicePages()
+        {
+            var workspace = Workspace() with { Pages = [] };
+            Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.GenerateSummary(workspace));
+        }
+
         /// <summary>A live generated device page can be removed even if its manifest row is missing.</summary>
         [Fact]
         public void RemovesLiveGeneratedDevicePageWithoutManifestRow()
