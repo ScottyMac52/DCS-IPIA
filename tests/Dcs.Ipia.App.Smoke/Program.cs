@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
+using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
 using DcsIpia.Presentation;
