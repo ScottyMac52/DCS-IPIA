@@ -101,31 +101,23 @@ namespace Dcs.Ipia.Dcs
             }, root);
         }
 
-        /// <summary>Reports whether a summary or orphan page can be removed without deleting a live device page.</summary>
+        /// <summary>Reports whether the selected page belongs to the current module draft and can be removed.</summary>
         /// <param name="workspace">Current module draft.</param>
         /// <param name="page">Selected page.</param>
-        /// <returns>True when no live device owns the page.</returns>
+        /// <returns>True for any current page, including device and orphan pages.</returns>
         public static bool CanRemove(EditorWorkspaceSnapshot workspace, KneeboardPage page)
         {
             Current(workspace, page);
-            if (page.Kind != KneeboardPageKind.Device) return true;
-            var root = Document(workspace);
-            var rows = Rows(root, page.Kind).Where(x => string.Equals(x?["file"]?.GetValue<string>(), page.StableKey, StringComparison.OrdinalIgnoreCase));
-            return !workspace.Configuration.Profiles.Any(profile => page.StableKey == DeviceKey(profile) ||
-                rows.Any(row => row?["profile"]?.GetValue<string>() is { } key &&
-                    (key == DeviceKey(profile) || FileName(root["profiles"]?[key]?.GetValue<string>())
-                        .Equals(profile.SourceName, StringComparison.OrdinalIgnoreCase))));
+            return true;
         }
 
-        /// <summary>Removes an overview or orphan page and compacts page order without affecting devices or assignments.</summary>
+        /// <summary>Removes any page and compacts page order without affecting devices or assignments.</summary>
         /// <param name="workspace">Current module draft.</param>
-        /// <param name="current">Selected overview page.</param>
+        /// <param name="current">Selected page.</param>
         /// <returns>Updated module draft.</returns>
         public static EditorWorkspaceSnapshot Remove(EditorWorkspaceSnapshot workspace, KneeboardPage current)
         {
             Current(workspace, current);
-            if (!CanRemove(workspace, current))
-                throw new InvalidOperationException("Each device requires one combined page. Edit its page or remove the device.");
             var root = Document(workspace);
             return WithoutPages(workspace, root, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { current.StableKey });
         }

@@ -4,11 +4,11 @@ Open a saved module and choose **Commands** to add aircraft commands. Enter the 
 
 Name and category edits retain labels, axis tuning, modifier chords, removed history and the module-owned UI Layer. The shared default catalog is edited separately.
 
-Choose **Pages** to author kneeboards. **Add missing device pages** supplies one combined page for every pinned device, including inherited UI Layer devices. Select a device page to change its output name (without .png), heading, subtitle and order. Its hardware geometry remains pinned; MFD category captions remain editable in Devices. Remove a physical device through Devices rather than deleting its required page.
+Choose **Pages** to author kneeboards. **Add missing device pages** supplies one combined page for every pinned device, including inherited UI Layer devices. Select a device page to change its output name (without .png), heading, subtitle and order. Its hardware geometry remains pinned; MFD category captions remain editable in Devices. **Remove page** deletes any selected page, including device pages and old orphans, without deleting the device or its assignments. Use **Add missing device pages** to recreate a missing device page when needed.
 
 For an overview, choose **Summary**, enter a safe output name, heading, subtitle and order, then add one to fourteen cards. Each card has a heading, description and palette accent. Cards render in listed order, in the existing two-column layout. Edit or remove summary pages as needed.
 
-Removing a device's final Module/UI Layer membership removes its combined pages, profile mappings and cached images. A page remains while the device still belongs to the other scope. Remaining page orders are compacted without changing their stable output names. If an older workspace already contains a device page with no live device mapping, select it in **Pages** and choose **Remove page**. Pages owned by live devices remain protected. Save or discard these changes with the rest of the module.
+Removing a device's final Module/UI Layer membership removes its combined pages, profile mappings and cached images. A page remains while the device still belongs to the other scope. Removing a page also clears its manifest entries and cached images. Remaining page orders are compacted without changing their stable output names. Save or discard these changes with the rest of the module.
 
 **Preview draft** renders the page from current form values and pending assignments without saving. **Stage page** validates and stages the page. Existing unedited manifest fields, callout/category labels and per-card metadata remain preserved.
 
