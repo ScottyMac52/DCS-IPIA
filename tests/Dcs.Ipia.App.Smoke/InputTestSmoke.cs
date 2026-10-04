@@ -24,7 +24,9 @@ namespace Dcs.Ipia.App.Smoke
             var otherProfile = new DeviceProfile(Guid.NewGuid(), "aux-test", "SECOND", "Modifier", $"Test {{{otherPhysical:D}}}.diff.lua");
             var config = workspace.Configuration;
             workspace = workspace with { Configuration = new(config.Module, [.. config.Profiles, otherProfile],
-                [new DcsModifier("S3", $"Test {{{otherPhysical:D}}}", "JOY_BTN1", ModifierMode.Hold)], config.Bindings, config.Provenance) };
+                [new DcsModifier("S3", $"Test {{{otherPhysical:D}}}", "JOY_BTN1", ModifierMode.Hold)], config.Bindings, config.Provenance),
+                Diagrams = [.. workspace.Diagrams, workspace.Diagrams[0] with { ProfileId = otherProfile.Id, Device = "Other controller",
+                    Controls = [.. workspace.Diagrams[0].Controls, new("axis", "Axis", "JOY_X", 35, 5, 20, 20, true)] }] };
             var before = EditorSnapshotSerializer.Serialize(workspace);
             FakeDeviceInputSource? source = null;
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
@@ -72,7 +74,9 @@ namespace Dcs.Ipia.App.Smoke
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!ready())
             {
-                if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Input test UI timed out.");
+                var status = ((TextBlock)window.FindName("InputTestStatus")!).Text;
+                if (status.StartsWith("Input test could not start:", StringComparison.Ordinal) || DateTime.UtcNow > deadline)
+                    throw new InvalidOperationException("Input test UI failed: " + status);
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }
