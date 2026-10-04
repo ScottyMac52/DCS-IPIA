@@ -37,6 +37,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifySavedGamesImportForm();
             VerifyModuleAuthoring();
             VerifyDevicePageDeletion();
+            InputTestSmoke.Verify();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
