@@ -46,14 +46,7 @@ namespace Dcs.Ipia.Tests
                     {
                         var expectedBindings = Bindings(File.ReadAllText(file));
                         var actualBindings = Bindings(Encoding.UTF8.GetString(lua[path]));
-                        if (path.StartsWith("Config/Input/UiLayer/", StringComparison.Ordinal))
-                        {
-                            using var changes = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "HueyUiLayerChanges.json")));
-                            Assert.Equal(changes.RootElement.GetProperty("missing").EnumerateArray().Select(x => x.GetString()), expectedBindings.Except(actualBindings));
-                            Assert.Equal(changes.RootElement.GetProperty("added").EnumerateArray().Select(x => x.GetString()), actualBindings.Except(expectedBindings));
-                        }
-                        else
-                            Assert.Equal(expectedBindings, actualBindings);
+                        Assert.Equal(expectedBindings, actualBindings);
                     }
                     else
                     {
@@ -119,6 +112,7 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal("EDITED HUEY CONTROLS", (await restoredRepository.GetAsync(edited.Configuration.Module.Id))!.Pages.Single(x => x.Id == page.Id).Title);
                 var report = new
                 {
+                    nativeUiParity = true,
                     module = "UH-1H",
                     sourceCommit = "77d924cce220355860e8f026cff3524bac531e29",
                     release = "v3.1.1",

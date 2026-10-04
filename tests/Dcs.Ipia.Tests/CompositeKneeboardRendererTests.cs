@@ -10,14 +10,102 @@ namespace Dcs.Ipia.Tests
     public sealed class CompositeKneeboardRendererTests
     {
         #region BEGIN Public
+        /// <summary>Long multi-scope labels fit their authored callout in both dimensions without dropping text.</summary>
+        [Fact]
+        public void FitsMappedCalloutWithoutLosingVariants()
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='lbl-one' x='50' y='50' text-anchor='middle'>Old</text></svg>",
+                Controls = [new("one", "Button", "JOY_BTN1", 20, 40, 60, 20)]
+            };
+            var labels = new[] { "Base command", "Very long shifted UI command", "Another shifted command" };
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["one"] = labels.Select(x => new KneeboardLabelVariant(x, "#0891b2", AssignmentLayer.UiLayer, "SHIFT")).ToArray()
+            }, new Dictionary<string, string>(), []);
+            var svg = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            var text = Assert.Single(svg.Descendants(), x => x.Attribute("id")?.Value == "lbl-one");
+            Assert.Equal(labels, text.Elements().GroupBy(x => x.Attribute("data-full-label")!.Value)
+                .Select(x => string.Join(" ", x.Select(y => y.Value))));
+            using var stream = typeof(CompositeKneeboardRenderer).Assembly.GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.ttf");
+            using var typeface = SKTypeface.FromStream(stream!);
+            var y = float.Parse(text.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+            foreach (var span in text.Elements())
+            {
+                using var font = new SKFont(typeface, float.Parse(span.Attribute("font-size")!.Value, System.Globalization.CultureInfo.InvariantCulture));
+                Assert.True(font.MeasureText(span.Value) <= 56.01f);
+                y += float.Parse(span.Attribute("dy")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+                Assert.InRange(y + font.Metrics.Ascent, 40, 60);
+                Assert.InRange(y + font.Metrics.Descent, 40, 60);
+            }
+        }
+
+        /// <summary>Category text uses free space in its authored box rather than overlapping shifted controls.</summary>
+        [Fact]
+        public void SeparatesCategoryFromShiftedCallout()
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='lbl-one' x='65' y='50' text-anchor='middle'>Old</text><rect x='20' y='40' width='60' height='20'/><text id='meta-category' x='50' y='50' text-anchor='middle'>Old</text></svg>",
+                Controls = [new("one", "Button", "JOY_BTN1", 50, 40, 30, 20)]
+            };
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["one"] = [new("UI command", "#0891b2", AssignmentLayer.UiLayer, "SHIFT")]
+            }, new Dictionary<string, string> { ["category"] = "Category" }, []);
+            var svg = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            var label = Assert.Single(svg.Descendants(), x => x.Attribute("id")?.Value == "meta-category");
+            Assert.True(float.Parse(label.Attribute("x")!.Value, System.Globalization.CultureInfo.InvariantCulture) < 48);
+            Assert.Equal("Category", label.Value);
+        }
+        /// <summary>Impossible text and fully covered categories fail with actionable layout diagnostics.</summary>
+        [Fact]
+        public void RejectsImpossibleTextAndCategoryLayouts()
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='lbl-one' x='50' y='50'>Old</text><rect x='20' y='40' width='60' height='20'/><text id='meta-category' x='50' y='50'>Old</text></svg>",
+                Controls = [new("one", "Button", "JOY_BTN1", 20, 40, 60, 20)]
+            };
+            var labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["one"] = [new("Command", "#ffffff", AssignmentLayer.Module, "")]
+            };
+            var page = new KneeboardComposite("Device", "", labels, new Dictionary<string, string> { ["category"] = "Category" }, []);
+            Assert.Contains("Category has no space", Assert.Throws<InvalidDataException>(() => CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page)).Message);
+            labels["one"] = [new(new string('W', 5000), "#ffffff", AssignmentLayer.Module, "")];
+            Assert.Contains("Control label is too long", Assert.Throws<InvalidDataException>(() => CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page)).Message);
+        }
+        /// <summary>Unusable authored callout bounds fail before producing an unreadable page.</summary>
+        [Theory]
+        [InlineData(4, 20)]
+        [InlineData(60, 2)]
+        [InlineData(double.NaN, 20)]
+        [InlineData(60, double.PositiveInfinity)]
+        public void RejectsUnusableCalloutBounds(double width, double height)
+        {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='lbl-one' x='50' y='50'>Old</text></svg>",
+                Controls = [new("one", "Button", "JOY_BTN1", 20, 40, width, height)]
+            };
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["one"] = [new("Command", "#ffffff", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), []);
+            Assert.Throws<InvalidDataException>(() => CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+        }
         /// <summary>Truncated imported labels remain renderable with the pinned font.</summary>
         [Fact]
         public void RendersLongImportedControlLabels()
         {
-            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text id='lbl-rocker' x='50' y='50'>Old</text></svg>"
             };
-            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
                 ["rocker"] = [new("Rocker Switch - Down - Camera Pan Down", "#ffffff", AssignmentLayer.Module, "")]
             }, new Dictionary<string, string>(), []);
             var image = CompositeKneeboardRenderer.Render(diagram, page);
@@ -30,11 +118,13 @@ namespace Dcs.Ipia.Tests
         [Fact]
         public void RendersActivatorLabelsAndWideLegend()
         {
-            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) {
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-selector' x='50' y='50' text-anchor='middle'>Old</text></svg>"
             };
             var description = "ARM_SELECT_1 — Button 55 — PROGRAM BIT [JOY_BTN55, Toggle]";
-            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
                 ["selector"] = [new("ARM_SELECT_1 (Toggle)", "#dc2626", AssignmentLayer.Module, "")]
             }, new Dictionary<string, string>(), [new(description, "#dc2626"), new(new string('W', 200), "#ea580c")]);
             var device = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
@@ -59,7 +149,9 @@ namespace Dcs.Ipia.Tests
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
             var page = new KneeboardComposite(
                 "Authored title", "CURRENT DRAFT",
-                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> { ["one"] =
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+                {
+                    ["one"] =
                                                                                    [
                                                                                        new("Base label", "#ffffff",
                                                                                            AssignmentLayer.Module, ""),
@@ -68,7 +160,8 @@ namespace Dcs.Ipia.Tests
                                                                                            "SHIFT"),
                                                                                        new("UI label", "#0891b2",
                                                                                            AssignmentLayer.UiLayer, "")
-                                                                                   ] },
+                                                                                   ]
+                },
                 new Dictionary<string, string> { ["mfd-category-top"] = "Flight" },
                 [new("Base (no modifier)", "#ffffff"), new("SHIFT", "#dc2626"), new("UI Layer — Base", "#0891b2")]);
             var device = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page);
@@ -97,10 +190,13 @@ namespace Dcs.Ipia.Tests
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
             var page = new KneeboardComposite(
                 "Device", "",
-                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> { ["one"] = [new(
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+                {
+                    ["one"] = [new(
                                                                                    "Long function name for a control",
                                                                                    "#ffffff", AssignmentLayer.Module,
-                                                                                   "")] },
+                                                                                   "")]
+                },
                 new Dictionary<string, string>(), []);
             var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
             var label = Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "lbl-one");
@@ -117,7 +213,8 @@ namespace Dcs.Ipia.Tests
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
             var page = new KneeboardComposite(
                 "Device", "",
-                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+                {
                     ["one"] = [new("MMMM", "#ffffff", AssignmentLayer.Module, "")]
                 }, new Dictionary<string, string>(), []);
             using var bitmap = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page, ""));
@@ -144,7 +241,8 @@ namespace Dcs.Ipia.Tests
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
             var page = new KneeboardComposite(
                 "Device", "",
-                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> {
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+                {
                     ["one"] = [new("Long function name for a control", "#ffffff", AssignmentLayer.Module, "")]
                 }, new Dictionary<string, string> { ["category"] = "LONG CATEGORY TITLE HERE" }, []);
             var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
@@ -167,9 +265,12 @@ namespace Dcs.Ipia.Tests
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) { Svg = svg };
             var page = new KneeboardComposite(
                 "Device", "",
-                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> { ["ui"] =
+                new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+                {
+                    ["ui"] =
                                                                                    [new("VR Zoom", "#0891b2",
-                                                                                        AssignmentLayer.UiLayer, "")] },
+                                                                                        AssignmentLayer.UiLayer, "")]
+                },
                 new Dictionary<string, string>(), []);
             var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
             Assert.Equal("", Assert.Single(document.Descendants(), x => x.Attribute("id")?.Value == "lbl-empty").Value);

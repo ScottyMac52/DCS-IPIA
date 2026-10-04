@@ -56,11 +56,17 @@ namespace Dcs.Ipia.Tests
                                                                              .Select(x => x.Value.GetString()!)
                                                                              .Distinct()
                                                                              .ToArray();
+                        var hardware = File.ReadAllText(Path.Combine(common, "assets/shared/hardware/lua", device + ".lua"));
+                        var nativeControls = hardware.Split('\n').Where(x => x.Contains("{ id =", StringComparison.Ordinal))
+                            .Select(x => x.Split('"')[1]).ToArray();
+                        if (device != "tm-warthog-throttle")
+                            controls = controls.Concat(nativeControls).Concat(device == "tm-mfd"
+                                ? nativeControls.Select(x => x + "-shifted") : []).Distinct().ToArray();
                         var rects = string.Join(
                             "\n",
                             controls.Select(
                                 (control, i) =>
-                                    $"  <!-- box:{control} -->\n  <rect x='10' y='{10+i*48}' width='55' height='45'/>\n  <text id='lbl-{control}' x='10' y='10'>label</text>"));
+                                    $"  <!-- box:{control} -->\n  <rect x='{10 + i / 14 * 100}' y='{10 + i % 14 * 48}' width='55' height='45'/>\n  <text id='lbl-{control}' x='{10 + i / 14 * 100}' y='10'>label</text>"));
                         var path = Path.Combine(common, "assets", "shared", "hardware", "svg", device + ".svg");
                         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                         var mime = device == "grip-f18c" ? "jpeg" : "png";
@@ -70,8 +76,10 @@ namespace Dcs.Ipia.Tests
                     }
                 }
                 var catalogPath = Path.Combine(temp, "UH-1H-commands.json");
-                File.WriteAllText(catalogPath, System.Text.Json.JsonSerializer.Serialize(new {
-                    schemaVersion = 1, moduleId = "UH-1H",
+                File.WriteAllText(catalogPath, System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    moduleId = "UH-1H",
                     commands =
                         new[] { new { bindingKey = "d3002pnilunilcd27vd-1vpnilvunil", name = "ADF Band 190-400 kHz",
                                       categoryPath = AdfCategory, type = "button" },
@@ -190,6 +198,7 @@ namespace Dcs.Ipia.Tests
                 File.WriteAllText(catalogPath, savedCatalog);
                 Assert.NotEmpty(result.UiCommands);
                 Assert.Contains(result.UiCommands, x => x.Name == "VR Zoom");
+                Assert.True(result.GraphicDiagnostics.Count == 0, string.Join("; ", result.GraphicDiagnostics.Select(x => x.Message)));
                 Assert.Equal(5, result.Diagrams.Count);
                 Assert.All(result.Diagrams, x => Assert.Contains("<svg", x.Svg, StringComparison.Ordinal));
                 Assert.All(result.Diagrams, x => Assert.NotEmpty(x.Controls));
@@ -218,23 +227,28 @@ namespace Dcs.Ipia.Tests
                                                               texts[1], paths[2], texts[2], paths[3], texts[3]));
                 Assert.True(catalog.Succeeded);
                 var graphics =
-                    new Dictionary<string, string> { ["assets/shared/hardware/svg/tm-mfd.svg"] = File.ReadAllText(
+                    new Dictionary<string, string>
+                    {
+                        ["assets/shared/hardware/svg/tm-mfd.svg"] = File.ReadAllText(
                                                          Path.Combine(common, "assets/shared/hardware/svg/tm-mfd.svg")),
-                                                     ["assets/shared/hardware/svg/grip-f18c.svg"] =
+                        ["assets/shared/hardware/svg/grip-f18c.svg"] =
                                                          File.ReadAllText(Path.Combine(
                                                              common, "assets/shared/hardware/svg/grip-f18c.svg")),
-                                                     ["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
+                        ["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
                                                          File.ReadAllText(Path.Combine(
                                                              common,
-                                                             "assets/shared/hardware/svg/tm-warthog-throttle.svg")) };
+                                                             "assets/shared/hardware/svg/tm-warthog-throttle.svg"))
+                    };
                 var withoutHardwareMap = UiLayerDiagramFactory.Create(result.Import, catalog, graphics);
                 Assert.Equal(5, withoutHardwareMap.Count);
                 Assert.All(withoutHardwareMap, x => Assert.Empty(x.Controls));
                 Assert.Contains(withoutHardwareMap, x => x.Instance == "MFD1" && !x.SupportsUiLayer);
-                var mappedControl = Assert.Single(result.Diagrams.Single(x => x.Instance == "MFD3").Controls.Take(1));
+                var mfdDiagram = result.Diagrams.Single(x => x.Instance == "MFD3");
+                var uiInputs = mfdDiagram.Callouts.Select(x => mfdDiagram.Controls.Single(c => c.Control == x.Control).InputKey).ToHashSet();
+                var mappedControl = mfdDiagram.Controls.First(x => !uiInputs.Contains(x.InputKey));
                 var mfdDevice = catalog.Devices.Single(x => x.StableKey == "tm-mfd");
                 var baseControl = mappedControl.Control.EndsWith("-shifted", StringComparison.Ordinal)
-                                      ? mappedControl.Control[..^ "-shifted".Length]
+                                      ? mappedControl.Control[..^"-shifted".Length]
                                       : mappedControl.Control;
                 var axisControl = new DeviceControl(Guid.NewGuid(), mfdDevice.Id, baseControl, mappedControl.Label,
                                                     ControlKind.Axis, null);
@@ -287,7 +301,7 @@ namespace Dcs.Ipia.Tests
                     () => UiLayerDiagramFactory.Create(result.Import, catalog, unsupportedImage));
                 var mfdSvg = graphics["assets/shared/hardware/svg/tm-mfd.svg"];
                 foreach (var (original, invalid, expected) in new[] {
-                             ("<svg xmlns='http://www.w3.org/2000/svg' width='960'", 
+                             ("<svg xmlns='http://www.w3.org/2000/svg' width='960'",
                               "<svg xmlns='http://www.w3.org/2000/svg' width='1000'", "SVG canvas"),
                              (" x='0' y='0' width='960' height='720'/>",
                               " x='950' y='0' width='960' height='720'/>", "embedded image"),
@@ -534,8 +548,13 @@ namespace Dcs.Ipia.Tests
         private static void Git(string root, params string[] args)
         {
             using var process = new Process();
-            process.StartInfo = new("git") { WorkingDirectory = root, RedirectStandardOutput = true,
-                                             RedirectStandardError = true, UseShellExecute = false };
+            process.StartInfo = new("git")
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
             foreach (var argument in args)
                 process.StartInfo.ArgumentList.Add(argument);
             process.Start();

@@ -13,6 +13,22 @@ namespace Dcs.Ipia.Tests
         private const string Path = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         private const string Modifiers = "assets/shared/ui-layer/input/UiLayer/modifiers.lua";
         #region BEGIN Public
+        /// <summary>Explicit selection suppresses unrelated defaults while retaining saved edits and removed history.</summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ExplicitSelectionPreservesEditsWithoutUnselectedDefaults(bool represented)
+        {
+            var workspace = Workspace([Assigned("EDIT", "Edited", "JOY_BTN1")]);
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources["config/kneeboard.json"] = """{"uiLayerUtilization":{"mode":"explicit","bindings":[]}}""";
+            if (!represented) workspace = workspace with { Diagrams = [workspace.Diagrams[0] with { Callouts = [] }] };
+            var parsed = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId), ProfileId);
+            Assert.Contains(parsed, x => x.CommandId == "EDIT");
+            Assert.Contains(parsed, x => x.CommandId == "REMOVED" && x.Disposition == BindingDisposition.Removed);
+            Assert.DoesNotContain(parsed, x => x.CommandId == "UNMAPPED");
+        }
+
         /// <summary>Saved edits replace represented slots while unmapped and removed history survive.</summary>
         [Fact]
         public void RendersEditedBindingsAndPreservesUnrepresentedSource()
@@ -51,7 +67,7 @@ namespace Dcs.Ipia.Tests
                 workspace with { Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = "../bad.diff.lua" }] },
                 ProfileId));
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
-                workspace with { Assignments = [..workspace.Assignments, workspace.Assignments[0]] }, ProfileId));
+                workspace with { Assignments = [.. workspace.Assignments, workspace.Assignments[0]] }, ProfileId));
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
                 Workspace([Assigned("UNKNOWN", "Unknown", "JOY_BTN1", "NOPE")]), ProfileId));
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
@@ -67,9 +83,13 @@ namespace Dcs.Ipia.Tests
             sources[Path] = Source.Replace("[\"key\"] = \"JOY_BTN99\"", "[\"key\"] = \"JOY_BTN99\", [\"reformers\"] = { [1] = \"SHIFT\" }",
                          StringComparison.Ordinal);
             sources["config/ui-layer-overlay.json"] = """{"removedModifiers":["SHIFT"]}""";
-            var removed = workspace with { Sources = sources, Diagrams = [workspace.Diagrams[0] with {
+            var removed = workspace with
+            {
+                Sources = sources,
+                Diagrams = [workspace.Diagrams[0] with {
                 Callouts = [workspace.Diagrams[0].Callouts[0]]
-            }] };
+            }]
+            };
             var parsed = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(removed, ProfileId), ProfileId);
             Assert.DoesNotContain(parsed, x => x.CommandId == "UNMAPPED");
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
@@ -87,14 +107,18 @@ namespace Dcs.Ipia.Tests
             var configuration = new ModuleConfiguration(module, [profile], [], [], "fixture");
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [],
                 [new(1, "one", "Original", "", 0, 0, 10, 10) { CommandId = "ORIGINAL" },
-                 new(2, "two", "Shifted", "SHIFT", 10, 0, 10, 10) { CommandId = "SHIFTED" }]) {
-                ProfileId = ProfileId, CanonicalUiLayerSourcePath = Path,
+                 new(2, "two", "Shifted", "SHIFT", 10, 0, 10, 10) { CommandId = "SHIFTED" }])
+            {
+                ProfileId = ProfileId,
+                CanonicalUiLayerSourcePath = Path,
                 Controls = [new("one", "One", "JOY_BTN1", 0, 0, 10, 10),
                             new("two", "Two", "JOY_BTN2", 10, 0, 10, 10)]
             };
             return new(configuration, [], [], [diagram], [], [], assignments,
-                new Dictionary<string, string>(), new Dictionary<string, string> {
-                    [Path] = Source, [Modifiers] =
+                new Dictionary<string, string>(), new Dictionary<string, string>
+                {
+                    [Path] = Source,
+                    [Modifiers] =
                         """local modifiers = { ["SHIFT"] = { ["device"] = "Stick", ["key"] = "JOY_BTN3", ["switch"] = false, }, } return modifiers"""
                 });
         }

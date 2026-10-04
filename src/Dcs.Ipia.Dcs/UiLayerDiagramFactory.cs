@@ -42,7 +42,7 @@ namespace Dcs.Ipia.Dcs
                 }
                 catch (Exception ex)
                     when (onGraphicError is not null &&
-                          ex is(InvalidDataException or FormatException or XmlException or ArgumentException or
+                          ex is (InvalidDataException or FormatException or XmlException or ArgumentException or
                                     InvalidOperationException or KeyNotFoundException))
                 {
                     onGraphicError!(profile, ex);
@@ -67,7 +67,9 @@ namespace Dcs.Ipia.Dcs
             var device = catalog.Devices.Single(x => x.StableKey == profile.DeviceId ||
                                                      x.Aliases.Contains(profile.DeviceId, StringComparer.Ordinal));
             var template = catalog.Templates.SingleOrDefault(x => x.DeviceKey == device.StableKey);
-            IReadOnlyList<DcsBinding> projected = rows.Length == 0 && shared is not null
+            IReadOnlyList<DcsBinding> projected = rows.Length == 0 && shared is not null &&
+                !(import.Metadata["config/kneeboard.json"].TryGetProperty("uiLayerUtilization", out var explicitUsage) &&
+                  explicitUsage.TryGetProperty("mode", out var usageMode) && usageMode.GetString() == "explicit")
                                                       ? ModuleUiLayerBindingImporter.Import(import, shared, profile)
                                                       : [];
             var supportsUi =
@@ -80,8 +82,11 @@ namespace Dcs.Ipia.Dcs
             var path = $"assets/shared/hardware/svg/{device.StableKey}.svg";
             if (!sources.TryGetValue(path, out var svg))
                 throw new InvalidDataException($"Missing committed hardware image: {path}");
-            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4_000_000
+            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 4_000_000
             });
             var document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             var root = document.Root ?? throw new InvalidDataException($"Empty SVG: {path}");
@@ -131,12 +136,12 @@ namespace Dcs.Ipia.Dcs
                 var unknown = boxes.Keys
                                   .Where(key => !mapped.ContainsKey(key) &&
                                                 !(key.EndsWith("-shifted", StringComparison.Ordinal) &&
-                                                  mapped.ContainsKey(key[..^ "-shifted".Length])))
+                                                  mapped.ContainsKey(key[..^"-shifted".Length])))
                                   .Order(StringComparer.Ordinal)
                                   .ToArray();
                 if (unknown.Length > 0)
                     throw new InvalidDataException(
-                        $"Hardware graphic {path} has callout identities absent from its shared Lua definition: {string.Join(", ",unknown)}.");
+                        $"Hardware graphic {path} has callout identities absent from its shared Lua definition: {string.Join(", ", unknown)}.");
             }
             var controls = boxes
                                .Select(pair =>
@@ -145,7 +150,7 @@ namespace Dcs.Ipia.Dcs
                                            if (!mapped.TryGetValue(pair.Key, out var mapping))
                                            {
                                                if (!pair.Key.EndsWith("-shifted", StringComparison.Ordinal) ||
-                                                   !mapped.TryGetValue(pair.Key[..^ "-shifted".Length], out mapping))
+                                                   !mapped.TryGetValue(pair.Key[..^"-shifted".Length], out mapping))
                                                    return null;
                                            }
                                            var label =
@@ -177,10 +182,28 @@ namespace Dcs.Ipia.Dcs
                     x => x.Id == global::Dcs.Ipia.Domain.StableIdentity.Create("ui-function", function));
                 var modifiers =
                     string.Join(" + ", row.GetProperty("modifiers").EnumerateArray().Select(x => x.GetString()));
+                // Pinned native Lua owns physical assignments; templates only fill absent mappings.
+                var canonicalProfile = shared is null ? null : ModuleUiLayerBindingImporter.ResolveCanonicalProfile(import, shared, profile);
+                var chord = row.GetProperty("modifiers").EnumerateArray().Select(x => x.GetString()).Order(StringComparer.Ordinal).ToArray();
+                var native = shared?.Bindings.Where(x => x.ProfileId == canonicalProfile?.Id &&
+                    x.Disposition != BindingDisposition.Removed && x.CommandId == command.DcsCommandId &&
+                    x.Reformers.Order(StringComparer.Ordinal).SequenceEqual(chord)).ToArray() ?? [];
+                if (native.Length > 1)
+                    throw new InvalidDataException("Ambiguous pinned UI Layer function: " + function);
+                if (native.Length == 1)
+                {
+                    var candidates = controls.Where(x => x.IsAxis == (native[0].Section == BindingSection.Axis) &&
+                        DcsInputKey.SamePhysicalInput(x.InputKey, native[0].InputKey)).ToArray();
+                    var mappedControl = candidates.FirstOrDefault(x => x.Control.EndsWith("-shifted", StringComparison.Ordinal) == (chord.Length > 0))
+                        ?? candidates.FirstOrDefault() ?? throw new InvalidDataException("Pinned UI Layer function has no graphic control: " + function);
+                    control = mappedControl.Control;
+                    box = boxes[control];
+                }
                 callouts.Add(new(callouts.Count + 1, control, command.Name, modifiers,
                                  Coordinate(box, "x", path, control), Coordinate(box, "y", path, control),
                                  Size(box, "width", path, control),
-                                 Size(box, "height", path, control)) { CommandId = command.DcsCommandId });
+                                 Size(box, "height", path, control))
+                { CommandId = command.DcsCommandId });
             }
             if (projected.Count > 0)
             {
@@ -200,7 +223,8 @@ namespace Dcs.Ipia.Dcs
                         continue;
                     callouts.Add(new(callouts.Count + 1, control.Control, binding.CommandName,
                                      string.Join(" + ", binding.Reformers), control.X, control.Y, control.Width,
-                                     control.Height) { CommandId = binding.CommandId });
+                                     control.Height)
+                    { CommandId = binding.CommandId });
                 }
             }
             var canonical =
@@ -215,8 +239,14 @@ namespace Dcs.Ipia.Dcs
                           .Select(x => x.Path)
                           .SingleOrDefault();
             return new(device.DisplayName, profile.Instance, path, width, height, background,
-                       callouts) { Svg = svg, ProfileId = profile.Id, Controls = controls, SupportsUiLayer = supportsUi,
-                                   CanonicalUiLayerSourcePath = canonicalPath };
+                       callouts)
+            {
+                Svg = svg,
+                ProfileId = profile.Id,
+                Controls = controls,
+                SupportsUiLayer = supportsUi,
+                CanonicalUiLayerSourcePath = canonicalPath
+            };
         }
         private static double Number(string? value) =>
             double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) &&

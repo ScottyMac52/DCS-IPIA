@@ -78,7 +78,7 @@ namespace Dcs.Ipia.Rendering
                <text x="56" y="126" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#ffc95c">{Escape(page.Kicker)}</text>
                <image href="data:image/png;base64,{encoded}" x="35" y="155" width="1130" height="{hardwareHeight}" preserveAspectRatio="xMidYMid meet"/>
              {legend}
-              {(footer.Length==0?"":$"<text x=\"54\" y=\"1570\" font-family=\"Arial,sans-serif\" font-size=\"18\" fill=\"#8ea5bd\">{Escape(footer)}</text>")}
+              {(footer.Length == 0 ? "" : $"<text x=\"54\" y=\"1570\" font-family=\"Arial,sans-serif\" font-size=\"18\" fill=\"#8ea5bd\">{Escape(footer)}</text>")}
              </svg>
              """;
         }
@@ -90,8 +90,11 @@ namespace Dcs.Ipia.Rendering
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
-            using var reader = XmlReader.Create(new StringReader(diagram.Svg), new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4_000_000
+            using var reader = XmlReader.Create(new StringReader(diagram.Svg), new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 4_000_000
             });
             var root = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             foreach (var label in root.Descendants().Where(x => x.Name.LocalName == "text"))
@@ -158,10 +161,110 @@ namespace Dcs.Ipia.Rendering
                                                    new XAttribute("font-weight", "700"), lines[i]));
                 }
             }
+            foreach (var control in diagram.Controls)
+            {
+                var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control.Control);
+                if (label is not null && label.Value.Length > 0)
+                    FitCallout(label, control, page.Labels[control.Control]);
+            }
+            FitCategories(root, diagram, page);
             return root.ToString(SaveOptions.DisableFormatting);
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void FitCategories(XDocument root, UiLayerDiagram diagram, KneeboardComposite page)
+        {
+            foreach (var (name, text) in page.CategoryLabels.Where(x => x.Value.Length > 0))
+            {
+                var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-" + name);
+                var box = label?.ElementsBeforeSelf().LastOrDefault(x => x.Name.LocalName == "rect");
+                if (label is null || box is null) continue;
+                var bounds = new float[4];
+                var keys = new[] { "x", "y", "width", "height" };
+                if (keys.Where((key, i) => !float.TryParse(box.Attribute(key)?.Value, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out bounds[i]) || !float.IsFinite(bounds[i])).Any()) continue;
+                var area = SKRect.Create(bounds[0], bounds[1], bounds[2], bounds[3]);
+                var choices = new List<SKRect> { area };
+                var obstructed = false;
+                foreach (var control in diagram.Controls.Where(x => page.Labels.TryGetValue(x.Control, out var values) && values.Count > 0))
+                {
+                    var obstacle = SKRect.Create((float)control.X - 2, (float)control.Y - 2,
+                        (float)control.Width + 4, (float)control.Height + 4);
+                    var next = new List<SKRect>();
+                    foreach (var choice in choices)
+                    {
+                        if (!choice.IntersectsWith(obstacle)) { next.Add(choice); continue; }
+                        obstructed = true;
+                        next.Add(new(choice.Left, choice.Top, Math.Min(choice.Right, obstacle.Left), choice.Bottom));
+                        next.Add(new(Math.Max(choice.Left, obstacle.Right), choice.Top, choice.Right, choice.Bottom));
+                        next.Add(new(choice.Left, choice.Top, choice.Right, Math.Min(choice.Bottom, obstacle.Top)));
+                        next.Add(new(choice.Left, Math.Max(choice.Top, obstacle.Bottom), choice.Right, choice.Bottom));
+                    }
+                    choices = next.Where(x => x.Width > 4 && x.Height > 2).ToList();
+                }
+                if (!obstructed) continue;
+                if (choices.Count == 0)
+                    throw new InvalidDataException("Category has no space outside control labels: " + name);
+                var fitted = choices.OrderByDescending(x => x.Width * x.Height).First();
+                FitCallout(label, new(name, name, "", fitted.Left, fitted.Top, fitted.Width, fitted.Height),
+                    [new(text, "#ffffff", AssignmentLayer.Module, "")]);
+            }
+        }
+        private static void FitCallout(XElement label, HardwareGraphicControl control, IReadOnlyList<KneeboardLabelVariant> variants)
+        {
+            if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
+                throw new InvalidDataException("Authored callout has no usable text area: " + control.Control);
+            using var typeface = LabelTypeface();
+            using var font = new SKFont(typeface, variants.Count > 1 ? 13 : 16);
+            var available = (float)control.Width - 4;
+            var lines = new List<(string Text, KneeboardLabelVariant Variant)>();
+            float spacing;
+            while (true)
+            {
+                lines.Clear();
+                foreach (var variant in variants)
+                {
+                    var current = "";
+                    foreach (var word in variant.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var proposed = current.Length == 0 ? word : current + " " + word;
+                        if (current.Length > 0 && font.MeasureText(proposed) > available)
+                        {
+                            lines.Add((current, variant));
+                            current = word;
+                        }
+                        else current = proposed;
+                    }
+                    lines.Add((current, variant));
+                }
+                spacing = font.Metrics.Descent - font.Metrics.Ascent;
+                if (lines.Count * spacing <= control.Height - 2 && lines.All(x => font.MeasureText(x.Text) <= available)) break;
+                if (font.Size <= 0.5f)
+                    throw new InvalidDataException("Control label is too long for its authored callout: " + control.Control);
+                font.Size -= 0.25f;
+            }
+            var x = label.Attribute("text-anchor")?.Value switch
+            {
+                "middle" => control.X + control.Width / 2,
+                "end" => control.X + control.Width - 2,
+                _ => control.X + 2
+            };
+            var y = control.Y + control.Height / 2 - (font.Metrics.Ascent + font.Metrics.Descent) / 2;
+            var originalFill = label.Attribute("fill")?.Value ?? "#ffffff";
+            label.RemoveNodes();
+            label.SetAttributeValue("x", x.ToString(CultureInfo.InvariantCulture));
+            label.SetAttributeValue("y", y.ToString(CultureInfo.InvariantCulture));
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var (text, variant) = lines[i];
+                var fill = variant.Color == "#ffffff" && variant.Scope == AssignmentLayer.Module && variant.ModifierChord.Length == 0
+                    ? originalFill : variant.Color;
+                label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x.ToString(CultureInfo.InvariantCulture)),
+                    new XAttribute("dy", (i == 0 ? -(lines.Count - 1) * spacing / 2 : spacing).ToString(CultureInfo.InvariantCulture)),
+                    new XAttribute("font-size", font.Size.ToString(CultureInfo.InvariantCulture)), new XAttribute("fill", fill),
+                    new XAttribute("data-full-label", variant.Text), text));
+            }
+        }
         private static SKTypeface LabelTypeface()
         {
             var source = typeof(CompositeKneeboardRenderer)
@@ -199,8 +302,12 @@ namespace Dcs.Ipia.Rendering
             var bounds = new SKRect(54, 1350, 1146, 1350 + 36 + legend.Count * 28);
             using (var background = new SKPaint { Color = SKColor.Parse("#0b1726") })
                 canvas.DrawRoundRect(bounds, 8, 8, background);
-            using (var border = new SKPaint { Color = SKColor.Parse("#334155"), Style = SKPaintStyle.Stroke,
-                                              StrokeWidth = 1.5f })
+            using (var border = new SKPaint
+            {
+                Color = SKColor.Parse("#334155"),
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 1.5f
+            })
                 canvas.DrawRoundRect(bounds, 8, 8, border);
             for (var i = 0; i < legend.Count; i++)
                 using (var swatch = new SKPaint { Color = SKColor.Parse(legend[i].Color) })
@@ -277,9 +384,12 @@ namespace Dcs.Ipia.Rendering
                     if (font.GetGlyphs(value).Any(glyph => glyph == 0))
                         throw new InvalidDataException("Kneeboard text contains a glyph absent from the pinned font: " +
                                                        value);
-                    using var paint = new SKPaint { IsAntialias = true,
-                                                    Color = SKColor.TryParse(color, out var parsed)
-                                                                ? parsed : SKColors.White };
+                    using var paint = new SKPaint
+                    {
+                        IsAntialias = true,
+                        Color = SKColor.TryParse(color, out var parsed)
+                                                                ? parsed : SKColors.White
+                    };
                     canvas.DrawText(value, textX, textY, alignment, font, paint);
                 }
             }
@@ -304,7 +414,7 @@ namespace Dcs.Ipia.Rendering
                     lines[^1] += " " + word;
             }
             if (lines.Count <= 2)
-                return lines.Count == 0 ?[""] : lines;
+                return lines.Count == 0 ? [""] : lines;
             var tail = string.Join(" ", lines.Skip(1));
             return [lines[0], tail[..Math.Min(max - 3, tail.Length)].TrimEnd() + "..."];
         }
@@ -325,7 +435,7 @@ namespace Dcs.Ipia.Rendering
                     $"<rect x=\"66\" y=\"{y}\" width=\"14\" height=\"14\" rx=\"2\" fill=\"{Escape(legend[i].Color)}\"/>");
                 result.Append(
                     CultureInfo.InvariantCulture,
-                    $"<text x=\"88\" y=\"{y+12}\" font-family=\"Arial,sans-serif\" font-size=\"{LegendFontSize(legend[i].Label)}\" fill=\"#e2e8f0\">{Escape(legend[i].Label)}</text>");
+                    $"<text x=\"88\" y=\"{y + 12}\" font-family=\"Arial,sans-serif\" font-size=\"{LegendFontSize(legend[i].Label)}\" fill=\"#e2e8f0\">{Escape(legend[i].Label)}</text>");
             }
             return result.Append("</g>").ToString();
         }

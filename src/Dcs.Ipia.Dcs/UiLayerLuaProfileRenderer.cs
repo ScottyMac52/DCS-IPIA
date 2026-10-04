@@ -73,6 +73,14 @@ namespace Dcs.Ipia.Dcs
                 if (!saved.TryAdd(Slot(slot.Section, slot.InputKey, chord), assignment))
                     throw new InvalidDataException("Two saved UI Layer commands occupy one input slot.");
             }
+            if (workspace.Sources.TryGetValue("config/kneeboard.json", out var manifest))
+            {
+                using var document = JsonDocument.Parse(manifest);
+                if (document.RootElement.TryGetProperty("uiLayerUtilization", out var usage) &&
+                    usage.TryGetProperty("mode", out var mode) && mode.GetString() == "explicit")
+                    active = active.Where(x => baseline.Contains(Slot(x.Section, x.InputKey, string.Join("+", x.Reformers))) ||
+                        saved.ContainsKey(Slot(x.Section, x.InputKey, string.Join("+", x.Reformers)))).ToArray();
+            }
             var result = new List<DcsBinding>(original.Where(x => x.Disposition == BindingDisposition.Removed));
             var handled = new HashSet<string>(StringComparer.Ordinal);
             foreach (var binding in active)
@@ -115,8 +123,11 @@ namespace Dcs.Ipia.Dcs
             var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
                 modifiers, bindings, workspace.Configuration.Provenance);
             var assignments = workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer)
-                .Select(x => x with { Slot = x.Slot with { Layer = AssignmentLayer.Module },
-                                     Command = x.Command with { Layer = AssignmentLayer.Module } }).ToArray();
+                .Select(x => x with
+                {
+                    Slot = x.Slot with { Layer = AssignmentLayer.Module },
+                    Command = x.Command with { Layer = AssignmentLayer.Module }
+                }).ToArray();
             return ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = assignments }, profileId, AssignmentLayer.UiLayer);
         }
         internal static HashSet<string> RemovedModifiers(IReadOnlyDictionary<string, string> sources)
