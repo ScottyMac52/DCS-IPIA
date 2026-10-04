@@ -193,7 +193,7 @@ namespace DcsIpia.Presentation
                 foreach (var result in results)
                 {
                     var device = result.PhysicalGuid == Guid.Empty ? "Keyboard" : result.PhysicalGuid.ToString("D");
-                    var commands = result.Matches.Count == 0 ? "Unassigned in generated profiles" : string.Join(" | ", result.Matches.Select(x =>
+                    var commands = result.PhysicalGuid == Guid.Empty ? "Keyboard modifier input (keyboard commands are outside v1)" : result.Matches.Count == 0 ? "Unassigned in generated profiles" : string.Join(" | ", result.Matches.Select(x =>
                         $"{x.Layer} [{(x.Chord.Length == 0 ? "Base" : x.Chord)}] {x.Binding.CommandName} ({x.Binding.CommandId})" +
                         (x.Binding.Filter is null ? "" : " tuning=" + JsonSerializer.Serialize(x.Binding.Filter))));
                     InputTestLog.Items.Insert(0, $"{DateTime.Now:HH:mm:ss.fff} {device} {result.InputKey} {result.Transition} {result.Value:F3} · active {string.Join(" / ", _inputSession.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)))} → {commands}");
