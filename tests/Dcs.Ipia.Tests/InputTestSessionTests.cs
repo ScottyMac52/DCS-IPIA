@@ -187,6 +187,41 @@ namespace Dcs.Ipia.Tests
             }
             finally { File.Delete(path); }
         }
+        /// <summary>Other-device axes stay hidden while their Hold modifier resolves selected-device commands.</summary>
+        [Fact]
+        public void SelectedDeviceFeedbackKeepsCrossDeviceModifiers()
+        {
+            var session = new InputTestSession([Bound("SHIFTED", chord: ["S3"])],
+                [new(Throttle, AssignmentLayer.Module, "S3", "JOY_BTN1", ModifierMode.Hold)]);
+            var first = session.ProcessDevice([
+                new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.5 }),
+                new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.7 })], Stick);
+            Assert.Equal(Stick, Assert.Single(first).PhysicalGuid);
+            var pressed = session.ProcessDevice([
+                new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.5 }),
+                new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.9 })], Stick);
+            Assert.All(pressed, x => Assert.Equal(Stick, x.PhysicalGuid));
+            Assert.Equal("SHIFTED", Assert.Single(pressed.Single(x => x.Transition == "Press").Matches).Binding.CommandId);
+            Assert.Equal("S3", session.ActiveModifiers[AssignmentLayer.Module]);
+        }
+        /// <summary>Identical axis keys remain scoped by GUID; unresolved selection yields no feedback.</summary>
+        [Fact]
+        public void SelectedDeviceFeedbackDistinguishesAxesAndNullSelection()
+        {
+            var session = Session(ModifierMode.Toggle);
+            var frames = new[] {
+                new DeviceInputFrame(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.2 }),
+                new DeviceInputFrame(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.8 }) };
+            Assert.Empty(session.ProcessDevice(frames, null));
+            frames[0] = new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.4 });
+            frames[1] = new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.6 });
+            Assert.Equal(0.4, Assert.Single(session.ProcessDevice(frames, Stick)).Value);
+            Assert.Equal("S3", session.ActiveModifiers[AssignmentLayer.Module]);
+            frames[1] = new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.9 });
+            var switched = Assert.Single(session.ProcessDevice(frames, Throttle));
+            Assert.Equal(Throttle, switched.PhysicalGuid);
+            Assert.Equal(0.9, switched.Value);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static DeviceInputFrame Frame(Guid guid, double value) => new(guid, new Dictionary<string, double> { ["JOY_BTN1"] = value });

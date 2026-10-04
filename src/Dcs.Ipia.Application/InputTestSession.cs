@@ -76,6 +76,12 @@ namespace Dcs.Ipia.Application
             foreach (var frame in frames) _previous.Add(frame.PhysicalGuid, new Dictionary<string, double>(frame.Inputs));
             return results;
         }
+        /// <summary>Samples all modifier devices while returning feedback only for the selected physical device.</summary>
+        /// <param name="frames">Complete sample from every connected session device.</param>
+        /// <param name="physicalDevice">Exact selected instance, or null for an unresolved selection.</param>
+        /// <returns>Selected-device transitions; other devices still update modifier state.</returns>
+        public IReadOnlyList<InputTestResult> ProcessDevice(IReadOnlyList<DeviceInputFrame> frames, Guid? physicalDevice) =>
+            Process(frames).Where(x => x.PhysicalGuid == physicalDevice).ToArray();
         /// <summary>Clears held, toggle, press and noise state after stop/focus loss/disconnect.</summary>
         public void Reset()
         {

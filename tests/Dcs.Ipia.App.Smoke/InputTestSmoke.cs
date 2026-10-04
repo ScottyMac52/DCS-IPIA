@@ -20,10 +20,18 @@ namespace Dcs.Ipia.App.Smoke
         {
             var physical = Guid.NewGuid();
             var workspace = Workspace(physical);
+            var otherPhysical = Guid.NewGuid();
+            var otherProfile = new DeviceProfile(Guid.NewGuid(), "aux-test", "SECOND", "Modifier", $"Test {{{otherPhysical:D}}}.diff.lua");
+            var config = workspace.Configuration;
+            workspace = workspace with { Configuration = new(config.Module, [.. config.Profiles, otherProfile],
+                [new DcsModifier("S3", $"Test {{{otherPhysical:D}}}", "JOY_BTN1", ModifierMode.Hold)], config.Bindings, config.Provenance),
+                Diagrams = [.. workspace.Diagrams, workspace.Diagrams[0] with { ProfileId = otherProfile.Id, Device = "Other controller",
+                    Controls = [.. workspace.Diagrams[0].Controls, new("axis", "Axis", "JOY_X", 35, 5, 20, 20, true)] }] };
             var before = EditorSnapshotSerializer.Serialize(workspace);
             FakeDeviceInputSource? source = null;
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
-                inputSourceFactory: (_, devices) => source = new FakeDeviceInputSource(devices.Single()));
+                inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
+                    ? new FakeDeviceInputSource(physical, otherPhysical) : throw new InvalidOperationException("Test must still acquire the modifier controller."));
             window.Show(); window.UpdateLayout();
             var start = (Button)window.FindName("StartInputTestButton")!;
             var stop = (Button)window.FindName("StopInputTestButton")!;
@@ -35,6 +43,8 @@ namespace Dcs.Ipia.App.Smoke
             if (start.IsEnabled || !stop.IsEnabled || choice.IsEnabled || !status.Text.Contains("frozen current edits", StringComparison.Ordinal) ||
                 !log.Items.Cast<string>().Any(x => x.Contains("Test action (KEY)", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Live test did not resolve its frozen generated profile.");
+            if (log.Items.Cast<string>().Any(x => x.Contains(otherPhysical.ToString("D"), StringComparison.Ordinal) || x.Contains("JOY_X", StringComparison.Ordinal)))
+                throw new InvalidOperationException("Another controller's axes leaked into selected-device feedback.");
             var diagram = (Canvas)window.FindName("Diagram")!;
             if (!diagram.Children.OfType<Canvas>().SelectMany(x => x.Children.OfType<Border>()).Any(x => x.Background == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Physical activity did not highlight its control.");
@@ -64,7 +74,9 @@ namespace Dcs.Ipia.App.Smoke
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!ready())
             {
-                if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Input test UI timed out.");
+                var status = ((TextBlock)window.FindName("InputTestStatus")!).Text;
+                if (status.StartsWith("Input test could not start:", StringComparison.Ordinal) || DateTime.UtcNow > deadline)
+                    throw new InvalidOperationException("Input test UI failed: " + status);
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }

@@ -2,7 +2,9 @@
 
 Open a saved module's **Assignments** tab. Select **Current edits** or **Saved profile**, then click **Test Inputs**. IPIA generates the same Lua payload used by export and freezes it for the session. Pending assignments are included only in Current edits. Stop/Start after editing to capture a fresh payload. Testing never saves edits or installs a package.
 
-Operate a controller. The event log shows native instance GUID, DCS input key, press/release or normalized axis position, active scope modifiers, and every matching command name/ID. Multiple results expose Module/UI overlap and duplicate bindings. Blue callouts show physical activity on the current diagram; testing does not select controls or change scope/layer. Unassigned means absent from the generated diff profiles; DCS's built-in defaults may still apply.
+Select the device you want to test, then operate that controller. Feedback is filtered by its exact physical GUID; inputs and idle axis noise from other controllers are hidden. Other controllers and keyboard modifiers remain sampled for cross-device Hold/Toggle chords. Changing the selected device clears the prior device's log and axis highlights. An unresolved device selection produces no input feedback.
+
+The event log shows native instance GUID, DCS input key, press/release or normalized axis position, active scope modifiers, and every matching command name/ID. Multiple results expose Module/UI overlap and duplicate bindings. Blue callouts show physical activity on the current diagram; testing does not select controls or change scope/layer. Unassigned means absent from the generated diff profiles; DCS's built-in defaults may still apply.
 
 Hold and Toggle modifiers are resolved separately per scope and may live on another controller. Supported foreground keyboard modifier keys are also sampled. Keyboard activity is identified as modifier input; keyboard command profiles are outside v1. Toggles change only on a new press, including after release; an initially held toggle does not latch. Modifier state clears at Stop, focus loss or device loss. Release results retain the command matched at press.
 
