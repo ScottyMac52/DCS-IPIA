@@ -9,6 +9,8 @@ namespace Dcs.Ipia.App.Smoke
     /// <param name="otherDevice">Optional modifier controller with noisy axes.</param>
     public sealed class FakeDeviceInputSource(Guid physical, Guid? otherDevice = null) : IDeviceInputSource
     {
+        private static readonly string[] ButtonInputs = ["JOY_BTN1"];
+        private static readonly string[] ModifierInputs = ["JOY_BTN1", "JOY_X"];
         private int _reads;
         #region BEGIN Public
         /// <summary>Gets whether Stop/focus loss released the input source.</summary>
@@ -20,8 +22,8 @@ namespace Dcs.Ipia.App.Smoke
         {
             get
             {
-                var inputs = new Dictionary<Guid, IReadOnlyCollection<string>> { [physical] = new[] { "JOY_BTN1" } };
-                if (otherDevice is { } other) inputs.Add(other, new[] { "JOY_BTN1", "JOY_X" });
+                var inputs = new Dictionary<Guid, IReadOnlyCollection<string>> { [physical] = ButtonInputs };
+                if (otherDevice is { } other) inputs.Add(other, ModifierInputs);
                 return inputs;
             }
         }
