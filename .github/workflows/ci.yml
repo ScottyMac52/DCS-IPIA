@@ -1,8 +1,10 @@
 name: CI
 
-# Automatic builds temporarily suspended to conserve Actions minutes.
-# Restore push/pull_request (CI) and push/tag (Release) triggers when ready.
 on:
+  push:
+    branches: [main]
+  # Validate dependent PRs before their base feature branch is merged.
+  pull_request:
   workflow_dispatch:
 
 permissions:
