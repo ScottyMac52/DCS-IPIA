@@ -200,7 +200,8 @@ namespace Dcs.Ipia.Tests
             var pressed = session.ProcessDevice([
                 new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.5 }),
                 new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.9 })], Stick);
-            Assert.Equal("SHIFTED", Assert.Single(Assert.Single(pressed).Matches).Binding.CommandId);
+            Assert.All(pressed, x => Assert.Equal(Stick, x.PhysicalGuid));
+            Assert.Equal("SHIFTED", Assert.Single(pressed.Single(x => x.Transition == "Press").Matches).Binding.CommandId);
             Assert.Equal("S3", session.ActiveModifiers[AssignmentLayer.Module]);
         }
         /// <summary>Identical axis keys remain scoped by GUID; unresolved selection yields no feedback.</summary>
