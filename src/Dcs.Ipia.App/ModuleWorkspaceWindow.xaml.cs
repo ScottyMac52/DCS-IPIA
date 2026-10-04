@@ -52,6 +52,7 @@ namespace DcsIpia.Presentation
         private readonly System.Windows.Threading.DispatcherTimer _inputTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
         private IDeviceInputSource? _inputSource;
         private InputTestSession? _inputSession;
+        private Guid? _inputFeedbackDevice;
         private GeneratedInputTestPlan? _inputPlan;
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
         private readonly Dictionary<Border, Brush> _testHighlights = [];
@@ -157,7 +158,7 @@ namespace DcsIpia.Presentation
                     if (!supported[binding.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, binding.Binding.InputKey)))
                         diagnostics.Add("Unsupported mapped input: " + binding.Binding.InputKey + " / " + binding.PhysicalGuid.ToString("D"));
                 InputTestLog.Items.Clear();
-                InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
+                InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Selected-device feedback; modifiers from all controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
                     (diagnostics.Count == 0 ? "" : "\nPartial test — " + string.Join("; ", diagnostics.Distinct()));
                 StartInputTestButton.IsEnabled = false;
                 StopInputTestButton.IsEnabled = true;
@@ -172,6 +173,7 @@ namespace DcsIpia.Presentation
         {
             _inputTimer.Stop();
             _inputSession?.Reset(); _inputSession = null; _inputPlan = null;
+            _inputFeedbackDevice = null;
             _inputSource?.Dispose(); _inputSource = null;
             _testKeyboard.Clear(); _liveAxisUntil.Clear();
             ClearInputHighlights();
@@ -189,7 +191,14 @@ namespace DcsIpia.Presentation
             {
                 var frames = _inputSource.Read().ToList();
                 frames.Add(new(Guid.Empty, _testKeyboard.ToDictionary(x => x.Key, x => Keyboard.IsKeyDown(x.Value) ? 1.0 : 0.0)));
-                var results = _inputSession.Process(frames);
+                var physicalDevice = CurrentInputTestDevice();
+                if (_inputFeedbackDevice != physicalDevice)
+                {
+                    InputTestLog.Items.Clear();
+                    _liveAxisUntil.Clear();
+                    _inputFeedbackDevice = physicalDevice;
+                }
+                var results = _inputSession.ProcessDevice(frames, physicalDevice);
                 foreach (var result in results)
                 {
                     var device = result.PhysicalGuid == Guid.Empty ? "Keyboard" : result.PhysicalGuid.ToString("D");
@@ -213,10 +222,7 @@ namespace DcsIpia.Presentation
         private void HighlightInputControls(IReadOnlyList<DeviceInputFrame> frames)
         {
             ClearInputHighlights();
-            if (CurrentDiagram is not { } diagram || _working is null) return;
-            var profile = _working.Configuration.Profiles.FirstOrDefault(x => x.Id == diagram.ProfileId);
-            var member = WorkspaceStructureEditor.Describe(_working).Devices.FirstOrDefault(x => x.ProfileId == diagram.ProfileId && x.Layer == CurrentLayer);
-            var guid = member?.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(member?.FileName ?? profile?.SourceName ?? "");
+            var guid = CurrentInputTestDevice();
             var frame = frames.FirstOrDefault(x => x.PhysicalGuid == guid);
             if (frame is null) return;
             foreach (var surface in Diagram.Children.OfType<Canvas>())
@@ -227,6 +233,14 @@ namespace DcsIpia.Presentation
                     _testHighlights[border] = border.Background;
                     border.Background = Brushes.LightSkyBlue;
                 }
+        }
+        private Guid? CurrentInputTestDevice()
+        {
+            if (CurrentDiagram is not { } diagram || _working is null) return null;
+            var profile = _working.Configuration.Profiles.FirstOrDefault(x => x.Id == diagram.ProfileId);
+            var member = WorkspaceStructureEditor.Describe(_working).Devices.FirstOrDefault(x => x.ProfileId == diagram.ProfileId && x.Layer == CurrentLayer);
+            var guid = member?.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(member?.FileName ?? profile?.SourceName ?? "");
+            return guid;
         }
         private static Key? KeyboardTestKey(string name) => name switch
         {
