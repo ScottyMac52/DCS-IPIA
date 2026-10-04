@@ -1,11 +1,9 @@
 name: Release
 
+# Automatic builds temporarily suspended to conserve Actions minutes.
+# Restore push/pull_request (CI) and push/tag (Release) triggers when ready.
 on:
-  push:
-    tags:
-      - 'v*.*.*.*'
-    branches: [main]
-    paths: [release/version.json]
+  workflow_dispatch:
 
 permissions:
   contents: read
