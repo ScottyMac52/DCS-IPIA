@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
@@ -62,13 +63,21 @@ namespace Dcs.Ipia.App.Smoke
             var testPane = (Expander)window.FindName("InputTestPane")!;
             var upper = panes.RowDefinitions[0];
             var lower = panes.RowDefinitions[2];
+            if (upper.ActualHeight + lower.ActualHeight - upper.MinHeight - lower.MinHeight < 20)
+            {
+                window.Height += 160;
+                window.UpdateLayout();
+            }
             var upperBefore = upper.ActualHeight;
             var lowerBefore = lower.ActualHeight;
-            upper.Height = new GridLength(upperBefore + 20);
+            var direction = upperBefore - upper.MinHeight >= 10 ? Key.Up : Key.Down;
+            splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(splitter), 0, direction)
+                { RoutedEvent = Keyboard.KeyDownEvent });
             window.UpdateLayout();
             if (splitter.ResizeDirection != GridResizeDirection.Rows || splitter.ResizeBehavior != GridResizeBehavior.PreviousAndNext ||
-                upper.ActualHeight <= upperBefore || lower.ActualHeight >= lowerBefore)
-                throw new InvalidOperationException("Input-test divider did not resize both panes.");
+                Math.Abs(upper.ActualHeight - upperBefore) < 1 || Math.Abs(lower.ActualHeight - lowerBefore) < 1 ||
+                Math.Abs(upper.ActualHeight + lower.ActualHeight - upperBefore - lowerBefore) > 1)
+                throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}.");
             testPane.IsExpanded = false;
             window.UpdateLayout();
             if (splitter.Visibility != Visibility.Collapsed || !upper.Height.IsAuto)

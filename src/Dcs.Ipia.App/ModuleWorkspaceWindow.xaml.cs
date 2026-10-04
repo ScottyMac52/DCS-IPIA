@@ -56,7 +56,7 @@ namespace DcsIpia.Presentation
         private GeneratedInputTestPlan? _inputPlan;
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
         private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
-        private GridLength _inputTestPaneHeight = new(140);
+        private GridLength _inputTestPaneHeight = new(1, GridUnitType.Star);
         private readonly Dictionary<Border, Brush> _testHighlights = [];
         private readonly Dictionary<string, Key> _testKeyboard = new(StringComparer.Ordinal);
         /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>

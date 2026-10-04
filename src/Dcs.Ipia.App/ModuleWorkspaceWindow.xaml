@@ -235,9 +235,9 @@
           </DockPanel>
           <Grid x:Name="AssignmentPanes">
             <Grid.RowDefinitions>
-              <RowDefinition x:Name="InputTestRow" Height="140" MinHeight="60"/>
+              <RowDefinition x:Name="InputTestRow" Height="1*" MinHeight="60"/>
               <RowDefinition Height="6"/>
-              <RowDefinition Height="*" MinHeight="100"/>
+              <RowDefinition Height="2*" MinHeight="100"/>
             </Grid.RowDefinitions>
             <Expander x:Name="InputTestPane" Grid.Row="0" Header="Live input test" IsExpanded="True" VerticalContentAlignment="Stretch" Margin="0,0,0,6" Expanded="InputTestPaneExpanded" Collapsed="InputTestPaneCollapsed">
               <Grid>
