@@ -48,6 +48,14 @@ namespace DcsIpia.Presentation
         private bool _updatingFilters;
         private bool _building;
         private AssignmentLayer? _categoryScope;
+        private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? _inputSourceFactory;
+        private readonly System.Windows.Threading.DispatcherTimer _inputTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+        private IDeviceInputSource? _inputSource;
+        private InputTestSession? _inputSession;
+        private GeneratedInputTestPlan? _inputPlan;
+        private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
+        private readonly Dictionary<Border, Brush> _testHighlights = [];
+        private readonly Dictionary<string, Key> _testKeyboard = new(StringComparer.Ordinal);
         /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>
         /// <param name="viewModel">Persisted editor data or a source preview.</param>
         /// <param name="settings">Occupied destination preference.</param>
@@ -59,11 +67,13 @@ namespace DcsIpia.Presentation
         /// <param name="completeReleaseFolderPicker">Optional parent folder selection for Complete release export.</param>
         /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
         /// <param name="axisDefaultsFilePicker">Optional cleared-axis DCS profile selection adapter.</param>
+        /// <param name="inputSourceFactory">Optional foreground device-input adapter for testing.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
-                                     Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null)
+                                     Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
+                                     Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -75,6 +85,7 @@ namespace DcsIpia.Presentation
             _completeReleaseFolderPicker = completeReleaseFolderPicker;
             _integrationFilePicker = integrationFilePicker;
             _axisDefaultsFilePicker = axisDefaultsFilePicker;
+            _inputSourceFactory = inputSourceFactory;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -106,12 +117,126 @@ namespace DcsIpia.Presentation
             RefreshDeviceChoices();
             Loaded += async (_, _) => { if (_working is not null) await RefreshDetectedDevicesAsync(); };
             Closing += ConfirmClose;
+            _inputTimer.Tick += PollInputTest;
+            Deactivated += (_, _) => StopInputTest("Stopped on focus loss; restart to clear modifier state.");
+            Closed += (_, _) => StopInputTest("Stopped.");
             RefreshEditor();
             UpdateBuildAvailability();
         }
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private void StartInputTestClicked(object sender, RoutedEventArgs e)
+        {
+            StopInputTest("Preparing generated Lua…");
+            try
+            {
+                var snapshot = InputTestSnapshotChoice.SelectedIndex == 1 ? _saved ?? throw new InvalidOperationException("No saved profile.") : EditSnapshot();
+                var plan = GeneratedInputTestPlan.Create(snapshot);
+                var required = plan.Bindings.Select(x => x.PhysicalGuid).Concat(plan.Modifiers.Select(x => x.PhysicalGuid))
+                    .Where(x => x != Guid.Empty).Distinct().ToArray();
+                var attached = _inputSourceFactory is null ? _deviceDiscovery.Discover().Where(x => x.Connected).Select(x => x.PhysicalGuid).ToHashSet() : required.ToHashSet();
+                var devices = required.Where(attached.Contains).ToArray();
+                _inputSource = _inputSourceFactory?.Invoke(new System.Windows.Interop.WindowInteropHelper(this).Handle, devices) ??
+                    new WindowsDeviceInputSource(new System.Windows.Interop.WindowInteropHelper(this).Handle, devices);
+                _inputPlan = plan;
+                _inputSession = new(plan.Bindings, plan.Modifiers);
+                _testKeyboard.Clear();
+                var diagnostics = new List<string>(plan.Diagnostics);
+                diagnostics.AddRange(required.Where(x => !attached.Contains(x)).Select(x => "Missing controller/modifier device: " + x.ToString("D")));
+                foreach (var modifier in plan.Modifiers.Where(x => x.PhysicalGuid == Guid.Empty))
+                {
+                    if (KeyboardTestKey(modifier.InputKey) is { } key) _testKeyboard[modifier.InputKey] = key;
+                    else diagnostics.Add("Unsupported keyboard modifier: " + modifier.InputKey);
+                }
+                var supported = _inputSource.SupportedInputs;
+                foreach (var modifier in plan.Modifiers.Where(x => x.PhysicalGuid != Guid.Empty && supported.ContainsKey(x.PhysicalGuid)))
+                    if (!supported[modifier.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, modifier.InputKey)))
+                        diagnostics.Add("Unsupported modifier input: " + modifier.Name + " / " + modifier.InputKey);
+                foreach (var binding in plan.Bindings.Where(x => supported.ContainsKey(x.PhysicalGuid)))
+                    if (!supported[binding.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, binding.Binding.InputKey)))
+                        diagnostics.Add("Unsupported mapped input: " + binding.Binding.InputKey + " / " + binding.PhysicalGuid.ToString("D"));
+                InputTestLog.Items.Clear();
+                InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
+                    (diagnostics.Count == 0 ? "" : "\nPartial test — " + string.Join("; ", diagnostics.Distinct()));
+                StartInputTestButton.IsEnabled = false;
+                StopInputTestButton.IsEnabled = true;
+                InputTestSnapshotChoice.IsEnabled = false;
+                _inputTimer.Start();
+                PollInputTest(this, EventArgs.Empty);
+            }
+            catch (Exception ex) { StopInputTest("Input test could not start: " + ex.Message); }
+        }
+        private void StopInputTestClicked(object sender, RoutedEventArgs e) => StopInputTest("Stopped. Start again to capture a fresh generated profile.");
+        private void StopInputTest(string status)
+        {
+            _inputTimer.Stop();
+            _inputSession?.Reset(); _inputSession = null; _inputPlan = null;
+            _inputSource?.Dispose(); _inputSource = null;
+            _testKeyboard.Clear(); _liveAxisUntil.Clear();
+            ClearInputHighlights();
+            if (StartInputTestButton is null) return;
+            StartInputTestButton.IsEnabled = _saved is not null;
+            StopInputTestButton.IsEnabled = false;
+            InputTestSnapshotChoice.IsEnabled = true;
+            InputTestStatus.Text = status;
+            InputTestModifiers.Text = "";
+        }
+        private void PollInputTest(object? sender, EventArgs e)
+        {
+            if (_inputSource is null || _inputSession is null || _inputPlan is null) return;
+            try
+            {
+                var frames = _inputSource.Read().ToList();
+                frames.Add(new(Guid.Empty, _testKeyboard.ToDictionary(x => x.Key, x => Keyboard.IsKeyDown(x.Value) ? 1.0 : 0.0)));
+                var results = _inputSession.Process(frames);
+                foreach (var result in results)
+                {
+                    var device = result.PhysicalGuid == Guid.Empty ? "Keyboard" : result.PhysicalGuid.ToString("D");
+                    var commands = result.Matches.Count == 0 ? "Unassigned in generated profiles" : string.Join(" | ", result.Matches.Select(x =>
+                        $"{x.Layer} [{(x.Chord.Length == 0 ? "Base" : x.Chord)}] {x.Binding.CommandName} ({x.Binding.CommandId})" +
+                        (x.Binding.Filter is null ? "" : " tuning=" + JsonSerializer.Serialize(x.Binding.Filter))));
+                    InputTestLog.Items.Insert(0, $"{DateTime.Now:HH:mm:ss.fff} {device} {result.InputKey} {result.Transition} {result.Value:F3} · active {string.Join(" / ", _inputSession.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)))} → {commands}");
+                    while (InputTestLog.Items.Count > 200) InputTestLog.Items.RemoveAt(InputTestLog.Items.Count - 1);
+                    if (result.Transition == "Position") _liveAxisUntil[(result.PhysicalGuid, result.InputKey)] = DateTime.UtcNow.AddMilliseconds(500);
+                }
+                InputTestModifiers.Text = string.Join(" · ", _inputSession.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
+                HighlightInputControls(frames);
+            }
+            catch (Exception ex) { StopInputTest("Stopped on input loss/disconnect: " + ex.Message + ". Restart after reconnecting."); }
+        }
+        private void ClearInputHighlights()
+        {
+            foreach (var (border, background) in _testHighlights) border.Background = background;
+            _testHighlights.Clear();
+        }
+        private void HighlightInputControls(IReadOnlyList<DeviceInputFrame> frames)
+        {
+            ClearInputHighlights();
+            if (CurrentDiagram is not { } diagram || _working is null) return;
+            var profile = _working.Configuration.Profiles.FirstOrDefault(x => x.Id == diagram.ProfileId);
+            var member = WorkspaceStructureEditor.Describe(_working).Devices.FirstOrDefault(x => x.ProfileId == diagram.ProfileId && x.Layer == CurrentLayer);
+            var guid = member?.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(member?.FileName ?? profile?.SourceName ?? "");
+            var frame = frames.FirstOrDefault(x => x.PhysicalGuid == guid);
+            if (frame is null) return;
+            foreach (var surface in Diagram.Children.OfType<Canvas>())
+            foreach (var border in surface.Children.OfType<Border>())
+                if (border.Tag is HardwareGraphicControl control && frame.Inputs.Any(x => DcsInputKey.SamePhysicalInput(x.Key, control.InputKey) &&
+                    (control.IsAxis ? _liveAxisUntil.GetValueOrDefault((frame.PhysicalGuid, x.Key)) > DateTime.UtcNow : x.Value > 0.5)))
+                {
+                    _testHighlights[border] = border.Background;
+                    border.Background = Brushes.LightSkyBlue;
+                }
+        }
+        private static Key? KeyboardTestKey(string name) => name switch
+        {
+            "LShift" => Key.LeftShift, "RShift" => Key.RightShift,
+            "LCtrl" => Key.LeftCtrl, "RCtrl" => Key.RightCtrl,
+            "LAlt" => Key.LeftAlt, "RAlt" => Key.RightAlt,
+            "LWin" => Key.LWin, "RWin" => Key.RWin,
+            "Enter" => Key.Return, "Backspace" => Key.Back,
+            _ => Enum.TryParse<Key>(name, true, out var key) && key != Key.None ? key : null
+        };
         private IReadOnlyList<CommandPaletteEntry> AircraftPalette() => CurrentLayer == AssignmentLayer.Module
             ? _working?.ModuleCommands ?? _viewModel.ModuleCommands
             : _working is null ? _viewModel.UiCommands : CommandPalette.FromUiLayer(_working.UiCommands);

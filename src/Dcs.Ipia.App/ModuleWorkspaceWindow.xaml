@@ -217,8 +217,18 @@
               <Button Content="Clear layer assignments" Click="ClearLayerAssignmentsClicked" Margin="12,0,0,0" Padding="10,4"/>
               <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="16,0,6,0"/>
               <Slider x:Name="Zoom" Minimum="0.5" Maximum="3" Value="1" Width="140" ValueChanged="ZoomChanged"/>
+              <Button x:Name="StartInputTestButton" Content="Test Inputs" Click="StartInputTestClicked" Margin="12,0,0,0" Padding="10,4"/>
+              <Button x:Name="StopInputTestButton" Content="Stop test" Click="StopInputTestClicked" IsEnabled="False" Margin="6,0,0,0" Padding="10,4"/>
+              <ComboBox x:Name="InputTestSnapshotChoice" SelectedIndex="0" MinWidth="140" Margin="6,0,0,0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
               <Button Content="Rendered kneeboard…" Click="RenderClicked" Margin="16,0,0,0" Padding="10,4"/>
             </WrapPanel>
+            <Expander Header="Live input test" IsExpanded="True" Margin="0,6,0,0">
+              <StackPanel>
+                <TextBlock x:Name="InputTestStatus" Text="Test physical inputs against generated Lua. Built-in DCS defaults and in-game execution are outside this test." TextWrapping="Wrap"/>
+                <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap"/>
+                <ListBox x:Name="InputTestLog" Height="100" FontFamily="Consolas"/>
+              </StackPanel>
+            </Expander>
           </StackPanel>
           <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
             <Button DockPanel.Dock="Right" Content="Save to database" Padding="20,6" Click="SaveClicked"/>
