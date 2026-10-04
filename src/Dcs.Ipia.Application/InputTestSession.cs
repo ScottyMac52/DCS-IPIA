@@ -25,7 +25,7 @@ namespace Dcs.Ipia.Application
         public IReadOnlyDictionary<AssignmentLayer, string> ActiveModifiers => _active;
         /// <summary>Resolves transitions after atomically sampling all modifier devices.</summary>
         /// <param name="frames">Complete sample from every connected session device.</param>
-        /// <returns>Digital transitions and significant axis positions.</returns>
+        /// <returns>Digital transitions and significant axis changes; initial samples only establish a baseline.</returns>
         public IReadOnlyList<InputTestResult> Process(IReadOnlyList<DeviceInputFrame> frames)
         {
             if (frames.Select(x => x.PhysicalGuid).Distinct().Count() != frames.Count ||
@@ -33,7 +33,6 @@ namespace Dcs.Ipia.Application
                 frames.Any(x => x.Inputs.Any(v => !double.IsFinite(v.Value) || v.Value < 0 || v.Value > 1)))
                 throw new InvalidDataException("Incomplete or invalid input sample; restart the test session.");
             var sampled = frames.ToDictionary(x => x.PhysicalGuid, x => x.Inputs);
-            var oldChords = new Dictionary<AssignmentLayer, string>(_active);
             foreach (var modifier in _modifiers)
             {
                 var now = Value(sampled, modifier.PhysicalGuid, modifier.InputKey) > 0.5;
@@ -56,10 +55,14 @@ namespace Dcs.Ipia.Application
                         !key.StartsWith("JOY_POV", StringComparison.Ordinal);
                     var identity = (frame.PhysicalGuid, key);
                     var known = _previous.TryGetValue(frame.PhysicalGuid, out var prior);
-                    var old = prior?.GetValueOrDefault(key) ?? 0;
-                    var chordChanged = _active.Any(x => oldChords.GetValueOrDefault(x.Key) != x.Value);
-                    if (axis ? _reportedAxes.TryGetValue(identity, out var reported) && Math.Abs(reported - value) < 0.01 && !chordChanged
-                             : !known || old == value) continue;
+                    if (!known || !prior!.ContainsKey(key))
+                    {
+                        if (axis) _reportedAxes[identity] = value;
+                        continue;
+                    }
+                    var old = prior[key];
+                    if (axis ? Math.Abs(_reportedAxes[identity] - value) < 0.01
+                             : (old > 0.5) == (value > 0.5)) continue;
                     var matches = _bindings.Where(x => x.PhysicalGuid == frame.PhysicalGuid &&
                         (x.Binding.Section == BindingSection.Axis) == axis && DcsInputKey.SamePhysicalInput(x.Binding.InputKey, key) &&
                         x.Chord == _active.GetValueOrDefault(x.Layer, "")).ToArray();

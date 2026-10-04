@@ -222,13 +222,6 @@
               <ComboBox x:Name="InputTestSnapshotChoice" SelectedIndex="0" MinWidth="140" Margin="6,0,0,0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
               <Button Content="Rendered kneeboard…" Click="RenderClicked" Margin="16,0,0,0" Padding="10,4"/>
             </WrapPanel>
-            <Expander Header="Live input test" IsExpanded="True" Margin="0,6,0,0">
-              <StackPanel>
-                <TextBlock x:Name="InputTestStatus" Text="Test physical inputs against generated Lua. Built-in DCS defaults and in-game execution are outside this test." TextWrapping="Wrap"/>
-                <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap"/>
-                <ListBox x:Name="InputTestLog" Height="100" FontFamily="Consolas"/>
-              </StackPanel>
-            </Expander>
           </StackPanel>
           <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
             <Button DockPanel.Dock="Right" Content="Save to database" Padding="20,6" Click="SaveClicked"/>
@@ -240,59 +233,80 @@
               <TextBlock x:Name="PendingSummary" FontWeight="SemiBold"/>
             </StackPanel>
           </DockPanel>
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*" MinWidth="300"/><ColumnDefinition Width="280"/></Grid.ColumnDefinitions>
-            <GroupBox Header="Command catalog" Padding="6">
-              <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                  <TextBox x:Name="CommandSearch" TextChanged="FiltersChanged" ToolTip="Search command, category or ID" Margin="0,8,0,4"/>
-                  <TextBlock Text="Category"/>
-                  <ComboBox x:Name="CommandCategory" SelectionChanged="FiltersChanged"/>
-                  <TextBlock Text="Type" Margin="0,4,0,0"/>
-                  <ComboBox x:Name="CommandType" SelectionChanged="FiltersChanged">
-                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Key"/><ComboBoxItem Content="Axes"/>
-                  </ComboBox>
-                  <TextBlock Text="Binding state" Margin="0,4,0,0"/>
-                  <ComboBox x:Name="BindingState" SelectionChanged="FiltersChanged"
-                            ToolTip="Bound/Unbound: selected device and modifier. Bound by all: assigned on every device in this scope. Unbound by all: assigned on no device in this scope.">
-                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Bound"/><ComboBoxItem Content="Unbound"/>
-                    <ComboBoxItem Content="Bound by all"/><ComboBoxItem Content="Unbound by all"/>
-                  </ComboBox>
-                  <TextBlock x:Name="CommandCount" Margin="0,6"/>
-                </StackPanel>
-                <ListBox x:Name="Commands" PreviewMouseLeftButtonDown="DragStart" PreviewMouseMove="CommandDrag">
-                  <ListBox.ItemTemplate>
-                    <DataTemplate>
-                      <StackPanel Margin="2,4">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding Category}" FontSize="11" TextWrapping="Wrap"/>
-                      </StackPanel>
-                    </DataTemplate>
-                  </ListBox.ItemTemplate>
-                </ListBox>
-              </DockPanel>
-            </GroupBox>
-            <ScrollViewer Grid.Column="1" Margin="8,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                          Background="{DynamicResource CanvasBackgroundBrush}">
-              <Canvas x:Name="Diagram" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-            </ScrollViewer>
-            <GroupBox Grid.Column="2" Header="Selected control" Padding="10">
-              <StackPanel>
-                <TextBlock x:Name="PhysicalInput" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Text="Select a callout"/>
-                <TextBlock x:Name="Chord" Margin="0,6" TextWrapping="Wrap"/>
-                <TextBlock Text="Current command" FontWeight="SemiBold"/><TextBlock x:Name="CurrentCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
-                <TextBlock Text="Pending command" FontWeight="SemiBold"/><TextBlock x:Name="PendingCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
-                <TextBlock Text="DCS default label" FontWeight="SemiBold"/><TextBlock x:Name="DefaultLabel" TextWrapping="Wrap" Margin="0,2,0,10"/>
-                <TextBlock Text="Displayed label" FontWeight="SemiBold"/><TextBox x:Name="LabelEditor" TextChanged="LabelChanged" IsEnabled="False" Margin="0,4,0,8"/>
-                <TextBlock Text="Axis tuning" FontWeight="SemiBold"/><TextBlock x:Name="AxisTuningSummary" Margin="0,2,0,6" TextWrapping="Wrap"/>
-                <Button x:Name="TuneAxisButton" Content="Tune axis…" Click="TuneAxisClicked" IsEnabled="False" Padding="8,5"/>
-                <Button Content="Assign selected command" Click="AssignClicked" Margin="0,4" Padding="8,5"/>
-                <Button Content="Clear assignment" Click="ClearClicked" Margin="0,4" Padding="8,5"/>
-                <Button Content="Undo assignment / Restore" Click="UndoClicked" Margin="0,4" Padding="8,5"/>
-                <Button Content="Reset label to DCS default" Click="ResetClicked" Margin="0,4" Padding="8,5"/>
-                <TextBlock Text="Drag an assigned callout onto another compatible callout to move its command." TextWrapping="Wrap" Margin="0,16,0,0"/>
-              </StackPanel>
-            </GroupBox>
+          <Grid x:Name="AssignmentPanes">
+            <Grid.RowDefinitions>
+              <RowDefinition x:Name="InputTestRow" Height="140" MinHeight="60"/>
+              <RowDefinition Height="6"/>
+              <RowDefinition Height="*" MinHeight="100"/>
+            </Grid.RowDefinitions>
+            <Expander x:Name="InputTestPane" Grid.Row="0" Header="Live input test" IsExpanded="True" VerticalContentAlignment="Stretch" Margin="0,0,0,6" Expanded="InputTestPaneExpanded" Collapsed="InputTestPaneCollapsed">
+              <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <TextBlock x:Name="InputTestStatus" Text="Test physical inputs against generated Lua. Built-in DCS defaults and in-game execution are outside this test." TextWrapping="Wrap"/>
+                <TextBlock x:Name="InputTestModifiers" Grid.Row="1" TextWrapping="Wrap"/>
+                <ListBox x:Name="InputTestLog" Grid.Row="2" FontFamily="Consolas"/>
+              </Grid>
+            </Expander>
+            <GridSplitter x:Name="InputTestSplitter" Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="True"
+                          Background="{DynamicResource BorderBrush}" Cursor="SizeNS" Focusable="True"
+                          ToolTip="Drag to resize input testing and assignment editor" AutomationProperties.Name="Resize input test and assignment panes"/>
+            <Grid Grid.Row="2">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*" MinWidth="300"/><ColumnDefinition Width="280"/></Grid.ColumnDefinitions>
+              <GroupBox Header="Command catalog" Padding="6">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Top">
+                    <TextBox x:Name="CommandSearch" TextChanged="FiltersChanged" ToolTip="Search command, category or ID" Margin="0,8,0,4"/>
+                    <TextBlock Text="Category"/>
+                    <ComboBox x:Name="CommandCategory" SelectionChanged="FiltersChanged"/>
+                    <TextBlock Text="Type" Margin="0,4,0,0"/>
+                    <ComboBox x:Name="CommandType" SelectionChanged="FiltersChanged">
+                      <ComboBoxItem Content="All"/><ComboBoxItem Content="Key"/><ComboBoxItem Content="Axes"/>
+                    </ComboBox>
+                    <TextBlock Text="Binding state" Margin="0,4,0,0"/>
+                    <ComboBox x:Name="BindingState" SelectionChanged="FiltersChanged"
+                              ToolTip="Bound/Unbound: selected device and modifier. Bound by all: assigned on every device in this scope. Unbound by all: assigned on no device in this scope.">
+                      <ComboBoxItem Content="All"/><ComboBoxItem Content="Bound"/><ComboBoxItem Content="Unbound"/>
+                      <ComboBoxItem Content="Bound by all"/><ComboBoxItem Content="Unbound by all"/>
+                    </ComboBox>
+                    <TextBlock x:Name="CommandCount" Margin="0,6"/>
+                  </StackPanel>
+                  <ListBox x:Name="Commands" PreviewMouseLeftButtonDown="DragStart" PreviewMouseMove="CommandDrag">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Margin="2,4">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                          <TextBlock Text="{Binding Category}" FontSize="11" TextWrapping="Wrap"/>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </GroupBox>
+              <ScrollViewer Grid.Column="1" Margin="8,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                            Background="{DynamicResource CanvasBackgroundBrush}">
+                <Canvas x:Name="Diagram" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+              </ScrollViewer>
+              <GroupBox Grid.Column="2" Header="Selected control" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel>
+                    <TextBlock x:Name="PhysicalInput" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Text="Select a callout"/>
+                    <TextBlock x:Name="Chord" Margin="0,6" TextWrapping="Wrap"/>
+                    <TextBlock Text="Current command" FontWeight="SemiBold"/><TextBlock x:Name="CurrentCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                    <TextBlock Text="Pending command" FontWeight="SemiBold"/><TextBlock x:Name="PendingCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                    <TextBlock Text="DCS default label" FontWeight="SemiBold"/><TextBlock x:Name="DefaultLabel" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                    <TextBlock Text="Displayed label" FontWeight="SemiBold"/><TextBox x:Name="LabelEditor" TextChanged="LabelChanged" IsEnabled="False" Margin="0,4,0,8"/>
+                    <TextBlock Text="Axis tuning" FontWeight="SemiBold"/><TextBlock x:Name="AxisTuningSummary" Margin="0,2,0,6" TextWrapping="Wrap"/>
+                    <Button x:Name="TuneAxisButton" Content="Tune axis…" Click="TuneAxisClicked" IsEnabled="False" Padding="8,5"/>
+                    <Button Content="Assign selected command" Click="AssignClicked" Margin="0,4" Padding="8,5"/>
+                    <Button Content="Clear assignment" Click="ClearClicked" Margin="0,4" Padding="8,5"/>
+                    <Button Content="Undo assignment / Restore" Click="UndoClicked" Margin="0,4" Padding="8,5"/>
+                    <Button Content="Reset label to DCS default" Click="ResetClicked" Margin="0,4" Padding="8,5"/>
+                    <TextBlock Text="Drag an assigned callout onto another compatible callout to move its command." TextWrapping="Wrap" Margin="0,16,0,0"/>
+                  </StackPanel>
+                </ScrollViewer>
+              </GroupBox>
+            </Grid>
           </Grid>
         </DockPanel>
       </TabItem>
@@ -484,3 +498,4 @@
     </DockPanel>
   </Grid>
 </Window>
+
