@@ -32,7 +32,10 @@ namespace Dcs.Ipia.App.Smoke
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
                 inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
                     ? new FakeDeviceInputSource(physical, otherPhysical) : throw new InvalidOperationException("Test must still acquire the modifier controller."));
-            window.Show(); window.UpdateLayout();
+            window.Show();
+            var tabs = (TabControl)window.FindName("ImportedTabs")!;
+            tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => Equals(x.Header, "Assignments"));
+            window.UpdateLayout();
             var start = (Button)window.FindName("StartInputTestButton")!;
             var stop = (Button)window.FindName("StopInputTestButton")!;
             var log = (ListBox)window.FindName("InputTestLog")!;
@@ -130,4 +133,3 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
-
