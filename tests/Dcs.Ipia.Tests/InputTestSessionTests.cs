@@ -59,7 +59,7 @@ namespace Dcs.Ipia.Tests
                 new(Stick, BindingSection.Key, "HAT", "Hat", BindingDisposition.Added, "JOY_POV1_UR")),
                 new(Stick, AssignmentLayer.Module, new(Stick, BindingSection.Axis, "PITCH", "Pitch", BindingDisposition.Changed, "JOY_X", filter: new(Invert: true)))], []);
             var initial = session.Process([new(Stick, new Dictionary<string, double> { ["JOY_BTN_POV1_UR"] = 0, ["JOY_X"] = 0.5 })]);
-            Assert.Equal("Position", Assert.Single(initial).Transition);
+            Assert.Empty(initial);
             Assert.Empty(session.Process([new(Stick, new Dictionary<string, double> { ["JOY_BTN_POV1_UR"] = 0, ["JOY_X"] = 0.502 })]));
             var events = session.Process([new(Stick, new Dictionary<string, double> { ["JOY_BTN_POV1_UR"] = 1, ["JOY_X"] = 0.52 })]);
             Assert.Equal(2, events.Count);
@@ -196,7 +196,7 @@ namespace Dcs.Ipia.Tests
             var first = session.ProcessDevice([
                 new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.5 }),
                 new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.7 })], Stick);
-            Assert.Equal(Stick, Assert.Single(first).PhysicalGuid);
+            Assert.Empty(first);
             var pressed = session.ProcessDevice([
                 new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.5 }),
                 new(Throttle, new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_X"] = 0.9 })], Stick);
@@ -221,6 +221,50 @@ namespace Dcs.Ipia.Tests
             var switched = Assert.Single(session.ProcessDevice(frames, Throttle));
             Assert.Equal(Throttle, switched.PhysicalGuid);
             Assert.Equal(0.9, switched.Value);
+        }
+        /// <summary>Initially held buttons, POV directions and axis positions establish a silent baseline.</summary>
+        [Fact]
+        public void InitialStateAndUnchangedSamplesRemainSilent()
+        {
+            var session = new InputTestSession([], []);
+            var values = new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_BTN_POV1_U"] = 1, ["JOY_X"] = 0.5, ["JOY_Y"] = 1 };
+            Assert.Empty(session.Process([new(Stick, values)]));
+            Assert.Empty(session.Process([new(Stick, values)]));
+            var released = new Dictionary<string, double>(values) { ["JOY_BTN1"] = 0, ["JOY_BTN_POV1_U"] = 0 };
+            var changes = session.Process([new(Stick, released)]);
+            Assert.Equal(2, changes.Count);
+            Assert.All(changes, x => Assert.Equal("Release", x.Transition));
+            Assert.Empty(session.Process([new(Stick, released)]));
+            session.Reset();
+            Assert.Empty(session.Process([new(Stick, values)]));
+        }
+        /// <summary>Hold and toggle changes do not manufacture movement on stationary axes.</summary>
+        /// <param name="mode">Modifier activation mode.</param>
+        [Theory]
+        [InlineData(ModifierMode.Hold)]
+        [InlineData(ModifierMode.Toggle)]
+        public void ModifierChangesDoNotReportStationaryAxes(ModifierMode mode)
+        {
+            var session = Session(mode);
+            var stick = new DeviceInputFrame(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.5 });
+            Assert.Empty(session.ProcessDevice([stick, Frame(Throttle, 0)], Stick));
+            Assert.Empty(session.ProcessDevice([stick, Frame(Throttle, 1)], Stick));
+            Assert.Equal("S3", session.ActiveModifiers[AssignmentLayer.Module]);
+            var moved = stick with { Inputs = new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.52 } };
+            Assert.Equal("Position", Assert.Single(session.ProcessDevice([moved, Frame(Throttle, 1)], Stick)).Transition);
+        }
+        /// <summary>Small axis movements accumulate from the baseline and from the last reported change.</summary>
+        [Fact]
+        public void AxisChangesAccumulateWithoutRepeatedPositions()
+        {
+            var session = new InputTestSession([], []);
+            DeviceInputFrame Axis(double value) => new(Stick, new Dictionary<string, double> { ["JOY_X"] = value });
+            Assert.Empty(session.Process([Axis(0.5)]));
+            Assert.Empty(session.Process([Axis(0.504)]));
+            Assert.Empty(session.Process([Axis(0.508)]));
+            Assert.Equal(0.512, Assert.Single(session.Process([Axis(0.512)])).Value);
+            Assert.Empty(session.Process([Axis(0.512)]));
+            Assert.Equal(0.49, Assert.Single(session.Process([Axis(0.49)])).Value);
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -253,3 +297,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

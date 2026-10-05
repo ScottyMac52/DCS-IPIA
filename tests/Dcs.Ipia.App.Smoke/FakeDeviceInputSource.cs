@@ -9,7 +9,7 @@ namespace Dcs.Ipia.App.Smoke
     /// <param name="otherDevice">Optional modifier controller with noisy axes.</param>
     public sealed class FakeDeviceInputSource(Guid physical, Guid? otherDevice = null) : IDeviceInputSource
     {
-        private static readonly string[] ButtonInputs = ["JOY_BTN1"];
+        private static readonly string[] ButtonInputs = ["JOY_BTN1", "JOY_BTN2", "JOY_X"];
         private static readonly string[] ModifierInputs = ["JOY_BTN1", "JOY_X"];
         private int _reads;
         #region BEGIN Public
@@ -33,7 +33,7 @@ namespace Dcs.Ipia.App.Smoke
         {
             ObjectDisposedException.ThrowIf(Disposed, this);
             if (Fail) throw new IOException("Injected disconnect.");
-            var frames = new List<DeviceInputFrame> { new(physical, new Dictionary<string, double> { ["JOY_BTN1"] = _reads++ == 0 ? 0 : 1 }) };
+            var frames = new List<DeviceInputFrame> { new(physical, new Dictionary<string, double> { ["JOY_BTN1"] = _reads++ == 0 ? 0 : 1, ["JOY_BTN2"] = 1, ["JOY_X"] = 0.5 }) };
             if (otherDevice is { } other)
                 frames.Add(new(other, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = _reads % 2 == 0 ? 0.25 : 0.75 }));
             return frames;
@@ -43,3 +43,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END Public
     }
 }
+

@@ -55,6 +55,8 @@ namespace DcsIpia.Presentation
         private Guid? _inputFeedbackDevice;
         private GeneratedInputTestPlan? _inputPlan;
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
+        private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
+        private GridLength _inputTestPaneHeight = new(1, GridUnitType.Star);
         private readonly Dictionary<Border, Brush> _testHighlights = [];
         private readonly Dictionary<string, Key> _testKeyboard = new(StringComparer.Ordinal);
         /// <summary>Opens a saved module editor with a SQLite persistence boundary.</summary>
@@ -127,6 +129,21 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private void InputTestPaneExpanded(object sender, RoutedEventArgs e)
+        {
+            if (InputTestRow is null || InputTestSplitter is null) return;
+            InputTestRow.MinHeight = 60;
+            InputTestRow.Height = _inputTestPaneHeight;
+            InputTestSplitter.Visibility = Visibility.Visible;
+        }
+        private void InputTestPaneCollapsed(object sender, RoutedEventArgs e)
+        {
+            if (InputTestRow is null || InputTestSplitter is null) return;
+            _inputTestPaneHeight = InputTestRow.Height;
+            InputTestRow.MinHeight = 0;
+            InputTestRow.Height = GridLength.Auto;
+            InputTestSplitter.Visibility = Visibility.Collapsed;
+        }
         private void StartInputTestClicked(object sender, RoutedEventArgs e)
         {
             StopInputTest("Preparing generated Lua…");
@@ -158,7 +175,7 @@ namespace DcsIpia.Presentation
                     if (!supported[binding.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, binding.Binding.InputKey)))
                         diagnostics.Add("Unsupported mapped input: " + binding.Binding.InputKey + " / " + binding.PhysicalGuid.ToString("D"));
                 InputTestLog.Items.Clear();
-                InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Selected-device feedback; modifiers from all controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
+                InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Changes only; startup inputs establish a baseline. Selected-device feedback; modifiers from all controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
                     (diagnostics.Count == 0 ? "" : "\nPartial test — " + string.Join("; ", diagnostics.Distinct()));
                 StartInputTestButton.IsEnabled = false;
                 StopInputTestButton.IsEnabled = true;
@@ -175,7 +192,7 @@ namespace DcsIpia.Presentation
             _inputSession?.Reset(); _inputSession = null; _inputPlan = null;
             _inputFeedbackDevice = null;
             _inputSource?.Dispose(); _inputSource = null;
-            _testKeyboard.Clear(); _liveAxisUntil.Clear();
+            _testKeyboard.Clear(); _liveAxisUntil.Clear(); _livePressedInputs.Clear();
             ClearInputHighlights();
             if (StartInputTestButton is null) return;
             StartInputTestButton.IsEnabled = _saved is not null;
@@ -196,6 +213,7 @@ namespace DcsIpia.Presentation
                 {
                     InputTestLog.Items.Clear();
                     _liveAxisUntil.Clear();
+                    _livePressedInputs.Clear();
                     _inputFeedbackDevice = physicalDevice;
                 }
                 var results = _inputSession.ProcessDevice(frames, physicalDevice);
@@ -208,9 +226,11 @@ namespace DcsIpia.Presentation
                     InputTestLog.Items.Insert(0, $"{DateTime.Now:HH:mm:ss.fff} {device} {result.InputKey} {result.Transition} {result.Value:F3} · active {string.Join(" / ", _inputSession.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)))} → {commands}");
                     while (InputTestLog.Items.Count > 200) InputTestLog.Items.RemoveAt(InputTestLog.Items.Count - 1);
                     if (result.Transition == "Position") _liveAxisUntil[(result.PhysicalGuid, result.InputKey)] = DateTime.UtcNow.AddMilliseconds(500);
+                    else if (result.Transition == "Press") _livePressedInputs.Add((result.PhysicalGuid, result.InputKey));
+                    else if (result.Transition == "Release") _livePressedInputs.Remove((result.PhysicalGuid, result.InputKey));
                 }
                 InputTestModifiers.Text = string.Join(" · ", _inputSession.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
-                HighlightInputControls(frames);
+                HighlightInputControls();
             }
             catch (Exception ex) { StopInputTest("Stopped on input loss/disconnect: " + ex.Message + ". Restart after reconnecting."); }
         }
@@ -219,16 +239,17 @@ namespace DcsIpia.Presentation
             foreach (var (border, background) in _testHighlights) border.Background = background;
             _testHighlights.Clear();
         }
-        private void HighlightInputControls(IReadOnlyList<DeviceInputFrame> frames)
+        private void HighlightInputControls()
         {
             ClearInputHighlights();
             var guid = CurrentInputTestDevice();
-            var frame = frames.FirstOrDefault(x => x.PhysicalGuid == guid);
-            if (frame is null) return;
+            if (guid is not { } physicalGuid) return;
             foreach (var surface in Diagram.Children.OfType<Canvas>())
             foreach (var border in surface.Children.OfType<Border>())
-                if (border.Tag is HardwareGraphicControl control && frame.Inputs.Any(x => DcsInputKey.SamePhysicalInput(x.Key, control.InputKey) &&
-                    (control.IsAxis ? _liveAxisUntil.GetValueOrDefault((frame.PhysicalGuid, x.Key)) > DateTime.UtcNow : x.Value > 0.5)))
+                if (border.Tag is HardwareGraphicControl control &&
+                    (control.IsAxis ? _liveAxisUntil.Any(x => x.Key.Device == physicalGuid &&
+                        DcsInputKey.SamePhysicalInput(x.Key.Key, control.InputKey) && x.Value > DateTime.UtcNow)
+                    : _livePressedInputs.Any(x => x.Device == physicalGuid && DcsInputKey.SamePhysicalInput(x.Key, control.InputKey))))
                 {
                     _testHighlights[border] = border.Background;
                     border.Background = Brushes.LightSkyBlue;
