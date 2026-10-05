@@ -8,6 +8,7 @@ namespace Dcs.Ipia.Application
     {
         private static readonly string[] Headers = ["Time", "Device", "Input", "Transition", "Value", "Active modifiers", "Commands"];
         private const string HeaderTemplate = "Version:1.0\r\nStartHTML:{0:D10}\r\nEndHTML:{1:D10}\r\nStartFragment:{2:D10}\r\nEndFragment:{3:D10}\r\n";
+        private static readonly CompositeFormat HeaderFormat = CompositeFormat.Parse(HeaderTemplate);
         #region BEGIN Public
         /// <summary>Selects only chosen events, or all events when no rows are selected.</summary>
         /// <param name="displayed">Events in displayed order.</param>
@@ -39,11 +40,11 @@ namespace Dcs.Ipia.Application
             table.Append("</tbody></table>");
             const string prefix = "<html><body><!--StartFragment-->";
             const string suffix = "<!--EndFragment--></body></html>";
-            var startHtml = Encoding.UTF8.GetByteCount(string.Format(CultureInfo.InvariantCulture, HeaderTemplate, 0, 0, 0, 0));
+            var startHtml = Encoding.UTF8.GetByteCount(string.Format(CultureInfo.InvariantCulture, HeaderFormat, 0, 0, 0, 0));
             var startFragment = startHtml + Encoding.UTF8.GetByteCount(prefix);
             var endFragment = startFragment + Encoding.UTF8.GetByteCount(table.ToString());
             var endHtml = endFragment + Encoding.UTF8.GetByteCount(suffix);
-            var headerText = string.Format(CultureInfo.InvariantCulture, HeaderTemplate, startHtml, endHtml, startFragment, endFragment);
+            var headerText = string.Format(CultureInfo.InvariantCulture, HeaderFormat, startHtml, endHtml, startFragment, endFragment);
             return new(headerText + prefix + table + suffix, text.ToString());
         }
         #endregion END Public
