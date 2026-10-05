@@ -17,6 +17,8 @@ namespace Dcs.Ipia.App.Smoke
         public bool Disposed { get; private set; }
         /// <summary>Gets or sets an injected device loss.</summary>
         public bool Fail { get; set; }
+        /// <summary>Gets or sets a controlled button value after the initial sample.</summary>
+        public double? ButtonValue { get; set; }
         /// <summary>Gets the supported native inputs.</summary>
         public IReadOnlyDictionary<Guid, IReadOnlyCollection<string>> SupportedInputs
         {
@@ -33,7 +35,9 @@ namespace Dcs.Ipia.App.Smoke
         {
             ObjectDisposedException.ThrowIf(Disposed, this);
             if (Fail) throw new IOException("Injected disconnect.");
-            var frames = new List<DeviceInputFrame> { new(physical, new Dictionary<string, double> { ["JOY_BTN1"] = _reads++ == 0 ? 0 : 1, ["JOY_BTN2"] = 1, ["JOY_X"] = 0.5 }) };
+            var value = ButtonValue ?? (_reads == 0 ? 0 : 1);
+            _reads++;
+            var frames = new List<DeviceInputFrame> { new(physical, new Dictionary<string, double> { ["JOY_BTN1"] = value, ["JOY_BTN2"] = 1, ["JOY_X"] = 0.5 }) };
             if (otherDevice is { } other)
                 frames.Add(new(other, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = _reads % 2 == 0 ? 0.25 : 0.75 }));
             return frames;
@@ -43,4 +47,3 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END Public
     }
 }
-

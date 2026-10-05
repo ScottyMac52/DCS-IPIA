@@ -241,10 +241,20 @@
             </Grid.RowDefinitions>
             <Expander x:Name="InputTestPane" Grid.Row="0" Header="Live input test" IsExpanded="True" VerticalContentAlignment="Stretch" Margin="0,0,0,6" Expanded="InputTestPaneExpanded" Collapsed="InputTestPaneCollapsed">
               <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <TextBlock x:Name="InputTestStatus" Text="Test physical inputs against generated Lua. Built-in DCS defaults and in-game execution are outside this test." TextWrapping="Wrap"/>
                 <TextBlock x:Name="InputTestModifiers" Grid.Row="1" TextWrapping="Wrap"/>
-                <ListBox x:Name="InputTestLog" Grid.Row="2" FontFamily="Consolas"/>
+                <DockPanel Grid.Row="2" Margin="0,4">
+                  <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button x:Name="ClearInputTestLogButton" Content="Clear" Click="ClearInputTestLogClicked" Padding="10,4"
+                            IsEnabled="{Binding ElementName=InputTestLog, Path=HasItems}" ToolTip="Clear events without stopping the test"/>
+                    <Button x:Name="CopyInputTestLogButton" Content="Copy" Click="CopyInputTestLogClicked" Padding="10,4" Margin="6,0,0,0"
+                            IsEnabled="{Binding ElementName=InputTestLog, Path=HasItems}" ToolTip="Copy selected events, or all events when none are selected, as an HTML table"/>
+                  </StackPanel>
+                  <TextBlock x:Name="InputTestLogMessage" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </DockPanel>
+                <ListBox x:Name="InputTestLog" Grid.Row="3" FontFamily="Consolas" DisplayMemberPath="Display" SelectionMode="Extended"
+                         AutomationProperties.Name="Input test event log" ToolTip="Use Ctrl or Shift to select events to copy"/>
               </Grid>
             </Expander>
             <GridSplitter x:Name="InputTestSplitter" Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -498,4 +508,3 @@
     </DockPanel>
   </Grid>
 </Window>
-

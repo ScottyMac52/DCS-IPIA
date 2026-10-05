@@ -30,9 +30,16 @@ namespace Dcs.Ipia.App.Smoke
                     Controls = workspace.Diagrams[0].Controls }] };
             var before = EditorSnapshotSerializer.Serialize(workspace);
             FakeDeviceInputSource? source = null;
+            InputTestLogClipboard? clipboard = null;
+            var clipboardFailure = false;
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
                 inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
-                    ? new FakeDeviceInputSource(physical, otherPhysical) : throw new InvalidOperationException("Test must still acquire the modifier controller."));
+                    ? new FakeDeviceInputSource(physical, otherPhysical) : throw new InvalidOperationException("Test must still acquire the modifier controller."),
+                inputLogClipboardWriter: (html, text) =>
+                {
+                    if (clipboardFailure) throw new InvalidOperationException("Injected clipboard busy.");
+                    clipboard = new(html, text);
+                });
             window.Show();
             var tabs = (TabControl)window.FindName("ImportedTabs")!;
             tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => Equals(x.Header, "Assignments"));
@@ -48,9 +55,9 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("The initial sample reported or highlighted existing input states.");
             Wait(window, () => log.Items.Count > 0);
             if (start.IsEnabled || !stop.IsEnabled || choice.IsEnabled || !status.Text.Contains("frozen current edits", StringComparison.Ordinal) ||
-                !log.Items.Cast<string>().Any(x => x.Contains("Test action (KEY)", StringComparison.Ordinal)))
+                !log.Items.Cast<InputTestLogEntry>().Select(x => x.Display).Any(x => x.Contains("Test action (KEY)", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Live test did not resolve its frozen generated profile.");
-            if (log.Items.Cast<string>().Any(x => x.Contains(otherPhysical.ToString("D"), StringComparison.Ordinal) || x.Contains("JOY_X", StringComparison.Ordinal) || x.Contains("JOY_BTN2", StringComparison.Ordinal)))
+            if (log.Items.Cast<InputTestLogEntry>().Select(x => x.Display).Any(x => x.Contains(otherPhysical.ToString("D"), StringComparison.Ordinal) || x.Contains("JOY_X", StringComparison.Ordinal) || x.Contains("JOY_BTN2", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Unchanged baseline inputs or another controller leaked into feedback.");
             var diagram = (Canvas)window.FindName("Diagram")!;
             if (!diagram.Children.OfType<Canvas>().SelectMany(x => x.Children.OfType<Border>()).Any(x => x.Background == Brushes.LightSkyBlue))
@@ -86,9 +93,11 @@ namespace Dcs.Ipia.App.Smoke
             window.UpdateLayout();
             if (splitter.Visibility != Visibility.Visible || upper.Height.IsAuto)
                 throw new InvalidOperationException("Expanded input test did not restore its pane height.");
+            InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (source?.Disposed != true || !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)
                 throw new InvalidOperationException("Stop did not release device input.");
+            InputTestLogSmoke.VerifyStopped(window, () => clipboard);
             choice.SelectedIndex = 1;
             start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (!status.Text.Contains("frozen saved profile", StringComparison.Ordinal))
