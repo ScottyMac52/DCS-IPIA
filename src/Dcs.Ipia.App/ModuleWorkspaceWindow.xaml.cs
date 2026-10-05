@@ -49,6 +49,7 @@ namespace DcsIpia.Presentation
         private bool _building;
         private AssignmentLayer? _categoryScope;
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? _inputSourceFactory;
+        private readonly Action<string, string>? _inputLogClipboardWriter;
         private readonly System.Windows.Threading.DispatcherTimer _inputTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
         private IDeviceInputSource? _inputSource;
         private InputTestSession? _inputSession;
@@ -71,12 +72,14 @@ namespace DcsIpia.Presentation
         /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
         /// <param name="axisDefaultsFilePicker">Optional cleared-axis DCS profile selection adapter.</param>
         /// <param name="inputSourceFactory">Optional foreground device-input adapter for testing.</param>
+        /// <param name="inputLogClipboardWriter">Optional HTML and plain-text clipboard adapter for testing.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
-                                     Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null)
+                                     Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
+                                     Action<string, string>? inputLogClipboardWriter = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _settings = settings;
@@ -89,6 +92,7 @@ namespace DcsIpia.Presentation
             _integrationFilePicker = integrationFilePicker;
             _axisDefaultsFilePicker = axisDefaultsFilePicker;
             _inputSourceFactory = inputSourceFactory;
+            _inputLogClipboardWriter = inputLogClipboardWriter;
             _saved = viewModel.Workspace;
             _working = _saved;
             _draft = viewModel.Draft;
@@ -129,6 +133,31 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private void ClearInputTestLogClicked(object sender, RoutedEventArgs e)
+        {
+            InputTestLog.Items.Clear();
+            InputTestLogMessage.Text = "Log cleared.";
+        }
+        private void CopyInputTestLogClicked(object sender, RoutedEventArgs e)
+        {
+            var rows = InputTestLogFormatter.SelectRows(InputTestLog.Items.Cast<InputTestLogEntry>().ToArray(),
+                InputTestLog.SelectedItems.Cast<InputTestLogEntry>().ToArray());
+            if (rows.Count == 0) return;
+            try
+            {
+                var content = InputTestLogFormatter.Format(rows);
+                if (_inputLogClipboardWriter is not null) _inputLogClipboardWriter(content.Html, content.Text);
+                else
+                {
+                    var data = new DataObject();
+                    data.SetData(DataFormats.Html, content.Html);
+                    data.SetData(DataFormats.UnicodeText, content.Text);
+                    Clipboard.SetDataObject(data, true);
+                }
+                InputTestLogMessage.Text = $"Copied {rows.Count} event{(rows.Count == 1 ? "" : "s")}.";
+            }
+            catch (Exception ex) { InputTestLogMessage.Text = "Could not copy events to the clipboard: " + ex.Message; }
+        }
         private void InputTestPaneExpanded(object sender, RoutedEventArgs e)
         {
             if (InputTestRow is null || InputTestSplitter is null) return;
@@ -175,6 +204,7 @@ namespace DcsIpia.Presentation
                     if (!supported[binding.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, binding.Binding.InputKey)))
                         diagnostics.Add("Unsupported mapped input: " + binding.Binding.InputKey + " / " + binding.PhysicalGuid.ToString("D"));
                 InputTestLog.Items.Clear();
+                InputTestLogMessage.Text = "";
                 InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Changes only; startup inputs establish a baseline. Selected-device feedback; modifiers from all controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
                     (diagnostics.Count == 0 ? "" : "\nPartial test — " + string.Join("; ", diagnostics.Distinct()));
                 StartInputTestButton.IsEnabled = false;
@@ -212,6 +242,7 @@ namespace DcsIpia.Presentation
                 if (_inputFeedbackDevice != physicalDevice)
                 {
                     InputTestLog.Items.Clear();
+                    InputTestLogMessage.Text = "";
                     _liveAxisUntil.Clear();
                     _livePressedInputs.Clear();
                     _inputFeedbackDevice = physicalDevice;
@@ -219,11 +250,12 @@ namespace DcsIpia.Presentation
                 var results = _inputSession.ProcessDevice(frames, physicalDevice);
                 foreach (var result in results)
                 {
-                    var device = result.PhysicalGuid == Guid.Empty ? "Keyboard" : result.PhysicalGuid.ToString("D");
                     var commands = result.PhysicalGuid == Guid.Empty ? "Keyboard modifier input (keyboard commands are outside v1)" : result.Matches.Count == 0 ? "Unassigned in generated profiles" : string.Join(" | ", result.Matches.Select(x =>
                         $"{x.Layer} [{(x.Chord.Length == 0 ? "Base" : x.Chord)}] {x.Binding.CommandName} ({x.Binding.CommandId})" +
                         (x.Binding.Filter is null ? "" : " tuning=" + JsonSerializer.Serialize(x.Binding.Filter))));
-                    InputTestLog.Items.Insert(0, $"{DateTime.Now:HH:mm:ss.fff} {device} {result.InputKey} {result.Transition} {result.Value:F3} · active {string.Join(" / ", _inputSession.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)))} → {commands}");
+                    var modifiers = string.Join(" / ", _inputSession.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)));
+                    InputTestLog.Items.Insert(0, new InputTestLogEntry(DateTime.Now, result.PhysicalGuid, result.InputKey,
+                        result.Transition, result.Value, modifiers, commands));
                     while (InputTestLog.Items.Count > 200) InputTestLog.Items.RemoveAt(InputTestLog.Items.Count - 1);
                     if (result.Transition == "Position") _liveAxisUntil[(result.PhysicalGuid, result.InputKey)] = DateTime.UtcNow.AddMilliseconds(500);
                     else if (result.Transition == "Press") _livePressedInputs.Add((result.PhysicalGuid, result.InputKey));
