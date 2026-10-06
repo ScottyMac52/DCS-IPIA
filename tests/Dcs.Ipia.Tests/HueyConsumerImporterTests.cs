@@ -771,7 +771,7 @@ namespace Dcs.Ipia.Tests
         {
             var request = Fixture() with { Commit = "invalid", Catalog = null!, SharedLua = null!, Sources = [] };
             var result = new ConsumerSourceImporter().Import(request);
-            Assert.Equal(new[] { "invalid-commit", "invalid-shared-input", "missing-sources" },
+            Assert.Equal(RequestDiagnosticCodes,
                          result.Diagnostics.Select(x => x.Code));
             Assert.Null(result.Configuration);
             Assert.Empty(result.Sources);
@@ -790,8 +790,51 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(forward),
                          System.Text.Json.JsonSerializer.Serialize(reversed));
         }
+
+        /// <summary>Each unsafe source-path family is rejected before parsing or retaining partial state.</summary>
+        [Theory]
+        [InlineData("")]
+        [InlineData("/README.md")]
+        [InlineData("docs\\notes.md")]
+        [InlineData("docs/../notes.md")]
+        [InlineData("docs/./notes.md")]
+        [InlineData("docs//notes.md")]
+        [InlineData("assets/unknown.png")]
+        public void Unsafe_source_paths_preserve_atomic_failure(string path)
+        {
+            var request = Fixture();
+            var result = new ConsumerSourceImporter().Import(request with
+            {
+                Sources = [..request.Sources, new(path, "source text")]
+            });
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Diagnostics, x => x.Code == "invalid-path" && x.IsError);
+            Assert.Null(result.Configuration);
+            Assert.Empty(result.Sources);
+            Assert.Empty(result.Metadata);
+            Assert.Empty(result.Provenance);
+        }
+
+        /// <summary>Splitting path recognition preserves all previously supported release script families.</summary>
+        [Theory]
+        [InlineData("scripts/Build-Release.ps1")]
+        [InlineData("scripts/Test-Package.ps1")]
+        [InlineData("scripts/version.mjs")]
+        public void Release_script_paths_are_preserved_as_pinned_text(string path)
+        {
+            var request = Fixture();
+            const string text = "authored release script text";
+            var result = new ConsumerSourceImporter().Import(request with
+            {
+                Sources = [..request.Sources, new(path, text)]
+            });
+            Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
+            Assert.Equal(text, result.Sources[path]);
+            Assert.Contains(result.Provenance, x => x.Path == path);
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static readonly string[] RequestDiagnosticCodes = ["invalid-commit", "invalid-shared-input", "missing-sources"];
         private static void AssertAtomicFailure(ConsumerImportResult result, string message)
         {
             Assert.False(result.Succeeded);
