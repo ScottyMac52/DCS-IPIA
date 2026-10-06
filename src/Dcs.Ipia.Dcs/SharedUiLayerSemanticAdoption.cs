@@ -115,21 +115,47 @@ namespace Dcs.Ipia.Dcs
             second is not null && first.CommandId == second.CommandId && first.CommandName == second.CommandName &&
             JsonSerializer.Serialize(first.Filter) == JsonSerializer.Serialize(second.Filter);
         private static string Display(DcsBinding? binding) => binding is null ? "Unassigned" : binding.CommandName + " [" + binding.CommandId + "]";
-        private static string? Resolve(EditorWorkspaceSnapshot module, SharedUiLayerWorkspace defaults, UiLayerDiagram diagram, string file)
+        /// <summary>Prefers explicit provenance, then physical identity, then shared hardware names.</summary>
+        private static string? Resolve(EditorWorkspaceSnapshot module, SharedUiLayerWorkspace defaults,
+                                        UiLayerDiagram diagram, string file)
         {
-            if (diagram.CanonicalUiLayerSourcePath is string path && defaults.Sources.ContainsKey(path)) return path;
-            var candidates = defaults.Sources.Keys.Where(x => x.StartsWith(Root, StringComparison.Ordinal) &&
+            if (diagram.CanonicalUiLayerSourcePath is string path && defaults.Sources.ContainsKey(path))
+                return path;
+            var candidates = ReadProfileCandidates(defaults);
+            var physical = FindPhysicalProfile(candidates, file);
+            if (physical is not null)
+                return physical;
+            var matches = FindNamedProfiles(module, diagram, candidates, file);
+            return matches.Length switch
+            {
+                0 => null,
+                1 => matches[0],
+                _ => throw new InvalidDataException("Ambiguous shared default profile for " + file)
+            };
+        }
+
+        private static string[] ReadProfileCandidates(SharedUiLayerWorkspace defaults) =>
+            defaults.Sources.Keys.Where(x => x.StartsWith(Root, StringComparison.Ordinal) &&
                 x.EndsWith(".diff.lua", StringComparison.Ordinal)).ToArray();
+
+        /// <summary>Accepts exactly one native filename or physical GUID match before name fallback.</summary>
+        private static string? FindPhysicalProfile(string[] candidates, string file)
+        {
             var guid = DcsPhysicalIdentity.FromFileName(file);
             var physical = candidates.Where(x => Path.GetFileName(x).Equals(file, StringComparison.OrdinalIgnoreCase) ||
                 guid is not null && DcsPhysicalIdentity.FromFileName(Path.GetFileName(x)) == guid).ToArray();
-            if (physical.Length == 1) return physical[0];
+            return physical.Length == 1 ? physical[0] : null;
+        }
+
+        /// <summary>Matches native base names and pinned shared hardware aliases without guessing ambiguous identities.</summary>
+        private static string[] FindNamedProfiles(EditorWorkspaceSnapshot module, UiLayerDiagram diagram,
+                                                   string[] candidates, string file)
+        {
             var profile = module.Configuration.Profiles.Single(x => x.Id == diagram.ProfileId);
             var hardware = WorkspaceStructureEditor.Hardware(module).Where(x => x.DeviceId == profile.DeviceId).ToArray();
-            var names = hardware.Select(x => BaseName(x.DefaultFileName)).Append(BaseName(file)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var matches = candidates.Where(x => names.Contains(BaseName(Path.GetFileName(x)))).ToArray();
-            return matches.Length switch { 0 => null, 1 => matches[0],
-                _ => throw new InvalidDataException("Ambiguous shared default profile for " + file) };
+            var names = hardware.Select(x => BaseName(x.DefaultFileName)).Append(BaseName(file))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return candidates.Where(x => names.Contains(BaseName(Path.GetFileName(x)))).ToArray();
         }
         private static string BaseName(string file)
         {
@@ -175,7 +201,8 @@ namespace Dcs.Ipia.Dcs
             }
             return state with { Modifiers = result };
         }
-        private static bool NativeMatches(string native, WorkspaceModifier current, Dictionary<Guid, string> paths, WorkspaceManagement state) =>
+        private static bool NativeMatches(string native, WorkspaceModifier current, Dictionary<Guid, string> paths,
+                                          WorkspaceManagement state) =>
             current.NativeDevice.Equals(native, StringComparison.OrdinalIgnoreCase) ||
             paths.TryGetValue(current.ProfileId, out var path) && (Path.GetFileName(path)[..^9].Equals(native, StringComparison.OrdinalIgnoreCase) ||
                 DcsPhysicalIdentity.FromFileName(Path.GetFileName(path)) is Guid physical &&
@@ -226,4 +253,5 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
 
