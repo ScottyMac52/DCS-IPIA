@@ -82,6 +82,97 @@ def cell(value):
     return html.escape(str(value)).replace("|", "&#124;").replace("\r", " ").replace("\n", " ")
 
 
+def publish_html_metrics(output, metrics, errors):
+    """Add searchable, sortable method metrics to the existing coverage homepage."""
+    start, end = "<!-- IPIA method metrics begin -->", "<!-- IPIA method metrics end -->"
+    rows = []
+    keys = ("assembly", "class", "method", "complexity", "line_coverage_percent",
+            "branch_coverage_percent", "crap_score", "report")
+    for row in metrics:
+        values = [html.escape(str(row[key]) if row[key] not in (None, "") else "N/A") for key in keys]
+        rows.append("<tr>" + "".join(f"<td>{value}</td>" for value in values) + "</tr>")
+    warnings = "".join(f"<p>{html.escape(error)}</p>" for error in errors)
+    section = start + """
+<section id="ipia-method-metrics">
+<h1>Method coverage and CRAP scores</h1>
+<p>All methods, initially ordered by highest CRAP score. Click a column heading to sort.</p>
+<p>CRAP = complexity² × (1 − line coverage fraction)³ + complexity. Lower is better.
+Coverage and complexity are from OpenCover; these scores do not change the 80/80 gates.</p>
+<p><a href="crap-scores.csv">Download CSV</a> · <a href="crap-scores.json">Download JSON</a></p>
+<label for="ipia-method-filter">Filter assembly, class, or method:</label>
+<input id="ipia-method-filter" type="search" placeholder="e.g. ConsumerSourceImporter" />
+<p id="ipia-method-count" aria-live="polite"></p>
+<div class="ipia-method-scroll"><table id="ipia-method-table">
+<thead><tr>""" + "".join(
+        f'<th scope="col"><button type="button">{title}</button></th>' for title in
+        ("Assembly", "Class", "Method", "Complexity", "Line coverage %", "Branch coverage %", "CRAP", "Coverage run")
+    ) + "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>" + warnings + """
+</section>
+<style>
+#ipia-method-metrics { padding: 1em; }
+#ipia-method-metrics input { width: min(95%, 35em); padding: .5em; }
+#ipia-method-metrics .ipia-method-scroll { overflow: auto; max-height: 70vh; }
+#ipia-method-table { border-collapse: collapse; width: 100%; }
+#ipia-method-table th, #ipia-method-table td { padding: .5em; border: 1px solid #888; text-align: left; }
+#ipia-method-table th { position: sticky; top: 0; background: #eee; color: #111; }
+#ipia-method-table button { background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; }
+#ipia-method-table td:nth-child(n+4):nth-child(-n+7) { white-space: nowrap; text-align: right; }
+#ipia-method-table td:nth-child(3) { min-width: 30em; overflow-wrap: anywhere; }
+</style>
+<script>
+(() => {
+  const table = document.getElementById('ipia-method-table');
+  const body = table.tBodies[0];
+  const rows = Array.from(body.rows);
+  const filter = document.getElementById('ipia-method-filter');
+  const count = document.getElementById('ipia-method-count');
+  const update = () => {
+    const query = filter.value.toLowerCase();
+    rows.forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); });
+    count.textContent = `${rows.filter(row => !row.hidden).length} of ${rows.length} methods shown`;
+  };
+  filter.addEventListener('input', update);
+  table.querySelectorAll('th').forEach((header, column) => {
+    header.querySelector('button').addEventListener('click', () => {
+      const ascending = header.getAttribute('aria-sort') !== 'ascending';
+      table.querySelectorAll('th').forEach(item => item.removeAttribute('aria-sort'));
+      header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+      rows.sort((a, b) => {
+        const left = a.cells[column].textContent, right = b.cells[column].textContent;
+        let order;
+        if (column >= 3 && column <= 6) {
+          if (left === 'N/A') return right === 'N/A' ? 0 : 1;
+          if (right === 'N/A') return -1;
+          order = Number(left) - Number(right);
+        } else { order = left.localeCompare(right); }
+        return ascending ? order : -order;
+      });
+      rows.forEach(row => body.appendChild(row));
+    });
+  });
+  table.querySelectorAll('th')[6].setAttribute('aria-sort', 'descending');
+  update();
+})();
+</script>
+""" + end
+    index = output / "index.html"
+    if index.exists():
+        document = index.read_text(encoding="utf-8")
+        if start in document and end in document:
+            before, _, rest = document.partition(start)
+            _, _, after = rest.partition(end)
+            document = before + section + after
+        elif "<h1>Risk Hotspots</h1>" in document:
+            document = document.replace("<h1>Risk Hotspots</h1>", section + "<h1>Risk Hotspots</h1>", 1)
+        else:
+            document = document.replace("</body>", section + "</body>", 1)
+    else:
+        document = ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+                    '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                    '<title>Coverage and CRAP scores</title></head><body>' + section + '</body></html>')
+    index.write_text(document, encoding="utf-8")
+
+
 def publish(raw, output, summary):
     """Preserve available diagnostics; fail reporting when required data is missing."""
     output.mkdir(parents=True, exist_ok=True)
@@ -105,6 +196,8 @@ def publish(raw, output, summary):
             writer = csv.DictWriter(stream, fieldnames=list(metrics[0]))
             writer.writeheader()
             writer.writerows(metrics)
+
+    publish_html_metrics(output, metrics, errors)
 
     lines = ["## Unit test results", "", "Each row is a separate test run; platform counts are not combined.", "",
              "| Run | Total | Passed | Failed | Skipped | Seconds |", "|---|---:|---:|---:|---:|---:|"]

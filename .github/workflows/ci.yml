@@ -139,7 +139,7 @@ jobs:
           REPORT_URL: ${{ steps.report.outputs.artifact-url }}
         run: |
           echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download HTML coverage, CRAP scores, and test results]($REPORT_URL) — open report/index.html after extraction." >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download HTML coverage, CRAP scores, and test results]($REPORT_URL) — open report/index.html after extraction for searchable CRAP, complexity, line coverage, and branch coverage in one table." >> "$GITHUB_STEP_SUMMARY"
 
   asset-authoring:
     strategy:
