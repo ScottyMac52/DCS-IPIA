@@ -27,15 +27,7 @@ namespace Dcs.Ipia.Tests
             var canonical = Assert.Single(shared.Profiles, x => x.SourceName == hornet.SourceName);
             Assert.Equal("moza-ab9", canonical.DeviceId);
             Assert.Equal(canonical, ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported, shared, hornet));
-            var graphics = catalog.Devices.ToDictionary(
-                device => "assets/shared/hardware/svg/" + device.StableKey + ".svg",
-                device => "<svg xmlns='http://www.w3.org/2000/svg' width='4000' height='4000' viewBox='0 0 4000 4000'>" +
-                    "<image x='0' y='0' width='4000' height='4000' href='data:image/png;base64,AA=='/>" +
-                    string.Join("", shared.Controls.Where(x => x.Control.DeviceId == device.Id).Select(x => x.Control.StableKey)
-                        .Concat(catalog.Templates.Where(x => x.DeviceKey == device.StableKey).SelectMany(x => x.Bindings.Values))
-                        .Distinct(StringComparer.Ordinal).Select(
-                        (control, i) => $"<!-- box:{control} --><rect x='{i % 20 * 80}' y='{i / 20 * 60}' width='60' height='40'/>")) +
-                    "</svg>");
+            var graphics = TestGraphics(request);
             var diagrams = UiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
             var hornetDiagram = Assert.Single(diagrams, x => x.ProfileId == hornet.Id);
             Assert.EndsWith("/" + hornet.SourceName, hornetDiagram.CanonicalUiLayerSourcePath!, StringComparison.Ordinal);
@@ -832,8 +824,61 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(text, result.Sources[path]);
             Assert.Contains(result.Provenance, x => x.Path == path);
         }
+        /// <summary>Invalid per-device SVGs fail closed while diagnostic projection preserves other devices.</summary>
+        [Theory]
+        [InlineData("missing")]
+        [InlineData("viewbox")]
+        [InlineData("canvas")]
+        [InlineData("image-bounds")]
+        [InlineData("image-format")]
+        [InlineData("callout-size")]
+        [InlineData("unknown-control")]
+        public void Graphic_validation_preserves_per_device_failure_isolation(string fault)
+        {
+            var request = Fixture();
+            var imported = new ConsumerSourceImporter().Import(request);
+            Assert.True(imported.Succeeded);
+            var graphics = TestGraphics(request);
+            var original = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua);
+            Assert.Equal(imported.Configuration!.Profiles.Count, original.Count);
+            var selected = imported.Configuration.Profiles[0];
+            var path = original.Single(x => x.ProfileId == selected.Id).Path;
+            if (fault == "missing") graphics.Remove(path);
+            else graphics[path] = fault switch
+            {
+                "viewbox" => graphics[path].Replace("viewBox='0 0 4000 4000'", "viewBox='1 0 4000 4000'", StringComparison.Ordinal),
+                "canvas" => graphics[path].Replace("<svg xmlns='http://www.w3.org/2000/svg' width='4000'", "<svg xmlns='http://www.w3.org/2000/svg' width='4001'", StringComparison.Ordinal),
+                "image-bounds" => graphics[path].Replace("<image x='0'", "<image x='4001'", StringComparison.Ordinal),
+                "image-format" => graphics[path].Replace("data:image/png;base64,AA==", "https://external/image.png", StringComparison.Ordinal),
+                "callout-size" => graphics[path].Replace("width='60'", "width='0'", StringComparison.Ordinal),
+                _ => graphics[path].Replace("</svg>", "<!-- box:unknown-control --><rect x='0' y='0' width='10' height='10'/></svg>", StringComparison.Ordinal)
+            };
+            Assert.Throws<InvalidDataException>(() => UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua));
+            var errors = new List<DeviceProfile>();
+            var diagrams = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua,
+                (profile, _) => errors.Add(profile));
+            Assert.NotEmpty(errors);
+            Assert.All(errors, profile => Assert.Equal(path, original.Single(x => x.ProfileId == profile.Id).Path));
+            Assert.DoesNotContain(diagrams, diagram => diagram.Path == path);
+            Assert.Equal(imported.Configuration.Profiles.Count, diagrams.Count + errors.Count);
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static Dictionary<string, string> TestGraphics(ConsumerImportRequest request)
+        {
+            var catalog = request.Catalog!;
+            var shared = request.SharedLua!;
+            var graphics = catalog.Devices.ToDictionary(
+                device => "assets/shared/hardware/svg/" + device.StableKey + ".svg",
+                device => "<svg xmlns='http://www.w3.org/2000/svg' width='4000' height='4000' viewBox='0 0 4000 4000'>" +
+                    "<image x='0' y='0' width='4000' height='4000' href='data:image/png;base64,AA=='/>" +
+                    string.Join("", shared.Controls.Where(x => x.Control.DeviceId == device.Id).Select(x => x.Control.StableKey)
+                        .Concat(catalog.Templates.Where(x => x.DeviceKey == device.StableKey).SelectMany(x => x.Bindings.Values))
+                        .Distinct(StringComparer.Ordinal).Select(
+                        (control, i) => $"<!-- box:{control} --><rect x='{i % 20 * 80}' y='{i / 20 * 60}' width='60' height='40'/>")) +
+                    "</svg>");
+            return graphics;
+        }
         private static readonly string[] RequestDiagnosticCodes = ["invalid-commit", "invalid-shared-input", "missing-sources"];
         private static void AssertAtomicFailure(ConsumerImportResult result, string message)
         {
@@ -881,3 +926,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

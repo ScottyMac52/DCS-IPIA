@@ -19,31 +19,71 @@ namespace Dcs.Ipia.Dcs
             workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
                 return RenderManaged(workspace, profileId, managed);
+            var (diagram, source, modifierSource) = ReadPinnedSources(workspace, profileId);
+            var config = workspace.Configuration;
+            var known = DcsLuaParser.ParseModifiers(modifierSource).Select(x => x.Name)
+                                    .ToHashSet(StringComparer.Ordinal);
+            var removed = RemovedModifiers(workspace.Sources!);
+            ValidateRemovedModifiers(known, removed);
+            var valid = known.Except(removed, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+            var original = DcsLuaParser.ParseProfile(source, profileId);
+            var active = original.Where(x => x.Disposition != BindingDisposition.Removed).ToArray();
+            ValidateCanonicalSlots(active);
+            var baseline = ReadBaseline(config, profileId, diagram, valid);
+            var saved = ReadSavedAssignments(workspace, profileId, diagram, valid);
+            active = SelectActiveBindings(workspace, active, baseline, saved);
+            var result = MergeBindings(original, active, profileId, known, removed, baseline, saved);
+            return ModuleLuaProfileRenderer.Write(ModuleAxisDefaults.Apply(workspace, profileId, AssignmentLayer.UiLayer, result));
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        /// <summary>Checks profile ownership and resolves its pinned source texts.</summary>
+        private static (UiLayerDiagram Diagram, string Source, string Modifiers) ReadPinnedSources(EditorWorkspaceSnapshot workspace,
+                        Guid profileId)
+        {
             var config = workspace.Configuration;
             if (config.Profiles.All(x => x.Id != profileId))
                 throw new ArgumentException("Profile is outside this module.", nameof(profileId));
             var diagram = workspace.Diagrams.SingleOrDefault(x => x.ProfileId == profileId) ??
                           throw new InvalidDataException("UI Layer device has no authored hardware diagram.");
+            var path = ReadCanonicalPath(diagram);
+            if (workspace.Sources is null || !workspace.Sources.TryGetValue(path, out var source) ||
+                !workspace.Sources.TryGetValue(SharedRoot + "modifiers.lua", out var modifierSource))
+                throw new InvalidDataException("The saved workspace lacks canonical UI Layer Lua; re-import it.");
+            return (diagram, source, modifierSource);
+        }
+
+        /// <summary>Requires an unambiguous safe canonical keyboard or joystick Lua path.</summary>
+        private static string ReadCanonicalPath(UiLayerDiagram diagram)
+        {
             var path = diagram.CanonicalUiLayerSourcePath;
             if (!diagram.SupportsUiLayer || path is null || !path.StartsWith(SharedRoot, StringComparison.Ordinal) ||
                 !path.EndsWith(".diff.lua", StringComparison.Ordinal) || path.Contains("..", StringComparison.Ordinal) ||
                 !path.Contains("/joystick/", StringComparison.Ordinal) &&
                 !path.Contains("/keyboard/", StringComparison.Ordinal))
                 throw new InvalidDataException("No unambiguous pinned UI Layer source for this device.");
-            if (workspace.Sources is null || !workspace.Sources.TryGetValue(path, out var source) ||
-                !workspace.Sources.TryGetValue(SharedRoot + "modifiers.lua", out var modifierSource))
-                throw new InvalidDataException("The saved workspace lacks canonical UI Layer Lua; re-import it.");
-            var known = DcsLuaParser.ParseModifiers(modifierSource).Select(x => x.Name)
-                                    .ToHashSet(StringComparer.Ordinal);
-            var removed = RemovedModifiers(workspace.Sources);
+            return path;
+        }
+
+        /// <summary>Rejects removal of an unknown canonical modifier.</summary>
+        private static void ValidateRemovedModifiers(HashSet<string> known, HashSet<string> removed)
+        {
             if (removed.Any(x => !known.Contains(x)))
                 throw new InvalidDataException("An overlay removes an unknown canonical UI Layer modifier.");
-            var valid = known.Except(removed, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
-            var original = DcsLuaParser.ParseProfile(source, profileId);
-            var active = original.Where(x => x.Disposition != BindingDisposition.Removed).ToArray();
+        }
+
+        /// <summary>Rejects conflicting canonical input slots before editing.</summary>
+        private static void ValidateCanonicalSlots(DcsBinding[] active)
+        {
             if (active.GroupBy(x => Slot(x.Section, x.InputKey, string.Join("+", x.Reformers)),
                                StringComparer.Ordinal).Any(x => x.Count() > 1))
                 throw new InvalidDataException("Multiple canonical UI Layer commands occupy one input slot.");
+        }
+
+        /// <summary>Maps imported callouts to unique physical slots.</summary>
+        private static HashSet<string> ReadBaseline(ModuleConfiguration config, Guid profileId, UiLayerDiagram diagram,
+                                                    HashSet<string> valid)
+        {
             var baseline = new HashSet<string>(StringComparer.Ordinal);
             foreach (var callout in diagram.Callouts)
             {
@@ -57,23 +97,34 @@ namespace Dcs.Ipia.Dcs
                 if (!baseline.Add(Slot(section, key, chord)))
                     throw new InvalidDataException("Two imported UI Layer callouts occupy one input slot.");
             }
+            return baseline;
+        }
+
+        /// <summary>Validates and indexes module-owned assignments by physical slot.</summary>
+        private static Dictionary<string, DraftAssignment> ReadSavedAssignments(EditorWorkspaceSnapshot workspace, Guid profileId,
+                                                                               UiLayerDiagram diagram, HashSet<string> valid)
+        {
+            var config = workspace.Configuration;
             var saved = new Dictionary<string, DraftAssignment>(StringComparer.Ordinal);
             foreach (var assignment in workspace.Assignments.Where(x => x.Slot.ProfileId == profileId &&
                                                                           x.Slot.Layer == AssignmentLayer.UiLayer))
             {
                 var slot = assignment.Slot;
-                if (slot.ModuleId != config.Module.Id || assignment.Command.Layer != AssignmentLayer.UiLayer ||
-                    (slot.Section == BindingSection.Axis) != assignment.Command.IsAxis ||
-                    !diagram.Controls.Any(x => x.IsAxis == assignment.Command.IsAxis &&
-                                               DcsInputKey.SamePhysicalInput(x.InputKey, slot.InputKey)))
-                    throw new InvalidDataException("Saved UI Layer assignment is outside its mapped device or type.");
+                ValidateSavedAssignment(assignment, config, diagram);
                 var chord = Chord(slot.ModifierChord);
                 if (chord.Split('+', StringSplitOptions.RemoveEmptyEntries).Any(x => !valid.Contains(x)))
                     throw new InvalidDataException("Saved UI Layer assignment uses an undefined modifier.");
                 if (!saved.TryAdd(Slot(slot.Section, slot.InputKey, chord), assignment))
                     throw new InvalidDataException("Two saved UI Layer commands occupy one input slot.");
             }
-            if (workspace.Sources.TryGetValue("config/kneeboard.json", out var manifest))
+            return saved;
+        }
+
+        /// <summary>Suppresses unselected defaults when the module declares explicit UI usage.</summary>
+        private static DcsBinding[] SelectActiveBindings(EditorWorkspaceSnapshot workspace, DcsBinding[] active,
+                                                          HashSet<string> baseline, Dictionary<string, DraftAssignment> saved)
+        {
+            if (workspace.Sources!.TryGetValue("config/kneeboard.json", out var manifest))
             {
                 using var document = JsonDocument.Parse(manifest);
                 if (document.RootElement.TryGetProperty("uiLayerUtilization", out var usage) &&
@@ -81,6 +132,14 @@ namespace Dcs.Ipia.Dcs
                     active = active.Where(x => baseline.Contains(Slot(x.Section, x.InputKey, string.Join("+", x.Reformers))) ||
                         saved.ContainsKey(Slot(x.Section, x.InputKey, string.Join("+", x.Reformers)))).ToArray();
             }
+            return active;
+        }
+
+        /// <summary>Merges saved edits with canonical bindings while retaining removed history.</summary>
+        private static List<DcsBinding> MergeBindings(IReadOnlyList<DcsBinding> original, DcsBinding[] active, Guid profileId,
+                                                       HashSet<string> known, HashSet<string> removed, HashSet<string> baseline,
+                                                       Dictionary<string, DraftAssignment> saved)
+        {
             var result = new List<DcsBinding>(original.Where(x => x.Disposition == BindingDisposition.Removed));
             var handled = new HashSet<string>(StringComparer.Ordinal);
             foreach (var binding in active)
@@ -91,25 +150,41 @@ namespace Dcs.Ipia.Dcs
                 if (binding.Reformers.Any(removed.Contains))
                     continue;
                 handled.Add(key);
-                if (saved.TryGetValue(key, out var edit))
-                {
-                    if (binding.Section == BindingSection.Axis && edit.Command.Id != binding.CommandId)
-                        result.Add(ModuleLuaProfileRenderer.Removed(binding));
-                    result.Add(edit.Command.Id == binding.CommandId &&
-                               SameFilter(edit.Filter, binding.Filter) ? binding : FromAssignment(profileId, edit));
-                }
-                else if (binding.Section == BindingSection.Axis)
-                    result.Add(ModuleLuaProfileRenderer.Removed(binding));
-                else if (!baseline.Contains(key))
-                    result.Add(binding);
+                AddActiveBinding(binding, key, profileId, baseline, saved, result);
             }
             foreach (var (key, edit) in saved)
                 if (!handled.Contains(key))
                     result.Add(FromAssignment(profileId, edit));
-            return ModuleLuaProfileRenderer.Write(ModuleAxisDefaults.Apply(workspace, profileId, AssignmentLayer.UiLayer, result));
+            return result;
         }
-        #endregion END Public
-        #region BEGIN private helpers
+
+        /// <summary>Requires a module-owned command of the mapped hardware input type.</summary>
+        private static void ValidateSavedAssignment(DraftAssignment assignment, ModuleConfiguration config, UiLayerDiagram diagram)
+        {
+            var slot = assignment.Slot;
+            if (slot.ModuleId != config.Module.Id || assignment.Command.Layer != AssignmentLayer.UiLayer ||
+                (slot.Section == BindingSection.Axis) != assignment.Command.IsAxis ||
+                !diagram.Controls.Any(x => x.IsAxis == assignment.Command.IsAxis &&
+                                           DcsInputKey.SamePhysicalInput(x.InputKey, slot.InputKey)))
+                throw new InvalidDataException("Saved UI Layer assignment is outside its mapped device or type.");
+        }
+
+        /// <summary>Applies one edit or axis tombstone without dropping unrepresented key defaults.</summary>
+        private static void AddActiveBinding(DcsBinding binding, string key, Guid profileId, HashSet<string> baseline,
+                                              Dictionary<string, DraftAssignment> saved, List<DcsBinding> result)
+        {
+            if (saved.TryGetValue(key, out var edit))
+            {
+                if (binding.Section == BindingSection.Axis && edit.Command.Id != binding.CommandId)
+                    result.Add(ModuleLuaProfileRenderer.Removed(binding));
+                result.Add(edit.Command.Id == binding.CommandId &&
+                           SameFilter(edit.Filter, binding.Filter) ? binding : FromAssignment(profileId, edit));
+            }
+            else if (binding.Section == BindingSection.Axis)
+                result.Add(ModuleLuaProfileRenderer.Removed(binding));
+            else if (!baseline.Contains(key))
+                result.Add(binding);
+        }
         private static string RenderManaged(EditorWorkspaceSnapshot workspace, Guid profileId, WorkspaceManagement managed)
         {
             if (!managed.Devices.Any(x => x.ProfileId == profileId && x.Layer == AssignmentLayer.UiLayer))
@@ -163,3 +238,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

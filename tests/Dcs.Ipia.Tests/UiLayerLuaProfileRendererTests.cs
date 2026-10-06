@@ -95,6 +95,60 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
                 removed with { Assignments = [Assigned("NEW", "New", "JOY_BTN2", "SHIFT")] }, ProfileId));
         }
+        /// <summary>Canonical source paths must retain their pinned root, Lua suffix and input family.</summary>
+        [Theory]
+        [InlineData("assets/shared/ui-layer/input/UiLayer/joystick/../bad.diff.lua")]
+        [InlineData("assets/shared/ui-layer/input/UiLayer/joystick/bad.lua")]
+        [InlineData("assets/shared/ui-layer/input/UiLayer/bad.diff.lua")]
+        [InlineData("other/joystick/bad.diff.lua")]
+        public void Rejects_invalid_canonical_profile_paths(string? path)
+        {
+            var workspace = Workspace([]);
+            var error = Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+                workspace with { Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = path }] }, ProfileId));
+            Assert.Contains("No unambiguous pinned UI Layer source", error.Message, StringComparison.Ordinal);
+        }
+
+        /// <summary>Imported callouts must reference mapped controls, unique slots and declared modifier chords.</summary>
+        [Fact]
+        public void Rejects_invalid_imported_callouts()
+        {
+            var workspace = Workspace([]);
+            var callout = workspace.Diagrams[0].Callouts[0];
+            foreach (var callouts in new UiLayerCallout[][] {
+                [callout with { Control = "missing" }],
+                [callout, callout],
+                [callout with { Modifier = "UNKNOWN" }]
+            })
+                Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(workspace with {
+                    Diagrams = [workspace.Diagrams[0] with { Callouts = callouts }]
+                }, ProfileId));
+        }
+
+        /// <summary>Removed modifiers reject invalid arrays and unknown canonical names explicitly.</summary>
+        [Theory]
+        [InlineData("{\"removedModifiers\":{}}")]
+        [InlineData("{\"removedModifiers\":[null]}")]
+        [InlineData("{\"removedModifiers\":[\"SHIFT\",\"SHIFT\"]}")]
+        [InlineData("{\"removedModifiers\":[\"UNKNOWN\"]}")]
+        public void Rejects_invalid_removed_modifier_metadata(string overlay)
+        {
+            var workspace = Workspace([]);
+            var sources = new Dictionary<string, string>(workspace.Sources!) { ["config/ui-layer-overlay.json"] = overlay };
+            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId));
+        }
+        /// <summary>A missing canonical link is recovered from an unambiguous pinned native source.</summary>
+        [Fact]
+        public void Recovers_missing_canonical_profile_link()
+        {
+            var workspace = Workspace([Assigned("EDIT", "Edited", "JOY_BTN1")]);
+            var recovered = workspace with {
+                Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }]
+            };
+            Assert.Equal(UiLayerLuaProfileRenderer.Render(workspace, ProfileId),
+                UiLayerLuaProfileRenderer.Render(recovered, ProfileId));
+            Assert.Null(recovered.Diagrams[0].CanonicalUiLayerSourcePath);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static DraftAssignment Assigned(string id, string name, string key, string chord = "") =>
@@ -137,3 +191,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

@@ -139,8 +139,95 @@ namespace Dcs.Ipia.Tests
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Code == "invalid-commit");
         }
+        /// <summary>Malformed source metadata is rejected before any partial Lua result can escape.</summary>
+        [Theory]
+        [InlineData("")]
+        [InlineData("/absolute.lua")]
+        [InlineData("../outside.lua")]
+        [InlineData("assets/./bad.lua")]
+        [InlineData("assets//bad.lua")]
+        [InlineData("assets/bad.txt")]
+        [InlineData("assets\\bad.lua")]
+        public void Rejects_unsafe_lua_paths_atomically(string path)
+        {
+            var result = new DcsCommonLuaImporter().Import(Fixture() with { Sources = [new(path, "return {}")] });
+            AssertEmptyResult(result);
+            Assert.Equal("invalid-path", Assert.Single(result.Diagnostics).Code);
+        }
+
+        /// <summary>Request errors accumulate in the same order without attempting source parsing.</summary>
+        [Fact]
+        public void Accumulates_request_errors_in_order()
+        {
+            var result = new DcsCommonLuaImporter().Import(new("bad", null!, []));
+            AssertEmptyResult(result);
+            Assert.Equal("invalid-commit|invalid-catalog|missing-lua", string.Join("|", result.Diagnostics.Select(x => x.Code)));
+        }
+
+        /// <summary>Case collisions, missing text and absent or malformed modifiers remain explicit failures.</summary>
+        [Fact]
+        public void Rejects_duplicate_paths_and_invalid_modifiers()
+        {
+            var request = Fixture();
+            var importer = new DcsCommonLuaImporter();
+            var duplicate = importer.Import(request with {
+                Sources = [.. request.Sources, request.Sources[0] with { Path = request.Sources[0].Path[..^4].ToUpperInvariant() + ".lua" }]
+            });
+            AssertEmptyResult(duplicate);
+            Assert.Contains(duplicate.Diagnostics, x => x.Code == "duplicate-path");
+            var missing = importer.Import(request with { Sources = [null!] });
+            AssertEmptyResult(missing);
+            Assert.Equal("invalid-path|missing-source", string.Join("|", missing.Diagnostics.Select(x => x.Code)));
+            var empty = importer.Import(request with { Sources = [new("assets/a.lua", " ")] });
+            AssertEmptyResult(empty);
+            Assert.Equal("missing-source", Assert.Single(empty.Diagnostics).Code);
+            var absent = importer.Import(request with {
+                Sources = request.Sources.Where(x => !x.Path.EndsWith("/modifiers.lua", StringComparison.Ordinal)).ToArray()
+            });
+            AssertEmptyResult(absent);
+            Assert.Contains(absent.Diagnostics, x => x.Code == "missing-modifiers");
+            var malformed = importer.Import(request with {
+                Sources = request.Sources.Select(x => x.Path.EndsWith("/modifiers.lua", StringComparison.Ordinal)
+                    ? x with { Content = "not lua" } : x).ToArray()
+            });
+            AssertEmptyResult(malformed);
+            Assert.Contains(malformed.Diagnostics, x => x.Code == "invalid-modifiers");
+        }
+
+        /// <summary>Unsupported Lua locations do not bypass the canonical directory contract.</summary>
+        [Fact]
+        public void Rejects_out_of_scope_lua()
+        {
+            var request = Fixture();
+            var result = new DcsCommonLuaImporter().Import(request with { Sources = [.. request.Sources, new("scripts/extra.lua", "return {}")] });
+            AssertEmptyResult(result);
+            Assert.Contains(result.Diagnostics, x => x.Code == "invalid-lua-source" &&
+                x.Message.Contains("outside the DCS-Common", StringComparison.Ordinal));
+        }
+
+        /// <summary>Reordered source input preserves the entire normalized result and original content hashes.</summary>
+        [Fact]
+        public void Source_order_preserves_complete_shared_import()
+        {
+            var request = Fixture();
+            var importer = new DcsCommonLuaImporter();
+            var first = importer.Import(request);
+            var reverse = importer.Import(request with { Sources = request.Sources.Reverse().ToArray() });
+            Assert.True(first.Succeeded);
+            Assert.True(reverse.Succeeded);
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(first), System.Text.Json.JsonSerializer.Serialize(reverse));
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static void AssertEmptyResult(SharedLuaImportResult result)
+        {
+            Assert.False(result.Succeeded);
+            Assert.Empty(result.Controls);
+            Assert.Empty(result.Profiles);
+            Assert.Empty(result.Bindings);
+            Assert.Empty(result.Modifiers);
+            Assert.Empty(result.Provenance);
+        }
         private static SharedLuaImportRequest Fixture()
         {
             var root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DcsCommon");
@@ -162,3 +249,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

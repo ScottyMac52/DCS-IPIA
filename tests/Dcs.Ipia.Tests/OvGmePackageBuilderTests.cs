@@ -172,6 +172,35 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<ArgumentException>(
                 () => OvGmePackageBuilder.Build(new(packageId, moduleId, version, BasePayload())));
         }
+        /// <summary>The independent verifier rejects unsafe repacked entries even with a valid checksum.</summary>
+        [Theory]
+        [InlineData("../escape.diff.lua")]
+        [InlineData("/absolute.diff.lua")]
+        [InlineData("C:drive.diff.lua")]
+        [InlineData("bad\\path.diff.lua")]
+        [InlineData("directory/")]
+        public void Verifier_rejects_unsafe_or_nonempty_entries(string extra)
+        {
+            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            var error = Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(Repack(package, _ => true, extra)));
+            Assert.StartsWith("Invalid OvGME archive:", error.Message, StringComparison.Ordinal);
+        }
+
+        /// <summary>Nested profiles and misleading file extensions cannot pass independent payload verification.</summary>
+        [Theory]
+        [InlineData("Config/Input/UH-1H/keyboard/nested/Keyboard.diff.lua")]
+        [InlineData("Config/Input/UH-1H/joystick/nested/Stick.diff.lua")]
+        [InlineData("Config/Input/UiLayer/joystick/nested/Stick.diff.lua")]
+        [InlineData("Config/Input/UiLayer/keyboard/Keyboard.txt")]
+        [InlineData("KNEEBOARD/UH-1H/nested/hidden.png")]
+        [InlineData("KNEEBOARD/UH-1H/hidden.txt")]
+        public void Verifier_rejects_unexpected_payload_families(string relative)
+        {
+            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            var root = package.FileName[..^".zip".Length] + "/";
+            var error = Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(Repack(package, _ => true, root + relative)));
+            Assert.Contains("Unexpected or empty OvGME payload", error.Message, StringComparison.Ordinal);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static OvGmePackage Repack(OvGmePackage package, Func<string, bool> include,
@@ -217,3 +246,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

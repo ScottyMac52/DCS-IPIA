@@ -96,8 +96,103 @@ namespace Dcs.Ipia.Tests
             }
             finally { File.Delete(file); }
         }
+        /// <summary>Filename, GUID and shared-hardware name fallbacks apply defaults without losing module overrides.</summary>
+        [Theory]
+        [InlineData("Stick.diff.lua", "Stick.diff.lua")]
+        [InlineData("STICK.diff.lua", "Stick.diff.lua")]
+        [InlineData("Renamed {11111111-1111-1111-1111-111111111111}.diff.lua", "Stick {11111111-1111-1111-1111-111111111111}.diff.lua")]
+        [InlineData("Stick {11111111-1111-1111-1111-111111111111}.diff.lua", "Stick {22222222-2222-2222-2222-222222222222}.diff.lua")]
+        [InlineData("Renamed.diff.lua", "Stick {22222222-2222-2222-2222-222222222222}.diff.lua")]
+        public async Task Resolves_reviewed_profile_fallbacks(string moduleFile, string sharedFile)
+        {
+            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
+            try
+            {
+                var connection = "Data Source=" + file + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var baseline = await repository.SaveAsync(Defaults(false));
+                var module = WithFallbackIdentity(Module(baseline), moduleFile);
+                var draft = Defaults(true);
+                var sources = new Dictionary<string, string>(draft.Sources);
+                var lua = sources[ProfilePath];
+                sources.Remove(ProfilePath);
+                var path = Root + "input/UiLayer/joystick/" + sharedFile;
+                sources[path] = lua;
+                var target = await repository.SaveAsync(draft with { Revision = baseline.Revision, Sources = sources });
+                var original = EditorSnapshotSerializer.Serialize(module).Content;
+                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [path]);
+                Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN1" && x.Command.Id == "NEW");
+                Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
+                Assert.Equal(original, EditorSnapshotSerializer.Serialize(module).Content);
+            }
+            finally { File.Delete(file); }
+        }
+
+        /// <summary>Ambiguous name matches fail rather than selecting a shared physical device arbitrarily.</summary>
+        [Fact]
+        public async Task Rejects_ambiguous_fallback_without_changing_module()
+        {
+            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
+            try
+            {
+                var connection = "Data Source=" + file + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var baseline = await repository.SaveAsync(Defaults(false));
+                var module = WithFallbackIdentity(Module(baseline), "Stick {33333333-3333-3333-3333-333333333333}.diff.lua");
+                var draft = Defaults(true);
+                var sources = new Dictionary<string, string>(draft.Sources);
+                var lua = sources[ProfilePath];
+                sources.Remove(ProfilePath);
+                var first = Root + "input/UiLayer/joystick/Stick {11111111-1111-1111-1111-111111111111}.diff.lua";
+                sources[first] = lua;
+                sources[Root + "input/UiLayer/joystick/Stick {22222222-2222-2222-2222-222222222222}.diff.lua"] = lua;
+                var target = await repository.SaveAsync(draft with { Revision = baseline.Revision, Sources = sources });
+                var original = EditorSnapshotSerializer.Serialize(module).Content;
+                var error = Assert.Throws<InvalidDataException>(() => SharedUiLayerSemanticAdoption.Review(module, target, [first]));
+                Assert.Contains("Ambiguous shared default profile", error.Message, StringComparison.Ordinal);
+                Assert.Equal(original, EditorSnapshotSerializer.Serialize(module).Content);
+            }
+            finally { File.Delete(file); }
+        }
+        /// <summary>Removing a default profile clears inherited slots but keeps module overrides and history.</summary>
+        [Fact]
+        public async Task Missing_default_profile_preserves_local_overrides()
+        {
+            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
+            try
+            {
+                var connection = "Data Source=" + file + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var baseline = await repository.SaveAsync(Defaults(false));
+                var module = WithFallbackIdentity(Module(baseline), "Stick.diff.lua");
+                var sources = new Dictionary<string, string>(baseline.Sources);
+                sources.Remove(ProfilePath);
+                var target = await repository.SaveAsync(baseline with { Sources = sources });
+                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
+                Assert.DoesNotContain(plan.Workspace.Assignments, x => x.Slot.Layer == AssignmentLayer.UiLayer && x.Command.Id == "OLD");
+                Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
+                var profile = module.Diagrams[0].ProfileId;
+                var rows = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(plan.Workspace, profile), profile);
+                Assert.Contains(rows, x => x.CommandId == "HISTORY" && x.Disposition == BindingDisposition.Removed);
+            }
+            finally { File.Delete(file); }
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static EditorWorkspaceSnapshot WithFallbackIdentity(EditorWorkspaceSnapshot module, string file)
+        {
+            var state = WorkspaceManagement.Read(module)!;
+            var sources = new Dictionary<string, string>(module.Sources!) {
+                [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state with {
+                    Devices = state.Devices.Select(x => x.Layer == AssignmentLayer.UiLayer ? x with { FileName = file } : x).ToArray()
+                })
+            };
+            return module with { Sources = sources,
+                Diagrams = [module.Diagrams[0] with { CanonicalUiLayerSourcePath = null }] };
+        }
         private static string Write(IReadOnlyList<DcsBinding> rows)
         {
             var id = rows[0].ProfileId;
@@ -170,3 +265,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
