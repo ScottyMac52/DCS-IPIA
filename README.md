@@ -1,5 +1,28 @@
 # DCS-IPIA
 
+## Test and coverage reports
+
+Each CI run publishes a **Publish test results, coverage, and CRAP scores** job
+summary and a `code-coverage-report` artifact, retained for 30 days. Download the
+artifact from the run's Summary page (or the link in the reporting job), extract
+it, and open `report/index.html` for source-line and branch coverage by assembly
+and class. The artifact also includes raw Cobertura/OpenCover XML, Linux and
+Windows TRX results, coverage JSON/CSV, `crap-scores.csv`, `crap-scores.json`, and
+`test-results.json` with test counts, durations, failure messages and stack traces.
+
+The run summary lists the highest 20 method CRAP scores and the number at or above
+30. CRAP combines Coverlet's IL-derived method complexity with method line
+coverage: `complexity² × (1 − coverage fraction)³ + complexity`. These scores
+include compiler-generated methods and are diagnostic; they do not add a new
+quality gate. The independent **80% line / 80% branch gates for every included
+assembly** remain enforced by the shared workflow. Linux and Windows test counts
+are displayed as separate runs, rather than counting the same tests twice.
+
+Reporting runs after test or coverage-gate failures and preserves available
+diagnostics. A build failure may leave no test or coverage files; the reporting
+summary then explicitly identifies unavailable data. Cancelled runs cannot
+guarantee publication. Reports are attached to Actions runs, not GitHub Pages.
+
 DCS Input Profile Importer Application is the future data-driven authoring and build boundary for DCS profiles, hardware, UI Layer assignments, documentation, kneeboards, and OvGME packages. Existing DCS-Common and consumer pipelines remain authoritative until each module passes equivalence and receives explicit approval. The current published installer predates the database-backed assignment editor and simplified navigation; use current `main` to review those changes.
 
 ## Visual Studio
