@@ -700,8 +700,155 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(forward.Configuration!.Module, reverse.Configuration!.Module);
             Assert.NotEqual("Alternate saved solution", forward.Configuration.Module.DisplayName);
         }
+        /// <summary>Invalid kneeboard shapes fail atomically with the existing diagnostic contract.</summary>
+        [Theory]
+        [InlineData("profiles", "[]", "Kneeboard profiles must be a keyed object.")]
+        [InlineData("pages", "{}", "Kneeboard pages must be an array.")]
+        [InlineData("labels", "[]", "Binding labels must be a keyed object.")]
+        [InlineData("schemaVersion", "2", "Kneeboard schema, aircraft, or modifiers reference")]
+        [InlineData("modifiersFile", "\"src/Config/Input/Other/modifiers.lua\"", "Kneeboard schema, aircraft, or modifiers reference")]
+        [InlineData("aircraft", "\" \"", "Missing aircraft.")]
+        public void Invalid_kneeboard_shapes_preserve_atomic_failure(string property, string value, string message)
+        {
+            var request = Fixture();
+            var sources = Replace(request, "config/kneeboard.json", text =>
+            {
+                var root = JsonNode.Parse(text)!;
+                root[property] = JsonNode.Parse(value);
+                return root.ToJsonString();
+            });
+            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            AssertAtomicFailure(result, message);
+        }
+
+        /// <summary>Optional source metadata cannot silently introduce unsupported schemas or decision shapes.</summary>
+        [Theory]
+        [InlineData("config/ui-layer-overlay.json", "{\"schemaVersion\":3}", "Unsupported module-owned UI Layer overlay schema.")]
+        [InlineData("config/ui-layer-overlay.json", "[]", "Unsupported module-owned UI Layer overlay schema.")]
+        [InlineData("config/scaffold.dcs-scaffold.json", "{\"schemaVersion\":2}", "UI Layer scaffold must use schema v1")]
+        [InlineData("config/scaffold-device-overrides.json", "[]", "Device overrides and instance roles must be keyed objects.")]
+        [InlineData("config/scaffold-instance-roles.json", "[]", "Device overrides and instance roles must be keyed objects.")]
+        public void Invalid_optional_metadata_preserves_atomic_failure(string path, string value, string message)
+        {
+            var request = Fixture();
+            var sources = Replace(request, path, _ => value);
+            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }), message);
+        }
+
+        /// <summary>A device UI usage entry must reference an imported physical instance.</summary>
+        [Fact]
+        public void Ui_usage_without_matching_instance_is_atomic()
+        {
+            var request = Fixture();
+            var sources = Replace(request, "config/kneeboard.json", text =>
+            {
+                var root = JsonNode.Parse(text)!;
+                root["uiLayerUtilization"]!["bindings"]![0]!["deviceInstance"] = "unknown-instance";
+                return root.ToJsonString();
+            });
+            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }),
+                                "UI Layer utilization has no matching module device instance");
+        }
+
+        /// <summary>Implicit UI Layer usage modes must remain unsupported.</summary>
+        [Fact]
+        public void Nonexplicit_ui_usage_is_atomic()
+        {
+            var request = Fixture();
+            var sources = Replace(request, "config/kneeboard.json", text =>
+            {
+                var root = JsonNode.Parse(text)!;
+                root["uiLayerUtilization"]!["mode"] = "implicit";
+                return root.ToJsonString();
+            });
+            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }),
+                                "Only explicit UI Layer utilization is supported.");
+        }
+
+        /// <summary>Upfront request errors retain their order and return no parsed state.</summary>
+        [Fact]
+        public void Request_validation_accumulates_errors_in_original_order()
+        {
+            var request = Fixture() with { Commit = "invalid", Catalog = null!, SharedLua = null!, Sources = [] };
+            var result = new ConsumerSourceImporter().Import(request);
+            Assert.Equal(RequestDiagnosticCodes,
+                         result.Diagnostics.Select(x => x.Code));
+            Assert.Null(result.Configuration);
+            Assert.Empty(result.Sources);
+            Assert.Empty(result.Provenance);
+        }
+
+        /// <summary>Source ordering cannot change any normalized result, warning, metadata, or content hash.</summary>
+        [Fact]
+        public void Source_permutations_preserve_complete_import_result()
+        {
+            var request = Fixture();
+            var importer = new ConsumerSourceImporter();
+            var forward = importer.Import(request);
+            var reversed = importer.Import(request with { Sources = request.Sources.Reverse().ToArray() });
+            Assert.True(forward.Succeeded);
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(forward),
+                         System.Text.Json.JsonSerializer.Serialize(reversed));
+        }
+
+        /// <summary>Each unsafe source-path family is rejected before parsing or retaining partial state.</summary>
+        [Theory]
+        [InlineData("")]
+        [InlineData("/README.md")]
+        [InlineData("docs\\notes.md")]
+        [InlineData("docs/../notes.md")]
+        [InlineData("docs/./notes.md")]
+        [InlineData("docs//notes.md")]
+        [InlineData("assets/unknown.png")]
+        public void Unsafe_source_paths_preserve_atomic_failure(string path)
+        {
+            var request = Fixture();
+            var result = new ConsumerSourceImporter().Import(request with
+            {
+                Sources = [..request.Sources, new(path, "source text")]
+            });
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Diagnostics, x => x.Code == "invalid-path" && x.IsError);
+            Assert.Null(result.Configuration);
+            Assert.Empty(result.Sources);
+            Assert.Empty(result.Metadata);
+            Assert.Empty(result.Provenance);
+        }
+
+        /// <summary>Splitting path recognition preserves all previously supported release script families.</summary>
+        [Theory]
+        [InlineData("scripts/Build-Release.ps1")]
+        [InlineData("scripts/Test-Package.ps1")]
+        [InlineData("scripts/version.mjs")]
+        public void Release_script_paths_are_preserved_as_pinned_text(string path)
+        {
+            var request = Fixture();
+            const string text = "authored release script text";
+            var result = new ConsumerSourceImporter().Import(request with
+            {
+                Sources = [..request.Sources, new(path, text)]
+            });
+            Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
+            Assert.Equal(text, result.Sources[path]);
+            Assert.Contains(result.Provenance, x => x.Path == path);
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static readonly string[] RequestDiagnosticCodes = ["invalid-commit", "invalid-shared-input", "missing-sources"];
+        private static void AssertAtomicFailure(ConsumerImportResult result, string message)
+        {
+            Assert.False(result.Succeeded);
+            Assert.Null(result.Configuration);
+            Assert.Empty(result.Instances);
+            Assert.Empty(result.Pages);
+            Assert.Empty(result.Usage);
+            Assert.Empty(result.UiFunctionKeys);
+            Assert.Empty(result.Metadata);
+            Assert.Empty(result.Sources);
+            Assert.Empty(result.Provenance);
+            Assert.Contains(result.Diagnostics, x => x.Code == "invalid-huey-source" && x.IsError &&
+                                                     x.Message.Contains(message, StringComparison.Ordinal));
+        }
         private static ConsumerSource[] Replace(ConsumerImportRequest request, string path,
                                                 Func<string, string> transform) =>
             request.Sources.Select(x => x.Path == path ? x with { Content = transform(x.Content) } : x).ToArray();
