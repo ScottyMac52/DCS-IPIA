@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   dotnet:
-    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@main
+    # Provider PR #3: collect Cobertura/OpenCover and TRX with the existing 80/80 gates.
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@6d0a3aa5e5d492b2a86ca5e8510019eae3b77099
     with:
       dotnet_version: 10.0.x
       test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
@@ -33,7 +34,14 @@ jobs:
       - name: Run tests on Windows
         env:
           IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
-        run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build
+        run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build --logger trx --results-directory "${{ runner.temp }}/windows-test-results"
+      - name: Upload Windows test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-test-results
+          path: ${{ runner.temp }}/windows-test-results/**/*.trx
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -56,6 +64,82 @@ jobs:
         run: python3 scripts/check_common_migration.py --check
       - name: Test migration inventory failure paths
         run: python3 -m unittest discover -s tests/migration -p 'test_*.py'
+      - name: Test CI report calculations and failure paths
+        run: python3 -m unittest discover -s tests/ci -p 'test_*.py'
+
+  test-reports:
+    name: Publish test results, coverage, and CRAP scores
+    needs: [dotnet, solution]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Download Linux coverage and test results
+        id: coverage
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage
+          path: TestResults/raw/linux
+      - name: Download Windows test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-test-results
+          path: TestResults/raw/windows
+      - name: Install pinned ReportGenerator
+        if: ${{ !cancelled() && steps.coverage.outcome == 'success' }}
+        run: dotnet tool install dotnet-reportgenerator-globaltool --tool-path "${{ runner.temp }}/reportgenerator" --version 5.5.11
+      - name: Generate HTML coverage and machine-readable summaries
+        if: ${{ !cancelled() && steps.coverage.outcome == 'success' }}
+        run: >-
+          "${{ runner.temp }}/reportgenerator/reportgenerator"
+          "-reports:TestResults/raw/linux/**/*.opencover.xml"
+          "-targetdir:TestResults/report"
+          "-sourcedirs:${{ github.workspace }}"
+          "-reporttypes:Html;MarkdownSummaryGithub;JsonSummary;CsvSummary"
+      - name: Publish test outcomes and method risk scores
+        if: ${{ always() && !cancelled() }}
+        env:
+          DOTNET_RESULT: ${{ needs.dotnet.result }}
+          WINDOWS_RESULT: ${{ needs.solution.result }}
+        run: |
+          mkdir -p TestResults/report
+          {
+            echo '## CI quality gates'
+            echo ''
+            echo "Linux build/test/80% line and branch gates: **$DOTNET_RESULT**"
+            echo "Windows solution/test/smoke: **$WINDOWS_RESULT**"
+            echo ''
+            if [ -f TestResults/report/SummaryGithub.md ]; then
+              cat TestResults/report/SummaryGithub.md
+            else
+              echo 'HTML coverage summary unavailable. See reporting errors and raw artifacts.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          python scripts/publish_test_results.py --raw TestResults/raw --output TestResults/report --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload full coverage, CRAP, and test results
+        id: report
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: code-coverage-report
+          path: TestResults
+          retention-days: 30
+          if-no-files-found: error
+      - name: Link published report
+        if: ${{ always() && steps.report.outcome == 'success' }}
+        env:
+          REPORT_URL: ${{ steps.report.outputs.artifact-url }}
+        run: |
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download HTML coverage, CRAP scores, and test results]($REPORT_URL) — open report/index.html after extraction." >> "$GITHUB_STEP_SUMMARY"
 
   asset-authoring:
     strategy:
@@ -80,7 +164,7 @@ jobs:
           path: asset-authoring-coverage.info
 
   release-candidate:
-    needs: [dotnet, solution, csharp-layout, asset-authoring]
+    needs: [dotnet, solution, csharp-layout, asset-authoring, test-reports]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
