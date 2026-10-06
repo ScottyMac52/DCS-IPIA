@@ -156,6 +156,30 @@ namespace Dcs.Ipia.Tests
             }
             finally { File.Delete(file); }
         }
+        /// <summary>Removing a default profile clears inherited slots but keeps module overrides and history.</summary>
+        [Fact]
+        public async Task Missing_default_profile_preserves_local_overrides()
+        {
+            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
+            try
+            {
+                var connection = "Data Source=" + file + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var baseline = await repository.SaveAsync(Defaults(false));
+                var module = WithFallbackIdentity(Module(baseline), "Stick.diff.lua");
+                var sources = new Dictionary<string, string>(baseline.Sources);
+                sources.Remove(ProfilePath);
+                var target = await repository.SaveAsync(baseline with { Sources = sources });
+                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
+                Assert.DoesNotContain(plan.Workspace.Assignments, x => x.Slot.Layer == AssignmentLayer.UiLayer && x.Command.Id == "OLD");
+                Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
+                var profile = module.Diagrams[0].ProfileId;
+                var rows = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(plan.Workspace, profile), profile);
+                Assert.Contains(rows, x => x.CommandId == "HISTORY" && x.Disposition == BindingDisposition.Removed);
+            }
+            finally { File.Delete(file); }
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static EditorWorkspaceSnapshot WithFallbackIdentity(EditorWorkspaceSnapshot module, string file)

@@ -171,7 +171,7 @@ namespace Dcs.Ipia.Tests
             var request = Fixture();
             var importer = new DcsCommonLuaImporter();
             var duplicate = importer.Import(request with {
-                Sources = [.. request.Sources, request.Sources[0] with { Path = request.Sources[0].Path.ToUpperInvariant() }]
+                Sources = [.. request.Sources, request.Sources[0] with { Path = request.Sources[0].Path[..^4].ToUpperInvariant() + ".lua" }]
             });
             AssertEmptyResult(duplicate);
             Assert.Contains(duplicate.Diagnostics, x => x.Code == "duplicate-path");
