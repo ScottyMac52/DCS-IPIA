@@ -175,7 +175,7 @@ namespace Dcs.Ipia.Dcs
         }
 
         /// <summary>Validates the kneeboard schema and its module-local modifiers reference.</summary>
-        private static string ReadModifiersText(JsonElement kneeboard, string dcsId, IReadOnlyDictionary<string, string> files)
+        private static string ReadModifiersText(JsonElement kneeboard, string dcsId, SortedDictionary<string, string> files)
         {
             var modifiersPath = RequiredText(kneeboard, "modifiersFile");
             if (kneeboard.GetProperty("schemaVersion").GetInt32() != 1 ||
@@ -324,7 +324,7 @@ namespace Dcs.Ipia.Dcs
                 throw new FormatException($"Instance role for {filename} conflicts with {authoredInstance}.");
         }
 
-        private static void ValidateProfileCollection(IReadOnlyList<DeviceProfile> profiles, JsonElement pageRows,
+        private static void ValidateProfileCollection(List<DeviceProfile> profiles, JsonElement pageRows,
                                                       JsonElement overrides, JsonElement roles)
         {
             ValidateDecisionReferences(overrides, profiles, "Device override");
