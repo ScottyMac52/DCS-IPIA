@@ -97,7 +97,6 @@ namespace Dcs.Ipia.Tests
         }
         /// <summary>Canonical source paths must retain their pinned root, Lua suffix and input family.</summary>
         [Theory]
-        [InlineData(null)]
         [InlineData("assets/shared/ui-layer/input/UiLayer/joystick/../bad.diff.lua")]
         [InlineData("assets/shared/ui-layer/input/UiLayer/joystick/bad.lua")]
         [InlineData("assets/shared/ui-layer/input/UiLayer/bad.diff.lua")]
@@ -137,6 +136,18 @@ namespace Dcs.Ipia.Tests
             var workspace = Workspace([]);
             var sources = new Dictionary<string, string>(workspace.Sources!) { ["config/ui-layer-overlay.json"] = overlay };
             Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId));
+        }
+        /// <summary>A missing canonical link is recovered from an unambiguous pinned native source.</summary>
+        [Fact]
+        public void Recovers_missing_canonical_profile_link()
+        {
+            var workspace = Workspace([Assigned("EDIT", "Edited", "JOY_BTN1")]);
+            var recovered = workspace with {
+                Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }]
+            };
+            Assert.Equal(UiLayerLuaProfileRenderer.Render(workspace, ProfileId),
+                UiLayerLuaProfileRenderer.Render(recovered, ProfileId));
+            Assert.Null(recovered.Diagrams[0].CanonicalUiLayerSourcePath);
         }
         #endregion END Public
         #region BEGIN private helpers

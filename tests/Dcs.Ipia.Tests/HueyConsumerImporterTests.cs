@@ -842,7 +842,7 @@ namespace Dcs.Ipia.Tests
             var original = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua);
             Assert.Equal(imported.Configuration!.Profiles.Count, original.Count);
             var selected = imported.Configuration.Profiles[0];
-            var path = "assets/shared/hardware/svg/" + selected.DeviceId + ".svg";
+            var path = original.Single(x => x.ProfileId == selected.Id).Path;
             if (fault == "missing") graphics.Remove(path);
             else graphics[path] = fault switch
             {
@@ -858,7 +858,7 @@ namespace Dcs.Ipia.Tests
             var diagrams = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua,
                 (profile, _) => errors.Add(profile));
             Assert.NotEmpty(errors);
-            Assert.All(errors, profile => Assert.Equal(selected.DeviceId, profile.DeviceId));
+            Assert.All(errors, profile => Assert.Equal(path, original.Single(x => x.ProfileId == profile.Id).Path));
             Assert.DoesNotContain(diagrams, diagram => diagram.Path == path);
             Assert.Equal(imported.Configuration.Profiles.Count, diagrams.Count + errors.Count);
         }
