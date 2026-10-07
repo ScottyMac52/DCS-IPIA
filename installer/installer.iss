@@ -65,7 +65,7 @@ begin
     'Keep the current selection or click Browse to select another instance.', False, '');
   SavedGamesPage.Add('Saved Games DCS Folder:');
   if not RunFolderSettings('-Mode Read -DefaultsPath ' +
-    AddQuotes(ExpandConstant('{app}\appsettings.json')) + ' -OutputPath ' +
+    AddQuotes(AddBackslash(WizardDirValue) + 'appsettings.json') + ' -OutputPath ' +
     AddQuotes(ExpandConstant('{tmp}\saved-games-folder.txt'))) then
     RaiseException('Unable to read the Saved Games DCS Folder setting.');
   if not LoadStringsFromFile(ExpandConstant('{tmp}\saved-games-folder.txt'), Lines) then
