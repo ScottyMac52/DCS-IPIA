@@ -22,8 +22,9 @@ namespace Dcs.Ipia.Dcs
             var profile = page.Kind == KneeboardPageKind.Device
                 ? workspace.Configuration.Profiles.Single(x => Path.GetFileName(root["profiles"]![row["profile"]!.GetValue<string>()]!.GetValue<string>()) == x.SourceName).Id
                 : (Guid?)null;
-            var cards = row["items"] is JsonArray items ? items.Select(x => new ModuleSummaryCard(
-                x!["key"]!.GetValue<string>(), x["text"]!.GetValue<string>(), x["accent"]?.GetValue<string>() ?? "cyan")).ToArray() : [];
+            var cards = row["items"] is JsonArray items ? items.Select((x, index) => new ModuleSummaryCard(
+                x!["key"]!.GetValue<string>(), x["text"]!.GetValue<string>(), x["accent"]?.GetValue<string>() ?? "cyan")
+                { SourceIndex = index }).ToArray() : [];
             return new(page.Kind, profile, page.StableKey, row["title"]?.GetValue<string>() ?? page.Title,
                 row["kicker"]?.GetValue<string>() ?? "", page.Order, cards);
         }
@@ -81,6 +82,9 @@ namespace Dcs.Ipia.Dcs
                 {
                     var matching = originalItems?.Where(x => x?["key"]?.GetValue<string>() == settings.Cards[i].Key).ToArray() ?? [];
                     var original = matching.Length == 1 ? matching[0] : originalItems is not null && i < originalItems.Count ? originalItems[i] : null;
+                    if (originalItems is not null && settings.Cards[i].SourceIndex is int sourceIndex &&
+                        sourceIndex >= 0 && sourceIndex < originalItems.Count)
+                        original = originalItems[sourceIndex];
                     var item = original?.DeepClone().AsObject() ?? new JsonObject();
                     item["key"] = settings.Cards[i].Key;
                     item["text"] = settings.Cards[i].Text;

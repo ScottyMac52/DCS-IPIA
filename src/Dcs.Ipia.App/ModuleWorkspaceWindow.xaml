@@ -399,7 +399,11 @@
                 <TextBlock Text="Order" Margin="0,8,0,4"/><TextBox x:Name="AuthoredPageOrder" Text="0"/>
                 <GroupBox x:Name="SummaryCardsGroup" Header="Summary cards — two columns, up to 14 cards" Margin="0,12,0,0" Padding="8">
                   <StackPanel>
-                    <ListBox x:Name="SummaryCards" DisplayMemberPath="Display" Height="110" SelectionChanged="SummaryCardSelected"/>
+                    <TextBlock Style="{DynamicResource Hint}" Text="Drag rows to reorder and renumber cards. Stage page, then Save." TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <ListBox x:Name="SummaryCards" DisplayMemberPath="Display" Height="110" SelectionChanged="SummaryCardSelected"
+                             AllowDrop="True" PreviewMouseLeftButtonDown="SummaryCardMouseDown" PreviewMouseMove="SummaryCardMouseMove"
+                             PreviewMouseLeftButtonUp="SummaryCardMouseUp" PreviewDragOver="SummaryCardDragOver" PreviewDrop="SummaryCardDrop"
+                             AutomationProperties.Name="Summary cards in display order"/>
                     <TextBlock Text="Card heading" Margin="0,8,0,4"/><TextBox x:Name="SummaryCardKey"/>
                     <TextBlock Text="Description" Margin="0,8,0,4"/><TextBox x:Name="SummaryCardText"/>
                     <TextBlock Text="Accent" Margin="0,8,0,4"/><ComboBox x:Name="SummaryCardAccent"/>

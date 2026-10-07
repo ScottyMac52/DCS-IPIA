@@ -13,6 +13,44 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleKneeboardPageEditorTests
     {
         #region BEGIN Public
+        /// <summary>Renumbered cards retain their original metadata through edits, rendering and a database reopen.</summary>
+        [Fact]
+        public async Task Reordered_numbered_cards_keep_metadata_and_reopen()
+        {
+            var workspace = ModuleKneeboardPageEditor.Set(Workspace(), null,
+                new(KneeboardPageKind.Summary, null, "summary", "Summary", "CONTROLS", 1,
+                    [new("01", "First", "red"), new("01", "Second", "green"), new("03", "Third", "blue")]));
+            var page = workspace.Pages.Single(x => x.Kind == KneeboardPageKind.Summary);
+            var root = JsonNode.Parse(workspace.Sources!["config/kneeboard.json"])!;
+            for (var i = 0; i < 3; i++) root["summaryPages"]![0]!["items"]![i]!["custom"] = "metadata-" + i;
+            workspace = workspace with { Sources = new Dictionary<string, string>(workspace.Sources!) { ["config/kneeboard.json"] = root.ToJsonString() } };
+            var before = SnapshotSummaryKneeboardRenderer.Generate(workspace).Single().Value;
+            var settings = ModuleKneeboardPageEditor.Describe(workspace, page);
+            var cards = settings.Cards.ToArray();
+            cards[2] = cards[2] with { Text = "Third edited" };
+            var reordered = ModuleKneeboardPageEditor.Set(workspace, page, settings with { Cards = SummaryCardOrder.Move(cards, 2, 0) });
+            var items = JsonNode.Parse(reordered.Sources!["config/kneeboard.json"])!["summaryPages"]![0]!["items"]!.AsArray();
+            Assert.Equal(new[] { "metadata-2", "metadata-0", "metadata-1" }, items.Select(x => x!["custom"]!.GetValue<string>()));
+            Assert.Equal(new[] { "01", "02", "03" }, items.Select(x => x!["key"]!.GetValue<string>()));
+            Assert.Equal(workspace.Assignments, reordered.Assignments);
+            Assert.Equal(workspace.Configuration, reordered.Configuration);
+            var after = SnapshotSummaryKneeboardRenderer.Generate(reordered).Single().Value;
+            Assert.NotEqual(before, after);
+            var path = Path.Combine(Path.GetTempPath(), $"ipia-card-order-{Guid.NewGuid():N}.db");
+            var connection = "Data Source=" + path + ";Pooling=False";
+            try
+            {
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(reordered);
+                var reopened = (await repository.GetAsync(reordered.Configuration.Module.Id))!;
+                Assert.Equal(reordered.Sources!["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
+                Assert.Equal(new[] { "Third edited", "First", "Second" }, ModuleKneeboardPageEditor.Describe(reopened, page).Cards.Select(x => x.Text));
+                Assert.Equal(after, SnapshotSummaryKneeboardRenderer.Generate(reopened).Single().Value);
+            }
+            finally { File.Delete(path); }
+        }
+
         /// <summary>Summary generation includes every device page in display order, preserving existing pages and saved state.</summary>
         /// <returns>Completion of real SQLite save and reopen.</returns>
         [Fact]
@@ -203,7 +241,8 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Set(empty with { Diagrams = [] }, null, settings));
             Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Set(empty, null, settings with { ProfileId = Guid.NewGuid() }));
             var withSummary = ModuleKneeboardPageEditor.Set(workspace, null, summary);
-            Assert.Equal(summary.Cards, ModuleKneeboardPageEditor.Describe(withSummary, withSummary.Pages.Single(x => x.Kind == KneeboardPageKind.Summary)).Cards);
+            Assert.Equal(summary.Cards.Select(x => (x.Key, x.Text, x.Accent)),
+                ModuleKneeboardPageEditor.Describe(withSummary, withSummary.Pages.Single(x => x.Kind == KneeboardPageKind.Summary)).Cards.Select(x => (x.Key, x.Text, x.Accent)));
         }
         #endregion END Public
         #region BEGIN private helpers

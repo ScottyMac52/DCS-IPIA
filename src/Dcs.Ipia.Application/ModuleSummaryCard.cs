@@ -7,6 +7,8 @@ namespace Dcs.Ipia.Application
     public sealed record ModuleSummaryCard(string Key, string Text, string Accent)
     {
         #region BEGIN Public
+        /// <summary>Gets the original manifest item index so metadata follows edits and renumbering.</summary>
+        public int? SourceIndex { get; init; }
         /// <summary>Gets the card's label for page authoring.</summary>
         public string Display => Key + " · " + Text;
         #endregion END Public

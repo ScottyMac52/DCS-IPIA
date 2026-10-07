@@ -40,6 +40,8 @@ namespace DcsIpia.Presentation
         private bool _managementRefreshing;
         private bool _authoringRefreshing;
         private readonly List<ModuleSummaryCard> _summaryCards = [];
+        private Point? _summaryDragStart;
+        private ModuleSummaryCard? _summaryDragCard;
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TextBlock> _calloutText = new(StringComparer.Ordinal);
         private HardwareGraphicControl? _selected;
@@ -547,12 +549,80 @@ namespace DcsIpia.Presentation
         private void SetSummaryCardClicked(object sender, RoutedEventArgs e)
         {
             var card = new ModuleSummaryCard(SummaryCardKey.Text, SummaryCardText.Text, SummaryCardAccent.SelectedItem as string ?? "cyan");
-            var index = SummaryCards.SelectedItem is ModuleSummaryCard selected ? _summaryCards.IndexOf(selected) : -1;
+            var index = SummaryCards.SelectedItem is ModuleSummaryCard selected ? _summaryCards.FindIndex(x => ReferenceEquals(x, selected)) : -1;
             if (index < 0) _summaryCards.Add(card);
-            else _summaryCards[index] = card;
+            else
+            {
+                card = card with { SourceIndex = _summaryCards[index].SourceIndex };
+                _summaryCards[index] = card;
+            }
             SummaryCards.ItemsSource = _summaryCards.ToArray();
             SummaryCards.SelectedItem = card;
             PageAuthoringStatus.Text = "Card updated in the form. Stage page, then Save to database to keep it.";
+        }
+        private void SummaryCardMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _summaryDragStart = null;
+            _summaryDragCard = null;
+            if (_working is null || _building || !SummaryCardsGroup.IsEnabled || _summaryCards.Count < 2) return;
+            if (e.OriginalSource is DependencyObject element &&
+                ItemsControl.ContainerFromElement(SummaryCards, element) is ListBoxItem { Content: ModuleSummaryCard card })
+            {
+                _summaryDragStart = e.GetPosition(SummaryCards);
+                _summaryDragCard = card;
+            }
+        }
+        private void SummaryCardMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _summaryDragStart = null;
+            _summaryDragCard = null;
+        }
+        private void SummaryCardMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _summaryDragStart is not Point start || _summaryDragCard is not { } card) return;
+            var position = e.GetPosition(SummaryCards);
+            if (Math.Abs(position.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(position.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            _summaryDragStart = null;
+            _summaryDragCard = null;
+            DragDrop.DoDragDrop(SummaryCards, new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(SummaryCards, card)), DragDropEffects.Move);
+            e.Handled = true;
+        }
+        private int SummaryCardSource(DragEventArgs e)
+        {
+            if (_working is null || _building || !SummaryCardsGroup.IsEnabled ||
+                (e.AllowedEffects & DragDropEffects.Move) == 0 ||
+                e.Data.GetData(typeof(SummaryCardDrag)) is not SummaryCardDrag drag || !ReferenceEquals(drag.Source, SummaryCards)) return -1;
+            return _summaryCards.FindIndex(x => ReferenceEquals(x, drag.Card));
+        }
+        private void SummaryCardDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = SummaryCardSource(e) >= 0 ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+        private void SummaryCardDrop(object sender, DragEventArgs e)
+        {
+            var source = SummaryCardSource(e);
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            if (source < 0) return;
+            var insertion = _summaryCards.Count;
+            if (SummaryCards.InputHitTest(e.GetPosition(SummaryCards)) is DependencyObject element &&
+                ItemsControl.ContainerFromElement(SummaryCards, element) is ListBoxItem row)
+            {
+                insertion = SummaryCards.ItemContainerGenerator.IndexFromContainer(row);
+                if (e.GetPosition(row).Y >= row.ActualHeight / 2) insertion++;
+            }
+            var moved = SummaryCardOrder.Move(_summaryCards, source, insertion);
+            if (ReferenceEquals(moved, _summaryCards)) return;
+            var destination = insertion > source ? insertion - 1 : insertion;
+            _summaryCards.Clear();
+            _summaryCards.AddRange(moved);
+            SummaryCards.ItemsSource = _summaryCards.ToArray();
+            SummaryCards.SelectedIndex = destination;
+            SummaryCards.ScrollIntoView(SummaryCards.SelectedItem);
+            e.Effects = DragDropEffects.Move;
+            PageAuthoringStatus.Text = "Cards reordered and renumbered in the form. Stage page, then Save to database to keep them.";
         }
         private void RemoveSummaryCardClicked(object sender, RoutedEventArgs e)
         {
