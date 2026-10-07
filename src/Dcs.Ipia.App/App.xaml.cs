@@ -20,9 +20,21 @@ namespace DcsIpia.Presentation
         {
             base.OnStartup(e);
             var releaseSmoke = e.Args.Length == 2 && e.Args[0] == "--release-smoke";
-            var userFolder =
-                releaseSmoke ? Path.GetFullPath(e.Args[1]) :
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCS-IPIA");
+            UserDataProfile profile;
+            try
+            {
+                var name = e.Args.Length == 2 && e.Args[0] == "--test-profile" ? e.Args[1] : null;
+                if (!releaseSmoke && e.Args.Length != 0 && name is null)
+                    throw new ArgumentException("Use --test-profile NAME, or start without arguments for Production.");
+                profile = UserDataProfile.Select(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), name);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+            var userFolder = releaseSmoke ? Path.GetFullPath(e.Args[1]) : profile.DataDirectory;
             var recovery = new UserDataRecoveryService(userFolder, ApplicationVersion.Label);
             var connectionString = new SqliteConnectionStringBuilder { DataSource = Path.Combine(userFolder, "ipia.db"),
                                                                        ForeignKeys = true }
@@ -43,6 +55,11 @@ namespace DcsIpia.Presentation
             {
                 recovery.RecoverInterruptedRestore();
                 Directory.CreateDirectory(userFolder);
+                var temporary = Path.Combine(userFolder, "Temp");
+                Directory.CreateDirectory(temporary);
+                Environment.SetEnvironmentVariable("TMP", temporary);
+                Environment.SetEnvironmentVariable("TEMP", temporary);
+                Environment.SetEnvironmentVariable("TMPDIR", temporary);
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
             }
             catch (Exception ex)
@@ -53,7 +70,7 @@ namespace DcsIpia.Presentation
                 Shutdown(window.RequiresRestart ? 0 : 1);
                 return;
             }
-            _services =
+            var registrations =
                 new ServiceCollection()
                     .AddSingleton<IUserDataRecoveryService>(recovery)
                     .AddSingleton<Action>(_ => CloseDatabase)
@@ -69,12 +86,18 @@ namespace DcsIpia.Presentation
                     .AddSingleton<ISharedUiLayerWorkspaceRepository>(
                         _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
                     .AddSingleton<IFlyNowPayloadBuilder, FlyNowPayloadBuilder>()
-                    .AddSingleton<IFlyNowService>(provider => new SqliteFlyNowService(connectionString,
-                        Path.Combine(userFolder, "FlyNowBackups"), provider.GetRequiredService<IFlyNowPayloadBuilder>()))
+                    .AddSingleton<IFlyNowService>(provider => profile.IsTest ? new IsolatedFlyNowService() :
+                        new SqliteFlyNowService(connectionString, Path.Combine(userFolder, "FlyNowBackups"),
+                            provider.GetRequiredService<IFlyNowPayloadBuilder>()))
                     .AddSingleton<IModuleWorkspaceLoader, ModuleWorkspaceLoader>()
                     .AddSingleton<IDcsFolderImporter, DcsFolderImporter>()
-                    .AddTransient<MainWindow>()
-                    .BuildServiceProvider();
+                    .AddTransient<MainWindow>();
+            if (!releaseSmoke)
+            {
+                registrations.AddSingleton(profile);
+                registrations.AddSingleton<IUserDataProfileService>(new UserDataProfileService(profile, ApplicationVersion.Label));
+            }
+            _services = registrations.BuildServiceProvider();
             MainWindow = _services.GetRequiredService<MainWindow>();
             MainWindow.Show();
             if (releaseSmoke)

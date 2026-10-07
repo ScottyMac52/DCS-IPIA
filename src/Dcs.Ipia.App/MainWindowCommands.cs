@@ -34,6 +34,8 @@ namespace DcsIpia.Presentation
         public static RoutedUICommand Recovery { get; } = Create("Recovery");
         /// <summary>Shows the current user-data location.</summary>
         public static RoutedUICommand DataLocation { get; } = Create("DataLocation");
+        /// <summary>Manages isolated profiles, setup completion and verified reset.</summary>
+        public static RoutedUICommand Profiles { get; } = Create("Profiles");
         /// <summary>Shows version and workflow help.</summary>
         public static RoutedUICommand About { get; } = Create("About");
         /// <summary>Closes the application.</summary>
