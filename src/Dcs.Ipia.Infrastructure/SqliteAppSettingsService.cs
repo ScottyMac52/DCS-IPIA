@@ -10,6 +10,7 @@ namespace Dcs.Ipia.Infrastructure
     {
         private const int SchemaVersion = 1;
         private readonly string _connectionString;
+        private readonly FileAppSettingsService _folderSettings;
         /// <summary>Loads preferences from SQLite, migrating existing per-user files once.</summary>
         /// <param name="connectionString">Migrated local SQLite database.</param>
         /// <param name="defaultsPath">Packaged appsettings.json defaults.</param>
@@ -20,8 +21,10 @@ namespace Dcs.Ipia.Infrastructure
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
             _connectionString = connectionString;
+            _folderSettings = new FileAppSettingsService(defaultsPath, legacyUserPath, legacyThemePath, false);
             var fallback = new AppSettings(SchemaVersion, AppearanceTheme.Light, OccupiedDestinationBehavior.Ask);
             var defaults = ReadJson(defaultsPath, fallback, out _);
+            defaults = new AppSettings(SchemaVersion, defaults.Theme, defaults.OccupiedDestinationBehavior, _folderSettings.Current.SavedGamesDcsFolder);
             try
             {
                 using var db = new SqliteConnection(_connectionString);
@@ -38,7 +41,8 @@ namespace Dcs.Ipia.Infrastructure
                         Enum.TryParse<OccupiedDestinationBehavior>(reader.GetString(2), true, out var behavior) &&
                         Enum.IsDefined(behavior))
                     {
-                        Current = new AppSettings(SchemaVersion, theme, behavior);
+                        Current = new AppSettings(SchemaVersion, theme, behavior, _folderSettings.Current.SavedGamesDcsFolder);
+                        LastError = _folderSettings.LastError;
                         return;
                     }
                     LastError = "Invalid stored settings; using packaged defaults.";
@@ -70,8 +74,9 @@ namespace Dcs.Ipia.Infrastructure
                     LastError = "Unable to read legacy theme; using available settings.";
                 }
             }
-            Current = imported;
+            Current = new AppSettings(SchemaVersion, imported.Theme, imported.OccupiedDestinationBehavior, _folderSettings.Current.SavedGamesDcsFolder);
             TryPersist();
+            LastError ??= _folderSettings.LastError;
         }
         #region BEGIN Public
         /// <inheritdoc/>
@@ -83,7 +88,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             if (!Enum.IsDefined(theme))
                 throw new ArgumentOutOfRangeException(nameof(theme));
-            Current = new AppSettings(SchemaVersion, theme, Current.OccupiedDestinationBehavior);
+            Current = new AppSettings(SchemaVersion, theme, Current.OccupiedDestinationBehavior, Current.SavedGamesDcsFolder);
             return TryPersist();
         }
         /// <inheritdoc/>
@@ -91,8 +96,17 @@ namespace Dcs.Ipia.Infrastructure
         {
             if (!Enum.IsDefined(behavior))
                 throw new ArgumentOutOfRangeException(nameof(behavior));
-            Current = new AppSettings(SchemaVersion, Current.Theme, behavior);
+            Current = new AppSettings(SchemaVersion, Current.Theme, behavior, Current.SavedGamesDcsFolder);
             return TryPersist();
+        }
+        /// <inheritdoc/>
+        public bool TryUpdateSavedGamesDcsFolder(string folder)
+        {
+            var persisted = _folderSettings.TryUpdateSavedGamesDcsFolder(folder);
+            Current = new AppSettings(SchemaVersion, Current.Theme, Current.OccupiedDestinationBehavior,
+                _folderSettings.Current.SavedGamesDcsFolder);
+            LastError = _folderSettings.LastError;
+            return persisted;
         }
         #endregion END Public
         #region BEGIN private helpers

@@ -19,6 +19,11 @@ namespace DcsIpia.Presentation
         private readonly Func<string?>? _snapshotFilePicker;
         private ModuleWorkspaceViewModel? _lastViewModel;
         private bool _moduleOperationBusy;
+        private readonly IFlyNowService? _flyNow;
+        private readonly Func<string?>? _savedGamesFolderPicker;
+        private FlyNowDeployment? _activeDeployment;
+        private bool _flyNowReadFailed;
+        private bool _flyNowLoading = true;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -26,9 +31,12 @@ namespace DcsIpia.Presentation
         /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
         /// <param name="sharedDefaults">Independent shared default revision storage.</param>
         /// <param name="snapshotFilePicker">Optional snapshot file selection adapter.</param>
+        /// <param name="flyNow">Persistent native deployment service.</param>
+        /// <param name="savedGamesFolderPicker">Optional destination browser adapter.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
-                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null)
+                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
+                          IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
@@ -36,6 +44,8 @@ namespace DcsIpia.Presentation
             _workspaces = workspaces ?? throw new ArgumentNullException(nameof(workspaces));
             _sharedDefaults = sharedDefaults;
             _snapshotFilePicker = snapshotFilePicker;
+            _flyNow = flyNow;
+            _savedGamesFolderPicker = savedGamesFolderPicker;
             InitializeComponent();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
@@ -44,11 +54,85 @@ namespace DcsIpia.Presentation
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
-            Loaded += async (_, _) => await RefreshSavedModulesAsync();
+            Loaded += async (_, _) => { await RefreshSavedModulesAsync(); await RefreshFlyNowAsync(); };
         }
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private async Task RefreshFlyNowAsync()
+        {
+            _flyNowLoading = true;
+            UpdateFlyNowControls();
+            try
+            {
+                _activeDeployment = _flyNow is null ? null : await _flyNow.GetActiveAsync();
+                _flyNowReadFailed = false;
+                FlyNowStatus.Text = _activeDeployment is null ? "No module is active in Fly Now!."
+                    : $"Active: {_activeDeployment.DisplayName} → {_activeDeployment.Destination}. " +
+                      (_activeDeployment.Clearing ? "Cleanup is incomplete; retry Clear." : "Clear before deploying another module. The active UI Layer belongs to this module.");
+            }
+            catch (Exception ex)
+            {
+                _flyNowReadFailed = true;
+                FlyNowStatus.Text = "Fly Now! recovery needs attention: " + ex.Message;
+            }
+            _flyNowLoading = false;
+            UpdateFlyNowControls();
+        }
+
+        private void UpdateFlyNowControls()
+        {
+            if (FlyNowButton is null) return;
+            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            var destination = _settings.Current.SavedGamesDcsFolder;
+            SavedGamesDestination.Text = destination.Length == 0 ? "Setup: browse for your DCS Saved Games instance folder." : destination;
+            FlyNowButton.IsEnabled = !_moduleOperationBusy && !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
+                destination.Length > 0 && (_activeDeployment is null || (!_activeDeployment.Clearing && _activeDeployment.ModuleId == selected &&
+                    string.Equals(_activeDeployment.Destination, destination, StringComparison.OrdinalIgnoreCase)));
+            ClearFlyNowButton.IsEnabled = !_moduleOperationBusy && !_flyNowLoading && _flyNow is not null && (_activeDeployment is not null || _flyNowReadFailed);
+            BrowseSavedGamesButton.IsEnabled = !_moduleOperationBusy;
+            if (_activeDeployment?.ModuleId == selected || _flyNowReadFailed) DeleteModuleButton.IsEnabled = false;
+        }
+
+        private async void FlyNowClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || !FlyNowButton.IsEnabled || _flyNow is null || SavedModules.SelectedItem is not SavedModuleChoice selected) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
+                var destination = _settings.Current.SavedGamesDcsFolder;
+                var active = await Task.Run(() => _flyNow.DeployAsync(selected.Id, destination));
+                ImportStatus.Text = $"Fly Now! deployed {active.DisplayName} and its UI Layer ({active.Files.Count} files) to {active.Destination}.";
+            }
+            catch (Exception ex) { ImportStatus.Text = "Fly Now! did not complete: " + ex.Message; }
+            finally { await RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+        }
+
+        private async void ClearFlyNowClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || !ClearFlyNowButton.IsEnabled || _flyNow is null) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                FlyNowStatus.Text = "Clearing the recorded Fly Now! files…";
+                await _flyNow.ClearAsync();
+                ImportStatus.Text = "Fly Now! cleared. Choose a module to deploy; saved authoring data is preserved.";
+            }
+            catch (Exception ex) { ImportStatus.Text = "Clear did not complete: " + ex.Message; }
+            finally { await RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+        }
+
+        private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy) return;
+            var picker = new OpenFolderDialog { Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
+            var folder = _savedGamesFolderPicker is not null ? _savedGamesFolderPicker() : picker.ShowDialog(this) == true ? picker.FolderName : null;
+            if (folder is null) return;
+            ThemeSaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(folder) ? "Saved Games DCS Folder saved." : _settings.LastError;
+            UpdateFlyNowControls();
+        }
+
         private async void SharedDefaults_Click(object sender, RoutedEventArgs e)
         {
             if (_sharedDefaults is null) return;
@@ -127,8 +211,11 @@ namespace DcsIpia.Presentation
             try
             {
                 var selected =
-                    new OpenFolderDialog { Title =
-                                               "Select module repository root or Saved Games module/joystick folder" };
+                    new OpenFolderDialog
+                    {
+                        Title =
+                                               "Select module repository root or Saved Games module/joystick folder"
+                    };
                 if (selected.ShowDialog(this) != true)
                     return;
                 var folder = selected.FolderName;
@@ -232,7 +319,7 @@ namespace DcsIpia.Presentation
         }
         private async void DeleteModule_Click(object sender, RoutedEventArgs e)
         {
-            if (_moduleOperationBusy || SavedModules.SelectedItem is not SavedModuleChoice choice)
+            if (_moduleOperationBusy || !DeleteModuleButton.IsEnabled || SavedModules.SelectedItem is not SavedModuleChoice choice)
                 return;
             if (MessageBox.Show(this,
                 $"Delete {choice.DisplayName} and all of its saved profiles, assignments, labels, and kneeboards from the local database? You can import it again from scratch.",
@@ -266,6 +353,7 @@ namespace DcsIpia.Presentation
             OpenModuleButton.IsEnabled = !busy;
             RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
+            UpdateFlyNowControls();
         }
         private async void OpenSaved_Click(object sender, RoutedEventArgs e)
         {
@@ -303,6 +391,7 @@ namespace DcsIpia.Presentation
         {
             if (DeleteModuleButton is not null)
                 DeleteModuleButton.IsEnabled = !_moduleOperationBusy && SavedModules?.SelectedItem is SavedModuleChoice;
+            UpdateFlyNowControls();
             if (_moduleOperationBusy)
                 return;
             if (SavedModules?.SelectedItem is not SavedModuleChoice choice)
@@ -357,7 +446,7 @@ namespace DcsIpia.Presentation
         }
         private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ThemePicker.SelectedItem is not ComboBoxItem { Tag : string theme })
+            if (ThemePicker.SelectedItem is not ComboBoxItem { Tag: string theme })
                 return;
             ThemeManager.Apply(theme);
             var saved = _settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
@@ -366,10 +455,12 @@ namespace DcsIpia.Presentation
         }
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
+            if (_moduleOperationBusy) return;
             var dialog = new SettingsWindow(_settings) { Owner = this };
             dialog.ShowDialog();
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
+            UpdateFlyNowControls();
         }
         #endregion END private helpers
     }

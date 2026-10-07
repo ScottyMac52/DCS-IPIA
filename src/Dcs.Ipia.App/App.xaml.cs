@@ -49,6 +49,9 @@ namespace DcsIpia.Presentation
                         _ => new SqliteEditorWorkspaceRepository(connectionString))
                     .AddSingleton<ISharedUiLayerWorkspaceRepository>(
                         _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
+                    .AddSingleton<IFlyNowPayloadBuilder, FlyNowPayloadBuilder>()
+                    .AddSingleton<IFlyNowService>(provider => new SqliteFlyNowService(connectionString,
+                        Path.Combine(userFolder, "FlyNowBackups"), provider.GetRequiredService<IFlyNowPayloadBuilder>()))
                     .AddSingleton<IModuleWorkspaceLoader, ModuleWorkspaceLoader>()
                     .AddSingleton<IDcsFolderImporter, DcsFolderImporter>()
                     .AddTransient<MainWindow>()

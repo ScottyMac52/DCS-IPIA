@@ -623,6 +623,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (restored.ListAsync().GetAwaiter().GetResult().Count != 1)
                     throw new InvalidOperationException("Duplicate restore changed saved module membership.");
                 main.Close();
+                FlyNowSmoke.Verify(connection, restored, settings, root, moduleId);
                 ((TextBox)authoring.FindName("PackageVersion")!).Text = "1.2.3";
                 if (!((Button)authoring.FindName("ExportModuleSnapshotButton")!).IsEnabled)
                     throw new InvalidOperationException("Original module became dirty during isolated restore.");

@@ -16,7 +16,8 @@ namespace Dcs.Ipia.Infrastructure
         /// <param name="defaultsPath">Packaged read-only appsettings.json.</param>
         /// <param name="userPath">Writable per-user JSON preferences path.</param>
         /// <param name="legacyThemePath">Previous theme.txt preference path.</param>
-        public FileAppSettingsService(string defaultsPath, string userPath, string legacyThemePath)
+        /// <param name="migrateLegacyTheme">Whether this file service owns legacy theme migration.</param>
+        public FileAppSettingsService(string defaultsPath, string userPath, string legacyThemePath, bool migrateLegacyTheme = true)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(defaultsPath);
             ArgumentException.ThrowIfNullOrWhiteSpace(userPath);
@@ -29,9 +30,9 @@ namespace Dcs.Ipia.Infrastructure
             var settings = Read(userPath, defaults, out var hasUserTheme, out var userError);
             Current = settings;
             LastError = JoinErrors(defaultsError, userError);
-            if (!hasUserTheme && TryReadLegacyTheme(out var legacyTheme))
+            if (migrateLegacyTheme && !hasUserTheme && TryReadLegacyTheme(out var legacyTheme))
             {
-                Current = new AppSettings(SupportedSchemaVersion, legacyTheme, settings.OccupiedDestinationBehavior);
+                Current = new AppSettings(SupportedSchemaVersion, legacyTheme, settings.OccupiedDestinationBehavior, settings.SavedGamesDcsFolder);
                 TryPersist();
             }
         }
@@ -47,7 +48,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             if (!Enum.IsDefined(theme))
                 throw new ArgumentOutOfRangeException(nameof(theme));
-            Current = new AppSettings(SupportedSchemaVersion, theme, Current.OccupiedDestinationBehavior);
+            Current = new AppSettings(SupportedSchemaVersion, theme, Current.OccupiedDestinationBehavior, Current.SavedGamesDcsFolder);
             return TryPersist();
         }
 
@@ -56,7 +57,17 @@ namespace Dcs.Ipia.Infrastructure
         {
             if (!Enum.IsDefined(behavior))
                 throw new ArgumentOutOfRangeException(nameof(behavior));
-            Current = new AppSettings(SupportedSchemaVersion, Current.Theme, behavior);
+            Current = new AppSettings(SupportedSchemaVersion, Current.Theme, behavior, Current.SavedGamesDcsFolder);
+            return TryPersist();
+        }
+        /// <inheritdoc />
+        public bool TryUpdateSavedGamesDcsFolder(string folder)
+        {
+            ArgumentNullException.ThrowIfNull(folder);
+            if (folder.Length > 0 && !Path.IsPathFullyQualified(folder))
+                throw new ArgumentException("Choose an absolute DCS Saved Games folder.", nameof(folder));
+            Current = new AppSettings(SupportedSchemaVersion, Current.Theme, Current.OccupiedDestinationBehavior,
+                folder.Length == 0 ? "" : Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)));
             return TryPersist();
         }
         #endregion END Public
@@ -98,7 +109,15 @@ namespace Dcs.Ipia.Infrastructure
                     else
                         error = JoinErrors(error, "Invalid OccupiedDestinationBehavior setting; using the default.");
                 }
-                return new AppSettings(SupportedSchemaVersion, theme, policy);
+                var folder = fallback.SavedGamesDcsFolder;
+                if (root.TryGetProperty("SavedGamesDcsFolder", out var folderValue))
+                {
+                    if (folderValue.ValueKind == JsonValueKind.String && folderValue.GetString() is { } value &&
+                        (value.Length == 0 || Path.IsPathFullyQualified(value)))
+                        folder = value.Length == 0 ? "" : Path.TrimEndingDirectorySeparator(Path.GetFullPath(value));
+                    else error = JoinErrors(error, "Invalid SavedGamesDcsFolder; select a folder in Settings.");
+                }
+                return new AppSettings(SupportedSchemaVersion, theme, policy, folder);
             }
             catch (JsonException)
             {
@@ -150,8 +169,13 @@ namespace Dcs.Ipia.Infrastructure
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_userPath)!);
                 var json = JsonSerializer.Serialize(
-                    new { SchemaVersion = SupportedSchemaVersion, Theme = Current.Theme.ToString(),
-                          OccupiedDestinationBehavior = Current.OccupiedDestinationBehavior.ToString() },
+                    new
+                    {
+                        SchemaVersion = SupportedSchemaVersion,
+                        Theme = Current.Theme.ToString(),
+                        OccupiedDestinationBehavior = Current.OccupiedDestinationBehavior.ToString(),
+                        SavedGamesDcsFolder = Current.SavedGamesDcsFolder
+                    },
                     JsonOptions);
                 File.WriteAllText(temp, json);
                 File.Move(temp, _userPath, true);

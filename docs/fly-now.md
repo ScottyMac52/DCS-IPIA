@@ -1,0 +1,15 @@
+# Fly Now and Clear
+
+Select a saved database module on the Modules screen. During setup, choose **Browse…** under **Saved Games DCS Folder** to select the DCS instance folder. You can change this default in Settings later. **Fly Now!** validates and freezes saved database state, independently verifies the native package, and copies its DCS payload into the selected folder. Aircraft and effective module-owned UI Layer profiles/modifiers, retained keyboard profiles, and generated kneeboards are installed together. Package README/version metadata, snapshots, documentation and database files are not installed. DCS is not launched automatically.
+
+Finish **Save to database** or **Discard draft** in the modal module editor before returning to Modules and deploying. Fly Now uses saved state and needs no consumer checkout. The active module and destination are displayed. Its UI Layer becomes the active definition for that DCS instance.
+
+Only one module can be active in Fly Now. SQLite retains its stable identity, original destination and exact copied-file manifest across restarts. Fly Now is disabled for every other module until **Clear** succeeds. Repeating deployment for the same module to the same destination is supported; previously copied files remain tracked even if a later build no longer contains them. Changing the default folder cannot bypass the active lock or redirect cleanup. Clear before moving to another destination.
+
+**Clear**, beside **Restore module snapshot…**, acts on the recorded active deployment even if another module is selected. It deletes exactly the recorded copied files, including that module's UI Layer files. It leaves directories, unrelated files, module authoring data, snapshots and independent shared defaults intact. Already-missing files are treated as removed. A failed or interrupted Clear keeps the active lock; correct the reported obstruction and retry. The lock is released only after every recorded file has been removed.
+
+Before overwriting existing files, Fly Now saves their bytes under `%LOCALAPPDATA%\DCS-IPIA\FlyNowBackups\<operation>\original`, preserving DCS-relative paths. These backups remain available for manual recovery. Clear deletes installed files; it does not automatically restore previous controls from backups. Back up your own controls before first use and verify the installed result in DCS.
+
+Copy intents are committed to SQLite before destination writes. An interrupted copy is rolled back from the operation backups on the next service access/startup, restoring the previous activation. If recovery cannot complete, deployment remains blocked and Clear can retry recovery. Operation-specific temporary copy paths are recovered as well. Filesystem links and paths outside the DCS payload families are rejected. A database-associated cross-process lease prevents Fly Now, recovery and Clear from running concurrently.
+
+The initial feature uses one configured default folder and one active deployment. Folder resolution and payload generation are independent, allowing future named or module/type-specific destinations without changing how DCS files are generated.

@@ -15,6 +15,78 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleSnapshotWorkflowTests
     {
         #region BEGIN Public
+        /// <summary>The Windows authoring smoke fixture can explicitly acquire a UI Layer profile before Fly Now.</summary>
+        [Fact]
+        public void Smoke_module_with_explicit_ui_membership_builds_both_scopes()
+        {
+            var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
+            var module = new DcsModule(Guid.NewGuid(), "AUTHORING", "Authoring");
+            var configuration = new ModuleConfiguration(module, [profile], [], [], "Created in IPIA");
+            var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
+            {
+                ProfileId = profile.Id,
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100'/></svg>",
+                Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
+            };
+            var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
+                new Dictionary<string, string>
+                {
+                    ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
+                    ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
+                });
+            workspace = WorkspaceStructureEditor.AddDevice(workspace, WorkspaceStructureEditor.Hardware(workspace).Single(),
+                AssignmentLayer.UiLayer, profile.SourceName, profile.Instance, null);
+            const string pause = "d3001pnilu3001cdnilvd1vpnilvunil";
+            workspace = workspace with
+            {
+                UiCommands = [new(Guid.NewGuid(), module.Id, pause, "Pause", "General", false)],
+                Assignments = [new(new(module.Id, profile.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
+                    new(pause, "Pause", false, AssignmentLayer.UiLayer))]
+            };
+            workspace = ModuleKneeboardPageEditor.AddMissingDevicePages(workspace);
+            workspace = ModuleKneeboardPageEditor.Set(workspace, null, new(KneeboardPageKind.Summary, null, "00-OVERVIEW", "OVERVIEW", "CONTROLS", 0,
+                [new("TEST", "Aircraft and UI", "cyan")]));
+            var package = ModuleSnapshotWorkflow.Build(new ModuleBuildSnapshot("FlyNow", EditorSnapshotSerializer.Serialize(workspace)));
+            using var zip = new ZipArchive(new MemoryStream(package.Bytes));
+            var root = package.FileName[..^4] + "/Config/Input/";
+            Assert.NotNull(zip.GetEntry(root + "AUTHORING/joystick/Test.diff.lua"));
+            Assert.Contains(pause, Text(zip, root + "UiLayer/joystick/Test.diff.lua"), StringComparison.Ordinal);
+        }
+
+        /// <summary>Fly Now deploys the verified package payload and Clear leaves authoring data intact.</summary>
+        [Fact]
+        public async Task Fly_now_uses_the_exact_saved_module_and_ui_layer_payload()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "ipia-fly-package-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var workspace = await WorkspaceAsync();
+                var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(workspace);
+                var builder = new FlyNowPayloadBuilder(repository);
+                var module = workspace.Configuration.Module.Id;
+                var expected = await builder.BuildAsync(module);
+                Assert.Contains(expected.Files.Keys, x => x.StartsWith("Config/Input/UiLayer/", StringComparison.Ordinal));
+                Assert.Contains(expected.Files.Keys, x => x.StartsWith("KNEEBOARD/", StringComparison.Ordinal));
+                Assert.DoesNotContain(expected.Files.Keys, x => x.Contains("README", StringComparison.Ordinal));
+                var destination = Path.Combine(root, "DCS");
+                Directory.CreateDirectory(destination);
+                var service = new SqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
+                var deployed = await service.DeployAsync(module, destination);
+                Assert.Equal(expected.Files.Keys.Order(StringComparer.Ordinal), deployed.Files);
+                foreach (var file in expected.Files)
+                    Assert.Equal(file.Value, File.ReadAllBytes(Path.Combine(destination, file.Key)));
+                await service.ClearAsync();
+                Assert.Empty(Directory.GetFiles(destination, "*", SearchOption.AllDirectories));
+                Assert.NotNull(await repository.GetAsync(module));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => builder.BuildAsync(Guid.NewGuid()));
+            }
+            finally { Directory.Delete(root, true); }
+        }
+
         /// <summary>Authored hardware, commands, both assignment scopes and tuned axes survive an empty-database restore.</summary>
         /// <returns>Completion of SQLite and independent archive checks.</returns>
         [Fact]
@@ -199,8 +271,13 @@ namespace Dcs.Ipia.Tests
                 var workspace = await WorkspaceAsync();
                 var shared = new SqliteSharedUiLayerWorkspaceRepository(connection);
                 var defaults = await shared.SaveAsync(workspace.SharedDefault! with { Revision = 0 });
-                var other = workspace with { Configuration = new(new(Guid.NewGuid(), "OTHER", "Other module"), [], [], [], "other"),
-                    Pages = [], Assignments = [], Diagrams = [] };
+                var other = workspace with
+                {
+                    Configuration = new(new(Guid.NewGuid(), "OTHER", "Other module"), [], [], [], "other"),
+                    Pages = [],
+                    Assignments = [],
+                    Diagrams = []
+                };
                 await repository.CreateAsync(other);
                 var otherBefore = EditorSnapshotSerializer.Serialize((await repository.GetAsync(other.Configuration.Module.Id))!);
                 var snapshot = ModuleSnapshotWorkflow.Freeze(workspace, "1");
@@ -212,8 +289,10 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(snapshot.Workspace, EditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!));
                 Assert.Equal(otherBefore, EditorSnapshotSerializer.Serialize((await repository.GetAsync(other.Configuration.Module.Id))!));
                 Assert.Equal(defaults.ContentSha256, (await shared.GetAsync())!.ContentSha256);
-                await Assert.ThrowsAsync<ArgumentException>(() => repository.CreateAsync(workspace with {
-                    Configuration = new(new(Guid.Empty, "INVALID", "Invalid"), [], [], [], "invalid") }));
+                await Assert.ThrowsAsync<ArgumentException>(() => repository.CreateAsync(workspace with
+                {
+                    Configuration = new(new(Guid.Empty, "INVALID", "Invalid"), [], [], [], "invalid")
+                }));
             }
             finally { File.Delete(path); }
         }
@@ -235,8 +314,10 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => ModuleSnapshotWorkflow.Freeze(workspace with { Pages = [] }, "1"));
             var sources = workspace.Sources!.Where(x => x.Key != "config/ipia-physical-bindings.json").ToDictionary(x => x.Key, x => x.Value);
             Assert.Throws<InvalidDataException>(() => ModuleSnapshotWorkflow.Freeze(workspace with { Sources = sources }, "1"));
-            Assert.Throws<ArgumentException>(() => ModuleSnapshotWorkflow.Freeze(workspace with {
-                Images = [new("bad", "bad.png", [1], "bad")] }, "1"));
+            Assert.Throws<ArgumentException>(() => ModuleSnapshotWorkflow.Freeze(workspace with
+            {
+                Images = [new("bad", "bad.png", [1], "bad")]
+            }, "1"));
             var path = Path.Combine(Path.GetTempPath(), "ipia-invalid-" + Guid.NewGuid().ToString("N") + ".db");
             var artifact = path + ".json";
             try
@@ -257,7 +338,8 @@ namespace Dcs.Ipia.Tests
         private static async Task<EditorWorkspaceSnapshot> WorkspaceAsync()
         {
             var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-            var sources = new SortedDictionary<string, string>(StringComparer.Ordinal) {
+            var sources = new SortedDictionary<string, string>(StringComparer.Ordinal)
+            {
                 ["assets/shared/ui-layer/functions.json"] = """{"schemaVersion":1,"functions":[{"id":"pause","command":"d3001pnilu3001cdnilvd1vpnilvunil","label":"Pause","category":"General"}]}""",
                 ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
             };
@@ -285,7 +367,8 @@ namespace Dcs.Ipia.Tests
             var module = workspace.Configuration.Module.Id;
             var axisControl = workspace.Diagrams.Single(x => x.ProfileId == stick.Id).Controls.First(x => x.IsAxis);
             var axisSlot = new DraftAssignmentSlot(module, stick.Id, AssignmentLayer.Module, BindingSection.Axis, axisControl.InputKey, "SHIFT");
-            workspace = workspace with {
+            workspace = workspace with
+            {
                 Assignments = [new(new(module, mfd.Id, AssignmentLayer.Module, BindingSection.Key, button.InputKey), key),
                     new(new(module, mfd.Id, AssignmentLayer.Module, BindingSection.Key, button.InputKey, "SHIFT"), key),
                     new(new(module, mfd.Id, AssignmentLayer.UiLayer, BindingSection.Key, button.InputKey), ui),
