@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
+using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -20,6 +21,7 @@ namespace DcsIpia.Presentation
             ThemeChoice.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ConflictChoice.SelectedIndex = (int)_settings.Current.OccupiedDestinationBehavior;
             SaveStatus.Text = _settings.LastError ?? string.Empty;
+            SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
             _ready = true;
         }
 
@@ -27,9 +29,17 @@ namespace DcsIpia.Presentation
         #endregion END Public
 
         #region BEGIN private helpers
+        private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
+        {
+            var picker = new OpenFolderDialog { Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
+            if (picker.ShowDialog(this) != true) return;
+            SaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(picker.FolderName) ? "Saved Games DCS Folder saved." : _settings.LastError;
+            SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
+        }
+
         private void ThemeChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag : string value })
+            if (!_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag: string value })
                 return;
             var theme = Enum.Parse<AppearanceTheme>(value);
             ThemeManager.Apply(value);
@@ -38,7 +48,7 @@ namespace DcsIpia.Presentation
 
         private void ConflictChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!_ready || ConflictChoice.SelectedItem is not ComboBoxItem { Tag : string value })
+            if (!_ready || ConflictChoice.SelectedItem is not ComboBoxItem { Tag: string value })
                 return;
             var behavior = Enum.Parse<OccupiedDestinationBehavior>(value);
             SaveStatus.Text = _settings.TryUpdateOccupiedDestinationBehavior(behavior) ? "Destination behavior saved."

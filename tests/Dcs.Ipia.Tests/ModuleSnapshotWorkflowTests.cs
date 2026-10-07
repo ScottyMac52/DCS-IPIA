@@ -15,6 +15,40 @@ namespace Dcs.Ipia.Tests
     public sealed class ModuleSnapshotWorkflowTests
     {
         #region BEGIN Public
+        /// <summary>Fly Now deploys the verified package payload and Clear leaves authoring data intact.</summary>
+        [Fact]
+        public async Task Fly_now_uses_the_exact_saved_module_and_ui_layer_payload()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "ipia-fly-package-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var workspace = await WorkspaceAsync();
+                var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new SqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(workspace);
+                var builder = new FlyNowPayloadBuilder(repository);
+                var module = workspace.Configuration.Module.Id;
+                var expected = await builder.BuildAsync(module);
+                Assert.Contains(expected.Files.Keys, x => x.StartsWith("Config/Input/UiLayer/", StringComparison.Ordinal));
+                Assert.Contains(expected.Files.Keys, x => x.StartsWith("KNEEBOARD/", StringComparison.Ordinal));
+                Assert.DoesNotContain(expected.Files.Keys, x => x.Contains("README", StringComparison.Ordinal));
+                var destination = Path.Combine(root, "DCS");
+                Directory.CreateDirectory(destination);
+                var service = new SqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
+                var deployed = await service.DeployAsync(module, destination);
+                Assert.Equal(expected.Files.Keys.Order(StringComparer.Ordinal), deployed.Files);
+                foreach (var file in expected.Files)
+                    Assert.Equal(file.Value, File.ReadAllBytes(Path.Combine(destination, file.Key)));
+                await service.ClearAsync();
+                Assert.Empty(Directory.GetFiles(destination, "*", SearchOption.AllDirectories));
+                Assert.NotNull(await repository.GetAsync(module));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => builder.BuildAsync(Guid.NewGuid()));
+            }
+            finally { Directory.Delete(root, true); }
+        }
+
         /// <summary>Authored hardware, commands, both assignment scopes and tuned axes survive an empty-database restore.</summary>
         /// <returns>Completion of SQLite and independent archive checks.</returns>
         [Fact]

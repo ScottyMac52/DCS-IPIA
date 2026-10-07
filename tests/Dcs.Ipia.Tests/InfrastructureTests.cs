@@ -49,7 +49,7 @@ namespace Dcs.Ipia.Tests
                 await db.OpenAsync();
                 var cmd = db.CreateCommand();
                 cmd.CommandText = "SELECT COUNT(*) FROM schema_migrations";
-                Assert.Equal(6L, await cmd.ExecuteScalarAsync());
+                Assert.Equal(7L, await cmd.ExecuteScalarAsync());
             }
             finally
             {

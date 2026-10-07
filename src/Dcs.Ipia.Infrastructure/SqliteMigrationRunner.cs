@@ -45,6 +45,10 @@ namespace Dcs.Ipia.Infrastructure
             {
                 await Execute(c, tx, """CREATE TABLE module_update_history(id INTEGER PRIMARY KEY AUTOINCREMENT,module_id TEXT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,snapshot_json TEXT NOT NULL,content_sha256 TEXT NOT NULL); INSERT INTO schema_migrations VALUES(6,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
             }
+            if (!await Applied(c, tx, 7, ct))
+            {
+                await Execute(c, tx, """CREATE TABLE fly_now_deployment(id INTEGER NOT NULL PRIMARY KEY CHECK(id=1),journal_json TEXT NOT NULL); INSERT INTO schema_migrations VALUES(7,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
+            }
             await tx.CommitAsync(ct);
         }
         #endregion END Public

@@ -60,7 +60,7 @@ namespace Dcs.Ipia.Tests
                 await migrated.OpenAsync();
                 await using var check = migrated.CreateCommand();
                 check.CommandText = "SELECT COUNT(*) FROM schema_migrations";
-                Assert.Equal(6L, await check.ExecuteScalarAsync());
+                Assert.Equal(7L, await check.ExecuteScalarAsync());
             }
         }
         /// <summary>Deletes temporary test data.</summary>

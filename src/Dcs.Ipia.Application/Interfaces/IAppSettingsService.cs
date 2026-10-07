@@ -18,6 +18,8 @@ namespace Dcs.Ipia.Application.Interfaces
         /// <param name="behavior">A supported policy.</param>
         /// <returns>Whether the new value was persisted.</returns>
         bool TryUpdateOccupiedDestinationBehavior(OccupiedDestinationBehavior behavior);
+        /// <summary>Applies and persists the default DCS Saved Games folder in user settings JSON.</summary>
+        bool TryUpdateSavedGamesDcsFolder(string folder);
         #endregion END Public
     }
 }
