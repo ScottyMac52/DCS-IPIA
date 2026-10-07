@@ -25,12 +25,31 @@ function Test-App([string]$Executable, [string]$Name) {
     }
     if ((Get-Item $Executable).VersionInfo.FileVersion -ne $Version) { throw "$Name executable version differs." }
 }
+function Assert-ProfilePreservation {
+    foreach ($file in $profileHashes.Keys) {
+        if (-not (Test-Path -LiteralPath $file) -or (Get-FileHash -LiteralPath $file).Hash -ne $profileHashes[$file]) {
+            throw "Install/uninstall changed profile data: $file"
+        }
+    }
+}
 try {
     dotnet publish src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
         "-p:Version=$Version" "-p:FileVersion=$Version" "-p:AssemblyVersion=$Version" -o $publish
     Assert-Exit 'Application publish'
     Test-App (Join-Path $publish 'Dcs.Ipia.App.exe') 'portable-smoke'
+    # Seed real SQLite and user files outside the install directory before testing upgrade/uninstall.
+    $profileHashes = @{}
+    foreach ($profile in @('DCS-IPIA', 'DCS-IPIA-TestProfiles/fresh-install', 'DCS-IPIA-TestProfiles/second')) {
+        $profileRoot = Join-Path $env:LOCALAPPDATA $profile
+        New-Item -ItemType Directory -Path (Join-Path $profileRoot 'hardware') -Force | Out-Null
+        Copy-Item (Join-Path $taskRoot 'portable-smoke/ipia.db') (Join-Path $profileRoot 'ipia.db')
+        [IO.File]::WriteAllText((Join-Path $profileRoot 'hardware/preservation.txt'), $profile)
+        [IO.File]::WriteAllText((Join-Path $profileRoot 'onboarding-state.json'), '{"version":1,"completed":true}')
+        Get-ChildItem $profileRoot -File -Recurse | ForEach-Object {
+            $profileHashes[$_.FullName] = (Get-FileHash -LiteralPath $_.FullName).Hash
+        }
+    }
     $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
     if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; Assert-Exit 'Inno Setup installation' }
     & $iscc "/DAppVersion=$Version" "/DPublishDir=$publish" installer/installer.iss
@@ -62,6 +81,7 @@ try {
         throw 'Setup rerun reset the assigned DCS folder.'
     }
     Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'installed-smoke'
+    Assert-ProfilePreservation
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
         $copy = Join-Path $installed $relative
@@ -75,6 +95,25 @@ try {
     # The original process exits before Inno's temporary clone finishes deleting its files.
     Wait-ReleaseUninstall $installed
     if (Test-Path (Join-Path $installed 'Dcs.Ipia.App.exe')) { throw 'Uninstall verification failed.' }
+    Assert-ProfilePreservation
+    if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
+        throw 'Uninstall did not preserve user settings.'
+    }
+    $setupLog = Join-Path $taskRoot 'reinstall.log'
+    $setupLogs += $setupLog
+    $reinstall = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-',
+        "/LOG=`"$setupLog`"", "/DIR=`"$installed`"") -PassThru
+    if (-not $reinstall.WaitForExit(90000)) { $reinstall.Kill(); throw 'Reinstall timed out.' }
+    if ($reinstall.ExitCode -ne 0) { throw 'Reinstall failed.' }
+    Assert-ProfilePreservation
+    if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
+        throw 'Reinstall reset user settings.'
+    }
+    $uninstall = Start-Process (Join-Path $installed 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+    if (-not $uninstall.WaitForExit(90000)) { $uninstall.Kill(); throw 'Second uninstall timed out.' }
+    if ($uninstall.ExitCode -ne 0) { throw 'Second uninstall failed.' }
+    Wait-ReleaseUninstall $installed
+    Assert-ProfilePreservation
     if (Test-Path $Output) { throw 'Release output already exists.' }
     New-Item -ItemType Directory -Path $Output | Out-Null
     Copy-Item $setup (Join-Path $Output 'setup.exe')
@@ -87,7 +126,8 @@ try {
         version=$Version; sourceCommit=$env:GITHUB_SHA; runtime='win-x64'; selfContained=$true
         checks=@('portable startup','installed startup','archive startup','isolated SQLite','bundled hardware integrity',
             'native PNG rendering','installed payload hashes','silent install/uninstall',
-            'setup system-default folder','setup custom folder','setup rerun persistence')
+            'setup system-default folder','setup custom folder','setup rerun persistence',
+            'production and two test-profile checksums across upgrade/uninstall/reinstall')
     } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Output 'TEST-EVIDENCE.json') -Encoding utf8NoBOM
     $lines = Get-ChildItem $Output -File | Sort-Object Name | ForEach-Object {
         "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() )  $($_.Name)"

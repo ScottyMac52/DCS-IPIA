@@ -21,7 +21,8 @@ namespace Dcs.Ipia.App.Smoke
             var folder = Path.Combine(Path.GetTempPath(), "ipia-data-smoke-" + Guid.NewGuid().ToString("N"));
             try
             {
-                var data = Path.Combine(folder, "data");
+                var profile = UserDataProfile.Select(folder, "smoke");
+                var data = profile.DataDirectory;
                 Directory.CreateDirectory(data);
                 var connection = "Data Source=" + Path.Combine(data, "ipia.db") + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
@@ -30,10 +31,18 @@ namespace Dcs.Ipia.App.Smoke
                     [], [], [], [], [], [], new Dictionary<string, string>())).GetAwaiter().GetResult();
                 var settings = new SqliteAppSettingsService(connection, Path.Combine(data, "defaults.json"), Path.Combine(data, "user-settings.json"), Path.Combine(data, "theme.txt"));
                 var recovery = new UserDataRecoveryService(data, "1.2.3.4");
-                var main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository, recovery: recovery);
+                var main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
+                    flyNow: new IsolatedFlyNowService(), recovery: recovery, profile: profile,
+                    profileService: new UserDataProfileService(profile, "1.2.3.4"));
                 main.Show();
                 var modules = (ComboBox)main.FindName("SavedModules")!;
                 Pump(main, () => modules.SelectedItem is not null && MainWindowCommands.Backup.CanExecute(null, main));
+                if (!((TextBlock)main.FindName("ProfileIndicator")!).Text.Contains("TEST PROFILE: smoke", StringComparison.Ordinal) ||
+                    !((TextBlock)main.FindName("ProfileIndicator")!).Text.Contains(data, StringComparison.Ordinal) ||
+                    MainWindowCommands.FlyNow.CanExecute(null, main) || MainWindowCommands.ClearDeployment.CanExecute(null, main) ||
+                    !MainWindowCommands.Profiles.CanExecute(null, main) ||
+                    ((Button)main.FindName("FlyNowButton")!).IsEnabled)
+                    throw new InvalidOperationException("Test profile visibility or deployment isolation failed.");
                 var menu = (Menu)main.FindName("MainMenu")!;
                 if (menu.Items.Count != 6 || ((Button)main.FindName("OpenModuleButton")!).Tag != MainWindowCommands.OpenModule ||
                     !MainWindowCommands.OpenModule.CanExecute(null, main)) throw new InvalidOperationException("Main menu and quick actions did not share enabled commands.");

@@ -31,6 +31,7 @@
         <MenuItem Header="_Restore backup…" Command="{x:Static local:MainWindowCommands.RestoreData}"/>
         <MenuItem Header="Review restored _deployment…" Command="{x:Static local:MainWindowCommands.Recovery}"/>
         <MenuItem Header="Show data _location" Command="{x:Static local:MainWindowCommands.DataLocation}"/>
+        <MenuItem Header="Test _profiles and reset…" Command="{x:Static local:MainWindowCommands.Profiles}"/>
       </MenuItem>
       <MenuItem Header="_Settings">
         <MenuItem Header="_Preferences…" Command="{x:Static local:MainWindowCommands.Settings}"/>
@@ -58,6 +59,7 @@
       </StackPanel>
       <StackPanel>
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
+        <TextBlock x:Name="ProfileIndicator" TextWrapping="Wrap" Margin="0,4,0,4"/>
         <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Choose a module to work on"/>
       </StackPanel>
     </DockPanel>
