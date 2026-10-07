@@ -192,6 +192,41 @@ namespace Dcs.Ipia.Tests
             service.ForgetReviewedDeployment();
         }
 
+        /// <summary>Integrity alone cannot accept a database with missing tables or broken relational references.</summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task Rejects_incomplete_schema_and_broken_references(bool missingTable)
+        {
+            var root = await Create("source", "saved");
+            if (missingTable) Execute(root, "DROP TABLE app_preferences");
+            else Execute(root, "PRAGMA foreign_keys=OFF; INSERT INTO device_profiles VALUES('profile','missing-module','device',NULL,'role','source')");
+            var archive = Path.Combine(_folder, "invalid.zip");
+            Assert.Throws<InvalidDataException>(() => new UserDataRecoveryService(root, "1.2.3.4").Backup(archive));
+            Assert.False(File.Exists(archive));
+        }
+
+        /// <summary>Supported old schemas migrate in staging without changing the creating profile.</summary>
+        [Fact]
+        public async Task Restores_and_migrates_older_schema()
+        {
+            var source = Path.Combine(_folder, "older");
+            Directory.CreateDirectory(source);
+            Execute(source, "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,applied_utc TEXT); INSERT INTO schema_migrations VALUES(1,'old'); CREATE TABLE modules(id TEXT PRIMARY KEY,dcs_id TEXT UNIQUE COLLATE NOCASE,display_name TEXT); INSERT INTO modules VALUES('module','OLD','older saved data')");
+            var service = new UserDataRecoveryService(source, "1.0.0.0");
+            var archive = Path.Combine(_folder, "older.zip");
+            service.Backup(archive);
+            Assert.Equal(1, service.Inspect(archive).DatabaseSchemaVersion);
+            var target = await Create("target", "current");
+            var restored = new UserDataRecoveryService(target, "1.2.3.4");
+            restored.Restore(archive);
+            Assert.Equal("older saved data", Name(target));
+            var updated = Path.Combine(_folder, "updated.zip");
+            restored.Backup(updated);
+            Assert.Equal(7, restored.Inspect(updated).DatabaseSchemaVersion);
+            Assert.Equal(1, service.Inspect(archive).DatabaseSchemaVersion);
+        }
+
         /// <inheritdoc/>
         public void Dispose()
         {

@@ -13,6 +13,12 @@ namespace Dcs.Ipia.Infrastructure
         private const string ManifestName = "ipia-backup.json";
         private const string ReviewName = "deployment-review.json";
         private const long MaximumBytes = 2L * 1024 * 1024 * 1024;
+        private static readonly Dictionary<string, int> RequiredTables = new(StringComparer.Ordinal)
+        {
+            ["modules"] = 1, ["device_profiles"] = 2, ["modifiers"] = 2, ["bindings"] = 2,
+            ["editor_workspaces"] = 3, ["app_preferences"] = 4, ["shared_ui_layer_revisions"] = 5,
+            ["module_update_history"] = 6, ["fly_now_deployment"] = 7
+        };
         private readonly string _version;
         private readonly Action<string>? _checkpoint;
         /// <summary>Creates recovery operations for one exclusively owned user-data profile.</summary>
@@ -239,6 +245,19 @@ namespace Dcs.Ipia.Infrastructure
             command.CommandText = "SELECT count(*) FROM schema_migrations";
             if (Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) != version)
                 throw new InvalidDataException("Database migration history is incomplete.");
+            foreach (var (table, introduced) in RequiredTables)
+            {
+                if (introduced > version) continue;
+                command.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=$name";
+                command.Parameters.Clear();
+                command.Parameters.AddWithValue("$name", table);
+                if (Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) != 1)
+                    throw new InvalidDataException("Backup database is missing required table: " + table);
+            }
+            command.CommandText = "PRAGMA foreign_key_check";
+            command.Parameters.Clear();
+            using var reader = command.ExecuteReader();
+            if (reader.Read()) throw new InvalidDataException("Backup database has invalid foreign-key references.");
             return version;
         }
         private static void MarkDeploymentReview(string root)
