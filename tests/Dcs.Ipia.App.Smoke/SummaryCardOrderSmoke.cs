@@ -90,7 +90,10 @@ namespace Dcs.Ipia.App.Smoke
                 {
                     saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
                     var savedCards = ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards;
-                    if (savedCards[0].Text == "Second" && savedCards[0].Key == "01") break;
+                    if (savedCards[0].Text == "Second" && savedCards[0].Key == "01" &&
+                        ((TextBlock)window.FindName("PageAuthoringStatus")!).Text.EndsWith("saved to database.", StringComparison.Ordinal)) break;
+                    if (((TextBlock)window.FindName("EditorMessage")!).Text.StartsWith("Database save failed:", StringComparison.Ordinal))
+                        throw new InvalidOperationException(((TextBlock)window.FindName("EditorMessage")!).Text);
                     if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Summary card order did not save.");
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }

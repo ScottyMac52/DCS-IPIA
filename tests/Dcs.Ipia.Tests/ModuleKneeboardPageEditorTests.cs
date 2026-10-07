@@ -48,7 +48,8 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(reordered);
                 var reopened = (await repository.GetAsync(reordered.Configuration.Module.Id))!;
                 Assert.Equal(reordered.Sources!["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
-                Assert.Equal(ReorderedTexts, ModuleKneeboardPageEditor.Describe(reopened, page).Cards.Select(x => x.Text));
+                Assert.Equal(ReorderedTexts, ModuleKneeboardPageEditor.Describe(reopened,
+                    reopened.Pages.Single(x => x.Id == page.Id)).Cards.Select(x => x.Text));
                 Assert.Equal(after, SnapshotSummaryKneeboardRenderer.Generate(reopened).Single().Value);
             }
             finally { File.Delete(path); }
