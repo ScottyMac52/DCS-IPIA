@@ -76,6 +76,12 @@ namespace Dcs.Ipia.Dcs
             AssignmentLayer layer, string fileName, string? instance, string? role, string? kneeboardTitle = null,
             string? kneeboardSubtitle = null)
         {
+            GenericHardwareLayout.Validate(hardware.Diagram);
+            if (hardware.Diagram.GenericCapabilities is not null)
+            {
+                var catalog = Hardware(workspace).Where(x => x.DeviceId != hardware.DeviceId).Append(hardware).ToArray();
+                workspace = SetSource(workspace, "config/ipia-hardware.json", JsonSerializer.Serialize(catalog));
+            }
             workspace = Prepare(workspace);
             var state = Describe(workspace);
             ValidateFile(fileName);

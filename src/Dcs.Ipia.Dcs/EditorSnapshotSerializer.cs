@@ -23,6 +23,7 @@ namespace Dcs.Ipia.Dcs
         public static ImmutableSnapshot Serialize(EditorWorkspaceSnapshot workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
+            GenericHardwareLayout.ValidateWorkspace(workspace);
             var module = workspace.Configuration.Module.Id;
             if (workspace.Assignments.Any(x => x.Slot.ModuleId != module) ||
                 workspace.Pages.Any(x => x.ModuleId != module))

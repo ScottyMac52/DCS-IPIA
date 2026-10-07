@@ -24,6 +24,8 @@ namespace Dcs.Ipia.Application
         public bool SupportsUiLayer { get; init; } = true;
         /// <summary>Gets every mapped control, including empty callouts.</summary>
         public IReadOnlyList<HardwareGraphicControl> Controls { get; init; } = [];
+        /// <summary>Gets pinned native evidence for an image-free generic layout; null preserves bundled graphics.</summary>
+        public ControllerCapabilities? GenericCapabilities { get; init; }
         #endregion END Public
     }
 }

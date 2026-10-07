@@ -103,6 +103,9 @@
             <GroupBox Grid.Column="1" Header="Device" Padding="12">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
+                  <TextBlock Text="Adopted hardware inventory"/>
+                  <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" Margin="0,4,0,8"/>
+                  <Button x:Name="AddInventoryButton" Content="Add inventory unit with generic controls" Click="AddInventoryClicked" Padding="8,5" Margin="0,0,0,10"/>
                   <TextBlock Text="Detected device"/>
                   <ComboBox x:Name="DetectedDevice" DisplayMemberPath="Title" SelectionChanged="DetectedDeviceChanged" Margin="0,4,0,8"/>
                   <WrapPanel Margin="0,0,0,8">
@@ -305,6 +308,9 @@
                     <TextBlock Text="Current command" FontWeight="SemiBold"/><TextBlock x:Name="CurrentCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                     <TextBlock Text="Pending command" FontWeight="SemiBold"/><TextBlock x:Name="PendingCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                     <TextBlock Text="DCS default label" FontWeight="SemiBold"/><TextBlock x:Name="DefaultLabel" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                    <TextBlock Text="Generic control name" FontWeight="SemiBold"/>
+                    <TextBox x:Name="GenericControlName" IsEnabled="False" Margin="0,4,0,4"/>
+                    <Button x:Name="RenameGenericControlButton" Content="Set control name" Click="RenameGenericControlClicked" IsEnabled="False" Margin="0,0,0,8"/>
                     <TextBlock Text="Displayed label" FontWeight="SemiBold"/><TextBox x:Name="LabelEditor" TextChanged="LabelChanged" IsEnabled="False" Margin="0,4,0,8"/>
                     <TextBlock Text="Axis tuning" FontWeight="SemiBold"/><TextBlock x:Name="AxisTuningSummary" Margin="0,2,0,6" TextWrapping="Wrap"/>
                     <Button x:Name="TuneAxisButton" Content="Tune axis…" Click="TuneAxisClicked" IsEnabled="False" Padding="8,5"/>
@@ -452,8 +458,10 @@
               <Image x:Name="KneeboardPreview" Stretch="Uniform"
                      AutomationProperties.Name="Existing rendered kneeboard PNG"/>
             </Border>
-            <TextBlock x:Name="KneeboardCaption" Grid.Row="1" Margin="0,8,0,0"
-                       TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+            <StackPanel Grid.Row="1">
+              <ComboBox x:Name="GenericPageChoice" SelectionChanged="GenericPageChanged" AutomationProperties.Name="Generic kneeboard page" IsEnabled="False" Margin="0,8,0,0"/>
+              <TextBlock x:Name="KneeboardCaption" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+            </StackPanel>
           </Grid>
         </Grid>
       </TabItem>
