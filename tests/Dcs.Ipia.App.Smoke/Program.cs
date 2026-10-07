@@ -37,6 +37,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifySavedGamesImportForm();
             VerifyModuleAuthoring();
             VerifyDevicePageDeletion();
+            SummaryCardOrderSmoke.Verify();
             InputTestSmoke.Verify();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
