@@ -6,6 +6,8 @@ namespace Dcs.Ipia.Tests
     /// <summary>Checks insertion boundaries and numbered card identity after a drag move.</summary>
     public sealed class SummaryCardOrderTests
     {
+        private static readonly string[] NumberedKeys = ["01", "02", "03"];
+        private static readonly string[] OriginalTexts = ["A", "B", "C"];
         #region BEGIN Public
         /// <summary>Moves upward, downward and to the end while descriptions and accents follow their card.</summary>
         [Theory]
@@ -19,13 +21,13 @@ namespace Dcs.Ipia.Tests
                 new("07", "B", "green") { SourceIndex = 1 }, new("09", "C", "blue") { SourceIndex = 2 }];
             var moved = SummaryCardOrder.Move(cards, source, insertion);
             Assert.Equal(expected.Split(','), moved.Select(x => x.Text));
-            Assert.Equal(new[] { "01", "02", "03" }, moved.Select(x => x.Key));
+            Assert.Equal(NumberedKeys, moved.Select(x => x.Key));
             Assert.All(moved, card => {
                 var original = cards.Single(x => x.Text == card.Text);
                 Assert.Equal(original.Accent, card.Accent);
                 Assert.Equal(original.SourceIndex, card.SourceIndex);
             });
-            Assert.Equal(new[] { "A", "B", "C" }, cards.Select(x => x.Text));
+            Assert.Equal(OriginalTexts, cards.Select(x => x.Text));
         }
 
         /// <summary>Drops immediately before/after the dragged card keep the exact original list.</summary>

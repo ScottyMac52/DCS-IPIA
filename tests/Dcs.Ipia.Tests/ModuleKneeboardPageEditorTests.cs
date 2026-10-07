@@ -12,6 +12,9 @@ namespace Dcs.Ipia.Tests
     /// <summary>Checks supported page authoring, manifest preservation, rendering and SQLite persistence.</summary>
     public sealed class ModuleKneeboardPageEditorTests
     {
+        private static readonly string[] ReorderedMetadata = ["metadata-2", "metadata-0", "metadata-1"];
+        private static readonly string[] NumberedKeys = ["01", "02", "03"];
+        private static readonly string[] ReorderedTexts = ["Third edited", "First", "Second"];
         #region BEGIN Public
         /// <summary>Renumbered cards retain their original metadata through edits, rendering and a database reopen.</summary>
         [Fact]
@@ -30,8 +33,8 @@ namespace Dcs.Ipia.Tests
             cards[2] = cards[2] with { Text = "Third edited" };
             var reordered = ModuleKneeboardPageEditor.Set(workspace, page, settings with { Cards = SummaryCardOrder.Move(cards, 2, 0) });
             var items = JsonNode.Parse(reordered.Sources!["config/kneeboard.json"])!["summaryPages"]![0]!["items"]!.AsArray();
-            Assert.Equal(new[] { "metadata-2", "metadata-0", "metadata-1" }, items.Select(x => x!["custom"]!.GetValue<string>()));
-            Assert.Equal(new[] { "01", "02", "03" }, items.Select(x => x!["key"]!.GetValue<string>()));
+            Assert.Equal(ReorderedMetadata, items.Select(x => x!["custom"]!.GetValue<string>()));
+            Assert.Equal(NumberedKeys, items.Select(x => x!["key"]!.GetValue<string>()));
             Assert.Equal(workspace.Assignments, reordered.Assignments);
             Assert.Equal(workspace.Configuration, reordered.Configuration);
             var after = SnapshotSummaryKneeboardRenderer.Generate(reordered).Single().Value;
@@ -45,7 +48,7 @@ namespace Dcs.Ipia.Tests
                 await repository.SaveAsync(reordered);
                 var reopened = (await repository.GetAsync(reordered.Configuration.Module.Id))!;
                 Assert.Equal(reordered.Sources!["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
-                Assert.Equal(new[] { "Third edited", "First", "Second" }, ModuleKneeboardPageEditor.Describe(reopened, page).Cards.Select(x => x.Text));
+                Assert.Equal(ReorderedTexts, ModuleKneeboardPageEditor.Describe(reopened, page).Cards.Select(x => x.Text));
                 Assert.Equal(after, SnapshotSummaryKneeboardRenderer.Generate(reopened).Single().Value);
             }
             finally { File.Delete(path); }

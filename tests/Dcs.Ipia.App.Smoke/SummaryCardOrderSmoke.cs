@@ -14,6 +14,7 @@ namespace Dcs.Ipia.App.Smoke
     /// <summary>Exercises routed summary-card drop events, selection and the real page save boundary.</summary>
     public static class SummaryCardOrderSmoke
     {
+        private static readonly string[] NumberedKeys = ["01", "02", "03"];
         #region BEGIN Public
         /// <summary>Checks valid, foreign and unchanged drops and reopens the saved reordered summary.</summary>
         public static void Verify()
@@ -109,7 +110,7 @@ namespace Dcs.Ipia.App.Smoke
         private static void Check(ListBox cards, string expected)
         {
             if (!cards.Items.Cast<ModuleSummaryCard>().Select(x => x.Text).SequenceEqual(expected.Split(',')) ||
-                !cards.Items.Cast<ModuleSummaryCard>().Select(x => x.Key).SequenceEqual(new[] { "01", "02", "03" }))
+                !cards.Items.Cast<ModuleSummaryCard>().Select(x => x.Key).SequenceEqual(NumberedKeys))
                 throw new InvalidOperationException("Summary drop did not reorder and renumber the rows.");
         }
         #endregion END private helpers
