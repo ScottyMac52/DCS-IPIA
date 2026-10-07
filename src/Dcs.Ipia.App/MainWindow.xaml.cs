@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
@@ -24,6 +25,8 @@ namespace DcsIpia.Presentation
         private FlyNowDeployment? _activeDeployment;
         private bool _flyNowReadFailed;
         private bool _flyNowLoading = true;
+        private readonly IUserDataRecoveryService? _recovery;
+        private readonly Action? _closeDatabase;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -33,10 +36,13 @@ namespace DcsIpia.Presentation
         /// <param name="snapshotFilePicker">Optional snapshot file selection adapter.</param>
         /// <param name="flyNow">Persistent native deployment service.</param>
         /// <param name="savedGamesFolderPicker">Optional destination browser adapter.</param>
+        /// <param name="recovery">Verified full-user-data backup and restore operations.</param>
+        /// <param name="closeDatabase">Quiesces services before replacing data.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
-                          IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null)
+                          IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
+                          IUserDataRecoveryService? recovery = null, Action? closeDatabase = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
@@ -46,7 +52,10 @@ namespace DcsIpia.Presentation
             _snapshotFilePicker = snapshotFilePicker;
             _flyNow = flyNow;
             _savedGamesFolderPicker = savedGamesFolderPicker;
+            _recovery = recovery;
+            _closeDatabase = closeDatabase;
             InitializeComponent();
+            BindMainCommands();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
@@ -59,6 +68,62 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
+        private void ExecuteMainQuickAction(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: RoutedUICommand command } && command.CanExecute(null, this)) command.Execute(null, this);
+        }
+        private void BindMainCommands()
+        {
+            var actions = new Dictionary<RoutedUICommand, RoutedEventHandler>
+            {
+                [MainWindowCommands.NewModule] = NewModule_Click, [MainWindowCommands.OpenModule] = OpenSaved_Click,
+                [MainWindowCommands.ImportModule] = ImportModule_Click, [MainWindowCommands.RestoreModule] = RestoreModuleSnapshotClicked,
+                [MainWindowCommands.DeleteModule] = DeleteModule_Click, [MainWindowCommands.SharedDefaults] = SharedDefaults_Click,
+                [MainWindowCommands.Settings] = Settings_Click, [MainWindowCommands.Destination] = BrowseSavedGamesClicked,
+                [MainWindowCommands.FlyNow] = FlyNowClicked, [MainWindowCommands.ClearDeployment] = ClearFlyNowClicked,
+                [MainWindowCommands.Backup] = OpenRecoveryClicked, [MainWindowCommands.RestoreData] = OpenRecoveryClicked,
+                [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
+                [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
+            };
+            foreach (var (command, action) in actions)
+                CommandBindings.Add(new CommandBinding(command, (sender, e) => action(sender, e),
+                    (_, e) => { e.CanExecute = CanExecuteMainCommand(command); e.Handled = true; }));
+        }
+        private bool CanExecuteMainCommand(RoutedUICommand command)
+        {
+            if (_moduleOperationBusy) return false;
+            if (command == MainWindowCommands.NewModule || command == MainWindowCommands.SharedDefaults) return _sharedDefaults is not null;
+            if (command == MainWindowCommands.RestoreModule) return _workspaces is IEditorWorkspaceCreationRepository;
+            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            if (command == MainWindowCommands.OpenModule) return selected is not null;
+            if (command == MainWindowCommands.DeleteModule) return selected is not null && !_flyNowReadFailed && _activeDeployment?.ModuleId != selected;
+            if (command == MainWindowCommands.FlyNow) return !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
+                _settings.Current.SavedGamesDcsFolder.Length > 0 && (_activeDeployment is null || (!_activeDeployment.Clearing && _activeDeployment.ModuleId == selected &&
+                string.Equals(_activeDeployment.Destination, _settings.Current.SavedGamesDcsFolder, StringComparison.OrdinalIgnoreCase)));
+            if (command == MainWindowCommands.ClearDeployment) return !_flyNowLoading && _flyNow is not null && (_activeDeployment is not null || _flyNowReadFailed);
+            if (command == MainWindowCommands.Backup || command == MainWindowCommands.RestoreData || command == MainWindowCommands.Recovery || command == MainWindowCommands.DataLocation)
+                return _recovery is not null && !_flyNowLoading && OwnedWindows.Count == 0;
+            return true;
+        }
+        private void OpenRecoveryClicked(object sender, RoutedEventArgs e)
+        {
+            if (_recovery is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            var dialog = new UserDataRecoveryWindow(_recovery, _closeDatabase) { Owner = this };
+            try { dialog.ShowDialog(); }
+            finally
+            {
+                if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
+                else { _ = RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+            }
+        }
+        private void ShowDataLocationClicked(object sender, RoutedEventArgs e)
+        {
+            if (_recovery is not null) MessageBox.Show(this, _recovery.DataDirectory, "IPIA user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        private void AboutClicked(object sender, RoutedEventArgs e) => MessageBox.Show(this,
+            "DCS-IPIA · " + ApplicationVersion.Label + "\n\nOpen a module to edit Devices, Modifiers, Assignments, Commands and Pages, then Save to database before previewing, validating, exporting a module snapshot or building a package.\n\nData & recovery backs up the entire saved user profile. Restore replaces it and requires restarting. Module snapshots instead restore one module without replacing other modules. Deployment → Fly Now/Clear writes only explicitly selected DCS payloads.",
+            "About and workflow help", MessageBoxButton.OK, MessageBoxImage.Information);
         private async Task RefreshFlyNowAsync()
         {
             _flyNowLoading = true;
@@ -92,6 +157,7 @@ namespace DcsIpia.Presentation
             ClearFlyNowButton.IsEnabled = !_moduleOperationBusy && !_flyNowLoading && _flyNow is not null && (_activeDeployment is not null || _flyNowReadFailed);
             BrowseSavedGamesButton.IsEnabled = !_moduleOperationBusy;
             if (_activeDeployment?.ModuleId == selected || _flyNowReadFailed) DeleteModuleButton.IsEnabled = false;
+            CommandManager.InvalidateRequerySuggested();
         }
 
         private async void FlyNowClicked(object sender, RoutedEventArgs e)
@@ -135,8 +201,8 @@ namespace DcsIpia.Presentation
 
         private async void SharedDefaults_Click(object sender, RoutedEventArgs e)
         {
-            if (_sharedDefaults is null) return;
-            SharedDefaultsButton.IsEnabled = false;
+            if (_sharedDefaults is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
             try
             {
                 var saved = await _sharedDefaults.GetAsync();
@@ -151,7 +217,7 @@ namespace DcsIpia.Presentation
             {
                 ShowImportError("Unable to open shared default UI Layer: " + ex.Message);
             }
-            finally { SharedDefaultsButton.IsEnabled = true; }
+            finally { SetModuleOperationBusy(false); }
         }
         private async void NewModule_Click(object sender, RoutedEventArgs e)
         {
@@ -353,6 +419,9 @@ namespace DcsIpia.Presentation
             OpenModuleButton.IsEnabled = !busy;
             RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
+            SharedDefaultsButton.IsEnabled = !busy && _sharedDefaults is not null;
+            ThemePicker.IsEnabled = !busy;
+            CommandManager.InvalidateRequerySuggested();
             UpdateFlyNowControls();
         }
         private async void OpenSaved_Click(object sender, RoutedEventArgs e)

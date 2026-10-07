@@ -33,6 +33,7 @@ namespace Dcs.Ipia.App.Smoke
             defaultsWindow.UpdateLayout();
             VerifySharedDefaultBindingEditor();
             VerifyModuleDeleteButton();
+            UserDataRecoverySmoke.Verify();
             VerifyNewModuleForm();
             VerifySavedGamesImportForm();
             VerifyModuleAuthoring();

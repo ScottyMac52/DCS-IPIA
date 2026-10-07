@@ -12,6 +12,7 @@ namespace DcsIpia.Presentation
     public partial class App : System.Windows.Application
     {
         private ServiceProvider? _services;
+        private FileStream? _dataLease;
         #region BEGIN Public
         /// <summary>Creates import and settings services before showing the main window.</summary>
         /// <param name="e">The WPF startup event.</param>
@@ -22,23 +23,40 @@ namespace DcsIpia.Presentation
             var userFolder =
                 releaseSmoke ? Path.GetFullPath(e.Args[1]) :
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCS-IPIA");
-            Directory.CreateDirectory(userFolder);
+            var recovery = new UserDataRecoveryService(userFolder, ApplicationVersion.Label);
             var connectionString = new SqliteConnectionStringBuilder { DataSource = Path.Combine(userFolder, "ipia.db"),
                                                                        ForeignKeys = true }
                                        .ToString();
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(userFolder)!);
+                _dataLease = new FileStream(userFolder + ".session.lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                MessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
+                    "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+            try
+            {
+                recovery.RecoverInterruptedRestore();
+                Directory.CreateDirectory(userFolder);
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Unable to open local database: " + ex.Message, "DCS-IPIA", MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                Shutdown(1);
+                var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.");
+                MainWindow = window;
+                window.ShowDialog();
+                Shutdown(window.RequiresRestart ? 0 : 1);
                 return;
             }
             _services =
                 new ServiceCollection()
+                    .AddSingleton<IUserDataRecoveryService>(recovery)
+                    .AddSingleton<Action>(_ => CloseDatabase)
                     .AddSingleton<IAppSettingsService>(
                         _ => new SqliteAppSettingsService(
                             connectionString, Path.Combine(AppContext.BaseDirectory, "appsettings.json"),
@@ -70,8 +88,17 @@ namespace DcsIpia.Presentation
         protected override void OnExit(ExitEventArgs e)
         {
             _services?.Dispose();
+            _dataLease?.Dispose();
             base.OnExit(e);
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private void CloseDatabase()
+        {
+            _services?.Dispose();
+            _services = null;
+            SqliteConnection.ClearAllPools();
+        }
+        #endregion END private helpers
     }
 }

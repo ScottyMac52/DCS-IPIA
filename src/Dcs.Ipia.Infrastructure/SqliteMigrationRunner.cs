@@ -10,6 +10,8 @@ namespace Dcs.Ipia.Infrastructure
     public sealed class SqliteMigrationRunner(string connectionString)
     {
         #region BEGIN Public
+        /// <summary>Gets the highest schema revision this application can read and migrate.</summary>
+        public const int CurrentVersion = 7;
         /// <summary>Applies pending SQLite migrations.</summary>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>A task that completes when the operation finishes</returns>
@@ -17,6 +19,16 @@ namespace Dcs.Ipia.Infrastructure
         {
             await using var c = new SqliteConnection(connectionString);
             await c.OpenAsync(ct);
+            await using (var existing = c.CreateCommand())
+            {
+                existing.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'";
+                if (Convert.ToInt32(await existing.ExecuteScalarAsync(ct), System.Globalization.CultureInfo.InvariantCulture) > 0)
+                {
+                    existing.CommandText = "SELECT max(version) FROM schema_migrations";
+                    if (Convert.ToInt32(await existing.ExecuteScalarAsync(ct), System.Globalization.CultureInfo.InvariantCulture) > CurrentVersion)
+                        throw new InvalidDataException("The database was created by a newer IPIA version. Use that version or restore a compatible backup.");
+                }
+            }
             await using var tx = await c.BeginTransactionAsync(ct);
             await Execute(c, tx, """CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER NOT NULL PRIMARY KEY,applied_utc TEXT NOT NULL); CREATE TABLE IF NOT EXISTS modules(id TEXT NOT NULL PRIMARY KEY,dcs_id TEXT NOT NULL UNIQUE COLLATE NOCASE,display_name TEXT NOT NULL); INSERT OR IGNORE INTO schema_migrations VALUES(1,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
             if (!await Applied(c, tx, 2, ct))
