@@ -46,16 +46,16 @@ namespace Dcs.Ipia.App.Smoke
                 var first = (ModuleSummaryCard)cards.Items[0];
                 var point = new Point(10, cards.ActualHeight - 5);
                 var foreign = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(new ListBox(), first));
-                cards.RaiseEvent(DragArgs(foreign, cards, point, DragDrop.DragOverEvent));
-                var rejected = DragArgs(foreign, cards, point, DragDrop.DropEvent);
+                cards.RaiseEvent(DragArgs(foreign, cards, point, DragDrop.PreviewDragOverEvent));
+                var rejected = DragArgs(foreign, cards, point, DragDrop.PreviewDropEvent);
                 cards.RaiseEvent(rejected);
                 if (rejected.Effects != DragDropEffects.None || !ReferenceEquals(cards.Items[0], first))
                     throw new InvalidOperationException("A foreign card drag changed the list.");
                 var payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, first));
-                var over = DragArgs(payload, cards, point, DragDrop.DragOverEvent);
+                var over = DragArgs(payload, cards, point, DragDrop.PreviewDragOverEvent);
                 cards.RaiseEvent(over);
                 if (over.Effects != DragDropEffects.Move) throw new InvalidOperationException("A same-list drag was rejected.");
-                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.DropEvent));
+                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "Second,Third,First");
                 if (cards.SelectedIndex != 2 || ((TextBox)window.FindName("SummaryCardKey")!).Text != "03")
                     throw new InvalidOperationException("The moved card/editor selection was not refreshed.");
@@ -64,18 +64,18 @@ namespace Dcs.Ipia.App.Smoke
                 var row = (ListBoxItem)cards.ItemContainerGenerator.ContainerFromIndex(0);
                 point = row.TranslatePoint(new Point(10, row.ActualHeight / 4), cards);
                 payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, (ModuleSummaryCard)cards.Items[2]));
-                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.DropEvent));
+                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "First,Second,Third");
                 // Dropping before the same row must leave the same objects in place.
                 var unchanged = (ModuleSummaryCard)cards.Items[0];
                 payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, unchanged));
-                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.DropEvent));
+                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 if (!ReferenceEquals(unchanged, cards.Items[0])) throw new InvalidOperationException("Same-position drop changed cards.");
                 // Lower half of the last row inserts after it.
                 window.UpdateLayout();
                 row = (ListBoxItem)cards.ItemContainerGenerator.ContainerFromIndex(2);
                 point = row.TranslatePoint(new Point(10, row.ActualHeight * 3 / 4), cards);
-                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.DropEvent));
+                cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "Second,Third,First");
                 var saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
                 if (ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards[0].Key != "07")

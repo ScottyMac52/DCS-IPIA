@@ -34,6 +34,8 @@ jobs:
       - name: Test setup folder defaults and appsettings persistence
         shell: powershell
         run: ./tests/installer/Test-SavedGamesSettings.ps1
+      - name: Open both WPF import previews
+        run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
       - name: Run tests on Windows
         env:
           IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
@@ -51,8 +53,6 @@ jobs:
           name: huey-release-parity
           path: ${{ runner.temp }}/huey-parity
           if-no-files-found: warn
-      - name: Open both WPF import previews
-        run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
 
   csharp-layout:
     runs-on: ubuntu-latest
