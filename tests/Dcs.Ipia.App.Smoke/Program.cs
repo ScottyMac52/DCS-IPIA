@@ -44,6 +44,7 @@ namespace Dcs.Ipia.App.Smoke
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
             HardwareInventorySmoke.Verify();
+            GenericHardwareSmoke.Verify();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
                 throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");
@@ -669,6 +670,7 @@ namespace Dcs.Ipia.App.Smoke
                 var sources = global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader.LoadHardwareAsync(
                     global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root).GetAwaiter().GetResult();
                 var window = new NewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery());
+                ((CheckBox)window.FindName("EmptyDefaults")!).IsChecked = false;
                 Exception? failure = null;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     try

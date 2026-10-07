@@ -20,9 +20,12 @@
         <TextBox x:Name="DcsIdInput" AutomationProperties.Name="DCS input folder"/>
         <Label Target="{Binding ElementName=DisplayNameInput}" Content="Display name"/>
         <TextBox x:Name="DisplayNameInput" AutomationProperties.Name="Module display name"/>
+        <CheckBox x:Name="EmptyDefaults" Content="Start with empty defaults (no inherited devices or modifiers)" IsChecked="True" Checked="DefaultChoiceChanged" Unchecked="DefaultChoiceChanged" Margin="0,12,0,0"/>
         <TextBlock x:Name="BaselineText" TextWrapping="Wrap" Margin="0,12,0,8"/>
         <TextBlock Text="Initial aircraft devices are optional. Add each physical unit separately; the same hardware template can be used repeatedly. For an offline unit, enter its captured native filename. GUIDs must come from the unit, not the hardware template."
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
+        <Label Target="{Binding ElementName=InventoryChoices}" Content="Adopted hardware inventory (including offline units)"/>
+        <ComboBox x:Name="InventoryChoices" DisplayMemberPath="Title" SelectionChanged="InventoryChanged"/>
         <Label Target="{Binding ElementName=PhysicalChoices}" Content="Physical unit"/>
         <ComboBox x:Name="PhysicalChoices" DisplayMemberPath="Title" SelectionChanged="PhysicalChanged"/>
         <WrapPanel Margin="0,8,0,8">

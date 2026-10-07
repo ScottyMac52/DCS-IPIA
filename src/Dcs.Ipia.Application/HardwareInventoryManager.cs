@@ -17,6 +17,16 @@ namespace Dcs.Ipia.Application
             _discovery = discovery;
         }
         #region BEGIN Public
+        /// <summary>Reads reviewed inventory without discovery or module changes.</summary>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Validated reusable definitions and physical instances.</returns>
+        public async Task<HardwareInventorySnapshot> ReadSnapshotAsync(CancellationToken ct = default)
+        {
+            var snapshot = await _repository.ReadAsync(ct);
+            HardwareInventoryContract.Validate(snapshot);
+            return snapshot;
+        }
+
         /// <summary>Loads saved selections as disconnected until a successful rescan.</summary>
         /// <param name="ct">Read cancellation.</param>
         /// <returns>Review rows.</returns>

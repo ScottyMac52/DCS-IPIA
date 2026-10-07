@@ -67,8 +67,14 @@ namespace Dcs.Ipia.Rendering
                                                        assignment.Slot.Key);
                 }
                 var combined = KneeboardDraftProjection.CreateCombined(workspace, diagram, assigned, workspace.Labels);
-                results.Add($"KNEEBOARD/{configuration.Module.DcsId}/{key}.png",
-                            CompositeKneeboardRenderer.Render(diagram, combined, ""));
+                var rendered = diagram.GenericCapabilities is null
+                    ? new[] { CompositeKneeboardRenderer.Render(diagram, combined, "") }
+                    : GenericKneeboardRenderer.RenderPages(diagram, combined);
+                for (var index = 0; index < rendered.Count; index++)
+                {
+                    var suffix = index == 0 ? "" : "-" + (index + 1).ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
+                    results.Add($"KNEEBOARD/{configuration.Module.DcsId}/{key}{suffix}.png", rendered[index]);
+                }
             }
             if (usedPages.Count != workspace.Pages.Count(x => x.Kind == KneeboardPageKind.Device))
                 throw new InvalidDataException("An authored device page has no matching profile or diagram.");

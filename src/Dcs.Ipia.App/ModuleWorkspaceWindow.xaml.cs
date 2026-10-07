@@ -28,6 +28,8 @@ namespace DcsIpia.Presentation
         private DraftAssignmentService? _draft;
         private EditorWorkspaceSnapshot? _working;
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
+        private readonly HardwareInventoryManager? _inventory;
+        private bool _genericPagingUpdating;
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
         private readonly Func<string?>? _documentationFolderPicker;
@@ -74,6 +76,7 @@ namespace DcsIpia.Presentation
         /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
         /// <param name="axisDefaultsFilePicker">Optional cleared-axis DCS profile selection adapter.</param>
         /// <param name="inputSourceFactory">Optional foreground device-input adapter for testing.</param>
+        /// <param name="inventory">Profile-scoped reviewed hardware choices.</param>
         /// <param name="inputLogClipboardWriter">Optional HTML and plain-text clipboard adapter for testing.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
@@ -81,9 +84,10 @@ namespace DcsIpia.Presentation
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
-                                     Action<string, string>? inputLogClipboardWriter = null)
+                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            _inventory = inventory;
             _settings = settings;
             _repository = repository;
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
@@ -124,7 +128,7 @@ namespace DcsIpia.Presentation
             SummaryCardAccent.SelectedIndex = 0;
             RefreshAuthoring();
             RefreshDeviceChoices();
-            Loaded += async (_, _) => { if (_working is not null) await RefreshDetectedDevicesAsync(); };
+            Loaded += async (_, _) => { if (_working is not null) { await LoadInventoryChoicesAsync(); await RefreshDetectedDevicesAsync(); } };
             Closing += ConfirmClose;
             _inputTimer.Tick += PollInputTest;
             Deactivated += (_, _) => StopInputTest("Stopped on focus loss; restart to clear modifier state.");
@@ -765,6 +769,9 @@ namespace DcsIpia.Presentation
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
                         if (pair.Key is "config/ipia-hardware.json" or "config/ipia-device-map.json" or "config/ipia-hardware-diagnostics.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
+                    var generic = WorkspaceStructureEditor.Hardware(workspace).Where(x => x.Diagram.GenericCapabilities is not null);
+                    var bundled = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+                    sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(bundled.Concat(generic).DistinctBy(x => x.DeviceId).ToArray());
                     return workspace with { Sources = sources };
                 });
                 MatchSelectedDetectedDevice();
@@ -881,6 +888,25 @@ namespace DcsIpia.Presentation
             MfdTop.Text = labels.GetValueOrDefault("mfd-category-top") ?? "";
             MfdBottom.Text = labels.GetValueOrDefault("mfd-category-bottom") ?? "";
             MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd";
+        }
+        private async Task LoadInventoryChoicesAsync()
+        {
+            if (_inventory is null) return;
+            try { InventoryUnits.ItemsSource = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync()); }
+            catch (Exception ex) { DevicesMessage.Text = "Unable to read hardware inventory: " + ex.Message; }
+        }
+        private void AddInventoryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??
+                throw new InvalidOperationException("Select an adopted inventory unit. Discover and save it from the Hardware menu first."), DeviceManagementLayer));
+        private void RenameGenericControlClicked(object sender, RoutedEventArgs e)
+        {
+            if (_selected is null || CurrentDiagram is null) return;
+            var id = CurrentDiagram.ProfileId;
+            var key = _selected.InputKey;
+            var label = GenericControlName.Text;
+            RunStructureEdit(workspace => InventoryHardwareAuthoring.RenameControl(workspace, id, key, label));
+            _selected = CurrentDiagram?.Controls.SingleOrDefault(x => x.InputKey == key);
+            RefreshInspector();
         }
         private void AddDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
@@ -1324,6 +1350,8 @@ namespace DcsIpia.Presentation
                     : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
             PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
             DefaultLabel.Text = _selected?.Label ?? "";
+            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
+            GenericControlName.Text = _selected?.Label ?? "";
             _updatingInspector = true;
             LabelEditor.IsEnabled = assignment is not null;
             LabelEditor.Text = slot is null         ? ""
@@ -1438,14 +1466,20 @@ namespace DcsIpia.Presentation
             try
             {
                 var page = KneeboardDraftProjection.CreateCombined(_working ?? _saved, diagram, _draft.Snapshot, _labels);
-                var png = CompositeKneeboardRenderer.Render(diagram, page);
-                using var stream = new MemoryStream(png);
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.StreamSource = stream;
-                bitmap.EndInit();
-                bitmap.Freeze();
+                var images = diagram.GenericCapabilities is null ? new[] { CompositeKneeboardRenderer.Render(diagram, page) }
+                    : GenericKneeboardRenderer.RenderPages(diagram, page, "DCS-IPIA · current draft preview");
+                var pages = new StackPanel();
+                foreach (var png in images)
+                {
+                    using var stream = new MemoryStream(png);
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                    pages.Children.Add(new Image { Source = bitmap, Width = 800, Stretch = Stretch.Uniform });
+                }
                 var view = new Window { Title = "Current kneeboard · " + diagram.Title,
                                         Owner = this,
                                         Width = 900,
@@ -1455,7 +1489,7 @@ namespace DcsIpia.Presentation
                                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                                         Background = (Brush)FindResource("WindowBackgroundBrush"),
                                         Foreground = (Brush)FindResource("PrimaryTextBrush") };
-                view.Content = new ScrollViewer { Content = new Image { Source = bitmap, Stretch = Stretch.Uniform },
+                view.Content = new ScrollViewer { Content = pages,
                                                   HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
                                                   VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
                 view.ShowDialog();
@@ -1483,16 +1517,22 @@ namespace DcsIpia.Presentation
             if (result.Outcome == DraftOutcome.Applied)
                 RefreshEditor();
         }
+        private void GenericPageChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_genericPagingUpdating) RefreshKneeboardPreview();
+        }
         private void KneeboardList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (GenericPageChoice is not null) GenericPageChoice.SelectedIndex = 0;
             RefreshKneeboardPreview();
         }
 
         private void RefreshKneeboardPreview()
         {
-            if (KneeboardPreview is null || KneeboardCaption is null)
+            if (KneeboardPreview is null || KneeboardCaption is null || GenericPageChoice is null)
                 return;
             KneeboardPreview.Source = null;
+            GenericPageChoice.IsEnabled = false;
             var index = KneeboardList.SelectedIndex;
             var pageKeys = _saved?.Pages.Select(x => x.StableKey).ToArray() ?? _viewModel.PageKeys.ToArray();
             if (index < 0 || index >= pageKeys.Length)
@@ -1522,7 +1562,23 @@ namespace DcsIpia.Presentation
                             KneeboardPageLocator.PageKeyForProfile(_saved, x.ProfileId) == key);
                         var combined = KneeboardDraftProjection.CreateCombined(
                             _saved, diagram, _saved.Assignments, _saved.Labels);
-                        bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
+                        if (diagram.GenericCapabilities is null) bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
+                        else
+                        {
+                            var generated = GenericKneeboardRenderer.RenderPages(diagram, combined);
+                            var choices = Enumerable.Range(1, generated.Count).Select(x => "Page " + x).ToArray();
+                            if (!(GenericPageChoice.ItemsSource as string[] ?? []).SequenceEqual(choices, StringComparer.Ordinal))
+                            {
+                                _genericPagingUpdating = true;
+                                GenericPageChoice.ItemsSource = choices;
+                                GenericPageChoice.SelectedIndex = 0;
+                                _genericPagingUpdating = false;
+                            }
+                            GenericPageChoice.IsEnabled = generated.Count > 1;
+                            var selected = Math.Max(0, GenericPageChoice.SelectedIndex);
+                            bytes = generated[selected];
+                            path = path[..^4] + (selected == 0 ? "" : "-" + (selected + 1).ToString("D3", CultureInfo.InvariantCulture)) + ".png";
+                        }
                     }
                     else if (page.Kind == KneeboardPageKind.Summary)
                     {

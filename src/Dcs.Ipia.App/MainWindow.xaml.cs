@@ -265,7 +265,7 @@ namespace DcsIpia.Presentation
                 var defaults = await _sharedDefaults.GetAsync() ??
                     await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
                 var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var dialog = new NewModuleWindow(_workspaces, defaults, hardware) { Owner = this };
+                var dialog = new NewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory) { Owner = this };
                 if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
                     return;
                 _lastViewModel = new ModuleWorkspaceViewModel(saved);
@@ -545,7 +545,7 @@ namespace DcsIpia.Presentation
         {
             if (_lastViewModel is null)
                 return;
-            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces) { Owner = this };
+            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory) { Owner = this };
             window.ShowDialog();
         }
         private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)

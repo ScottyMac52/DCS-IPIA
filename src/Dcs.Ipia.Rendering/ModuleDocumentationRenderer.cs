@@ -59,8 +59,22 @@ namespace Dcs.Ipia.Rendering
                 "DCS has one UI Layer directory: enabling another aircraft package can replace overlapping UI files. Verify the effective UI bindings after switching packages.\n\n" +
                 "## Remove or restore\n\nClose DCS and disable this package in OvGME before enabling another version. Restore your backed-up folders to return to the pre-package state. " +
                 "Documentation export creates no files in Saved Games.\n\n## Kneeboard pages\n\n" +
-                Table(["File", "Title", "Kind"], workspace.Pages.OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal)
-                    .Select(x => new[] { $"KNEEBOARD/{workspace.Configuration.Module.DcsId}/{x.StableKey}.png", x.Title, x.Kind.ToString() }));
+                Table(["File", "Title", "Kind"], DevicePages(workspace));
+        }
+        private static IEnumerable<string[]> DevicePages(EditorWorkspaceSnapshot workspace)
+        {
+            foreach (var page in workspace.Pages.OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal))
+            {
+                var diagram = workspace.Diagrams.SingleOrDefault(x => x.GenericCapabilities is not null &&
+                    KneeboardPageLocator.PageKeyForProfile(workspace, x.ProfileId) == page.StableKey);
+                var count = diagram is null ? 1 : GenericKneeboardRenderer.BuildPages(diagram,
+                    KneeboardDraftProjection.CreateCombined(workspace, diagram, workspace.Assignments, workspace.Labels)).Count;
+                for (var index = 0; index < count; index++)
+                {
+                    var suffix = index == 0 ? "" : "-" + (index + 1).ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
+                    yield return [$"KNEEBOARD/{workspace.Configuration.Module.DcsId}/{page.StableKey}{suffix}.png", page.Title, page.Kind.ToString()];
+                }
+            }
         }
         private static string Mappings(EditorWorkspaceSnapshot workspace, IReadOnlyList<ModuleDocumentationProfile> profiles,
             IReadOnlyList<ModuleDocumentationProfile> defaults)
@@ -92,6 +106,9 @@ namespace Dcs.Ipia.Rendering
             if (workspace.SharedDefault is { } shared)
                 text.Append("Revision: ").Append(shared.Revision).Append(" · Source commit: ").Append(Escape(shared.SourceCommit))
                     .Append(" · Content SHA-256: ").Append(Escape(shared.ContentSha256 ?? "Not recorded")).Append("\n\n");
+            else if (workspace.Sources?.TryGetValue("config/ipia-default-choice.json", out var choice) == true &&
+                JsonDocument.Parse(choice).RootElement.GetProperty("choice").GetString() == "empty")
+                text.Append("Explicit empty default baseline: no inherited controller profiles, assignments or modifiers.\n\n");
             else text.Append("No separately captured shared default revision. Effective UI output is listed above.\n\n");
             text.Append("The baseline is provenance, not a second installed profile. Module overrides and removals are reflected in the effective UI tables above.\n\n");
             text.Append(Table(["Captured source", "Input", "Chord", "Command", "Disposition"], defaults.OrderBy(x => x.Path, StringComparer.Ordinal)

@@ -16,16 +16,19 @@ namespace DcsIpia.Presentation
         private readonly IReadOnlyDictionary<string, string> _hardwareSources;
         private readonly IConnectedDeviceDiscovery _discovery;
         private readonly ObservableCollection<NewModuleDeviceSelection> _selections = [];
-        private readonly IReadOnlyList<WorkspaceHardware> _hardware;
+        private IReadOnlyList<WorkspaceHardware> _hardware;
+        private readonly HardwareInventoryManager? _inventory;
         private string _savedGamesRoot = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         /// <summary>Initializes a creation form from verified internal assets.</summary>
         /// <param name="repository">Local module storage.</param>
         /// <param name="defaults">Saved shared defaults to pin.</param>
         /// <param name="hardwareSources">Pinned internal hardware choices.</param>
+        /// <param name="inventory">Optional saved physical inventory.</param>
         /// <param name="discovery">Optional physical controller discovery adapter.</param>
         public NewModuleWindow(IEditorWorkspaceRepository repository, SharedUiLayerWorkspace defaults,
-            IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null)
+            IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null, HardwareInventoryManager? inventory = null)
         {
+            _inventory = inventory;
             _repository = repository;
             _defaults = defaults;
             _hardwareSources = hardwareSources;
@@ -37,13 +40,46 @@ namespace DcsIpia.Presentation
             BaselineText.Text = $"Shared default UI Layer revision {defaults.Revision} will be copied into this module. Its filenames are baseline identities; select a copied profile below to explicitly bind it to your unit.";
             HardwareChoices.ItemsSource = _hardware;
             SelectedUnits.ItemsSource = _selections;
-            Loaded += async (_, _) => await RefreshDevicesAsync();
+            DefaultChoiceChanged(this, new RoutedEventArgs());
+            Loaded += async (_, _) => { await LoadInventoryAsync(); await RefreshDevicesAsync(); };
         }
         #region BEGIN Public
         /// <summary>Gets the successfully saved and reopened module, or null when cancelled.</summary>
         public EditorWorkspaceSnapshot? CreatedWorkspace { get; private set; }
         #endregion END Public
         #region BEGIN private helpers
+        private async Task LoadInventoryAsync()
+        {
+            if (_inventory is null) return;
+            try
+            {
+                var choices = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync());
+                InventoryChoices.ItemsSource = choices;
+                _hardware = _hardware.Concat(choices.Select(x => GenericHardwareLayout.Create(x.Definition)))
+                    .DistinctBy(x => x.DeviceId).ToArray();
+                HardwareChoices.ItemsSource = _hardware;
+            }
+            catch (Exception ex) { CreationError.Text = "Unable to read inventory: " + ex.Message; }
+        }
+        private void DefaultChoiceChanged(object sender, RoutedEventArgs e)
+        {
+            if (BaselineText is null || BaselineChoices is null) return;
+            var empty = EmptyDefaults.IsChecked == true;
+            BaselineText.Text = empty ? "Empty baseline selected. No personal controller identities, assignments or modifiers will be inherited."
+                : $"Shared default revision {_defaults.Revision} will be copied. Explicitly rebind inherited profiles to your units.";
+            BaselineChoices.IsEnabled = !empty;
+            if (empty) BaselineChoices.SelectedItem = null;
+        }
+        private void InventoryChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (InventoryChoices.SelectedItem is not InventoryHardwareChoice choice) return;
+            PhysicalChoices.SelectedItem = null;
+            HardwareChoices.SelectedItem = _hardware.Single(x => x.DeviceId == "generic-" + choice.Definition.Id);
+            NativeFileInput.Text = choice.FileName;
+            UnitInstance.Text = choice.Instance.Label;
+            UnitRole.Text = choice.Instance.Role;
+            CreationError.Text = "Inventoried unit selected with its actual controls. Add it to the reviewed list; choose compatible bundled artwork explicitly if desired.";
+        }
         private async Task RefreshDevicesAsync()
         {
             RefreshDevicesButton.IsEnabled = false;
@@ -114,7 +150,10 @@ namespace DcsIpia.Presentation
                     throw new InvalidOperationException("Keep the selected unit's physical GUID, or clear the physical choice before manual entry.");
                 if (_selections.Any(x => DcsPhysicalIdentity.FromFileName(x.FileName) == guid))
                     throw new InvalidOperationException("That physical unit is already in the list. Select another unit of the same hardware type.");
-                var baseline = BaselineChoices.SelectedItem as string;
+                if (InventoryChoices.SelectedItem is InventoryHardwareChoice inventory && guid == inventory.Instance.PhysicalGuid &&
+                    !hardware.Diagram.Controls.Select(x => x.InputKey).ToHashSet(StringComparer.Ordinal).SetEquals(inventory.Definition.Capabilities.DcsKeys))
+                    throw new InvalidOperationException("The chosen hardware must match this inventoried unit's actual controls.");
+                var baseline = EmptyDefaults.IsChecked == true ? null : BaselineChoices.SelectedItem as string;
                 if (baseline is not null && _selections.Any(x => x.BaselineFileName == baseline))
                     throw new InvalidOperationException("That copied baseline has already been bound. Choose a new unit instead.");
                 _selections.Add(new(hardware, file, UnitInstance.Text, UnitRole.Text, baseline));
@@ -140,7 +179,7 @@ namespace DcsIpia.Presentation
                 foreach (var id in await _repository.ListAsync())
                     if ((await _repository.GetAsync(id))?.Configuration.Module.DcsId.Equals(DcsIdInput.Text, StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidOperationException("That DCS input folder already has a saved module. Open it or choose another identity.");
-                var workspace = NewModuleWorkspaceFactory.Create(DcsIdInput.Text, DisplayNameInput.Text, _defaults, _hardwareSources);
+                var workspace = NewModuleWorkspaceFactory.Create(DcsIdInput.Text, DisplayNameInput.Text, _defaults, _hardwareSources, EmptyDefaults.IsChecked == true);
                 foreach (var selected in _selections)
                     workspace = NewModuleDeviceAuthoring.Apply(workspace, selected);
                 await _repository.SaveAsync(workspace);

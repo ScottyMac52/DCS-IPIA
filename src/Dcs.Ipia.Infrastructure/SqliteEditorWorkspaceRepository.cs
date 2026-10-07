@@ -45,6 +45,7 @@ namespace Dcs.Ipia.Infrastructure
             {
                 snapshot = EditorWorkspaceUpgrade.RestorePovAliases(snapshot);
             }
+            GenericHardwareLayout.ValidateWorkspace(snapshot);
             var upgraded = MfdCategoryLabelUpgrade.Apply(snapshot);
             if (payload.Version < 3 || !ReferenceEquals(snapshot, upgraded))
                 await SaveAsync(upgraded, ct);
@@ -97,6 +98,7 @@ namespace Dcs.Ipia.Infrastructure
             if (id == Guid.Empty || updated.Configuration.Module.Id != id ||
                 updated.Assignments.Any(x => x.Slot.ModuleId != id))
                 throw new ArgumentException("Reviewed updates must belong to the same saved module.", nameof(updated));
+            GenericHardwareLayout.ValidateWorkspace(updated);
             var reference = updated.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(updated.SharedDefault);
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
@@ -159,6 +161,7 @@ namespace Dcs.Ipia.Infrastructure
                 throw new ArgumentException("A module identity is required.", nameof(snapshot));
             if (snapshot.Assignments.Any(x => x.Slot.ModuleId != snapshot.Configuration.Module.Id))
                 throw new ArgumentException("Assignments must belong to the stored module.", nameof(snapshot));
+            GenericHardwareLayout.ValidateWorkspace(snapshot);
             var reference = snapshot.SharedDefault is null ? null : SharedUiLayerRevisionReference.Freeze(snapshot.SharedDefault);
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(ct);
