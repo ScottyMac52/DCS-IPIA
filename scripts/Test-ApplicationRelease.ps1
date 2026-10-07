@@ -9,6 +9,8 @@ $previousLocalAppData = $env:LOCALAPPDATA
 $env:LOCALAPPDATA = Join-Path $taskRoot 'setup-preferences'
 $setupSettings = Join-Path $env:LOCALAPPDATA 'DCS-IPIA/appsettings.json'
 $setupLogs = @()
+$releaseFailure = $null
+. (Join-Path $PSScriptRoot 'ReleaseTestCleanup.ps1')
 function Assert-Exit([string]$Operation) { if ($LASTEXITCODE -ne 0) { throw "$Operation failed: $LASTEXITCODE" } }
 function Test-App([string]$Executable, [string]$Name) {
     $data = Join-Path $taskRoot $Name
@@ -69,7 +71,10 @@ try {
     }
     $uninstall = Start-Process (Join-Path $installed 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
     if (-not $uninstall.WaitForExit(90000)) { $uninstall.Kill(); throw 'Uninstaller timed out.' }
-    if ($uninstall.ExitCode -ne 0 -or (Test-Path (Join-Path $installed 'Dcs.Ipia.App.exe'))) { throw 'Uninstall verification failed.' }
+    if ($uninstall.ExitCode -ne 0) { throw 'Uninstall verification failed.' }
+    # The original process exits before Inno's temporary clone finishes deleting its files.
+    Wait-ReleaseUninstall $installed
+    if (Test-Path (Join-Path $installed 'Dcs.Ipia.App.exe')) { throw 'Uninstall verification failed.' }
     if (Test-Path $Output) { throw 'Release output already exists.' }
     New-Item -ItemType Directory -Path $Output | Out-Null
     Copy-Item $setup (Join-Path $Output 'setup.exe')
@@ -90,6 +95,7 @@ try {
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $Output).Path 'SHA256SUMS.txt'), ($lines -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
     Write-Output 'Portable, installed and archived executables verified; install/uninstall and exact payload checks passed.'
 } catch {
+    $releaseFailure = $_
     foreach ($log in $setupLogs) {
         if (Test-Path -LiteralPath $log) {
             Write-Output "Installer log: $log"
@@ -99,5 +105,5 @@ try {
     throw
 } finally {
     $env:LOCALAPPDATA = $previousLocalAppData
-    if (Test-Path $taskRoot) { Remove-Item $taskRoot -Recurse -Force }
+    Remove-ReleaseTestDirectory $taskRoot -PreserveFailure:($null -ne $releaseFailure)
 }
