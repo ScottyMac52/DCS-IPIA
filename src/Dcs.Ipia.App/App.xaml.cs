@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using Dcs.Ipia.Application.Interfaces;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
@@ -83,6 +84,9 @@ namespace DcsIpia.Presentation
                         _ => new SqliteConfigurationRepository(connectionString))
                     .AddSingleton<IEditorWorkspaceRepository>(
                         _ => new SqliteEditorWorkspaceRepository(connectionString))
+                    .AddSingleton<IHardwareInventoryRepository>(_ => new SqliteHardwareInventoryRepository(connectionString))
+                    .AddSingleton<IControllerCapabilityDiscovery, WindowsConnectedDeviceDiscovery>()
+                    .AddSingleton<HardwareInventoryManager>()
                     .AddSingleton<ISharedUiLayerWorkspaceRepository>(
                         _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
                     .AddSingleton<IFlyNowPayloadBuilder, FlyNowPayloadBuilder>()

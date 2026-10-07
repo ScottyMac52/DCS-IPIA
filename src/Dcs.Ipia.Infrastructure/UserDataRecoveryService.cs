@@ -17,7 +17,8 @@ namespace Dcs.Ipia.Infrastructure
         {
             ["modules"] = 1, ["device_profiles"] = 2, ["modifiers"] = 2, ["bindings"] = 2,
             ["editor_workspaces"] = 3, ["app_preferences"] = 4, ["shared_ui_layer_revisions"] = 5,
-            ["module_update_history"] = 6, ["fly_now_deployment"] = 7
+            ["module_update_history"] = 6, ["fly_now_deployment"] = 7,
+            ["hardware_definitions"] = 8, ["hardware_inventory"] = 8, ["hardware_observations"] = 8
         };
         private readonly string _version;
         private readonly Action<string>? _checkpoint;

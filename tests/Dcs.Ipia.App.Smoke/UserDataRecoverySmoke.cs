@@ -44,7 +44,7 @@ namespace Dcs.Ipia.App.Smoke
                     ((Button)main.FindName("FlyNowButton")!).IsEnabled)
                     throw new InvalidOperationException("Test profile visibility or deployment isolation failed.");
                 var menu = (Menu)main.FindName("MainMenu")!;
-                if (menu.Items.Count != 6 || ((Button)main.FindName("OpenModuleButton")!).Tag != MainWindowCommands.OpenModule ||
+                if (menu.Items.Count != 7 || ((Button)main.FindName("OpenModuleButton")!).Tag != MainWindowCommands.OpenModule ||
                     !MainWindowCommands.OpenModule.CanExecute(null, main)) throw new InvalidOperationException("Main menu and quick actions did not share enabled commands.");
                 modules.SelectedIndex = -1;
                 if (MainWindowCommands.OpenModule.CanExecute(null, main)) throw new InvalidOperationException("Open menu command remained enabled without selection.");

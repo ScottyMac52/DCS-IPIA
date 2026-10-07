@@ -36,6 +36,10 @@ namespace DcsIpia.Presentation
         public static RoutedUICommand DataLocation { get; } = Create("DataLocation");
         /// <summary>Manages isolated profiles, setup completion and verified reset.</summary>
         public static RoutedUICommand Profiles { get; } = Create("Profiles");
+        /// <summary>Discovers native controller capabilities independently of a module.</summary>
+        public static RoutedUICommand DiscoverHardware { get; } = Create("DiscoverHardware");
+        /// <summary>Reviews saved user-owned physical units.</summary>
+        public static RoutedUICommand ManageHardware { get; } = Create("ManageHardware");
         /// <summary>Shows version and workflow help.</summary>
         public static RoutedUICommand About { get; } = Create("About");
         /// <summary>Closes the application.</summary>

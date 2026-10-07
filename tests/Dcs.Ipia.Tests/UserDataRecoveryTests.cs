@@ -27,7 +27,7 @@ namespace Dcs.Ipia.Tests
             var archive = Path.Combine(_folder, "backup.zip");
             var service = new UserDataRecoveryService(root, "1.2.3.4");
             service.Backup(archive);
-            Assert.Equal(7, service.Inspect(archive).DatabaseSchemaVersion);
+            Assert.Equal(SqliteMigrationRunner.CurrentVersion, service.Inspect(archive).DatabaseSchemaVersion);
             var target = await Create("target", "old");
             var previous = new UserDataRecoveryService(target, "1.2.3.4").Restore(archive);
             Assert.Equal("committed", Name(target));
@@ -223,7 +223,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("older saved data", Name(target));
             var updated = Path.Combine(_folder, "updated.zip");
             restored.Backup(updated);
-            Assert.Equal(7, restored.Inspect(updated).DatabaseSchemaVersion);
+            Assert.Equal(SqliteMigrationRunner.CurrentVersion, restored.Inspect(updated).DatabaseSchemaVersion);
             Assert.Equal(1, service.Inspect(archive).DatabaseSchemaVersion);
         }
 

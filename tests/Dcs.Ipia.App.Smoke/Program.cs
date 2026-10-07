@@ -43,6 +43,7 @@ namespace Dcs.Ipia.App.Smoke
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
+            HardwareInventorySmoke.Verify();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))
                 throw new InvalidOperationException("DirectInput discovery returned an invalid physical controller identity.");
