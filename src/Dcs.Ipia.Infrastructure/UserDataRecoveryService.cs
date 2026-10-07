@@ -136,7 +136,15 @@ namespace Dcs.Ipia.Infrastructure
             {
                 if (!Directory.Exists(DataDirectory)) Directory.Move(journal.Previous, DataDirectory);
                 else if (Directory.Exists(journal.Stage)) throw new InvalidDataException("Ambiguous interrupted restore; retained data requires recovery review.");
-                else VerifyDatabase(DataDirectory); // Replacement completed before the journal was removed.
+                else
+                {
+                    try { VerifyDatabase(DataDirectory); } // Replacement completed before the journal was removed.
+                    catch (Exception ex) when (ex is SqliteException or InvalidDataException)
+                    {
+                        Directory.Move(DataDirectory, journal.Stage + ".failed");
+                        Directory.Move(journal.Previous, DataDirectory);
+                    }
+                }
             }
             else if (!Directory.Exists(DataDirectory)) throw new InvalidDataException("Interrupted restore has no original directory to recover.");
             DeleteDirectory(journal.Stage);

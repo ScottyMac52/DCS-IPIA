@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace DcsIpia.Presentation
 {
     /// <summary>Starts the WPF application with dependency-injected services.</summary>
-    public partial class App : System.Windows.Application
+    public partial class App : System.Windows.Application, IDisposable
     {
         private ServiceProvider? _services;
         private FileStream? _dataLease;
@@ -87,9 +87,23 @@ namespace DcsIpia.Presentation
         /// <param name="e">The WPF exit event.</param>
         protected override void OnExit(ExitEventArgs e)
         {
-            _services?.Dispose();
-            _dataLease?.Dispose();
+            Dispose();
             base.OnExit(e);
+        }
+        /// <summary>Releases database services and the user-profile lease.</summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        /// <summary>Releases owned managed resources for the application lifetime.</summary>
+        /// <param name="disposing">Whether managed resources should be released.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+            CloseDatabase();
+            _dataLease?.Dispose();
+            _dataLease = null;
         }
         #endregion END Public
         #region BEGIN private helpers

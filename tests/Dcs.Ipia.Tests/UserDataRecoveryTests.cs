@@ -134,6 +134,30 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("current", Name(root));
         }
 
+        /// <summary>A completed replacement is verified, or the previous directory is recovered if damaged.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Startup_verifies_completed_replacement(bool damaged)
+        {
+            var root = await Create("live", "current");
+            var id = Guid.NewGuid().ToString("N");
+            var stage = root + ".restore-" + id;
+            var previous = root + ".before-restore-" + id;
+            Directory.Move(root, previous);
+            Directory.CreateDirectory(root);
+            if (damaged) File.WriteAllText(Path.Combine(root, "ipia.db"), "damaged replacement");
+            else
+            {
+                await new SqliteMigrationRunner(Connection(root)).MigrateAsync();
+                Execute(root, "INSERT INTO modules(id,dcs_id,display_name) VALUES('module','TEST','replacement')");
+            }
+            File.WriteAllText(root + ".restore.json", JsonSerializer.Serialize(new { Stage = stage, Previous = previous }));
+            new UserDataRecoveryService(root, "1.2.3.4").RecoverInterruptedRestore();
+            Assert.Equal(damaged ? "current" : "replacement", Name(root));
+            Assert.False(File.Exists(root + ".restore.json"));
+        }
+
         /// <summary>A corrupt current database can be replaced while retaining its exact original bytes.</summary>
         [Fact]
         public async Task Restore_preserves_corrupt_original_and_blocks_deployment_records()
