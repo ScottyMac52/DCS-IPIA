@@ -29,6 +29,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Test release cleanup and uninstaller completion
+        shell: pwsh
+        run: ./tests/installer/Test-ReleaseCleanup.ps1
       - name: Build Visual Studio solution
         run: dotnet build DCS-IPIA.sln --configuration Release
       - name: Test setup folder defaults and appsettings persistence
