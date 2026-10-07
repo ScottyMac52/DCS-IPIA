@@ -49,6 +49,7 @@ namespace Dcs.Ipia.App.Smoke
                 cards.RaiseEvent(DragArgs(foreign, cards, point, DragDrop.PreviewDragOverEvent));
                 var rejected = DragArgs(foreign, cards, point, DragDrop.PreviewDropEvent);
                 cards.RaiseEvent(rejected);
+                if (!rejected.Handled) throw new InvalidOperationException("The summary preview drop handler did not run.");
                 if (rejected.Effects != DragDropEffects.None || !ReferenceEquals(cards.Items[0], first))
                     throw new InvalidOperationException("A foreign card drag changed the list.");
                 var payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, first));
