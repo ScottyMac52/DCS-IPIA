@@ -52,7 +52,9 @@ try {
     if ($rerun.ExitCode -ne 0 -or (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Setup did not persist the chosen DCS folder.'
     }
-    $rerun = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=`"$installed`"") -PassThru
+    $setupLog = Join-Path $taskRoot 'persistence-rerun.log'
+    $setupLogs += $setupLog
+    $rerun = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=`"$setupLog`"", "/DIR=`"$installed`"") -PassThru
     if (-not $rerun.WaitForExit(90000)) { $rerun.Kill(); throw 'Setup persistence rerun timed out.' }
     if ($rerun.ExitCode -ne 0 -or (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Setup rerun reset the assigned DCS folder.'
