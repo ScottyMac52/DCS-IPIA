@@ -31,6 +31,9 @@ jobs:
           dotnet-version: 10.0.x
       - name: Build Visual Studio solution
         run: dotnet build DCS-IPIA.sln --configuration Release
+      - name: Test setup folder defaults and appsettings persistence
+        shell: powershell
+        run: ./tests/installer/Test-SavedGamesSettings.ps1
       - name: Run tests on Windows
         env:
           IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity

@@ -42,7 +42,8 @@ namespace DcsIpia.Presentation
                     .AddSingleton<IAppSettingsService>(
                         _ => new SqliteAppSettingsService(
                             connectionString, Path.Combine(AppContext.BaseDirectory, "appsettings.json"),
-                            Path.Combine(userFolder, "user-settings.json"), Path.Combine(userFolder, "theme.txt")))
+                            Path.Combine(userFolder, "user-settings.json"), Path.Combine(userFolder, "theme.txt"),
+                            Path.Combine(userFolder, "appsettings.json")))
                     .AddSingleton<IModuleConfigurationRepository>(
                         _ => new SqliteConfigurationRepository(connectionString))
                     .AddSingleton<IEditorWorkspaceRepository>(

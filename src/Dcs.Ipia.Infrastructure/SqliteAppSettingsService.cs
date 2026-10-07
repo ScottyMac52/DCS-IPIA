@@ -16,12 +16,14 @@ namespace Dcs.Ipia.Infrastructure
         /// <param name="defaultsPath">Packaged appsettings.json defaults.</param>
         /// <param name="legacyUserPath">Previous per-user JSON settings path.</param>
         /// <param name="legacyThemePath">Previous theme.txt path.</param>
+        /// <param name="userSettingsPath">Writable per-user appsettings.json, with migration from legacyUserPath.</param>
         public SqliteAppSettingsService(string connectionString, string defaultsPath, string legacyUserPath,
-                                        string legacyThemePath)
+                                        string legacyThemePath, string? userSettingsPath = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
             _connectionString = connectionString;
-            _folderSettings = new FileAppSettingsService(defaultsPath, legacyUserPath, legacyThemePath, false);
+            _folderSettings = new FileAppSettingsService(defaultsPath, userSettingsPath ?? legacyUserPath,
+                legacyThemePath, false, userSettingsPath is null ? null : legacyUserPath);
             var fallback = new AppSettings(SchemaVersion, AppearanceTheme.Light, OccupiedDestinationBehavior.Ask);
             var defaults = ReadJson(defaultsPath, fallback, out _);
             defaults = new AppSettings(SchemaVersion, defaults.Theme, defaults.OccupiedDestinationBehavior, _folderSettings.Current.SavedGamesDcsFolder);

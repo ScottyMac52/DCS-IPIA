@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 
@@ -17,7 +18,9 @@ namespace Dcs.Ipia.Infrastructure
         /// <param name="userPath">Writable per-user JSON preferences path.</param>
         /// <param name="legacyThemePath">Previous theme.txt preference path.</param>
         /// <param name="migrateLegacyTheme">Whether this file service owns legacy theme migration.</param>
-        public FileAppSettingsService(string defaultsPath, string userPath, string legacyThemePath, bool migrateLegacyTheme = true)
+        /// <param name="legacyUserPath">Previous JSON preferences, overlaid only beneath the current file.</param>
+        public FileAppSettingsService(string defaultsPath, string userPath, string legacyThemePath, bool migrateLegacyTheme = true,
+                                      string? legacyUserPath = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(defaultsPath);
             ArgumentException.ThrowIfNullOrWhiteSpace(userPath);
@@ -27,10 +30,16 @@ namespace Dcs.Ipia.Infrastructure
             var fallback =
                 new AppSettings(SupportedSchemaVersion, AppearanceTheme.Light, OccupiedDestinationBehavior.Ask);
             var defaults = Read(defaultsPath, fallback, out _, out var defaultsError);
+            string? legacyError = null;
+            var hasLegacyTheme = false;
+            if (legacyUserPath is not null)
+                defaults = Read(legacyUserPath, defaults, out hasLegacyTheme, out legacyError);
             var settings = Read(userPath, defaults, out var hasUserTheme, out var userError);
             Current = settings;
-            LastError = JoinErrors(defaultsError, userError);
-            if (migrateLegacyTheme && !hasUserTheme && TryReadLegacyTheme(out var legacyTheme))
+            LastError = JoinErrors(JoinErrors(defaultsError, legacyError), userError);
+            if (legacyUserPath is not null && File.Exists(legacyUserPath) && !File.Exists(userPath) && legacyError is null)
+                TryPersist(legacyUserPath);
+            if (migrateLegacyTheme && !hasUserTheme && !hasLegacyTheme && TryReadLegacyTheme(out var legacyTheme))
             {
                 Current = new AppSettings(SupportedSchemaVersion, legacyTheme, settings.OccupiedDestinationBehavior, settings.SavedGamesDcsFolder);
                 TryPersist();
@@ -162,21 +171,25 @@ namespace Dcs.Ipia.Infrastructure
             return false;
         }
 
-        private bool TryPersist()
+        private bool TryPersist(string? sourcePath = null)
         {
             var temp = _userPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_userPath)!);
-                var json = JsonSerializer.Serialize(
-                    new
-                    {
-                        SchemaVersion = SupportedSchemaVersion,
-                        Theme = Current.Theme.ToString(),
-                        OccupiedDestinationBehavior = Current.OccupiedDestinationBehavior.ToString(),
-                        SavedGamesDcsFolder = Current.SavedGamesDcsFolder
-                    },
-                    JsonOptions);
+                var existingPath = sourcePath ?? _userPath;
+                JsonObject? document = null;
+                if (File.Exists(existingPath))
+                {
+                    try { document = JsonNode.Parse(File.ReadAllText(existingPath)) as JsonObject; }
+                    catch (JsonException) { /* A confirmed valid preference repairs malformed JSON. */ }
+                }
+                document ??= new JsonObject();
+                document["SchemaVersion"] = SupportedSchemaVersion;
+                document["Theme"] = Current.Theme.ToString();
+                document["OccupiedDestinationBehavior"] = Current.OccupiedDestinationBehavior.ToString();
+                document["SavedGamesDcsFolder"] = Current.SavedGamesDcsFolder;
+                var json = document.ToJsonString(JsonOptions);
                 File.WriteAllText(temp, json);
                 File.Move(temp, _userPath, true);
                 LastError = null;

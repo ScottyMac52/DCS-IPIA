@@ -5,6 +5,10 @@ $taskRoot = Join-Path $env:RUNNER_TEMP ('ipia-release-' + [guid]::NewGuid().ToSt
 $publish = Join-Path $taskRoot 'publish'
 $installed = Join-Path $taskRoot 'installed'
 New-Item -ItemType Directory -Path $taskRoot | Out-Null
+$previousLocalAppData = $env:LOCALAPPDATA
+$env:LOCALAPPDATA = Join-Path $taskRoot 'setup-preferences'
+$setupSettings = Join-Path $env:LOCALAPPDATA 'DCS-IPIA/appsettings.json'
+$setupLogs = @()
 function Assert-Exit([string]$Operation) { if ($LASTEXITCODE -ne 0) { throw "$Operation failed: $LASTEXITCODE" } }
 function Test-App([string]$Executable, [string]$Name) {
     $data = Join-Path $taskRoot $Name
@@ -30,9 +34,31 @@ try {
     & $iscc "/DAppVersion=$Version" "/DPublishDir=$publish" installer/installer.iss
     Assert-Exit 'Installer build'
     $setup = (Resolve-Path installer/output/setup.exe).Path
-    $install = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=`"$installed`"") -PassThru
+    $setupLog = Join-Path $taskRoot 'install.log'
+    $setupLogs += $setupLog
+    $install = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=`"$setupLog`"", "/DIR=`"$installed`"") -PassThru
     if (-not $install.WaitForExit(90000)) { $install.Kill(); throw 'Installer timed out.' }
     if ($install.ExitCode -ne 0) { throw 'Silent installation failed.' }
+    $initialFolder = (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder
+    if (-not [IO.Path]::IsPathFullyQualified($initialFolder) -or (Split-Path $initialFolder -Leaf) -ne 'DCS') {
+        throw 'Setup did not persist a system-default DCS folder.'
+    }
+    $customFolder = Join-Path $taskRoot 'DCS custom instance'
+    $setupLog = Join-Path $taskRoot 'custom-folder-rerun.log'
+    $setupLogs += $setupLog
+    $rerun = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=`"$setupLog`"",
+        "/DIR=`"$installed`"", "/SAVEDGAMES=`"$customFolder`"") -PassThru
+    if (-not $rerun.WaitForExit(90000)) { $rerun.Kill(); throw 'Setup rerun timed out.' }
+    if ($rerun.ExitCode -ne 0 -or (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
+        throw 'Setup did not persist the chosen DCS folder.'
+    }
+    $setupLog = Join-Path $taskRoot 'persistence-rerun.log'
+    $setupLogs += $setupLog
+    $rerun = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=`"$setupLog`"", "/DIR=`"$installed`"") -PassThru
+    if (-not $rerun.WaitForExit(90000)) { $rerun.Kill(); throw 'Setup persistence rerun timed out.' }
+    if ($rerun.ExitCode -ne 0 -or (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
+        throw 'Setup rerun reset the assigned DCS folder.'
+    }
     Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'installed-smoke'
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
@@ -55,11 +81,23 @@ try {
     @{
         version=$Version; sourceCommit=$env:GITHUB_SHA; runtime='win-x64'; selfContained=$true
         checks=@('portable startup','installed startup','archive startup','isolated SQLite','bundled hardware integrity',
-            'native PNG rendering','installed payload hashes','silent install/uninstall')
+            'native PNG rendering','installed payload hashes','silent install/uninstall',
+            'setup system-default folder','setup custom folder','setup rerun persistence')
     } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Output 'TEST-EVIDENCE.json') -Encoding utf8NoBOM
     $lines = Get-ChildItem $Output -File | Sort-Object Name | ForEach-Object {
         "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() )  $($_.Name)"
     }
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $Output).Path 'SHA256SUMS.txt'), ($lines -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
     Write-Output 'Portable, installed and archived executables verified; install/uninstall and exact payload checks passed.'
-} finally { if (Test-Path $taskRoot) { Remove-Item $taskRoot -Recurse -Force } }
+} catch {
+    foreach ($log in $setupLogs) {
+        if (Test-Path -LiteralPath $log) {
+            Write-Output "Installer log: $log"
+            Get-Content -LiteralPath $log -Tail 120 | Write-Output
+        }
+    }
+    throw
+} finally {
+    $env:LOCALAPPDATA = $previousLocalAppData
+    if (Test-Path $taskRoot) { Remove-Item $taskRoot -Recurse -Force }
+}
