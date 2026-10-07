@@ -119,6 +119,8 @@ namespace Dcs.Ipia.Infrastructure
         #region BEGIN private helpers
         private FileStream Acquire()
         {
+            if (File.Exists(Path.Combine(Path.GetDirectoryName(_backupRoot)!, "deployment-review.json")))
+                throw new InvalidOperationException("Restored deployment records need review under Data & recovery before Fly Now or Clear can run. DCS files have not been changed.");
             try { return new FileStream(_lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
             catch (IOException ex) { throw new IOException("Another Fly Now! or Clear operation is running. Try again when it finishes.", ex); }
         }

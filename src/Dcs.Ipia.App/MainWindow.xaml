@@ -1,10 +1,44 @@
 <Window x:Class="DcsIpia.Presentation.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DcsIpia.Presentation"
         Title="DCS-IPIA — Modules"
         Width="780" Height="620" MinWidth="620" MinHeight="450"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
         WindowStartupLocation="CenterScreen">
+  <DockPanel>
+    <Menu x:Name="MainMenu" DockPanel.Dock="Top" AutomationProperties.Name="Application menu">
+      <MenuItem Header="_File">
+        <MenuItem Header="_New module…" Command="{x:Static local:MainWindowCommands.NewModule}"/>
+        <MenuItem Header="_Open selected module…" Command="{x:Static local:MainWindowCommands.OpenModule}"/>
+        <MenuItem Header="_Import module sources…" Command="{x:Static local:MainWindowCommands.ImportModule}"/>
+        <MenuItem Header="_Restore module snapshot…" Command="{x:Static local:MainWindowCommands.RestoreModule}"/>
+        <MenuItem Header="_Delete selected module…" Command="{x:Static local:MainWindowCommands.DeleteModule}"/>
+        <Separator/>
+        <MenuItem Header="E_xit" Command="{x:Static local:MainWindowCommands.Exit}"/>
+      </MenuItem>
+      <MenuItem Header="_Module">
+        <MenuItem Header="_Open workspace — edit, save, validate and build…" Command="{x:Static local:MainWindowCommands.OpenModule}"/>
+        <MenuItem Header="_Shared default UI Layer…" Command="{x:Static local:MainWindowCommands.SharedDefaults}"/>
+      </MenuItem>
+      <MenuItem Header="_Deployment">
+        <MenuItem Header="_Saved Games destination…" Command="{x:Static local:MainWindowCommands.Destination}"/>
+        <MenuItem Header="_Fly Now!" Command="{x:Static local:MainWindowCommands.FlyNow}"/>
+        <MenuItem Header="_Clear active deployment" Command="{x:Static local:MainWindowCommands.ClearDeployment}"/>
+      </MenuItem>
+      <MenuItem Header="_Data &amp; recovery">
+        <MenuItem Header="_Back up user data…" Command="{x:Static local:MainWindowCommands.Backup}"/>
+        <MenuItem Header="_Restore backup…" Command="{x:Static local:MainWindowCommands.RestoreData}"/>
+        <MenuItem Header="Review restored _deployment…" Command="{x:Static local:MainWindowCommands.Recovery}"/>
+        <MenuItem Header="Show data _location" Command="{x:Static local:MainWindowCommands.DataLocation}"/>
+      </MenuItem>
+      <MenuItem Header="_Settings">
+        <MenuItem Header="_Preferences…" Command="{x:Static local:MainWindowCommands.Settings}"/>
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About and workflow help…" Command="{x:Static local:MainWindowCommands.About}"/>
+      </MenuItem>
+    </Menu>
   <Grid Margin="24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
@@ -20,7 +54,7 @@
           <ComboBoxItem Content="Light" Tag="Light"/>
           <ComboBoxItem Content="Dark" Tag="Dark"/>
         </ComboBox>
-        <Button Content="Settings" Padding="14,8" Click="Settings_Click"/>
+        <Button Content="Settings" Padding="14,8" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Settings}"/>
       </StackPanel>
       <StackPanel>
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
@@ -38,27 +72,27 @@
                   DisplayMemberPath="DisplayName" AutomationProperties.Name="Saved module selection"
                   SelectionChanged="SavedModuleChanged"/>
           <Button x:Name="DeleteModuleButton" Content="Delete" Padding="16,9" Margin="8,0,0,0"
-                  IsEnabled="False" Click="DeleteModule_Click" AutomationProperties.Name="Delete selected module"
+                  IsEnabled="False" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.DeleteModule}" AutomationProperties.Name="Delete selected module"
                   ToolTip="Delete the selected module and all of its saved data from the local database."/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-          <Button x:Name="NewModuleButton" Content="New module" Padding="16,9" Click="NewModule_Click" Margin="0,0,8,0" AutomationProperties.Name="Create new module"/>
-          <Button x:Name="OpenModuleButton" Content="Open module" Padding="16,9" Click="OpenSaved_Click" Margin="0,0,8,0"/>
+          <Button x:Name="NewModuleButton" Content="New module" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.NewModule}" Margin="0,0,8,0" AutomationProperties.Name="Create new module"/>
+          <Button x:Name="OpenModuleButton" Content="Open module" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.OpenModule}" Margin="0,0,8,0"/>
           <Button x:Name="ImportButton" Content="Import module sources" Padding="16,9"
-                  Click="ImportModule_Click" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder."/>
+                  Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.ImportModule}" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder."/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-          <Button x:Name="RestoreModuleSnapshotButton" Content="Restore module snapshot…" Click="RestoreModuleSnapshotClicked" Padding="16,9" ToolTip="Restore a verified exported module into the database without replacing an existing module."/>
-          <Button x:Name="ClearFlyNowButton" Content="Clear" Click="ClearFlyNowClicked" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" AutomationProperties.Name="Clear active Fly Now deployment" ToolTip="Delete exactly the files copied by the active Fly Now deployment, including its UI Layer."/>
+          <Button x:Name="RestoreModuleSnapshotButton" Content="Restore module snapshot…" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.RestoreModule}" Padding="16,9" ToolTip="Restore a verified exported module into the database without replacing an existing module."/>
+          <Button x:Name="ClearFlyNowButton" Content="Clear" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.ClearDeployment}" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" AutomationProperties.Name="Clear active Fly Now deployment" ToolTip="Delete exactly the files copied by the active Fly Now deployment, including its UI Layer."/>
         </StackPanel>
         <TextBlock FontWeight="SemiBold" Text="Saved Games DCS Folder" Margin="0,16,0,4"/>
         <TextBlock x:Name="SavedGamesDestination" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-          <Button x:Name="BrowseSavedGamesButton" Content="Browse…" Padding="16,9" Click="BrowseSavedGamesClicked" AutomationProperties.Name="Browse Saved Games DCS Folder"/>
-          <Button x:Name="FlyNowButton" Content="Fly Now!" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" Click="FlyNowClicked" AutomationProperties.Name="Fly Now selected module"/>
+          <Button x:Name="BrowseSavedGamesButton" Content="Browse…" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Destination}" AutomationProperties.Name="Browse Saved Games DCS Folder"/>
+          <Button x:Name="FlyNowButton" Content="Fly Now!" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.FlyNow}" AutomationProperties.Name="Fly Now selected module"/>
         </StackPanel>
         <TextBlock x:Name="FlyNowStatus" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" AutomationProperties.LiveSetting="Polite"/>
-        <Button x:Name="SharedDefaultsButton" Content="Shared default UI Layer" Click="SharedDefaults_Click"
+        <Button x:Name="SharedDefaultsButton" Content="Shared default UI Layer" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.SharedDefaults}"
                 HorizontalAlignment="Left" Padding="16,9" Margin="0,12,0,0"/>
       </StackPanel>
       </ScrollViewer>
@@ -70,4 +104,5 @@
       </StackPanel>
     </Border>
   </Grid>
+  </DockPanel>
 </Window>

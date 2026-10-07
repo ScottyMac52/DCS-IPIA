@@ -22,6 +22,8 @@ namespace Dcs.Ipia.Infrastructure
             target.Open();
             source.BackupDatabase(target);
             using var cmd = target.CreateCommand();
+            cmd.CommandText = "PRAGMA journal_mode=DELETE";
+            cmd.ExecuteScalar();
             cmd.CommandText = "PRAGMA integrity_check";
             if (!string.Equals((string?)cmd.ExecuteScalar(), "ok", StringComparison.Ordinal))
                 throw new InvalidDataException("SQLite backup integrity verification failed.");
