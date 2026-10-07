@@ -30,6 +30,7 @@ namespace DcsIpia.Presentation
         private readonly Action? _closeDatabase;
         private readonly UserDataProfile? _profile;
         private readonly IUserDataProfileService? _profileService;
+        private readonly HardwareInventoryManager? _hardwareInventory;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -43,12 +44,14 @@ namespace DcsIpia.Presentation
         /// <param name="closeDatabase">Quiesces services before replacing data.</param>
         /// <param name="profile">Selected production or isolated test profile.</param>
         /// <param name="profileService">Setup state and confirmed reset operations.</param>
+        /// <param name="hardwareInventory">Profile-scoped independent hardware inventory.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
                           IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
-                          UserDataProfile? profile = null, IUserDataProfileService? profileService = null)
+                          UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
+                          HardwareInventoryManager? hardwareInventory = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
@@ -62,6 +65,7 @@ namespace DcsIpia.Presentation
             _closeDatabase = closeDatabase;
             _profile = profile;
             _profileService = profileService;
+            _hardwareInventory = hardwareInventory;
             InitializeComponent();
             BindMainCommands();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
@@ -95,6 +99,8 @@ namespace DcsIpia.Presentation
                 [MainWindowCommands.Backup] = OpenRecoveryClicked, [MainWindowCommands.RestoreData] = OpenRecoveryClicked,
                 [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
                 [MainWindowCommands.Profiles] = OpenProfilesClicked,
+                [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
+                [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
                 [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
             };
             foreach (var (command, action) in actions)
@@ -104,6 +110,8 @@ namespace DcsIpia.Presentation
         private bool CanExecuteMainCommand(RoutedUICommand command)
         {
             if (_moduleOperationBusy) return false;
+            if (command == MainWindowCommands.DiscoverHardware || command == MainWindowCommands.ManageHardware)
+                return _hardwareInventory is not null && OwnedWindows.Count == 0;
             if ((command == MainWindowCommands.FlyNow || command == MainWindowCommands.ClearDeployment) && _profile?.IsTest == true) return false;
             if (command == MainWindowCommands.Profiles) return _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.NewModule || command == MainWindowCommands.SharedDefaults) return _sharedDefaults is not null;
@@ -141,6 +149,12 @@ namespace DcsIpia.Presentation
             var dialog = new UserDataProfileWindow(_profile, _profileService, _closeDatabase ?? (() => { })) { Owner = this };
             dialog.ShowDialog();
             if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
+        }
+        private void OpenHardware(bool discover)
+        {
+            if (_hardwareInventory is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            using var dialog = new HardwareInventoryWindow(_hardwareInventory, discover) { Owner = this };
+            dialog.ShowDialog();
         }
         private void AboutClicked(object sender, RoutedEventArgs e) => MessageBox.Show(this,
             "DCS-IPIA · " + ApplicationVersion.Label + "\n\nOpen a module to edit Devices, Modifiers, Assignments, Commands and Pages, then Save to database before previewing, validating, exporting a module snapshot or building a package.\n\nData & recovery backs up the entire saved user profile. Restore replaces it and requires restarting. Module snapshots instead restore one module without replacing other modules. Deployment → Fly Now/Clear writes only explicitly selected DCS payloads.",

@@ -11,7 +11,7 @@ namespace Dcs.Ipia.Infrastructure
     {
         #region BEGIN Public
         /// <summary>Gets the highest schema revision this application can read and migrate.</summary>
-        public const int CurrentVersion = 7;
+        public const int CurrentVersion = 8;
         /// <summary>Applies pending SQLite migrations.</summary>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>A task that completes when the operation finishes</returns>
@@ -60,6 +60,15 @@ namespace Dcs.Ipia.Infrastructure
             if (!await Applied(c, tx, 7, ct))
             {
                 await Execute(c, tx, """CREATE TABLE fly_now_deployment(id INTEGER NOT NULL PRIMARY KEY CHECK(id=1),journal_json TEXT NOT NULL); INSERT INTO schema_migrations VALUES(7,strftime('%Y-%m-%dT%H:%M:%fZ','now'));""", ct);
+            }
+            if (!await Applied(c, tx, 8, ct))
+            {
+                await Execute(c, tx, """
+                    CREATE TABLE hardware_definitions(id TEXT NOT NULL PRIMARY KEY,payload_json TEXT NOT NULL);
+                    CREATE TABLE hardware_inventory(physical_guid TEXT NOT NULL PRIMARY KEY,definition_id TEXT NOT NULL REFERENCES hardware_definitions(id),payload_json TEXT NOT NULL);
+                    CREATE TABLE hardware_observations(physical_guid TEXT NOT NULL PRIMARY KEY,payload_json TEXT NOT NULL);
+                    INSERT INTO schema_migrations VALUES(8,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+                    """, ct);
             }
             await tx.CommitAsync(ct);
         }

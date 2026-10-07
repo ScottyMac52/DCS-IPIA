@@ -5,7 +5,9 @@ namespace Dcs.Ipia.Application
     /// <param name="Name">Native controller name.</param>
     /// <param name="Connected">Whether DirectInput currently reports the device attached.</param>
     /// <param name="CapturedFileName">An existing DCS filename for this physical instance.</param>
-    public sealed record DetectedDcsDevice(Guid PhysicalGuid, string Name, bool Connected, string? CapturedFileName = null)
+    /// <param name="ProductGuid">Native product identity; never substitutes for the physical instance.</param>
+    public sealed record DetectedDcsDevice(Guid PhysicalGuid, string Name, bool Connected, string? CapturedFileName = null,
+        Guid ProductGuid = default)
     {
         #region BEGIN Public
         /// <summary>Gets the captured filename or a native GUID-qualified default.</summary>

@@ -17,6 +17,10 @@
         <Separator/>
         <MenuItem Header="E_xit" Command="{x:Static local:MainWindowCommands.Exit}"/>
       </MenuItem>
+      <MenuItem Header="_Hardware">
+        <MenuItem Header="_Discover devices… / Rescan" Command="{x:Static local:MainWindowCommands.DiscoverHardware}"/>
+        <MenuItem Header="_Manage devices…" Command="{x:Static local:MainWindowCommands.ManageHardware}"/>
+      </MenuItem>
       <MenuItem Header="_Module">
         <MenuItem Header="_Open workspace — edit, save, validate and build…" Command="{x:Static local:MainWindowCommands.OpenModule}"/>
         <MenuItem Header="_Shared default UI Layer…" Command="{x:Static local:MainWindowCommands.SharedDefaults}"/>

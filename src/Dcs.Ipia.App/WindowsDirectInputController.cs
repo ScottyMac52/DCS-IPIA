@@ -48,53 +48,12 @@ namespace DcsIpia.Presentation
         }
         #endregion END Public
         #region BEGIN private helpers
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int ObjectCallback(nint instance, nint context);
         private nint Method(int index) => Marshal.ReadIntPtr(Marshal.ReadIntPtr(_device), index * nint.Size);
         private unsafe int Call(int index) => ((delegate* unmanaged[Stdcall]<nint, int>)Method(index))(_device);
         private unsafe void ConfigureFormat()
         {
-            var objects = new List<(Guid Guid, uint Type)>();
-            Exception? error = null;
-            ObjectCallback callback = (instance, _) =>
-            {
-                try
-                {
-                    if (Marshal.ReadInt32(instance) < 32) throw new InvalidDataException("Invalid DirectInput object information.");
-                    objects.Add((Marshal.PtrToStructure<Guid>(instance + 4), unchecked((uint)Marshal.ReadInt32(instance + 24))));
-                    return 1;
-                }
-                catch (Exception ex) { error = ex; return 0; }
-            };
-            var enumerate = (delegate* unmanaged[Stdcall]<nint, nint, nint, uint, int>)Method(4);
-            Marshal.ThrowExceptionForHR(enumerate(_device, Marshal.GetFunctionPointerForDelegate(callback), 0, 31));
-            GC.KeepAlive(callback);
-            if (error is not null) throw new InvalidDataException("Cannot enumerate controller inputs.", error);
-            var rows = new List<(Guid Guid, uint Type, int Offset, string Key)>();
-            var slider = 0;
-            foreach (var item in objects.OrderBy(x => (x.Type >> 8) & 65535))
-            {
-                var instance = (int)((item.Type >> 8) & 65535);
-                if ((item.Type & 12) != 0 && instance < 128)
-                    rows.Add((item.Guid, item.Type, 48 + instance, "JOY_BTN" + (instance + 1)));
-                else if ((item.Type & 16) != 0 && instance < 4)
-                    rows.Add((item.Guid, item.Type, 32 + instance * 4, "JOY_BTN_POV" + (instance + 1)));
-                else if ((item.Type & 2) != 0)
-                {
-                    var axis = item.Guid.ToString("D")[..8] switch
-                    {
-                        "a36d02e0" => (0, "JOY_X"),
-                        "a36d02e1" => (4, "JOY_Y"),
-                        "a36d02e2" => (8, "JOY_Z"),
-                        "a36d02f4" => (12, "JOY_RX"),
-                        "a36d02f5" => (16, "JOY_RY"),
-                        "a36d02e3" => (20, "JOY_RZ"),
-                        "a36d02e4" when slider < 2 => (24 + slider * 4, "JOY_SLIDER" + (++slider)),
-                        _ => (-1, "")
-                    };
-                    if (axis.Item1 >= 0) rows.Add((item.Guid, item.Type, axis.Item1, axis.Item2));
-                }
-            }
+            var capabilities = ControllerCapabilityMapper.Map(WindowsControllerObjectEnumeration.Read(_device));
+            var rows = capabilities.Inputs;
             if (rows.Count == 0) throw new InvalidDataException("Controller exposes no supported absolute axes, buttons or hats.");
             var objectSize = nint.Size == 8 ? 24 : 16;
             var pointerOffset = nint.Size == 8 ? 24 : 20;
@@ -107,12 +66,12 @@ namespace DcsIpia.Presentation
                 for (var i = 0; i < rows.Count; i++)
                 {
                     var row = rows[i];
-                    Marshal.StructureToPtr(row.Guid, guids + i * 16, false);
+                    Marshal.StructureToPtr(row.Evidence.ObjectGuid, guids + i * 16, false);
                     var entry = nativeRows + i * objectSize;
                     Marshal.WriteIntPtr(entry, guids + i * 16);
                     Marshal.WriteInt32(entry, nint.Size, row.Offset);
-                    Marshal.WriteInt32(entry, nint.Size + 4, unchecked((int)(row.Type & 0x00ffffff)));
-                    _offsets.Add(row.Key, row.Offset);
+                    Marshal.WriteInt32(entry, nint.Size + 4, unchecked((int)(row.Evidence.NativeType & 0x00ffffff)));
+                    _offsets.Add(row.DcsKey, row.Offset);
                 }
                 new Span<byte>((void*)format, pointerOffset + nint.Size).Clear();
                 Marshal.WriteInt32(format, pointerOffset + nint.Size);
@@ -124,7 +83,7 @@ namespace DcsIpia.Presentation
                 var set = (delegate* unmanaged[Stdcall]<nint, nint, int>)Method(11);
                 Marshal.ThrowExceptionForHR(set(_device, format));
                 var range = stackalloc int[6] { 24, 16, 0, 1, 0, 65535 };
-                foreach (var row in rows.Where(x => (x.Type & 2) != 0))
+                foreach (var row in rows.Where(x => x.Kind == ControllerInputKind.Axis))
                 {
                     range[2] = row.Offset;
                     var property = (delegate* unmanaged[Stdcall]<nint, nint, int*, int>)Method(6);

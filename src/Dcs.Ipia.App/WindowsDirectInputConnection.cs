@@ -30,13 +30,15 @@ namespace DcsIpia.Presentation
         }
         /// <summary>Enumerates attached controller instances without acquiring them.</summary>
         /// <returns>Exact native instance identities.</returns>
-        public unsafe IReadOnlyList<DetectedDcsDevice> Discover()
+        /// <param name="ct">Enumeration cancellation.</param>
+        public unsafe IReadOnlyList<DetectedDcsDevice> Discover(CancellationToken ct = default)
         {
             ObjectDisposedException.ThrowIf(_input == 0, this);
             var devices = new List<DetectedDcsDevice>();
             Exception? callbackError = null;
             NativeDeviceEnumerationCallback callback = (instance, _) =>
             {
+                if (ct.IsCancellationRequested) return 0;
                 try
                 {
                     if (Marshal.ReadInt32(instance) < 1100) throw new InvalidDataException("Unexpected DirectInput device information size.");
@@ -46,7 +48,8 @@ namespace DcsIpia.Presentation
                     var name = Marshal.PtrToStringUni(instance + 40, 260)?.TrimEnd('\0') ?? "";
                     var terminator = name.IndexOf('\0');
                     if (terminator >= 0) name = name[..terminator];
-                    if (guid != Guid.Empty && !string.IsNullOrWhiteSpace(name)) devices.Add(new(guid, name, true));
+                    if (guid != Guid.Empty && !string.IsNullOrWhiteSpace(name))
+                        devices.Add(new(guid, name, true, ProductGuid: Marshal.PtrToStructure<Guid>(instance + 20)));
                     return 1;
                 }
                 catch (Exception ex) { callbackError = ex; return 0; }
@@ -55,6 +58,7 @@ namespace DcsIpia.Presentation
             var enumerate = (delegate* unmanaged[Stdcall]<nint, uint, nint, nint, uint, int>)Marshal.ReadIntPtr(table, 4 * nint.Size);
             var result = enumerate(_input, 4, Marshal.GetFunctionPointerForDelegate(callback), 0, 1);
             GC.KeepAlive(callback);
+            ct.ThrowIfCancellationRequested();
             Marshal.ThrowExceptionForHR(result);
             if (callbackError is not null) throw new InvalidDataException("Controller information could not be read.", callbackError);
             return DcsPhysicalIdentity.Merge(devices, []);
