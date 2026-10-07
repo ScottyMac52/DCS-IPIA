@@ -18,6 +18,19 @@ namespace Dcs.Ipia.App.Smoke
         public static void Verify(string connection, IEditorWorkspaceRepository repository, IAppSettingsService settings,
             string root, Guid moduleId)
         {
+            var saved = repository.GetAsync(moduleId).GetAwaiter().GetResult()!;
+            var profile = saved.Configuration.Profiles[0];
+            var hardware = global::Dcs.Ipia.Dcs.WorkspaceStructureEditor.Hardware(saved).Single(x => x.DeviceId == profile.DeviceId);
+            saved = global::Dcs.Ipia.Dcs.WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer,
+                profile.SourceName, profile.Instance, null);
+            const string pause = "d3001pnilu3001cdnilvd1vpnilvunil";
+            saved = saved with
+            {
+                UiCommands = [new(Guid.NewGuid(), moduleId, pause, "Pause", "General", false)],
+                Assignments = [.. saved.Assignments, new(new(moduleId, profile.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
+                    new(pause, "Pause", false, AssignmentLayer.UiLayer))]
+            };
+            repository.SaveAsync(saved).GetAwaiter().GetResult();
             var destination = Path.Combine(root, "DCS");
             Directory.CreateDirectory(destination);
             File.WriteAllText(Path.Combine(destination, "unrelated.txt"), "keep");
