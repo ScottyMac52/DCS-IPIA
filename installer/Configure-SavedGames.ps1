@@ -52,6 +52,10 @@ New-Item -ItemType Directory -Path $SettingsDirectory -Force | Out-Null
 $temp = $settingsPath + '.' + [guid]::NewGuid().ToString('N') + '.tmp'
 try {
     [IO.File]::WriteAllText($temp, ($json | ConvertTo-Json -Depth 64), [Text.UTF8Encoding]::new($false))
-    if (Test-Path -LiteralPath $settingsPath) { [IO.File]::Replace($temp, $settingsPath, $null) }
+    if (Test-Path -LiteralPath $settingsPath) {
+        # Windows PowerShell coerces $null to an empty string for .NET string arguments.
+        # File.Replace requires a true null when no backup file is requested.
+        [IO.File]::Replace($temp, $settingsPath, [NullString]::Value)
+    }
     else { [IO.File]::Move($temp, $settingsPath) }
 } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force } }
