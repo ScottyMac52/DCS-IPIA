@@ -10,11 +10,13 @@ namespace Dcs.Ipia.Infrastructure
         /// <param name="path">User-selected editable source.</param>
         /// <param name="definition">Explicit native target definition.</param>
         /// <param name="version">Application provenance.</param>
+        /// <param name="catalogInputs">Optional trusted bundled marker-to-input mappings.</param>
         /// <returns>Verified self-contained import.</returns>
-        public static UserMappingRevision Load(string path, HardwareDefinition definition, string version)
+        public static UserMappingRevision Load(string path, HardwareDefinition definition, string version, IReadOnlyDictionary<string, string>? catalogInputs = null)
         {
             path = Path.GetFullPath(path);
             var source = new System.Text.UTF8Encoding(false, true).GetString(Read(path, 2_000_000));
+            if (catalogInputs is not null) source = DrawioMappingImporter.WithCatalogInputs(source, catalogInputs);
             var assets = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (var relative in DrawioMappingImporter.LocalAssets(source))
             {

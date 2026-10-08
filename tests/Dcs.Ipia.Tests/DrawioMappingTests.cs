@@ -32,6 +32,26 @@ namespace Dcs.Ipia.Tests
                 DrawioMappingImporter.Import(native.Source, native.Definition, native.SourceName, "1.0")));
         }
 
+        /// <summary>Catalog labels gain input keys for native and compressed imports without overriding explicit edits.</summary>
+        [Fact]
+        public void Catalog_inputs_prepare_descriptive_labels_without_overriding_user_mappings()
+        {
+            var source = DrawioMappingFixture.Source();
+            var inputs = new Dictionary<string, string> { ["trigger"] = "JOY_BTN1", ["JOY_X"] = "JOY_X" };
+            var withoutKey = source.Replace("inputKey=\"JOY_BTN1\"", "", StringComparison.Ordinal);
+            var prepared = DrawioMappingImporter.WithCatalogInputs(withoutKey, inputs);
+            var actual = DrawioMappingImporter.Import(prepared, GenericHardwareFixture.Definition(), "bundled.drawio", "1.0");
+            Assert.Equal(DrawioMappingFixture.Revision().MappedInputs, actual.MappedInputs);
+            var compressed = DrawioMappingImporter.WithCatalogInputs(DrawioMappingFixture.Compress(withoutKey), inputs);
+            Assert.Equal(actual.Svg, DrawioMappingImporter.Import(compressed, actual.Definition, "compressed.drawio", "1.0").Svg);
+            var explicitSource = DrawioMappingImporter.WithCatalogInputs(source,
+                new Dictionary<string, string> { ["trigger"] = "JOY_BTN999" });
+            Assert.Equal(actual.Svg, DrawioMappingImporter.Import(explicitSource, actual.Definition, "explicit.drawio", "1.0").Svg);
+            Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(
+                DrawioMappingImporter.WithCatalogInputs(withoutKey, new Dictionary<string, string> { ["trigger"] = "JOY_BTN999" }),
+                actual.Definition, "wrong.drawio", "1.0"));
+        }
+
         /// <summary>Unsafe, unsupported or ambiguous input never publishes a revision.</summary>
         /// <param name="failure">Malformed construct.</param>
         [Theory]
