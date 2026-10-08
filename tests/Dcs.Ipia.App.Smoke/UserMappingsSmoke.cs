@@ -108,6 +108,10 @@ namespace Dcs.Ipia.App.Smoke
                 var reviewWindow = new MappingRevisionReviewWindow(next, repository);
                 reviewWindow.Show();
                 Pump(reviewWindow, () => reviewWindow.FindName("RevisionTarget_0") is CheckBox);
+                Click((Button)reviewWindow.FindName("PreviewRevisionTarget_0")!);
+                if (((Image)reviewWindow.FindName("RevisionBeforePreview")!).Source is null ||
+                    ((Image)reviewWindow.FindName("RevisionAfterPreview")!).Source is null)
+                    throw new InvalidOperationException("Revision comparison did not show current and proposed artwork.");
                 var target = (CheckBox)reviewWindow.FindName("RevisionTarget_0")!;
                 target.IsChecked = true;
                 Click((Button)reviewWindow.FindName("StageRevisionTargetsButton")!);

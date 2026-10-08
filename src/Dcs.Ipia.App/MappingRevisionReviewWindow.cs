@@ -1,4 +1,7 @@
+using System.IO;
 using System.Windows;
+using System.Windows.Media.Imaging;
+using Dcs.Ipia.Rendering;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
@@ -11,6 +14,9 @@ namespace DcsIpia.Presentation
         private readonly UserMappingRevision _revision;
         private readonly IEditorWorkspaceRepository _repository;
         private readonly StackPanel _rows = new();
+        private readonly Image _before = new() { Stretch = System.Windows.Media.Stretch.Uniform };
+        private readonly Image _after = new() { Stretch = System.Windows.Media.Stretch.Uniform };
+        private readonly TextBlock _comparison = new() { Text = "Choose Compare pictures beside a target to preview its current and proposed artwork.", TextWrapping = TextWrapping.Wrap };
         private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
         private readonly List<(CheckBox Choice, EditorWorkspaceSnapshot Expected, Guid ProfileId)> _targets = [];
         private readonly Dictionary<Guid, (EditorWorkspaceSnapshot Expected, EditorWorkspaceSnapshot Updated)> _pending = [];
@@ -26,7 +32,7 @@ namespace DcsIpia.Presentation
         {
             _revision = revision; _repository = repository;
             Title = "Review drawing adoption / rollback — " + revision.Title;
-            Width = 950; Height = 700;
+            Width = 1100; Height = 850;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
@@ -43,6 +49,18 @@ namespace DcsIpia.Presentation
             heading.Children.Add(actions); heading.Children.Add(_status);
             RegisterName("RevisionReviewStatus", _status);
             DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
+            var comparison = new DockPanel { Height = 290, Margin = new Thickness(0, 12, 0, 0) };
+            DockPanel.SetDock(_comparison, Dock.Top); comparison.Children.Add(_comparison);
+            var pictures = new Grid();
+            pictures.ColumnDefinitions.Add(new ColumnDefinition()); pictures.ColumnDefinitions.Add(new ColumnDefinition());
+            var beforePanel = new DockPanel(); var afterPanel = new DockPanel();
+            var beforeTitle = new TextBlock { Text = "Current module artwork" }; var afterTitle = new TextBlock { Text = "Selected revision" };
+            DockPanel.SetDock(beforeTitle, Dock.Top); DockPanel.SetDock(afterTitle, Dock.Top);
+            beforePanel.Children.Add(beforeTitle); beforePanel.Children.Add(_before);
+            afterPanel.Children.Add(afterTitle); afterPanel.Children.Add(_after);
+            Grid.SetColumn(afterPanel, 1); pictures.Children.Add(beforePanel); pictures.Children.Add(afterPanel);
+            RegisterName("RevisionBeforePreview", _before); RegisterName("RevisionAfterPreview", _after);
+            comparison.Children.Add(pictures); DockPanel.SetDock(comparison, Dock.Bottom); panel.Children.Add(comparison);
             panel.Children.Add(new ScrollViewer { Content = _rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
             Content = panel;
             Loaded += async (_, _) => await LoadAsync();
@@ -77,6 +95,8 @@ namespace DcsIpia.Presentation
                         var choice = new CheckBox { Content = workspace.Configuration.Module.DisplayName + " / " + diagram.Title +
                             (already ? " — already pinned" : ""), IsEnabled = !already && review.Conflicts.Count == 0,
                             Margin = new Thickness(0, 12, 0, 4), Tag = review.Conflicts.Count == 0 && !already };
+                        var compare = Action("Compare pictures", "PreviewRevisionTarget_" + _targets.Count, (_, _) => ShowComparison(diagram));
+                        _rows.Children.Add(compare);
                         RegisterName("RevisionTarget_" + _targets.Count, choice);
                         _targets.Add((choice, workspace, diagram.ProfileId));
                         _rows.Children.Add(choice);
@@ -89,6 +109,23 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) { _status.Text = "Unable to review saved modules: " + ex.Message; }
             finally { SetBusy(false); }
+        }
+        private void ShowComparison(UiLayerDiagram diagram)
+        {
+            try
+            {
+                _before.Source = Bitmap(diagram.Svg, diagram.Width, diagram.Height);
+                _after.Source = Bitmap(_revision.Svg, _revision.Width, _revision.Height);
+                _comparison.Text = diagram.Title + " · " + (diagram.CustomMapping?.Title ?? "Current generic layout") + " → " + _revision.Title;
+            }
+            catch (Exception ex) { _before.Source = _after.Source = null; _comparison.Text = "Unable to compare artwork: " + ex.Message; }
+        }
+        private static BitmapImage Bitmap(string svg, double width, double height)
+        {
+            using var stream = new MemoryStream(CanonicalSvgRenderer.RenderComplete(svg, width, height));
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream;
+            bitmap.EndInit(); bitmap.Freeze(); return bitmap;
         }
         private void StageClicked(object sender, RoutedEventArgs e)
         {
