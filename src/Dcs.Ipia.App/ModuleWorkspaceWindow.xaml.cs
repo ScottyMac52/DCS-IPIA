@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -569,6 +570,21 @@ namespace DcsIpia.Presentation
             SummaryCards.ItemsSource = _summaryCards.ToArray();
             SummaryCards.SelectedItem = card;
             PageAuthoringStatus.Text = "Card updated in the form. Stage page, then Save to database to keep it.";
+        }
+        private void SummaryCardsResizeDragged(object sender, DragDeltaEventArgs e)
+        {
+            ResizeSummaryCards(e.VerticalChange);
+            e.Handled = true;
+        }
+        private void SummaryCardsResizeKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key is not (Key.Up or Key.Down)) return;
+            ResizeSummaryCards(e.Key == Key.Down ? 20 : -20);
+            e.Handled = true;
+        }
+        private void ResizeSummaryCards(double delta)
+        {
+            SummaryCards.Height = Math.Clamp(SummaryCards.Height + delta, SummaryCards.MinHeight, SummaryCards.MaxHeight);
         }
         private void SummaryCardMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -1749,4 +1765,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
