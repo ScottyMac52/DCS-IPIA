@@ -26,7 +26,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(native.Controls, compressed.Controls);
             Assert.NotEqual(native.Id, compressed.Id);
             Assert.Equal(definition.Capabilities.DcsKeys.Count, native.Controls.Count);
-            Assert.Equal(new[] { "JOY_BTN1", "JOY_X" }, native.MappedInputs);
+            Assert.Collection(native.MappedInputs, x => Assert.Equal("JOY_BTN1", x), x => Assert.Equal("JOY_X", x));
             DrawioMappingImporter.Validate(compressed);
             Assert.Equal(JsonSerializer.Serialize(native), JsonSerializer.Serialize(
                 DrawioMappingImporter.Import(native.Source, native.Definition, native.SourceName, "1.0")));

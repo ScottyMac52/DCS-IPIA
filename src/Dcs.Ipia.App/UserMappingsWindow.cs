@@ -71,7 +71,7 @@ namespace DcsIpia.Presentation
                 catch (Exception ex) { _status.Text = "Unable to preview revision: " + ex.Message; }
                 UpdateButtons();
             };
-            _definitions.SelectionChanged += (_, _) => { _candidate = null; UpdateButtons(); };
+            _definitions.SelectionChanged += (_, _) => { _candidate = null; _preview.Source = null; _status.Text = "Target changed. Preview a draw.io source against this definition before saving."; UpdateButtons(); };
             Loaded += async (_, _) => await ReloadAsync();
             Closing += (_, e) => { if (_busy) e.Cancel = true; };
             UpdateButtons();
