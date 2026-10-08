@@ -50,10 +50,15 @@ namespace Dcs.Ipia.Tests
             {
                 var actual = revision.Controls.Single(x => x.Control == control.Control);
                 Assert.True(DcsInputKey.SamePhysicalInput(control.InputKey, actual.InputKey));
-                Assert.Equal(control.X, actual.X);
-                Assert.Equal(control.Y, actual.Y);
-                Assert.Equal(control.Width, actual.Width);
-                Assert.Equal(control.Height, actual.Height);
+                // Published catalog SVGs can differ from their editable sources; preserve the authored geometry.
+                var cell = graph.Descendants("mxCell").Single(x =>
+                    (x.Attribute("id")?.Value ?? (x.Parent?.Name.LocalName == "UserObject" ? x.Parent.Attribute("id")?.Value : null)) == "label-" + control.Control);
+                var geometry = cell.Element("mxGeometry")!;
+                double Coordinate(string name) => double.Parse(geometry.Attribute(name)?.Value ?? "0", System.Globalization.CultureInfo.InvariantCulture);
+                Assert.Equal(Coordinate("x"), actual.X);
+                Assert.Equal(Coordinate("y"), actual.Y);
+                Assert.Equal(Coordinate("width"), actual.Width);
+                Assert.Equal(Coordinate("height"), actual.Height);
             }
             var compressed = DrawioMappingImporter.Import(DrawioMappingFixture.Compress(revision.Source), definition, Path.GetFileName(path), "test");
             Assert.Equal(revision.Svg, compressed.Svg);
