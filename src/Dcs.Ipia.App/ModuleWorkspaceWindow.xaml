@@ -391,7 +391,10 @@
           </StackPanel>
           <Grid Grid.Row="1">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="400"/></Grid.ColumnDefinitions>
-            <DataGrid x:Name="AuthoredPages" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,12,0"
+            <DataGrid x:Name="AuthoredPages" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" Margin="0,0,12,0"
+                      AllowDrop="True" PreviewMouseLeftButtonDown="AuthoredPageMouseDown" PreviewMouseMove="AuthoredPageMouseMove"
+                      PreviewMouseLeftButtonUp="AuthoredPageMouseUp" PreviewDragOver="AuthoredPageDragOver" PreviewDrop="AuthoredPageDrop"
+                      ToolTip="Drag rows to reorder and renumber pages. Save to database to keep the order."
                       SelectionChanged="AuthoredPageSelected" AutomationProperties.Name="Authored kneeboard pages">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Page" Binding="{Binding Title}" Width="*"/>
