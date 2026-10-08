@@ -37,12 +37,14 @@ namespace Dcs.Ipia.App.Smoke
                     hardwareInventory: manager, setup: setup);
 
                 var first = Main();
+                Console.WriteLine("Setup smoke: automatic first-run skip.");
                 DriveWizard(first, () => first.Show(), window => Click((Button)window.FindName("SetupSkip")!));
                 if (lifecycle.SetupCompleted || inventory.ReadAsync().GetAwaiter().GetResult().Instances.Count != 0)
                     throw new InvalidOperationException("Skipping first-run setup adopted devices or marked completion.");
                 first.Close();
 
                 var second = Main();
+                Console.WriteLine("Setup smoke: automatic first-run confirmation.");
                 var destination = Path.Combine(root, "Saved Games", "DCS");
                 DriveWizard(second, () => second.Show(), window =>
                 {
@@ -58,6 +60,7 @@ namespace Dcs.Ipia.App.Smoke
                 second.Close();
 
                 var completed = Main();
+                Console.WriteLine("Setup smoke: completed startup and menu rerun.");
                 completed.Show();
                 completed.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 if (completed.OwnedWindows.Count != 0 || !MainWindowCommands.Setup.CanExecute(null, completed))
@@ -72,6 +75,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Deferred rerun lost inventory or retained completion.");
                 completed.Close();
                 discovery.Observations = [];
+                Console.WriteLine("Setup smoke: explicit offline confirmation.");
                 using var offline = new HardwareInventoryWindow(manager, true,
                     _ => Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>()), setup);
                 offline.Show();
@@ -95,12 +99,14 @@ namespace Dcs.Ipia.App.Smoke
             timer.Tick += (_, _) =>
             {
                 var window = main.OwnedWindows.OfType<HardwareInventoryWindow>().SingleOrDefault();
-                if (window is null) return;
                 if (DateTime.UtcNow > deadline)
                 {
-                    failure = new InvalidOperationException("Automatic setup timed out."); timer.Stop(); window.Close(); return;
+                    failure = new InvalidOperationException("Automatic setup timed out: " + ((TextBlock)main.FindName("FlyNowStatus")!).Text);
+                    timer.Stop(); window?.Close(); return;
                 }
+                if (window is null) return;
                 if (!((Button)window.FindName("HardwareInventorySave")!).IsEnabled) return;
+                Console.WriteLine("Setup smoke: review surface ready.");
                 timer.Stop();
                 try { review(window); handled = true; }
                 catch (Exception ex) { failure = ex; window.Close(); }

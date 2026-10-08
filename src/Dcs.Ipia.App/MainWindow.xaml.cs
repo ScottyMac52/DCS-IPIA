@@ -183,7 +183,7 @@ namespace DcsIpia.Presentation
                     "Setup complete", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
                     OpenRecoveryClicked(this, new RoutedEventArgs());
             }
-            catch (Exception ex) { MessageBox.Show(this, "Setup remains available from Settings: " + ex.Message, "Hardware setup", MessageBoxButton.OK, MessageBoxImage.Warning); }
+            catch (Exception ex) { FlyNowStatus.Text = "Setup remains available from Settings: " + ex.Message; }
         }
         private void OpenHardware(bool discover)
         {
