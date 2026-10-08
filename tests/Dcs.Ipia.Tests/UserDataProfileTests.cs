@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Diagnostics;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Xunit;
@@ -31,9 +32,35 @@ namespace Dcs.Ipia.Tests
             Directory.CreateDirectory(_root);
             var outside = Path.Combine(_root, "outside");
             Directory.CreateDirectory(outside);
-            Directory.CreateSymbolicLink(Path.Combine(_root, "DCS-IPIA-TestProfiles"), outside);
-            Assert.Throws<IOException>(() => UserDataProfile.Select(_root, "test"));
-            Directory.Delete(Path.Combine(_root, "DCS-IPIA-TestProfiles"));
+            var sentinel = Path.Combine(outside, "keep.txt");
+            File.WriteAllText(sentinel, "unchanged");
+            var link = Path.Combine(_root, "DCS-IPIA-TestProfiles");
+            if (OperatingSystem.IsWindows())
+            {
+                // Junctions exercise the reparse-point guard without symlink privileges.
+                var start = new ProcessStartInfo("cmd.exe")
+                {
+                    UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                foreach (var argument in new[] { "/d", "/c", "mklink", "/J", link, outside })
+                    start.ArgumentList.Add(argument);
+                using var process = Process.Start(start)!;
+                var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                Assert.True(process.ExitCode == 0, output + error);
+            }
+            else Directory.CreateSymbolicLink(link, outside);
+            try
+            {
+                Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
+                Assert.Throws<IOException>(() => UserDataProfile.Select(_root, "test"));
+                Assert.Equal("unchanged", File.ReadAllText(sentinel));
+                Assert.False(Directory.Exists(Path.Combine(outside, "test")));
+            }
+            finally { Directory.Delete(link); }
+            Assert.Equal("unchanged", File.ReadAllText(sentinel));
         }
 
         /// <summary>Selection, settings, assets, temp files and onboarding survive restart independently.</summary>
