@@ -8,6 +8,8 @@ using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DcsIpia.Presentation
 {
@@ -35,6 +37,8 @@ namespace DcsIpia.Presentation
         private readonly IUserMappingLibrary? _userMappings;
         private readonly SetupManager? _setup;
         private bool _setupOffered;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<MainWindow> _logger;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -51,14 +55,19 @@ namespace DcsIpia.Presentation
         /// <param name="hardwareInventory">Profile-scoped independent hardware inventory.</param>
         /// <param name="setup">Transactional first-run and resumable setup.</param>
         /// <param name="userMappings">Profile-scoped immutable custom mapping library.</param>
+        /// <param name="loggerFactory">Optional DI logging factory.</param>
+        /// <param name="logger">Optional module operation logger.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
                           IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
-                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null)
+                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
+                          ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null)
         {
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            _logger = logger ?? NullLogger<MainWindow>.Instance;
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -351,7 +360,8 @@ namespace DcsIpia.Presentation
                 var defaults = await _sharedDefaults.GetAsync() ??
                     await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
                 var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var dialog = new NewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory) { Owner = this };
+                var dialog = new NewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory,
+                    logger: new AssemblyLogger<NewModuleWindow>(_loggerFactory)) { Owner = this };
                 if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
                     return;
                 _lastViewModel = new ModuleWorkspaceViewModel(saved);
@@ -361,6 +371,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Unable to open or complete new-module creation");
                 ShowImportError("Unable to create module: " + ex.Message);
             }
             finally
@@ -655,4 +666,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-

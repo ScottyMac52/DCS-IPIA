@@ -5,6 +5,8 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DcsIpia.Presentation
 {
@@ -18,6 +20,7 @@ namespace DcsIpia.Presentation
         private readonly ObservableCollection<NewModuleDeviceSelection> _selections = [];
         private IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly HardwareInventoryManager? _inventory;
+        private readonly ILogger<NewModuleWindow> _logger;
         private string _savedGamesRoot = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         /// <summary>Initializes a creation form from verified internal assets.</summary>
         /// <param name="repository">Local module storage.</param>
@@ -25,9 +28,12 @@ namespace DcsIpia.Presentation
         /// <param name="hardwareSources">Pinned internal hardware choices.</param>
         /// <param name="inventory">Optional saved physical inventory.</param>
         /// <param name="discovery">Optional physical controller discovery adapter.</param>
+        /// <param name="logger">Optional DI-configured diagnostic logger.</param>
         public NewModuleWindow(IEditorWorkspaceRepository repository, SharedUiLayerWorkspace defaults,
-            IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null, HardwareInventoryManager? inventory = null)
+            IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null, HardwareInventoryManager? inventory = null,
+            ILogger<NewModuleWindow>? logger = null)
         {
+            _logger = logger ?? NullLogger<NewModuleWindow>.Instance;
             _inventory = inventory;
             _repository = repository;
             _defaults = defaults;
@@ -59,7 +65,11 @@ namespace DcsIpia.Presentation
                     .DistinctBy(x => x.DeviceId).ToArray();
                 HardwareChoices.ItemsSource = _hardware;
             }
-            catch (Exception ex) { CreationError.Text = "Unable to read inventory: " + ex.Message; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to read physical hardware inventory");
+                CreationError.Text = "Unable to read inventory: " + ex.Message;
+            }
         }
         private void DefaultChoiceChanged(object sender, RoutedEventArgs e)
         {
@@ -90,11 +100,20 @@ namespace DcsIpia.Presentation
                     IReadOnlyList<DetectedDcsDevice> connected = [];
                     IReadOnlyList<DetectedDcsDevice> captured = [];
                     try { connected = _discovery.Discover(); }
-                    catch (Exception ex) { errors.Add("Controllers: " + ex.Message); }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Unable to discover connected controllers");
+                        errors.Add("Controllers: " + ex.Message);
+                    }
                     try { captured = SavedGamesDeviceDiscovery.Discover(_savedGamesRoot); }
-                    catch (Exception ex) { errors.Add("Saved Games: " + ex.Message); }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Unable to discover captured devices in {SavedGamesRoot}", _savedGamesRoot);
+                        errors.Add("Saved Games: " + ex.Message);
+                    }
                     return DcsPhysicalIdentity.Merge(connected, captured);
                 });
+                _logger.LogDebug("Discovered {Count} physical units in {SavedGamesRoot}", choices.Count, _savedGamesRoot);
                 PhysicalChoices.ItemsSource = choices;
                 CreationError.Text = choices.Count + " physical unit(s). " + string.Join(" ", errors);
             }
@@ -162,7 +181,13 @@ namespace DcsIpia.Presentation
                 BaselineChoices.SelectedItem = null;
                 CreationError.Text = "Unit added. Add another physical unit of the same hardware type if needed.";
             }
-            catch (Exception ex) { CreationError.Text = ex.Message; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to add unit {FileName} GUID {PhysicalGuid} hardware {HardwareId} baseline {BaselineFileName}",
+                    NativeFileInput.Text, DcsPhysicalIdentity.FromFileName(NativeFileInput.Text),
+                    (HardwareChoices.SelectedItem as WorkspaceHardware)?.DeviceId, BaselineChoices.SelectedItem as string);
+                CreationError.Text = ex.Message;
+            }
         }
         private void RemoveUnitClicked(object sender, RoutedEventArgs e)
         {
@@ -171,6 +196,7 @@ namespace DcsIpia.Presentation
         private async void CreateClicked(object sender, RoutedEventArgs e)
         {
             CreateButton.IsEnabled = false;
+            EditorWorkspaceSnapshot? stagedWorkspace = null;
             try
             {
                 NewModuleWorkspaceFactory.ValidateIdentity(DcsIdInput.Text, DisplayNameInput.Text);
@@ -180,14 +206,30 @@ namespace DcsIpia.Presentation
                     if ((await _repository.GetAsync(id))?.Configuration.Module.DcsId.Equals(DcsIdInput.Text, StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidOperationException("That DCS input folder already has a saved module. Open it or choose another identity.");
                 var workspace = NewModuleWorkspaceFactory.Create(DcsIdInput.Text, DisplayNameInput.Text, _defaults, _hardwareSources, EmptyDefaults.IsChecked == true);
+                stagedWorkspace = workspace;
                 foreach (var selected in _selections)
+                {
+                    _logger.LogDebug("Applying unit {FileName} GUID {PhysicalGuid} hardware {HardwareId} baseline {BaselineFileName}",
+                        selected.FileName, DcsPhysicalIdentity.FromFileName(selected.FileName), selected.Hardware.DeviceId, selected.BaselineFileName);
                     workspace = NewModuleDeviceAuthoring.Apply(workspace, selected);
+                    stagedWorkspace = workspace;
+                }
                 await _repository.SaveAsync(workspace);
                 CreatedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new System.IO.InvalidDataException("The new module could not be reopened from SQLite.");
                 DialogResult = true;
             }
-            catch (Exception ex) { CreationError.Text = ex.Message; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to create module {DcsId} {DisplayName}; empty defaults {EmptyDefaults}; " +
+                    "revision {Revision}; selected units {@SelectedUnits}; staged profiles {@Profiles}",
+                    DcsIdInput.Text, DisplayNameInput.Text, EmptyDefaults.IsChecked == true, _defaults.Revision,
+                    _selections.Select(x => new { x.FileName, PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.FileName),
+                        HardwareId = x.Hardware.DeviceId, x.Instance, x.Role, x.BaselineFileName }).ToArray(),
+                    stagedWorkspace?.Configuration.Profiles.Select(x => new { x.Id, x.DeviceId, x.SourceName,
+                        PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.SourceName) }).ToArray());
+                CreationError.Text = ex.Message;
+            }
             finally { CreateButton.IsEnabled = true; }
         }
         #endregion END private helpers
