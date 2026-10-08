@@ -31,6 +31,7 @@ namespace DcsIpia.Presentation
         private readonly UserDataProfile? _profile;
         private readonly IUserDataProfileService? _profileService;
         private readonly HardwareInventoryManager? _hardwareInventory;
+        private readonly IUserMappingLibrary? _userMappings;
         private readonly SetupManager? _setup;
         private bool _setupOffered;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
@@ -48,13 +49,14 @@ namespace DcsIpia.Presentation
         /// <param name="profileService">Setup state and confirmed reset operations.</param>
         /// <param name="hardwareInventory">Profile-scoped independent hardware inventory.</param>
         /// <param name="setup">Transactional first-run and resumable setup.</param>
+        /// <param name="userMappings">Profile-scoped immutable custom mapping library.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
                           IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
-                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null)
+                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
@@ -70,6 +72,7 @@ namespace DcsIpia.Presentation
             _profileService = profileService;
             _hardwareInventory = hardwareInventory;
             _setup = setup;
+            _userMappings = userMappings;
             InitializeComponent();
             BindMainCommands();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
@@ -113,6 +116,7 @@ namespace DcsIpia.Presentation
                 [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
                 [MainWindowCommands.Profiles] = OpenProfilesClicked,
                 [MainWindowCommands.Setup] = (_, _) => OpenSetup(true),
+                [MainWindowCommands.UserMappings] = (_, _) => OpenUserMappings(),
                 [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
                 [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
                 [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
@@ -124,6 +128,7 @@ namespace DcsIpia.Presentation
         private bool CanExecuteMainCommand(RoutedUICommand command)
         {
             if (_moduleOperationBusy) return false;
+            if (command == MainWindowCommands.UserMappings) return _userMappings is not null && _hardwareInventory is not null && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.DiscoverHardware || command == MainWindowCommands.ManageHardware)
                 return _hardwareInventory is not null && OwnedWindows.Count == 0;
             if ((command == MainWindowCommands.FlyNow || command == MainWindowCommands.ClearDeployment) && _profile?.IsTest == true) return false;
@@ -184,6 +189,36 @@ namespace DcsIpia.Presentation
                     OpenRecoveryClicked(this, new RoutedEventArgs());
             }
             catch (Exception ex) { FlyNowStatus.Text = "Setup remains available from Settings: " + ex.Message; }
+        }
+        private async void OpenUserMappings()
+        {
+            if (_userMappings is null || _hardwareInventory is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var inventory = await _hardwareInventory.ReadSnapshotAsync();
+                var revisions = await _userMappings.ListAsync();
+                var modulePins = new List<UserMappingRevision>();
+                var moduleDefinitions = new List<HardwareDefinition>();
+                var names = inventory.Instances.GroupBy(x => x.DefinitionId).ToDictionary(x => x.Key, x => string.Join(" / ", x.Select(y => string.IsNullOrWhiteSpace(y.Label) ? y.NativeName : y.Label).Distinct(StringComparer.Ordinal)), StringComparer.Ordinal);
+                foreach (var id in await _workspaces.ListAsync())
+                {
+                    var module = await _workspaces.GetAsync(id);
+                    foreach (var diagram in module?.Diagrams ?? [])
+                    {
+                        var definition = diagram.CustomMapping?.Definition ?? (diagram.GenericCapabilities is { } capabilities
+                            ? new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities) : null);
+                        if (definition is null) continue;
+                        moduleDefinitions.Add(definition);
+                        names.TryAdd(definition.Id, module!.Configuration.Module.DisplayName + " / " + diagram.Title);
+                        if (diagram.CustomMapping is { } pin) modulePins.Add(pin);
+                    }
+                }
+                var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
+                new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex) { ImportStatus.Text = "Unable to open user mappings: " + ex.Message; }
+            finally { SetModuleOperationBusy(false); }
         }
         private void OpenHardware(bool discover)
         {
@@ -580,7 +615,7 @@ namespace DcsIpia.Presentation
         {
             if (_lastViewModel is null)
                 return;
-            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory) { Owner = this };
+            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings) { Owner = this };
             window.ShowDialog();
         }
         private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -604,3 +639,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

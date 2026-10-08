@@ -41,6 +41,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifyModuleDeleteButton();
             Console.WriteLine("Smoke: user data recovery.");
             UserDataRecoverySmoke.Verify();
+            UserMappingsSmoke.Verify();
             Console.WriteLine("Smoke: new module form.");
             VerifyNewModuleForm();
             Console.WriteLine("Smoke: Saved Games import.");
@@ -1136,3 +1137,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

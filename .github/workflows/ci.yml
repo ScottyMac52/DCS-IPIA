@@ -43,7 +43,15 @@ jobs:
       - name: Run tests on Windows
         env:
           IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
+          IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
         run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build --logger trx --results-directory "${{ runner.temp }}/windows-test-results"
+      - name: Upload custom mapping visual review
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: custom-mapping-preview
+          path: ${{ runner.temp }}/custom-mapping-preview
+          if-no-files-found: warn
       - name: Upload Windows test results
         uses: actions/upload-artifact@v7
         if: always()
@@ -193,3 +201,4 @@ jobs:
           name: DCS-IPIA-tested-release-candidate
           path: release-assets/*
           if-no-files-found: error
+

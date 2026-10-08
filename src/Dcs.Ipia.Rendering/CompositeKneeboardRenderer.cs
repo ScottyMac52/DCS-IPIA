@@ -22,7 +22,7 @@ namespace Dcs.Ipia.Rendering
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
-            if (diagram.GenericCapabilities is not null)
+            if (diagram.GenericCapabilities is not null && diagram.CustomMapping is null)
                 return GenericKneeboardRenderer.RenderPages(diagram, page, footer)[0];
             ValidateGlyphs(page, footer);
             var device = CanonicalSvgRenderer.RenderCompleteScaled(
@@ -64,7 +64,7 @@ namespace Dcs.Ipia.Rendering
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
-            if (diagram.GenericCapabilities is not null)
+            if (diagram.GenericCapabilities is not null && diagram.CustomMapping is null)
                 return GenericKneeboardRenderer.BuildPages(diagram, page, footer)[0];
             var device = BuildDeviceSvg(diagram, page);
             var png = CanonicalSvgRenderer.RenderCompleteScaled(
@@ -454,3 +454,4 @@ namespace Dcs.Ipia.Rendering
         #endregion END private helpers
     }
 }
+

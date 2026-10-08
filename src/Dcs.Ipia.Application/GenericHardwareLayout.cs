@@ -57,6 +57,13 @@ namespace Dcs.Ipia.Application
         /// <param name="diagram">Pinned module layout.</param>
         public static void Validate(UiLayerDiagram diagram)
         {
+            if (diagram.CustomMapping is not null)
+            {
+                UserMappingAdoption.Validate(diagram);
+                return;
+            }
+            if (diagram.Path.StartsWith("user-mappings/", StringComparison.Ordinal))
+                throw new InvalidDataException("A user mapping is missing its pinned revision.");
             if (diagram.GenericCapabilities is not { } capabilities)
             {
                 if (diagram.Path.StartsWith("generic/", StringComparison.Ordinal))
@@ -98,3 +105,4 @@ namespace Dcs.Ipia.Application
         #endregion END Public
     }
 }
+

@@ -40,6 +40,8 @@ namespace DcsIpia.Presentation
         public static RoutedUICommand DiscoverHardware { get; } = Create("DiscoverHardware");
         /// <summary>Reviews saved user-owned physical units.</summary>
         public static RoutedUICommand ManageHardware { get; } = Create("ManageHardware");
+        /// <summary>Imports and manages immutable user draw.io mappings.</summary>
+        public static RoutedUICommand UserMappings { get; } = Create("UserMappings");
         /// <summary>Resumes or reruns reviewed hardware setup while preserving saved modules.</summary>
         public static RoutedUICommand Setup { get; } = Create("Setup");
         /// <summary>Shows version and workflow help.</summary>
@@ -59,3 +61,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

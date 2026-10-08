@@ -67,9 +67,7 @@ namespace Dcs.Ipia.Rendering
                                                        assignment.Slot.Key);
                 }
                 var combined = KneeboardDraftProjection.CreateCombined(workspace, diagram, assigned, workspace.Labels);
-                var rendered = diagram.GenericCapabilities is null
-                    ? new[] { CompositeKneeboardRenderer.Render(diagram, combined, "") }
-                    : GenericKneeboardRenderer.RenderPages(diagram, combined);
+                var rendered = DeviceKneeboardPages.Render(diagram, combined);
                 for (var index = 0; index < rendered.Count; index++)
                 {
                     var suffix = index == 0 ? "" : "-" + (index + 1).ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
@@ -83,4 +81,5 @@ namespace Dcs.Ipia.Rendering
         #endregion END Public
     }
 }
+
 
