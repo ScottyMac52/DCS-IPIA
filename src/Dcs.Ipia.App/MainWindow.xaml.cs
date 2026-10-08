@@ -220,12 +220,13 @@ namespace DcsIpia.Presentation
                             moduleDefinitions.Add(definition);
                             names.TryAdd(definition.Id, module!.Configuration.Module.DisplayName + " / " + diagram.Title);
                             if (diagram.CustomMapping is { } pin) modulePins.Add(pin);
+                            modulePins.AddRange(diagram.MappingHistory ?? []);
                         }
                     }
                     var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
                     var dialog = new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins,
                         bundledDrawingsDirectory: Path.Combine(BundledSharedCatalog.Root, "assets", "shared", "hardware", "drawio"),
-                        canDiscoverHardware: true, bundledInputs: bundledInputs) { Owner = this };
+                        canDiscoverHardware: true, bundledInputs: bundledInputs, workspaces: _workspaces) { Owner = this };
                     dialog.ShowDialog();
                     if (!dialog.DiscoverHardwareRequested) break;
                     using var hardware = new HardwareInventoryWindow(_hardwareInventory, true) { Owner = this };

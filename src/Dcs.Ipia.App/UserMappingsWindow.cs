@@ -29,6 +29,10 @@ namespace DcsIpia.Presentation
         private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> _bundledInputs;
         private readonly Button _save;
         private readonly Button _export;
+        private readonly Button _starter;
+        private readonly Button _review;
+        private readonly IEditorWorkspaceRepository? _workspaces;
+        private readonly Func<string?>? _starterPicker;
         private UserMappingRevision? _candidate;
         private bool _busy;
         /// <summary>Creates profile-scoped mapping tools using explicit native target definitions.</summary>
@@ -41,12 +45,16 @@ namespace DcsIpia.Presentation
         /// <param name="bundledInputs">Bundled filename-to-control mappings from the installed catalog.</param>
         /// <param name="canDiscoverHardware">Whether the owner can open discovery and refresh this window.</param>
         /// <param name="modulePins">Read-only revisions carried by saved/portable modules.</param>
+        /// <param name="workspaces">Optional saved modules for explicit reviewed adoption.</param>
+        /// <param name="starterPicker">Optional starter export destination adapter.</param>
         public UserMappingsWindow(IUserMappingLibrary library, IReadOnlyList<HardwareDefinition> definitions,
             Func<string?>? sourcePicker = null, Func<string?>? exportPicker = null, IReadOnlyDictionary<string, string>? targetNames = null, IReadOnlyList<UserMappingRevision>? modulePins = null,
             string? bundledDrawingsDirectory = null, bool canDiscoverHardware = false,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? bundledInputs = null)
+            IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? bundledInputs = null,
+            IEditorWorkspaceRepository? workspaces = null, Func<string?>? starterPicker = null)
         {
             _library = library;
+            _workspaces = workspaces; _starterPicker = starterPicker;
             _bundledDrawingsDirectory = bundledDrawingsDirectory;
             _canDiscoverHardware = canDiscoverHardware;
             _bundledInputs = bundledInputs ?? new Dictionary<string, IReadOnlyDictionary<string, string>>();
@@ -75,10 +83,13 @@ namespace DcsIpia.Presentation
             });
             _save = Button("Save drawing", "SaveMappingButton", SaveClicked);
             _export = Button("Export editable bundle…", "ExportMappingButton", ExportClicked);
-            buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export);
+            _starter = Button("Export starter draw.io…", "ExportMappingStarterButton", StarterClicked);
+            _review = Button("Review adoption / rollback…", "ReviewMappingRevisionButton", ReviewClicked);
+            buttons.Children.Add(_starter); buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export);
+            if (_workspaces is not null) buttons.Children.Add(_review);
             if (_canDiscoverHardware) buttons.Children.Add(_discover);
             heading.Children.Add(buttons);
-            _status = new TextBlock { Text = "Drawings must use IPIA control labels (label-* with a DCS input key such as JOY_BTN1). Use a compatible bundled drawing as a starting point; ordinary draw.io files may need preparation. Controls without drawing labels remain listed.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) };
+            _status = new TextBlock { Text = "Start with Export starter draw.io, edit it externally, then open and save it here. Keep label IDs and inputKey metadata intact. Saved revisions are retained; select any version to preview, export or review adoption/rollback.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) };
             RegisterName("MappingStatus", _status); heading.Children.Add(_status);
             DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
             _revisions = new ListBox { DisplayMemberPath = "Title", Width = 250, Margin = new Thickness(0, 0, 12, 0) };
@@ -161,6 +172,27 @@ namespace DcsIpia.Presentation
             catch (Exception ex) { _status.Text = "Unable to save drawing: " + ex.Message; }
             finally { SetBusy(false); }
         }
+        private void ReviewClicked(object sender, RoutedEventArgs e)
+        {
+            if (_workspaces is null || _revisions.SelectedItem is not UserMappingRevision revision) return;
+            new MappingRevisionReviewWindow(revision, _workspaces) { Owner = this }.ShowDialog();
+        }
+        private void StarterClicked(object sender, RoutedEventArgs e)
+        {
+            if (_definitions.SelectedValue is not HardwareDefinition definition) return;
+            var dialog = new SaveFileDialog { Title = "Export editable controller starter", Filter = "Draw.io source|*.drawio", FileName = "controller-starter.drawio" };
+            var path = _starterPicker is not null ? _starterPicker() : dialog.ShowDialog(this) == true ? dialog.FileName : null;
+            if (path is null) return;
+            try
+            {
+                var source = DrawioMappingStarter.Export(definition);
+                using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+                using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false));
+                writer.Write(source);
+                _status.Text = "Exported starter. Edit layout and add images in draw.io; retain label IDs and inputKey attributes. Open the edited file here to preview and save a revision.";
+            }
+            catch (Exception ex) { _status.Text = "Unable to export starter: " + ex.Message; }
+        }
         private void ExportClicked(object sender, RoutedEventArgs e)
         {
             if (_revisions.SelectedItem is not UserMappingRevision revision) return;
@@ -194,6 +226,8 @@ namespace DcsIpia.Presentation
             _discover.IsEnabled = !_busy && _canDiscoverHardware;
             _save.IsEnabled = !_busy && _candidate is not null;
             _export.IsEnabled = !_busy && _revisions.SelectedItem is UserMappingRevision;
+            _starter.IsEnabled = !_busy && _definitions.SelectedValue is HardwareDefinition;
+            _review.IsEnabled = _export.IsEnabled && _workspaces is IEditorWorkspaceUpdateRepository;
         }
         #endregion END private helpers
     }

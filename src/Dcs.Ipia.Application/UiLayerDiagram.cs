@@ -28,6 +28,9 @@ namespace Dcs.Ipia.Application
         public ControllerCapabilities? GenericCapabilities { get; init; }
         /// <summary>Gets a pinned immutable user mapping, including editable source and captured local images.</summary>
         public UserMappingRevision? CustomMapping { get; init; }
+        /// <summary>Gets retained older drawing pins for source-free rollback; omitted by older payloads.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyList<UserMappingRevision>? MappingHistory { get; init; }
         #endregion END Public
     }
 }

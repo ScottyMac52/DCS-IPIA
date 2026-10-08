@@ -30,6 +30,7 @@ namespace DcsIpia.Presentation
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
         private readonly HardwareInventoryManager? _inventory;
         private readonly IUserMappingLibrary? _userMappings;
+        private readonly Func<MappingRevisionReview, bool>? _mappingReviewConfirmation;
         private bool _genericPagingUpdating;
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
@@ -79,6 +80,7 @@ namespace DcsIpia.Presentation
         /// <param name="inputSourceFactory">Optional foreground device-input adapter for testing.</param>
         /// <param name="userMappings">Profile-scoped immutable custom mapping revisions.</param>
         /// <param name="inventory">Profile-scoped reviewed hardware choices.</param>
+        /// <param name="mappingReviewConfirmation">Optional drawing review consent adapter for desktop tests.</param>
         /// <param name="inputLogClipboardWriter">Optional HTML and plain-text clipboard adapter for testing.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
@@ -86,11 +88,12 @@ namespace DcsIpia.Presentation
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
-                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null)
+                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _inventory = inventory;
             _userMappings = userMappings;
+            _mappingReviewConfirmation = mappingReviewConfirmation;
             _settings = settings;
             _repository = repository;
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
@@ -901,13 +904,30 @@ namespace DcsIpia.Presentation
         private async Task LoadUserMappingsAsync()
         {
             if (_userMappings is null) return;
-            try { CustomMappingRevisions.ItemsSource = await _userMappings.ListAsync(); }
+            try
+            {
+                var pins = (_working?.Diagrams ?? []).SelectMany(x => (x.MappingHistory ?? []).Concat(x.CustomMapping is { } pin ? [pin] : []));
+                CustomMappingRevisions.ItemsSource = (await _userMappings.ListAsync()).Concat(pins).DistinctBy(x => x.Id).OrderBy(x => x.Title, StringComparer.Ordinal).ToArray();
+            }
             catch (Exception ex) { DevicesMessage.Text = "Unable to read user mappings: " + ex.Message; }
         }
-        private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            UserMappingAdoption.Apply(workspace, (ManagedDevices.SelectedItem as WorkspaceDevice)?.ProfileId ??
-                throw new InvalidOperationException("Select the existing physical profile to update."),
-                CustomMappingRevisions.SelectedItem as UserMappingRevision ?? throw new InvalidOperationException("Select a compatible saved user mapping revision.")));
+        private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device ||
+                CustomMappingRevisions.SelectedItem is not UserMappingRevision revision)
+            { DevicesMessage.Text = "Select a physical profile and a saved drawing revision."; return; }
+            try
+            {
+                var review = MappingRevisionReview.Create(_working.Diagrams.Single(x => x.ProfileId == device.ProfileId), revision);
+                if (review.Conflicts.Count > 0) { DevicesMessage.Text = string.Join("\n", review.Conflicts); return; }
+                var confirmed = _mappingReviewConfirmation?.Invoke(review) ?? MessageBox.Show(this,
+                    string.Join("\n", review.Changes) + "\n\nStage this drawing on the selected device? Save/Discard controls the final change.",
+                    "Review drawing change", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+                if (!confirmed) return;
+                RunStructureEdit(workspace => UserMappingAdoption.Apply(workspace, device.ProfileId, revision));
+            }
+            catch (Exception ex) { DevicesMessage.Text = "Unable to review drawing: " + ex.Message; }
+        }
         private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e) => await LoadUserMappingsAsync();
         private void AddInventoryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??

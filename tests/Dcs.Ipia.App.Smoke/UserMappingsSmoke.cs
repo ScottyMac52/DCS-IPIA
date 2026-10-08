@@ -65,12 +65,16 @@ namespace Dcs.Ipia.App.Smoke
                 if (!revision.Source.Contains("inputKey=\"JOY_BTN1\"", StringComparison.Ordinal))
                     throw new InvalidOperationException("Bundled control keys were not captured in the portable editable source.");
                 var bundle = Path.Combine(root, "editable.zip");
-                var reopened = new UserMappingsWindow(library, [definition], exportPicker: () => bundle);
+                var starter = Path.Combine(root, "starter.drawio");
+                var reopened = new UserMappingsWindow(library, [definition], exportPicker: () => bundle, starterPicker: () => starter);
                 reopened.Show();
                 var revisions = (ListBox)reopened.FindName("MappingRevisions")!;
                 Pump(reopened, () => revisions.Items.Count == 1);
                 revisions.SelectedIndex = 0; Click((Button)reopened.FindName("ExportMappingButton")!);
                 if (!File.Exists(bundle)) throw new InvalidOperationException("Saved mapping did not export without its source file.");
+                Click((Button)reopened.FindName("ExportMappingStarterButton")!);
+                if (!File.Exists(starter) || DrawioMappingFileImport.Load(starter, definition, "smoke").MappedInputs.Count != 4)
+                    throw new InvalidOperationException("The starter export lost native inputs.");
                 reopened.Close();
                 var defaults = new SharedUiLayerWorkspace(0, new string('a', 40), new Dictionary<string, string>
                 { ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"id":"pause","command":"d3001pnilu3001cdnilvd1vpnilvunil","label":"Pause","category":"General"}]}""" });
@@ -79,7 +83,7 @@ namespace Dcs.Ipia.App.Smoke
                 workspace = InventoryHardwareAuthoring.Add(workspace, new(new(Guid.NewGuid(), "Panel", definition.Id, "Panel", "", true, []), definition), AssignmentLayer.Module);
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, userMappings: library);
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, userMappings: library, mappingReviewConfirmation: _ => true);
                 editor.Show();
                 var choices = (ComboBox)editor.FindName("CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
@@ -98,6 +102,30 @@ namespace Dcs.Ipia.App.Smoke
                 editor.Close();
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping?.Id != revision.Id)
                     throw new InvalidOperationException("Saved custom mapping lost its immutable revision.");
+                var next = DrawioMappingImporter.Import(revision.Source.Replace("fillColor=#ffffff", "fillColor=#eeeeee", StringComparison.Ordinal),
+                    definition, revision.SourceName, revision.ApplicationVersion);
+                library.SaveAsync(next).GetAwaiter().GetResult();
+                var reviewWindow = new MappingRevisionReviewWindow(next, repository);
+                reviewWindow.Show();
+                Pump(reviewWindow, () => reviewWindow.FindName("RevisionTarget_0") is CheckBox);
+                Click((Button)reviewWindow.FindName("PreviewRevisionTarget_0")!);
+                if (((Image)reviewWindow.FindName("RevisionBeforePreview")!).Source is null ||
+                    ((Image)reviewWindow.FindName("RevisionAfterPreview")!).Source is null)
+                    throw new InvalidOperationException("Revision comparison did not show current and proposed artwork.");
+                var target = (CheckBox)reviewWindow.FindName("RevisionTarget_0")!;
+                target.IsChecked = true;
+                Click((Button)reviewWindow.FindName("StageRevisionTargetsButton")!);
+                if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping!.Id != revision.Id)
+                    throw new InvalidOperationException("Revision review staging changed saved data.");
+                Click((Button)reviewWindow.FindName("DiscardRevisionTargetsButton")!);
+                target.IsChecked = true;
+                Click((Button)reviewWindow.FindName("StageRevisionTargetsButton")!);
+                Click((Button)reviewWindow.FindName("SaveRevisionTargetsButton")!);
+                Pump(reviewWindow, () => ((TextBlock)reviewWindow.FindName("RevisionReviewStatus")!).Text.StartsWith("Saved reviewed changes", StringComparison.Ordinal));
+                reviewWindow.Close();
+                var revised = repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single();
+                if (revised.CustomMapping!.Id != next.Id || revised.MappingHistory?.Single().Id != revision.Id)
+                    throw new InvalidOperationException("Reviewed adoption did not retain the prior pin.");
                 var portableLibrary = new FileUserMappingLibrary(Path.Combine(root, "portable-empty-library"));
                 var portableBundle = Path.Combine(root, "portable-pin.zip");
                 var pinnedTools = new UserMappingsWindow(portableLibrary, [definition], exportPicker: () => portableBundle, modulePins: [revision]);

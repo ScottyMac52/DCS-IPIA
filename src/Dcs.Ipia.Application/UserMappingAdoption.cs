@@ -13,7 +13,8 @@ namespace Dcs.Ipia.Application
         {
             DrawioMappingImporter.Validate(revision);
             var current = workspace.Diagrams.Single(x => x.ProfileId == profileId);
-            GenericHardwareLayout.Validate(current);
+            var review = MappingRevisionReview.Create(current, revision);
+            if (review.Conflicts.Count > 0) throw new InvalidOperationException(string.Join("\n", review.Conflicts));
             if (!current.Controls.Select(x => revision.Definition.Capabilities.DcsKeys.FirstOrDefault(key => DcsInputKey.SamePhysicalInput(key, x.InputKey)) ?? x.InputKey).ToHashSet(StringComparer.Ordinal)
                 .SetEquals(revision.Definition.Capabilities.DcsKeys) ||
                 current.GenericCapabilities is not null &&
@@ -25,6 +26,7 @@ namespace Dcs.Ipia.Application
             {
                 Path = "user-mappings/" + revision.Id + ".svg", Width = revision.Width, Height = revision.Height,
                 Background = [], Svg = revision.Svg, CustomMapping = revision,
+                MappingHistory = History(current, revision),
                 Controls = revision.Controls.Select(x => x with { Label = current.Controls.FirstOrDefault(y => y.Control == x.Control)?.Label ?? labels[x.InputKey] }).ToArray()
             };
             Validate(replacement);
@@ -40,6 +42,10 @@ namespace Dcs.Ipia.Application
                 diagram.Width != revision.Width || diagram.Height != revision.Height || diagram.Background.Length != 0 ||
                 diagram.GenericCapabilities is not null && ControllerCapabilityMapper.Fingerprint(diagram.GenericCapabilities) != revision.Definition.Id)
                 throw new InvalidDataException("Custom layout differs from its immutable revision.");
+            var history = diagram.MappingHistory ?? [];
+            if (history.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count() != history.Count || history.Any(x => x.Id == revision.Id))
+                throw new InvalidDataException("Drawing history contains duplicate/current revision identities.");
+            foreach (var previous in history) DrawioMappingImporter.Validate(previous);
             var actual = diagram.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
             var expected = revision.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
             if (actual.Length != expected.Length || actual.Where((x, i) => (x with { Label = expected[i].Label }) != expected[i]).Any() ||
@@ -47,5 +53,13 @@ namespace Dcs.Ipia.Application
                 throw new InvalidDataException("Custom control geometry/identity differs from its verified mapping.");
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static UserMappingRevision[]? History(UiLayerDiagram current, UserMappingRevision revision)
+        {
+            var history = (current.MappingHistory ?? []).Concat(current.CustomMapping is { } previous ? [previous] : [])
+                .Where(x => x.Id != revision.Id).DistinctBy(x => x.Id).ToArray();
+            return history.Length == 0 ? null : history;
+        }
+        #endregion END private helpers
     }
 }
