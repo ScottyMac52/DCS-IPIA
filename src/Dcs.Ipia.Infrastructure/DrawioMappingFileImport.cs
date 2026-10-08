@@ -14,7 +14,7 @@ namespace Dcs.Ipia.Infrastructure
         public static UserMappingRevision Load(string path, HardwareDefinition definition, string version)
         {
             path = Path.GetFullPath(path);
-            var source = System.Text.Encoding.UTF8.GetString(Read(path, 2_000_000));
+            var source = new System.Text.UTF8Encoding(false, true).GetString(Read(path, 2_000_000));
             var assets = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (var relative in DrawioMappingImporter.LocalAssets(source))
             {

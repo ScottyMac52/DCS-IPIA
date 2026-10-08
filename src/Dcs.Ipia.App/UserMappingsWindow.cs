@@ -140,7 +140,7 @@ namespace DcsIpia.Presentation
         }
         private void Preview(UserMappingRevision revision)
         {
-            DrawioMappingImporter.Validate(revision);
+            UserMappingImageVerifier.Validate(revision);
             var bytes = CanonicalSvgRenderer.RenderComplete(revision.Svg, revision.Width, revision.Height);
             using var stream = new MemoryStream(bytes);
             var bitmap = new BitmapImage();

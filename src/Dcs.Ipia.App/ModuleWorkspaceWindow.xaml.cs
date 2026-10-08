@@ -1364,7 +1364,7 @@ namespace DcsIpia.Presentation
                     : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
             PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
             DefaultLabel.Text = _selected?.Label ?? "";
-            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null && CurrentDiagram.CustomMapping is null;
+            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
             GenericControlName.Text = _selected?.Label ?? "";
             _updatingInspector = true;
             LabelEditor.IsEnabled = assignment is not null;

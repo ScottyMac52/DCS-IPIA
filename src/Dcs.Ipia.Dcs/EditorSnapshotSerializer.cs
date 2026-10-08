@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs.SnapshotModels;
+using Dcs.Ipia.Rendering;
 
 namespace Dcs.Ipia.Dcs
 {
@@ -24,6 +25,8 @@ namespace Dcs.Ipia.Dcs
         {
             ArgumentNullException.ThrowIfNull(workspace);
             GenericHardwareLayout.ValidateWorkspace(workspace);
+            foreach (var revision in workspace.Diagrams.Where(x => x.CustomMapping is not null).Select(x => x.CustomMapping!).DistinctBy(x => x.Id))
+                UserMappingImageVerifier.Validate(revision);
             var module = workspace.Configuration.Module.Id;
             if (workspace.Assignments.Any(x => x.Slot.ModuleId != module) ||
                 workspace.Pages.Any(x => x.ModuleId != module))
@@ -93,3 +96,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END Public
     }
 }
+

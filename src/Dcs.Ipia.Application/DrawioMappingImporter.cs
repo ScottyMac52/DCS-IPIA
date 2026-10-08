@@ -106,11 +106,14 @@ namespace Dcs.Ipia.Application
                     if (!Regex.IsMatch(marker, "^[A-Za-z0-9_-]{1,100}$", RegexOptions.CultureInvariant))
                         throw new InvalidDataException(id + ": use a stable ASCII label marker.");
                     var wrapper = cell.Parent?.Name.LocalName == "UserObject" ? cell.Parent : null;
-                    var key = wrapper?.Attribute("inputKey")?.Value ?? cell.Attribute("inputKey")?.Value ??
-                        Style(cell, "inputKey", marker);
+                    var keys = new[] { wrapper?.Attribute("inputKey")?.Value, cell.Attribute("inputKey")?.Value,
+                        Style(cell, "inputKey", "") }.Where(x => !string.IsNullOrWhiteSpace(x)).Cast<string>().ToList();
+                    if (definition.Capabilities.DcsKeys.Contains(marker, StringComparer.Ordinal)) keys.Add(marker);
                     var button = Style(cell, "buttonNumber", "");
-                    if (!definition.Capabilities.DcsKeys.Contains(key, StringComparer.Ordinal) && button.Length > 0)
-                        key = "JOY_BTN" + button;
+                    if (button.Length > 0) keys.Add("JOY_BTN" + button);
+                    if (keys.Distinct(StringComparer.Ordinal).Count() > 1)
+                        throw new InvalidDataException(id + ": conflicting explicit input mappings.");
+                    var key = keys.FirstOrDefault() ?? marker;
                     if (!definition.Capabilities.DcsKeys.Contains(key, StringComparer.Ordinal))
                         throw new InvalidDataException(id + ": unknown input " + key + ". Set inputKey to an actual target DCS key.");
                     if (!mapped.Add(key)) throw new InvalidDataException("Multiple labels map to " + key + ".");
@@ -202,7 +205,7 @@ namespace Dcs.Ipia.Application
         {
             if (string.IsNullOrWhiteSpace(source) || Encoding.UTF8.GetByteCount(source) > MaximumSource)
                 throw new InvalidDataException("Draw.io source exceeds 2 MB or is empty.");
-            var document = Parse(source);
+            var document = Parse(source.TrimStart('\ufeff'));
             if (document.Root?.Name != "mxfile" || document.Root.Elements("diagram").Count() != 1)
                 throw new InvalidDataException("Import supports exactly one mxfile diagram.");
             var diagram = document.Root.Element("diagram")!;

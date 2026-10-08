@@ -17,6 +17,7 @@ namespace Dcs.Ipia.Rendering
             if (diagram.CustomMapping is not { } revision)
                 return diagram.GenericCapabilities is null ? [CompositeKneeboardRenderer.Render(diagram, page, footer)]
                     : GenericKneeboardRenderer.RenderPages(diagram, page, footer);
+            UserMappingImageVerifier.Validate(revision);
             var result = new List<byte[]> { CompositeKneeboardRenderer.Render(diagram, page, footer) };
             var missing = revision.Definition.Capabilities.DcsKeys.Except(revision.MappedInputs, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
             if (missing.Count > 0)

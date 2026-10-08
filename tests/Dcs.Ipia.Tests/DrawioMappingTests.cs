@@ -35,7 +35,7 @@ namespace Dcs.Ipia.Tests
         /// <summary>Unsafe, unsupported or ambiguous input never publishes a revision.</summary>
         /// <param name="failure">Malformed construct.</param>
         [Theory]
-        [InlineData("unknown")][InlineData("duplicate-id")][InlineData("duplicate-input")]
+        [InlineData("conflict")][InlineData("unknown")][InlineData("duplicate-id")][InlineData("duplicate-input")]
         [InlineData("dimensions")][InlineData("nan")][InlineData("outside")][InlineData("group")]
         [InlineData("script")][InlineData("html")][InlineData("doctype")][InlineData("multi")]
         [InlineData("canvas")][InlineData("footer")][InlineData("connector")][InlineData("rotation")]
@@ -45,6 +45,7 @@ namespace Dcs.Ipia.Tests
             var source = DrawioMappingFixture.Source();
             source = failure switch
             {
+                "conflict" => source.Replace("inputKey=\"JOY_BTN1\"", "inputKey=\"JOY_BTN2\"", StringComparison.Ordinal).Replace("fillColor=#ffffff;fontColor", "buttonNumber=1;fillColor=#ffffff;fontColor", StringComparison.Ordinal),
                 "unknown" => source.Replace("inputKey=\"JOY_BTN1\"", "inputKey=\"JOY_BTN999\"", StringComparison.Ordinal),
                 "duplicate-id" => source.Replace("id=\"anchor-trigger\"", "id=\"label-JOY_X\"", StringComparison.Ordinal),
                 "duplicate-input" => source.Replace("id=\"label-JOY_X\"", "id=\"label-extra\" inputKey=\"JOY_BTN1\"", StringComparison.Ordinal),
@@ -82,6 +83,14 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(DrawioMappingFixture.Source("C:/outside.png"), definition, "bad.drawio", "1.0"));
             Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(DrawioMappingFixture.Source("missing.png"), definition, "bad.drawio", "1.0"));
             Assert.Throws<InvalidDataException>(() => RasterImageContract.Validate(new byte[30], "png"));
+            var jpeg = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/jpeg;base64," + Convert.ToBase64String(DrawioMappingFixture.Jpeg)), definition, "jpeg.drawio", "1.0");
+            UserMappingImageVerifier.Validate(jpeg);
+            var malformed = new byte[32];
+            malformed[0] = malformed[2] = malformed[^2] = 255;
+            malformed[1] = 216; malformed[3] = 192; malformed[5] = 8; malformed[6] = 8;
+            malformed[8] = malformed[10] = 1; malformed[^1] = 217;
+            var invalidPixels = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/jpeg;base64," + Convert.ToBase64String(malformed)), definition, "bad.drawio", "1.0");
+            Assert.Throws<InvalidDataException>(() => UserMappingImageVerifier.Validate(invalidPixels));
         }
 
         /// <summary>Embedded and explicitly captured local images render identically and survive source deletion.</summary>
@@ -99,6 +108,11 @@ namespace Dcs.Ipia.Tests
                 var embedded = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/png;base64," +
                     Convert.ToBase64String(DrawioMappingFixture.Png)), local.Definition, "embedded.drawio", "1.0");
                 Assert.Equal(local.Svg, embedded.Svg);
+                UserMappingImageVerifier.Validate(local);
+                var corrupt = DrawioMappingFixture.Png;
+                corrupt[45] ^= 1;
+                Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/png;base64," + Convert.ToBase64String(corrupt)), local.Definition, "bad.drawio", "1.0"));
+                Assert.Equal(local.Svg, DrawioMappingImporter.Import("\ufeff" + local.Source, local.Definition, "bom.drawio", "1.0", local.Assets).Svg);
                 Assert.True(CanonicalSvgRenderer.RenderComplete(local.Svg, local.Width, local.Height).Length > 1000);
                 var library = new FileUserMappingLibrary(Path.Combine(root, "profile"));
                 await library.SaveAsync(local);
@@ -157,6 +171,11 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(original, EditorSnapshotSerializer.Serialize(workspace));
                 Assert.Equal(workspace.Diagrams.Single(x => x.ProfileId != profile.Id), adopted.Diagrams.Single(x => x.ProfileId != profile.Id));
                 Assert.Equal("My trigger", adopted.Diagrams.Single(x => x.ProfileId == profile.Id).Controls.Single(x => x.InputKey == "JOY_BTN1").Label);
+                var renamed = InventoryHardwareAuthoring.RenameControl(adopted, profile.Id, "JOY_BTN1", "After adoption");
+                Assert.Equal(revision.Id, renamed.Diagrams.Single(x => x.ProfileId == profile.Id).CustomMapping!.Id);
+                Assert.Equal(revision.Svg, renamed.Diagrams.Single(x => x.ProfileId == profile.Id).Svg);
+                Assert.Equal("After adoption", renamed.Diagrams.Single(x => x.ProfileId == profile.Id).Controls.Single(x => x.InputKey == "JOY_BTN1").Label);
+                adopted = renamed;
                 await repository.SaveAsync(adopted);
                 var saved = (await repository.GetAsync(module))!;
                 var snapshot = ModuleSnapshotWorkflow.Freeze(saved, "1.0");

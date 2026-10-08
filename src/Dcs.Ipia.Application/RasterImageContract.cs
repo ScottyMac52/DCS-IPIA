@@ -20,6 +20,7 @@ namespace Dcs.Ipia.Application
                     !bytes.AsSpan(12, 4).SequenceEqual("IHDR"u8) ||
                     !bytes.AsSpan(bytes.Length - 12).SequenceEqual(new byte[] { 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130 }))
                     throw new InvalidDataException("Incomplete PNG image.");
+                PngChunks(bytes);
                 return Dimensions(BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4)),
                     BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4)));
             }
@@ -52,6 +53,34 @@ namespace Dcs.Ipia.Application
             if (width == 0 || height == 0 || width > 4096 || height > 4096 || (long)width * height > 8_000_000)
                 throw new InvalidDataException("Raster dimensions must be positive, at most 4096 per side and at most 8 million pixels.");
             return (long)width * height;
+        }
+        private static void PngChunks(byte[] bytes)
+        {
+            var offset = 8;
+            var imageData = false;
+            while (offset < bytes.Length)
+            {
+                if (bytes.Length - offset < 12) throw new InvalidDataException("Truncated PNG chunk.");
+                var length = BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(offset, 4));
+                if (length > bytes.Length - offset - 12) throw new InvalidDataException("Truncated PNG payload.");
+                var count = checked((int)length);
+                var chunk = bytes.AsSpan(offset + 4, count + 4);
+                uint crc = uint.MaxValue;
+                foreach (var value in chunk)
+                {
+                    crc ^= value;
+                    for (var bit = 0; bit < 8; bit++) crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0 : 0xedb88320u);
+                }
+                if (~crc != BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(offset + count + 8, 4)))
+                    throw new InvalidDataException("PNG chunk checksum differs.");
+                var type = chunk[..4];
+                if (offset == 8 && (!type.SequenceEqual("IHDR"u8) || count != 13))
+                    throw new InvalidDataException("Invalid PNG header.");
+                if (type.SequenceEqual("IDAT"u8)) imageData = true;
+                if (type.SequenceEqual("IEND"u8) && (!imageData || count != 0 || offset + 12 != bytes.Length))
+                    throw new InvalidDataException("Invalid PNG image terminator.");
+                offset += count + 12;
+            }
         }
         #endregion END private helpers
     }

@@ -315,7 +315,7 @@
                     <TextBlock Text="Current command" FontWeight="SemiBold"/><TextBlock x:Name="CurrentCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                     <TextBlock Text="Pending command" FontWeight="SemiBold"/><TextBlock x:Name="PendingCommand" TextWrapping="Wrap" Margin="0,2,0,10"/>
                     <TextBlock Text="DCS default label" FontWeight="SemiBold"/><TextBlock x:Name="DefaultLabel" TextWrapping="Wrap" Margin="0,2,0,10"/>
-                    <TextBlock Text="Generic control name" FontWeight="SemiBold"/>
+                    <TextBlock Text="Physical control name" FontWeight="SemiBold"/>
                     <TextBox x:Name="GenericControlName" IsEnabled="False" Margin="0,4,0,4"/>
                     <Button x:Name="RenameGenericControlButton" Content="Set control name" Click="RenameGenericControlClicked" IsEnabled="False" Margin="0,0,0,8"/>
                     <TextBlock Text="Displayed label" FontWeight="SemiBold"/><TextBox x:Name="LabelEditor" TextChanged="LabelChanged" IsEnabled="False" Margin="0,4,0,8"/>

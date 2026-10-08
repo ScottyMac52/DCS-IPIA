@@ -50,6 +50,12 @@ namespace Dcs.Ipia.Dcs
             var labels = diagram.Controls.ToDictionary(x => x.InputKey, x => x.Label, StringComparer.Ordinal);
             if (!labels.ContainsKey(inputKey)) throw new InvalidOperationException("Select an actual supported control.");
             labels[inputKey] = label.Trim();
+            if (diagram.CustomMapping is not null)
+            {
+                var updated = diagram with { Controls = diagram.Controls.Select(x => x.InputKey == inputKey ? x with { Label = label.Trim() } : x).ToArray() };
+                UserMappingAdoption.Validate(updated);
+                return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profileId ? updated : x).ToArray() };
+            }
             var replacement = GenericHardwareLayout.Create(new(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities), labels).Diagram;
             return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profileId
                 ? x with { Controls = replacement.Controls, Svg = replacement.Svg } : x).ToArray() };
@@ -57,3 +63,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END Public
     }
 }
+
