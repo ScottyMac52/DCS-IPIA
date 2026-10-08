@@ -47,7 +47,8 @@ namespace Dcs.Ipia.Dcs
             var diagram = workspace.Diagrams.Single(x => x.ProfileId == profileId);
             GenericHardwareLayout.Validate(diagram);
             var capabilities = diagram.GenericCapabilities ?? throw new InvalidOperationException("Select a generic controller control.");
-            var labels = diagram.Controls.ToDictionary(x => x.InputKey, x => x.Label, StringComparer.Ordinal);
+            var labels = diagram.Controls.GroupBy(x => x.InputKey, StringComparer.Ordinal)
+                    .ToDictionary(x => x.Key, x => x.OrderBy(y => y.Control.EndsWith("-shifted", StringComparison.Ordinal)).First().Label, StringComparer.Ordinal);
             if (!labels.ContainsKey(inputKey)) throw new InvalidOperationException("Select an actual supported control.");
             labels[inputKey] = label.Trim();
             if (diagram.CustomMapping is not null)

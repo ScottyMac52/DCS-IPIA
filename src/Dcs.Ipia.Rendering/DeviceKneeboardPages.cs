@@ -22,7 +22,8 @@ namespace Dcs.Ipia.Rendering
             var missing = revision.Definition.Capabilities.DcsKeys.Except(revision.MappedInputs, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
             if (missing.Count > 0)
             {
-                var labels = diagram.Controls.ToDictionary(x => x.InputKey, x => x.Label, StringComparer.Ordinal);
+                var labels = diagram.Controls.GroupBy(x => x.InputKey, StringComparer.Ordinal)
+                    .ToDictionary(x => x.Key, x => x.OrderBy(y => y.Control.EndsWith("-shifted", StringComparison.Ordinal)).First().Label, StringComparer.Ordinal);
                 var generic = GenericHardwareLayout.Create(revision.Definition, labels).Diagram;
                 result.AddRange(GenericKneeboardRenderer.RenderPages(generic, page, footer, missing));
             }

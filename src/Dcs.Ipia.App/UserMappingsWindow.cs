@@ -137,9 +137,7 @@ namespace DcsIpia.Presentation
             try
             {
                 IReadOnlyDictionary<string, string>? catalogInputs = null;
-                if (bundled && string.Equals(Path.GetDirectoryName(Path.GetFullPath(path)),
-                    Path.GetFullPath(_bundledDrawingsDirectory!), StringComparison.OrdinalIgnoreCase))
-                    _bundledInputs.TryGetValue(Path.GetFileName(path), out catalogInputs);
+                _bundledInputs.TryGetValue(Path.GetFileName(path), out catalogInputs);
                 var revision = await Task.Run(() => DrawioMappingFileImport.Load(path, definition, ApplicationVersion.Label, catalogInputs));
                 Preview(revision);
                 _candidate = revision;
