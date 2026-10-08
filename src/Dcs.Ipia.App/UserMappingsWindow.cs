@@ -26,6 +26,7 @@ namespace DcsIpia.Presentation
         private readonly Button _discover;
         private readonly string? _bundledDrawingsDirectory;
         private readonly bool _canDiscoverHardware;
+        private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> _bundledInputs;
         private readonly Button _save;
         private readonly Button _export;
         private UserMappingRevision? _candidate;
@@ -37,15 +38,18 @@ namespace DcsIpia.Presentation
         /// <param name="exportPicker">Optional editable bundle destination adapter.</param>
         /// <param name="targetNames">Physical labels for native definition selection.</param>
         /// <param name="bundledDrawingsDirectory">Folder containing the installed editable hardware drawings.</param>
+        /// <param name="bundledInputs">Bundled filename-to-control mappings from the installed catalog.</param>
         /// <param name="canDiscoverHardware">Whether the owner can open discovery and refresh this window.</param>
         /// <param name="modulePins">Read-only revisions carried by saved/portable modules.</param>
         public UserMappingsWindow(IUserMappingLibrary library, IReadOnlyList<HardwareDefinition> definitions,
             Func<string?>? sourcePicker = null, Func<string?>? exportPicker = null, IReadOnlyDictionary<string, string>? targetNames = null, IReadOnlyList<UserMappingRevision>? modulePins = null,
-            string? bundledDrawingsDirectory = null, bool canDiscoverHardware = false)
+            string? bundledDrawingsDirectory = null, bool canDiscoverHardware = false,
+            IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? bundledInputs = null)
         {
             _library = library;
             _bundledDrawingsDirectory = bundledDrawingsDirectory;
             _canDiscoverHardware = canDiscoverHardware;
+            _bundledInputs = bundledInputs ?? new Dictionary<string, IReadOnlyDictionary<string, string>>();
             _modulePins = modulePins ?? [];
             _sourcePicker = sourcePicker; _exportPicker = exportPicker;
             Title = "Hardware drawings — import and saved drawings";
@@ -114,7 +118,7 @@ namespace DcsIpia.Presentation
             {
                 SetBusy(false);
                 if (_definitions.Items.Count == 0)
-                    _status.Text += "\nNo controllers are available for import. Use Hardware → Discover devices… / Rescan, select your controllers, then Save reviewed inventory. Reopen this window afterward. Existing module drawings do not always include the native control definitions needed here.";
+                    _status.Text += "\nNo controllers are available for import. Use Hardware → Discover devices… / Rescan, select your controllers, then Save reviewed inventory. This window reopens with the updated controller list after discovery. Existing module drawings do not always include the native control definitions needed here.";
             }
         }
         private async void PreviewClicked(object sender, RoutedEventArgs e) => await PreviewSourceAsync(false);
@@ -132,7 +136,11 @@ namespace DcsIpia.Presentation
             _candidate = null; SetBusy(true);
             try
             {
-                var revision = await Task.Run(() => DrawioMappingFileImport.Load(path, definition, ApplicationVersion.Label));
+                IReadOnlyDictionary<string, string>? catalogInputs = null;
+                if (bundled && string.Equals(Path.GetDirectoryName(Path.GetFullPath(path)),
+                    Path.GetFullPath(_bundledDrawingsDirectory!), StringComparison.OrdinalIgnoreCase))
+                    _bundledInputs.TryGetValue(Path.GetFileName(path), out catalogInputs);
+                var revision = await Task.Run(() => DrawioMappingFileImport.Load(path, definition, ApplicationVersion.Label, catalogInputs));
                 Preview(revision);
                 _candidate = revision;
                 _status.Text = "Verified preview: " + revision.MappedInputs.Count + " mapped / " + revision.Controls.Count +

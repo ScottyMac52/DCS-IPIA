@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -196,6 +197,11 @@ namespace DcsIpia.Presentation
             SetModuleOperationBusy(true);
             try
             {
+                var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var bundledHardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+                var bundledInputs = bundledHardware.GroupBy(x => Path.GetFileNameWithoutExtension(x.Diagram.Path) + ".drawio", StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(x => x.Key, x => (IReadOnlyDictionary<string, string>)x.First().Diagram.Controls
+                        .ToDictionary(control => control.Control, control => control.InputKey, StringComparer.Ordinal), StringComparer.OrdinalIgnoreCase);
                 while (true)
                 {
                     var inventory = await _hardwareInventory.ReadSnapshotAsync();
@@ -219,7 +225,7 @@ namespace DcsIpia.Presentation
                     var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
                     var dialog = new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins,
                         bundledDrawingsDirectory: Path.Combine(BundledSharedCatalog.Root, "assets", "shared", "hardware", "drawio"),
-                        canDiscoverHardware: true) { Owner = this };
+                        canDiscoverHardware: true, bundledInputs: bundledInputs) { Owner = this };
                     dialog.ShowDialog();
                     if (!dialog.DiscoverHardwareRequested) break;
                     using var hardware = new HardwareInventoryWindow(_hardwareInventory, true) { Owner = this };

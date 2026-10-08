@@ -31,7 +31,7 @@ namespace Dcs.Ipia.App.Smoke
                     <mxfile><diagram><mxGraphModel pageWidth="900" pageHeight="600"><root>
                     <mxCell id="0"/><mxCell id="1" parent="0"/>
                     <mxCell id="canvas" parent="1" vertex="1" style="fillColor=#ffffff;"><mxGeometry width="900" height="600"/></mxCell>
-                    <mxCell id="label-JOY_BTN1" parent="1" vertex="1" value="Trigger"><mxGeometry x="10" y="100" width="300" height="50"/></mxCell>
+                    <mxCell id="label-trigger" parent="1" vertex="1" value="Trigger"><mxGeometry x="10" y="100" width="300" height="50"/></mxCell>
                     <mxCell id="footer" parent="1" vertex="1" value="Custom smoke"><mxGeometry x="0" y="575" width="900" height="25"/></mxCell>
                     </root></mxGraphModel></diagram></mxfile>
                     """);
@@ -47,7 +47,9 @@ namespace Dcs.Ipia.App.Smoke
                 if (!empty.DiscoverHardwareRequested || empty.IsVisible ||
                     library.ListAsync().GetAwaiter().GetResult().Count != 0)
                     throw new InvalidOperationException("Discovery handoff changed saved drawings or failed to close the import.");
-                var tools = new UserMappingsWindow(library, [definition], () => source, bundledDrawingsDirectory: root);
+                var tools = new UserMappingsWindow(library, [definition], () => source, bundledDrawingsDirectory: root,
+                    bundledInputs: new Dictionary<string, IReadOnlyDictionary<string, string>>
+                    { ["custom.drawio"] = new Dictionary<string, string> { ["trigger"] = "JOY_BTN1" } });
                 tools.Show();
                 Pump(tools, () => ((Button)tools.FindName("PreviewMappingButton")!).IsEnabled);
                 if (!((Button)tools.FindName("BundledMappingButton")!).IsEnabled)
@@ -59,6 +61,8 @@ namespace Dcs.Ipia.App.Smoke
                 Pump(tools, () => ((TextBlock)tools.FindName("MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
                 tools.Close(); File.Delete(source);
                 var revision = library.ListAsync().GetAwaiter().GetResult().Single();
+                if (!revision.Source.Contains("inputKey=\"JOY_BTN1\"", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Bundled control keys were not captured in the portable editable source.");
                 var bundle = Path.Combine(root, "editable.zip");
                 var reopened = new UserMappingsWindow(library, [definition], exportPicker: () => bundle);
                 reopened.Show();

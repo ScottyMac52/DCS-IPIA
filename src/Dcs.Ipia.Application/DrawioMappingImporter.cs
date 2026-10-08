@@ -23,6 +23,25 @@ namespace Dcs.Ipia.Application
             .Select(Image).Where(x => x.Length > 0 && !x.StartsWith("data:", StringComparison.Ordinal))
             .Select(SafeAsset).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
 
+        /// <summary>Adds explicit DCS input keys from a bundled drawing's existing catalog control map.</summary>
+        /// <param name="source">Editable native or compressed drawing.</param>
+        /// <param name="inputs">Trusted catalog marker-to-input mappings.</param>
+        /// <returns>Self-contained editable source with existing explicit mappings preserved.</returns>
+        public static string WithCatalogInputs(string source, IReadOnlyDictionary<string, string> inputs)
+        {
+            var graph = Graph(source);
+            foreach (var cell in Cells(graph))
+            {
+                var id = Id(cell);
+                if (!id.StartsWith("label-", StringComparison.Ordinal) || !inputs.TryGetValue(id[6..], out var key)) continue;
+                var wrapper = cell.Parent?.Name.LocalName == "UserObject" ? cell.Parent : null;
+                if (cell.Attribute("inputKey") is not null || wrapper?.Attribute("inputKey") is not null ||
+                    Style(cell, "inputKey", "").Length > 0 || Style(cell, "buttonNumber", "").Length > 0) continue;
+                cell.SetAttributeValue("inputKey", key);
+            }
+            return new XElement("mxfile", new XElement("diagram", new XElement(graph))).ToString(SaveOptions.DisableFormatting);
+        }
+
         /// <summary>Validates and renders exactly one diagram against verified target controls.</summary>
         /// <param name="source">Original editable source.</param>
         /// <param name="definition">Explicitly selected native capability definition.</param>
