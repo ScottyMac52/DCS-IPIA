@@ -150,7 +150,9 @@ namespace Dcs.Ipia.Dcs
             // DCS also uses these modifiers in unchanged keyboard defaults absent from exported diff.lua files.
             // Custom-only and empty shared baselines must not replace that native keyboard vocabulary.
             foreach (var name in StandardKeyboardModifiers)
-                result.TryAdd(name, new DcsModifier(name, "Keyboard", name, ModifierMode.Hold));
+                if (!result.Values.Any(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase) &&
+                    DcsInputKey.SamePhysicalInput(x.Key, name)))
+                    result.TryAdd(name, new DcsModifier(name, "Keyboard", name, ModifierMode.Hold));
             var folder = scope == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
             var used = payload.Where(x => x.Key.StartsWith("Config/Input/" + folder + "/", StringComparison.Ordinal) &&
                 x.Key.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase))

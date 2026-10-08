@@ -67,6 +67,7 @@ namespace Dcs.Ipia.Tests
             }
             if (managed)
             {
+                sources["config/ipia-ui-" + ProfileId.ToString("N") + ".lua"] = sources[UiPath];
                 var modifiers = new List<WorkspaceModifier> {
                     new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "Module", ModifierMode.Toggle, "Stick")
                 };
