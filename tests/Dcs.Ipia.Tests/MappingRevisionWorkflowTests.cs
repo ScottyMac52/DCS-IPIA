@@ -26,12 +26,12 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(source, DrawioMappingStarter.Export(definition));
             var document = XDocument.Parse(source);
             var label = document.Descendants("mxCell").First(x => x.Attribute("id")?.Value == "label-JOY_BTN1");
-            label.Element("mxGeometry")!.SetAttributeValue("x", 50);
+            label.Element("mxGeometry")!.SetAttributeValue("x", 30);
             var revision = DrawioMappingImporter.Import(document.ToString(), definition, "starter.drawio", "test");
             Assert.Equal(definition.Capabilities.DcsKeys.Order(StringComparer.Ordinal), revision.MappedInputs);
             Assert.Equal(definition.Capabilities.DcsKeys.Count, revision.Controls.Count);
             Assert.All(revision.Controls, x => Assert.Equal(x.InputKey, x.Control));
-            Assert.Equal(50, revision.Controls.Single(x => x.Control == "JOY_BTN1").X);
+            Assert.Equal(30, revision.Controls.Single(x => x.Control == "JOY_BTN1").X);
             Assert.Contains(revision.Controls, x => x.IsAxis);
             Assert.Contains(revision.Controls, x => x.InputKey.StartsWith("JOY_BTN_POV", StringComparison.Ordinal));
         }
