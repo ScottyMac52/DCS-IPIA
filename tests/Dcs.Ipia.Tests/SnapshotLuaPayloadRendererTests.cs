@@ -14,6 +14,40 @@ namespace Dcs.Ipia.Tests
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         private static readonly string[] ReferencedNames = ["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"];
         #region BEGIN Public
+        /// <summary>Managed source-free modules export both imported stick axes and newly assigned rudder axes.</summary>
+        [Fact]
+        public void PreservesAssignedFlightAxesInManagedPayload()
+        {
+            var workspace = Workspace();
+            var axes = new[] {
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2002cdnil", "Roll", BindingDisposition.Added, "JOY_X", []),
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Added, "JOY_Y", []),
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2003cdnil", "Rudder", BindingDisposition.Added, "JOY_Z", [])
+            };
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
+            ], []));
+            var diagram = workspace.Diagrams[0] with { SupportsUiLayer = false, Controls = [
+                new("roll", "Roll", "JOY_X", 0, 0, 10, 10, true),
+                new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true),
+                new("rudder", "Rudder", "JOY_Z", 0, 0, 10, 10, true)
+            ] };
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                [], axes.Take(2).ToArray(), "Created in IPIA");
+            var saved = workspace with { Configuration = config, Sources = sources, Diagrams = [diagram],
+                Assignments = axes.Select(axis => new DraftAssignment(
+                    new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, axis.InputKey),
+                    new(axis.CommandId, axis.CommandName, true, AssignmentLayer.Module))).ToArray()
+            };
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var exported = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
+            Assert.Equal(3, exported.Count);
+            foreach (var axis in axes)
+                Assert.Contains(exported, item => item.CommandId == axis.CommandId && item.InputKey == axis.InputKey &&
+                    item.Disposition == BindingDisposition.Added && item.Reformers.Count == 0);
+            Assert.Equal(3, saved.Assignments.Count);
+        }
         /// <summary>Custom-only defaults cannot erase the keyboard modifiers used by unchanged DCS defaults.</summary>
         /// <param name="managed">Whether explicit device management is saved.</param>
         /// <param name="emptyDefaults">Whether shared defaults contain no modifier definitions.</param>
