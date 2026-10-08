@@ -87,6 +87,8 @@ namespace DcsIpia.Presentation
                     .AddSingleton<IHardwareInventoryRepository>(_ => new SqliteHardwareInventoryRepository(connectionString))
                     .AddSingleton<IControllerCapabilityDiscovery, WindowsConnectedDeviceDiscovery>()
                     .AddSingleton<HardwareInventoryManager>()
+                    .AddSingleton<ISetupRepository>(_ => new SqliteSetupRepository(connectionString))
+                    .AddSingleton<SetupManager>()
                     .AddSingleton<ISharedUiLayerWorkspaceRepository>(
                         _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
                     .AddSingleton<IFlyNowPayloadBuilder, FlyNowPayloadBuilder>()

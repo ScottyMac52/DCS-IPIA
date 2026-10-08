@@ -2,6 +2,8 @@
 
 SQLite is local working data, not a release input. Schema changes are versioned, transactional, and recorded in `schema_migrations`. Before an upgrade changes user data, create an online backup and verify it with `PRAGMA integrity_check`.
 
+Schema 9 adds transactional profile setup completion and destination alongside reviewed hardware inventory. See [hardware onboarding](../hardware-onboarding.md) for first-run, upgrade, rerun and full-backup behavior.
+
 Release and CI workflows operate from immutable snapshots. The main **Data & recovery** menu now provides verified full-user-data backup, restore, deployment-record review and the user-data location. Module snapshots remain separate: they restore one module without replacing the user profile.
 
 ## Backup format and saved-state boundary

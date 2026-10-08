@@ -38,6 +38,7 @@
         <MenuItem Header="Test _profiles and reset…" Command="{x:Static local:MainWindowCommands.Profiles}"/>
       </MenuItem>
       <MenuItem Header="_Settings">
+        <MenuItem Header="_Resume / rerun hardware setup…" Command="{x:Static local:MainWindowCommands.Setup}"/>
         <MenuItem Header="_Preferences…" Command="{x:Static local:MainWindowCommands.Settings}"/>
       </MenuItem>
       <MenuItem Header="_Help">

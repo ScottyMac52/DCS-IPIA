@@ -122,7 +122,7 @@ namespace Dcs.Ipia.Tests
             var recovery = new UserDataRecoveryService(data,"1.0");
             var backup = Path.Combine(_folder,"inventory.zip");
             recovery.Backup(backup);
-            Assert.Equal(8,recovery.Inspect(backup).DatabaseSchemaVersion);
+            Assert.Equal(SqliteMigrationRunner.CurrentVersion,recovery.Inspect(backup).DatabaseSchemaVersion);
             await repository.SaveAsync(new(1,[],[],[]));
             recovery.Restore(backup);
             Assert.Single((await repository.ReadAsync()).Instances);

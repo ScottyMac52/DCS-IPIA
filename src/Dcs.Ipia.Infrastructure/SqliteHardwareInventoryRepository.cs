@@ -19,13 +19,19 @@ namespace Dcs.Ipia.Infrastructure
             await using var db = new SqliteConnection(_connectionString);
             await db.OpenAsync(ct);
             await using var transaction = db.BeginTransaction();
+            var snapshot = await ReadAsync(db, transaction, ct);
+            await transaction.CommitAsync(ct);
+            return snapshot;
+        }
+        /// <summary>Reads inventory within the caller's setup transaction.</summary>
+        internal static async Task<HardwareInventorySnapshot> ReadAsync(SqliteConnection db, SqliteTransaction transaction, CancellationToken ct)
+        {
             var definitions = await Read<HardwareDefinition>(db, transaction, "hardware_definitions", ct);
             var instances = await Read<HardwareInventoryInstance>(db, transaction, "hardware_inventory", ct);
             var observations = await Read<ControllerObservation>(db, transaction, "hardware_observations", ct);
             var snapshot = new HardwareInventorySnapshot(1, definitions, instances,
                 observations.Select(x => x with { Device = x.Device with { Connected = false } }).ToArray());
             HardwareInventoryContract.Validate(snapshot);
-            await transaction.CommitAsync(ct);
             return snapshot;
         }
         /// <inheritdoc/>
@@ -35,6 +41,13 @@ namespace Dcs.Ipia.Infrastructure
             await using var db = new SqliteConnection(_connectionString);
             await db.OpenAsync(ct);
             await using var transaction = db.BeginTransaction();
+            await WriteAsync(db, transaction, snapshot, ct);
+            await transaction.CommitAsync(ct);
+        }
+        /// <summary>Writes reviewed inventory within the caller's setup transaction.</summary>
+        internal static async Task WriteAsync(SqliteConnection db, SqliteTransaction transaction, HardwareInventorySnapshot snapshot, CancellationToken ct)
+        {
+            HardwareInventoryContract.Validate(snapshot);
             await using var command = db.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = "DELETE FROM hardware_inventory; DELETE FROM hardware_definitions; DELETE FROM hardware_observations";
@@ -46,7 +59,6 @@ namespace Dcs.Ipia.Infrastructure
                     instance.PhysicalGuid.ToString("D"), instance, instance.DefinitionId, ct);
             foreach (var observation in snapshot.Observations)
                 await Insert(db, transaction, "INSERT INTO hardware_observations VALUES($id,$json)", observation.Device.PhysicalGuid.ToString("D"), observation, null, ct);
-            await transaction.CommitAsync(ct);
         }
         #endregion END Public
         #region BEGIN private helpers

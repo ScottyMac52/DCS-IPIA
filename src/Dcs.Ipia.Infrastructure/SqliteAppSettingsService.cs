@@ -26,7 +26,7 @@ namespace Dcs.Ipia.Infrastructure
                 legacyThemePath, false, userSettingsPath is null ? null : legacyUserPath);
             var fallback = new AppSettings(SchemaVersion, AppearanceTheme.Light, OccupiedDestinationBehavior.Ask);
             var defaults = ReadJson(defaultsPath, fallback, out _);
-            defaults = new AppSettings(SchemaVersion, defaults.Theme, defaults.OccupiedDestinationBehavior, _folderSettings.Current.SavedGamesDcsFolder);
+            defaults = new AppSettings(SchemaVersion, defaults.Theme, defaults.OccupiedDestinationBehavior, ReadDestination());
             try
             {
                 using var db = new SqliteConnection(_connectionString);
@@ -43,7 +43,7 @@ namespace Dcs.Ipia.Infrastructure
                         Enum.TryParse<OccupiedDestinationBehavior>(reader.GetString(2), true, out var behavior) &&
                         Enum.IsDefined(behavior))
                     {
-                        Current = new AppSettings(SchemaVersion, theme, behavior, _folderSettings.Current.SavedGamesDcsFolder);
+                        Current = new AppSettings(SchemaVersion, theme, behavior, ReadDestination());
                         LastError = _folderSettings.LastError;
                         return;
                     }
@@ -76,7 +76,7 @@ namespace Dcs.Ipia.Infrastructure
                     LastError = "Unable to read legacy theme; using available settings.";
                 }
             }
-            Current = new AppSettings(SchemaVersion, imported.Theme, imported.OccupiedDestinationBehavior, _folderSettings.Current.SavedGamesDcsFolder);
+            Current = new AppSettings(SchemaVersion, imported.Theme, imported.OccupiedDestinationBehavior, ReadDestination());
             TryPersist();
             LastError ??= _folderSettings.LastError;
         }
@@ -105,13 +105,41 @@ namespace Dcs.Ipia.Infrastructure
         public bool TryUpdateSavedGamesDcsFolder(string folder)
         {
             var persisted = _folderSettings.TryUpdateSavedGamesDcsFolder(folder);
+            if (persisted)
+            {
+                try
+                {
+                    using var db = new SqliteConnection(_connectionString);
+                    db.Open();
+                    using var command = db.CreateCommand();
+                    command.CommandText = "UPDATE profile_setup SET destination=$folder WHERE id=1";
+                    command.Parameters.AddWithValue("$folder", _folderSettings.Current.SavedGamesDcsFolder);
+                    command.ExecuteNonQuery();
+                }
+                catch (SqliteException ex) { LastError = "Unable to save destination: " + ex.Message; return false; }
+            }
             Current = new AppSettings(SchemaVersion, Current.Theme, Current.OccupiedDestinationBehavior,
-                _folderSettings.Current.SavedGamesDcsFolder);
+                ReadDestination());
             LastError = _folderSettings.LastError;
             return persisted;
         }
+        /// <summary>Reloads the destination after the atomic setup transaction without rewriting user preferences.</summary>
+        public void ReloadDestination() => Current = new AppSettings(SchemaVersion, Current.Theme,
+            Current.OccupiedDestinationBehavior, ReadDestination());
         #endregion END Public
         #region BEGIN private helpers
+        private string ReadDestination()
+        {
+            try
+            {
+                using var db = new SqliteConnection(_connectionString);
+                db.Open();
+                using var command = db.CreateCommand();
+                command.CommandText = "SELECT destination FROM profile_setup WHERE id=1";
+                return command.ExecuteScalar() as string ?? _folderSettings.Current.SavedGamesDcsFolder;
+            }
+            catch (SqliteException) { return _folderSettings.Current.SavedGamesDcsFolder; }
+        }
         private bool TryPersist()
         {
             try

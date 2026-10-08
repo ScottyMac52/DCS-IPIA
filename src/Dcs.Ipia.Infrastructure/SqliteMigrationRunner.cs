@@ -11,7 +11,7 @@ namespace Dcs.Ipia.Infrastructure
     {
         #region BEGIN Public
         /// <summary>Gets the highest schema revision this application can read and migrate.</summary>
-        public const int CurrentVersion = 8;
+        public const int CurrentVersion = 9;
         /// <summary>Applies pending SQLite migrations.</summary>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>A task that completes when the operation finishes</returns>
@@ -68,6 +68,14 @@ namespace Dcs.Ipia.Infrastructure
                     CREATE TABLE hardware_inventory(physical_guid TEXT NOT NULL PRIMARY KEY,definition_id TEXT NOT NULL REFERENCES hardware_definitions(id),payload_json TEXT NOT NULL);
                     CREATE TABLE hardware_observations(physical_guid TEXT NOT NULL PRIMARY KEY,payload_json TEXT NOT NULL);
                     INSERT INTO schema_migrations VALUES(8,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+                    """, ct);
+            }
+            if (!await Applied(c, tx, 9, ct))
+            {
+                await Execute(c, tx, """
+                    CREATE TABLE profile_setup(id INTEGER NOT NULL PRIMARY KEY CHECK(id=1),completed INTEGER NOT NULL CHECK(completed IN(0,1)),destination TEXT NULL);
+                    INSERT INTO profile_setup VALUES(1,CASE WHEN EXISTS(SELECT 1 FROM modules) OR EXISTS(SELECT 1 FROM hardware_inventory) THEN 1 ELSE 0 END,NULL);
+                    INSERT INTO schema_migrations VALUES(9,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
                     """, ct);
             }
             await tx.CommitAsync(ct);

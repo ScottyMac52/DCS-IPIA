@@ -31,6 +31,8 @@ namespace DcsIpia.Presentation
         private readonly UserDataProfile? _profile;
         private readonly IUserDataProfileService? _profileService;
         private readonly HardwareInventoryManager? _hardwareInventory;
+        private readonly SetupManager? _setup;
+        private bool _setupOffered;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -45,13 +47,14 @@ namespace DcsIpia.Presentation
         /// <param name="profile">Selected production or isolated test profile.</param>
         /// <param name="profileService">Setup state and confirmed reset operations.</param>
         /// <param name="hardwareInventory">Profile-scoped independent hardware inventory.</param>
+        /// <param name="setup">Transactional first-run and resumable setup.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
                           IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
-                          HardwareInventoryManager? hardwareInventory = null)
+                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
@@ -66,6 +69,7 @@ namespace DcsIpia.Presentation
             _profile = profile;
             _profileService = profileService;
             _hardwareInventory = hardwareInventory;
+            _setup = setup;
             InitializeComponent();
             BindMainCommands();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
@@ -78,7 +82,16 @@ namespace DcsIpia.Presentation
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
-            Loaded += async (_, _) => { await RefreshSavedModulesAsync(); await RefreshFlyNowAsync(); };
+            Loaded += async (_, _) =>
+            {
+                await RefreshSavedModulesAsync(); await RefreshFlyNowAsync();
+                if (!_setupOffered && _setup is not null && _profileService is not null)
+                {
+                    _setupOffered = true;
+                    try { if (!_profileService.SetupCompleted) OpenSetup(false); }
+                    catch (Exception ex) { FlyNowStatus.Text = "Setup could not open. Resume from Settings: " + ex.Message; }
+                }
+            };
         }
         #region BEGIN Public
         #endregion END Public
@@ -99,6 +112,7 @@ namespace DcsIpia.Presentation
                 [MainWindowCommands.Backup] = OpenRecoveryClicked, [MainWindowCommands.RestoreData] = OpenRecoveryClicked,
                 [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
                 [MainWindowCommands.Profiles] = OpenProfilesClicked,
+                [MainWindowCommands.Setup] = (_, _) => OpenSetup(true),
                 [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
                 [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
                 [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
@@ -113,6 +127,7 @@ namespace DcsIpia.Presentation
             if (command == MainWindowCommands.DiscoverHardware || command == MainWindowCommands.ManageHardware)
                 return _hardwareInventory is not null && OwnedWindows.Count == 0;
             if ((command == MainWindowCommands.FlyNow || command == MainWindowCommands.ClearDeployment) && _profile?.IsTest == true) return false;
+            if (command == MainWindowCommands.Setup) return _setup is not null && _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.Profiles) return _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.NewModule || command == MainWindowCommands.SharedDefaults) return _sharedDefaults is not null;
             if (command == MainWindowCommands.RestoreModule) return _workspaces is IEditorWorkspaceCreationRepository;
@@ -149,6 +164,26 @@ namespace DcsIpia.Presentation
             var dialog = new UserDataProfileWindow(_profile, _profileService, _closeDatabase ?? (() => { })) { Owner = this };
             dialog.ShowDialog();
             if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
+            else if (dialog.ResumeSetupRequested) OpenSetup(false);
+        }
+        private void OpenSetup(bool rerun)
+        {
+            if (_setup is null || _hardwareInventory is null || _profileService is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            try
+            {
+                if (rerun) _profileService.SetSetupCompleted(false);
+                using var dialog = new HardwareInventoryWindow(_hardwareInventory, true, setup: _setup,
+                    destination: _settings.Current.SavedGamesDcsFolder) { Owner = this };
+                dialog.ShowDialog();
+                if (!dialog.SetupConfirmed) return;
+                if (_settings is SqliteAppSettingsService sqlite) sqlite.ReloadDestination();
+                UpdateFlyNowControls();
+                if (_recovery is not null && MessageBox.Show(this,
+                    "Setup is saved. Create a verified full-profile backup now? You can then create, import or open a module.",
+                    "Setup complete", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    OpenRecoveryClicked(this, new RoutedEventArgs());
+            }
+            catch (Exception ex) { MessageBox.Show(this, "Setup remains available from Settings: " + ex.Message, "Hardware setup", MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
         private void OpenHardware(bool discover)
         {
