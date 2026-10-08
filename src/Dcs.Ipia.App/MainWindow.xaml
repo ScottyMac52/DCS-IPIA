@@ -20,6 +20,7 @@
       <MenuItem Header="_Hardware">
         <MenuItem Header="_Discover devices… / Rescan" Command="{x:Static local:MainWindowCommands.DiscoverHardware}"/>
         <MenuItem Header="_Manage devices…" Command="{x:Static local:MainWindowCommands.ManageHardware}"/>
+        <MenuItem Header="_Import draw.io mapping… / User mappings" Command="{x:Static local:MainWindowCommands.UserMappings}"/>
       </MenuItem>
       <MenuItem Header="_Module">
         <MenuItem Header="_Open workspace — edit, save, validate and build…" Command="{x:Static local:MainWindowCommands.OpenModule}"/>
@@ -113,3 +114,4 @@
   </Grid>
   </DockPanel>
 </Window>
+

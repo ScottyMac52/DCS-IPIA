@@ -26,6 +26,9 @@ namespace Dcs.Ipia.Application
         public IReadOnlyList<HardwareGraphicControl> Controls { get; init; } = [];
         /// <summary>Gets pinned native evidence for an image-free generic layout; null preserves bundled graphics.</summary>
         public ControllerCapabilities? GenericCapabilities { get; init; }
+        /// <summary>Gets a pinned immutable user mapping, including editable source and captured local images.</summary>
+        public UserMappingRevision? CustomMapping { get; init; }
         #endregion END Public
     }
 }
+

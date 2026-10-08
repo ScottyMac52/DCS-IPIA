@@ -29,6 +29,7 @@ namespace DcsIpia.Presentation
         private EditorWorkspaceSnapshot? _working;
         private readonly IConnectedDeviceDiscovery _deviceDiscovery;
         private readonly HardwareInventoryManager? _inventory;
+        private readonly IUserMappingLibrary? _userMappings;
         private bool _genericPagingUpdating;
         private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
@@ -76,6 +77,7 @@ namespace DcsIpia.Presentation
         /// <param name="integrationFilePicker">Optional JSON or Markdown integration instruction selection adapter.</param>
         /// <param name="axisDefaultsFilePicker">Optional cleared-axis DCS profile selection adapter.</param>
         /// <param name="inputSourceFactory">Optional foreground device-input adapter for testing.</param>
+        /// <param name="userMappings">Profile-scoped immutable custom mapping revisions.</param>
         /// <param name="inventory">Profile-scoped reviewed hardware choices.</param>
         /// <param name="inputLogClipboardWriter">Optional HTML and plain-text clipboard adapter for testing.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
@@ -84,10 +86,11 @@ namespace DcsIpia.Presentation
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
-                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null)
+                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _inventory = inventory;
+            _userMappings = userMappings;
             _settings = settings;
             _repository = repository;
             _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
@@ -128,7 +131,7 @@ namespace DcsIpia.Presentation
             SummaryCardAccent.SelectedIndex = 0;
             RefreshAuthoring();
             RefreshDeviceChoices();
-            Loaded += async (_, _) => { if (_working is not null) { await LoadInventoryChoicesAsync(); await RefreshDetectedDevicesAsync(); } };
+            Loaded += async (_, _) => { if (_working is not null) { await LoadInventoryChoicesAsync(); await LoadUserMappingsAsync(); await RefreshDetectedDevicesAsync(); } };
             Closing += ConfirmClose;
             _inputTimer.Tick += PollInputTest;
             Deactivated += (_, _) => StopInputTest("Stopped on focus loss; restart to clear modifier state.");
@@ -895,6 +898,17 @@ namespace DcsIpia.Presentation
             try { InventoryUnits.ItemsSource = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync()); }
             catch (Exception ex) { DevicesMessage.Text = "Unable to read hardware inventory: " + ex.Message; }
         }
+        private async Task LoadUserMappingsAsync()
+        {
+            if (_userMappings is null) return;
+            try { CustomMappingRevisions.ItemsSource = await _userMappings.ListAsync(); }
+            catch (Exception ex) { DevicesMessage.Text = "Unable to read user mappings: " + ex.Message; }
+        }
+        private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
+            UserMappingAdoption.Apply(workspace, (ManagedDevices.SelectedItem as WorkspaceDevice)?.ProfileId ??
+                throw new InvalidOperationException("Select the existing physical profile to update."),
+                CustomMappingRevisions.SelectedItem as UserMappingRevision ?? throw new InvalidOperationException("Select a compatible saved user mapping revision.")));
+        private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e) => await LoadUserMappingsAsync();
         private void AddInventoryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??
                 throw new InvalidOperationException("Select an adopted inventory unit. Discover and save it from the Hardware menu first."), DeviceManagementLayer));
@@ -1350,7 +1364,7 @@ namespace DcsIpia.Presentation
                     : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
             PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
             DefaultLabel.Text = _selected?.Label ?? "";
-            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
+            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null && CurrentDiagram.CustomMapping is null;
             GenericControlName.Text = _selected?.Label ?? "";
             _updatingInspector = true;
             LabelEditor.IsEnabled = assignment is not null;
@@ -1466,8 +1480,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var page = KneeboardDraftProjection.CreateCombined(_working ?? _saved, diagram, _draft.Snapshot, _labels);
-                var images = diagram.GenericCapabilities is null ? new[] { CompositeKneeboardRenderer.Render(diagram, page) }
-                    : GenericKneeboardRenderer.RenderPages(diagram, page, "DCS-IPIA · current draft preview");
+                var images = DeviceKneeboardPages.Render(diagram, page, "DCS-IPIA · current draft preview");
                 var pages = new StackPanel();
                 foreach (var png in images)
                 {
@@ -1562,10 +1575,10 @@ namespace DcsIpia.Presentation
                             KneeboardPageLocator.PageKeyForProfile(_saved, x.ProfileId) == key);
                         var combined = KneeboardDraftProjection.CreateCombined(
                             _saved, diagram, _saved.Assignments, _saved.Labels);
-                        if (diagram.GenericCapabilities is null) bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
+                        if (diagram.GenericCapabilities is null && diagram.CustomMapping is null) bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
                         else
                         {
-                            var generated = GenericKneeboardRenderer.RenderPages(diagram, combined);
+                            var generated = DeviceKneeboardPages.Render(diagram, combined);
                             var choices = Enumerable.Range(1, generated.Count).Select(x => "Page " + x).ToArray();
                             if (!(GenericPageChoice.ItemsSource as string[] ?? []).SequenceEqual(choices, StringComparer.Ordinal))
                             {
@@ -1716,3 +1729,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

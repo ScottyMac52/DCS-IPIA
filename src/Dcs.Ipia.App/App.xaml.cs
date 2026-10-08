@@ -74,6 +74,7 @@ namespace DcsIpia.Presentation
             var registrations =
                 new ServiceCollection()
                     .AddSingleton<IUserDataRecoveryService>(recovery)
+                    .AddSingleton<IUserMappingLibrary>(new FileUserMappingLibrary(userFolder))
                     .AddSingleton<Action>(_ => CloseDatabase)
                     .AddSingleton<IAppSettingsService>(
                         _ => new SqliteAppSettingsService(
@@ -145,3 +146,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

@@ -13,8 +13,9 @@ namespace Dcs.Ipia.Rendering
         /// <param name="diagram">Verified generic controls and editable names.</param>
         /// <param name="page">Effective saved or staged labels and modifier descriptions.</param>
         /// <param name="footer">Optional preview attribution.</param>
+        /// <param name="inputKeys">Optional subset for custom-mapping continuation pages.</param>
         /// <returns>Ordered 1200 by 1600 image-free page sources.</returns>
-        public static IReadOnlyList<string> BuildPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "")
+        public static IReadOnlyList<string> BuildPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "", IReadOnlySet<string>? inputKeys = null)
         {
             GenericHardwareLayout.Validate(diagram);
             if (diagram.GenericCapabilities is null) throw new InvalidDataException("A generic layout is required.");
@@ -22,7 +23,7 @@ namespace Dcs.Ipia.Rendering
             using var font = new SKFont(typeface, 22);
             var groups = new List<(string Text, string Color)[]>();
             var lines = new List<(string Text, string Color)>();
-            foreach (var control in diagram.Controls.OrderBy(x => x.X).ThenBy(x => x.Y))
+            foreach (var control in diagram.Controls.Where(x => inputKeys is null || inputKeys.Contains(x.InputKey)).OrderBy(x => x.X).ThenBy(x => x.Y))
             {
                 // Native order is preserved even after canonical snapshot serialization sorts control IDs.
                 lines.AddRange(Wrap(control.InputKey + " · " + control.Label, font, 1070).Select(x => (x, "#ffc95c")));
@@ -71,12 +72,13 @@ namespace Dcs.Ipia.Rendering
         /// <param name="diagram">Generic layout.</param>
         /// <param name="page">Projected current labels.</param>
         /// <param name="footer">Optional preview attribution.</param>
+        /// <param name="inputKeys">Optional subset for custom-mapping continuation pages.</param>
         /// <returns>All ordered PNG pages without any filesystem reads.</returns>
-        public static IReadOnlyList<byte[]> RenderPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "")
+        public static IReadOnlyList<byte[]> RenderPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "", IReadOnlySet<string>? inputKeys = null)
         {
             using var typeface = Typeface();
             var result = new List<byte[]>();
-            foreach (var source in BuildPages(diagram, page, footer))
+            foreach (var source in BuildPages(diagram, page, footer, inputKeys))
             {
                 using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ?? throw new InvalidDataException("Could not allocate generic kneeboard.");
                 surface.Canvas.Clear(SKColor.Parse("#06101d"));
@@ -143,3 +145,4 @@ namespace Dcs.Ipia.Rendering
         #endregion END private helpers
     }
 }
+
