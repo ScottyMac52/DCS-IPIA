@@ -25,7 +25,7 @@ namespace Dcs.Ipia.Dcs
         {
             ArgumentNullException.ThrowIfNull(workspace);
             GenericHardwareLayout.ValidateWorkspace(workspace);
-            foreach (var revision in workspace.Diagrams.Where(x => x.CustomMapping is not null).Select(x => x.CustomMapping!).DistinctBy(x => x.Id))
+            foreach (var revision in workspace.Diagrams.SelectMany(x => (x.MappingHistory ?? []).Concat(x.CustomMapping is { } pin ? [pin] : [])).DistinctBy(x => x.Id))
                 UserMappingImageVerifier.Validate(revision);
             var module = workspace.Configuration.Module.Id;
             if (workspace.Assignments.Any(x => x.Slot.ModuleId != module) ||
