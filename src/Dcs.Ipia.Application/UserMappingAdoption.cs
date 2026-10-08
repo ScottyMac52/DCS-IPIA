@@ -14,17 +14,18 @@ namespace Dcs.Ipia.Application
             DrawioMappingImporter.Validate(revision);
             var current = workspace.Diagrams.Single(x => x.ProfileId == profileId);
             GenericHardwareLayout.Validate(current);
-            if (!current.Controls.Select(x => x.InputKey).ToHashSet(StringComparer.Ordinal)
+            if (!current.Controls.Select(x => revision.Definition.Capabilities.DcsKeys.FirstOrDefault(key => DcsInputKey.SamePhysicalInput(key, x.InputKey)) ?? x.InputKey).ToHashSet(StringComparer.Ordinal)
                 .SetEquals(revision.Definition.Capabilities.DcsKeys) ||
                 current.GenericCapabilities is not null &&
                 ControllerCapabilityMapper.Fingerprint(current.GenericCapabilities) != revision.Definition.Id)
                 throw new InvalidOperationException("The mapping definition differs from this profile's verified controls.");
-            var labels = current.Controls.ToDictionary(x => x.InputKey, x => x.Label, StringComparer.Ordinal);
+            var labels = current.Controls.GroupBy(x => revision.Definition.Capabilities.DcsKeys.FirstOrDefault(key => DcsInputKey.SamePhysicalInput(key, x.InputKey)) ?? x.InputKey, StringComparer.Ordinal)
+                    .ToDictionary(x => x.Key, x => x.OrderBy(y => y.Control.EndsWith("-shifted", StringComparison.Ordinal)).First().Label, StringComparer.Ordinal);
             var replacement = current with
             {
                 Path = "user-mappings/" + revision.Id + ".svg", Width = revision.Width, Height = revision.Height,
                 Background = [], Svg = revision.Svg, CustomMapping = revision,
-                Controls = revision.Controls.Select(x => x with { Label = labels[x.InputKey] }).ToArray()
+                Controls = revision.Controls.Select(x => x with { Label = current.Controls.FirstOrDefault(y => y.Control == x.Control)?.Label ?? labels[x.InputKey] }).ToArray()
             };
             Validate(replacement);
             return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profileId ? replacement : x).ToArray() };

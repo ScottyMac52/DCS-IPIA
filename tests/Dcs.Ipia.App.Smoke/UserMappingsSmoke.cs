@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -107,6 +108,25 @@ namespace Dcs.Ipia.App.Smoke
                 if (!File.Exists(portableBundle) || portableLibrary.ListAsync().GetAwaiter().GetResult().Count != 0)
                     throw new InvalidOperationException("A portable module pin could not export without silently publishing a library entry.");
                 pinnedTools.Close();
+                var bundledSources = ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
+                var mfd = JsonSerializer.Deserialize<WorkspaceHardware[]>(bundledSources["config/ipia-hardware.json"])!.First(x => x.DeviceId == "tm-mfd");
+                var mfdCapabilities = ControllerCapabilityMapper.Map(Enumerable.Range(0, 28).Select(x =>
+                    new ControllerObject(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12u | ((uint)x << 8), "Button " + (x + 1))));
+                var mfdDefinition = new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(mfdCapabilities), mfdCapabilities);
+                var mfdPath = Path.Combine(BundledSharedCatalog.Root, "assets/shared/hardware/drawio/tm-mfd.drawio");
+                var mfdTools = new UserMappingsWindow(library, [mfdDefinition], () => mfdPath,
+                    bundledInputs: new Dictionary<string, IReadOnlyDictionary<string, string>>
+                    { ["tm-mfd.drawio"] = mfd.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal) });
+                mfdTools.Show();
+                Pump(mfdTools, () => ((Button)mfdTools.FindName("PreviewMappingButton")!).IsEnabled);
+                Click((Button)mfdTools.FindName("PreviewMappingButton")!); // Normal file picker also accepts bundled sources.
+                Pump(mfdTools, () => ((TextBlock)mfdTools.FindName("MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
+                Click((Button)mfdTools.FindName("SaveMappingButton")!);
+                Pump(mfdTools, () => ((TextBlock)mfdTools.FindName("MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
+                mfdTools.Close();
+                var savedMfd = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd.drawio");
+                if (savedMfd.Controls.Count != 48 || savedMfd.MappedInputs.Count != 28)
+                    throw new InvalidOperationException("Real bundled MFD preview lost its base/shifted label pairs.");
                 Console.WriteLine("Custom mapping preview, save, source-free reopen/export and staged/discarded/saved adoption passed.");
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
