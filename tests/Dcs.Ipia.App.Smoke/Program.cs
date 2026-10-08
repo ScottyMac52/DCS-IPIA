@@ -24,26 +24,41 @@ namespace Dcs.Ipia.App.Smoke
         /// <returns>Zero when both windows render their expected content.</returns>
         public static int Main()
         {
-            var app = new DcsIpia.Presentation.App();
-            app.InitializeComponent();
+            // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
+            var app = new System.Windows.Application();
+            foreach (var theme in new[] { "Light", "Styles" })
+                app.Resources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute)
+                });
             global::Dcs.Ipia.Dcs.BundledSharedCatalog.Validate(global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root);
             var defaultsWindow = new SharedUiLayerWorkspaceWindow(new SharedUiLayerWorkspace(1, new string('a', 40),
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
             VerifySharedDefaultBindingEditor();
+            Console.WriteLine("Smoke: module deletion.");
             VerifyModuleDeleteButton();
+            Console.WriteLine("Smoke: user data recovery.");
             UserDataRecoverySmoke.Verify();
+            Console.WriteLine("Smoke: new module form.");
             VerifyNewModuleForm();
+            Console.WriteLine("Smoke: Saved Games import.");
             VerifySavedGamesImportForm();
+            Console.WriteLine("Smoke: module authoring.");
             VerifyModuleAuthoring();
+            Console.WriteLine("Smoke: device page deletion.");
             VerifyDevicePageDeletion();
+            Console.WriteLine("Smoke: summary order.");
             SummaryCardOrderSmoke.Verify();
+            Console.WriteLine("Smoke: input testing.");
             InputTestSmoke.Verify();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
+            Console.WriteLine("Smoke: hardware inventory.");
             HardwareInventorySmoke.Verify();
+            SetupSmoke.Verify();
             GenericHardwareSmoke.Verify();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();
             if (detected.Any(x => x.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(x.Name)))

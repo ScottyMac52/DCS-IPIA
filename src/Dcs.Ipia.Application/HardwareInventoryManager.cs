@@ -48,7 +48,17 @@ namespace Dcs.Ipia.Application
         /// <returns>Committed inventory.</returns>
         public async Task<HardwareInventorySnapshot> SaveAsync(IReadOnlyList<HardwareInventoryEdit> edits, CancellationToken ct = default)
         {
-            var saved = await _repository.ReadAsync(ct);
+            var snapshot = Prepare(await _repository.ReadAsync(ct), edits);
+            await _repository.SaveAsync(snapshot, ct);
+            return snapshot;
+        }
+        /// <summary>Validates and stages the same reviewed adoption for inventory save or transactional setup.</summary>
+        /// <param name="saved">Current inventory used for stale-edit checks.</param>
+        /// <param name="edits">Explicit selections and capability decisions.</param>
+        /// <returns>Validated inventory without any persistence.</returns>
+        public static HardwareInventorySnapshot Prepare(HardwareInventorySnapshot saved, IReadOnlyList<HardwareInventoryEdit> edits)
+        {
+            HardwareInventoryContract.Validate(saved);
             var definitions = saved.Definitions.ToDictionary(x => x.Id, StringComparer.Ordinal);
             var instances = saved.Instances.ToDictionary(x => x.PhysicalGuid);
             var observations = saved.Observations.ToDictionary(x => x.Device.PhysicalGuid);
@@ -78,12 +88,11 @@ namespace Dcs.Ipia.Application
                 }
                 instances[candidate.PhysicalGuid] = new(candidate.PhysicalGuid,
                     candidate.Observed?.Device.Name ?? existing!.NativeName, definitionId!, edit.Label.Trim(), edit.Role.Trim(), edit.Selected,
-                    existing is null || (changed && edit.AdoptChangedCapabilities) ? edit.TemplateCandidates : existing.TemplateCandidates);
+                    existing is null || (changed && edit.AdoptChangedCapabilities) || (edit.ReviewMapping && !changed) ? edit.TemplateCandidates : existing.TemplateCandidates);
             }
             var snapshot = new HardwareInventorySnapshot(1, definitions.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToArray(),
                 instances.Values.OrderBy(x => x.PhysicalGuid).ToArray(), observations.Values.OrderBy(x => x.Device.PhysicalGuid).ToArray());
             HardwareInventoryContract.Validate(snapshot);
-            await _repository.SaveAsync(snapshot, ct);
             return snapshot;
         }
         /// <summary>Merges only exact physical identities; display names never identify a unit.</summary>

@@ -40,7 +40,7 @@ namespace DcsIpia.Presentation
             Add("Open Production", (_, _) => Launch(null));
             Add("Rerun setup (preserve saved data)", (_, _) =>
             {
-                try { _service.SetSetupCompleted(false); _status.Text = "Setup completion cleared. Modules, preferences and artwork are preserved. The wizard will use this state when available."; }
+                try { _service.SetSetupCompleted(false); ResumeSetupRequested = true; Close(); }
                 catch (Exception ex) { _status.Text = ex.Message; }
             });
             Add("Reset this profile's user data…", ResetClicked);
@@ -50,6 +50,8 @@ namespace DcsIpia.Presentation
             Closing += (_, e) => { if (_busy) e.Cancel = true; };
         }
         #region BEGIN Public
+        /// <summary>Gets whether the caller should open the real setup wizard after this dialog closes.</summary>
+        public bool ResumeSetupRequested { get; private set; }
         /// <summary>Gets whether services were closed and the application must exit.</summary>
         public bool RequiresRestart { get; private set; }
         #endregion END Public

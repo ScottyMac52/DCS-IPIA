@@ -7,6 +7,7 @@ namespace Dcs.Ipia.Application
     /// <param name="Role">User role.</param>
     /// <param name="AdoptChangedCapabilities">Explicit adoption of a changed definition.</param>
     /// <param name="TemplateCandidates">Verified compatible bundled candidates for this evidence.</param>
+    /// <param name="ReviewMapping">Whether the preferred mapping was explicitly reviewed during setup.</param>
     public sealed record HardwareInventoryEdit(HardwareInventoryCandidate Candidate, bool Selected, string Label,
-        string Role, bool AdoptChangedCapabilities, IReadOnlyList<string> TemplateCandidates);
+        string Role, bool AdoptChangedCapabilities, IReadOnlyList<string> TemplateCandidates, bool ReviewMapping = false);
 }
