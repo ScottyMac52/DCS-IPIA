@@ -32,17 +32,26 @@ namespace Dcs.Ipia.App.Smoke
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
             VerifySharedDefaultBindingEditor();
+            Console.WriteLine("Smoke: module deletion.");
             VerifyModuleDeleteButton();
+            Console.WriteLine("Smoke: user data recovery.");
             UserDataRecoverySmoke.Verify();
+            Console.WriteLine("Smoke: new module form.");
             VerifyNewModuleForm();
+            Console.WriteLine("Smoke: Saved Games import.");
             VerifySavedGamesImportForm();
+            Console.WriteLine("Smoke: module authoring.");
             VerifyModuleAuthoring();
+            Console.WriteLine("Smoke: device page deletion.");
             VerifyDevicePageDeletion();
+            Console.WriteLine("Smoke: summary order.");
             SummaryCardOrderSmoke.Verify();
+            Console.WriteLine("Smoke: input testing.");
             InputTestSmoke.Verify();
             var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
+            Console.WriteLine("Smoke: hardware inventory.");
             HardwareInventorySmoke.Verify();
             SetupSmoke.Verify();
             GenericHardwareSmoke.Verify();
