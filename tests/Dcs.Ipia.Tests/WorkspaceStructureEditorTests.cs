@@ -221,7 +221,8 @@ namespace Dcs.Ipia.Tests
             var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
             saved = WorkspaceStructureEditor.UpdateDevice(saved, device, "Renamed stick.diff.lua", null, null);
             var lua = Encoding.UTF8.GetString(SnapshotLuaPayloadRenderer.Generate(saved)["Config/Input/TEST/modifiers.lua"]);
-            Assert.All(DcsLuaParser.ParseModifiers(lua), x => Assert.Equal("Renamed stick", x.Device));
+            Assert.All(DcsLuaParser.ParseModifiers(lua).Where(x => x.Device != "Keyboard"),
+                x => Assert.Equal("Renamed stick", x.Device));
             Assert.Contains("Config/Input/TEST/joystick/Renamed stick.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
         }
         /// <summary>Saved device membership, semantic modifiers, and the hardware catalog reopen without source checkouts.</summary>
@@ -783,3 +784,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

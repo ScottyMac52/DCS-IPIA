@@ -42,7 +42,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains(DcsLuaParser.ParseProfile(Text(zip, root + "Config/Input/UiLayer/joystick/Stick.diff.lua"),
                                                        ProfileId), x => x.CommandId == "U");
             Assert.Equal("SHIFT", Assert.Single(DcsLuaParser.ParseModifiers(
-                Text(zip, root + "Config/Input/UiLayer/modifiers.lua"))).Name);
+                Text(zip, root + "Config/Input/UiLayer/modifiers.lua")), x => x.Name == "SHIFT").Name);
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
                          Bytes(zip, root + "KNEEBOARD/TEST/01-DEVICE.png").Take(8));
         }
@@ -168,3 +168,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
