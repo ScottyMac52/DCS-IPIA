@@ -12,6 +12,7 @@ namespace Dcs.Ipia.Tests
     /// <summary>Exercises editable starters and reviewed portable revision changes against real persistence.</summary>
     public sealed class MappingRevisionWorkflowTests
     {
+        private static readonly double[] FlatCurve = [0.0];
         #region BEGIN Public
         /// <summary>Every native button, axis and POV survives deterministic starter export and external geometry edits.</summary>
         /// <param name="highCount">Whether the controller reaches the supported button/hat limit.</param>
@@ -48,7 +49,7 @@ namespace Dcs.Ipia.Tests
             var assignments = new[] { new DraftAssignment(
                 new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X"),
                 new("axis", "Pitch", false, AssignmentLayer.Module))
-                { Filter = new(Deadzone: 0.1, SaturationX: 0.8, SaturationY: 0.9, Curvature: new[] { 0.0 }) } };
+                { Filter = new(Deadzone: 0.1, SaturationX: 0.8, SaturationY: 0.9, Curvature: FlatCurve) } };
             workspace = workspace with { Assignments = assignments };
             var source = DrawioMappingStarter.Export(definition);
             var first = DrawioMappingImporter.Import(source, definition, "controller.drawio", "test");

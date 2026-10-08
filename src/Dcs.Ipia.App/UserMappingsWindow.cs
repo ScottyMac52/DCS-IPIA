@@ -84,11 +84,7 @@ namespace DcsIpia.Presentation
             _save = Button("Save drawing", "SaveMappingButton", SaveClicked);
             _export = Button("Export editable bundle…", "ExportMappingButton", ExportClicked);
             _starter = Button("Export starter draw.io…", "ExportMappingStarterButton", StarterClicked);
-            _review = Button("Review adoption / rollback…", "ReviewMappingRevisionButton", (_, _) =>
-            {
-                if (_workspaces is null || _revisions.SelectedItem is not UserMappingRevision revision) return;
-                new MappingRevisionReviewWindow(revision, _workspaces) { Owner = this }.ShowDialog();
-            });
+            _review = Button("Review adoption / rollback…", "ReviewMappingRevisionButton", ReviewClicked);
             buttons.Children.Add(_starter); buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export);
             if (_workspaces is not null) buttons.Children.Add(_review);
             if (_canDiscoverHardware) buttons.Children.Add(_discover);
@@ -175,6 +171,11 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) { _status.Text = "Unable to save drawing: " + ex.Message; }
             finally { SetBusy(false); }
+        }
+        private void ReviewClicked(object sender, RoutedEventArgs e)
+        {
+            if (_workspaces is null || _revisions.SelectedItem is not UserMappingRevision revision) return;
+            new MappingRevisionReviewWindow(revision, _workspaces) { Owner = this }.ShowDialog();
         }
         private void StarterClicked(object sender, RoutedEventArgs e)
         {
