@@ -54,7 +54,7 @@ namespace Dcs.Ipia.Application
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static IReadOnlyList<UserMappingRevision>? History(UiLayerDiagram current, UserMappingRevision revision)
+        private static UserMappingRevision[]? History(UiLayerDiagram current, UserMappingRevision revision)
         {
             var history = (current.MappingHistory ?? []).Concat(current.CustomMapping is { } previous ? [previous] : [])
                 .Where(x => x.Id != revision.Id).DistinctBy(x => x.Id).ToArray();
