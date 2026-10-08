@@ -25,7 +25,7 @@ namespace DcsIpia.Presentation
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
-            DispatcherUnhandledException += (_, e) => _logger.LogCritical(e.Exception, "Unhandled WPF dispatcher exception");
+            DispatcherUnhandledException += (_, e) => ApplicationLog.DispatcherFailure(_logger, e.Exception);
         }
         #region BEGIN Public
         /// <summary>Creates import and settings services before showing the main window.</summary>
@@ -44,7 +44,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Invalid IPIA profile arguments");
+                ApplicationLog.InvalidProfile(_logger, ex);
                 MessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;
@@ -61,7 +61,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                _logger.LogError(ex, "Unable to acquire user-data lock {UserFolder}", userFolder);
+                ApplicationLog.DataLockFailure(_logger, userFolder, ex);
                 MessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
                     "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
@@ -80,7 +80,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to recover or migrate local data {UserFolder}", userFolder);
+                ApplicationLog.DataRecoveryFailure(_logger, userFolder, ex);
                 var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.");
                 MainWindow = window;
                 window.ShowDialog();
@@ -130,7 +130,7 @@ namespace DcsIpia.Presentation
                 try { await PublishedApplicationSmoke.VerifyAsync(MainWindow, userFolder); Shutdown(0); }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Published application smoke failed {UserFolder}", userFolder);
+                    ApplicationLog.ReleaseSmokeFailure(_logger, userFolder, ex);
                     File.WriteAllText(Path.Combine(userFolder, "release-smoke.error"), ex.ToString());
                     Shutdown(1);
                 }

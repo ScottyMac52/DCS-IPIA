@@ -371,7 +371,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to open or complete new-module creation");
+                ApplicationLog.NewModuleFailure(_logger, ex);
                 ShowImportError("Unable to create module: " + ex.Message);
             }
             finally

@@ -67,7 +67,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to read physical hardware inventory");
+                ApplicationLog.InventoryFailure(_logger, ex);
                 CreationError.Text = "Unable to read inventory: " + ex.Message;
             }
         }
@@ -102,18 +102,19 @@ namespace DcsIpia.Presentation
                     try { connected = _discovery.Discover(); }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Unable to discover connected controllers");
+                        ApplicationLog.ControllerDiscoveryFailure(_logger, ex);
                         errors.Add("Controllers: " + ex.Message);
                     }
                     try { captured = SavedGamesDeviceDiscovery.Discover(_savedGamesRoot); }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Unable to discover captured devices in {SavedGamesRoot}", _savedGamesRoot);
+                        ApplicationLog.CapturedDiscoveryFailure(_logger, _savedGamesRoot, ex);
                         errors.Add("Saved Games: " + ex.Message);
                     }
                     return DcsPhysicalIdentity.Merge(connected, captured);
                 });
-                _logger.LogDebug("Discovered {Count} physical units in {SavedGamesRoot}", choices.Count, _savedGamesRoot);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    ApplicationLog.DevicesDiscovered(_logger, choices.Count, _savedGamesRoot, null);
                 PhysicalChoices.ItemsSource = choices;
                 CreationError.Text = choices.Count + " physical unit(s). " + string.Join(" ", errors);
             }
@@ -183,9 +184,10 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to add unit {FileName} GUID {PhysicalGuid} hardware {HardwareId} baseline {BaselineFileName}",
-                    NativeFileInput.Text, DcsPhysicalIdentity.FromFileName(NativeFileInput.Text),
-                    (HardwareChoices.SelectedItem as WorkspaceHardware)?.DeviceId, BaselineChoices.SelectedItem as string);
+                if (_logger.IsEnabled(LogLevel.Error))
+                    ApplicationLog.AddUnitFailure(_logger,
+                        NativeFileInput.Text, DcsPhysicalIdentity.FromFileName(NativeFileInput.Text),
+                        (HardwareChoices.SelectedItem as WorkspaceHardware)?.DeviceId, BaselineChoices.SelectedItem as string, ex);
                 CreationError.Text = ex.Message;
             }
         }
@@ -209,8 +211,9 @@ namespace DcsIpia.Presentation
                 stagedWorkspace = workspace;
                 foreach (var selected in _selections)
                 {
-                    _logger.LogDebug("Applying unit {FileName} GUID {PhysicalGuid} hardware {HardwareId} baseline {BaselineFileName}",
-                        selected.FileName, DcsPhysicalIdentity.FromFileName(selected.FileName), selected.Hardware.DeviceId, selected.BaselineFileName);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        ApplicationLog.ApplyingUnit(_logger,
+                            selected.FileName, DcsPhysicalIdentity.FromFileName(selected.FileName), selected.Hardware.DeviceId, selected.BaselineFileName, null);
                     workspace = NewModuleDeviceAuthoring.Apply(workspace, selected);
                     stagedWorkspace = workspace;
                 }
@@ -221,13 +224,13 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to create module {DcsId} {DisplayName}; empty defaults {EmptyDefaults}; " +
-                    "revision {Revision}; selected units {@SelectedUnits}; staged profiles {@Profiles}",
-                    DcsIdInput.Text, DisplayNameInput.Text, EmptyDefaults.IsChecked == true, _defaults.Revision,
-                    _selections.Select(x => new { x.FileName, PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.FileName),
-                        HardwareId = x.Hardware.DeviceId, x.Instance, x.Role, x.BaselineFileName }).ToArray(),
-                    stagedWorkspace?.Configuration.Profiles.Select(x => new { x.Id, x.DeviceId, x.SourceName,
-                        PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.SourceName) }).ToArray());
+                if (_logger.IsEnabled(LogLevel.Error))
+                    ApplicationLog.CreateModuleFailure(_logger,
+                        DcsIdInput.Text, DisplayNameInput.Text, EmptyDefaults.IsChecked == true, _defaults.Revision,
+                        _selections.Select(x => new { x.FileName, PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.FileName),
+                            HardwareId = x.Hardware.DeviceId, x.Instance, x.Role, x.BaselineFileName }).ToArray(),
+                        stagedWorkspace?.Configuration.Profiles.Select(x => new { x.Id, x.DeviceId, x.SourceName,
+                            PhysicalGuid = DcsPhysicalIdentity.FromFileName(x.SourceName) }).ToArray(), ex);
                 CreationError.Text = ex.Message;
             }
             finally { CreateButton.IsEnabled = true; }

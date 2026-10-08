@@ -11,6 +11,18 @@ namespace Dcs.Ipia.App.Smoke
     /// <summary>Verifies real JSON-configured DI logging against an isolated physical file.</summary>
     internal static class LoggingSmoke
     {
+        private static readonly Action<ILogger, Exception?> SuppressedInfo = LoggerMessage.Define(
+            LogLevel.Information, new EventId(2000), "suppressed-info-marker");
+        private static readonly Action<ILogger, Exception?> ErrorFile = LoggerMessage.Define(
+            LogLevel.Error, new EventId(2001), "error-file-marker");
+        private static readonly Action<ILogger, Exception?> ApplicationError = LoggerMessage.Define(
+            LogLevel.Error, new EventId(2002), "application-error-marker");
+        private static readonly Action<ILogger, Exception?> AppDebug = LoggerMessage.Define(
+            LogLevel.Debug, new EventId(2003), "app-debug-marker");
+        private static readonly Action<ILogger, Exception?> SuppressedApplicationDebug = LoggerMessage.Define(
+            LogLevel.Debug, new EventId(2004), "suppressed-application-debug-marker");
+        private static readonly Action<ILogger, Exception?> SuppressedAfterReload = LoggerMessage.Define(
+            LogLevel.Debug, new EventId(2005), "suppressed-after-reload-marker");
         #region BEGIN Public
         /// <summary>Checks filtering, assembly isolation, configuration reload and sink disposal.</summary>
         public static void Verify()
@@ -39,21 +51,21 @@ namespace Dcs.Ipia.App.Smoke
                     var applicationLogger = services.GetRequiredService<ILogger<AppSettings>>();
                     if (appLogger.IsEnabled(LogLevel.Warning) || applicationLogger.IsEnabled(LogLevel.Warning))
                         throw new InvalidOperationException("Initial Error filtering was not applied.");
-                    appLogger.LogInformation("suppressed-info-marker");
+                    SuppressedInfo(appLogger, null);
                     using (appLogger.BeginScope(new Dictionary<string, object> { ["PhysicalGuid"] = "physical-guid-marker" }))
-                        appLogger.LogError(new InvalidOperationException("exception-detail-marker"), "error-file-marker");
-                    applicationLogger.LogError("application-error-marker");
+                        ErrorFile(appLogger, new InvalidOperationException("exception-detail-marker"));
+                    ApplicationError(applicationLogger, null);
                     overrides["Dcs.Ipia.App"] = "Debug";
                     File.WriteAllText(settingsPath, settings.ToJsonString());
                     configuration.Reload();
                     if (!appLogger.IsEnabled(LogLevel.Debug) || applicationLogger.IsEnabled(LogLevel.Debug))
                         throw new InvalidOperationException("Assembly-specific level changes did not remain independent.");
-                    appLogger.LogDebug("app-debug-marker");
-                    applicationLogger.LogDebug("suppressed-application-debug-marker");
+                    AppDebug(appLogger, null);
+                    SuppressedApplicationDebug(applicationLogger, null);
                     overrides["Dcs.Ipia.App"] = "Error";
                     File.WriteAllText(settingsPath, settings.ToJsonString());
                     configuration.Reload();
-                    appLogger.LogDebug("suppressed-after-reload-marker");
+                    SuppressedAfterReload(appLogger, null);
                 }
                 var text = File.ReadAllText(logPath);
                 foreach (var marker in new[] { "error-file-marker", "exception-detail-marker", "physical-guid-marker",

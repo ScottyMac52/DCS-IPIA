@@ -28,12 +28,13 @@ namespace DcsIpia.Presentation
                 logger = services.GetRequiredService<ILogger<App>>();
                 var app = services.GetRequiredService<App>();
                 app.InitializeComponent();
-                logger.LogInformation("Starting IPIA {Version}", ApplicationVersion.Label);
+                if (logger.IsEnabled(LogLevel.Information))
+                    ApplicationLog.Starting(logger, ApplicationVersion.Label, null);
                 return app.Run();
             }
             catch (Exception ex)
             {
-                logger?.LogCritical(ex, "IPIA terminated unexpectedly");
+                if (logger is not null) ApplicationLog.Terminated(logger, ex);
                 MessageBox.Show("Unable to start IPIA: " + ex.Message +
                     "\nCheck appsettings.json and the configured log folder.", "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Error);
                 return 1;
