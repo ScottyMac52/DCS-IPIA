@@ -23,7 +23,7 @@ Each native input remains represented once. Omitted inputs receive deterministic
 
 The profile's `UserMappings/<sha256>.json` library is separate from bundled assets. Each format-1/exporter-`ipia-drawio-1` revision contains the original editable source, importing app version, source filename, reviewed native capability evidence, captured local raster bytes, source/render hashes, complete control geometry and derived SVG. Its identity covers the complete revision. Loading, saving, adopting, snapshotting and rendering reproduce the SVG from source and reject mismatches.
 
-Publication creates a new file atomically and never overwrites a different revision. Existing identical imports are idempotent. Management lists, previews and exports saved revisions; destructive deletion and bulk revision updates are outside Feature 6.
+Publication creates a new file atomically and never overwrites a different revision. Existing identical imports are idempotent. Management lists, previews and exports saved revisions and read-only pins carried by saved modules, including portable restores with no library. Native definitions from saved generic/custom modules remain import targets when inventory is absent or hardware is disconnected; destructive deletion and bulk revision updates are outside Feature 6.
 
 **Export editable bundle…** writes a deterministic ZIP containing `mapping.drawio`, captured local images and `revision.json`. Extract it, edit the draw.io file and import again to create a new revision. Export chooses a new filename and does not replace an existing archive.
 
@@ -40,4 +40,4 @@ The complete adopted revision is an optional member of the existing diagram payl
 5. Export/restore a module snapshot in a separate profile without the original files or library and rebuild identical output. Full-profile backup/restore must restore the separate library too.
 6. Export the editable bundle, extract and edit it, then import another revision. The old revision/module pin must remain unchanged.
 
-Automated fixtures cover these boundaries; CI publishes a custom controller-photo PNG/SVG for visual review. Physical-controller and in-game acceptance remains a maintainer check.
+Automated fixtures cover these boundaries; CI publishes a custom controller drawing as PNG/SVG for visual review. Physical-controller and in-game acceptance remains a maintainer check.

@@ -80,6 +80,16 @@ namespace Dcs.Ipia.App.Smoke
                 editor.Close();
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping?.Id != revision.Id)
                     throw new InvalidOperationException("Saved custom mapping lost its immutable revision.");
+                var portableLibrary = new FileUserMappingLibrary(Path.Combine(root, "portable-empty-library"));
+                var portableBundle = Path.Combine(root, "portable-pin.zip");
+                var pinnedTools = new UserMappingsWindow(portableLibrary, [definition], exportPicker: () => portableBundle, modulePins: [revision]);
+                pinnedTools.Show();
+                var pinnedChoices = (ListBox)pinnedTools.FindName("MappingRevisions")!;
+                Pump(pinnedTools, () => pinnedChoices.Items.Count == 1);
+                pinnedChoices.SelectedIndex = 0; Click((Button)pinnedTools.FindName("ExportMappingButton")!);
+                if (!File.Exists(portableBundle) || portableLibrary.ListAsync().GetAwaiter().GetResult().Count != 0)
+                    throw new InvalidOperationException("A portable module pin could not export without silently publishing a library entry.");
+                pinnedTools.Close();
                 Console.WriteLine("Custom mapping preview, save, source-free reopen/export and staged/discarded/saved adoption passed.");
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }

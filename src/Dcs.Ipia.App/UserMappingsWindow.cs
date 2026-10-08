@@ -14,6 +14,7 @@ namespace DcsIpia.Presentation
     public sealed class UserMappingsWindow : Window
     {
         private readonly IUserMappingLibrary _library;
+        private readonly IReadOnlyList<UserMappingRevision> _modulePins;
         private readonly Func<string?>? _sourcePicker;
         private readonly Func<string?>? _exportPicker;
         private readonly ComboBox _definitions;
@@ -31,10 +32,12 @@ namespace DcsIpia.Presentation
         /// <param name="sourcePicker">Optional source browser adapter.</param>
         /// <param name="exportPicker">Optional editable bundle destination adapter.</param>
         /// <param name="targetNames">Physical labels for native definition selection.</param>
+        /// <param name="modulePins">Read-only revisions carried by saved/portable modules.</param>
         public UserMappingsWindow(IUserMappingLibrary library, IReadOnlyList<HardwareDefinition> definitions,
-            Func<string?>? sourcePicker = null, Func<string?>? exportPicker = null, IReadOnlyDictionary<string, string>? targetNames = null)
+            Func<string?>? sourcePicker = null, Func<string?>? exportPicker = null, IReadOnlyDictionary<string, string>? targetNames = null, IReadOnlyList<UserMappingRevision>? modulePins = null)
         {
             _library = library;
+            _modulePins = modulePins ?? [];
             _sourcePicker = sourcePicker; _exportPicker = exportPicker;
             Title = "User draw.io mapping library";
             Width = 1000; Height = 760; MinWidth = 700; MinHeight = 500;
@@ -67,7 +70,7 @@ namespace DcsIpia.Presentation
             _revisions.SelectionChanged += (_, _) =>
             {
                 if (_busy || _revisions.SelectedItem is not UserMappingRevision revision) return;
-                try { Preview(revision); _candidate = null; _status.Text = "Saved revision " + revision.Id + " · " + revision.ApplicationVersion; }
+                try { Preview(revision); _candidate = null; _status.Text = "Saved or module-pinned revision " + revision.Id + " · " + revision.ApplicationVersion; }
                 catch (Exception ex) { _status.Text = "Unable to preview revision: " + ex.Message; }
                 UpdateButtons();
             };
@@ -87,7 +90,7 @@ namespace DcsIpia.Presentation
         private async Task ReloadAsync()
         {
             SetBusy(true);
-            try { _revisions.ItemsSource = await _library.ListAsync(); }
+            try { _revisions.ItemsSource = (await _library.ListAsync()).Concat(_modulePins).DistinctBy(x => x.Id).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray(); }
             catch (Exception ex) { _status.Text = "Unable to read user mappings: " + ex.Message; }
             finally { SetBusy(false); }
         }
@@ -117,7 +120,7 @@ namespace DcsIpia.Presentation
             {
                 await _library.SaveAsync(revision);
                 _candidate = null;
-                _revisions.ItemsSource = await _library.ListAsync();
+                _revisions.ItemsSource = (await _library.ListAsync()).Concat(_modulePins).DistinctBy(x => x.Id).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
                 _status.Text = "Saved immutable revision " + revision.Id + ". No modules were changed.";
             }
             catch (Exception ex) { _status.Text = "Unable to save revision: " + ex.Message; }

@@ -198,9 +198,24 @@ namespace DcsIpia.Presentation
             {
                 var inventory = await _hardwareInventory.ReadSnapshotAsync();
                 var revisions = await _userMappings.ListAsync();
-                var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).DistinctBy(x => x.Id).ToArray();
+                var modulePins = new List<UserMappingRevision>();
+                var moduleDefinitions = new List<HardwareDefinition>();
                 var names = inventory.Instances.GroupBy(x => x.DefinitionId).ToDictionary(x => x.Key, x => string.Join(" / ", x.Select(y => string.IsNullOrWhiteSpace(y.Label) ? y.NativeName : y.Label).Distinct(StringComparer.Ordinal)), StringComparer.Ordinal);
-                new UserMappingsWindow(_userMappings, definitions, targetNames: names) { Owner = this }.ShowDialog();
+                foreach (var id in await _workspaces.ListAsync())
+                {
+                    var module = await _workspaces.GetAsync(id);
+                    foreach (var diagram in module?.Diagrams ?? [])
+                    {
+                        var definition = diagram.CustomMapping?.Definition ?? (diagram.GenericCapabilities is { } capabilities
+                            ? new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities) : null);
+                        if (definition is null) continue;
+                        moduleDefinitions.Add(definition);
+                        names.TryAdd(definition.Id, module!.Configuration.Module.DisplayName + " / " + diagram.Title);
+                        if (diagram.CustomMapping is { } pin) modulePins.Add(pin);
+                    }
+                }
+                var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
+                new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins) { Owner = this }.ShowDialog();
             }
             catch (Exception ex) { ImportStatus.Text = "Unable to open user mappings: " + ex.Message; }
             finally { SetModuleOperationBusy(false); }
