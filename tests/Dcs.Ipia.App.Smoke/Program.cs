@@ -24,6 +24,8 @@ namespace Dcs.Ipia.App.Smoke
         /// <returns>Zero when both windows render their expected content.</returns>
         public static int Main()
         {
+            Console.WriteLine("Smoke: JSON-configured physical logging.");
+            LoggingSmoke.Verify();
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
             var app = new System.Windows.Application();
             foreach (var theme in new[] { "Light", "Styles" })
@@ -1137,4 +1139,3 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
-

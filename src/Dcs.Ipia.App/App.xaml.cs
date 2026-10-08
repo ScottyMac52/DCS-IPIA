@@ -6,6 +6,7 @@ using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DcsIpia.Presentation
 {
@@ -14,6 +15,18 @@ namespace DcsIpia.Presentation
     {
         private ServiceProvider? _services;
         private FileStream? _dataLease;
+        private readonly ILogger<App> _logger;
+        private readonly ILoggerFactory _loggerFactory;
+
+        /// <summary>Uses the Program-owned logger factory throughout the WPF lifetime.</summary>
+        /// <param name="logger">Application failure logger.</param>
+        /// <param name="loggerFactory">Shared factory, disposed after database shutdown.</param>
+        public App(ILogger<App> logger, ILoggerFactory loggerFactory)
+        {
+            _logger = logger;
+            _loggerFactory = loggerFactory;
+            DispatcherUnhandledException += (_, e) => ApplicationLog.DispatcherFailure(_logger, e.Exception);
+        }
         #region BEGIN Public
         /// <summary>Creates import and settings services before showing the main window.</summary>
         /// <param name="e">The WPF startup event.</param>
@@ -31,6 +44,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
+                ApplicationLog.InvalidProfile(_logger, ex);
                 MessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;
@@ -47,6 +61,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
+                ApplicationLog.DataLockFailure(_logger, userFolder, ex);
                 MessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
                     "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
@@ -65,6 +80,7 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex)
             {
+                ApplicationLog.DataRecoveryFailure(_logger, userFolder, ex);
                 var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.");
                 MainWindow = window;
                 window.ShowDialog();
@@ -73,6 +89,8 @@ namespace DcsIpia.Presentation
             }
             var registrations =
                 new ServiceCollection()
+                    .AddSingleton(_loggerFactory)
+                    .AddSingleton(typeof(ILogger<>), typeof(AssemblyLogger<>))
                     .AddSingleton<IUserDataRecoveryService>(recovery)
                     .AddSingleton<IUserMappingLibrary>(new FileUserMappingLibrary(userFolder))
                     .AddSingleton<Action>(_ => CloseDatabase)
@@ -110,7 +128,12 @@ namespace DcsIpia.Presentation
             if (releaseSmoke)
             {
                 try { await PublishedApplicationSmoke.VerifyAsync(MainWindow, userFolder); Shutdown(0); }
-                catch (Exception ex) { File.WriteAllText(Path.Combine(userFolder, "release-smoke.error"), ex.ToString()); Shutdown(1); }
+                catch (Exception ex)
+                {
+                    ApplicationLog.ReleaseSmokeFailure(_logger, userFolder, ex);
+                    File.WriteAllText(Path.Combine(userFolder, "release-smoke.error"), ex.ToString());
+                    Shutdown(1);
+                }
             }
         }
         /// <summary>Releases the service provider on application exit.</summary>
@@ -146,4 +169,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
