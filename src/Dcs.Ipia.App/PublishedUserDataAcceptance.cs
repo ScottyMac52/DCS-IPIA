@@ -8,6 +8,7 @@ using Dcs.Ipia.Domain;
 using Dcs.Ipia.Infrastructure;
 using Dcs.Ipia.Rendering;
 using Microsoft.Data.Sqlite;
+using SkiaSharp;
 
 namespace DcsIpia.Presentation
 {
@@ -84,10 +85,17 @@ namespace DcsIpia.Presentation
                 var payload = SnapshotLuaPayloadRenderer.Generate(workspace);
                 foreach (var (path, bytes) in payload) evidence[name + "/lua/" + path] = Hash(bytes);
                 foreach (var diagram in workspace.Diagrams)
-                    evidence[name + "/drawing/" + diagram.ProfileId] = Hash(CanonicalSvgRenderer.RenderComplete(diagram.Svg, diagram.Width, diagram.Height));
+                    evidence[name + "/drawing/" + diagram.ProfileId] = PixelHash(CanonicalSvgRenderer.RenderComplete(diagram.Svg, diagram.Width, diagram.Height));
             }
             if (evidence.Count < 10) throw new InvalidDataException("Acceptance evidence lacks saved profiles or output.");
             return evidence;
+        }
+        private static string PixelHash(byte[] png)
+        {
+            using var bitmap = SKBitmap.Decode(png) ?? throw new InvalidDataException("Acceptance PNG could not be decoded.");
+            using var rgba = bitmap.Copy(SKColorType.Rgba8888) ?? throw new InvalidDataException("Acceptance pixels could not be normalized.");
+            return bitmap.Width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "x" +
+                bitmap.Height.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + Hash(rgba.Bytes);
         }
         private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
         #endregion END private helpers
