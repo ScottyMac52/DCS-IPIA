@@ -26,10 +26,7 @@ namespace Dcs.Ipia.App.Smoke
             MainWindow? window = null;
             try
             {
-                var sources = created.Sources!.Where(x => x.Key != "config/ipia-axis-cleanup-devices.json").ToDictionary(x => x.Key, x => x.Value);
-                var saved = created with { Sources = sources, ModuleCommands = [.. created.ModuleCommands.Where(x => x.Id != "a2001cdnil"), new("a2001cdnil", "Pitch", "Axes", true)] };
-                foreach (var device in WorkspaceStructureEditor.Describe(saved).Devices)
-                    saved = ModulePhysicalBindingReview.Confirm(saved, device.ProfileId, DcsPhysicalIdentity.FromFileName(device.FileName)!.Value);
+                var saved = Workspace(created.Configuration.Module.Id);
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
@@ -56,6 +53,11 @@ namespace Dcs.Ipia.App.Smoke
                 var bindings = DcsLuaParser.ParseProfile(File.ReadAllText(target), Guid.NewGuid());
                 if (bindings.Count(x => x.CommandId == "a2001cdnil" && x.Disposition == BindingDisposition.Removed) != 8)
                     throw new InvalidOperationException("Direct Fly Now left unused pitch axes without deployed removals.");
+                var assignedPath = Path.Combine(destination, "Config", "Input", saved.Configuration.Module.DcsId, "joystick", saved.Configuration.Profiles[0].SourceName);
+                var assigned = DcsLuaParser.ParseProfile(File.ReadAllText(assignedPath), saved.Configuration.Profiles[0].Id);
+                if (!assigned.Any(x => x.CommandId == "a2001cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Added) ||
+                    assigned.Any(x => x.CommandId == "a2001cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Removed))
+                    throw new InvalidOperationException("Direct Fly Now changed the authored pitch assignment.");
                 if (!service.GetActiveAsync().GetAwaiter().GetResult()!.Files.Any(x => x.EndsWith('/' + unused, StringComparison.Ordinal)))
                     throw new InvalidOperationException("Fly Now did not journal the cleanup-only profile.");
                 service.ClearAsync().GetAwaiter().GetResult();
@@ -65,6 +67,36 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static EditorWorkspaceSnapshot Workspace(Guid moduleId)
+        {
+            var profileId = Guid.NewGuid();
+            var file = new DetectedDcsDevice(Guid.NewGuid(), "Authored stick", false).FileName;
+            var profile = new DeviceProfile(profileId, "stick", null, "Stick", file);
+            var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
+                ProfileId = profileId, Controls = [new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true)],
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-pitch' x='10' y='20' fill='white'>Pitch</text></svg>"
+            };
+            var sources = new Dictionary<string, string> {
+                ["config/ipia-created-module.json"] = "{}",
+                [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement([
+                    new(profileId, AssignmentLayer.Module, file, null, "Stick")], [])),
+                ["config/kneeboard.json"] = JsonSerializer.Serialize(new {
+                    profiles = new Dictionary<string, string> { ["stick"] = file },
+                    pages = new[] { new { profile = "stick", file = "01-STICK", title = "Stick" } },
+                    summaryPages = new[] { new { type = "summary", file = "00-OVERVIEW", title = "Overview", kicker = "CONTROLS",
+                        items = new[] { new { key = "STICK", text = "Flight controls", accent = "cyan" } } } }
+                })
+            };
+            var pages = new KneeboardPage[] {
+                new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Device, "01-STICK", "Stick", [], 1),
+                new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Summary, "00-OVERVIEW", "Overview", [], 0)
+            };
+            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, "AXIS-TEST", "Axis test"), [profile], [], [], "Created in IPIA"),
+                pages, [], [diagram], [new("a2001cdnil", "Pitch", "Axes", true)], [],
+                [new(new(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_Y"), new("a2001cdnil", "Pitch", true, AssignmentLayer.Module))],
+                new Dictionary<string, string>(), sources);
+            return ModulePhysicalBindingReview.Confirm(workspace, profileId, DcsPhysicalIdentity.FromFileName(file)!.Value);
+        }
         private static void Wait(MainWindow window, Func<bool> ready)
         {
             var deadline = DateTime.UtcNow.AddSeconds(90);
