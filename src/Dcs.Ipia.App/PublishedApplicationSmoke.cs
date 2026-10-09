@@ -29,6 +29,7 @@ namespace DcsIpia.Presentation
             using var image = surface.Snapshot();
             using var png = image.Encode(SKEncodedImageFormat.Png, 100);
             if (png.Size == 0) throw new InvalidDataException("Published native PNG rendering failed.");
+            if (!MainWindowCommands.SupportReport.CanExecute(null, window)) throw new InvalidDataException("Published support report command is unavailable.");
             if (!MainWindowCommands.UserMappings.CanExecute(null, window)) throw new InvalidDataException("Published custom mapping command is unavailable.");
             var capabilities = ControllerCapabilityMapper.Map([new ControllerObject(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12, "Button 1")]);
             var definition = new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities);
@@ -40,7 +41,9 @@ namespace DcsIpia.Presentation
                 <mxCell id="footer" parent="1" vertex="1" value="Published custom mapping"><mxGeometry x="0" y="575" width="900" height="25"/></mxCell>
                 </root></mxGraphModel></diagram></mxfile>
                 """;
+            source = source.Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=data:image/png;base64," + Convert.ToBase64String(png.ToArray()) + ";\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal);
             var revision = DrawioMappingImporter.Import(source, definition, "published.drawio", version);
+            if (revision.Assets.Count != 1) throw new InvalidDataException("Published custom mapping did not capture its image asset.");
             var library = new FileUserMappingLibrary(folder);
             await library.SaveAsync(revision);
             var reopened = (await library.ListAsync()).Single();
