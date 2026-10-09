@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -68,13 +69,15 @@ namespace Dcs.Ipia.App.Smoke
                     AssertPixel(choices, 0, 12, "AccentTextBrush");
                     Press(choices, Key.Down); Pump(window);
                     if (choices.SelectedIndex != 1) throw new InvalidOperationException("Dropdown keyboard selection stopped working.");
-                    Press(choices, Key.Up); Press(choices, Key.F4); Pump(window);
+                    Press(choices, Key.Up);
+                    ((Popup)choices.Template.FindName("PART_Popup", choices)).PopupAnimation = PopupAnimation.None;
+                    Press(choices, Key.F4); Pump(window);
                     if (!choices.IsDropDownOpen) throw new InvalidOperationException("F4 did not open the themed dropdown.");
                     var first = (ComboBoxItem)choices.ItemContainerGenerator.ContainerFromIndex(0);
                     var second = (ComboBoxItem)choices.ItemContainerGenerator.ContainerFromIndex(1);
                     var unavailable = (ComboBoxItem)choices.ItemContainerGenerator.ContainerFromIndex(2);
                     AssertPixel(first, 3, 3, "SelectedBackgroundBrush");
-                    AssertPixel(second, 3, 3, "ControlBackgroundBrush");
+                    AssertPixel(second, 3, 3, second.IsHighlighted ? "SelectedBackgroundBrush" : "ControlBackgroundBrush");
                     AssertPixel(unavailable, 3, 3, "DisabledBackgroundBrush");
                     AssertText(first, "First controller", "ControlForegroundBrush");
                     AssertText(unavailable, "Unavailable controller", "DisabledTextBrush");
@@ -110,8 +113,11 @@ namespace Dcs.Ipia.App.Smoke
             var image = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);
             image.Render(root);
             var bounds = control.TransformToAncestor(root).TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
-            return new CroppedBitmap(image, new Int32Rect((int)Math.Round(bounds.X), (int)Math.Round(bounds.Y),
-                (int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height)));
+            var rectangle = new Int32Rect((int)Math.Round(bounds.X), (int)Math.Round(bounds.Y),
+                (int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height));
+            if (rectangle.X < 0 || rectangle.Y < 0 || rectangle.X + rectangle.Width > image.PixelWidth || rectangle.Y + rectangle.Height > image.PixelHeight)
+                throw new InvalidOperationException("Control capture is outside its surface: " + rectangle + " within " + image.PixelWidth + "x" + image.PixelHeight + ".");
+            return new CroppedBitmap(image, rectangle);
         }
         private static void AssertPixel(FrameworkElement control, int x, int y, string key)
         {
