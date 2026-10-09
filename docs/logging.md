@@ -23,3 +23,8 @@ Application code receives `Microsoft.Extensions.Logging.ILogger<T>` through DI. 
 Startup/profile/lock/migration failures, unhandled dispatcher exceptions and new-module inventory/discovery/add/create failures are instrumented. Failed module creation records the module identity, baseline revision, reviewed device filenames and GUIDs, hardware IDs, selected baseline names and staged profile identities. Debug adds discovery counts and individual device-application steps. Full exception text and properties are included in each retained event.
 
 The Windows smoke suite verifies an isolated real file sink, initial filtering, independent assembly overrides, live configuration reload, exception/scope output and provider-disposal flushing.
+
+Saved-module output failures (Validate, snapshot/documentation/Complete export, OvGME build and Fly Now) log an Error event named `ModuleOutputFailure` (1015), including the operation, module identity, package version where available and full exception. Validate/export/build also retain their latest failure in Diagnostics. No Debug override is needed to capture these failures.
+
+Imported bindings are reconciled with saved mapped assignments before output: a saved command replaces conflicting import evidence, a cleared mapped slot stays cleared, and obsolete axes receive explicit removals. Identical binding copies are collapsed; distinct unmapped button commands are preserved. Conflicting saved assignments report the device/profile, input, modifier chord and both command identities so the slot can be corrected.
+

@@ -5,6 +5,9 @@ namespace DcsIpia.Presentation
     /// <summary>Cached, strongly typed diagnostic messages with stable event identities.</summary>
     internal static class ApplicationLog
     {
+        internal static readonly Action<ILogger, string, Guid, string, string, Exception?> ModuleOutputFailure =
+            LoggerMessage.Define<string, Guid, string, string>(LogLevel.Error, new EventId(1015, nameof(ModuleOutputFailure)),
+                "Module operation {Operation} failed for {ModuleId} {DcsId}; package version {PackageVersion}");
         internal static readonly Action<ILogger, string, Exception?> Starting = LoggerMessage.Define<string>(
             LogLevel.Information, new EventId(1000, nameof(Starting)), "Starting IPIA {Version}");
         internal static readonly Action<ILogger, Exception?> Terminated = LoggerMessage.Define(
@@ -41,3 +44,4 @@ namespace DcsIpia.Presentation
                 "revision {Revision}; selected units {@SelectedUnits}; staged profiles {@Profiles}");
     }
 }
+

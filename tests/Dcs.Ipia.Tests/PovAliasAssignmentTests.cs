@@ -85,7 +85,7 @@ namespace Dcs.Ipia.Tests
             Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(saved));
         }
 
-        /// <summary>Aliases with genuinely different commands or tuning remain explicit conflicts.</summary>
+        /// <summary>Saved alias conflicts remain blocked; authoritative saved edits resolve imported conflicts.</summary>
         [Fact]
         public void ConflictingAliasesCannotProduceAmbiguousExports()
         {
@@ -99,7 +99,11 @@ namespace Dcs.Ipia.Tests
             var changedBinding = workspace.Configuration.Bindings.Select(x => x.InputKey == "JOY_POV1_D" && x.Disposition != BindingDisposition.Removed
                 ? new DcsBinding(x.ProfileId, x.Section, "CONFLICT", x.CommandName, x.Disposition, x.InputKey, x.Reformers, x.Filter) : x).ToArray();
             var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, changedBinding, "fixture");
-            Assert.Throws<InvalidDataException>(() => ModuleLuaProfileRenderer.Render(workspace with { Configuration = config, Assignments = Draft(workspace).Snapshot }, first.Slot.ProfileId));
+            var reconciled = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
+                workspace with { Configuration = config, Assignments = Draft(workspace).Snapshot }, first.Slot.ProfileId), first.Slot.ProfileId);
+            Assert.DoesNotContain(reconciled, x => x.CommandId == "CONFLICT" && x.Disposition != BindingDisposition.Removed);
+            foreach (var alias in new[] { "JOY_POV1_D", "JOY_BTN_POV1_D" })
+                Assert.Contains(reconciled, x => x.InputKey == alias && x.CommandId == first.Command.Id && x.Disposition != BindingDisposition.Removed);
             second = first with { Slot = first.Slot with { InputKey = "JOY_BTN_POV1_D" }, Filter = new AxisFilter(Deadzone: 0.1) };
             Assert.Equal(2, DcsInputKey.CollapseAliases([first, second]).Count);
         }
@@ -132,3 +136,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+

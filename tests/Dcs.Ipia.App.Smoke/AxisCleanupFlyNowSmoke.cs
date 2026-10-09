@@ -58,9 +58,12 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Direct Fly Now left unused pitch axes without deployed removals.");
                 var assignedPath = Path.Combine(destination, "Config", "Input", saved.Configuration.Module.DcsId, "joystick", saved.Configuration.Profiles[0].SourceName);
                 var assigned = DcsLuaParser.ParseProfile(File.ReadAllText(assignedPath), saved.Configuration.Profiles[0].Id);
-                if (!assigned.Any(x => x.CommandId == "a2001cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Added) ||
+                if (assigned.Count(x => x.CommandId == "a2001cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Added) != 1 ||
                     assigned.Any(x => x.CommandId == "a2001cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Removed))
                     throw new InvalidOperationException("Direct Fly Now changed the authored pitch assignment.");
+                if (!assigned.Any(x => x.CommandId == "a2002cdnil" && x.InputKey == "JOY_Y" && x.Disposition == BindingDisposition.Removed) ||
+                    assigned.Any(x => x.CommandId == "a2002cdnil" && x.InputKey == "JOY_Y" && x.Disposition != BindingDisposition.Removed))
+                    throw new InvalidOperationException("Direct Fly Now retained a conflicting imported roll assignment.");
                 if (!service.GetActiveAsync().GetAwaiter().GetResult()!.Files.Any(x => x.EndsWith('/' + unused, StringComparison.Ordinal)))
                     throw new InvalidOperationException("Fly Now did not journal the cleanup-only profile.");
                 service.ClearAsync().GetAwaiter().GetResult();
@@ -70,7 +73,7 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace(Guid moduleId)
+        internal static EditorWorkspaceSnapshot Workspace(Guid moduleId, string dcsId = "AXIS-TEST")
         {
             var profileId = Guid.NewGuid();
             var file = new DetectedDcsDevice(Guid.NewGuid(), "Authored stick", false).FileName;
@@ -93,7 +96,12 @@ namespace Dcs.Ipia.App.Smoke
                 new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Device, "01-STICK", "Stick", [], 1),
                 new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Summary, "00-OVERVIEW", "Overview", [], 0)
             };
-            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, "AXIS-TEST", "Axis test"), [profile], [], [], "Imported from Saved Games"),
+            var original = new DcsBinding[] {
+                new(profileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Added, "JOY_Y"),
+                new(profileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Added, "JOY_Y"),
+                new(profileId, BindingSection.Axis, "a2002cdnil", "Roll", BindingDisposition.Added, "JOY_Y")
+            };
+            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, dcsId, "Axis test"), [profile], [], original, "Imported from Saved Games"),
                 pages, [], [diagram], [], [],
                 [new(new(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_Y"), new("a2001cdnil", "Pitch", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), sources);
@@ -113,4 +121,5 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 

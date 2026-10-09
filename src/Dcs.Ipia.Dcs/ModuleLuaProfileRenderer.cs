@@ -38,19 +38,22 @@ namespace Dcs.Ipia.Dcs
                 if (!saved.TryAdd(
                         Slot(assignment.Slot.Section, assignment.Slot.InputKey, assignment.Slot.ModifierChord),
                         assignment))
-                    throw new InvalidDataException("Two saved assignments occupy one physical input slot.");
+                {
+                    var previous = saved[Slot(assignment.Slot.Section, assignment.Slot.InputKey, assignment.Slot.ModifierChord)];
+                    var profile = config.Profiles.Single(x => x.Id == profileId);
+                    throw new InvalidDataException($"Module {config.Module.DcsId}; device {profile.DeviceId} " +
+                        $"({profile.SourceName}, profile {profileId}); {assignment.Slot.Section} input {assignment.Slot.InputKey}; " +
+                        $"modifiers [{assignment.Slot.ModifierChord}]: conflicting saved commands " +
+                        $"{previous.Command.Name} [{previous.Command.Id}] and {assignment.Command.Name} [{assignment.Command.Id}]. " +
+                        "Assign one command to this input and modifier combination, then save to database.");
+                }
                 if (!Mapped(diagram, assignment.Slot.Section, assignment.Slot.InputKey))
                     throw new InvalidDataException("Saved assignment has no authored hardware control: " +
                                                    assignment.Slot.InputKey);
             }
             var active = original.Where(x => x.Disposition != BindingDisposition.Removed).ToArray();
-            if (active.GroupBy(x => Slot(x.Section, x.InputKey, string.Join("+", x.Reformers)), StringComparer.Ordinal)
-                    .Any(group => group.Count() > 1 &&
-                        (group.Select(x => x.InputKey).Distinct(StringComparer.Ordinal).Count() < 2 ||
-                         group.Any(x => x.CommandId != group.First().CommandId ||
-                                        !SameFilter(x.Filter, group.First().Filter)))))
-                throw new InvalidDataException(
-                    "Multiple active DCS commands on one input cannot be represented by this editor.");
+            // Original imports are evidence, not the final assignments. Resolve mapped slots below
+            // before considering duplicates; DCS also permits multiple commands on unmapped buttons.
             var result = new List<DcsBinding>(original.Where(x => x.Disposition == BindingDisposition.Removed));
             var handled = new HashSet<string>(StringComparer.Ordinal);
             foreach (var binding in active)
@@ -78,7 +81,8 @@ namespace Dcs.Ipia.Dcs
             foreach (var (key, assignment) in saved)
                 if (!handled.Contains(key))
                     result.Add(ToBinding(profileId, assignment));
-            return Write(ModuleAxisDefaults.Apply(workspace, profileId, defaultsLayer, result));
+            var effective = result.DistinctBy(x => System.Text.Json.JsonSerializer.Serialize(x)).ToArray();
+            return Write(ModuleAxisDefaults.Apply(workspace, profileId, defaultsLayer, effective));
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -201,3 +205,4 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+

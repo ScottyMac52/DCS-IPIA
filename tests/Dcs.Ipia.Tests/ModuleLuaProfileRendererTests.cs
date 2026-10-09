@@ -45,16 +45,112 @@ namespace Dcs.Ipia.Tests
             Assert.False(axis.Filter?.Slider);
         }
 
-        /// <summary>Rejects old source profiles that assign multiple commands to one editor slot.</summary>
+        /// <summary>Cleared mapped slots discard all imported commands rather than blocking output.</summary>
         [Fact]
-        public void Render_RejectsAmbiguousExistingBindings()
+        public void Render_ClearsAmbiguousExistingBindings()
         {
             var originals = new[] {
                 new DcsBinding(ProfileId, BindingSection.Key, "One", "One", BindingDisposition.Added, "JOY_BTN1"),
                 new DcsBinding(ProfileId, BindingSection.Key, "Two", "Two", BindingDisposition.Added, "JOY_BTN1")
             };
-            Assert.Throws<InvalidDataException>(
-                () => ModuleLuaProfileRenderer.Render(Workspace(originals, []), ProfileId));
+            var rendered = ModuleLuaProfileRenderer.Render(Workspace(originals, []), ProfileId);
+            Assert.Empty(DcsLuaParser.ParseProfile(rendered, ProfileId));
+        }
+
+        /// <summary>Saved commands replace conflicting import evidence exactly once and retire old axes.</summary>
+        [Theory]
+        [InlineData(BindingSection.Key, "JOY_BTN1")]
+        [InlineData(BindingSection.Axis, "JOY_X")]
+        public void Render_ResolvesImportedConflictsWithSavedAssignment(BindingSection section, string key)
+        {
+            var originals = new[] {
+                new DcsBinding(ProfileId, section, "One", "One", BindingDisposition.Added, key),
+                new DcsBinding(ProfileId, section, "Two", "Two", BindingDisposition.Changed, key)
+            };
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
+                Workspace(originals, [Assigned("New", "New", section, key)]), ProfileId), ProfileId);
+            Assert.Equal("New", Assert.Single(parsed, x => x.Disposition != BindingDisposition.Removed).CommandId);
+            Assert.Equal(section == BindingSection.Axis ? 2 : 0,
+                parsed.Count(x => x.Disposition == BindingDisposition.Removed));
+        }
+
+        /// <summary>Identical duplicate evidence produces one effective binding.</summary>
+        [Fact]
+        public void Render_CollapsesIdenticalImportedDuplicates()
+        {
+            var binding = new DcsBinding(ProfileId, BindingSection.Key, "One", "One", BindingDisposition.Added, "JOY_BTN1");
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
+                Workspace([binding, binding], [Assigned("One", "One", BindingSection.Key, "JOY_BTN1")]), ProfileId), ProfileId);
+            Assert.Equal("One", Assert.Single(parsed).CommandId);
+        }
+
+        /// <summary>Saved tuning replaces conflicting imported filters without duplicating the axis.</summary>
+        [Fact]
+        public void Render_UsesSavedFilterWhenImportedFiltersConflict()
+        {
+            var original = new DcsBinding(ProfileId, BindingSection.Axis, "Axis", "Axis", BindingDisposition.Added,
+                "JOY_X", [], new AxisFilter(Deadzone: 0.1));
+            var other = new DcsBinding(ProfileId, BindingSection.Axis, "Axis", "Axis", BindingDisposition.Added,
+                "JOY_X", [], new AxisFilter(Deadzone: 0.2));
+            var edit = Assigned("Axis", "Axis", BindingSection.Axis, "JOY_X") with { Filter = new AxisFilter(Deadzone: 0.3) };
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(Workspace([original, other], [edit]), ProfileId), ProfileId);
+            Assert.Equal(0.3, Assert.Single(parsed).Filter?.Deadzone);
+        }
+
+        /// <summary>Different modifier chords stay independent when reconciling an imported conflict.</summary>
+        [Fact]
+        public void Render_PreservesIndependentModifierChords()
+        {
+            var originals = new[] {
+                new DcsBinding(ProfileId, BindingSection.Key, "One", "One", BindingDisposition.Added, "JOY_BTN1"),
+                new DcsBinding(ProfileId, BindingSection.Key, "Two", "Two", BindingDisposition.Added, "JOY_BTN1"),
+                new DcsBinding(ProfileId, BindingSection.Key, "Shifted", "Shifted", BindingDisposition.Added, "JOY_BTN1", ["Shift"])
+            };
+            var shifted = Assigned("Shifted", "Shifted", BindingSection.Key, "JOY_BTN1");
+            shifted = shifted with { Slot = shifted.Slot with { ModifierChord = "Shift" } };
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
+                Workspace(originals, [Assigned("New", "New", BindingSection.Key, "JOY_BTN1"), shifted],
+                    [new DcsModifier("Shift", "Stick", "JOY_BTN2", ModifierMode.Hold)]), ProfileId), ProfileId);
+            Assert.Equal(2, parsed.Count);
+            Assert.Contains(parsed, x => x.CommandId == "New" && x.Reformers.Count == 0);
+            Assert.Equal("Shift", Assert.Single(Assert.Single(parsed, x => x.CommandId == "Shifted").Reformers));
+        }
+
+        /// <summary>Cleared axes remove every old command even when imports collide.</summary>
+        [Fact]
+        public void Render_ClearsConflictingAxesWithExplicitRemovals()
+        {
+            var originals = new[] {
+                new DcsBinding(ProfileId, BindingSection.Axis, "One", "One", BindingDisposition.Added, "JOY_X"),
+                new DcsBinding(ProfileId, BindingSection.Axis, "Two", "Two", BindingDisposition.Added, "JOY_X")
+            };
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(Workspace(originals, []), ProfileId), ProfileId);
+            Assert.Equal(2, parsed.Count);
+            Assert.All(parsed, x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
+        }
+
+        /// <summary>Unmapped button commands remain intact; identical copies are collapsed.</summary>
+        [Fact]
+        public void Render_PreservesDistinctUnmappedCommands()
+        {
+            var one = new DcsBinding(ProfileId, BindingSection.Key, "One", "One", BindingDisposition.Added, "JOY_BTN99");
+            var two = new DcsBinding(ProfileId, BindingSection.Key, "Two", "Two", BindingDisposition.Added, "JOY_BTN99");
+            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(Workspace([one, one, two], []), ProfileId), ProfileId);
+            Assert.Equal(2, parsed.Count);
+            Assert.Contains(parsed, x => x.CommandId == "One");
+            Assert.Contains(parsed, x => x.CommandId == "Two");
+        }
+
+        /// <summary>Actual conflicting saved commands identify the exact input and both commands.</summary>
+        [Fact]
+        public void Render_ReportsActionableSavedConflict()
+        {
+            var error = Assert.Throws<InvalidDataException>(() => ModuleLuaProfileRenderer.Render(
+                Workspace([], [Assigned("One", "Command One", BindingSection.Key, "JOY_BTN1"),
+                    Assigned("Two", "Command Two", BindingSection.Key, "JOY_BTN1")]), ProfileId));
+            foreach (var detail in new[] { "UH-1H", "Stick.diff.lua", ProfileId.ToString(), "JOY_BTN1", "modifiers []",
+                "Command One [One]", "Command Two [Two]", "save to database" })
+                Assert.Contains(detail, error.Message);
         }
 
         /// <summary>Refuses to export an edited slot without an authored hardware mapping.</summary>
@@ -84,11 +180,12 @@ namespace Dcs.Ipia.Tests
             new(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key),
                 new(id, name, section == BindingSection.Axis, AssignmentLayer.Module));
         private static EditorWorkspaceSnapshot Workspace(IEnumerable<DcsBinding> bindings,
-                                                         IReadOnlyList<DraftAssignment> assignments)
+                                                         IReadOnlyList<DraftAssignment> assignments,
+                                                         IReadOnlyList<DcsModifier>? modifiers = null)
         {
             var module = new DcsModule(ModuleId, "UH-1H", "Huey");
             var profile = new DeviceProfile(ProfileId, "Stick", null, "Stick", "Stick.diff.lua");
-            var configuration = new ModuleConfiguration(module, [profile], [], bindings, "test");
+            var configuration = new ModuleConfiguration(module, [profile], modifiers ?? [], bindings, "test");
             var diagram = new UiLayerDiagram("Stick", null, "Stick.svg", 100, 100, [], []) {
                 ProfileId = ProfileId,
                 Controls =
@@ -99,3 +196,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
