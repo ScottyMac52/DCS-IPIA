@@ -12,6 +12,7 @@ $copies = @{
     'data/shared-assets/assets/shared/hardware/SOURCES.md' = 'hardware-SOURCES.md'
     'scripts/asset-authoring/PROVENANCE.json' = 'asset-authoring-provenance.json'
     'src/Dcs.Ipia.Rendering/Fonts/DejaVuSans-IPIA.LICENSE.txt' = 'DejaVuSans-IPIA.LICENSE.txt'
+    'src/Dcs.Ipia.Rendering/Fonts/PROVENANCE.md' = 'font-PROVENANCE.md'
     'docs/distribution-readiness.md' = 'distribution-readiness.md'
     'docs/logging.md' = 'logging.md'
 }
