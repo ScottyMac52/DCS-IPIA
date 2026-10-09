@@ -48,14 +48,18 @@ namespace Dcs.Ipia.Application
         /// <param name="sourceName">Display provenance, never an absolute source path.</param>
         /// <param name="applicationVersion">Importing application version.</param>
         /// <param name="assets">Explicit local raster bytes; external access is never performed.</param>
-        /// <param name="exporterVersion">Versioned rendering semantics; previous saved revisions retain version one.</param>
+        /// <param name="exporterVersion">Versioned rendering semantics; saved revisions retain their original semantics.</param>
         /// <returns>Immutable revision ready for preview and explicit publication.</returns>
         public static UserMappingRevision Import(string source, HardwareDefinition definition, string sourceName,
-            string applicationVersion, IReadOnlyDictionary<string, byte[]>? assets = null, string exporterVersion = "ipia-drawio-2")
+            string applicationVersion, IReadOnlyDictionary<string, byte[]>? assets = null, string? exporterVersion = null)
         {
-            if (exporterVersion is not ("ipia-drawio-1" or "ipia-drawio-2"))
+            var graph = Graph(source);
+            exporterVersion ??= Cells(graph).Any(cell => Style(cell, "ipiaTextLayout", "").Length > 0 ||
+                Style(cell, "ipiaStatic", "") == "1") ? "ipia-drawio-3" : "ipia-drawio-2";
+            if (exporterVersion is not ("ipia-drawio-1" or "ipia-drawio-2" or "ipia-drawio-3"))
                 throw new InvalidDataException("Unsupported draw.io exporter version.");
-            var compatible = exporterVersion == "ipia-drawio-2";
+            var compatible = exporterVersion != "ipia-drawio-1";
+            var modern = exporterVersion == "ipia-drawio-3";
             HardwareInventoryContract.Validate(new(1, [definition], [], []));
             if (string.IsNullOrWhiteSpace(sourceName) || sourceName.Length > 200 || sourceName.Contains('/') ||
                 sourceName.Contains('\\') || sourceName.Contains(':') || sourceName.Any(char.IsControl) ||
@@ -66,7 +70,6 @@ namespace Dcs.Ipia.Application
                 local.Add(SafeAsset(item.Key), item.Value.ToArray());
             if (local.Count > 32 || local.Values.Sum(x => (long)x.Length) > 8_000_000)
                 throw new InvalidDataException("Local images exceed the 32-file / 8 MB limit.");
-            var graph = Graph(source);
             var width = Number(graph, "pageWidth");
             var originalHeight = Number(graph, "pageHeight");
             if (width < 100 || originalHeight < 100 || width > 4096 || originalHeight > 2048)
@@ -164,12 +167,12 @@ namespace Dcs.Ipia.Application
                         if (!compatible || existing.Length != 1 || !(existing[0].Control + "-shifted" == marker || marker + "-shifted" == existing[0].Control))
                             throw new InvalidDataException("Multiple labels map to " + key + ".");
                     }
-                    controls.Add(geometry with { Control = marker, InputKey = key, Label = Text(cell),
+                    controls.Add(geometry with { Control = marker, InputKey = key, Label = Text(cell, modern),
                         IsAxis = definition.Capabilities.Inputs.Any(x => x.Kind == ControllerInputKind.Axis && x.DcsKey == key) });
-                    Label(svg, cell, geometry, "lbl-" + marker, compatible);
+                    Label(svg, cell, geometry, "lbl-" + marker, compatible, modern);
                 }
                 else if (id.StartsWith("presentation-", StringComparison.Ordinal))
-                    Label(svg, cell, geometry, "meta-" + id[13..], compatible);
+                    Label(svg, cell, geometry, (modern && Style(cell, "ipiaStatic", "") == "1" ? "static-" : "meta-") + id[13..], compatible, modern);
                 else if (id.StartsWith("mask-", StringComparison.Ordinal))
                     svg.Add(compatible ? new XElement(SvgNamespace + "rect", new XAttribute("id", id), new XAttribute("x", geometry.X),
                         new XAttribute("y", geometry.Y), new XAttribute("width", geometry.Width), new XAttribute("height", geometry.Height),
@@ -245,7 +248,7 @@ namespace Dcs.Ipia.Application
         public static void Validate(UserMappingRevision revision)
         {
             ArgumentNullException.ThrowIfNull(revision);
-            if (revision.FormatVersion != 1 || revision.ExporterVersion is not ("ipia-drawio-1" or "ipia-drawio-2"))
+            if (revision.FormatVersion != 1 || revision.ExporterVersion is not ("ipia-drawio-1" or "ipia-drawio-2" or "ipia-drawio-3"))
                 throw new InvalidDataException("Unsupported user mapping/exporter version.");
             var expected = Import(revision.Source, revision.Definition, revision.SourceName, revision.ApplicationVersion, revision.Assets, revision.ExporterVersion);
             if (JsonSerializer.Serialize(expected) != JsonSerializer.Serialize(revision))
@@ -339,17 +342,17 @@ namespace Dcs.Ipia.Application
                 throw new InvalidDataException(Id(cell) + ": colors must be hex RGB or none.");
             return value;
         }
-        private static string Text(XElement cell)
+        private static string Text(XElement cell, bool multiline = false)
         {
             var value = cell.Attribute("value")?.Value ?? cell.Parent?.Attribute("label")?.Value ?? "";
-            if (value.Length > 200 || value.Contains('<') || value.Contains('>') || value.Any(char.IsControl))
+            if (value.Length > 200 || value.Contains('<') || value.Contains('>') || value.Any(c => char.IsControl(c) && !(multiline && c == '\n')))
                 throw new InvalidDataException(Id(cell) + ": use plain text of at most 200 characters.");
             return value.Length == 0 ? Id(cell) : value;
         }
         private static XElement Rect(HardwareGraphicControl g, string color) => new(SvgNamespace + "rect",
             new XAttribute("x", g.X), new XAttribute("y", g.Y), new XAttribute("width", g.Width), new XAttribute("height", g.Height),
             new XAttribute("fill", color), new XAttribute("stroke", "#00bfff"), new XAttribute("stroke-width", 1.5));
-        private static void Label(XElement svg, XElement cell, HardwareGraphicControl g, string id, bool compatible)
+        private static void Label(XElement svg, XElement cell, HardwareGraphicControl g, string id, bool compatible, bool modern)
         {
             var size = Style(cell, "fontSize", "16");
             if (!int.TryParse(size, NumberStyles.None, CultureInfo.InvariantCulture, out var number) || number < 8 || number > 72)
@@ -365,13 +368,29 @@ namespace Dcs.Ipia.Application
                 }
                 svg.Add(rectangle);
             }
+            if (modern && Style(cell, "ipiaTextLayout", "") is "stacked" or "horizontal")
+            {
+                var layout = Style(cell, "ipiaTextLayout", "");
+                var text = new XElement(SvgNamespace + "text", new XAttribute("id", id),
+                    new XAttribute("x", g.X + g.Width / 2), new XAttribute("y", g.Y + number),
+                    new XAttribute("text-anchor", "middle"), new XAttribute("font-size", number),
+                    new XAttribute("fill", Color(cell, "fontColor", "#111111")),
+                    new XAttribute("data-ipia-text-layout", layout), new XAttribute(XNamespace.Xml + "space", "preserve"));
+                var lines = layout == "stacked" ? Text(cell, true).EnumerateRunes().Select(x => x.ToString()).ToArray() : Text(cell, true).Split('\n');
+                for (var i = 0; i < lines.Length; i++)
+                    text.Add(new XElement(SvgNamespace + "tspan", new XAttribute("x", g.X + g.Width / 2),
+                        new XAttribute("y", g.Y + number + i * number * 1.2), lines[i]));
+                svg.Add(text);
+                return;
+            }
             svg.Add(new XElement(SvgNamespace + "text", new XAttribute("id", id),
                 new XAttribute("x", g.X + g.Width / 2), new XAttribute("y", g.Y + g.Height / 2 + 4),
                 new XAttribute("text-anchor", "middle"), new XAttribute("font-size", number),
-                new XAttribute("fill", Color(cell, "fontColor", "#f1f5f9")), Text(cell)));
+                new XAttribute("fill", Color(cell, "fontColor", "#f1f5f9")), Text(cell, modern)));
         }
         private static string Point(double x, double y) => x.ToString(CultureInfo.InvariantCulture) + "," + y.ToString(CultureInfo.InvariantCulture);
         private static string Hash(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
         #endregion END private helpers
     }
 }
+

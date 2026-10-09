@@ -108,6 +108,12 @@ namespace Dcs.Ipia.Rendering
                 {
                     var control = id["lbl-".Length..];
                     page.Labels.TryGetValue(control, out var variants);
+                    if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
+                    {
+                        label.RemoveNodes();
+                        if (variants?.Count > 0) label.Value = "Pending layout";
+                        continue;
+                    }
                     label.RemoveNodes();
                     label.SetAttributeValue("font-size", variants?.Count > 1 ? "13" : "16");
                     label.SetAttributeValue("font-weight", "700");
@@ -169,7 +175,11 @@ namespace Dcs.Ipia.Rendering
             {
                 var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control.Control);
                 if (label is not null && label.Value.Length > 0)
-                    FitCallout(label, control, page.Labels[control.Control]);
+                {
+                    if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
+                        FitStackedCallout(label, control, page.Labels[control.Control]);
+                    else FitCallout(label, control, page.Labels[control.Control]);
+                }
             }
             FitCategories(root, diagram, page);
             return root.ToString(SaveOptions.DisableFormatting);
@@ -267,6 +277,44 @@ namespace Dcs.Ipia.Rendering
                     new XAttribute("dy", (i == 0 ? -(lines.Count - 1) * spacing / 2 : spacing).ToString(CultureInfo.InvariantCulture)),
                     new XAttribute("font-size", font.Size.ToString(CultureInfo.InvariantCulture)), new XAttribute("fill", fill),
                     new XAttribute("data-full-label", variant.Text), text));
+            }
+        }
+        private static void FitStackedCallout(XElement label, HardwareGraphicControl control,
+                                              IReadOnlyList<KneeboardLabelVariant> variants)
+        {
+            if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
+                throw new InvalidDataException("Authored stacked callout has no usable text area: " + control.Control);
+            using var typeface = LabelTypeface();
+            using var font = new SKFont(typeface, 16);
+            var columns = variants.Select(v => v.Text.EnumerateRunes().Select(r => r.ToString()).ToArray()).ToArray();
+            var columnWidth = (float)(control.Width - 4) / variants.Count;
+            float spacing;
+            while (true)
+            {
+                spacing = font.Metrics.Descent - font.Metrics.Ascent;
+                if (columns.All(column => column.Length * spacing <= control.Height - 4 &&
+                    column.All(character => font.MeasureText(character) <= columnWidth - 2))) break;
+                if (font.Size <= 4)
+                    throw new InvalidDataException("Stacked label needs a larger callout: " + control.Control);
+                font.Size -= 0.25f;
+            }
+            label.SetAttributeValue(XNamespace.Xml + "space", "preserve");
+            var native = label.Attribute("fill")?.Value ?? "#111111";
+            label.RemoveNodes();
+            label.SetAttributeValue("text-anchor", "middle");
+            for (var column = 0; column < variants.Count; column++)
+            {
+                var variant = variants[column];
+                var color = variant.Color == "#ffffff" && variant.Scope == AssignmentLayer.Module && variant.ModifierChord.Length == 0
+                    ? native : variant.Color;
+                var x = control.X + 2 + columnWidth * (column + 0.5);
+                for (var row = 0; row < columns[column].Length; row++)
+                    label.Add(new XElement(label.Name.Namespace + "tspan",
+                        new XAttribute("x", x.ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("y", (control.Y + 2 - font.Metrics.Ascent + row * spacing).ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("font-size", font.Size.ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("fill", color), new XAttribute("data-full-label", variant.Text),
+                        columns[column][row]));
             }
         }
         private static SKTypeface LabelTypeface()
@@ -377,7 +425,7 @@ namespace Dcs.Ipia.Rendering
                 foreach (var span in spans)
                 {
                     x = span.Attribute("x") is null ? x : Position(span, "x", kind);
-                    y += Position(span, "dy", kind);
+                    y = span.Attribute("y") is not null ? Position(span, "y", kind) : y + Position(span, "dy", kind);
                     Draw(span.Value, x, y, Size(span, 16),
                          span.Attribute("fill")?.Value ?? label.Attribute("fill")?.Value ?? "#ffffff");
                 }
@@ -454,4 +502,5 @@ namespace Dcs.Ipia.Rendering
         #endregion END private helpers
     }
 }
+
 
