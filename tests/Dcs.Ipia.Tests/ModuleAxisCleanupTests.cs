@@ -121,6 +121,32 @@ namespace Dcs.Ipia.Tests
             Assert.DoesNotContain(CleanupSource, imported.Sources!.Keys);
         }
 
+        /// <summary>Imported axes owned only by UI Layer cannot supply aircraft cleanup commands.</summary>
+        [Fact]
+        public void UiOnlyImportedAxesDoNotBecomeAircraftCleanupCommands()
+        {
+            var original = Workspace();
+            var uiId = Guid.NewGuid();
+            var uiFile = "UI controller {00000000-0000-0000-0000-000000000003}.diff.lua";
+            var sources = original.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources.Remove("config/ipia-created-module.json");
+            sources[WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement([
+                new(StickId, AssignmentLayer.Module, Stick, null, "Stick"),
+                new(uiId, AssignmentLayer.UiLayer, uiFile, null, "UI controller")], []));
+            var configuration = original.Configuration;
+            var imported = original with { Sources = sources, ModuleCommands = [], Assignments = [], Configuration = new(configuration.Module,
+                [.. configuration.Profiles, new DeviceProfile(uiId, "ui", null, "UI controller", uiFile)], [], [
+                    new(StickId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Removed, "JOY_Y"),
+                    new(uiId, BindingSection.Axis, "UI-ONLY", "UI axis", BindingDisposition.Removed, "JOY_X")
+                ], "Imported") };
+            var captured = ModuleAxisCleanup.CaptureDevices(imported, [Unused]);
+            var payload = new Dictionary<string, byte[]>();
+            ModuleAxisCleanup.CompletePayload(captured, payload);
+            var bindings = Bindings(payload, Unused);
+            Assert.Equal(8, bindings.Count);
+            Assert.All(bindings, x => Assert.Equal("a2001cdnil", x.CommandId));
+        }
+
         /// <summary>Uncaptured snapshots keep their output and unknown commands do not create guessed removals.</summary>
         [Fact]
         public void UncapturedAndUnknownCommandsKeepExistingOutput()

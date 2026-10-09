@@ -32,11 +32,13 @@ namespace Dcs.Ipia.Dcs
         public static void CompletePayload(EditorWorkspaceSnapshot workspace, Dictionary<string, byte[]> payload)
         {
             if (workspace.Sources?.ContainsKey(SourcePath) != true) return;
+            var aircraftProfiles = WorkspaceStructureEditor.Describe(workspace).Devices
+                .Where(x => x.Layer == AssignmentLayer.Module).Select(x => x.ProfileId).ToHashSet();
             // Command IDs come from the module catalog; no aircraft-specific IDs or names are inferred.
             var commands = workspace.ModuleCommands.Where(x => x.IsAxis)
                 .Concat(workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module && x.Command.IsAxis)
                     .Select(x => new CommandPaletteEntry(x.Command.Id, x.Command.Name, "Axes", true)))
-                .Concat(workspace.Configuration.Bindings.Where(x => x.Section == BindingSection.Axis)
+                .Concat(workspace.Configuration.Bindings.Where(x => x.Section == BindingSection.Axis && aircraftProfiles.Contains(x.ProfileId))
                     .Select(x => new CommandPaletteEntry(x.CommandId, x.CommandName, "Axes", true)))
                 .DistinctBy(x => x.Id).ToArray();
             if (commands.Length == 0) return;
