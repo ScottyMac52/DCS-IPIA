@@ -14,6 +14,8 @@ namespace Dcs.Ipia.App.Smoke
     /// <summary>Exercises the actual WPF failure handlers rather than only calling log helpers.</summary>
     internal static class ModuleOutputLoggingSmoke
     {
+        #region BEGIN Public
+        /// <summary>Checks successful duplicate-binding output and logging of three UI failures.</summary>
         public static void Verify(string connection, IEditorWorkspaceRepository repository)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-output-log-" + Guid.NewGuid().ToString("N"));
@@ -29,7 +31,7 @@ namespace Dcs.Ipia.App.Smoke
                 var destination = Path.Combine(root, "DCS");
                 Directory.CreateDirectory(destination);
                 settings.TryUpdateSavedGamesDcsFolder(destination);
-                var output = new RecordingLogger<ModuleWorkspaceWindow>();
+                var output = new RecordingModuleOutputLogger<ModuleWorkspaceWindow>();
                 var exportPath = Path.Combine(root, "snapshot.ipia-module.json");
                 editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
@@ -57,9 +59,9 @@ namespace Dcs.Ipia.App.Smoke
                 }
                 editor.Close();
                 editor = null;
-                var fly = new RecordingLogger<MainWindow>();
+                var fly = new RecordingModuleOutputLogger<MainWindow>();
                 main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
-                    flyNow: new FailingFlyNow(), deviceDiscovery: new EmptyDeviceDiscovery(), logger: fly);
+                    flyNow: new FailingModuleOutputFlyNow(), deviceDiscovery: new EmptyDeviceDiscovery(), logger: fly);
                 main.Show();
                 var modules = (ComboBox)main.FindName("SavedModules")!;
                 Wait(main, () => modules.Items.Count > 0 && ((TextBlock)main.FindName("FlyNowStatus")!).Text.StartsWith("No module", StringComparison.Ordinal));
@@ -67,14 +69,16 @@ namespace Dcs.Ipia.App.Smoke
                 Click((Button)main.FindName("FlyNowButton")!);
                 Wait(main, () => fly.Events.Count == 1 && ((Button)main.FindName("FlyNowButton")!).IsEnabled);
                 VerifyEvent(fly.Events[0], saved.Configuration.Module.Id, saved.Configuration.Module.DcsId, "Fly Now!");
-                if (fly.Events[0].Exception?.Message != FailingFlyNow.Detail ||
-                    !((TextBlock)main.FindName("ImportStatus")!).Text.Contains(FailingFlyNow.Detail, StringComparison.Ordinal))
+                if (fly.Events[0].Exception?.Message != FailingModuleOutputFlyNow.Detail ||
+                    !((TextBlock)main.FindName("ImportStatus")!).Text.Contains(FailingModuleOutputFlyNow.Detail, StringComparison.Ordinal))
                     throw new InvalidOperationException("Fly Now lost exception details or visible feedback.");
             }
             finally { editor?.Close(); main?.Close(); Directory.Delete(root, true); }
         }
 
-        private static void VerifyEvent(LogEntry entry, Guid moduleId, string dcsId, string operation)
+        #endregion END Public
+        #region BEGIN private helpers
+        private static void VerifyEvent(ModuleOutputLogEntry entry, Guid moduleId, string dcsId, string operation)
         {
             if (entry.Level != LogLevel.Error || entry.EventId.Id != 1015 || entry.Exception is null ||
                 !entry.Message.Contains(moduleId.ToString(), StringComparison.Ordinal) ||
@@ -98,22 +102,6 @@ namespace Dcs.Ipia.App.Smoke
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }
-        private sealed record LogEntry(LogLevel Level, EventId EventId, string Message, Exception? Exception);
-        private sealed class RecordingLogger<T> : ILogger<T>
-        {
-            public List<LogEntry> Events { get; } = [];
-            public bool IsEnabled(LogLevel level) => true;
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception,
-                Func<TState, Exception?, string> formatter) => Events.Add(new(level, id, formatter(state, exception), exception));
-        }
-        private sealed class FailingFlyNow : IFlyNowService
-        {
-            internal const string Detail = "conflict detail: Stick JOY_BTN1 modifiers [] commands One and Two";
-            public Task<FlyNowDeployment?> GetActiveAsync(CancellationToken ct = default) => Task.FromResult<FlyNowDeployment?>(null);
-            public Task<FlyNowDeployment> DeployAsync(Guid moduleId, string destination, CancellationToken ct = default) =>
-                Task.FromException<FlyNowDeployment>(new InvalidDataException(Detail));
-            public Task ClearAsync(CancellationToken ct = default) => Task.CompletedTask;
-        }
+        #endregion END private helpers
     }
 }
