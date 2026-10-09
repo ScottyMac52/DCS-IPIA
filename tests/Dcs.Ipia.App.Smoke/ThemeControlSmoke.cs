@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -50,6 +51,7 @@ namespace Dcs.Ipia.App.Smoke
                     Pump(window);
                     SaveImage(window, theme);
                     AssertPixel(selected, 6, 6, "SelectedBackgroundBrush");
+                    AssertPixel(tabs, 220, 90, "SurfaceBrush");
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(choices, 6, 6, "ControlBackgroundBrush");
@@ -119,7 +121,7 @@ namespace Dcs.Ipia.App.Smoke
         }
         private static void AssertText(DependencyObject control, string text, string key)
         {
-            var labels = Children(control).OfType<TextBlock>().Where(x => x.Text.Contains(text, StringComparison.Ordinal)).ToArray();
+            var labels = Children(control).OfType<TextBlock>().Where(x => new TextRange(x.ContentStart, x.ContentEnd).Text.Contains(text, StringComparison.Ordinal)).ToArray();
             if (labels.Length == 0 || labels.Any(x => x.Foreground is not SolidColorBrush brush || brush.Color != Brush(key)))
                 throw new InvalidOperationException("Rendered text '" + text + "' did not use " + key + ".");
         }
