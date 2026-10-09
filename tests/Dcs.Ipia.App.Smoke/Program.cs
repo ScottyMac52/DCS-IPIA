@@ -38,6 +38,8 @@ namespace Dcs.Ipia.App.Smoke
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
+            Console.WriteLine("Smoke: rendered theme control states and dropdown keyboard behavior.");
+            ThemeControlSmoke.Verify();
             VerifySharedDefaultBindingEditor();
             Console.WriteLine("Smoke: module deletion.");
             VerifyModuleDeleteButton();
