@@ -17,11 +17,13 @@ The software MIT license and pinned source hashes do not establish permission fo
 | VKB F-14 Gunfighter | Issue #54 user-supplied views | Original photographer/author and redistribution permission |
 | TM Warthog grip, throttle and MFD | Issue #103 Inkscape templates; throttle Blank2 attachment | Original artwork/image ownership and redistribution permission |
 | F/A-18C grip | Annotated user-supplied JPEG | Original artwork/image ownership and redistribution permission |
-| WINCTRL PTO2 | Issue #87 annotated diagram | Original artwork/image ownership and redistribution permission |
-| OnYourTwelve PDCP | Pinned pdcp-photo.jpeg | Photographer and redistribution permission |
-| WINCTRL ICP | Pinned f16c-icp-clean.png | Original artwork/image source and redistribution permission |
+| WINCTRL PTO2 | Owner confirms WINCTRL documentation; issue #87 annotated source | Manufacturer reuse terms or replacement artwork |
+| OnYourTwelve PDCP | Scott McIntosh confirms he took the original photo | Credit Scott; record inclusion in final candidate decision |
+| WINCTRL ICP | Owner confirms WINCTRL documentation | Manufacturer reuse terms or replacement artwork |
 | Logitech quadrant | Pinned f4u-logitech-throttle-quadrant.png | Original artwork/image source and redistribution permission |
-| Viper TQS and Mission Pack | Two pinned control images | Original artwork/image sources and redistribution permission |
+| Viper TQS and Mission Pack | Owner confirms Thrustmaster documentation | Manufacturer reuse terms or replacement artwork |
+
+Scott supplied these source clarifications on 2026-10-09. His PDCP authorship resolves the unidentified-photographer gap; it does not imply permission for manufacturer documentation. Official source references located for the manual-derived images: [ICP V1.0](https://eu.winctrl.com/static/assets/files/en/ICP-User%20Manual%20EN%20V1.0.pdf), [PTO2 V1.1](https://winctrl.com/static/assets/files/en/PTO2-User%20Manual%20EN%20V1.1.pdf), and [Viper Mission Pack](https://ts.thrustmaster.com/download/accessories/Manuals/Viper/Viper_Mission_Pack_User_Manual.pdf). Exact original excerpt/version matching and reuse terms remain to be recorded; public availability of a manual is not treated as a reuse grant.
 
 Issue numbers in this table refer to DCS-Common source history. No templates are removed or changed by this audit. Record permission evidence in #192 against the affected Git blobs; otherwise replace the affected art and update provenance. Ownership of annotations alone must not be assumed to cover the underlying photo.
 

@@ -124,9 +124,9 @@
       },
       "svgEmbeddedImageCount": 1,
       "drawioEmbeddedImageCount": 1,
-      "sourceEvidence": "Pinned source/pdcp-photo.jpeg; SOURCES.md does not identify the photographer or permission.",
-      "permissionStatus": "unresolved",
-      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented."
+      "sourceEvidence": "Original photograph taken by Scott McIntosh, confirmed by the project owner on 2026-10-09; pinned source/pdcp-photo.jpeg.",
+      "permissionStatus": "owner-confirmed-original-photograph",
+      "requiredAction": "Credit Scott McIntosh and record inclusion under the project's distribution terms in the final candidate decision. No unidentified third-party photographer remains."
     },
     {
       "deviceId": "winctrl-pto2",
@@ -144,9 +144,10 @@
       },
       "svgEmbeddedImageCount": 1,
       "drawioEmbeddedImageCount": 1,
-      "sourceEvidence": "User-provided annotated diagram referenced in DCS-Common issue #87; underlying image ownership/permission not recorded.",
-      "permissionStatus": "unresolved",
-      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented."
+      "sourceEvidence": "WINCTRL documentation, confirmed by Scott McIntosh on 2026-10-09; annotated button source previously recorded in issue #87; official PTO2 User Manual EN V1.1 reference located.",
+      "permissionStatus": "manufacturer-source-confirmed-reuse-terms-unresolved",
+      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented.",
+      "sourceReference": "https://winctrl.com/static/assets/files/en/PTO2-User%20Manual%20EN%20V1.1.pdf"
     },
     {
       "deviceId": "winctrl-icp",
@@ -164,9 +165,10 @@
       },
       "svgEmbeddedImageCount": 1,
       "drawioEmbeddedImageCount": 1,
-      "sourceEvidence": "Pinned source/f16c-icp-clean.png; SOURCES.md does not identify original authorship or permission.",
-      "permissionStatus": "unresolved",
-      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented."
+      "sourceEvidence": "WINCTRL documentation, confirmed by Scott McIntosh on 2026-10-09; official ICP User Manual EN V1.0 reference located.",
+      "permissionStatus": "manufacturer-source-confirmed-reuse-terms-unresolved",
+      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented.",
+      "sourceReference": "https://eu.winctrl.com/static/assets/files/en/ICP-User%20Manual%20EN%20V1.0.pdf"
     },
     {
       "deviceId": "tm-tpr",
@@ -244,9 +246,10 @@
       },
       "svgEmbeddedImageCount": 2,
       "drawioEmbeddedImageCount": 2,
-      "sourceEvidence": "Pinned source/viper-mission-pack-controls.png and source/viper-tqs-handle-controls.png; SOURCES.md does not identify original authorship or permission.",
-      "permissionStatus": "unresolved",
-      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented."
+      "sourceEvidence": "Thrustmaster documentation, confirmed by Scott McIntosh on 2026-10-09; official Viper Mission Pack User Manual located.",
+      "permissionStatus": "manufacturer-source-confirmed-reuse-terms-unresolved",
+      "requiredAction": "Record original ownership and permission covering redistributed embedded images, or replace with artwork whose redistribution rights are documented.",
+      "sourceReference": "https://ts.thrustmaster.com/download/accessories/Manuals/Viper/Viper_Mission_Pack_User_Manual.pdf"
     }
   ],
   "sourceImageFiles": [
@@ -377,5 +380,28 @@
       "gitBlob": "09879f278766a066305b8579221f1970b624d24c"
     }
   ],
-  "ownerReviewRequired": true
+  "ownerReviewRequired": true,
+  "ownerClarifications": [
+    {
+      "date": "2026-10-09",
+      "source": "Scott McIntosh, project owner, in this review conversation",
+      "asset": "onyourtwelve-pdcp",
+      "statement": "The picture of the PDCP was taken by me."
+    },
+    {
+      "date": "2026-10-09",
+      "source": "Scott McIntosh, project owner, in this review conversation",
+      "assets": [
+        "winctrl-icp",
+        "winctrl-pto2"
+      ],
+      "statement": "The ICP diagram came from the WINCTRL documentation as did the PTO2."
+    },
+    {
+      "date": "2026-10-09",
+      "source": "Scott McIntosh, project owner, in this review conversation",
+      "asset": "viper-tqs-mission-pack",
+      "statement": "The TQS Mission Pack came from Thrustmaster documentation."
+    }
+  ]
 }
