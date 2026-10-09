@@ -38,7 +38,7 @@ foreach ($key in ($resolved.libraries.Keys | Sort-Object)) {
     $licenseText = if ($license) { $license.InnerText } else { $null }
     $licenseType = if ($license) { $license.GetAttribute('type') } else { $null }
     $files = @(Get-ChildItem -LiteralPath $package -File -Recurse | Where-Object {
-        $_.Name -match '^(LICENSE|LICENCE|COPYING|NOTICE|THIRD.PARTY.NOTICES)([._-].*)?$'
+        $_.Name -match '^(LICENSE|LICENCE|COPYING|NOTICE|THIRD[._-]?PARTY[._-]?NOTICES)([._-].*)?$'
     })
     if ($licenseType -eq 'file') {
         $target = [IO.Path]::GetFullPath((Join-Path $package $licenseText))
