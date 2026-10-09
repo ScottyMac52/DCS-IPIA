@@ -17,6 +17,7 @@ namespace Dcs.Ipia.Tests
         private const string Stick = "Stick {00000000-0000-0000-0000-000000000001}.diff.lua";
         private const string Unused = "Unused quadrant {00000000-0000-0000-0000-000000000002}.diff.lua";
         private const string CleanupSource = "config/ipia-axis-cleanup-devices.json";
+        private static readonly string[] ExpectedImportedAxes = ["a2001cdnil", "a2002cdnil", "a2003cdnil"];
         #region BEGIN Public
         /// <summary>Unassigned axes disappear even on controllers without a module device or graphic.</summary>
         /// <param name="imported">Whether the module lacks the locally created marker.</param>
@@ -117,7 +118,7 @@ namespace Dcs.Ipia.Tests
             var bindings = Bindings(SnapshotLuaPayloadRenderer.Generate(captured), Unused);
             Assert.Equal(24, bindings.Count);
             Assert.All(bindings, x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
-            Assert.Equal(new[] { "a2001cdnil", "a2002cdnil", "a2003cdnil" }, bindings.Select(x => x.CommandId).Distinct().Order(StringComparer.Ordinal));
+            Assert.Equal(ExpectedImportedAxes, bindings.Select(x => x.CommandId).Distinct().Order(StringComparer.Ordinal));
             Assert.DoesNotContain(CleanupSource, imported.Sources!.Keys);
         }
 
