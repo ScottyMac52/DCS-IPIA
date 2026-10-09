@@ -109,7 +109,8 @@ namespace Dcs.Ipia.Tests
             var shifted = Assigned("Shifted", "Shifted", BindingSection.Key, "JOY_BTN1");
             shifted = shifted with { Slot = shifted.Slot with { ModifierChord = "Shift" } };
             var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
-                Workspace(originals, [Assigned("New", "New", BindingSection.Key, "JOY_BTN1"), shifted]), ProfileId), ProfileId);
+                Workspace(originals, [Assigned("New", "New", BindingSection.Key, "JOY_BTN1"), shifted],
+                    [new DcsModifier("Shift", "Stick", "JOY_BTN2", ModifierMode.Hold)]), ProfileId), ProfileId);
             Assert.Equal(2, parsed.Count);
             Assert.Contains(parsed, x => x.CommandId == "New" && x.Reformers.Count == 0);
             Assert.Equal("Shift", Assert.Single(Assert.Single(parsed, x => x.CommandId == "Shifted").Reformers));
@@ -179,11 +180,12 @@ namespace Dcs.Ipia.Tests
             new(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key),
                 new(id, name, section == BindingSection.Axis, AssignmentLayer.Module));
         private static EditorWorkspaceSnapshot Workspace(IEnumerable<DcsBinding> bindings,
-                                                         IReadOnlyList<DraftAssignment> assignments)
+                                                         IReadOnlyList<DraftAssignment> assignments,
+                                                         IReadOnlyList<DcsModifier>? modifiers = null)
         {
             var module = new DcsModule(ModuleId, "UH-1H", "Huey");
             var profile = new DeviceProfile(ProfileId, "Stick", null, "Stick", "Stick.diff.lua");
-            var configuration = new ModuleConfiguration(module, [profile], [], bindings, "test");
+            var configuration = new ModuleConfiguration(module, [profile], modifiers ?? [], bindings, "test");
             var diagram = new UiLayerDiagram("Stick", null, "Stick.svg", 100, 100, [], []) {
                 ProfileId = ProfileId,
                 Controls =
