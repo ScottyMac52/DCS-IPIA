@@ -19,10 +19,15 @@ namespace Dcs.Ipia.Tests
         private const string CleanupSource = "config/ipia-axis-cleanup-devices.json";
         #region BEGIN Public
         /// <summary>Unassigned axes disappear even on controllers without a module device or graphic.</summary>
-        [Fact]
-        public void GeneratedPayloadSuppressesUnusedControllersAndPreservesAssignedAxes()
+        /// <param name="imported">Whether the module lacks the locally created marker.</param>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void GeneratedPayloadSuppressesUnusedControllersAndPreservesAssignedAxes(bool imported)
         {
             var original = Workspace();
+            if (imported) original = original with { Sources = original.Sources!
+                .Where(x => x.Key != "config/ipia-created-module.json").ToDictionary(x => x.Key, x => x.Value) };
             var workspace = ModuleAxisCleanup.CaptureDevices(original, [Stick, Unused]);
             var output = SnapshotLuaPayloadRenderer.Generate(workspace);
             var stick = Bindings(output, Stick);
@@ -51,9 +56,12 @@ namespace Dcs.Ipia.Tests
         }
 
         /// <summary>Real SQLite reopening, portable restore and OvGME rebuild retain removal-only profiles.</summary>
+        /// <param name="imported">Whether the saved module was imported rather than created locally.</param>
         /// <returns>Completion of the source-free package round trip.</returns>
-        [Fact]
-        public async Task CleanupSurvivesDatabaseSnapshotAndPackageRoundTrip()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupSurvivesDatabaseSnapshotAndPackageRoundTrip(bool imported)
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-axis-cleanup-" + Guid.NewGuid().ToString("N") + ".db");
             try
@@ -61,7 +69,10 @@ namespace Dcs.Ipia.Tests
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
                 var repository = new SqliteEditorWorkspaceRepository(connection);
-                var workspace = ModuleAxisCleanup.CaptureDevices(Workspace(), [Stick, Unused]);
+                var original = Workspace();
+                if (imported) original = original with { Sources = original.Sources!
+                    .Where(x => x.Key != "config/ipia-created-module.json").ToDictionary(x => x.Key, x => x.Value) };
+                var workspace = ModuleAxisCleanup.CaptureDevices(original, [Stick, Unused]);
                 await repository.SaveAsync(workspace);
                 var saved = (await repository.GetAsync(ModuleId))!;
                 var snapshot = ModuleSnapshotWorkflow.Freeze(saved, "1.0");
@@ -92,20 +103,50 @@ namespace Dcs.Ipia.Tests
             Assert.Same(workspace, ModuleAxisCleanup.CaptureDevices(workspace, []));
         }
 
-        /// <summary>Historical snapshots and command-free modules never gain speculative cleanup profiles.</summary>
+        /// <summary>Known saved assignments and imported bindings supply exact IDs even without a separate catalog.</summary>
         [Fact]
-        public void LegacyAndMissingCatalogKeepExistingOutput()
+        public void ImportedModuleWithoutCatalogCleansUnusedControllersFromSavedEvidence()
         {
             var workspace = Workspace();
-            Assert.Same(workspace, ModuleAxisCleanup.CaptureDevices(workspace, []));
             var sources = workspace.Sources!.Where(x => x.Key != "config/ipia-created-module.json").ToDictionary(x => x.Key, x => x.Value);
-            var legacy = workspace with { Sources = sources };
-            Assert.Same(legacy, ModuleAxisCleanup.CaptureDevices(legacy, [Unused]));
+            var configuration = workspace.Configuration;
+            var imported = workspace with { Sources = sources, ModuleCommands = [], Configuration = new(configuration.Module,
+                configuration.Profiles, configuration.Modifiers,
+                [new(StickId, BindingSection.Axis, "a2003cdnil", "Rudder", BindingDisposition.Removed, "JOY_RZ")], configuration.Provenance) };
+            var captured = ModuleAxisCleanup.CaptureDevices(imported, [Unused]);
+            var bindings = Bindings(SnapshotLuaPayloadRenderer.Generate(captured), Unused);
+            Assert.Equal(24, bindings.Count);
+            Assert.All(bindings, x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
+            Assert.Equal(new[] { "a2001cdnil", "a2002cdnil", "a2003cdnil" }, bindings.Select(x => x.CommandId).Distinct().Order(StringComparer.Ordinal));
+            Assert.DoesNotContain(CleanupSource, imported.Sources!.Keys);
+        }
+
+        /// <summary>Uncaptured snapshots keep their output and unknown commands do not create guessed removals.</summary>
+        [Fact]
+        public void UncapturedAndUnknownCommandsKeepExistingOutput()
+        {
+            var workspace = Workspace() with { ModuleCommands = [], Assignments = [] };
             var original = SnapshotLuaPayloadRenderer.Generate(workspace);
-            var noCommands = ModuleAxisCleanup.CaptureDevices(workspace with { ModuleCommands = [] }, [Unused]);
+            var noCommands = ModuleAxisCleanup.CaptureDevices(workspace, [Unused]);
             var output = SnapshotLuaPayloadRenderer.Generate(noCommands);
             foreach (var pair in original) Assert.Equal(pair.Value, output[pair.Key]);
             Assert.Equal(original.Count, output.Count);
+        }
+
+        /// <summary>Unused units can be captured without existing sources while generic legacy files remain intact.</summary>
+        [Fact]
+        public void CaptureSupportsMissingSourcesAndDoesNotRewriteLegacyFileNames()
+        {
+            var original = Workspace() with { Sources = null };
+            var captured = ModuleAxisCleanup.CaptureDevices(original, [Unused]);
+            Assert.Null(original.Sources);
+            Assert.Contains(Unused, captured.Sources![CleanupSource]);
+            const string legacy = "Config/Input/AXIS-TEST/joystick/Stick.diff.lua";
+            var bytes = Encoding.UTF8.GetBytes("local diff = {} return diff");
+            var payload = new Dictionary<string, byte[]> { [legacy] = bytes };
+            ModuleAxisCleanup.CompletePayload(captured, payload);
+            Assert.Same(bytes, payload[legacy]);
+            Assert.Equal(16, Bindings(payload, Unused).Count);
         }
 
         /// <summary>Invalid paths, empty JSON and duplicate native units cannot become deployable file targets.</summary>
