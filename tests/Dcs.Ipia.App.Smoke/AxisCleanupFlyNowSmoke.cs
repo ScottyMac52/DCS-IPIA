@@ -27,6 +27,8 @@ namespace Dcs.Ipia.App.Smoke
             {
                 var saved = Workspace(Guid.NewGuid());
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
+                // Fail before a UI error dialog if selecting this catalog-free imported module cannot reopen its draft.
+                _ = new ModuleWorkspaceViewModel(repository.GetAsync(saved.Configuration.Module.Id).GetAwaiter().GetResult()!);
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
                 var target = Path.Combine(destination, "Config", "Input", saved.Configuration.Module.DcsId, "joystick", unused);
