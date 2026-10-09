@@ -20,7 +20,11 @@ namespace Dcs.Ipia.Dcs
             ModulePhysicalBindingReview.Validate(workspace);
             workspace = PinnedUiLayerProfileRecovery.Restore(workspace);
             if (WorkspaceManagement.Read(workspace) is { } managed)
-                return ReconcileNativeDeviceNames(GenerateManaged(workspace, managed));
+            {
+                var managedPayload = GenerateManaged(workspace, managed);
+                ModuleAxisCleanup.CompletePayload(workspace, managedPayload);
+                return ReconcileNativeDeviceNames(managedPayload);
+            }
             var config = workspace.Configuration;
             var moduleId = config.Module.DcsId;
             SafeSegment(moduleId);
@@ -50,6 +54,7 @@ namespace Dcs.Ipia.Dcs
             if (uiProfiles.Length == 0)
             {
                 ValidateModifierReferences(result);
+                ModuleAxisCleanup.CompletePayload(workspace, result);
                 return ReconcileNativeDeviceNames(result);
             }
             var removed = UiLayerLuaProfileRenderer.RemovedModifiers(workspace.Sources);
@@ -74,6 +79,7 @@ namespace Dcs.Ipia.Dcs
                 WriteModifiers(CompleteModifiers(workspace, AssignmentLayer.UiLayer,
                     modifiers.Where(x => !removed.Contains(x.Name)), result)));
             ValidateModifierReferences(result);
+            ModuleAxisCleanup.CompletePayload(workspace, result);
             return ReconcileNativeDeviceNames(result);
         }
         /// <summary>Reports saved UI assignments that cannot resolve to a pinned physical profile.</summary>
@@ -264,5 +270,6 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
 
 
