@@ -29,7 +29,11 @@ namespace DcsIpia.Presentation
                 if ((await repository.ListAsync()).Count != 0) throw new InvalidDataException("Acceptance profile has modules but no baseline evidence.");
                 var defaults = await new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
                 var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                await repository.SaveAsync(NewModuleWorkspaceFactory.Create("RELEASE-BUNDLED", "Bundled acceptance", defaults, hardware));
+                var bundled = NewModuleWorkspaceFactory.Create("RELEASE-BUNDLED", "Bundled acceptance", defaults, hardware);
+                // Explicit fixture review exercises the same binding safeguard as a user's saved module.
+                foreach (var device in WorkspaceStructureEditor.Describe(bundled).Devices.DistinctBy(x => x.ProfileId).ToArray())
+                    bundled = WorkspaceStructureEditor.RebindDevice(bundled, device, device.FileName, device.Instance, device.Role);
+                await repository.SaveAsync(bundled);
                 var unit = new HardwareInventoryInstance(Guid.NewGuid(), "Acceptance panel", revision.Definition.Id, "Pilot panel", "Pilot", true, []);
                 await new SqliteHardwareInventoryRepository(connection).SaveAsync(new(1, [revision.Definition], [unit], []));
                 var choice = new InventoryHardwareChoice(unit, revision.Definition);
