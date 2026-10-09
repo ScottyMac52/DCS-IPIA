@@ -51,8 +51,11 @@ namespace Dcs.Ipia.Application
         /// <param name="exporterVersion">Versioned rendering semantics; saved revisions retain their original semantics.</param>
         /// <returns>Immutable revision ready for preview and explicit publication.</returns>
         public static UserMappingRevision Import(string source, HardwareDefinition definition, string sourceName,
-            string applicationVersion, IReadOnlyDictionary<string, byte[]>? assets = null, string exporterVersion = "ipia-drawio-3")
+            string applicationVersion, IReadOnlyDictionary<string, byte[]>? assets = null, string? exporterVersion = null)
         {
+            var graph = Graph(source);
+            exporterVersion ??= Cells(graph).Any(cell => Style(cell, "ipiaTextLayout", "").Length > 0 ||
+                Style(cell, "ipiaStatic", "") == "1") ? "ipia-drawio-3" : "ipia-drawio-2";
             if (exporterVersion is not ("ipia-drawio-1" or "ipia-drawio-2" or "ipia-drawio-3"))
                 throw new InvalidDataException("Unsupported draw.io exporter version.");
             var compatible = exporterVersion != "ipia-drawio-1";
@@ -67,7 +70,6 @@ namespace Dcs.Ipia.Application
                 local.Add(SafeAsset(item.Key), item.Value.ToArray());
             if (local.Count > 32 || local.Values.Sum(x => (long)x.Length) > 8_000_000)
                 throw new InvalidDataException("Local images exceed the 32-file / 8 MB limit.");
-            var graph = Graph(source);
             var width = Number(graph, "pageWidth");
             var originalHeight = Number(graph, "pageHeight");
             if (width < 100 || originalHeight < 100 || width > 4096 || originalHeight > 2048)

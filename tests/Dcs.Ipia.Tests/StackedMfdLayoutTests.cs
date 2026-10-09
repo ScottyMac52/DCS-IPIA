@@ -16,6 +16,7 @@ namespace Dcs.Ipia.Tests
         public void ImportsCompleteMfdAndPreservesStaticHeadings()
         {
             var revision = Revision();
+            Assert.Equal("ipia-drawio-3", revision.ExporterVersion);
             Assert.Equal(28, revision.MappedInputs.Count);
             Assert.Equal(28, revision.Controls.Count);
             DrawioMappingImporter.Validate(revision);
@@ -75,6 +76,8 @@ namespace Dcs.Ipia.Tests
             source = doc.ToString();
             var old = DrawioMappingImporter.Import(source, Definition(), "mfd.drawio", "1", exporterVersion: "ipia-drawio-2");
             var current = DrawioMappingImporter.Import(source, Definition(), "mfd.drawio", "1");
+            Assert.Equal("ipia-drawio-2", current.ExporterVersion);
+            Assert.Equal(old.Id, current.Id);
             Assert.Equal(old.Svg, current.Svg);
             Assert.Equal(old.Controls, current.Controls);
             DrawioMappingImporter.Validate(old);
