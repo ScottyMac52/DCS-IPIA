@@ -34,7 +34,7 @@ namespace Dcs.Ipia.App.Smoke
             var clipboardFailure = false;
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
                 inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
-                    ? new FakeDeviceInputSource(physical, otherPhysical) : throw new InvalidOperationException("Test must still acquire the modifier controller."),
+                    ? new FakeDeviceInputSource(physical, otherPhysical) { ButtonValue = 0 } : throw new InvalidOperationException("Test must still acquire the modifier controller."),
                 inputLogClipboardWriter: (html, text) =>
                 {
                     if (clipboardFailure) throw new InvalidOperationException("Injected clipboard busy.");
@@ -43,6 +43,10 @@ namespace Dcs.Ipia.App.Smoke
             window.Show();
             var tabs = (TabControl)window.FindName("ImportedTabs")!;
             tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => Equals(x.Header, "Assignments"));
+            window.UpdateLayout();
+            window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            var device = (ComboBox)window.FindName("DeviceChoice")!;
+            device.SelectedItem = device.Items.Cast<UiLayerDiagram>().Single(x => x.ProfileId == workspace.Diagrams[0].ProfileId);
             window.UpdateLayout();
             var start = (Button)window.FindName("StartInputTestButton")!;
             var stop = (Button)window.FindName("StopInputTestButton")!;
@@ -53,6 +57,7 @@ namespace Dcs.Ipia.App.Smoke
             if (log.Items.Count != 0 || ((Canvas)window.FindName("Diagram")!).Children.OfType<Canvas>()
                 .SelectMany(x => x.Children.OfType<Border>()).Any(x => x.Background == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("The initial sample reported or highlighted existing input states.");
+            source!.ButtonValue = 1;
             Wait(window, () => log.Items.Count > 0);
             if (start.IsEnabled || !stop.IsEnabled || choice.IsEnabled || !status.Text.Contains("frozen current edits", StringComparison.Ordinal) ||
                 !log.Items.Cast<InputTestLogEntry>().Select(x => x.Display).Any(x => x.Contains("Test action (KEY)", StringComparison.Ordinal)))
@@ -151,3 +156,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

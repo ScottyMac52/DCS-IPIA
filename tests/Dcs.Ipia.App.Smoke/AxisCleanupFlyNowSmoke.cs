@@ -46,7 +46,9 @@ namespace Dcs.Ipia.App.Smoke
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
                 try { ((Button)window.FindName("FlyNowButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
                 finally { SynchronizationContext.SetSynchronizationContext(previous); }
-                Wait(window, () => ((TextBlock)window.FindName("ImportStatus")!).Text.StartsWith("Fly Now! deployed", StringComparison.Ordinal));
+                // The success text precedes the awaited journal refresh. Wait for the UI operation to release its lease.
+                Wait(window, () => ((TextBlock)window.FindName("ImportStatus")!).Text.StartsWith("Fly Now! deployed", StringComparison.Ordinal) &&
+                    MainWindowCommands.ClearDeployment.CanExecute(null, window));
                 var reopened = repository.GetAsync(saved.Configuration.Module.Id).GetAwaiter().GetResult()!;
                 var captured = JsonSerializer.Deserialize<string[]>(reopened.Sources!["config/ipia-axis-cleanup-devices.json"])!;
                 if (!captured.Contains(unused) || saved.Configuration.Profiles.Any(x => !captured.Contains(x.SourceName)))
@@ -111,3 +113,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

@@ -43,6 +43,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifyModuleDeleteButton();
             Console.WriteLine("Smoke: user data recovery.");
             UserDataRecoverySmoke.Verify();
+            SupportReportSmoke.Verify();
             UserMappingsSmoke.Verify();
             Console.WriteLine("Smoke: new module form.");
             VerifyNewModuleForm();

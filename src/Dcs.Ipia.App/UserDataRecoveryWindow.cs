@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Microsoft.Win32;
 
@@ -18,6 +19,8 @@ namespace DcsIpia.Presentation
         private readonly Button _backup;
         private readonly Button _restore;
         private readonly Button _review;
+        private readonly Button _support;
+        private readonly SupportReportService? _supportReports;
         private bool _busy;
         /// <summary>Creates recovery tools without requiring database-backed UI services.</summary>
         /// <param name="recovery">User-data archive operations.</param>
@@ -26,11 +29,13 @@ namespace DcsIpia.Presentation
         /// <param name="backupPicker">Optional test adapter for destination selection.</param>
         /// <param name="restorePicker">Optional test adapter for source selection.</param>
         /// <param name="restoreConfirmation">Optional test adapter for explicit restore consent.</param>
+        /// <param name="supportReports">Optional read-only support capture, including failed startup.</param>
         public UserDataRecoveryWindow(IUserDataRecoveryService recovery, Action? closeDatabase = null,
             string? initialStatus = null, Func<string?>? backupPicker = null, Func<string?>? restorePicker = null,
-            Func<bool>? restoreConfirmation = null)
+            Func<bool>? restoreConfirmation = null, SupportReportService? supportReports = null)
         {
             _recovery = recovery;
+            _supportReports = supportReports;
             _closeDatabase = closeDatabase ?? (() => { });
             _backupPicker = backupPicker;
             _restorePicker = restorePicker;
@@ -50,6 +55,9 @@ namespace DcsIpia.Presentation
             _review = Button("Review restored deployment…", "ReviewDeploymentButton", ReviewClicked);
             _review.IsEnabled = recovery.DeploymentReview is not null;
             panel.Children.Add(_backup); panel.Children.Add(_restore); panel.Children.Add(_review);
+            _support = Button("_Export support report…", "RecoverySupportButton", SupportClicked);
+            _support.IsEnabled = supportReports is not null;
+            panel.Children.Add(_support);
             _status = new TextBlock { Name = "RecoveryStatus", Text = initialStatus ?? "Choose a backup location outside the user-data directory.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 0) };
             RegisterName(_status.Name, _status);
             panel.Children.Add(_status);
@@ -116,9 +124,17 @@ namespace DcsIpia.Presentation
             try { _recovery.ForgetReviewedDeployment(); _review.IsEnabled = false; _status.Text = "Restored record forgotten. No DCS files were changed. Inspect existing files before deploying again."; }
             catch (Exception ex) { _status.Text = "Deployment review did not complete: " + ex.Message; }
         }
+        private async void SupportClicked(object sender, RoutedEventArgs e)
+        {
+            if (_busy || RequiresRestart || _supportReports is null) return;
+            Busy(true);
+            try { new SupportReportWindow(await _supportReports.CaptureAsync()) { Owner = this }.ShowDialog(); }
+            finally { Busy(false); }
+        }
         private void Busy(bool busy)
         {
             _busy = busy;
+            _support.IsEnabled = !busy && !RequiresRestart && _supportReports is not null;
             _backup.IsEnabled = !busy && !RequiresRestart;
             _restore.IsEnabled = !busy;
             _review.IsEnabled = !busy && !RequiresRestart && _recovery.DeploymentReview is not null;
@@ -126,3 +142,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

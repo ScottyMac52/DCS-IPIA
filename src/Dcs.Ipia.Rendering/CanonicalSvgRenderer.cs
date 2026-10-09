@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml.Linq;
 using SkiaSharp;
 using Svg.Skia;
+using Svg.Skia.TypefaceProviders;
 
 namespace Dcs.Ipia.Rendering
 {
@@ -42,7 +43,11 @@ namespace Dcs.Ipia.Rendering
                 throw new ArgumentOutOfRangeException(nameof(width),
                                                       "SVG canvas must have finite supported dimensions.");
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+            using var typeface = Typeface("DejaVuSans-IPIA-Regular.ttf");
+            using var bold = Typeface("DejaVuSans-IPIA.ttf");
             using var svg = new SKSvg();
+            svg.Settings.TypefaceProviders!.Insert(0, typeface);
+            svg.Settings.TypefaceProviders.Insert(1, bold);
             var picture = svg.Load(stream) ?? throw new InvalidDataException("Canonical SVG could not be rendered.");
             using var surface =
                 SKSurface.Create(new SKImageInfo((int)Math.Ceiling(width), (int)Math.Ceiling(height))) ??
@@ -67,7 +72,11 @@ namespace Dcs.Ipia.Rendering
                 throw new ArgumentOutOfRangeException(nameof(scale),
                                                       "Scaled SVG canvas must have finite supported dimensions.");
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+            using var typeface = Typeface("DejaVuSans-IPIA-Regular.ttf");
+            using var bold = Typeface("DejaVuSans-IPIA.ttf");
             using var svg = new SKSvg();
+            svg.Settings.TypefaceProviders!.Insert(0, typeface);
+            svg.Settings.TypefaceProviders.Insert(1, bold);
             var picture = svg.Load(stream) ?? throw new InvalidDataException("Canonical SVG could not be rendered.");
             using var surface = SKSurface.Create(new SKImageInfo((int)Math.Ceiling(width * scale),
                                                                  (int)Math.Ceiling(height * scale))) ??
@@ -80,5 +89,19 @@ namespace Dcs.Ipia.Rendering
             return png.ToArray();
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static CustomTypefaceProvider Typeface(string file)
+        {
+            using var source = typeof(CanonicalSvgRenderer).Assembly
+                .GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts." + file) ??
+                throw new InvalidDataException("The pinned font is missing.");
+            var provider = new CustomTypefaceProvider(source);
+            if (provider.Typeface is null) { provider.Dispose(); throw new InvalidDataException("The pinned font could not be loaded."); }
+            provider.FamilyAliases.Add("DejaVu Sans");
+            provider.FamilyAliases.Add("Arial");
+            provider.FamilyAliases.Add("sans-serif");
+            return provider;
+        }
+        #endregion END private helpers
     }
 }

@@ -49,6 +49,26 @@ namespace Dcs.Ipia.Tests
                 () => CanonicalSvgRenderer.RenderCompleteScaled(svg, double.NaN, 60, 2));
             Assert.Throws<ArgumentException>(() => CanonicalSvgRenderer.RenderCompleteScaled("", 80, 60, 2));
         }
+        /// <summary>Authored sans-serif labels use the shipped font in both display and scaled output.</summary>
+        /// <param name="scale">Display or kneeboard pixel density.</param>
+        /// <param name="weight">Authored regular or bold label weight.</param>
+        [Theory]
+        [InlineData(1, "normal")]
+        [InlineData(2, "normal")]
+        [InlineData(1, "bold")]
+        [InlineData(2, "bold")]
+        public void Sans_serif_aliases_use_the_bundled_typeface(int scale, string weight)
+        {
+            const string source = "<svg xmlns='http://www.w3.org/2000/svg' width='500' height='80'><text x='20' y='40' font-family='FONT' font-size='19' font-weight='WEIGHT'>Controller buttons + axes 123</text></svg>";
+            byte[] Render(string family) => scale == 1
+                ? CanonicalSvgRenderer.RenderComplete(source.Replace("FONT", family, StringComparison.Ordinal).Replace("WEIGHT", weight, StringComparison.Ordinal), 500, 80)
+                : CanonicalSvgRenderer.RenderCompleteScaled(source.Replace("FONT", family, StringComparison.Ordinal).Replace("WEIGHT", weight, StringComparison.Ordinal), 500, 80, scale);
+            var expected = Render("DejaVu Sans");
+            Assert.Equal(expected, Render("Arial,sans-serif"));
+            Assert.Equal(expected, Render("sans-serif"));
+            using var bitmap = SkiaSharp.SKBitmap.Decode(expected);
+            Assert.Contains(bitmap.Pixels, pixel => pixel.Alpha > 0);
+        }
         #endregion END Public
     }
 }

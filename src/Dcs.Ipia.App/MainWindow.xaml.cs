@@ -36,6 +36,7 @@ namespace DcsIpia.Presentation
         private readonly HardwareInventoryManager? _hardwareInventory;
         private readonly IUserMappingLibrary? _userMappings;
         private readonly SetupManager? _setup;
+        private readonly SupportReportService? _supportReports;
         private bool _setupOffered;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<MainWindow> _logger;
@@ -59,6 +60,7 @@ namespace DcsIpia.Presentation
         /// <param name="loggerFactory">Optional DI logging factory.</param>
         /// <param name="logger">Optional module operation logger.</param>
         /// <param name="deviceDiscovery">Native controller discovery for deployment cleanup.</param>
+        /// <param name="supportReports">Read-only selected-profile support evidence.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
@@ -67,7 +69,7 @@ namespace DcsIpia.Presentation
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
                           HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
                           ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null,
-                          IConnectedDeviceDiscovery? deviceDiscovery = null)
+                          IConnectedDeviceDiscovery? deviceDiscovery = null, SupportReportService? supportReports = null)
         {
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = logger ?? NullLogger<MainWindow>.Instance;
@@ -87,6 +89,7 @@ namespace DcsIpia.Presentation
             _hardwareInventory = hardwareInventory;
             _setup = setup;
             _userMappings = userMappings;
+            _supportReports = supportReports;
             InitializeComponent();
             BindMainCommands();
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
@@ -133,6 +136,7 @@ namespace DcsIpia.Presentation
                 [MainWindowCommands.UserMappings] = (_, _) => OpenUserMappings(),
                 [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
                 [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
+                [MainWindowCommands.SupportReport] = SupportReportClicked,
                 [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
             };
             foreach (var (command, action) in actions)
@@ -142,6 +146,7 @@ namespace DcsIpia.Presentation
         private bool CanExecuteMainCommand(RoutedUICommand command)
         {
             if (_moduleOperationBusy) return false;
+            if (command == MainWindowCommands.SupportReport) return _supportReports is not null && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.UserMappings) return _userMappings is not null && _hardwareInventory is not null && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.DiscoverHardware || command == MainWindowCommands.ManageHardware)
                 return _hardwareInventory is not null && OwnedWindows.Count == 0;
@@ -165,7 +170,7 @@ namespace DcsIpia.Presentation
         {
             if (_recovery is null || _moduleOperationBusy) return;
             SetModuleOperationBusy(true);
-            var dialog = new UserDataRecoveryWindow(_recovery, _closeDatabase) { Owner = this };
+            var dialog = new UserDataRecoveryWindow(_recovery, _closeDatabase, supportReports: _supportReports) { Owner = this };
             try { dialog.ShowDialog(); }
             finally
             {
@@ -255,9 +260,18 @@ namespace DcsIpia.Presentation
             using var dialog = new HardwareInventoryWindow(_hardwareInventory, discover) { Owner = this };
             dialog.ShowDialog();
         }
-        private void AboutClicked(object sender, RoutedEventArgs e) => MessageBox.Show(this,
-            "DCS-IPIA · " + ApplicationVersion.Label + "\n\nOpen a module to edit Devices, Modifiers, Assignments, Commands and Pages, then Save to database before previewing, validating, exporting a module snapshot or building a package.\n\nData & recovery backs up the entire saved user profile. Restore replaces it and requires restarting. Module snapshots instead restore one module without replacing other modules. Deployment → Fly Now/Clear writes only explicitly selected DCS payloads.",
-            "About and workflow help", MessageBoxButton.OK, MessageBoxImage.Information);
+        private void AboutClicked(object sender, RoutedEventArgs e) => new WorkflowHelpWindow { Owner = this }.ShowDialog();
+        private async void SupportReportClicked(object sender, RoutedEventArgs e)
+        {
+            if (_supportReports is null || _moduleOperationBusy || OwnedWindows.Count > 0) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var report = await _supportReports.CaptureAsync();
+                new SupportReportWindow(report) { Owner = this }.ShowDialog();
+            }
+            finally { SetModuleOperationBusy(false); }
+        }
         private async Task RefreshFlyNowAsync()
         {
             _flyNowLoading = true;
@@ -680,3 +694,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

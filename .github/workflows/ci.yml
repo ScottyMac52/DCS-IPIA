@@ -179,7 +179,6 @@ jobs:
           path: asset-authoring-coverage.info
 
   release-candidate:
-    needs: [dotnet, solution, csharp-layout, asset-authoring, test-reports]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -196,6 +195,13 @@ jobs:
       - name: Test exact portable and installed release payload
         shell: pwsh
         run: ./scripts/Test-ApplicationRelease.ps1 -Version '${{ steps.version.outputs.value }}'
+      - name: Upload failed synthetic drawing comparisons
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-acceptance-diagnostics
+          path: release-acceptance-diagnostics/**
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
         with:
           name: DCS-IPIA-tested-release-candidate
