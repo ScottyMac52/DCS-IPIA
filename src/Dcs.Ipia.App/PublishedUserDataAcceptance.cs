@@ -53,9 +53,9 @@ namespace DcsIpia.Presentation
                     if (custom) workspace = UserMappingAdoption.Apply(workspace, workspace.Configuration.Profiles.Single().Id, revision);
                     await repository.SaveAsync(workspace);
                 }
-                File.WriteAllText(manifest, JsonSerializer.Serialize(await Evidence(repository)));
+                File.WriteAllText(manifest, JsonSerializer.Serialize(await Evidence(repository, folder)));
             }
-            var actual = await Evidence(repository);
+            var actual = await Evidence(repository, folder);
             var expected = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifest))
                 ?? throw new InvalidDataException("Acceptance baseline could not be read.");
             var changed = actual.Keys.Union(expected.Keys, StringComparer.Ordinal)
@@ -73,7 +73,7 @@ namespace DcsIpia.Presentation
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static async Task<SortedDictionary<string, string>> Evidence(SqliteEditorWorkspaceRepository repository)
+        private static async Task<SortedDictionary<string, string>> Evidence(SqliteEditorWorkspaceRepository repository, string folder)
         {
             var evidence = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var id in await repository.ListAsync())
@@ -85,7 +85,29 @@ namespace DcsIpia.Presentation
                 var payload = SnapshotLuaPayloadRenderer.Generate(workspace);
                 foreach (var (path, bytes) in payload) evidence[name + "/lua/" + path] = Hash(bytes);
                 foreach (var diagram in workspace.Diagrams)
-                    evidence[name + "/drawing/" + diagram.ProfileId] = PixelHash(CanonicalSvgRenderer.RenderComplete(diagram.Svg, diagram.Width, diagram.Height));
+                {
+                    var key = name + "/drawing/" + diagram.ProfileId;
+                    var png = CanonicalSvgRenderer.RenderComplete(diagram.Svg, diagram.Width, diagram.Height);
+                    var pixels = PixelHash(png);
+                    evidence[key] = pixels;
+                    var baselineFolder = Path.Combine(folder, "release-drawing-baseline");
+                    Directory.CreateDirectory(baselineFolder);
+                    var baseline = Path.Combine(baselineFolder, diagram.ProfileId + ".png");
+                    if (!File.Exists(baseline)) File.WriteAllBytes(baseline, png);
+                    else if (PixelHash(File.ReadAllBytes(baseline)) != pixels)
+                    {
+                        var diagnostics = Path.Combine(folder, "release-diagnostics", diagram.ProfileId.ToString());
+                        Directory.CreateDirectory(diagnostics);
+                        File.Copy(baseline, Path.Combine(diagnostics, "baseline.png"), true);
+                        File.WriteAllBytes(Path.Combine(diagnostics, "current.png"), png);
+                        File.WriteAllText(Path.Combine(diagnostics, "source.svg"), diagram.Svg);
+                        File.WriteAllText(Path.Combine(diagnostics, "evidence.json"), JsonSerializer.Serialize(new
+                        {
+                            key, baseline = PixelHash(File.ReadAllBytes(baseline)), actual = pixels,
+                            width = diagram.Width, height = diagram.Height
+                        }));
+                    }
+                }
             }
             if (evidence.Count < 10) throw new InvalidDataException("Acceptance evidence lacks saved profiles or output.");
             return evidence;

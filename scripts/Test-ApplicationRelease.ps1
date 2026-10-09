@@ -23,6 +23,12 @@ function Test-App([string]$Executable, [string]$Name, [string]$ExistingData = ''
         -not (Test-Path (Join-Path $data 'ipia.db'))) {
         $errorFile = Join-Path $data 'release-smoke.error'
         if (Test-Path $errorFile) { Write-Output (Get-Content $errorFile -Raw) }
+        $diagnostics = Join-Path $data 'release-diagnostics'
+        if (Test-Path $diagnostics) {
+            $destination = Join-Path 'release-acceptance-diagnostics' $Name
+            New-Item -ItemType Directory -Path $destination -Force | Out-Null
+            Copy-Item (Join-Path $diagnostics '*') $destination -Recurse
+        }
         throw "$Name published application verification failed."
     }
     if ((Get-Item $Executable).VersionInfo.FileVersion -ne $Version) { throw "$Name executable version differs." }
