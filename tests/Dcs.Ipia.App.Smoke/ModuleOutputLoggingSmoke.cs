@@ -44,10 +44,16 @@ namespace Dcs.Ipia.App.Smoke
                 Wait(editor, () => ((TextBlock)editor.FindName("BuildStatus")!).Text.StartsWith("Exported module snapshot:", StringComparison.Ordinal));
                 if (!File.Exists(exportPath) || output.Events.Count != 0)
                     throw new InvalidOperationException("Duplicate imported bindings blocked saved-module output.");
+                editor.Close();
+                var sources = new Dictionary<string, string>(saved.Sources!) { ["config/integrations.json"] = "{" };
+                var broken = saved with { Sources = sources };
+                editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(broken), settings, repository,
+                    deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
+                editor.Show();
                 foreach (var (button, operation) in new[] { ("ValidateModuleButton", "Validate"),
                     ("ExportModuleSnapshotButton", "Export module snapshot") })
                 {
-                    ((TextBox)editor.FindName("PackageVersion")!).Text = "invalid-version";
+                    ((TextBox)editor.FindName("PackageVersion")!).Text = "1.0.0.0";
                     var count = output.Events.Count;
                     Click((Button)editor.FindName(button)!);
                     Wait(editor, () => output.Events.Count > count && ((Button)editor.FindName(button)!).IsEnabled);
