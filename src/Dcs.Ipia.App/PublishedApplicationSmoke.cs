@@ -41,8 +41,9 @@ namespace DcsIpia.Presentation
                 <mxCell id="footer" parent="1" vertex="1" value="Published custom mapping"><mxGeometry x="0" y="575" width="900" height="25"/></mxCell>
                 </root></mxGraphModel></diagram></mxfile>
                 """;
-            source = source.Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=data:image/png;base64," + Convert.ToBase64String(png.ToArray()) + ";\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal);
-            var revision = DrawioMappingImporter.Import(source, definition, "published.drawio", version);
+            source = source.Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=controller.png;\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal);
+            var revision = DrawioMappingImporter.Import(source, definition, "published.drawio", version,
+                new Dictionary<string, byte[]> { ["controller.png"] = png.ToArray() });
             if (revision.Assets.Count != 1) throw new InvalidDataException("Published custom mapping did not capture its image asset.");
             var library = new FileUserMappingLibrary(folder);
             await library.SaveAsync(revision);

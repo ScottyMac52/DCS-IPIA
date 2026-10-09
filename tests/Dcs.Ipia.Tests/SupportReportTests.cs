@@ -35,7 +35,8 @@ namespace Dcs.Ipia.Tests
             var mappingDefinition = new HardwareDefinition("unused", ControllerCapabilityMapper.Map(
                 [new ControllerObject(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12, Secret)]));
             mappingDefinition = mappingDefinition with { Id = ControllerCapabilityMapper.Fingerprint(mappingDefinition.Capabilities) };
-            var revision = DrawioMappingImporter.Import(Drawing().Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=data:image/png;base64," + Convert.ToBase64String(DrawioMappingFixture.Png) + ";\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal), mappingDefinition, Secret + ".drawio", "1.2.3.4");
+            var revision = DrawioMappingImporter.Import(Drawing().Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=private-controller.png;\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal), mappingDefinition, Secret + ".drawio", "1.2.3.4",
+                new Dictionary<string, byte[]> { ["private-controller.png"] = DrawioMappingFixture.Png });
             Assert.Single(revision.Assets);
             await new FileUserMappingLibrary(_folder).SaveAsync(revision);
             var custom = InventoryHardwareAuthoring.Add(NewModuleWorkspaceFactory.Create("CUSTOM", Secret, GenericHardwareFixture.Defaults(),
