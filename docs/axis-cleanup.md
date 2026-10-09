@@ -4,6 +4,8 @@ Locally created modules capture the native filenames of connected controllers an
 
 Opening an older locally created module, or refreshing Devices, stages newly observed filenames for cleanup. **Save to database** retains them; Discard leaves saved state unchanged. Offline identities are retained on later scans. Generate the package after saving. Controllers first connected after that scan need a refresh and a new package.
 
+**Fly Now!** also captures connected controllers, existing Saved Games profiles and authored native units before deploying a locally created module. It saves these identities to the database first, including when an older module is deployed directly from the Modules screen without opening its editor. The generated files and deployment journal include cleanup-only profiles, so Clear also removes those deployed files.
+
 The saved command catalog supplies the aircraft axis IDs. Generation emits removal entries for unassigned base combinations of each known axis command and the eight native DirectInput axis keys. On an unused controller the resulting profile contains only removals. This suppresses default bindings even when they are not included in an imported diff. Exact active command/input/chord combinations and tuning remain intact; shifted assignments do not preserve an unwanted base default on the same physical input.
 
 No aircraft command IDs are guessed. Load the aircraft's complete command catalog to cover its axes. Cleanup is limited to captured native units and known commands; an unobserved controller or command absent from the catalog cannot be covered. Existing per-device cleared-axis imports remain useful for other default chords and additional explicit evidence.

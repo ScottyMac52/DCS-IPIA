@@ -757,6 +757,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (editor.FindName("RebindDeviceButton") is not Button)
                     throw new InvalidOperationException("Explicit physical rebinding is missing.");
                 editor.Close();
+                AxisCleanupFlyNowSmoke.Verify(connection, repository, created);
             }
             finally { File.Delete(path); }
         }
