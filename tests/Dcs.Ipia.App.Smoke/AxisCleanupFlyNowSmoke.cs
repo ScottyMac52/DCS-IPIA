@@ -28,6 +28,8 @@ namespace Dcs.Ipia.App.Smoke
             {
                 var sources = created.Sources!.Where(x => x.Key != "config/ipia-axis-cleanup-devices.json").ToDictionary(x => x.Key, x => x.Value);
                 var saved = created with { Sources = sources, ModuleCommands = [.. created.ModuleCommands.Where(x => x.Id != "a2001cdnil"), new("a2001cdnil", "Pitch", "Axes", true)] };
+                foreach (var device in WorkspaceStructureEditor.Describe(saved).Devices)
+                    saved = ModulePhysicalBindingReview.Confirm(saved, device.ProfileId, DcsPhysicalIdentity.FromFileName(device.FileName)!.Value);
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
