@@ -19,14 +19,13 @@ namespace Dcs.Ipia.App.Smoke
         /// <summary>Captures native units without first opening the module editor.</summary>
         /// <param name="connection">Migrated smoke database.</param>
         /// <param name="repository">Saved module repository.</param>
-        /// <param name="created">Locally created module with native controller identities.</param>
-        public static void Verify(string connection, IEditorWorkspaceRepository repository, EditorWorkspaceSnapshot created)
+        public static void Verify(string connection, IEditorWorkspaceRepository repository)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-axis-fly-" + Guid.NewGuid().ToString("N"));
             MainWindow? window = null;
             try
             {
-                var saved = Workspace(created.Configuration.Module.Id);
+                var saved = Workspace(Guid.NewGuid());
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
