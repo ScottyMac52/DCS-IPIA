@@ -48,6 +48,7 @@ namespace Dcs.Ipia.App.Smoke
                         "pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
                     tabs.SelectedIndex = 0; choices.SelectedIndex = 0;
                     Pump(window);
+                    SaveImage(window, theme);
                     AssertPixel(selected, 6, 6, "SelectedBackgroundBrush");
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
@@ -103,7 +104,12 @@ namespace Dcs.Ipia.App.Smoke
         private static RenderTargetBitmap Render(FrameworkElement control)
         {
             var image = new RenderTargetBitmap((int)Math.Ceiling(control.ActualWidth), (int)Math.Ceiling(control.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-            image.Render(control); return image;
+            var bounds = new Rect(0, 0, control.ActualWidth, control.ActualHeight);
+            var visual = new DrawingVisual();
+            using (var drawing = visual.RenderOpen())
+                drawing.DrawRectangle(new VisualBrush(control) { ViewboxUnits = BrushMappingMode.Absolute,
+                    Viewbox = bounds, ViewportUnits = BrushMappingMode.Absolute, Viewport = bounds }, null, bounds);
+            image.Render(visual); return image;
         }
         private static void AssertPixel(FrameworkElement control, int x, int y, string key)
         {
