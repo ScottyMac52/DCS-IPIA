@@ -105,10 +105,10 @@ namespace Dcs.Ipia.App.Smoke
             args.RoutedEvent = routedEvent;
             return args;
         }
-        private static void Check(DataGrid pages, IReadOnlyList<Guid> expected)
+        private static void Check(DataGrid pages, Guid[] expected)
         {
             if (!pages.Items.Cast<KneeboardPage>().Select(x => x.Id).SequenceEqual(expected) ||
-                !pages.Items.Cast<KneeboardPage>().Select(x => x.Order).SequenceEqual(Enumerable.Range(0, expected.Count)))
+                !pages.Items.Cast<KneeboardPage>().Select(x => x.Order).SequenceEqual(Enumerable.Range(0, expected.Length)))
                 throw new InvalidOperationException("Page rows did not reorder and renumber.");
         }
         #endregion END private helpers
