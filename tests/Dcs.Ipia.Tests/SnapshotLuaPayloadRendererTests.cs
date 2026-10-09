@@ -14,6 +14,84 @@ namespace Dcs.Ipia.Tests
         private const string UiPath = "assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua";
         private static readonly string[] ReferencedNames = ["ARM_SELECT_1", "ARM_SELECT_2", "LCtrl"];
         #region BEGIN Public
+        /// <summary>Managed source-free modules export both imported stick axes and newly assigned rudder axes.</summary>
+        [Fact]
+        public void PreservesAssignedFlightAxesInManagedPayload()
+        {
+            var workspace = Workspace();
+            var axes = new[] {
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2002cdnil", "Roll", BindingDisposition.Added, "JOY_X", []),
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Added, "JOY_Y", []),
+                new DcsBinding(ProfileId, BindingSection.Axis, "a2003cdnil", "Rudder", BindingDisposition.Added, "JOY_Z", [])
+            };
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
+            ], []));
+            var diagram = workspace.Diagrams[0] with { SupportsUiLayer = false, Controls = [
+                new("roll", "Roll", "JOY_X", 0, 0, 10, 10, true),
+                new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true),
+                new("rudder", "Rudder", "JOY_Z", 0, 0, 10, 10, true)
+            ] };
+            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+                [], axes.Take(2).ToArray(), "Created in IPIA");
+            var saved = workspace with { Configuration = config, Sources = sources, Diagrams = [diagram],
+                Assignments = axes.Select(axis => new DraftAssignment(
+                    new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, axis.InputKey),
+                    new(axis.CommandId, axis.CommandName, true, AssignmentLayer.Module))).ToArray()
+            };
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var exported = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
+            Assert.Equal(3, exported.Count);
+            foreach (var axis in axes)
+                Assert.Contains(exported, item => item.CommandId == axis.CommandId && item.InputKey == axis.InputKey &&
+                    item.Disposition == BindingDisposition.Added && item.Reformers.Count == 0);
+            Assert.Equal(3, saved.Assignments.Count);
+        }
+        /// <summary>Custom-only defaults cannot erase the keyboard modifiers used by unchanged DCS defaults.</summary>
+        /// <param name="managed">Whether explicit device management is saved.</param>
+        /// <param name="emptyDefaults">Whether shared defaults contain no modifier definitions.</param>
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public void SuppliesStandardKeyboardModifiersInBothScopes(bool managed, bool emptyDefaults)
+        {
+            var workspace = Workspace();
+            var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
+            if (emptyDefaults)
+            {
+                sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers";
+                sources[UiPath] = "local diff = {} return diff";
+            }
+            if (managed)
+            {
+                sources["config/ipia-ui-" + ProfileId.ToString("N") + ".lua"] = sources[UiPath];
+                var modifiers = new List<WorkspaceModifier> {
+                    new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "Module", ModifierMode.Toggle, "Stick")
+                };
+                if (!emptyDefaults)
+                    modifiers.Add(new(AssignmentLayer.UiLayer, ProfileId, "SHIFT", "JOY_BTN3", "UI", ModifierMode.Hold, "Stick"));
+                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                    new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick"),
+                    new(ProfileId, AssignmentLayer.UiLayer, "Stick.diff.lua", null, "Stick")
+                ], modifiers));
+            }
+            var saved = workspace with { Sources = sources };
+            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            foreach (var folder in new[] { "TEST", "UiLayer" })
+            {
+                var modifiers = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/" + folder + "/modifiers.lua"));
+                foreach (var name in new[] { "LAlt", "LCtrl", "LShift", "LWin", "RAlt", "RCtrl", "RShift", "RWin" })
+                    Assert.Equal(new DcsModifier(name, "Keyboard", name, ModifierMode.Hold),
+                        Assert.Single(modifiers, x => x.Name == name));
+                if (folder == "TEST" || !emptyDefaults)
+                    Assert.Contains(modifiers, x => x.Name == (folder == "TEST" ? "MOD" : "SHIFT"));
+            }
+            Assert.Equal("MOD", Assert.Single(saved.Configuration.Modifiers).Name);
+            Assert.Equal(workspace.Assignments, saved.Assignments);
+        }
         /// <summary>Case-only module names use the pinned native spelling without changing switch semantics or commands.</summary>
         /// <param name="managed">Whether an older saved workspace has explicit device settings.</param>
         [Theory]
@@ -219,11 +297,13 @@ namespace Dcs.Ipia.Tests
             var module = Text(output, "Config/Input/TEST/joystick/Stick.diff.lua");
             Assert.Contains(DcsLuaParser.ParseProfile(module, ProfileId), x => x.CommandId == "EDIT");
             var moduleModifiers = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
-            Assert.Equal("MOD", Assert.Single(moduleModifiers).Name);
+            Assert.Equal(9, moduleModifiers.Count);
+            Assert.Contains(moduleModifiers, x => x.Name == "MOD");
             var ui = Text(output, "Config/Input/UiLayer/joystick/Stick.diff.lua");
             Assert.Contains(DcsLuaParser.ParseProfile(ui, ProfileId), x => x.CommandId == "UI");
             var uiModifiers = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua"));
-            Assert.Equal("SHIFT", Assert.Single(uiModifiers).Name);
+            Assert.Equal(9, uiModifiers.Count);
+            Assert.Contains(uiModifiers, x => x.Name == "SHIFT");
             Assert.Equal(output.Keys.Order(StringComparer.OrdinalIgnoreCase),
                          SnapshotLuaPayloadRenderer.Generate(workspace).Keys.Order(StringComparer.OrdinalIgnoreCase));
         }
@@ -236,7 +316,9 @@ namespace Dcs.Ipia.Tests
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources["config/ui-layer-overlay.json"] = """{"removedModifiers":["SHIFT"]}""";
             var output = SnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources });
-            Assert.Empty(DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua")));
+            Assert.Equal(8, DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua")).Count);
+            Assert.DoesNotContain(DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua")),
+                x => x.Name == "SHIFT");
             Assert.Empty(DcsLuaParser.ParseProfile(Text(output, "Config/Input/UiLayer/joystick/Stick.diff.lua"),
                                                    ProfileId));
         }
@@ -308,8 +390,8 @@ namespace Dcs.Ipia.Tests
             var config = new ModuleConfiguration(workspace.Configuration.Module,
                 workspace.Configuration.Profiles, [escaped], [], "test");
             var modified = SnapshotLuaPayloadRenderer.Generate(moduleOnly with { Configuration = config });
-            Assert.Equal(escaped.Name, Assert.Single(DcsLuaParser.ParseModifiers(
-                Text(modified, "Config/Input/TEST/modifiers.lua"))).Name);
+            Assert.Equal(escaped, Assert.Single(DcsLuaParser.ParseModifiers(
+                Text(modified, "Config/Input/TEST/modifiers.lua")), x => x.Name == escaped.Name));
         }
 
         /// <summary>Keyboard defaults come from pinned shared Lua and are added once without importing device modifiers.</summary>
@@ -372,4 +454,5 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
 

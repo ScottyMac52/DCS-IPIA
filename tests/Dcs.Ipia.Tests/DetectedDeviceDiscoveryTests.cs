@@ -146,7 +146,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains("Config/Input/TEST/joystick/" + renamed, payload.Keys);
             Assert.Contains("Config/Input/TEST/joystick/" + second.FileName, payload.Keys);
             Assert.Contains("Config/Input/UiLayer/joystick/" + first.FileName, payload.Keys);
-            Assert.Equal(renamed[..^9], Assert.Single(DcsLuaParser.ParseModifiers(Encoding.UTF8.GetString(payload["Config/Input/TEST/modifiers.lua"]))).Device);
+            Assert.Equal(renamed[..^9], Assert.Single(DcsLuaParser.ParseModifiers(Encoding.UTF8.GetString(payload["Config/Input/TEST/modifiers.lua"])), x => x.Device != "Keyboard").Device);
         }
         /// <summary>Native GUID membership survives a real SQLite reopen without substituting the workspace profile ID.</summary>
         /// <returns>Completion of the persistence round trip.</returns>
@@ -177,4 +177,5 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
 

@@ -8,6 +8,8 @@ namespace Dcs.Ipia.Dcs
     public static class SnapshotLuaPayloadRenderer
     {
         private const string SharedRoot = "assets/shared/ui-layer/input/UiLayer/";
+        private static readonly string[] StandardKeyboardModifiers =
+            ["LAlt", "LCtrl", "LShift", "LWin", "RAlt", "RCtrl", "RShift", "RWin"];
         #region BEGIN Public
         /// <summary>Renders module and UI Layer profiles with their effective modifier tables.</summary>
         /// <param name="workspace">Frozen saved workspace.</param>
@@ -145,6 +147,12 @@ namespace Dcs.Ipia.Dcs
             if (scope == AssignmentLayer.Module)
                 foreach (var modifier in shared.Where(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase)))
                     result.TryAdd(modifier.Name, modifier);
+            // DCS also uses these modifiers in unchanged keyboard defaults absent from exported diff.lua files.
+            // Custom-only and empty shared baselines must not replace that native keyboard vocabulary.
+            foreach (var name in StandardKeyboardModifiers)
+                if (!result.Values.Any(x => x.Device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase) &&
+                    DcsInputKey.SamePhysicalInput(x.Key, name)))
+                    result.TryAdd(name, new DcsModifier(name, "Keyboard", name, ModifierMode.Hold));
             var folder = scope == AssignmentLayer.Module ? workspace.Configuration.Module.DcsId : "UiLayer";
             var used = payload.Where(x => x.Key.StartsWith("Config/Input/" + folder + "/", StringComparison.Ordinal) &&
                 x.Key.EndsWith(".diff.lua", StringComparison.OrdinalIgnoreCase))
@@ -256,4 +264,5 @@ namespace Dcs.Ipia.Dcs
         #endregion END private helpers
     }
 }
+
 
