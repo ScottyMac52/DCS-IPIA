@@ -217,6 +217,9 @@ namespace DcsIpia.Presentation
                     workspace = NewModuleDeviceAuthoring.Apply(workspace, selected);
                     stagedWorkspace = workspace;
                 }
+                workspace = ModuleAxisCleanup.CaptureDevices(workspace,
+                    (PhysicalChoices.ItemsSource as IEnumerable<DetectedDcsDevice> ?? []).Select(x => x.FileName)
+                        .Concat(_selections.Select(x => x.FileName)));
                 await _repository.SaveAsync(workspace);
                 CreatedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new System.IO.InvalidDataException("The new module could not be reopened from SQLite.");
@@ -238,3 +241,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

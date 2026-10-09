@@ -39,6 +39,7 @@ namespace DcsIpia.Presentation
         private bool _setupOffered;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<MainWindow> _logger;
+        private readonly IConnectedDeviceDiscovery _deviceDiscovery;
         /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
         /// <param name="loader">The committed module workspace loader.</param>
         /// <param name="folderImporter">The live Saved Games profile reader.</param>
@@ -57,6 +58,7 @@ namespace DcsIpia.Presentation
         /// <param name="userMappings">Profile-scoped immutable custom mapping library.</param>
         /// <param name="loggerFactory">Optional DI logging factory.</param>
         /// <param name="logger">Optional module operation logger.</param>
+        /// <param name="deviceDiscovery">Native controller discovery for deployment cleanup.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
@@ -64,10 +66,12 @@ namespace DcsIpia.Presentation
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
                           HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
-                          ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null)
+                          ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null,
+                          IConnectedDeviceDiscovery? deviceDiscovery = null)
         {
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = logger ?? NullLogger<MainWindow>.Instance;
+            _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -298,6 +302,18 @@ namespace DcsIpia.Presentation
             {
                 FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
                 var destination = _settings.Current.SavedGamesDcsFolder;
+                var saved = await _workspaces.GetAsync(selected.Id)
+                    ?? throw new InvalidOperationException("The selected module is no longer in the database.");
+                if (saved.Sources?.ContainsKey("config/ipia-created-module.json") == true)
+                {
+                    FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
+                    var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
+                        SavedGamesDeviceDiscovery.Discover(destination)));
+                    var captured = ModuleAxisCleanup.CaptureDevices(saved,
+                        devices.Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)));
+                    if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
+                }
+                FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
                 var active = await Task.Run(() => _flyNow.DeployAsync(selected.Id, destination));
                 ImportStatus.Text = $"Fly Now! deployed {active.DisplayName} and its UI Layer ({active.Files.Count} files) to {active.Destination}.";
             }

@@ -893,6 +893,12 @@ namespace DcsIpia.Presentation
                 });
                 DetectedDevice.ItemsSource = choices;
                 DetectedDevice.SelectedItem = choices.FirstOrDefault(x => x.PhysicalGuid == selected);
+                if (_working is not null && !ReferenceEquals(_working,
+                    ModuleAxisCleanup.CaptureDevices(_working, choices.Select(x => x.FileName))))
+                {
+                    RunStructureEdit(workspace => ModuleAxisCleanup.CaptureDevices(workspace, choices.Select(x => x.FileName)));
+                    SetManagementMessage("Controller identities for aircraft axis cleanup staged. Save to database to include them in generated inputs.");
+                }
                 DetectedDevicesMessage.Text = choices.Count + " physical device(s). Select a device, then verify shared hardware. " + string.Join(" ", errors);
             }
             finally { _discoveryBusy = false; RefreshDetectedDevicesButton.IsEnabled = true; }
@@ -1823,3 +1829,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+
