@@ -55,10 +55,12 @@ namespace DcsIpia.Presentation
                 File.WriteAllText(manifest, JsonSerializer.Serialize(await Evidence(repository)));
             }
             var actual = await Evidence(repository);
-            var expected = JsonSerializer.Deserialize<SortedDictionary<string, string>>(File.ReadAllText(manifest))
+            var expected = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifest))
                 ?? throw new InvalidDataException("Acceptance baseline could not be read.");
-            if (JsonSerializer.Serialize(actual) != JsonSerializer.Serialize(expected))
-                throw new InvalidDataException("Saved modules, native Lua or rendered drawings changed after reopen/install.");
+            var changed = actual.Keys.Union(expected.Keys, StringComparer.Ordinal)
+                .Where(key => actual.GetValueOrDefault(key) != expected.GetValueOrDefault(key)).ToArray();
+            if (changed.Length > 0)
+                throw new InvalidDataException("Saved acceptance snapshot/Lua/PNG evidence changed: " + string.Join(", ", changed));
             var readOnly = new SqliteConnectionStringBuilder(connection) { Mode = SqliteOpenMode.ReadOnly }.ToString();
             var reports = new SupportReportService(new SqliteSupportDatabaseInspector(readOnly),
                 new SqliteHardwareInventoryRepository(readOnly), new SqliteEditorWorkspaceRepository(readOnly, false),
