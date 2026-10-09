@@ -15,6 +15,8 @@ $copies = @{
     'src/Dcs.Ipia.Rendering/Fonts/PROVENANCE.md' = 'font-PROVENANCE.md'
     'docs/distribution-readiness.md' = 'distribution-readiness.md'
     'docs/logging.md' = 'logging.md'
+    'docs/distribution-review.md' = 'distribution-review.md'
+    'docs/distribution-artwork-review.json' = 'distribution-artwork-review.json'
 }
 foreach ($entry in $copies.GetEnumerator()) { Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $notices $entry.Value) }
 $resolved = Get-Content -LiteralPath $Assets -Raw | ConvertFrom-Json -AsHashtable
@@ -64,15 +66,10 @@ foreach ($key in ($resolved.libraries.Keys | Sort-Object)) {
 }
 if ($inventory.Count -eq 0) { throw 'Resolved application dependency inventory is empty.' }
 $inventory | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $notices 'dependencies.json') -Encoding utf8NoBOM
-$dotnetRoot = Split-Path (Get-Command dotnet).Source -Parent
-foreach ($name in @('LICENSE.txt','ThirdPartyNotices.txt')) {
-    $source = Join-Path $dotnetRoot $name
-    if (-not (Test-Path -LiteralPath $source)) { throw "Installed .NET notices missing: $name" }
-    Copy-Item -LiteralPath $source -Destination (Join-Path $notices ('.NET-' + $name))
-}
+& (Join-Path $PSScriptRoot 'Write-RuntimePackNotices.ps1') -ResolvedAssets $resolved -Notices $notices
 @{
     sdk=(dotnet --version); sourceCommit=$env:GITHUB_SHA
-    runtimeNoticeScope='Installed .NET distribution notices; exact self-contained runtime/native review remains #183'
+    runtimeNoticeScope='Exact resolved Microsoft.NETCore.App and Microsoft.WindowsDesktop.App win-x64 runtime packs; see runtime-packs.json'
     unresolvedDecisions='https://github.com/ScottyMac52/DCS-IPIA/issues/183'
 } | ConvertTo-Json | Set-Content (Join-Path $notices 'build-notices.json') -Encoding utf8NoBOM
 Write-Output "Distribution inventory: $($inventory.Count) resolved application packages plus artwork/font/.NET evidence."
