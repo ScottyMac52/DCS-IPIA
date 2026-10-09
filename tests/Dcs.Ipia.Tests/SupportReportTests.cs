@@ -38,7 +38,8 @@ namespace Dcs.Ipia.Tests
             var revision = DrawioMappingImporter.Import(Drawing().Replace("</root>", "<mxCell id=\"hardware-image-controller\" parent=\"1\" vertex=\"1\" style=\"image=data:image/png;base64," + Convert.ToBase64String(DrawioMappingFixture.Png) + ";\"><mxGeometry x=\"400\" y=\"100\" width=\"100\" height=\"100\"/></mxCell></root>", StringComparison.Ordinal), mappingDefinition, Secret + ".drawio", "1.2.3.4");
             Assert.Single(revision.Assets);
             await new FileUserMappingLibrary(_folder).SaveAsync(revision);
-            var custom = InventoryHardwareAuthoring.Add(Empty("CUSTOM"), GenericHardwareFixture.Unit(mappingDefinition, Secret), AssignmentLayer.Module);
+            var custom = InventoryHardwareAuthoring.Add(NewModuleWorkspaceFactory.Create("CUSTOM", Secret, GenericHardwareFixture.Defaults(),
+                new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true), GenericHardwareFixture.Unit(mappingDefinition, Secret), AssignmentLayer.Module);
             custom = UserMappingAdoption.Apply(custom, custom.Configuration.Profiles.Single().Id, revision);
             await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(custom);
             var bundledProfile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", null, Secret, Secret + ".diff.lua");
