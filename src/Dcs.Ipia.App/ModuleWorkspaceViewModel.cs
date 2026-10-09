@@ -93,9 +93,14 @@ namespace DcsIpia.Presentation
             saved = PinnedUiLayerProfileRecovery.Restore(saved);
             UiCommands = CommandPalette.FromUiLayer(saved.UiCommands);
             UiDiagrams = saved.Diagrams;
-            ModuleCommands = saved.ModuleCommands;
+            var moduleProfiles = WorkspaceStructureEditor.Describe(saved).Devices
+                .Where(x => x.Layer == AssignmentLayer.Module).Select(x => x.ProfileId).ToHashSet();
+            ModuleCommands = CommandPalette.FromBindings(saved.Configuration.Bindings.Where(x => moduleProfiles.Contains(x.ProfileId)),
+                saved.ModuleCommands.Concat(saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module)
+                    .Select(x => new CommandPaletteEntry(x.Command.Id, x.Command.Name, "Uncategorized", x.Command.IsAxis)))
+                    .DistinctBy(x => x.Id).ToArray());
             var moduleCommands =
-                saved.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module));
+                ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module));
             var uiCommands = saved.UiCommands.Select(
                 x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer));
             Draft = new DraftAssignmentService(

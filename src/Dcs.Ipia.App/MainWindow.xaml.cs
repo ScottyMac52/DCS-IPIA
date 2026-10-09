@@ -304,15 +304,13 @@ namespace DcsIpia.Presentation
                 var destination = _settings.Current.SavedGamesDcsFolder;
                 var saved = await _workspaces.GetAsync(selected.Id)
                     ?? throw new InvalidOperationException("The selected module is no longer in the database.");
-                if (saved.Sources?.ContainsKey("config/ipia-created-module.json") == true)
-                {
-                    FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
-                    var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
-                        SavedGamesDeviceDiscovery.Discover(destination)));
-                    var captured = ModuleAxisCleanup.CaptureDevices(saved,
-                        devices.Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)));
-                    if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
-                }
+                FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
+                var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
+                    SavedGamesDeviceDiscovery.Discover(destination)));
+                var captured = ModuleAxisCleanup.CaptureDevices(saved,
+                    devices.Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
+                        .Where(x => DcsPhysicalIdentity.FromFileName(x) is not null)));
+                if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
                 FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
                 var active = await Task.Run(() => _flyNow.DeployAsync(selected.Id, destination));
                 ImportStatus.Text = $"Fly Now! deployed {active.DisplayName} and its UI Layer ({active.Files.Count} files) to {active.Destination}.";

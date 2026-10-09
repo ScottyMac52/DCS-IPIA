@@ -13,18 +13,17 @@ namespace Dcs.Ipia.Dcs
             ["JOY_X", "JOY_Y", "JOY_Z", "JOY_RX", "JOY_RY", "JOY_RZ", "JOY_SLIDER1", "JOY_SLIDER2"];
         #region BEGIN Public
         /// <summary>Pins observed controller filenames without adding devices, artwork or assignments.</summary>
-        /// <param name="workspace">Locally created module draft.</param>
+        /// <param name="workspace">Created or imported module draft.</param>
         /// <param name="fileNames">Connected or captured native DCS filenames.</param>
         /// <returns>Draft retaining previous offline identities and all authored state.</returns>
         public static EditorWorkspaceSnapshot CaptureDevices(EditorWorkspaceSnapshot workspace, IEnumerable<string> fileNames)
         {
-            if (workspace.Sources?.ContainsKey("config/ipia-created-module.json") != true) return workspace;
             var files = ReadDevices(workspace).ToDictionary(PhysicalId);
             foreach (var file in fileNames) files[PhysicalId(file)] = file;
             if (files.Count == 0) return workspace;
             var json = JsonSerializer.Serialize(files.Values.Order(StringComparer.Ordinal).ToArray());
-            if (workspace.Sources.GetValueOrDefault(SourcePath) == json) return workspace;
-            var sources = new Dictionary<string, string>(workspace.Sources, StringComparer.Ordinal) { [SourcePath] = json };
+            if (workspace.Sources?.GetValueOrDefault(SourcePath) == json) return workspace;
+            var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal) { [SourcePath] = json };
             return workspace with { Sources = sources };
         }
         /// <summary>Adds axis removals using known module commands while preserving rendered active combinations.</summary>
@@ -33,14 +32,22 @@ namespace Dcs.Ipia.Dcs
         public static void CompletePayload(EditorWorkspaceSnapshot workspace, Dictionary<string, byte[]> payload)
         {
             if (workspace.Sources?.ContainsKey(SourcePath) != true) return;
+            var aircraftProfiles = WorkspaceStructureEditor.Describe(workspace).Devices
+                .Where(x => x.Layer == AssignmentLayer.Module).Select(x => x.ProfileId).ToHashSet();
             // Command IDs come from the module catalog; no aircraft-specific IDs or names are inferred.
-            var commands = workspace.ModuleCommands.Where(x => x.IsAxis).DistinctBy(x => x.Id).ToArray();
+            var commands = workspace.ModuleCommands.Where(x => x.IsAxis)
+                .Concat(workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module && x.Command.IsAxis)
+                    .Select(x => new CommandPaletteEntry(x.Command.Id, x.Command.Name, "Axes", true)))
+                .Concat(workspace.Configuration.Bindings.Where(x => x.Section == BindingSection.Axis && aircraftProfiles.Contains(x.ProfileId))
+                    .Select(x => new CommandPaletteEntry(x.CommandId, x.CommandName, "Axes", true)))
+                .DistinctBy(x => x.Id).ToArray();
             if (commands.Length == 0) return;
             var prefix = "Config/Input/" + workspace.Configuration.Module.DcsId + "/joystick/";
             var files = ReadDevices(workspace).ToDictionary(PhysicalId);
             foreach (var path in payload.Keys.Where(x => x.StartsWith(prefix, StringComparison.Ordinal)).ToArray())
             {
                 var file = path[prefix.Length..];
+                if (DcsPhysicalIdentity.FromFileName(file) is null) continue;
                 files[PhysicalId(file)] = file;
             }
             foreach (var file in files.Values.Order(StringComparer.Ordinal))

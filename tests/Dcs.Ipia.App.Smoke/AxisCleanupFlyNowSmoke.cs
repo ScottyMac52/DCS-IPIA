@@ -12,7 +12,7 @@ using DcsIpia.Presentation;
 
 namespace Dcs.Ipia.App.Smoke
 {
-    /// <summary>Checks direct Fly Now deployment of a pre-cleanup locally created module.</summary>
+    /// <summary>Checks direct Fly Now deployment of an imported module with an unused controller.</summary>
     public static class AxisCleanupFlyNowSmoke
     {
         #region BEGIN Public
@@ -27,6 +27,8 @@ namespace Dcs.Ipia.App.Smoke
             {
                 var saved = Workspace(Guid.NewGuid());
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
+                // Fail before a UI error dialog if selecting this catalog-free imported module cannot reopen its draft.
+                _ = new ModuleWorkspaceViewModel(repository.GetAsync(saved.Configuration.Module.Id).GetAwaiter().GetResult()!);
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
                 var target = Path.Combine(destination, "Config", "Input", saved.Configuration.Module.DcsId, "joystick", unused);
@@ -76,7 +78,6 @@ namespace Dcs.Ipia.App.Smoke
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-pitch' x='10' y='20' fill='white'>Pitch</text></svg>"
             };
             var sources = new Dictionary<string, string> {
-                ["config/ipia-created-module.json"] = "{}",
                 [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement([
                     new(profileId, AssignmentLayer.Module, file, null, "Stick")], [])),
                 ["config/kneeboard.json"] = JsonSerializer.Serialize(new {
@@ -90,8 +91,8 @@ namespace Dcs.Ipia.App.Smoke
                 new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Device, "01-STICK", "Stick", [], 1),
                 new(Guid.NewGuid(), moduleId, null, KneeboardPageKind.Summary, "00-OVERVIEW", "Overview", [], 0)
             };
-            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, "AXIS-TEST", "Axis test"), [profile], [], [], "Created in IPIA"),
-                pages, [], [diagram], [new("a2001cdnil", "Pitch", "Axes", true)], [],
+            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, "AXIS-TEST", "Axis test"), [profile], [], [], "Imported from Saved Games"),
+                pages, [], [diagram], [], [],
                 [new(new(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_Y"), new("a2001cdnil", "Pitch", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), sources);
             return ModulePhysicalBindingReview.Confirm(workspace, profileId, DcsPhysicalIdentity.FromFileName(file)!.Value);
