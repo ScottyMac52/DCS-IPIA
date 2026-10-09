@@ -737,6 +737,9 @@ namespace Dcs.Ipia.App.Smoke
                 var state = global::Dcs.Ipia.Dcs.WorkspaceStructureEditor.Describe(created);
                 if (state.Devices.Count(x => x.Layer == AssignmentLayer.Module) != 11)
                     throw new InvalidOperationException("Repeated device rows were lost during creation.");
+                if (!created.Sources!.TryGetValue("config/ipia-axis-cleanup-devices.json", out var cleanup) ||
+                    state.Devices.Where(x => x.Layer == AssignmentLayer.Module).Any(x => !cleanup.Contains(x.FileName, StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Native controller identities were not saved for aircraft axis cleanup.");
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
@@ -1141,3 +1144,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

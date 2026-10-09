@@ -69,7 +69,7 @@ namespace Dcs.Ipia.Dcs
         #region BEGIN private helpers
         private static string[] ReadDevices(EditorWorkspaceSnapshot workspace)
         {
-            if (workspace.Sources?.TryGetValue(SourcePath, out var source) != true) return [];
+            if (workspace.Sources is null || !workspace.Sources.TryGetValue(SourcePath, out var source)) return [];
             var files = JsonSerializer.Deserialize<string[]>(source)
                 ?? throw new InvalidDataException("Missing axis cleanup device identities.");
             if (files.Select(PhysicalId).Distinct().Count() != files.Length)
