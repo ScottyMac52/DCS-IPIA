@@ -64,7 +64,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(expected, Render("Arial,sans-serif"));
             Assert.Equal(expected, Render("sans-serif"));
             using var bitmap = SkiaSharp.SKBitmap.Decode(expected);
-            Assert.True(bitmap.Pixels.Any(pixel => pixel.Alpha > 0));
+            Assert.Contains(bitmap.Pixels, pixel => pixel.Alpha > 0);
         }
         #endregion END Public
     }
