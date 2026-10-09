@@ -10,6 +10,24 @@ namespace Dcs.Ipia.Dcs
     {
         private const string Manifest = "config/kneeboard.json";
         #region BEGIN Public
+        /// <summary>Moves a page to a display insertion boundary and compacts output order.</summary>
+        /// <param name="workspace">Current module draft.</param>
+        /// <param name="current">Exact current page to move.</param>
+        /// <param name="insertionIndex">Boundary in the ordered list, from zero through Count.</param>
+        /// <returns>Updated draft, or the original draft for an unchanged position.</returns>
+        public static EditorWorkspaceSnapshot Move(EditorWorkspaceSnapshot workspace, KneeboardPage current, int insertionIndex)
+        {
+            Current(workspace, current);
+            if (insertionIndex < 0 || insertionIndex > workspace.Pages.Count)
+                throw new ArgumentOutOfRangeException(nameof(insertionIndex));
+            var pages = workspace.Pages.OrderBy(x => x.Order).ThenBy(x => x.StableKey, StringComparer.Ordinal).ToList();
+            var source = pages.FindIndex(x => x.Id == current.Id);
+            var destination = insertionIndex > source ? insertionIndex - 1 : insertionIndex;
+            if (source == destination) return workspace;
+            pages.RemoveAt(source);
+            pages.Insert(destination, current);
+            return workspace with { Pages = pages.Select((page, order) => page with { Order = order }).ToArray() };
+        }
         /// <summary>Reads editable metadata from an existing authored page.</summary>
         /// <param name="workspace">Current module draft.</param>
         /// <param name="page">Selected authored page.</param>

@@ -2,6 +2,8 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Dcs;
@@ -43,6 +45,7 @@ namespace Dcs.Ipia.App.Smoke
                 window.UpdateLayout();
                 if (!cards.AllowDrop || cards.ItemContainerGenerator.ContainerFromIndex(0) is not ListBoxItem)
                     throw new InvalidOperationException("Summary drag list was not realized or did not allow drops.");
+                VerifyResizing(window, cards);
                 var first = (ModuleSummaryCard)cards.Items[0];
                 var point = new Point(10, cards.ActualHeight - 5);
                 var foreign = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(new ListBox(), first));
@@ -104,6 +107,34 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyResizing(ModuleWorkspaceWindow window, ListBox cards)
+        {
+            var handle = window.FindName("SummaryCardsResizeHandle") as Thumb
+                ?? throw new InvalidOperationException("Summary cards have no vertical resize handle.");
+            if (!handle.Focusable || handle.ActualHeight < 8)
+                throw new InvalidOperationException("Summary resize handle is not accessible or usable.");
+            var original = cards.Items.Cast<ModuleSummaryCard>().ToArray();
+            var height = cards.ActualHeight;
+            handle.RaiseEvent(new DragDeltaEventArgs(0, 160) { RoutedEvent = Thumb.DragDeltaEvent });
+            window.UpdateLayout();
+            if (cards.ActualHeight < height + 150 || !original.SequenceEqual(cards.Items.Cast<ModuleSummaryCard>()))
+                throw new InvalidOperationException("Resizing did not expand the list or changed its card order.");
+            height = cards.Height;
+            var keyboard = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, Environment.TickCount, Key.Down)
+                { RoutedEvent = UIElement.KeyDownEvent };
+            handle.RaiseEvent(keyboard);
+            if (!keyboard.Handled || cards.Height <= height)
+                throw new InvalidOperationException("The summary list could not be expanded with the keyboard.");
+            handle.RaiseEvent(new DragDeltaEventArgs(0, -10000) { RoutedEvent = Thumb.DragDeltaEvent });
+            window.UpdateLayout();
+            if (cards.Height != cards.MinHeight || cards.ActualHeight < 110)
+                throw new InvalidOperationException("Summary resizing did not respect the minimum usable height.");
+            handle.RaiseEvent(new DragDeltaEventArgs(0, 10000) { RoutedEvent = Thumb.DragDeltaEvent });
+            window.UpdateLayout();
+            if (cards.Height != cards.MaxHeight || cards.ActualHeight < 500)
+                throw new InvalidOperationException("Summary cards could not expand enough to review all fourteen rows.");
+            // Continue the existing routed drag/drop and Stage/Save checks with the expanded list.
+        }
         private static DragEventArgs DragArgs(IDataObject data, ListBox target, Point point, RoutedEvent routedEvent)
         {
             var args = (DragEventArgs)Activator.CreateInstance(typeof(DragEventArgs), BindingFlags.Instance | BindingFlags.NonPublic,

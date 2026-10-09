@@ -16,6 +16,31 @@ namespace Dcs.Ipia.Tests
         private static readonly string[] NumberedKeys = ["01", "02", "03"];
         private static readonly string[] ReorderedTexts = ["Third edited", "First", "Second"];
         #region BEGIN Public
+        /// <summary>Moving pages compacts output order without changing identities or authored manifest metadata.</summary>
+        [Fact]
+        public void Page_move_preserves_metadata_and_rejects_invalid_positions()
+        {
+            var workspace = Workspace();
+            for (var i = 0; i < 3; i++)
+                workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+                    new(KneeboardPageKind.Summary, null, "summary-" + i, "Summary " + i, "CONTROLS", i + 10,
+                        [new("01", "Card " + i, "cyan")]));
+            var pages = workspace.Pages.ToArray();
+            Assert.Same(workspace, ModuleKneeboardPageEditor.Move(workspace, pages[0], 0));
+            Assert.Same(workspace, ModuleKneeboardPageEditor.Move(workspace, pages[0], 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => ModuleKneeboardPageEditor.Move(workspace, pages[0], -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => ModuleKneeboardPageEditor.Move(workspace, pages[0], pages.Length + 1));
+            Assert.Throws<InvalidOperationException>(() => ModuleKneeboardPageEditor.Move(workspace, pages[0] with { Id = Guid.NewGuid() }, 0));
+            var moved = ModuleKneeboardPageEditor.Move(workspace, pages[0], pages.Length);
+            Assert.Equal(pages.Skip(1).Append(pages[0]).Select(x => x.Id), moved.Pages.Select(x => x.Id));
+            Assert.Equal(Enumerable.Range(0, pages.Length), moved.Pages.Select(x => x.Order));
+            Assert.Same(workspace.Sources, moved.Sources);
+            Assert.Same(workspace.Images, moved.Images);
+            foreach (var page in pages)
+                Assert.Equal(page, moved.Pages.Single(x => x.Id == page.Id) with { Order = page.Order });
+            var restored = ModuleKneeboardPageEditor.Move(moved, moved.Pages[^1], 0);
+            Assert.Equal(pages.Select(x => x.Id), restored.Pages.Select(x => x.Id));
+        }
         /// <summary>Renumbered cards retain their original metadata through edits, rendering and a database reopen.</summary>
         [Fact]
         public async Task Reordered_numbered_cards_keep_metadata_and_reopen()

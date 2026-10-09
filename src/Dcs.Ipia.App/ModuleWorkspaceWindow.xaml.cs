@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -46,6 +47,8 @@ namespace DcsIpia.Presentation
         private readonly List<ModuleSummaryCard> _summaryCards = [];
         private Point? _summaryDragStart;
         private ModuleSummaryCard? _summaryDragCard;
+        private Point? _pageDragStart;
+        private KneeboardPage? _pageDragPage;
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TextBlock> _calloutText = new(StringComparer.Ordinal);
         private HardwareGraphicControl? _selected;
@@ -496,6 +499,62 @@ namespace DcsIpia.Presentation
             SummaryCardsGroup.IsEnabled = summary;
             AuthoredPageDevice.IsEnabled = !summary && AuthoredPages.SelectedItem is null;
         }
+        private void AuthoredPageMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _pageDragStart = null;
+            _pageDragPage = null;
+            if (_working is null || _building || _working.Pages.Count < 2) return;
+            if (e.OriginalSource is DependencyObject element &&
+                ItemsControl.ContainerFromElement(AuthoredPages, element) is DataGridRow { Item: KneeboardPage page })
+            {
+                _pageDragStart = e.GetPosition(AuthoredPages);
+                _pageDragPage = page;
+            }
+        }
+        private void AuthoredPageMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _pageDragStart = null;
+            _pageDragPage = null;
+        }
+        private void AuthoredPageMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _pageDragStart is not Point start || _pageDragPage is not { } page) return;
+            var point = e.GetPosition(AuthoredPages);
+            if (Math.Abs(point.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(point.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            _pageDragStart = null;
+            _pageDragPage = null;
+            DragDrop.DoDragDrop(AuthoredPages, new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(AuthoredPages, page)), DragDropEffects.Move);
+        }
+        private KneeboardPage? AuthoredPageDragSource(DragEventArgs e)
+        {
+            if (_working is null || _building || e.Data.GetData(typeof(KneeboardPageDrag)) is not KneeboardPageDrag drag ||
+                !ReferenceEquals(drag.Source, AuthoredPages)) return null;
+            return _working.Pages.FirstOrDefault(x => ReferenceEquals(x, drag.Page));
+        }
+        private void AuthoredPageDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = AuthoredPageDragSource(e) is null ? DragDropEffects.None : DragDropEffects.Move;
+            e.Handled = true;
+        }
+        private void AuthoredPageDrop(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            if (AuthoredPageDragSource(e) is not { } page) return;
+            var insertion = AuthoredPages.Items.Count;
+            if (AuthoredPages.InputHitTest(e.GetPosition(AuthoredPages)) is DependencyObject element &&
+                ItemsControl.ContainerFromElement(AuthoredPages, element) is DataGridRow row)
+            {
+                insertion = row.GetIndex();
+                if (e.GetPosition(row).Y >= row.ActualHeight / 2) insertion++;
+            }
+            if (_working is null || ReferenceEquals(ModuleKneeboardPageEditor.Move(_working, page, insertion), _working)) return;
+            RunStructureEdit(workspace => ModuleKneeboardPageEditor.Move(workspace, page, insertion));
+            AuthoredPages.SelectedItem = _working.Pages.FirstOrDefault(x => x.Id == page.Id);
+            if (AuthoredPages.SelectedItem is not null) AuthoredPages.ScrollIntoView(AuthoredPages.SelectedItem);
+            e.Effects = DragDropEffects.Move;
+        }
         private void AuthoredPageSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_authoringRefreshing || _working is null || AuthoredPages.SelectedItem is not KneeboardPage page)
@@ -569,6 +628,21 @@ namespace DcsIpia.Presentation
             SummaryCards.ItemsSource = _summaryCards.ToArray();
             SummaryCards.SelectedItem = card;
             PageAuthoringStatus.Text = "Card updated in the form. Stage page, then Save to database to keep it.";
+        }
+        private void SummaryCardsResizeDragged(object sender, DragDeltaEventArgs e)
+        {
+            ResizeSummaryCards(e.VerticalChange);
+            e.Handled = true;
+        }
+        private void SummaryCardsResizeKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key is not (Key.Up or Key.Down)) return;
+            ResizeSummaryCards(e.Key == Key.Down ? 20 : -20);
+            e.Handled = true;
+        }
+        private void ResizeSummaryCards(double delta)
+        {
+            SummaryCards.Height = Math.Clamp(SummaryCards.Height + delta, SummaryCards.MinHeight, SummaryCards.MaxHeight);
         }
         private void SummaryCardMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -1749,4 +1823,3 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
-
