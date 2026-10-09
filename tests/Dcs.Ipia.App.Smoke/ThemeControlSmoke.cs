@@ -101,7 +101,7 @@ namespace Dcs.Ipia.App.Smoke
         private static void Press(UIElement control, Key key) => control.RaiseEvent(new KeyEventArgs(
             Keyboard.PrimaryDevice, PresentationSource.FromVisual(control)!, 0, key) { RoutedEvent = Keyboard.KeyDownEvent });
         private static Color Brush(string key) => ((SolidColorBrush)System.Windows.Application.Current.FindResource(key)).Color;
-        private static BitmapSource Render(FrameworkElement control)
+        private static CroppedBitmap Render(FrameworkElement control)
         {
             var source = PresentationSource.FromVisual(control) ?? throw new InvalidOperationException("The control has no presentation surface.");
             var root = (FrameworkElement)source.RootVisual;
