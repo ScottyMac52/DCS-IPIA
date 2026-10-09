@@ -10,7 +10,8 @@ namespace Dcs.Ipia.Infrastructure
 {
     /// <summary>Reads and writes complete editor snapshots without consulting source repositories.</summary>
     /// <param name="connectionString">SQLite connection string.</param>
-    public sealed class SqliteEditorWorkspaceRepository(string connectionString) : IEditorWorkspaceCreationRepository, IEditorWorkspaceUpdateRepository
+    /// <param name="persistReadUpgrades">Whether opening legacy data writes upgraded snapshots.</param>
+    public sealed class SqliteEditorWorkspaceRepository(string connectionString, bool persistReadUpgrades = true) : IEditorWorkspaceCreationRepository, IEditorWorkspaceUpdateRepository
     {
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
         #region BEGIN Public
@@ -47,7 +48,7 @@ namespace Dcs.Ipia.Infrastructure
             }
             GenericHardwareLayout.ValidateWorkspace(snapshot);
             var upgraded = MfdCategoryLabelUpgrade.Apply(snapshot);
-            if (payload.Version < 3 || !ReferenceEquals(snapshot, upgraded))
+            if (persistReadUpgrades && (payload.Version < 3 || !ReferenceEquals(snapshot, upgraded)))
                 await SaveAsync(upgraded, ct);
             return upgraded;
         }
@@ -226,3 +227,4 @@ namespace Dcs.Ipia.Infrastructure
         #endregion END private helpers
     }
 }
+

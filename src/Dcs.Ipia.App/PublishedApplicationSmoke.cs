@@ -46,9 +46,11 @@ namespace DcsIpia.Presentation
             var reopened = (await library.ListAsync()).Single();
             if (reopened.Id != revision.Id || CanonicalSvgRenderer.RenderComplete(reopened.Svg, reopened.Width, reopened.Height).Length == 0)
                 throw new InvalidDataException("Published custom source persistence or native rendering failed.");
+            await PublishedUserDataAcceptance.VerifyAsync(folder, reopened);
             File.WriteAllText(Path.Combine(folder, "release-smoke.ok"), "Visible application, isolated SQLite, bundled hardware and native PNG rendering verified.\n");
         }
         #endregion END Public
     }
 }
+
 

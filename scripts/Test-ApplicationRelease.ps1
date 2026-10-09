@@ -12,9 +12,11 @@ $setupLogs = @()
 $releaseFailure = $null
 . (Join-Path $PSScriptRoot 'ReleaseTestCleanup.ps1')
 function Assert-Exit([string]$Operation) { if ($LASTEXITCODE -ne 0) { throw "$Operation failed: $LASTEXITCODE" } }
-function Test-App([string]$Executable, [string]$Name) {
-    $data = Join-Path $taskRoot $Name
-    New-Item -ItemType Directory -Path $data | Out-Null
+function Test-App([string]$Executable, [string]$Name, [string]$ExistingData = '') {
+    $data = if ($ExistingData) { $ExistingData } else { Join-Path $taskRoot $Name }
+    New-Item -ItemType Directory -Path $data -Force | Out-Null
+    Remove-Item (Join-Path $data 'release-smoke.ok') -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $data 'release-smoke.error') -ErrorAction SilentlyContinue
     $process = Start-Process -FilePath $Executable -ArgumentList @('--release-smoke', "`"$data`"") -PassThru
     if (-not $process.WaitForExit(60000)) { $process.Kill(); throw "$Name startup timed out." }
     if ($process.ExitCode -ne 0 -or -not (Test-Path (Join-Path $data 'release-smoke.ok')) -or
@@ -37,14 +39,16 @@ try {
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
         "-p:Version=$Version" "-p:FileVersion=$Version" "-p:AssemblyVersion=$Version" -o $publish
     Assert-Exit 'Application publish'
+    & (Join-Path $PSScriptRoot 'Write-DistributionNotices.ps1') -Publish $publish
+    if (-not (Test-Path (Join-Path $publish 'notices/dependencies.json'))) { throw 'Release dependency inventory missing.' }
     Test-App (Join-Path $publish 'Dcs.Ipia.App.exe') 'portable-smoke'
     # Seed real SQLite and user files outside the install directory before testing upgrade/uninstall.
     $profileHashes = @{}
     foreach ($profile in @('DCS-IPIA', 'DCS-IPIA-TestProfiles/fresh-install', 'DCS-IPIA-TestProfiles/second')) {
         $profileRoot = Join-Path $env:LOCALAPPDATA $profile
-        New-Item -ItemType Directory -Path (Join-Path $profileRoot 'hardware') -Force | Out-Null
-        Copy-Item (Join-Path $taskRoot 'portable-smoke/ipia.db') (Join-Path $profileRoot 'ipia.db')
-        [IO.File]::WriteAllText((Join-Path $profileRoot 'hardware/preservation.txt'), $profile)
+        New-Item -ItemType Directory -Path $profileRoot -Force | Out-Null
+        Copy-Item (Join-Path $taskRoot 'portable-smoke/*') $profileRoot -Recurse
+        Remove-Item (Join-Path $profileRoot 'release-smoke.ok') -ErrorAction SilentlyContinue
         [IO.File]::WriteAllText((Join-Path $profileRoot 'onboarding-state.json'), '{"version":1,"completed":true}')
         Get-ChildItem $profileRoot -File -Recurse | ForEach-Object {
             $profileHashes[$_.FullName] = (Get-FileHash -LiteralPath $_.FullName).Hash
@@ -82,6 +86,8 @@ try {
     }
     Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'installed-smoke'
     Assert-ProfilePreservation
+    Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'upgrade-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Assert-ProfilePreservation
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
         $copy = Join-Path $installed $relative
@@ -106,6 +112,8 @@ try {
     if (-not $reinstall.WaitForExit(90000)) { $reinstall.Kill(); throw 'Reinstall timed out.' }
     if ($reinstall.ExitCode -ne 0) { throw 'Reinstall failed.' }
     Assert-ProfilePreservation
+    Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'reinstall-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Assert-ProfilePreservation
     if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Reinstall reset user settings.'
     }
@@ -127,7 +135,11 @@ try {
         checks=@('portable startup','installed startup','archive startup','isolated SQLite','bundled hardware integrity',
             'native PNG rendering','installed payload hashes','silent install/uninstall',
             'setup system-default folder','setup custom folder','setup rerun persistence',
-            'production and two test-profile checksums across upgrade/uninstall/reinstall')
+            'production and two test-profile checksums across upgrade/uninstall/reinstall',
+            'saved bundled/generic/custom module snapshot, PNG and native Lua behavior after installed/reinstalled reopen',
+            'custom editable source and library persistence', 'privacy-scoped support capture from persisted release fixtures',
+            'resolved transitive dependency metadata and available license files in exact payload')
+        manualAcceptance='pending: real hardware/DCS, clean Windows, older-release upgrade, keyboard/scaling and rights review (#163/#183)'
     } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $Output 'TEST-EVIDENCE.json') -Encoding utf8NoBOM
     $lines = Get-ChildItem $Output -File | Sort-Object Name | ForEach-Object {
         "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() )  $($_.Name)"
@@ -147,3 +159,4 @@ try {
     $env:LOCALAPPDATA = $previousLocalAppData
     Remove-ReleaseTestDirectory $taskRoot -PreserveFailure:($null -ne $releaseFailure)
 }
+

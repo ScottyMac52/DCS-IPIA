@@ -18,7 +18,7 @@ namespace Dcs.Ipia.Infrastructure
         {
             await using var db = new SqliteConnection(_connectionString);
             await db.OpenAsync(ct);
-            await using var transaction = db.BeginTransaction();
+            await using var transaction = db.BeginTransaction(deferred: true);
             var snapshot = await ReadAsync(db, transaction, ct);
             await transaction.CommitAsync(ct);
             return snapshot;
@@ -87,3 +87,4 @@ namespace Dcs.Ipia.Infrastructure
         #endregion END private helpers
     }
 }
+

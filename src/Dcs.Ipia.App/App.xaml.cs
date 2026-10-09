@@ -54,6 +54,12 @@ namespace DcsIpia.Presentation
             var connectionString = new SqliteConnectionStringBuilder { DataSource = Path.Combine(userFolder, "ipia.db"),
                                                                        ForeignKeys = true }
                                        .ToString();
+            var readOnlyConnection = new SqliteConnectionStringBuilder(connectionString)
+            { Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString();
+            var supportReports = new SupportReportService(new SqliteSupportDatabaseInspector(readOnlyConnection),
+                new SqliteHardwareInventoryRepository(readOnlyConnection),
+                new SqliteEditorWorkspaceRepository(readOnlyConnection, persistReadUpgrades: false),
+                new FileUserMappingLibrary(userFolder), typeof(App).Assembly.GetName().Version!, SqliteMigrationRunner.CurrentVersion);
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(userFolder)!);
@@ -81,7 +87,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 ApplicationLog.DataRecoveryFailure(_logger, userFolder, ex);
-                var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.");
+                var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.", supportReports: supportReports);
                 MainWindow = window;
                 window.ShowDialog();
                 Shutdown(window.RequiresRestart ? 0 : 1);
@@ -89,6 +95,7 @@ namespace DcsIpia.Presentation
             }
             var registrations =
                 new ServiceCollection()
+                    .AddSingleton(supportReports)
                     .AddSingleton(_loggerFactory)
                     .AddSingleton(typeof(ILogger<>), typeof(AssemblyLogger<>))
                     .AddSingleton<IUserDataRecoveryService>(recovery)
@@ -169,3 +176,4 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+

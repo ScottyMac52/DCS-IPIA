@@ -46,6 +46,8 @@ namespace DcsIpia.Presentation
         public static RoutedUICommand Setup { get; } = Create("Setup");
         /// <summary>Shows version and workflow help.</summary>
         public static RoutedUICommand About { get; } = Create("About");
+        /// <summary>Reviews a local-only support export.</summary>
+        public static RoutedUICommand SupportReport { get; } = Create("SupportReport");
         /// <summary>Closes the application.</summary>
         public static RoutedUICommand Exit { get; } = Create("Exit");
         #endregion END Public
@@ -56,9 +58,12 @@ namespace DcsIpia.Presentation
             if (name == "NewModule") gestures.Add(new KeyGesture(Key.N, ModifierKeys.Control));
             if (name == "OpenModule") gestures.Add(new KeyGesture(Key.O, ModifierKeys.Control));
             if (name == "Backup") gestures.Add(new KeyGesture(Key.B, ModifierKeys.Control | ModifierKeys.Shift));
+            if (name == "About") gestures.Add(new KeyGesture(Key.F1));
+            if (name == "SupportReport") gestures.Add(new KeyGesture(Key.D, ModifierKeys.Control | ModifierKeys.Shift));
             return new(name, name, typeof(MainWindowCommands), gestures);
         }
         #endregion END private helpers
     }
 }
+
 
