@@ -514,7 +514,10 @@
         </DockPanel>
       </TabItem>
       <TabItem x:Name="DiagnosticsTab" Header="Diagnostics">
-        <ListBox ItemsSource="{Binding Diagnostics}" AutomationProperties.Name="Import diagnostics"/>
+        <DockPanel>
+          <TextBlock x:Name="OutputFailureDiagnostic" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="8"/>
+          <ListBox ItemsSource="{Binding Diagnostics}" AutomationProperties.Name="Import diagnostics"/>
+        </DockPanel>
       </TabItem>
       <TabItem Header="Sources">
         <ListBox ItemsSource="{Binding Provenance}" AutomationProperties.Name="Committed source hashes"
@@ -543,3 +546,4 @@
     </DockPanel>
   </Grid>
 </Window>
+

@@ -16,6 +16,8 @@ using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Rendering;
 using Microsoft.Win32;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DcsIpia.Presentation
 {
@@ -23,6 +25,7 @@ namespace DcsIpia.Presentation
     public partial class ModuleWorkspaceWindow : Window
     {
         private readonly ModuleWorkspaceViewModel _viewModel;
+        private readonly ILogger<ModuleWorkspaceWindow> _logger;
         private readonly IAppSettingsService? _settings;
         private readonly IEditorWorkspaceRepository? _repository;
         private EditorWorkspaceSnapshot? _saved;
@@ -85,15 +88,18 @@ namespace DcsIpia.Presentation
         /// <param name="inventory">Profile-scoped reviewed hardware choices.</param>
         /// <param name="mappingReviewConfirmation">Optional drawing review consent adapter for desktop tests.</param>
         /// <param name="inputLogClipboardWriter">Optional HTML and plain-text clipboard adapter for testing.</param>
+        /// <param name="logger">Application logger for saved-module output failures.</param>
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
-                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null)
+                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
+                                     ILogger<ModuleWorkspaceWindow>? logger = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            _logger = logger ?? NullLogger<ModuleWorkspaceWindow>.Instance;
             _inventory = inventory;
             _userMappings = userMappings;
             _mappingReviewConfirmation = mappingReviewConfirmation;
@@ -1750,6 +1756,7 @@ namespace DcsIpia.Presentation
             _building = true;
             UpdateBuildAvailability();
             BuildStatus.Text = "Validating saved assignments, physical devices, pinned assets and generated output…";
+            OutputFailureDiagnostic.Text = string.Empty;
             try
             {
                 var saved = _saved;
@@ -1793,7 +1800,15 @@ namespace DcsIpia.Presentation
                     BuildStatus.Text = $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}";
                 }
             }
-            catch (Exception ex) { BuildStatus.Text = "Module output failed: " + ex.Message; }
+            catch (Exception ex)
+            {
+                var operation = snapshotExport is null ? "Validate" : completeRelease ? "Export Complete release" :
+                    documentation ? "Export documentation" : snapshotExport.Value ? "Export module snapshot" : "Build OvGME package";
+                ApplicationLog.ModuleOutputFailure(_logger, operation, _saved.Configuration.Module.Id,
+                    _saved.Configuration.Module.DcsId, PackageVersion.Text.Trim(), ex);
+                BuildStatus.Text = "Module output failed: " + ex.Message;
+                OutputFailureDiagnostic.Text = operation + ": " + ex.Message;
+            }
             finally { _building = false; UpdateBuildAvailability(); }
         }
         private string? ChooseOutputPath(bool snapshot)
@@ -1829,4 +1844,5 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+
 

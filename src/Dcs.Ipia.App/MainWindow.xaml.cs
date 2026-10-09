@@ -312,12 +312,14 @@ namespace DcsIpia.Presentation
         {
             if (_moduleOperationBusy || !FlyNowButton.IsEnabled || _flyNow is null || SavedModules.SelectedItem is not SavedModuleChoice selected) return;
             SetModuleOperationBusy(true);
+            var dcsId = selected.DisplayName;
             try
             {
                 FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
                 var destination = _settings.Current.SavedGamesDcsFolder;
                 var saved = await _workspaces.GetAsync(selected.Id)
                     ?? throw new InvalidOperationException("The selected module is no longer in the database.");
+                dcsId = saved.Configuration.Module.DcsId;
                 FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
                 var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
                     SavedGamesDeviceDiscovery.Discover(destination)));
@@ -329,7 +331,11 @@ namespace DcsIpia.Presentation
                 var active = await Task.Run(() => _flyNow.DeployAsync(selected.Id, destination));
                 ImportStatus.Text = $"Fly Now! deployed {active.DisplayName} and its UI Layer ({active.Files.Count} files) to {active.Destination}.";
             }
-            catch (Exception ex) { ImportStatus.Text = "Fly Now! did not complete: " + ex.Message; }
+            catch (Exception ex)
+            {
+                ApplicationLog.ModuleOutputFailure(_logger, "Fly Now!", selected.Id, dcsId, "saved", ex);
+                ImportStatus.Text = "Fly Now! did not complete: " + ex.Message;
+            }
             finally { await RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
         }
 
@@ -670,7 +676,8 @@ namespace DcsIpia.Presentation
         {
             if (_lastViewModel is null)
                 return;
-            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings) { Owner = this };
+            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
+                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory)) { Owner = this };
             window.ShowDialog();
         }
         private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -694,4 +701,5 @@ namespace DcsIpia.Presentation
         #endregion END private helpers
     }
 }
+
 

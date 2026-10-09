@@ -761,6 +761,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Explicit physical rebinding is missing.");
                 editor.Close();
                 AxisCleanupFlyNowSmoke.Verify(connection, repository);
+                ModuleOutputLoggingSmoke.Verify(connection, repository);
             }
             finally { File.Delete(path); }
         }
@@ -1148,4 +1149,5 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
