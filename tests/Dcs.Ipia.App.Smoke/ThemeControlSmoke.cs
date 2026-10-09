@@ -101,15 +101,15 @@ namespace Dcs.Ipia.App.Smoke
         private static void Press(UIElement control, Key key) => control.RaiseEvent(new KeyEventArgs(
             Keyboard.PrimaryDevice, PresentationSource.FromVisual(control)!, 0, key) { RoutedEvent = Keyboard.KeyDownEvent });
         private static Color Brush(string key) => ((SolidColorBrush)System.Windows.Application.Current.FindResource(key)).Color;
-        private static RenderTargetBitmap Render(FrameworkElement control)
+        private static BitmapSource Render(FrameworkElement control)
         {
-            var image = new RenderTargetBitmap((int)Math.Ceiling(control.ActualWidth), (int)Math.Ceiling(control.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-            var bounds = new Rect(0, 0, control.ActualWidth, control.ActualHeight);
-            var visual = new DrawingVisual();
-            using (var drawing = visual.RenderOpen())
-                drawing.DrawRectangle(new VisualBrush(control) { ViewboxUnits = BrushMappingMode.Absolute,
-                    Viewbox = bounds, ViewportUnits = BrushMappingMode.Absolute, Viewport = bounds }, null, bounds);
-            image.Render(visual); return image;
+            var source = PresentationSource.FromVisual(control) ?? throw new InvalidOperationException("The control has no presentation surface.");
+            var root = (FrameworkElement)source.RootVisual;
+            var image = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            image.Render(root);
+            var bounds = control.TransformToAncestor(root).TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
+            return new CroppedBitmap(image, new Int32Rect((int)Math.Round(bounds.X), (int)Math.Round(bounds.Y),
+                (int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height)));
         }
         private static void AssertPixel(FrameworkElement control, int x, int y, string key)
         {

@@ -39,6 +39,8 @@ jobs:
         run: ./tests/installer/Test-SavedGamesSettings.ps1
       - name: Open both WPF import previews
         timeout-minutes: 3
+        env:
+          IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
         run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
       - name: Run tests on Windows
         env:
