@@ -136,7 +136,7 @@ namespace Dcs.Ipia.Tests
             var module = new DcsModule(ModuleId, "AXIS-TEST", "Axis test");
             var sources = new Dictionary<string, string> {
                 ["config/ipia-created-module.json"] = "{}",
-                ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[{"type":"summary","file":"00-OVERVIEW","title":"Overview","kicker":"CONTROLS","items":[{"key":"STICK","text":"Flight controls","accent":"cyan"}]}]}""",
+                ["config/kneeboard.json"] = """{"profiles":{"stick":"Stick {00000000-0000-0000-0000-000000000001}.diff.lua"},"pages":[{"profile":"stick","file":"01-STICK","title":"Stick"}],"summaryPages":[{"type":"summary","file":"00-OVERVIEW","title":"Overview","kicker":"CONTROLS","items":[{"key":"STICK","text":"Flight controls","accent":"cyan"}]}]}""",
                 ["config/ipia-ui-" + StickId.ToString("N") + ".lua"] = "local diff = {} return diff",
                 [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement([
                     new(StickId, AssignmentLayer.Module, Stick, null, "Stick"),
@@ -147,7 +147,7 @@ namespace Dcs.Ipia.Tests
                 new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true),
                 new("roll", "Roll", "JOY_X", 0, 0, 10, 10, true),
                 new("key", "Key", "JOY_BTN1", 0, 0, 10, 10)
-            ] };
+            ], Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-pitch' x='10' y='20' fill='white'>Pitch</text><text id='lbl-roll' x='10' y='40' fill='white'>Roll</text><text id='lbl-key' x='10' y='60' fill='white'>Key</text></svg>" };
             var assignments = new DraftAssignment[] {
                 new(new(ModuleId, StickId, AssignmentLayer.Module, BindingSection.Axis, "JOY_Y"),
                     new("a2001cdnil", "Pitch", true, AssignmentLayer.Module)) { Filter = new(Deadzone: 4) },
@@ -158,8 +158,10 @@ namespace Dcs.Ipia.Tests
             };
             var page = new KneeboardPage(Guid.Parse("ee5b640b-8f22-493d-9c77-1454b13171b4"), ModuleId, null,
                 KneeboardPageKind.Summary, "00-OVERVIEW", "Overview", [], 0);
+            var devicePage = new KneeboardPage(Guid.Parse("f594130b-a7ca-4bc0-810e-93169e248fb7"), ModuleId, null,
+                KneeboardPageKind.Device, "01-STICK", "Stick", [], 1);
             var workspace = new EditorWorkspaceSnapshot(new(module, [profile],
-                [new("SHIFT", Stick[..^9], "JOY_BTN3", ModifierMode.Hold)], [], "Created in IPIA"), [page], [], [diagram],
+                [new("SHIFT", Stick[..^9], "JOY_BTN3", ModifierMode.Hold)], [], "Created in IPIA"), [page, devicePage], [], [diagram],
                 [new("a2001cdnil", "Pitch", "Axes", true), new("a2002cdnil", "Roll", "Axes", true), new("KEY", "Key", "Keys", false)],
                 [], assignments, new Dictionary<string, string>(), sources);
             return ModulePhysicalBindingReview.Confirm(workspace, StickId, DcsPhysicalIdentity.FromFileName(Stick)!.Value);
