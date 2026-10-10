@@ -1,1 +1,1 @@
-PLACEHOLDER - full reduced content would be inserted here from /tmp/ModuleWorkspaceWindow.xaml.cs.new
+PLACEHOLDER_RESTORE
