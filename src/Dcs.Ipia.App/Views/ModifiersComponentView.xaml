@@ -1,0 +1,38 @@
+<UserControl x:Class="DcsIpia.Presentation.Views.ModifiersComponentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DcsIpia.Presentation.ViewModels"
+             Height="Auto" Width="Auto">
+  <Grid Margin="12">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="380"/>
+    </Grid.ColumnDefinitions>
+    <DataGrid x:Name="ManagedModifiersGrid" ItemsSource="{Binding ManagedModifiers}" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" SelectedItem="{Binding SelectedModifier}" Margin="0,0,12,0">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+        <DataGridTextColumn Header="Device" Binding="{Binding NativeDevice}" Width="*"/>
+        <DataGridTextColumn Header="Control" Binding="{Binding Key}" Width="100"/>
+        <DataGridTextColumn Header="Semantic Layer" Binding="{Binding SemanticLayer}" Width="*"/>
+        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="70"/>
+      </DataGrid.Columns>
+    </DataGrid>
+    <GroupBox Grid.Column="1" Header="Modifier" Padding="12">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <TextBlock Text="Device"/><ComboBox ItemsSource="{Binding Devices}" DisplayMemberPath="Title" SelectedItem="{Binding SelectedDevice}" Margin="0,4,0,10"/>
+          <TextBlock Text="Shared control"/><ComboBox ItemsSource="{Binding Controls}" DisplayMemberPath="Label" SelectedItem="{Binding SelectedControl}" Margin="0,4,0,10"/>
+          <TextBlock Text="Name"/><TextBox Text="{Binding Name}" Margin="0,4,0,10"/>
+          <TextBlock Text="Semantic Layer"/><TextBox Text="{Binding Semantic}" Margin="0,4,0,10"/>
+          <TextBlock Text="Mode"/><ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" Margin="0,4,0,16"/>
+          <WrapPanel>
+            <Button Content="New" Command="{Binding NewCommand}" Padding="10,6" Margin="0,0,6,0"/>
+            <Button Content="Add" Command="{Binding AddCommand}" Padding="10,6" Margin="0,0,6,0"/>
+            <Button Content="Update" Command="{Binding UpdateCommand}" Padding="10,6" Margin="0,0,6,0"/>
+            <Button Content="Remove" Command="{Binding RemoveCommand}" Padding="10,6"/>
+          </WrapPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </GroupBox>
+  </Grid>
+</UserControl>

@@ -138,18 +138,98 @@ namespace DcsIpia.Presentation
             ModifierModeChoice.SelectedIndex = 0;
             RefreshManagement();
             AuthoredPageKind.ItemsSource = Enum.GetValues<KneeboardPageKind>();
+            // Wire Devices component viewmodel for incremental migration
+            try
+            {
+                if (DevicesComponent is not null)
+                {
+                    DevicesComponent.DataContext = new DcsIpia.Presentation.ViewModels.DevicesComponentViewModel(
+                        () => _working,
+                        LoadHardwareAsync,
+                        () => _draft,
+                        () => (IReadOnlyDictionary<string, string>)_labels,
+                        inventoryLoader: async () => _inventory is null ? Array.Empty<InventoryHardwareChoice>() : InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync()),
+                        userMappingsLoader: async () => _userMappings is null ? Array.Empty<UserMappingRevision>() : (await _userMappings.ListAsync()).ToArray(),
+                        mappingReviewConfirmation: _mappingReviewConfirmation,
+                        runStructureEdit: RunStructureEdit,
+                        setMessage: msg => SetManagementMessage(msg),
+                        save: () => SaveClicked(this, new RoutedEventArgs()),
+                        discard: () => DiscardClicked(this, new RoutedEventArgs())
+                    );
+                }
+                if (ModifiersComponent is not null)
+                {
+                    ModifiersComponent.DataContext = new DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel(
+                        () => _working,
+                        runStructureEdit: RunStructureEdit
+                    );
+                }
+                if (AssignmentsComponent is not null)
+                {
+                    AssignmentsComponent.DataContext = new DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel(
+                        () => _working,
+                        RunStructureEdit
+                    );
+                }
+            }
+            catch { /* ignore during design-time or incremental initialization */ }
+            // Initialize the left navigation to the first item so the window behaves like before
+            try { NavigationList.SelectedIndex = 0; } catch { /* ignore if control not present yet */ }
             AuthoredPageKind.SelectedIndex = 0;
             SummaryCardAccent.ItemsSource = new[] { "cyan", "gold", "red", "blue", "orange", "purple", "green" };
             SummaryCardAccent.SelectedIndex = 0;
             RefreshAuthoring();
             RefreshDeviceChoices();
-            Loaded += async (_, _) => { if (_working is not null) { await LoadInventoryChoicesAsync(); await LoadUserMappingsAsync(); await RefreshDetectedDevicesAsync(); } };
+            Loaded += async (_, _) => { if (_working is not null)
+                {
+                    if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+                    {
+                        await vm.LoadInventoryChoicesAsync();
+                        InventoryUnits.ItemsSource = vm.InventoryUnitsChoices;
+                        await vm.LoadUserMappingsAsync();
+                        CustomMappingRevisions.ItemsSource = vm.CustomMappingRevisionsChoices;
+                        // Wire detected devices loader to the viewmodel
+                        vm.DetectedDevicesChoices.Clear();
+                        // initial population performed by RefreshDetectedDevicesAsync fallback that populates legacy controls
+                        await RefreshDetectedDevicesAsync();
+                        // Mirror legacy detected choices into VM if available
+                        if (DetectedDevice.ItemsSource is IEnumerable<DetectedDcsDevice> det)
+                        {
+                            foreach (var d in det) vm.DetectedDevicesChoices.Add(d);
+                            vm.SelectedDetectedDevice = DetectedDevice.SelectedItem as DetectedDcsDevice;
+                            vm.DetectedDevicesMessage = DetectedDevicesMessage.Text;
+                        }
+                    }
+                    if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                    {
+                        mvm.Refresh();
+                    }
+                    if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+                    {
+                        asvm.Refresh();
+                    }
+                }
+            };
             Closing += ConfirmClose;
             _inputTimer.Tick += PollInputTest;
             Deactivated += (_, _) => StopInputTest("Stopped on focus loss; restart to clear modifier state.");
             Closed += (_, _) => StopInputTest("Stopped.");
             RefreshEditor();
             UpdateBuildAvailability();
+        }
+        private void NavigationList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (NavigationList.SelectedItem is not ListBoxItem item) return;
+            var header = item.Content?.ToString();
+            if (string.IsNullOrEmpty(header)) return;
+            foreach (var obj in ImportedTabs.Items)
+            {
+                if (obj is TabItem t && (t.Header?.ToString() ?? string.Empty) == header)
+                {
+                    ImportedTabs.SelectedItem = t;
+                    return;
+                }
+            }
         }
         #region BEGIN Public
         #endregion END Public
@@ -830,8 +910,13 @@ namespace DcsIpia.Presentation
                 RebuildDraft(updated);
                 _working = updated;
                 _structureDirty = true;
-                _labels.Clear();
-                foreach (var pair in updated.Labels) _labels[pair.Key] = pair.Value;
+                if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm)
+                    avm.ReplaceLabels(updated.Labels);
+                else
+                {
+                    _labels.Clear();
+                    foreach (var pair in updated.Labels) _labels[pair.Key] = pair.Value;
+                }
                 RefreshManagement();
                 RefreshAuthoring();
                 RefreshDeviceChoices();
@@ -845,6 +930,11 @@ namespace DcsIpia.Presentation
             }
         }
         private async void LoadHardwareClicked(object sender, RoutedEventArgs e)
+        {
+            await LoadHardwareAsync();
+        }
+
+        private async Task LoadHardwareAsync()
         {
             if (_working is null) return;
             try
@@ -955,12 +1045,40 @@ namespace DcsIpia.Presentation
         private void ManagedHardwareChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_managementRefreshing || ManagedFileName is null) return;
+            try
+            {
+                if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+                {
+                    var selectedHardware = ManagedHardware.SelectedItem as WorkspaceHardware;
+                    var detectedFile = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName;
+                    var selectedDevice = ManagedDevices.SelectedItem as WorkspaceDevice;
+                    vm.HandleManagedHardwareChanged(selectedHardware, detectedFile, selectedDevice, DeviceManagementLayer);
+                    // Mirror VM-managed properties back into legacy controls for compatibility
+                    ManagedFileName.Text = vm.ManagedFileName;
+                    MfdLabelFields.IsEnabled = vm.MfdLabelFieldsEnabled;
+                    return;
+                }
+            }
+            catch { /* fall back to legacy behavior below */ }
+
             if (ManagedDevices.SelectedItem is not WorkspaceDevice selected || _working?.Configuration.Profiles.FirstOrDefault(x => x.Id == selected.ProfileId)?.DeviceId != (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId)
                 ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
             MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId == "tm-mfd";
         }
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
         {
+            // If the Devices component is using the new viewmodel, delegate selection handling to it.
+            try
+            {
+                if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm &&
+                    ManagedDevices.SelectedItem is WorkspaceDevice selectedDevice)
+                {
+                    vm.OnDeviceSelected(selectedDevice);
+                    return;
+                }
+            }
+            catch { /* ignore and fall back to legacy behavior below */ }
+
             if (_managementRefreshing || ManagedDevices.SelectedItem is not WorkspaceDevice device || _working is null) return;
             DetectedDevice.IsEnabled = true;
             var profile = _working.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
@@ -970,7 +1088,11 @@ namespace DcsIpia.Presentation
             ManagedInstance.Text = device.Instance ?? "";
             ManagedRole.Text = device.Role ?? "";
             var diagram = _working.Diagrams.Single(x => x.ProfileId == device.ProfileId);
-            var page = KneeboardDraftProjection.CreateCombined(_working, diagram, _draft?.Snapshot ?? _working.Assignments, _labels);
+            // prefer labels owned by the assignments component when available
+            var labelsSource = _labels;
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm)
+                labelsSource = new Dictionary<string, string>(avm.Labels, StringComparer.Ordinal);
+            var page = KneeboardDraftProjection.CreateCombined(_working, diagram, _draft?.Snapshot ?? _working.Assignments, labelsSource);
             ManagedKneeboardTitle.Text = page.Title;
             ManagedKneeboardSubtitle.Text = page.Kicker;
             KneeboardTitleFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module;
@@ -999,6 +1121,22 @@ namespace DcsIpia.Presentation
         }
         private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e)
         {
+            // If the newer Devices component viewmodel is present, delegate to it for adoption logic.
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                vm.SelectedCustomMappingRevision = CustomMappingRevisions.SelectedItem as UserMappingRevision;
+                try
+                {
+                    vm.AdoptCustomMapping();
+                    DevicesMessage.Text = vm.Message;
+                }
+                catch (Exception ex)
+                {
+                    DevicesMessage.Text = "Unable to review drawing: " + ex.Message;
+                }
+                return;
+            }
+
             if (_working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device ||
                 CustomMappingRevisions.SelectedItem is not UserMappingRevision revision)
             { DevicesMessage.Text = "Select a physical profile and a saved drawing revision."; return; }
@@ -1014,10 +1152,30 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) { DevicesMessage.Text = "Unable to review drawing: " + ex.Message; }
         }
-        private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e) => await LoadUserMappingsAsync();
-        private void AddInventoryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??
-                throw new InvalidOperationException("Select an adopted inventory unit. Discover and save it from the Hardware menu first."), DeviceManagementLayer));
+        private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                await vm.LoadUserMappingsAsync();
+                CustomMappingRevisions.ItemsSource = vm.CustomMappingRevisionsChoices;
+                return;
+            }
+            await LoadUserMappingsAsync();
+        }
+
+        private void AddInventoryClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                vm.SelectedInventoryChoice = InventoryUnits.SelectedItem as InventoryHardwareChoice;
+                try { vm.AddInventory(); }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace =>
+                InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??
+                    throw new InvalidOperationException("Select an adopted inventory unit. Discover and save it from the Hardware menu first."), DeviceManagementLayer));
+        }
         private void RenameGenericControlClicked(object sender, RoutedEventArgs e)
         {
             if (_selected is null || CurrentDiagram is null) return;
@@ -1028,18 +1186,50 @@ namespace DcsIpia.Presentation
             _selected = CurrentDiagram?.Controls.SingleOrDefault(x => x.InputKey == key);
             RefreshInspector();
         }
-        private void AddDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
-                throw new InvalidOperationException("Select shared hardware."), DeviceManagementLayer,
-                NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text,
-                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null,
-                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardSubtitle.Text) ? ManagedKneeboardSubtitle.Text : null));
-        private void UpdateDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
-                throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,
-                new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
-                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+        private void AddDeviceClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    var hw = ManagedHardware.SelectedItem as WorkspaceHardware ?? throw new InvalidOperationException("Select shared hardware.");
+                    vm.AddDevice(hw, NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text,
+                        DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null,
+                        DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardSubtitle.Text) ? ManagedKneeboardSubtitle.Text : null,
+                        DeviceManagementLayer);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace =>
+                WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
+                    throw new InvalidOperationException("Select shared hardware."), DeviceManagementLayer,
+                    NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text,
+                    DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null,
+                    DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardSubtitle.Text) ? ManagedKneeboardSubtitle.Text : null));
+        }
+        private void UpdateDeviceClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    var device = ManagedDevices.SelectedItem as WorkspaceDevice ?? throw new InvalidOperationException("Select a device to update.");
+                    var mfd = new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text };
+                    vm.UpdateDevice(device, ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text, mfd, ManagedHardware.SelectedItem as WorkspaceHardware,
+                        DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
+                        DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace =>
+                WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
+                    throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,
+                    new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
+                    DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
+                    DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+        }
         private void RebindDeviceClicked(object sender, RoutedEventArgs e)
         {
             if (ManagedDevices.SelectedItem is not WorkspaceDevice selected) return;
@@ -1047,23 +1237,83 @@ namespace DcsIpia.Presentation
             if (MessageBox.Show(this, "Rebind this profile in both aircraft and UI Layer scopes?\n\n" + selected.FileName +
                 "\n→ " + file + "\n\nAssignments, labels, filters and modifier references will be retained. Save to keep the staged change.",
                 "Rebind physical unit", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    vm.RebindDevice(selected, NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+
             RunStructureEdit(workspace => WorkspaceStructureEditor.RebindDevice(workspace, selected,
                 NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text));
         }
-        private void RemoveDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.RemoveDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
-                throw new InvalidOperationException("Select a device to remove.")));
-        private void ClearDeviceAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.ClearDeviceAssignments(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
+        private void RemoveDeviceClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    var device = ManagedDevices.SelectedItem as WorkspaceDevice ?? throw new InvalidOperationException("Select a device to remove.");
+                    vm.RemoveDevice(device);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace =>
+                WorkspaceStructureEditor.RemoveDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
+                    throw new InvalidOperationException("Select a device to remove.")));
+        }
+
+        private void ClearDeviceAssignmentsClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    var device = ManagedDevices.SelectedItem as WorkspaceDevice ?? throw new InvalidOperationException("Select a device to clear.");
+                    vm.ClearDeviceAssignments(device);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace => WorkspaceStructureEditor.ClearDeviceAssignments(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
                 throw new InvalidOperationException("Select a device to clear.")));
-        private void ClearLayerAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.ClearLayerAssignments(workspace,
+        }
+
+        private void ClearLayerAssignmentsClicked(object sender, RoutedEventArgs e)
+        {
+            if (DevicesComponent?.DataContext is DcsIpia.Presentation.ViewModels.DevicesComponentViewModel vm)
+            {
+                try
+                {
+                    vm.ClearLayerAssignments(CurrentDiagram?.ProfileId, Layers.SelectedItem as string ?? "", DeviceManagementLayer);
+                }
+                catch (Exception ex) { DevicesMessage.Text = ex.Message; }
+                return;
+            }
+            RunStructureEdit(workspace => WorkspaceStructureEditor.ClearLayerAssignments(workspace,
                 WorkspaceStructureEditor.Describe(workspace).Devices.FirstOrDefault(x => x.ProfileId == CurrentDiagram?.ProfileId && x.Layer == CurrentLayer) ??
                     throw new InvalidOperationException("Select a device to clear."),
                 Layers.SelectedItem is string layer && layer != "Base" ? layer : ""));
+        }
         private void ModifierDeviceChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ModifierControl is null || _managementRefreshing) return;
+            if (_managementRefreshing) return;
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.SelectedDevice = ModifierDevice.SelectedItem as WorkspaceDevice;
+                    return;
+                }
+            }
+            catch { /* fall back to legacy behavior below */ }
+
+            if (ModifierControl is null) return;
             var device = ModifierDevice.SelectedItem as WorkspaceDevice;
             ModifierControl.ItemsSource = _working?.Diagrams.FirstOrDefault(x => x.ProfileId == device?.ProfileId)?.Controls
                 .Where(x => !x.IsAxis && !x.Control.EndsWith("-shifted", StringComparison.Ordinal)).DistinctBy(x => x.InputKey).ToArray();
@@ -1071,6 +1321,16 @@ namespace DcsIpia.Presentation
         }
         private void NewModifierClicked(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.NewCommand.Execute(null);
+                    return;
+                }
+            }
+            catch { /* fall back to legacy behavior below */ }
+
             ManagedModifiers.SelectedItem = null;
             ModifierName.Text = "";
             ModifierSemantic.Text = "";
@@ -1079,6 +1339,19 @@ namespace DcsIpia.Presentation
         }
         private void ManagedModifierSelected(object sender, SelectionChangedEventArgs e)
         {
+            if (_managementRefreshing) return;
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.SelectedModifier = ManagedModifiers.SelectedItem as WorkspaceModifier;
+                    // Mirror legacy enable state for remove button
+                    ModifierRemoveButton.IsEnabled = ManagedModifiers.SelectedItem is WorkspaceModifier sel && !WorkspaceStructureEditor.IsDefaultKeyboardModifier(sel);
+                    return;
+                }
+            }
+            catch { /* fall back to legacy behavior below */ }
+
             if (ModifierRemoveButton is null || _managementRefreshing) return;
             ModifierRemoveButton.IsEnabled = ManagedModifiers.SelectedItem is WorkspaceModifier selected && !WorkspaceStructureEditor.IsDefaultKeyboardModifier(selected);
             if (ManagedModifiers.SelectedItem is not WorkspaceModifier modifier || _working is null) return;
@@ -1095,14 +1368,49 @@ namespace DcsIpia.Presentation
             var mode = ModifierModeChoice.SelectedItem is ModifierMode value ? value : throw new InvalidOperationException("Select Hold or Toggle.");
             return new(ModifierManagementLayer, device.ProfileId, ModifierName.Text, control.InputKey, ModifierSemantic.Text, mode, "");
         }
-        private void AddModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.SetModifier(workspace, null, ModifierCandidate()));
-        private void UpdateModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.SetModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
+        private void AddModifierClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.AddCommand.Execute(null);
+                    return;
+                }
+            }
+            catch (Exception ex) { ModifiersMessage.Text = ex.Message; }
+            RunStructureEdit(workspace => WorkspaceStructureEditor.SetModifier(workspace, null, ModifierCandidate()));
+        }
+
+        private void UpdateModifierClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.UpdateCommand.Execute(null);
+                    return;
+                }
+            }
+            catch (Exception ex) { ModifiersMessage.Text = ex.Message; }
+            RunStructureEdit(workspace => WorkspaceStructureEditor.SetModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
                 throw new InvalidOperationException("Select a modifier to update."), ModifierCandidate()));
-        private void RemoveModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.RemoveModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
+        }
+
+        private void RemoveModifierClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ModifiersComponent?.DataContext is DcsIpia.Presentation.ViewModels.ModifiersComponentViewModel mvm)
+                {
+                    mvm.RemoveCommand.Execute(null);
+                    return;
+                }
+            }
+            catch (Exception ex) { ModifiersMessage.Text = ex.Message; }
+            RunStructureEdit(workspace => WorkspaceStructureEditor.RemoveModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
                 throw new InvalidOperationException("Select a modifier to remove.")));
+        }
 
         private void SettingsClicked(object sender, RoutedEventArgs e)
         {
@@ -1403,8 +1711,42 @@ namespace DcsIpia.Presentation
             if (result.Outcome == DraftOutcome.Applied)
                 RefreshEditor();
         }
+
+        // Helper that wraps Apply and returns the DraftResult for callers that need it
+        private DraftResult ApplyReturn(Func<DraftConflictChoice?, DraftResult> operation, DraftAssignmentSlot? source = null)
+        {
+            var result = operation(null);
+            if (result.Outcome == DraftOutcome.ConfirmationRequired)
+            {
+                var decision = MessageBox.Show(
+                    this, "Destination is occupied. Yes: replace; No: swap assigned controls; Cancel: keep both.",
+                    "Occupied control", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                var choice = decision == MessageBoxResult.Yes                        ? DraftConflictChoice.Replace
+                             : decision == MessageBoxResult.No && source is not null ? DraftConflictChoice.Swap
+                                                                                     : DraftConflictChoice.Cancel;
+                result = operation(choice);
+            }
+            EditorMessage.Text = result.Message;
+            if (result.Outcome == DraftOutcome.Applied)
+                RefreshEditor();
+            return result;
+        }
         private void AssignClicked(object sender, RoutedEventArgs e)
         {
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+            {
+                try
+                {
+                    if (_selected is null || _draft is null || Commands.SelectedItem is not CommandPaletteEntry cmd) return;
+                    var theSlot = Slot(_selected);
+                    if (theSlot is null) return;
+                    // delegate to component VM; pass apply callback to keep conflict UI in window
+                    asvm.AssignSlot(theSlot, _draft, new CommandPaletteEntry(cmd.Id, cmd.Name, string.Empty, cmd.IsAxis), CurrentLayer, Behavior, (op, s) => { ApplyReturn(op, s); });
+                    return;
+                }
+                catch { /* fall back to legacy behavior below */ }
+            }
+
             if (_selected is null || _draft is null || Commands.SelectedItem is not CommandPaletteEntry command)
                 return;
             var slot = Slot(_selected);
@@ -1416,6 +1758,19 @@ namespace DcsIpia.Presentation
         }
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+            {
+                try
+                {
+                    if (_selected is null || _draft is null) return;
+                    var theSlot = Slot(_selected);
+                    if (theSlot is not null)
+                        asvm.RemoveSlot(theSlot, _draft, (op, s) => { var res = ApplyReturn(op, s); return; });
+                    return;
+                }
+                catch { /* fall back */ }
+            }
+
             if (_selected is null || _draft is null)
                 return;
             var slot = Slot(_selected);
@@ -1425,6 +1780,19 @@ namespace DcsIpia.Presentation
         }
         private void UndoClicked(object sender, RoutedEventArgs e)
         {
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+            {
+                try
+                {
+                    if (_draft is null) return;
+                    var undoResult = asvm.UndoDraft(_draft);
+                    EditorMessage.Text = undoResult.Message;
+                    RefreshEditor();
+                    return;
+                }
+                catch { /* fall back */ }
+            }
+
             if (_draft is null)
                 return;
             EditorMessage.Text = _draft.Undo().Message;
@@ -1432,16 +1800,60 @@ namespace DcsIpia.Presentation
         }
         private void ResetClicked(object sender, RoutedEventArgs e)
         {
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+            {
+                try
+                {
+                    if (_selected is null) return;
+                    var theSlot = Slot(_selected);
+                    if (theSlot is null) return;
+                    asvm.ResetLabelSlot(theSlot, () => { _labels.Remove(theSlot.Key); RefreshEditor(); });
+                    return;
+                }
+                catch { /* fall back */ }
+            }
+
             if (_selected is null)
                 return;
             var slot = Slot(_selected);
             if (slot is null)
                 return;
-            _labels.Remove(slot.Key);
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm)
+                avm.SetLabel(slot.Key, null);
+            else
+                _labels.Remove(slot.Key);
             RefreshEditor();
         }
         private void LabelChanged(object sender, TextChangedEventArgs e)
         {
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel asvm)
+            {
+                try
+                {
+                    if (_updatingInspector || _selected is null || _saved is null) return;
+                    var theSlot = Slot(_selected);
+                    if (theSlot is null) return;
+                    asvm.LabelChangedSlot(() => {
+                        if (string.IsNullOrWhiteSpace(LabelEditor.Text))
+                            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm3)
+                                avm3.SetLabel(theSlot.Key, null);
+                            else
+                                _labels.Remove(theSlot.Key);
+                        else
+                            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm4)
+                                avm4.SetLabel(theSlot.Key, LabelEditor.Text);
+                            else
+                                _labels[theSlot.Key] = LabelEditor.Text;
+                        if (_calloutText.TryGetValue(theSlot.Key, out var label))
+                            label.Text = LabelEditor.Text;
+                        PendingSummary.Text = "Pending label or assignment changes";
+                        UpdateBuildAvailability();
+                    });
+                    return;
+                }
+                catch { /* fall back to legacy logic below */ }
+            }
+
             if (_updatingInspector || _selected is null || _saved is null)
                 return;
             var slot = Slot(_selected);
@@ -1450,10 +1862,13 @@ namespace DcsIpia.Presentation
             if (string.IsNullOrWhiteSpace(LabelEditor.Text))
                 _labels.Remove(slot.Key);
             else
-                _labels[slot.Key] = LabelEditor.Text;
+                if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm2)
+                    avm2.SetLabel(slot.Key, LabelEditor.Text);
+                else
+                    _labels[slot.Key] = LabelEditor.Text;
             if (_calloutText.TryGetValue(slot.Key, out var label))
                 label.Text = LabelEditor.Text;
-            PendingSummary.Text = "Pending label or assignment changes";
+            PendingSummary.Text = AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel pavm ? pavm.PendingSummary : "Pending label or assignment changes";
             UpdateBuildAvailability();
         }
         private void RefreshInspector()
@@ -1462,29 +1877,57 @@ namespace DcsIpia.Presentation
                 return;
             var slot = _selected is null ? null : Slot(_selected);
             var assignment = slot is null ? null : Assignment(slot);
-            PhysicalInput.Text = _selected is null ? "Select a callout" : _selected.Label + " · " + _selected.InputKey;
-            Chord.Text = slot is null ? "" : slot.ModifierChord.Length == 0 ? "Base" : slot.ModifierChord;
-            CurrentCommand.Text =
-                slot is null
-                    ? ""
-                    : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
-            PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
-            DefaultLabel.Text = _selected?.Label ?? "";
-            GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
-            GenericControlName.Text = _selected?.Label ?? "";
-            _updatingInspector = true;
-            LabelEditor.IsEnabled = assignment is not null;
-            LabelEditor.Text = slot is null         ? ""
-                               : assignment is null ? "Unassigned"
-                                                    : _labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
-            _updatingInspector = false;
+            // Let the assignments VM populate inspector text where possible
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel pavm)
+            {
+                pavm.UpdateInspector(slot, assignment, _selected, _saved, CurrentDiagram);
+                PhysicalInput.Text = pavm.InspectorPhysicalInput;
+                Chord.Text = pavm.InspectorChord;
+                CurrentCommand.Text = pavm.InspectorCurrentCommand;
+                PendingCommand.Text = pavm.InspectorPendingCommand;
+                DefaultLabel.Text = pavm.InspectorDefaultLabel;
+                GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
+                GenericControlName.Text = pavm.InspectorDefaultLabel;
+                _updatingInspector = true;
+                LabelEditor.IsEnabled = pavm.IsLabelEditorEnabled;
+                LabelEditor.Text = pavm.LabelEditorText;
+                _updatingInspector = false;
+            }
+            else
+            {
+                PhysicalInput.Text = _selected is null ? "Select a callout" : _selected.Label + " · " + _selected.InputKey;
+                Chord.Text = slot is null ? "" : slot.ModifierChord.Length == 0 ? "Base" : slot.ModifierChord;
+                CurrentCommand.Text =
+                    slot is null
+                        ? ""
+                        : _saved?.Assignments.FirstOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot))?.Command.Name ?? "Unassigned";
+                PendingCommand.Text = assignment?.Command.Name ?? "Unassigned";
+                DefaultLabel.Text = _selected?.Label ?? "";
+                GenericControlName.IsEnabled = RenameGenericControlButton.IsEnabled = _selected is not null && CurrentDiagram?.GenericCapabilities is not null;
+                GenericControlName.Text = _selected?.Label ?? "";
+                _updatingInspector = true;
+                LabelEditor.IsEnabled = assignment is not null;
+                LabelEditor.Text = slot is null         ? ""
+                                   : assignment is null ? "Unassigned"
+                                                        : _labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
+                _updatingInspector = false;
+            }
             TuneAxisButton.IsEnabled = slot?.Section == BindingSection.Axis && assignment is not null;
             AxisTuningSummary.Text = slot?.Section != BindingSection.Axis ? "Select an axis control to tune."
                                      : assignment is null                 ? "Assign a command before tuning."
                                      : assignment.Filter is null          ? "No axis filter set."
                                                                           : "Axis filter staged.";
-            PendingSummary.Text = _structureDirty ? "Pending module authoring changes" : _draft?.HasChanges == true ? "Pending assignments: " + _draft.History.Count
+            if (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm)
+            {
+                avm.SetDraftReference(_draft);
+                avm.SetStructureDirty(_structureDirty);
+                PendingSummary.Text = avm.PendingSummary + (avm.PendingSummary.StartsWith("Pending assignments", System.StringComparison.Ordinal) && _draft is not null ? ": " + _draft.History.Count : string.Empty);
+            }
+            else
+            {
+                PendingSummary.Text = _structureDirty ? "Pending module authoring changes" : _draft?.HasChanges == true ? "Pending assignments: " + _draft.History.Count
                                                              : "No pending assignment changes";
+            }
         }
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
@@ -1726,9 +2169,11 @@ namespace DcsIpia.Presentation
         }
         private bool HasPendingChanges() =>
             _structureDirty || _draft?.HasChanges == true ||
-            _saved is not null &&
-            (_labels.Count != _saved.Labels.Count ||
-             _labels.Any(x => !_saved.Labels.TryGetValue(x.Key, out var original) || original != x.Value));
+            (_saved is not null &&
+             // prefer labels owned by the assignments component when available
+             (AssignmentsComponent?.DataContext is DcsIpia.Presentation.ViewModels.AssignmentsComponentViewModel avm
+                 ? (avm.Labels.Count != _saved.Labels.Count || avm.Labels.Any(x => !_saved.Labels.TryGetValue(x.Key, out var original) || original != x.Value))
+                 : (_labels.Count != _saved.Labels.Count || _labels.Any(x => !_saved.Labels.TryGetValue(x.Key, out var original) || original != x.Value)))) ;
 
         private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();
 
