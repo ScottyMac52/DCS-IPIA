@@ -137,7 +137,10 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(first.Id, pinned.Diagrams.Single().CustomMapping!.Id);
             var incompatible = DrawioMappingImporter.Import(DrawioMappingStarter.Export(GenericHardwareFixture.Definition(true)),
                 GenericHardwareFixture.Definition(true), "other.drawio", "test");
-            Assert.NotEmpty(MappingRevisionReview.Create(pinned.Diagrams.Single(), incompatible).Conflicts);
+            var incompatibleReview = MappingRevisionReview.Create(pinned.Diagrams.Single(), incompatible);
+            Assert.NotEmpty(incompatibleReview.Conflicts);
+            Assert.Contains(incompatibleReview.Conflicts, x => x.Contains("definition-only:", StringComparison.Ordinal) ||
+                x.Contains("profile-only:", StringComparison.Ordinal));
         }
 
         /// <summary>Repeated physical units adopt independently while unsaved edits and physical identities remain intact.</summary>
