@@ -16,6 +16,7 @@ namespace DcsIpia.Presentation
         private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
         private readonly Dictionary<string, Key> _testKeyboard = new(StringComparer.Ordinal);
 
+        #region BEGIN Public
         /// <summary>Raised when the controller needs the window to clear or update the input-test log and status.</summary>
         public event Action<string>? StatusChanged;
 
@@ -25,7 +26,6 @@ namespace DcsIpia.Presentation
         /// <summary>Gets whether an input test is currently running.</summary>
         public bool IsRunning => _session is not null;
 
-        #region BEGIN Public
         /// <summary>Starts a new input-test session from the supplied plan and device set.</summary>
         /// <param name="plan">Generated plan from the frozen snapshot.</param>
         /// <param name="devices">Physical device GUIDs that are currently attached.</param>
