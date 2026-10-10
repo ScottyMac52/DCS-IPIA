@@ -11,6 +11,10 @@ namespace Dcs.Ipia.Application.Interfaces
         /// <param name="revision">Reviewed, portable source and derived assets.</param>
         /// <returns>Completion of immutable publication.</returns>
         Task SaveAsync(UserMappingRevision revision);
+        /// <summary>Deletes a saved user-library revision by its immutable identifier.</summary>
+        /// <param name="revisionId">Exact revision identifier, not a file path.</param>
+        /// <returns>Completion of deletion; module-pinned revisions are unaffected.</returns>
+        Task DeleteAsync(string revisionId);
         #endregion END Public
     }
 }
