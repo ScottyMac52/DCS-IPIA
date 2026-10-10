@@ -29,6 +29,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Test exact runtime notice selection
+        shell: pwsh
+        run: ./tests/installer/Test-RuntimePackNotices.ps1
       - name: Build solution and run Windows tests
         shell: pwsh
         run: |

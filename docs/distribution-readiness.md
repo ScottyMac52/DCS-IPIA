@@ -20,7 +20,7 @@ SupportReportTests covers allow-list privacy against deliberately sensitive cont
 
 ## Attribution inventory shipped with the payload
 
-The notices folder is copied to portable and installed payloads and checked by exact installed-file hashes. Write-DistributionNotices.ps1 inventories the actual restored application graph from project.assets.json; it includes transitive/native and build dependencies, exact versions, NuGet license metadata, project URLs, copyrights and available license/notice files, with missing evidence marked reviewRequired. It also includes installed .NET distribution notices. This is a metadata inventory, not a certification that every native embedded component's notice is complete; review #183 before wider distribution.
+The notices folder is copied to portable and installed payloads and checked by exact installed-file hashes. Write-DistributionNotices.ps1 inventories the actual restored application graph from project.assets.json; it includes transitive/native and build dependencies, exact versions, NuGet license metadata, project URLs, copyrights and available license/notice files, with missing evidence marked reviewRequired. It also includes notices from the exact resolved Core and Desktop win-x64 self-contained runtime packs, with pack versions and notice hashes in runtime-packs.json. The release's DISTRIBUTION-EVIDENCE.json exposes this inventory for review. This is a metadata inventory, not a certification that every native embedded component's notice is complete; review #183 before wider distribution.
 
 | Evidence | Scope and source |
 | --- | --- |
@@ -30,7 +30,8 @@ The notices folder is copied to portable and installed payloads and checked by e
 | asset-authoring-provenance.json | Pinned DCS-Common authoring scripts and local changes; developer tooling, not a runtime prerequisite |
 | DejaVuSans-IPIA.LICENSE.txt | Bundled bold and regular DejaVu font notices |
 | dependencies.json, packages/ | Resolved application NuGet metadata and available notices |
-| .NET-LICENSE.txt, .NET-ThirdPartyNotices.txt, build-notices.json | Installed .NET distribution notices and SDK/source evidence |
+| runtime-packs/, runtime-packs.json, build-notices.json | Exact resolved Core/Desktop runtime-pack notices, SHA256 hashes, and SDK/source evidence |
+| distribution-review.md, distribution-artwork-review.json | Recorded artwork/source review and unresolved distribution decisions |
 
 Current direct production families are Microsoft.Data.Sqlite, Microsoft.Extensions.DependencyInjection/Configuration.Json, SkiaSharp, Svg.Skia and Serilog.Extensions.Hosting/Settings.Configuration/Sinks.File. Exact resolved versions belong to the candidate inventory, not a stale hand-maintained table. xUnit, test SDK and coverage tooling are development/test dependencies and do not form the app graph.
 
@@ -52,5 +53,5 @@ Copy this matrix into the release evidence, complete each row with actual observ
 | Keyboard and themes | In light/dark/high-contrast and chosen scaling, navigate menus, setup, editor, help, backup and report by keyboard; confirm focus/readability/F1/version | Pending |
 | Attribution decision | Review candidate notices and photo/embedded-image source evidence; link decisions in #183 | Pending |
 
-Use isolated --test-profile NAME for non-deployment checks; named profiles disable Fly Now. For actual DCS use a reviewed Production setup and back up the DCS input folder separately. Full user-data backups do not back up DCS deployments. Keep #163 and parent #155 open until the complete acceptance evidence is recorded.
+Use isolated --test-profile NAME for non-deployment checks; named profiles disable Fly Now. For actual DCS use a reviewed Production setup and back up the DCS input folder separately. Full user-data backups do not back up DCS deployments. Feature #163 is closed for implemented acceptance tooling; parent #155 remains open until the complete acceptance evidence is recorded. Distribution review remains tracked in #183. See distribution-review.md for the source audit and candidate-specific closure requirements.
 

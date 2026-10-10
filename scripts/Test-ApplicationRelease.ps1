@@ -133,6 +133,14 @@ try {
     Copy-Item $setup (Join-Path $Output 'setup.exe')
     $archiveName = "DCS-IPIA_v${Version}_win-x64.zip"
     Compress-Archive -Path "$publish/*" -DestinationPath (Join-Path $Output $archiveName)
+    # Publish readable review evidence for the exact candidate, alongside artifact checksums.
+    @{
+        schemaVersion=1; version=$Version; sourceCommit=$env:GITHUB_SHA; runtime='win-x64'
+        dependencies=@(Get-Content (Join-Path $publish 'notices/dependencies.json') -Raw | ConvertFrom-Json)
+        runtimePacks=@(Get-Content (Join-Path $publish 'notices/runtime-packs.json') -Raw | ConvertFrom-Json)
+        artworkReview='notices/distribution-artwork-review.json'
+        distributionDecision='pending: #183; packaging evidence is not permission or notice-completeness approval'
+    } | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $Output 'DISTRIBUTION-EVIDENCE.json') -Encoding utf8NoBOM
     $extracted = Join-Path $taskRoot 'extracted'
     Expand-Archive (Join-Path $Output $archiveName) $extracted
     Test-App (Join-Path $extracted 'Dcs.Ipia.App.exe') 'archive-smoke'
