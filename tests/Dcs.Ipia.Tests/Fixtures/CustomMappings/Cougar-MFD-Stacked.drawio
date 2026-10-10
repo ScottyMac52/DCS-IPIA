@@ -100,12 +100,12 @@
         <mxCell id="connector-b24" edge="1" parent="1" source="label-b24" target="anchor-b24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;startArrow=none;strokeColor=#94a3b8;strokeWidth=1;">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
-        <mxCell id="label-b1" value="OSB 1" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN1">
+        <mxCell id="label-b1" value="OSB 1" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN1">
           <mxGeometry as="geometry" x="651.6" y="436.5" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b1" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="508.6452914798206" y="266.2103139013453" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b15" value="OSB 15" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN15">
+        <mxCell id="label-b15" value="OSB 15" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN15">
           <mxGeometry as="geometry" x="651.6" y="1188.0" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b15" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="508.6452914798206" y="1670.6946188340808" width="5.4" height="5.4" />
@@ -122,12 +122,12 @@
         <mxCell id="anchor-b6" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1586.2237668161438" y="607.6452914798206" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b2" value="OSB 2" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN2">
+        <mxCell id="label-b2" value="OSB 2" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN2">
           <mxGeometry as="geometry" x="755.1" y="436.5" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b2" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="695.1026905829597" y="266.2103139013453" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b14" value="OSB 14" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN14">
+        <mxCell id="label-b14" value="OSB 14" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN14">
           <mxGeometry as="geometry" x="755.1" y="1188.0" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b14" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="695.1026905829597" y="1670.6946188340808" width="5.4" height="5.4" />
@@ -144,12 +144,12 @@
         <mxCell id="anchor-b7" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1586.2237668161438" y="777.1520179372199" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b3" value="OSB 3" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN3">
+        <mxCell id="label-b3" value="OSB 3" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN3">
           <mxGeometry as="geometry" x="858.6" y="436.5" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b3" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="886.403139013453" y="266.2103139013453" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b13" value="OSB 13" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN13">
+        <mxCell id="label-b13" value="OSB 13" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN13">
           <mxGeometry as="geometry" x="858.6" y="1188.0" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b13" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="886.403139013453" y="1670.6946188340808" width="5.4" height="5.4" />
@@ -166,12 +166,12 @@
         <mxCell id="anchor-b8" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1586.2237668161438" y="956.3448430493276" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b4" value="OSB 4" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN4">
+        <mxCell id="label-b4" value="OSB 4" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN4">
           <mxGeometry as="geometry" x="962.1" y="436.5" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b4" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1072.8605381165921" y="266.2103139013453" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b12" value="OSB 12" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN12">
+        <mxCell id="label-b12" value="OSB 12" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN12">
           <mxGeometry as="geometry" x="962.1" y="1188.0" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b12" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1072.8605381165921" y="1670.6946188340808" width="5.4" height="5.4" />
@@ -188,12 +188,12 @@
         <mxCell id="anchor-b9" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1586.2237668161438" y="1133.116143497758" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b5" value="OSB 5" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN5">
+        <mxCell id="label-b5" value="OSB 5" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN5">
           <mxGeometry as="geometry" x="1065.6000000000001" y="436.5" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b5" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1264.1609865470853" y="266.2103139013453" width="5.4" height="5.4" />
         </mxCell>
-        <mxCell id="label-b11" value="OSB 11" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=none;strokeColor=none;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN11">
+        <mxCell id="label-b11" value="OSB 11" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=top;fontFamily=Arial;fontSize=16;fontColor=#172033;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;ipiaTextLayout=stacked;" vertex="1" parent="1" inputKey="JOY_BTN11">
           <mxGeometry as="geometry" x="1065.6000000000001" y="1188.0" width="82.8" height="342.0" /></mxCell>
         <mxCell id="anchor-b11" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=21;fontColor=#172033;fillColor=#0284c7;strokeColor=none;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1264.1609865470853" y="1670.6946188340808" width="5.4" height="5.4" />
