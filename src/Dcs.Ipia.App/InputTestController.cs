@@ -38,8 +38,6 @@ namespace DcsIpia.Presentation
             _session = new(plan.Bindings, plan.Modifiers);
             _testKeyboard.Clear();
             _inputSource = inputSource ?? new WindowsDeviceInputSource(windowHandle, devices);
-            var diagnostics = new List<string>(plan.Diagnostics);
-            // Keyboard modifiers and unsupported-input diagnostics are collected by the caller before Start.
             StatusChanged?.Invoke($"Testing at {DateTime.Now:T} · {devices.Count} controllers.");
             _timer.Tick += OnTick;
             _timer.Start();
@@ -87,7 +85,6 @@ namespace DcsIpia.Presentation
             {
                 var frames = _inputSource.Read().ToList();
                 frames.Add(new(Guid.Empty, _testKeyboard.ToDictionary(x => x.Key, x => Keyboard.IsKeyDown(x.Value) ? 1.0 : 0.0)));
-                // Feedback device and highlight refresh are driven by the window via HighlightsChanged.
                 var results = _session.ProcessDevice(frames, _feedbackDevice);
                 foreach (var result in results)
                 {
