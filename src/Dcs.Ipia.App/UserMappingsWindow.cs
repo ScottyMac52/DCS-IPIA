@@ -31,6 +31,8 @@ namespace DcsIpia.Presentation
         private readonly Button _export;
         private readonly Button _starter;
         private readonly Button _review;
+        private readonly Button _delete;
+        private HashSet<string> _libraryRevisionIds = new(StringComparer.Ordinal);
         private readonly IEditorWorkspaceRepository? _workspaces;
         private readonly Func<string?>? _starterPicker;
         private UserMappingRevision? _candidate;
@@ -85,7 +87,8 @@ namespace DcsIpia.Presentation
             _export = Button("Export editable bundle…", "ExportMappingButton", ExportClicked);
             _starter = Button("Export starter draw.io…", "ExportMappingStarterButton", StarterClicked);
             _review = Button("Review adoption / rollback…", "ReviewMappingRevisionButton", ReviewClicked);
-            buttons.Children.Add(_starter); buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export);
+            _delete = Button("Delete saved drawing…", "DeleteMappingRevisionButton", DeleteClicked);
+            buttons.Children.Add(_starter); buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export); buttons.Children.Add(_delete);
             if (_workspaces is not null) buttons.Children.Add(_review);
             if (_canDiscoverHardware) buttons.Children.Add(_discover);
             heading.Children.Add(buttons);
@@ -123,7 +126,7 @@ namespace DcsIpia.Presentation
         private async Task ReloadAsync()
         {
             SetBusy(true);
-            try { _revisions.ItemsSource = (await _library.ListAsync()).Concat(_modulePins).DistinctBy(x => x.Id).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray(); }
+            try { await RefreshRevisionsAsync(); }
             catch (Exception ex) { _status.Text = "Unable to read user mappings: " + ex.Message; }
             finally
             {
@@ -166,11 +169,39 @@ namespace DcsIpia.Presentation
             {
                 await _library.SaveAsync(revision);
                 _candidate = null;
-                _revisions.ItemsSource = (await _library.ListAsync()).Concat(_modulePins).DistinctBy(x => x.Id).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
+                await RefreshRevisionsAsync();
                 _status.Text = "Saved drawing: " + revision.Title + ". Next: Open module → Devices → select the device and this drawing → Apply drawing to selected device → Save.";
             }
             catch (Exception ex) { _status.Text = "Unable to save drawing: " + ex.Message; }
             finally { SetBusy(false); }
+        }
+        private async void DeleteClicked(object sender, RoutedEventArgs e)
+        {
+            if (_revisions.SelectedItem is not UserMappingRevision revision ||
+                !_libraryRevisionIds.Contains(revision.Id)) return;
+            var answer = MessageBox.Show(this,
+                "Permanently delete the saved drawing revision “" + revision.Title +
+                "”? This removes it from your saved drawing library. Existing module pins and bundled drawings are not changed.",
+                "Delete saved drawing", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes) return;
+            SetBusy(true);
+            try
+            {
+                await _library.DeleteAsync(revision.Id);
+                _candidate = null;
+                _preview.Source = null;
+                await RefreshRevisionsAsync();
+                _status.Text = "Deleted saved drawing: " + revision.Title + ". Existing module pins were left unchanged.";
+            }
+            catch (Exception ex) { _status.Text = "Unable to delete saved drawing: " + ex.Message; }
+            finally { SetBusy(false); }
+        }
+        private async Task RefreshRevisionsAsync()
+        {
+            var saved = await _library.ListAsync();
+            _libraryRevisionIds = saved.Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+            _revisions.ItemsSource = saved.Concat(_modulePins).DistinctBy(x => x.Id).OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
+            UpdateButtons();
         }
         private void ReviewClicked(object sender, RoutedEventArgs e)
         {
@@ -226,6 +257,8 @@ namespace DcsIpia.Presentation
             _discover.IsEnabled = !_busy && _canDiscoverHardware;
             _save.IsEnabled = !_busy && _candidate is not null;
             _export.IsEnabled = !_busy && _revisions.SelectedItem is UserMappingRevision;
+            _delete.IsEnabled = !_busy && _revisions.SelectedItem is UserMappingRevision selected &&
+                _libraryRevisionIds.Contains(selected.Id);
             _starter.IsEnabled = !_busy && _definitions.SelectedValue is HardwareDefinition;
             _review.IsEnabled = _export.IsEnabled && _workspaces is IEditorWorkspaceUpdateRepository;
         }
