@@ -115,7 +115,8 @@ namespace Dcs.Ipia.Rendering
                         continue;
                     }
                     label.RemoveNodes();
-                    label.SetAttributeValue("font-size", variants?.Count > 1 ? "13" : "16");
+                    if (label.Attribute("data-ipia-text-layout") is null)
+                        label.SetAttributeValue("font-size", variants?.Count > 1 ? "13" : "16");
                     label.SetAttributeValue("font-weight", "700");
                     if (variants is null || variants.Count == 0)
                         continue;
@@ -153,6 +154,12 @@ namespace Dcs.Ipia.Rendering
                 }
                 else if (id?.StartsWith("meta-", StringComparison.Ordinal) == true)
                 {
+                    if (label.Attribute("data-ipia-text-layout") is not null)
+                    {
+                        label.RemoveNodes();
+                        label.Value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
+                        continue;
+                    }
                     label.RemoveNodes();
                     label.SetAttributeValue("font-size", "16");
                     label.SetAttributeValue("font-weight", "700");
@@ -216,12 +223,15 @@ namespace Dcs.Ipia.Rendering
                     }
                     choices = next.Where(x => x.Width > 4 && x.Height > 2).ToList();
                 }
-                if (!obstructed) continue;
+                if (!obstructed && label.Attribute("data-ipia-text-layout") is null) continue;
                 if (choices.Count == 0)
                     throw new InvalidDataException("Category has no space outside control labels: " + name);
                 var fitted = choices.OrderByDescending(x => x.Width * x.Height).First();
-                FitCallout(label, new(name, name, "", fitted.Left, fitted.Top, fitted.Width, fitted.Height),
-                    [new(text, "#ffffff", AssignmentLayer.Module, "")]);
+                var categoryControl = new HardwareGraphicControl(name, name, "", fitted.Left, fitted.Top, fitted.Width, fitted.Height);
+                IReadOnlyList<KneeboardLabelVariant> variants = [new(text, "#ffffff", AssignmentLayer.Module, "")];
+                if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
+                    FitStackedCallout(label, categoryControl, variants);
+                else FitCallout(label, categoryControl, variants);
             }
         }
         private static void FitCallout(XElement label, HardwareGraphicControl control, IReadOnlyList<KneeboardLabelVariant> variants)
@@ -229,7 +239,7 @@ namespace Dcs.Ipia.Rendering
             if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
                 throw new InvalidDataException("Authored callout has no usable text area: " + control.Control);
             using var typeface = LabelTypeface();
-            using var font = new SKFont(typeface, variants.Count > 1 ? 13 : 16);
+            using var font = new SKFont(typeface, AuthoredFontSize(label, variants.Count > 1 ? 13 : 16));
             var available = (float)control.Width - 4;
             var lines = new List<(string Text, KneeboardLabelVariant Variant)>();
             float spacing;
@@ -285,7 +295,7 @@ namespace Dcs.Ipia.Rendering
             if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
                 throw new InvalidDataException("Authored stacked callout has no usable text area: " + control.Control);
             using var typeface = LabelTypeface();
-            using var font = new SKFont(typeface, 16);
+            using var font = new SKFont(typeface, AuthoredFontSize(label, 16));
             var columns = variants.Select(v => v.Text.EnumerateRunes().Select(r => r.ToString()).ToArray()).ToArray();
             var columnWidth = (float)(control.Width - 4) / variants.Count;
             float spacing;
@@ -317,6 +327,10 @@ namespace Dcs.Ipia.Rendering
                         columns[column][row]));
             }
         }
+        private static float AuthoredFontSize(XElement label, float fallback) =>
+            label.Attribute("data-ipia-text-layout") is not null &&
+            float.TryParse(label.Attribute("font-size")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var size) &&
+            float.IsFinite(size) && size >= 8 && size <= 72 ? size : fallback;
         private static SKTypeface LabelTypeface()
         {
             var source = typeof(CompositeKneeboardRenderer)
