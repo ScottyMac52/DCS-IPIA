@@ -13,7 +13,7 @@ permissions:
 jobs:
   dotnet:
     # Provider PR #3: collect Cobertura/OpenCover and TRX with the existing 80/80 gates.
-    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@6d0a3aa5e5d492b2a86ca5e8510019eae3b77099
+    uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@2bb8c9233fe456e94fe1627f41e24df8e881ceb2
     with:
       dotnet_version: 10.0.x
       test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
