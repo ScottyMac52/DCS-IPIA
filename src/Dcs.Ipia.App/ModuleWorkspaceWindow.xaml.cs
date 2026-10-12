@@ -1,29 +1,92 @@
-using System.IO;
-using System.Globalization;
-using System.Xml;
-using System.Xml.Linq;
+using Dcs.Ipia.Application;
+using Dcs.Ipia.Application.Interfaces;
+using Dcs.Ipia.Dcs;
+using Dcs.Ipia.Domain;
+using Dcs.Ipia.Rendering;
+using DcsIpia.Features.Devices;
+using DcsIpia.Features.Modifiers;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Win32;
 using System.ComponentModel;
+using System.Globalization;
+using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Dcs.Ipia.Application;
-using Dcs.Ipia.Application.Interfaces;
-using Dcs.Ipia.Domain;
-using Dcs.Ipia.Dcs;
-using Dcs.Ipia.Rendering;
-using Microsoft.Win32;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace DcsIpia.Presentation
 {
+
+
+
     /// <summary>Edits locally persisted module controls on canonical draw.io generated SVGs.</summary>
     public partial class ModuleWorkspaceWindow : Window
     {
+
+        #region BEGIN Fields for the Refactor: NavigationService
+
+        private sealed class WindowContext(ModuleWorkspaceWindow w) : IModuleWorkspaceContext
+        {
+            private readonly ModuleWorkspaceWindow _w = w;
+
+            public EditorWorkspaceSnapshot? Working => _w._working;
+            public DraftAssignmentService? Draft => _w._draft;
+            public EditorWorkspaceSnapshot? Saved => _w._saved;
+            public IEditorWorkspaceRepository? Repository => _w._repository;
+            public IConnectedDeviceDiscovery DeviceDiscovery => _w._deviceDiscovery;
+            public HardwareInventoryManager? Inventory => _w._inventory;
+            public IUserMappingLibrary? UserMappings => _w._userMappings;
+            public Func<MappingRevisionReview, bool>? MappingReviewConfirmation => _w._mappingReviewConfirmation;
+            public Func<string?>? AxisDefaultsFilePicker => _w._axisDefaultsFilePicker;
+            public string SavedGamesRoot
+            {
+                get => _w._savedGamesRoot;
+                set => _w._savedGamesRoot = value;
+            }
+
+            public event EventHandler? StateChanged;
+
+            public event EventHandler<string>? StatusChanged;
+
+            public void RaiseStatus(string message) => StatusChanged?.Invoke(this, message);
+
+            public void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
+
+            public void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit)
+                => _w.RunStructureEdit(edit);
+
+            public Task SaveAsync()
+            {
+                _w.SaveClicked(null!, null!);
+                return Task.CompletedTask;
+            }
+
+            public void Discard() => _w.DiscardClicked(null!, null!);
+
+            public void SetStatus(string message)
+            {
+                _w.SetManagementMessage(message);
+                RaiseStatus(message);
+            }
+        }
+
+        private readonly IModuleWorkspaceContext _context;
+
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
+        private readonly INavigationService _navigation;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
+
+        private readonly string[] _knownKeys = { "Devices", "Modifiers", "Assignments", "Commands", "Pages", "Kneeboards", "Documentation", "Diagnostics", "Sources" };
+
+        #endregion BEGIN Fields for the Refactor: NavigationService
+
         private readonly ModuleWorkspaceViewModel _viewModel;
         private readonly ILogger<ModuleWorkspaceWindow> _logger;
         private readonly IAppSettingsService? _settings;
@@ -43,7 +106,6 @@ namespace DcsIpia.Presentation
         private readonly Func<string?>? _integrationFilePicker;
         private readonly Func<string?>? _axisDefaultsFilePicker;
         private string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
-        private bool _discoveryBusy;
         private bool _structureDirty;
         private bool _managementRefreshing;
         private bool _authoringRefreshing;
@@ -132,10 +194,6 @@ namespace DcsIpia.Presentation
             DeviceChoice.SelectedIndex = _viewModel.UiDiagrams.Count > 0 ? 0 : -1;
             if (_viewModel.HasErrors)
                 ImportedTabs.SelectedItem = DiagnosticsTab;
-            DevicesScope.SelectedIndex = 0;
-            ModifiersScope.SelectedIndex = 0;
-            ModifierModeChoice.ItemsSource = Enum.GetValues<ModifierMode>();
-            ModifierModeChoice.SelectedIndex = 0;
             RefreshManagement();
             AuthoredPageKind.ItemsSource = Enum.GetValues<KneeboardPageKind>();
             AuthoredPageKind.SelectedIndex = 0;
@@ -143,14 +201,62 @@ namespace DcsIpia.Presentation
             SummaryCardAccent.SelectedIndex = 0;
             RefreshAuthoring();
             RefreshDeviceChoices();
-            Loaded += async (_, _) => { if (_working is not null) { await LoadInventoryChoicesAsync(); await LoadUserMappingsAsync(); await RefreshDetectedDevicesAsync(); } };
+            Loaded += (_, _) => { };
             Closing += ConfirmClose;
             _inputTimer.Tick += PollInputTest;
             Deactivated += (_, _) => StopInputTest("Stopped on focus loss; restart to clear modifier state.");
             Closed += (_, _) => StopInputTest("Stopped.");
             RefreshEditor();
             UpdateBuildAvailability();
+
+
+            #region BEGIN for the Refactor: NavigationService
+
+            // inside ctor, after existing field assignments:
+            _navigation = new NavigationService(_knownKeys);
+            _context = new WindowContext(this);
+
+            _navigation.CurrentFeatureChanged += (_, _) => LoadCurrentView();
+            FeatureNav.SelectedIndex = 0;   // this calls NavigateTo and now has a listener
+
+            #endregion END for the Refactor: NavigationService
+
         }
+
+        #region BEGIN for the Refactor: Feature Nav
+
+        private void FeatureNavChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (FeatureNav.SelectedItem is ListBoxItem item)
+                _navigation.NavigateTo(item.Content?.ToString() ?? "Devices");
+        }
+
+        private void LoadCurrentView()
+        {
+            FeatureContent.Content = _navigation.CurrentFeatureKey switch
+            {
+                "Devices" => CreateDevicesView(),
+                "Modifiers" => CreateModifiersView(),
+                _ => null
+            };
+        }
+
+        private DevicesView CreateDevicesView()
+        {
+            var view = new DevicesView();
+            view.Initialize(_context);
+            return view;
+        }
+
+        private ModifiersView CreateModifiersView()
+        {
+            var view = new ModifiersView();
+            view.Initialize(_context);
+            return view;
+        }
+
+        #endregion END for the Refactor: Feature Nav
+
         #region BEGIN Public
         #endregion END Public
         #region BEGIN private helpers
@@ -406,27 +512,6 @@ namespace DcsIpia.Presentation
         {
             if (IntegrationInstructions.SelectedItem is ModuleIntegrationInstruction entry)
                 RunStructureEdit(workspace => ModuleIntegrationImport.Remove(workspace, entry.Name));
-        }
-        private void ImportAxisDefaultsClicked(object sender, RoutedEventArgs e)
-        {
-            if (_working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device)
-            {
-                SetManagementMessage("Select a device before importing its DCS axis defaults.");
-                return;
-            }
-            var picker = new OpenFileDialog { Title = "Select the DCS profile saved after clearing all axes", Filter = "DCS diff profile|*.diff.lua" };
-            var path = _axisDefaultsFilePicker is null ? (picker.ShowDialog(this) == true ? picker.FileName : null) : _axisDefaultsFilePicker();
-            if (path is null) return;
-            try
-            {
-                var source = File.ReadAllText(path);
-                var workspace = EditSnapshot();
-                var removals = ModuleAxisDefaults.Review(workspace, device.ProfileId, device.Layer, source);
-                var review = new AxisDefaultsReviewWindow(workspace, device, removals) { Owner = this };
-                if (review.ShowDialog() != true) return;
-                RunStructureEdit(current => ModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source));
-            }
-            catch (Exception ex) { SetManagementMessage("Axis default import failed: " + ex.Message); }
         }
         private void LoadCommandJsonClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(false);
         private void LoadCommandHtmlClicked(object sender, RoutedEventArgs e) => LoadCommandFiles(true);
@@ -744,8 +829,6 @@ namespace DcsIpia.Presentation
             }
             catch (Exception ex) { SetManagementMessage("Page preview failed: " + ex.Message); }
         }
-        private AssignmentLayer DeviceManagementLayer => DevicesScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
-        private AssignmentLayer ModifierManagementLayer => ModifiersScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
         private EditorWorkspaceSnapshot EditSnapshot()
         {
             var workspace = _working ?? _saved ?? throw new InvalidOperationException("Open a saved module to manage devices and modifiers.");
@@ -784,40 +867,24 @@ namespace DcsIpia.Presentation
         }
         private void RefreshManagement()
         {
-            if (ManagedDevices is null || ManagedModifiers is null || _managementRefreshing) return;
+            if (_managementRefreshing) return;
             _managementRefreshing = true;
             try
             {
                 var workspace = _working;
                 var state = workspace is null ? null : WorkspaceStructureEditor.Describe(workspace);
-                ManagedDevices.ItemsSource = state?.Devices.Where(x => x.Layer == DeviceManagementLayer).ToArray();
-                ModifierRemoveButton.IsEnabled = false;
-                ManagedModifiers.ItemsSource = state?.Modifiers.Where(x => x.Layer == ModifierManagementLayer).ToArray();
-                ModifierDevice.ItemsSource = state?.Devices.Where(x => x.Layer == ModifierManagementLayer).ToArray();
-                ManagedHardware.ItemsSource = workspace is null ? null : WorkspaceStructureEditor.Hardware(workspace);
-                if (workspace is not null && workspace.Sources?.ContainsKey("config/ipia-hardware.json") != true)
-                    DevicesMessage.Text = "Shared hardware catalog is missing. Click Load built-in hardware, then Save to database. Existing assignments are preserved.";
-                if (workspace?.Sources?.TryGetValue("config/ipia-hardware-diagnostics.json", out var diagnostics) == true)
-                {
-                    var errors = JsonSerializer.Deserialize<string[]>(diagnostics) ?? [];
-                    if (errors.Length > 0) DevicesMessage.Text = "Unavailable shared hardware: " + string.Join("; ", errors);
-                }
-
             }
             finally { _managementRefreshing = false; }
         }
+
         private void ManagementScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_managementRefreshing) return;
             RefreshManagement();
-            if (ManagedFileName is not null) NewDeviceClicked(sender, new RoutedEventArgs());
-            if (ModifierName is not null) NewModifierClicked(sender, new RoutedEventArgs());
         }
         private void SetManagementMessage(string message)
         {
             EditorMessage.Text = message;
-            DevicesMessage.Text = message;
-            ModifiersMessage.Text = message;
             CommandAuthoringStatus.Text = message;
             PageAuthoringStatus.Text = message;
             IntegrationStatus.Text = message;
@@ -838,186 +905,15 @@ namespace DcsIpia.Presentation
                 RefreshEditor();
                 SetManagementMessage("Change staged. Save to database to keep it, or Discard draft.");
                 UpdateBuildAvailability();
+                (_context as WindowContext)?.RaiseStateChanged();
             }
             catch (Exception ex)
             {
                 SetManagementMessage(ex.Message);
+                (_context as WindowContext)?.RaiseStatus(ex.Message);
             }
         }
-        private async void LoadHardwareClicked(object sender, RoutedEventArgs e)
-        {
-            if (_working is null) return;
-            try
-            {
-                SetManagementMessage("Loading committed shared hardware…");
-                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                RunStructureEdit(workspace => {
-                    var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
-                    foreach (var pair in hardware)
-                        if (pair.Key is "config/ipia-hardware.json" or "config/ipia-device-map.json" or "config/ipia-hardware-diagnostics.json" || !sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
-                    var generic = WorkspaceStructureEditor.Hardware(workspace).Where(x => x.Diagram.GenericCapabilities is not null);
-                    var bundled = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
-                    sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(bundled.Concat(generic).DistinctBy(x => x.DeviceId).ToArray());
-                    return workspace with { Sources = sources };
-                });
-                MatchSelectedDetectedDevice();
-            }
-            catch (Exception ex) { SetManagementMessage("Shared hardware could not be loaded: " + ex.Message); }
-        }
-        private async void RefreshDetectedDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDetectedDevicesAsync();
-        private void ManualDeviceFileClicked(object sender, RoutedEventArgs e)
-        {
-            DetectedDevice.SelectedItem = null;
-            ManagedFileName.Focus();
-            DetectedDevicesMessage.Text = "Enter the unit's exact captured native filename, including its physical GUID.";
-        }
-        private async void ChooseSavedGamesClicked(object sender, RoutedEventArgs e)
-        {
-            var picker = new OpenFolderDialog { Title = "Select Saved Games or your DCS folder" };
-            if (picker.ShowDialog(this) != true) return;
-            _savedGamesRoot = picker.FolderName;
-            await RefreshDetectedDevicesAsync();
-        }
-        private async Task RefreshDetectedDevicesAsync()
-        {
-            if (_discoveryBusy) return;
-            _discoveryBusy = true;
-            RefreshDetectedDevicesButton.IsEnabled = false;
-            var selected = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.PhysicalGuid;
-            try
-            {
-                DetectedDevicesMessage.Text = "Reading connected controllers and Saved Games profiles…";
-                var errors = new List<string>();
-                var choices = await Task.Run(() => {
-                    IReadOnlyList<DetectedDcsDevice> connected = [];
-                    IReadOnlyList<DetectedDcsDevice> profiles = [];
-                    try { connected = _deviceDiscovery.Discover(); }
-                    catch (Exception ex) { errors.Add("Connected controllers: " + ex.Message); }
-                    try { profiles = SavedGamesDeviceDiscovery.Discover(_savedGamesRoot); }
-                    catch (Exception ex) { errors.Add("Saved Games: " + ex.Message + " Choose the correct folder above."); }
-                    return DcsPhysicalIdentity.Merge(connected, profiles);
-                });
-                DetectedDevice.ItemsSource = choices;
-                DetectedDevice.SelectedItem = choices.FirstOrDefault(x => x.PhysicalGuid == selected);
-                if (_working is not null && !ReferenceEquals(_working,
-                    ModuleAxisCleanup.CaptureDevices(_working, choices.Select(x => x.FileName))))
-                {
-                    RunStructureEdit(workspace => ModuleAxisCleanup.CaptureDevices(workspace, choices.Select(x => x.FileName)));
-                    SetManagementMessage("Controller identities for aircraft axis cleanup staged. Save to database to include them in generated inputs.");
-                }
-                DetectedDevicesMessage.Text = choices.Count + " physical device(s). Select a device, then verify shared hardware. " + string.Join(" ", errors);
-            }
-            finally { _discoveryBusy = false; RefreshDetectedDevicesButton.IsEnabled = true; }
-        }
-        private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e) => MatchSelectedDetectedDevice();
-        private void MatchSelectedDetectedDevice()
-        {
-            if (_managementRefreshing || DetectedDevice.SelectedItem is not DetectedDcsDevice device || _working is null) return;
-            if (ManagedDevices.SelectedItem is WorkspaceDevice)
-            {
-                ManagedFileName.Text = device.FileName;
-                DetectedDevicesMessage.Text = "Physical unit selected. Use Rebind physical unit to review and stage the change for both scopes.";
-                return;
-            }
-            var match = DetectedDeviceHardwareMatcher.Match(_working, device);
-            ManagedHardware.SelectedItem = match is null ? null :
-                (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.SingleOrDefault(x => x.DeviceId == match.DeviceId);
-            ManagedFileName.Text = device.FileName;
-            DetectedDevicesMessage.Text = match is null
-                ? _working.Sources?.ContainsKey("config/ipia-hardware.json") != true
-                    ? "Physical GUID found, but the shared hardware catalog is missing. Click Load built-in hardware."
-                    : "Physical GUID found. Select the matching shared hardware; the installed grip may require your choice."
-                : "Physical GUID found. Shared hardware recognized; filename remains editable.";
-        }
-        private string NewDeviceFileName()
-        {
-            var guid = DcsPhysicalIdentity.FromFileName(ManagedFileName.Text.Trim());
-            if (guid is null) throw new InvalidOperationException("Select a detected device, or enter its GUID-qualified DCS filename.");
-            if (DetectedDevice.SelectedItem is DetectedDcsDevice selected && guid != selected.PhysicalGuid)
-                throw new InvalidOperationException("Keep the selected physical device GUID in the filename.");
-            return ManagedFileName.Text;
-        }
-        private void NewDeviceClicked(object sender, RoutedEventArgs e)
-        {
-            ManagedDevices.SelectedItem = null;
-            DetectedDevice.IsEnabled = true;
-            DetectedDevice.SelectedItem = null;
-            ManagedHardware.IsEnabled = true;
-            ManagedInstance.Text = "";
-            ManagedRole.Text = "";
-            ManagedKneeboardTitle.Text = "";
-            ManagedKneeboardSubtitle.Text = "";
-            KneeboardTitleFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module;
-            ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
-            MfdLeft.Text = MfdRight.Text = MfdTop.Text = MfdBottom.Text = "";
-            MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId == "tm-mfd";
-        }
-        private void ManagedHardwareChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_managementRefreshing || ManagedFileName is null) return;
-            if (ManagedDevices.SelectedItem is not WorkspaceDevice selected || _working?.Configuration.Profiles.FirstOrDefault(x => x.Id == selected.ProfileId)?.DeviceId != (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId)
-                ManagedFileName.Text = (DetectedDevice.SelectedItem as DetectedDcsDevice)?.FileName ?? "";
-            MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && (ManagedHardware.SelectedItem as WorkspaceHardware)?.DeviceId == "tm-mfd";
-        }
-        private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
-        {
-            if (_managementRefreshing || ManagedDevices.SelectedItem is not WorkspaceDevice device || _working is null) return;
-            DetectedDevice.IsEnabled = true;
-            var profile = _working.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
-            ManagedHardware.SelectedItem = (ManagedHardware.ItemsSource as IEnumerable<WorkspaceHardware>)?.FirstOrDefault(x => x.DeviceId == profile.DeviceId);
-            ManagedHardware.IsEnabled = true;
-            ManagedFileName.Text = device.FileName;
-            ManagedInstance.Text = device.Instance ?? "";
-            ManagedRole.Text = device.Role ?? "";
-            var diagram = _working.Diagrams.Single(x => x.ProfileId == device.ProfileId);
-            var page = KneeboardDraftProjection.CreateCombined(_working, diagram, _draft?.Snapshot ?? _working.Assignments, _labels);
-            ManagedKneeboardTitle.Text = page.Title;
-            ManagedKneeboardSubtitle.Text = page.Kicker;
-            KneeboardTitleFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module;
-            var labels = page.CategoryLabels;
-            MfdLeft.Text = labels.GetValueOrDefault("mfd-category-left") ?? "";
-            MfdRight.Text = labels.GetValueOrDefault("mfd-category-right") ?? "";
-            MfdTop.Text = labels.GetValueOrDefault("mfd-category-top") ?? "";
-            MfdBottom.Text = labels.GetValueOrDefault("mfd-category-bottom") ?? "";
-            MfdLabelFields.IsEnabled = DeviceManagementLayer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd";
-        }
-        private async Task LoadInventoryChoicesAsync()
-        {
-            if (_inventory is null) return;
-            try { InventoryUnits.ItemsSource = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync()); }
-            catch (Exception ex) { DevicesMessage.Text = "Unable to read hardware inventory: " + ex.Message; }
-        }
-        private async Task LoadUserMappingsAsync()
-        {
-            if (_userMappings is null) return;
-            try
-            {
-                var pins = (_working?.Diagrams ?? []).SelectMany(x => (x.MappingHistory ?? []).Concat(x.CustomMapping is { } pin ? [pin] : []));
-                CustomMappingRevisions.ItemsSource = (await _userMappings.ListAsync()).Concat(pins).DistinctBy(x => x.Id).OrderBy(x => x.Title, StringComparer.Ordinal).ToArray();
-            }
-            catch (Exception ex) { DevicesMessage.Text = "Unable to read user mappings: " + ex.Message; }
-        }
-        private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e)
-        {
-            if (_working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device ||
-                CustomMappingRevisions.SelectedItem is not UserMappingRevision revision)
-            { DevicesMessage.Text = "Select a physical profile and a saved drawing revision."; return; }
-            try
-            {
-                var review = MappingRevisionReview.Create(_working.Diagrams.Single(x => x.ProfileId == device.ProfileId), revision);
-                if (review.Conflicts.Count > 0) { DevicesMessage.Text = string.Join("\n", review.Conflicts); return; }
-                var confirmed = _mappingReviewConfirmation?.Invoke(review) ?? MessageBox.Show(this,
-                    string.Join("\n", review.Changes) + "\n\nStage this drawing on the selected device? Save/Discard controls the final change.",
-                    "Review drawing change", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
-                if (!confirmed) return;
-                RunStructureEdit(workspace => UserMappingAdoption.Apply(workspace, device.ProfileId, revision));
-            }
-            catch (Exception ex) { DevicesMessage.Text = "Unable to review drawing: " + ex.Message; }
-        }
-        private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e) => await LoadUserMappingsAsync();
-        private void AddInventoryClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            InventoryHardwareAuthoring.Add(workspace, InventoryUnits.SelectedItem as InventoryHardwareChoice ??
-                throw new InvalidOperationException("Select an adopted inventory unit. Discover and save it from the Hardware menu first."), DeviceManagementLayer));
+        
         private void RenameGenericControlClicked(object sender, RoutedEventArgs e)
         {
             if (_selected is null || CurrentDiagram is null) return;
@@ -1028,82 +924,11 @@ namespace DcsIpia.Presentation
             _selected = CurrentDiagram?.Controls.SingleOrDefault(x => x.InputKey == key);
             RefreshInspector();
         }
-        private void AddDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.AddDevice(workspace, ManagedHardware.SelectedItem as WorkspaceHardware ??
-                throw new InvalidOperationException("Select shared hardware."), DeviceManagementLayer,
-                NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text,
-                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardTitle.Text) ? ManagedKneeboardTitle.Text : null,
-                DeviceManagementLayer == AssignmentLayer.Module && !string.IsNullOrWhiteSpace(ManagedKneeboardSubtitle.Text) ? ManagedKneeboardSubtitle.Text : null));
-        private void UpdateDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.UpdateDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
-                throw new InvalidOperationException("Select a device to update."), ManagedFileName.Text, ManagedInstance.Text, ManagedRole.Text,
-                new Dictionary<string, string> { ["left"] = MfdLeft.Text, ["right"] = MfdRight.Text, ["top"] = MfdTop.Text, ["bottom"] = MfdBottom.Text }, ManagedHardware.SelectedItem as WorkspaceHardware,
-                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                DeviceManagementLayer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
-        private void RebindDeviceClicked(object sender, RoutedEventArgs e)
-        {
-            if (ManagedDevices.SelectedItem is not WorkspaceDevice selected) return;
-            var file = ManagedFileName.Text.Trim();
-            if (MessageBox.Show(this, "Rebind this profile in both aircraft and UI Layer scopes?\n\n" + selected.FileName +
-                "\n→ " + file + "\n\nAssignments, labels, filters and modifier references will be retained. Save to keep the staged change.",
-                "Rebind physical unit", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-            RunStructureEdit(workspace => WorkspaceStructureEditor.RebindDevice(workspace, selected,
-                NewDeviceFileName(), ManagedInstance.Text, ManagedRole.Text));
-        }
-        private void RemoveDeviceClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.RemoveDevice(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
-                throw new InvalidOperationException("Select a device to remove.")));
-        private void ClearDeviceAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.ClearDeviceAssignments(workspace, ManagedDevices.SelectedItem as WorkspaceDevice ??
-                throw new InvalidOperationException("Select a device to clear.")));
         private void ClearLayerAssignmentsClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
             WorkspaceStructureEditor.ClearLayerAssignments(workspace,
                 WorkspaceStructureEditor.Describe(workspace).Devices.FirstOrDefault(x => x.ProfileId == CurrentDiagram?.ProfileId && x.Layer == CurrentLayer) ??
                     throw new InvalidOperationException("Select a device to clear."),
                 Layers.SelectedItem is string layer && layer != "Base" ? layer : ""));
-        private void ModifierDeviceChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ModifierControl is null || _managementRefreshing) return;
-            var device = ModifierDevice.SelectedItem as WorkspaceDevice;
-            ModifierControl.ItemsSource = _working?.Diagrams.FirstOrDefault(x => x.ProfileId == device?.ProfileId)?.Controls
-                .Where(x => !x.IsAxis && !x.Control.EndsWith("-shifted", StringComparison.Ordinal)).DistinctBy(x => x.InputKey).ToArray();
-            ModifierControl.SelectedIndex = 0;
-        }
-        private void NewModifierClicked(object sender, RoutedEventArgs e)
-        {
-            ManagedModifiers.SelectedItem = null;
-            ModifierName.Text = "";
-            ModifierSemantic.Text = "";
-            ModifierModeChoice.SelectedItem = ModifierMode.Hold;
-            ModifierDevice.SelectedIndex = 0;
-        }
-        private void ManagedModifierSelected(object sender, SelectionChangedEventArgs e)
-        {
-            if (ModifierRemoveButton is null || _managementRefreshing) return;
-            ModifierRemoveButton.IsEnabled = ManagedModifiers.SelectedItem is WorkspaceModifier selected && !WorkspaceStructureEditor.IsDefaultKeyboardModifier(selected);
-            if (ManagedModifiers.SelectedItem is not WorkspaceModifier modifier || _working is null) return;
-            ModifierName.Text = modifier.Name;
-            ModifierSemantic.Text = modifier.SemanticLayer;
-            ModifierModeChoice.SelectedItem = modifier.Mode;
-            ModifierDevice.SelectedItem = WorkspaceStructureEditor.Describe(_working).Devices.FirstOrDefault(x => x.ProfileId == modifier.ProfileId && x.Layer == modifier.Layer);
-            ModifierControl.SelectedItem = (ModifierControl.ItemsSource as IEnumerable<HardwareGraphicControl>)?.FirstOrDefault(x => DcsInputKey.SamePhysicalInput(x.InputKey, modifier.Key));
-        }
-        private WorkspaceModifier ModifierCandidate()
-        {
-            var device = ModifierDevice.SelectedItem as WorkspaceDevice ?? throw new InvalidOperationException("Select a device.");
-            var control = ModifierControl.SelectedItem as HardwareGraphicControl ?? throw new InvalidOperationException("Select a shared control.");
-            var mode = ModifierModeChoice.SelectedItem is ModifierMode value ? value : throw new InvalidOperationException("Select Hold or Toggle.");
-            return new(ModifierManagementLayer, device.ProfileId, ModifierName.Text, control.InputKey, ModifierSemantic.Text, mode, "");
-        }
-        private void AddModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.SetModifier(workspace, null, ModifierCandidate()));
-        private void UpdateModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.SetModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
-                throw new InvalidOperationException("Select a modifier to update."), ModifierCandidate()));
-        private void RemoveModifierClicked(object sender, RoutedEventArgs e) => RunStructureEdit(workspace =>
-            WorkspaceStructureEditor.RemoveModifier(workspace, ManagedModifiers.SelectedItem as WorkspaceModifier ??
-                throw new InvalidOperationException("Select a modifier to remove.")));
-
         private void SettingsClicked(object sender, RoutedEventArgs e)
         {
             if (_settings is null)
