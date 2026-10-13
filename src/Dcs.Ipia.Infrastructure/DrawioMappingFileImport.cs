@@ -11,11 +11,15 @@ namespace Dcs.Ipia.Infrastructure
         /// <param name="definition">Explicit native target definition.</param>
         /// <param name="version">Application provenance.</param>
         /// <param name="catalogInputs">Optional trusted bundled marker-to-input mappings.</param>
+        /// <param name="catalogCandidates">Optional installed maps for renamed drawing copies with preserved stable markers.</param>
         /// <returns>Verified self-contained import.</returns>
-        public static UserMappingRevision Load(string path, HardwareDefinition definition, string version, IReadOnlyDictionary<string, string>? catalogInputs = null)
+        public static UserMappingRevision Load(string path, HardwareDefinition definition, string version, IReadOnlyDictionary<string, string>? catalogInputs = null,
+            IEnumerable<IReadOnlyDictionary<string, string>>? catalogCandidates = null)
         {
             path = Path.GetFullPath(path);
             var source = new System.Text.UTF8Encoding(false, true).GetString(Read(path, 2_000_000));
+            if (catalogInputs is null && catalogCandidates is not null)
+                catalogInputs = DrawioMappingImporter.ResolveCatalogInputs(source, definition, catalogCandidates);
             if (catalogInputs is not null) source = DrawioMappingImporter.WithCatalogInputs(source, catalogInputs);
             var assets = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (var relative in DrawioMappingImporter.LocalAssets(source))

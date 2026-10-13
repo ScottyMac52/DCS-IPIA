@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -159,6 +160,27 @@ namespace Dcs.Ipia.App.Smoke
                 var savedMfd = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd.drawio");
                 if (savedMfd.Controls.Count != 48 || savedMfd.MappedInputs.Count != 28)
                     throw new InvalidOperationException("Real bundled MFD preview lost its base/shifted label pairs.");
+                var editedPath = Path.Combine(root, "tm-mfd(1).drawio");
+                var editedGraph = XDocument.Parse(File.ReadAllText(mfdPath));
+                var imageCell = editedGraph.Descendants("mxCell").First(x => x.Attribute("id")?.Value.StartsWith("hardware-image-", StringComparison.Ordinal) == true);
+                imageCell.Element("mxGeometry")!.SetAttributeValue("x", "1.5");
+                editedGraph.Descendants("root").Single().Add(new XElement("mxCell", new XAttribute("id", "drawio-cover"),
+                    new XAttribute("parent", "1"), new XAttribute("vertex", "1"), new XAttribute("style", "fillColor=#ffffff;strokeColor=none;"),
+                    new XElement("mxGeometry", new XAttribute("x", "15"), new XAttribute("y", "15"), new XAttribute("width", "40"), new XAttribute("height", "20"))));
+                File.WriteAllText(editedPath, editedGraph.ToString());
+                var editedTools = new UserMappingsWindow(library, [mfdDefinition], () => editedPath,
+                    bundledInputs: new Dictionary<string, IReadOnlyDictionary<string, string>>
+                    { ["tm-mfd.drawio"] = mfd.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal) });
+                editedTools.Show();
+                Pump(editedTools, () => ((Button)WorkspaceUi.Find(editedTools, "PreviewMappingButton")!).IsEnabled);
+                Click((Button)WorkspaceUi.Find(editedTools, "PreviewMappingButton")!);
+                Pump(editedTools, () => ((TextBlock)WorkspaceUi.Find(editedTools, "MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(editedTools, "SaveMappingButton")!);
+                Pump(editedTools, () => ((TextBlock)WorkspaceUi.Find(editedTools, "MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
+                editedTools.Close();
+                var savedEdited = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd(1).drawio");
+                if (savedEdited.ExporterVersion != "ipia-drawio-4" || savedEdited.Controls.Count != 48 || savedEdited.MappedInputs.Count != 28)
+                    throw new InvalidOperationException("Renamed edited MFD preview did not preserve its native controls.");
                 var mfdWorkspace = NewModuleWorkspaceFactory.Create("GLOBAL-MFD-SMOKE", "Global MFD smoke", defaults,
                     new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true);
                 mfdWorkspace = WorkspaceStructureEditor.AddDevice(mfdWorkspace, mfd, AssignmentLayer.Module,
