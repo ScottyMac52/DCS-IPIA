@@ -81,7 +81,8 @@
         <ListBoxItem Content="Documentation" Tag="Documentation"/>
     </ListBox>
 
-        <ContentControl x:Name="FeatureContent" Grid.Row="1" Margin="170,0,0,0"/>
+        <ContentControl x:Name="FeatureContent" Grid.Row="1" Margin="170,0,0,0"
+                        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     <DockPanel Grid.Row="2" Margin="0,16,0,0">
       <StackPanel DockPanel.Dock="Left" MaxWidth="800">
         <TextBlock x:Name="PendingSummary" Text="No pending assignment changes"/>
