@@ -102,8 +102,17 @@ namespace DcsIpia.Features.Assignments
             if (DeviceChoice.SelectedItem is UiLayerDiagram selected)
                 _selectedDeviceId = selected.ProfileId;
 
+            var assignments = _context.Draft?.Snapshot ?? _context.Working.Assignments;
+            var importedUiChords = CurrentLayer == AssignmentLayer.UiLayer &&
+                _context.Working.Sources?.ContainsKey("assets/shared/ui-layer/input/UiLayer/modifiers.lua") != true
+                ? _context.Working.Diagrams.SelectMany(x => x.Callouts).Select(x => x.Modifier)
+                : Enumerable.Empty<string>();
             var choices = Enumerable.Repeat(BaseLayerName, 1)
                 .Concat(state.Modifiers.Where(x => x.Layer == CurrentLayer).Select(x => x.Name))
+                .Concat(assignments.Where(x => x.Slot.Layer == CurrentLayer).Select(x => x.Slot.ModifierChord))
+                .Concat(importedUiChords)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Replace(LayerSeparatorTrim, LayerSeparator, StringComparison.Ordinal))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
             var selectedLayer = Layers.SelectedItem as string;
