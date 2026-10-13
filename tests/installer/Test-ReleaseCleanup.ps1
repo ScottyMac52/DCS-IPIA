@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../../scripts/ReleaseTestCleanup.ps1')
 if (-not $IsWindows) { throw 'These regression tests require Windows file-sharing semantics.' }

@@ -2,6 +2,9 @@
 
 ## Test and coverage reports
 
+See [the local test guide](tests/README.md) for prerequisites, each PowerShell
+script's purpose, the recommended run order, output locations and troubleshooting.
+
 Each CI run publishes a **Publish test results, coverage, and CRAP scores** job
 summary and a `code-coverage-report` artifact, retained for 30 days. Download the
 artifact from the run's Summary page (or the link in the reporting job), extract
