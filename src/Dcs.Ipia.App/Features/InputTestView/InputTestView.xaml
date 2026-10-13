@@ -7,10 +7,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*" MinHeight="80"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*" MinHeight="200"/>
+            <RowDefinition Height="*" MinHeight="120"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
+        <ScrollViewer Grid.Row="0" MaxHeight="200" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Style="{StaticResource AppLabel}"/>
             <WrapPanel Margin="0,8,0,0">
                 <TextBlock Text="Feedback device:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
@@ -27,6 +28,7 @@
             <TextBlock x:Name="InputTestStatus" TextWrapping="Wrap" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
             <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource AppLabel}"/>
         </StackPanel>
+        </ScrollViewer>
 
         <DockPanel Grid.Row="1" Margin="0,8,0,0">
             <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
