@@ -330,14 +330,14 @@ namespace DcsIpia.Features.Pages
 
         private KneeboardPage? PageDragSource(DragEventArgs e)
         {
-            if (_context!.Working is null || false || e.Data.GetData(typeof(KneeboardPageDrag)) is not KneeboardPageDrag drag ||
+            if (_context!.Working is null || e.Data.GetData(typeof(KneeboardPageDrag)) is not KneeboardPageDrag drag ||
                 !ReferenceEquals(drag.Source, Pages)) return null;
             return _context!.Working.Pages.FirstOrDefault(x => ReferenceEquals(x, drag.Page));
         }
 
         private int CardSource(DragEventArgs e)
         {
-            if (_context!.Working is null || false || !SummaryGroup.IsEnabled ||
+            if (_context!.Working is null || !SummaryGroup.IsEnabled ||
                 (e.AllowedEffects & DragDropEffects.Move) == 0 ||
                 e.Data.GetData(typeof(SummaryCardDrag)) is not SummaryCardDrag drag || !ReferenceEquals(drag.Source, SummaryCards)) return -1;
             return _cards.FindIndex(x => ReferenceEquals(x, drag.Card));

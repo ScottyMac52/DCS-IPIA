@@ -51,6 +51,7 @@ namespace DcsIpia.Presentation
                 _window._labels.Remove(key);
             else
                 _window._labels[key] = value;
+            _window.UpdateBuildAvailability();
             RaiseStateChanged();
         }
     }

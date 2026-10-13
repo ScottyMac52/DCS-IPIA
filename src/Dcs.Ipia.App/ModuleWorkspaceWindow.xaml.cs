@@ -105,7 +105,7 @@ namespace DcsIpia.Presentation
 
         private void LoadCurrentView()
         {
-            var key = _navigation.CurrentFeatureKey;
+            var key = _navigation.CurrentFeatureKey ?? "Devices";
             if (_views.TryGetValue(key, out var cached))
             {
                 FeatureContent.Content = cached;
@@ -300,7 +300,7 @@ namespace DcsIpia.Presentation
 
         private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();
 
-        private void UpdateBuildAvailability()
+        internal void UpdateBuildAvailability()
         {
             if (BuildButton is null || PackageVersion is null) return;
             PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";

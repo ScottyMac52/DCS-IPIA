@@ -28,6 +28,7 @@ namespace DcsIpia.Features.InputTest
         private GeneratedInputTestPlan? _plan;
         private readonly Dictionary<string, Border> _callouts = new(StringComparer.Ordinal);
         private readonly Dictionary<string, DateTime> _flashUntil = new(StringComparer.Ordinal);
+        private readonly List<InputTestLogEntry> _events = [];
         private readonly Dictionary<string, System.Windows.Input.Key> _testKeyboard = new(StringComparer.Ordinal);
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
         private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
@@ -138,6 +139,7 @@ namespace DcsIpia.Features.InputTest
                     if (!supported[binding.PhysicalGuid].Any(x => DcsInputKey.SamePhysicalInput(x, binding.Binding.InputKey)))
                         diagnostics.Add("Unsupported mapped input: " + binding.Binding.InputKey + " / " + binding.PhysicalGuid.ToString("D"));
                 InputTestLog.Items.Clear();
+                _events.Clear();
                 InputTestLogMessage.Text = "";
                 InputTestStatus.Text = $"Testing frozen {(InputTestSnapshotChoice.SelectedIndex == 1 ? "saved profile" : "current edits")} at {DateTime.Now:T} · {devices.Length} controllers. Changes only; startup inputs establish a baseline. Selected-device feedback; modifiers from all controllers. Stop/Start after edits. Generated mappings only; DCS defaults/execution are unverified." +
                     (diagnostics.Count == 0 ? "" : "\nPartial test — " + string.Join("; ", diagnostics.Distinct()));
@@ -178,6 +180,7 @@ namespace DcsIpia.Features.InputTest
                 if (_inputFeedbackDevice != physicalDevice)
                 {
                     InputTestLog.Items.Clear();
+                _events.Clear();
                     InputTestLogMessage.Text = "";
                     _liveAxisUntil.Clear();
                     _livePressedInputs.Clear();
@@ -190,14 +193,15 @@ namespace DcsIpia.Features.InputTest
                         $"{x.Layer} [{(x.Chord.Length == 0 ? "Base" : x.Chord)}] {x.Binding.CommandName} ({x.Binding.CommandId})" +
                         (x.Binding.Filter is null ? "" : " tuning=" + JsonSerializer.Serialize(x.Binding.Filter))));
                     var modifiers = string.Join(" / ", _session.ActiveModifiers.Select(x => x.Key + ":" + (x.Value.Length == 0 ? "Base" : x.Value)));
-                    InputTestLog.Items.Insert(0, new InputTestLogEntry(DateTime.Now, result.PhysicalGuid, result.InputKey,
+                    _events.Insert(0, new InputTestLogEntry(DateTime.Now, result.PhysicalGuid, result.InputKey,
                         result.Transition, result.Value, modifiers, commands));
-                    while (InputTestLog.Items.Count > 200) InputTestLog.Items.RemoveAt(InputTestLog.Items.Count - 1);
+                    while (_events.Count > 200) _events.RemoveAt(_events.Count - 1);
                     if (result.Transition == "Position") _liveAxisUntil[(result.PhysicalGuid, result.InputKey)] = DateTime.UtcNow.AddMilliseconds(500);
                     else if (result.Transition == "Press") _livePressedInputs.Add((result.PhysicalGuid, result.InputKey));
                     else if (result.Transition == "Release") _livePressedInputs.Remove((result.PhysicalGuid, result.InputKey));
                 }
                 InputTestModifiers.Text = string.Join(" · ", _session.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
+                if (results.Count > 0) RefreshEventLog();
                 HighlightInputControls();
                 UpdateLogButtons();
             }
@@ -228,6 +232,7 @@ namespace DcsIpia.Features.InputTest
         private void ClearInputTestLogClicked(object sender, RoutedEventArgs e)
         {
             InputTestLog.Items.Clear();
+            _events.Clear();
             InputTestLogMessage.Text = "Log cleared.";
             UpdateLogButtons();
         }
@@ -308,7 +313,15 @@ namespace DcsIpia.Features.InputTest
 
         private void EventFilterChanged(object sender, RoutedEventArgs e) => RefreshEventLog();
 
-        private void RefreshEventLog() { }
+        private void RefreshEventLog()
+        {
+            if (InputTestLog is null || EventFilter is null || ShowAxis is null) return;
+            var filter = (EventFilter.SelectedItem as ComboBoxItem)?.Content as string ?? "Both";
+            InputTestLog.Items.Clear();
+            foreach (var entry in _events.Where(x => x.Transition == "Position" ? ShowAxis.IsChecked == true
+                : filter == "Both" || x.Transition == filter)) InputTestLog.Items.Add(entry);
+            UpdateLogButtons();
+        }
 
         private void UpdateLogButtons()
         {
