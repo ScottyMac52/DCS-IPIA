@@ -104,79 +104,8 @@ namespace Dcs.Ipia.Rendering
             foreach (var label in root.Descendants().Where(x => x.Name.LocalName == "text"))
             {
                 var id = label.Attribute("id")?.Value;
-                if (id?.StartsWith("lbl-", StringComparison.Ordinal) == true)
-                {
-                    var control = id["lbl-".Length..];
-                    page.Labels.TryGetValue(control, out var variants);
-                    if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
-                    {
-                        label.RemoveNodes();
-                        if (variants?.Count > 0) label.Value = "Pending layout";
-                        continue;
-                    }
-                    label.RemoveNodes();
-                    if (label.Attribute("data-ipia-text-layout") is null)
-                        label.SetAttributeValue("font-size", variants?.Count > 1 ? "13" : "16");
-                    label.SetAttributeValue("font-weight", "700");
-                    if (variants is null || variants.Count == 0)
-                        continue;
-                    var x = label.Attribute("x")?.Value ?? "0";
-                    if (variants.Count == 1)
-                    {
-                        var variant = variants[0];
-                        // DCS-Common retains the SVG's native fill for an unmodified base label.
-                        if (variant.Color != "#ffffff" || variant.Scope != AssignmentLayer.Module ||
-                            variant.ModifierChord.Length > 0)
-                            label.SetAttributeValue("fill", variant.Color);
-                        var lines = WrapLabel(variant.Text);
-                        if (lines.Count == 1)
-                            label.Value = lines[0];
-                        else
-                            for (var i = 0; i < lines.Count; i++)
-                                label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
-                                                       new XAttribute("dy", i == 0 ? -8 : 16),
-                                                       new XAttribute("font-size", 16),
-                                                       new XAttribute("font-weight", "700"), lines[i]));
-                        continue;
-                    }
-                    for (var i = 0; i < variants.Count; i++)
-                    {
-                        var variant = variants[i];
-                        var span = new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
-                                                new XAttribute("dy", i == 0 ? -(variants.Count - 1) * 8 : 16),
-                                                new XAttribute("font-size", 13), new XAttribute("font-weight", "700"),
-                                                new XAttribute("data-full-label", variant.Text), variant.Text);
-                        if (variant.Color != "#ffffff" || variant.Scope != AssignmentLayer.Module ||
-                            variant.ModifierChord.Length > 0)
-                            span.SetAttributeValue("fill", variant.Color);
-                        label.Add(span);
-                    }
-                }
-                else if (id?.StartsWith("meta-", StringComparison.Ordinal) == true)
-                {
-                    if (label.Attribute("data-ipia-text-layout") is not null)
-                    {
-                        label.RemoveNodes();
-                        label.Value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
-                        continue;
-                    }
-                    label.RemoveNodes();
-                    label.SetAttributeValue("font-size", "16");
-                    label.SetAttributeValue("font-weight", "700");
-                    var value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
-                    var lines = WrapLabel(value, 16);
-                    if (value.Length == 0)
-                        continue;
-                    var x = label.Attribute("x")?.Value ?? "0";
-                    if (lines.Count == 1)
-                        label.Value = lines[0];
-                    else
-                        for (var i = 0; i < lines.Count; i++)
-                            label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
-                                                   new XAttribute("dy", i == 0 ? -8 : 16),
-                                                   new XAttribute("font-size", 16),
-                                                   new XAttribute("font-weight", "700"), lines[i]));
-                }
+                if (id?.StartsWith("lbl-", StringComparison.Ordinal) == true) ApplyControlLabel(label, id, page);
+                else if (id?.StartsWith("meta-", StringComparison.Ordinal) == true) ApplyCategoryLabel(label, id, page);
             }
             foreach (var control in diagram.Controls)
             {
@@ -193,6 +122,79 @@ namespace Dcs.Ipia.Rendering
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ApplyControlLabel(XElement label, string id, KneeboardComposite page)
+        {
+            var control = id["lbl-".Length..];
+            page.Labels.TryGetValue(control, out var variants);
+            if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
+            {
+                label.RemoveNodes();
+                if (variants?.Count > 0) label.Value = "Pending layout";
+                return;
+            }
+            label.RemoveNodes();
+            if (label.Attribute("data-ipia-text-layout") is null)
+                label.SetAttributeValue("font-size", variants?.Count > 1 ? "13" : "16");
+            label.SetAttributeValue("font-weight", "700");
+            if (variants is null || variants.Count == 0)
+                return;
+            var x = label.Attribute("x")?.Value ?? "0";
+            if (variants.Count == 1)
+            {
+                var variant = variants[0];
+                // DCS-Common retains the SVG's native fill for an unmodified base label.
+                if (variant.Color != "#ffffff" || variant.Scope != AssignmentLayer.Module ||
+                    variant.ModifierChord.Length > 0)
+                    label.SetAttributeValue("fill", variant.Color);
+                var lines = WrapLabel(variant.Text);
+                if (lines.Count == 1)
+                    label.Value = lines[0];
+                else
+                    for (var i = 0; i < lines.Count; i++)
+                        label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
+                                               new XAttribute("dy", i == 0 ? -8 : 16),
+                                               new XAttribute("font-size", 16),
+                                               new XAttribute("font-weight", "700"), lines[i]));
+                return;
+            }
+            for (var i = 0; i < variants.Count; i++)
+            {
+                var variant = variants[i];
+                var span = new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
+                                        new XAttribute("dy", i == 0 ? -(variants.Count - 1) * 8 : 16),
+                                        new XAttribute("font-size", 13), new XAttribute("font-weight", "700"),
+                                        new XAttribute("data-full-label", variant.Text), variant.Text);
+                if (variant.Color != "#ffffff" || variant.Scope != AssignmentLayer.Module ||
+                    variant.ModifierChord.Length > 0)
+                    span.SetAttributeValue("fill", variant.Color);
+                label.Add(span);
+            }
+        }
+        private static void ApplyCategoryLabel(XElement label, string id, KneeboardComposite page)
+        {
+            if (label.Attribute("data-ipia-text-layout") is not null)
+            {
+                label.RemoveNodes();
+                label.Value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
+                return;
+            }
+            label.RemoveNodes();
+            label.SetAttributeValue("font-size", "16");
+            label.SetAttributeValue("font-weight", "700");
+            var value = page.CategoryLabels.GetValueOrDefault(id["meta-".Length..]) ?? "";
+            var lines = WrapLabel(value, 16);
+            if (value.Length == 0)
+                return;
+            var x = label.Attribute("x")?.Value ?? "0";
+            if (lines.Count == 1)
+                label.Value = lines[0];
+            else
+                for (var i = 0; i < lines.Count; i++)
+                    label.Add(new XElement(label.Name.Namespace + "tspan", new XAttribute("x", x),
+                                           new XAttribute("dy", i == 0 ? -8 : 16),
+                                           new XAttribute("font-size", 16),
+                                           new XAttribute("font-weight", "700"), lines[i]));
+        }
         private static void FitCategories(XDocument root, UiLayerDiagram diagram, KneeboardComposite page)
         {
             foreach (var (name, text) in page.CategoryLabels.Where(x => x.Value.Length > 0))

@@ -42,7 +42,7 @@ namespace Dcs.Ipia.Dcs
                 : (Guid?)null;
             var cards = row["items"] is JsonArray items ? items.Select((x, index) => new ModuleSummaryCard(
                 x!["key"]!.GetValue<string>(), x["text"]!.GetValue<string>(), x["accent"]?.GetValue<string>() ?? "cyan")
-                { SourceIndex = index }).ToArray() : [];
+            { SourceIndex = index }).ToArray() : [];
             return new(page.Kind, profile, page.StableKey, row["title"]?.GetValue<string>() ?? page.Title,
                 row["kicker"]?.GetValue<string>() ?? "", page.Order, cards);
         }
@@ -73,44 +73,8 @@ namespace Dcs.Ipia.Dcs
             }
             else
                 row = rows.Single(x => x?["file"]?.GetValue<string>() == current.StableKey)!.AsObject();
-            if (settings.Kind == KneeboardPageKind.Device)
-            {
-                var profile = workspace.Configuration.Profiles.SingleOrDefault(x => x.Id == settings.ProfileId)
-                    ?? throw new InvalidOperationException("Select a device from this module.");
-                if (!workspace.Diagrams.Any(x => x.ProfileId == profile.Id && x.Controls.Count > 0 && x.Svg.Length > 0))
-                    throw new InvalidOperationException("This device needs a pinned graphic before authoring its page.");
-                var profiles = root["profiles"]!.AsObject();
-                var matches = profiles.Where(x => Path.GetFileName(x.Value!.GetValue<string>()) == profile.SourceName).ToArray();
-                if (matches.Length > 1)
-                    throw new InvalidOperationException("The device has ambiguous page mappings.");
-                var profileKey = matches.Length == 1 ? matches[0].Key : "device-" + profile.Id.ToString("N");
-                if (rows.Any(x => !ReferenceEquals(x, row) && x?["profile"]?.GetValue<string>() == profileKey))
-                    throw new InvalidOperationException("Each device has one combined page. Edit its existing page.");
-                if (matches.Length == 0)
-                    profiles[profileKey] = $"src/Config/Input/{workspace.Configuration.Module.DcsId}/joystick/{profile.SourceName}";
-                row["profile"] = profileKey;
-                row["deviceId"] = profile.DeviceId;
-            }
-            else
-            {
-                row["type"] = "summary";
-                var originalItems = row["items"] as JsonArray;
-                var items = new JsonArray();
-                for (var i = 0; i < settings.Cards.Count; i++)
-                {
-                    var matching = originalItems?.Where(x => x?["key"]?.GetValue<string>() == settings.Cards[i].Key).ToArray() ?? [];
-                    var original = matching.Length == 1 ? matching[0] : originalItems is not null && i < originalItems.Count ? originalItems[i] : null;
-                    if (originalItems is not null && settings.Cards[i].SourceIndex is int sourceIndex &&
-                        sourceIndex >= 0 && sourceIndex < originalItems.Count)
-                        original = originalItems[sourceIndex];
-                    var item = original?.DeepClone().AsObject() ?? new JsonObject();
-                    item["key"] = settings.Cards[i].Key;
-                    item["text"] = settings.Cards[i].Text;
-                    item["accent"] = settings.Cards[i].Accent;
-                    items.Add(item);
-                }
-                row["items"] = items;
-            }
+            if (settings.Kind == KneeboardPageKind.Device) SetDevicePage(workspace, settings, root, rows, row);
+            else SetSummaryCards(settings, row);
             row["file"] = settings.File;
             row["title"] = settings.Title;
             row["kicker"] = settings.Subtitle;
@@ -201,6 +165,51 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidateSummary(ModuleKneeboardPageSettings settings)
+        {
+            if (settings.Kind == KneeboardPageKind.Summary && (settings.ProfileId is not null || string.IsNullOrWhiteSpace(settings.Subtitle) ||
+                settings.Cards.Count is < 1 or > 14 || settings.Cards.Any(x => string.IsNullOrWhiteSpace(x.Key) || string.IsNullOrWhiteSpace(x.Text) ||
+                    x.Key.Any(char.IsControl) || x.Text.Any(char.IsControl) || x.Accent is not ("cyan" or "gold" or "red" or "blue" or "orange" or "purple" or "green"))))
+                throw new InvalidOperationException("Summary pages need a subtitle and one to fourteen cards with a heading, description and supported accent.");
+        }
+        private static void SetDevicePage(EditorWorkspaceSnapshot workspace, ModuleKneeboardPageSettings settings, JsonObject root, JsonArray rows, JsonObject row)
+        {
+            var profile = workspace.Configuration.Profiles.SingleOrDefault(x => x.Id == settings.ProfileId)
+                ?? throw new InvalidOperationException("Select a device from this module.");
+            if (!workspace.Diagrams.Any(x => x.ProfileId == profile.Id && x.Controls.Count > 0 && x.Svg.Length > 0))
+                throw new InvalidOperationException("This device needs a pinned graphic before authoring its page.");
+            var profiles = root["profiles"]!.AsObject();
+            var matches = profiles.Where(x => Path.GetFileName(x.Value!.GetValue<string>()) == profile.SourceName).ToArray();
+            if (matches.Length > 1)
+                throw new InvalidOperationException("The device has ambiguous page mappings.");
+            var profileKey = matches.Length == 1 ? matches[0].Key : "device-" + profile.Id.ToString("N");
+            if (rows.Any(x => !ReferenceEquals(x, row) && x?["profile"]?.GetValue<string>() == profileKey))
+                throw new InvalidOperationException("Each device has one combined page. Edit its existing page.");
+            if (matches.Length == 0)
+                profiles[profileKey] = $"src/Config/Input/{workspace.Configuration.Module.DcsId}/joystick/{profile.SourceName}";
+            row["profile"] = profileKey;
+            row["deviceId"] = profile.DeviceId;
+        }
+        private static void SetSummaryCards(ModuleKneeboardPageSettings settings, JsonObject row)
+        {
+            row["type"] = "summary";
+            var originalItems = row["items"] as JsonArray;
+            var items = new JsonArray();
+            for (var i = 0; i < settings.Cards.Count; i++)
+            {
+                var matching = originalItems?.Where(x => x?["key"]?.GetValue<string>() == settings.Cards[i].Key).ToArray() ?? [];
+                var original = matching.Length == 1 ? matching[0] : originalItems is not null && i < originalItems.Count ? originalItems[i] : null;
+                if (originalItems is not null && settings.Cards[i].SourceIndex is int sourceIndex &&
+                    sourceIndex >= 0 && sourceIndex < originalItems.Count)
+                    original = originalItems[sourceIndex];
+                var item = original?.DeepClone().AsObject() ?? new JsonObject();
+                item["key"] = settings.Cards[i].Key;
+                item["text"] = settings.Cards[i].Text;
+                item["accent"] = settings.Cards[i].Accent;
+                items.Add(item);
+            }
+            row["items"] = items;
+        }
         private static string DeviceKey(DeviceProfile profile) => "device-" + profile.Id.ToString("N");
         private static string FileName(string? path) => (path ?? "").Replace('\\', '/').Split('/')[^1];
         private static EditorWorkspaceSnapshot WithoutPages(EditorWorkspaceSnapshot workspace, JsonObject root, HashSet<string> keys)
@@ -227,10 +236,7 @@ namespace Dcs.Ipia.Dcs
                 string.IsNullOrWhiteSpace(settings.File) || !settings.File.All(x => char.IsAsciiLetterOrDigit(x) || x is '-' or '_') ||
                 string.IsNullOrWhiteSpace(settings.Title) || settings.Title.Any(char.IsControl) || settings.Subtitle.Any(char.IsControl))
                 throw new InvalidOperationException("Enter a safe page name (letters, numbers, hyphens or underscores), heading and non-negative order.");
-            if (settings.Kind == KneeboardPageKind.Summary && (settings.ProfileId is not null || string.IsNullOrWhiteSpace(settings.Subtitle) ||
-                settings.Cards.Count is < 1 or > 14 || settings.Cards.Any(x => string.IsNullOrWhiteSpace(x.Key) || string.IsNullOrWhiteSpace(x.Text) ||
-                    x.Key.Any(char.IsControl) || x.Text.Any(char.IsControl) || x.Accent is not ("cyan" or "gold" or "red" or "blue" or "orange" or "purple" or "green"))))
-                throw new InvalidOperationException("Summary pages need a subtitle and one to fourteen cards with a heading, description and supported accent.");
+            ValidateSummary(settings);
             if (settings.Kind == KneeboardPageKind.Device && settings.Cards.Count != 0)
                 throw new InvalidOperationException("Device pages use the pinned hardware layout; cards belong to summary pages.");
         }

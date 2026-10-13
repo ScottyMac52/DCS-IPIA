@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 param([Parameter(Mandatory=$true)][string]$Version, [string]$Output = 'release-assets')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw 'Version must contain four numeric components.' }

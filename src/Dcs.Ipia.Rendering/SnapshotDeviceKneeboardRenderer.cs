@@ -26,46 +26,14 @@ namespace Dcs.Ipia.Rendering
             var usedPages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var profile in configuration.Profiles)
             {
-                var names = profiles.EnumerateObject()
-                                .Where(x => string.Equals(Path.GetFileName(x.Value.GetString()), profile.SourceName,
-                                                          StringComparison.Ordinal))
-                                .ToArray();
-                if (names.Length != 1)
-                    throw new InvalidDataException("Expected one authored page profile for " + profile.SourceName);
-                var pageRows =
-                    pages.EnumerateArray()
-                        .Where(x => x.TryGetProperty("profile", out var value) && value.GetString() == names[0].Name)
-                        .ToArray();
-                if (pageRows.Length != 1 || !pageRows[0].TryGetProperty("file", out var file))
-                    throw new InvalidDataException("Expected one combined device page for " + profile.SourceName);
-                var key = file.GetString() ?? "";
-                if (key.Length == 0 || key is "." or ".." ||
-                    !key.All(x => char.IsAsciiLetterOrDigit(x) || x is '-' or '_'))
-                    throw new InvalidDataException("Unsafe device page name: " + key);
-                var authored = workspace.Pages
-                                   .Where(x => x.Kind == KneeboardPageKind.Device && x.StableKey == key &&
-                                               x.ModuleId == configuration.Module.Id)
-                                   .ToArray();
-                if (authored.Length != 1 || !usedPages.Add(key))
-                    throw new InvalidDataException("Device page is missing or ambiguously mapped: " + key);
+                var key = ResolvePage(workspace, profile, profiles, pages, usedPages);
                 var diagram = workspace.Diagrams.SingleOrDefault(x => x.ProfileId == profile.Id &&
                                                                       x.Controls.Count > 0 && x.Svg.Length > 0) ??
                               throw new InvalidDataException("No mapped authored SVG for " + profile.SourceName);
                 var assigned = DcsInputKey.CollapseAliases(workspace.Assignments.Where(x => x.Slot.ProfileId == profile.Id)).ToArray();
                 if (assigned.Select(x => DcsInputKey.PhysicalSlotKey(x.Slot)).Distinct(StringComparer.Ordinal).Count() != assigned.Length)
                     throw new InvalidDataException("Duplicate assignment slot for " + profile.SourceName);
-                foreach (var assignment in assigned)
-                {
-                    if (assignment.Slot.ModuleId != configuration.Module.Id ||
-                        assignment.Slot.Layer == AssignmentLayer.UiLayer && !diagram.SupportsUiLayer ||
-                        !diagram.Controls.Any(control => KneeboardDraftProjection
-                                                             .SlotForControl(workspace, diagram, control,
-                                                                             assignment.Slot.Layer,
-                                                                             assignment.Slot.ModifierChord)
-                                                             is { } slot && DcsInputKey.PhysicalSlotKey(slot) == DcsInputKey.PhysicalSlotKey(assignment.Slot)))
-                        throw new InvalidDataException("Assignment lacks a usable authored control: " +
-                                                       assignment.Slot.Key);
-                }
+                ValidateAssignments(workspace, diagram, assigned);
                 var combined = KneeboardDraftProjection.CreateCombined(workspace, diagram, assigned, workspace.Labels);
                 var rendered = DeviceKneeboardPages.Render(diagram, combined);
                 for (var index = 0; index < rendered.Count; index++)
@@ -79,6 +47,51 @@ namespace Dcs.Ipia.Rendering
             return results;
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static string ResolvePage(EditorWorkspaceSnapshot workspace, Dcs.Ipia.Domain.DeviceProfile profile, JsonElement profiles, JsonElement pages, HashSet<string> usedPages)
+        {
+            var configuration = workspace.Configuration;
+            var names = profiles.EnumerateObject()
+                            .Where(x => string.Equals(Path.GetFileName(x.Value.GetString()), profile.SourceName,
+                                                      StringComparison.Ordinal))
+                            .ToArray();
+            if (names.Length != 1)
+                throw new InvalidDataException("Expected one authored page profile for " + profile.SourceName);
+            var pageRows =
+                pages.EnumerateArray()
+                    .Where(x => x.TryGetProperty("profile", out var value) && value.GetString() == names[0].Name)
+                    .ToArray();
+            if (pageRows.Length != 1 || !pageRows[0].TryGetProperty("file", out var file))
+                throw new InvalidDataException("Expected one combined device page for " + profile.SourceName);
+            var key = file.GetString() ?? "";
+            if (key.Length == 0 || key is "." or ".." ||
+                !key.All(x => char.IsAsciiLetterOrDigit(x) || x is '-' or '_'))
+                throw new InvalidDataException("Unsafe device page name: " + key);
+            var authored = workspace.Pages
+                               .Where(x => x.Kind == KneeboardPageKind.Device && x.StableKey == key &&
+                                           x.ModuleId == configuration.Module.Id)
+                               .ToArray();
+            if (authored.Length != 1 || !usedPages.Add(key))
+                throw new InvalidDataException("Device page is missing or ambiguously mapped: " + key);
+            return key;
+        }
+        private static void ValidateAssignments(EditorWorkspaceSnapshot workspace, UiLayerDiagram diagram, DraftAssignment[] assigned)
+        {
+            var configuration = workspace.Configuration;
+            foreach (var assignment in assigned)
+            {
+                if (assignment.Slot.ModuleId != configuration.Module.Id ||
+                    assignment.Slot.Layer == AssignmentLayer.UiLayer && !diagram.SupportsUiLayer ||
+                    !diagram.Controls.Any(control => KneeboardDraftProjection
+                                                         .SlotForControl(workspace, diagram, control,
+                                                                         assignment.Slot.Layer,
+                                                                         assignment.Slot.ModifierChord)
+                                                         is { } slot && DcsInputKey.PhysicalSlotKey(slot) == DcsInputKey.PhysicalSlotKey(assignment.Slot)))
+                    throw new InvalidDataException("Assignment lacks a usable authored control: " +
+                                                   assignment.Slot.Key);
+            }
+        }
+        #endregion END private helpers
     }
 }
 

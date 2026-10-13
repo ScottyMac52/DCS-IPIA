@@ -33,20 +33,7 @@ namespace Dcs.Ipia.Packaging
                     throw new ArgumentException($"Null package file: {path}", nameof(input));
                 if (!seen.Add(path))
                     throw new ArgumentException($"Duplicate package file: {path}", nameof(input));
-                var moduleProfile = path.StartsWith(joystickPrefix, StringComparison.Ordinal) &&
-                                    path.EndsWith(".diff.lua", StringComparison.Ordinal);
-                var moduleModifier = path == $"{modulePrefix}modifiers.lua";
-                var keyboardProfile = path.StartsWith(keyboardPrefix, StringComparison.Ordinal) &&
-                                      path.EndsWith(".diff.lua", StringComparison.Ordinal) &&
-                                      !path[keyboardPrefix.Length..].Contains('/');
-                var uiProfile = path.StartsWith(uiPrefix, StringComparison.Ordinal) &&
-                                path.EndsWith(".diff.lua", StringComparison.Ordinal);
-                var uiModifier = path == $"{uiPrefix}modifiers.lua";
-                var kneeboard = path.StartsWith(kneePrefix, StringComparison.Ordinal) &&
-                                (path.EndsWith(".png", StringComparison.Ordinal) ||
-                                 path.EndsWith(".svg", StringComparison.Ordinal));
-                if (!moduleProfile && !keyboardProfile && !moduleModifier && !uiProfile && !uiModifier && !kneeboard)
-                    throw new ArgumentException($"Unexpected OvGME payload path: {path}", nameof(input));
+                ValidatePayloadPath(input, path, modulePrefix, joystickPrefix, keyboardPrefix, uiPrefix, kneePrefix);
                 files.Add(new(path, bytes));
             }
             if (!files.Any(x => x.Key.StartsWith(joystickPrefix, StringComparison.Ordinal) &&
@@ -90,6 +77,23 @@ namespace Dcs.Ipia.Packaging
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidatePayloadPath(OvGmePackageInput input, string path, string modulePrefix, string joystickPrefix, string keyboardPrefix, string uiPrefix, string kneePrefix)
+        {
+            var moduleProfile = path.StartsWith(joystickPrefix, StringComparison.Ordinal) &&
+                                path.EndsWith(".diff.lua", StringComparison.Ordinal);
+            var moduleModifier = path == $"{modulePrefix}modifiers.lua";
+            var keyboardProfile = path.StartsWith(keyboardPrefix, StringComparison.Ordinal) &&
+                                  path.EndsWith(".diff.lua", StringComparison.Ordinal) &&
+                                  !path[keyboardPrefix.Length..].Contains('/');
+            var uiProfile = path.StartsWith(uiPrefix, StringComparison.Ordinal) &&
+                            path.EndsWith(".diff.lua", StringComparison.Ordinal);
+            var uiModifier = path == $"{uiPrefix}modifiers.lua";
+            var kneeboard = path.StartsWith(kneePrefix, StringComparison.Ordinal) &&
+                            (path.EndsWith(".png", StringComparison.Ordinal) ||
+                             path.EndsWith(".svg", StringComparison.Ordinal));
+            if (!moduleProfile && !keyboardProfile && !moduleModifier && !uiProfile && !uiModifier && !kneeboard)
+                throw new ArgumentException($"Unexpected OvGME payload path: {path}", nameof(input));
+        }
         private static void ValidateSegment(string value, string name)
         {
             if (string.IsNullOrWhiteSpace(value) || value is "." or ".." ||
