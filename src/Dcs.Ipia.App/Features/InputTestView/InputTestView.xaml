@@ -5,7 +5,7 @@
     <Grid x:Name="InputTestPanes" Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="180" MinHeight="80"/>
+            <RowDefinition Height="*" MinHeight="80"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*" MinHeight="200"/>
         </Grid.RowDefinitions>
