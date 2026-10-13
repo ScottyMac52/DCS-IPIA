@@ -19,8 +19,12 @@ namespace Dcs.Ipia.Application
                     .ToDictionary(x => x.Key, x => x.OrderBy(y => y.Control.EndsWith("-shifted", StringComparison.Ordinal)).First().Label, StringComparer.Ordinal);
             var replacement = current with
             {
-                Path = "user-mappings/" + revision.Id + ".svg", Width = revision.Width, Height = revision.Height,
-                Background = [], Svg = revision.Svg, CustomMapping = revision,
+                Path = "user-mappings/" + revision.Id + ".svg",
+                Width = revision.Width,
+                Height = revision.Height,
+                Background = [],
+                Svg = revision.Svg,
+                CustomMapping = revision,
                 MappingHistory = History(current, revision),
                 OriginalDrawing = current.OriginalDrawing ?? (current.CustomMapping is null && current.GenericCapabilities is null
                     ? new(current.Path, current.Width, current.Height, current.Background.ToArray(), current.Svg, current.Controls.ToArray()) : null),
@@ -41,8 +45,13 @@ namespace Dcs.Ipia.Application
             var labels = current.Controls.ToDictionary(x => x.Control, x => x.Label, StringComparer.Ordinal);
             var restored = current with
             {
-                Path = original.Path, Width = original.Width, Height = original.Height,
-                Background = original.Background.ToArray(), Svg = original.Svg, CustomMapping = null, OriginalDrawing = null,
+                Path = original.Path,
+                Width = original.Width,
+                Height = original.Height,
+                Background = original.Background.ToArray(),
+                Svg = original.Svg,
+                CustomMapping = null,
+                OriginalDrawing = null,
                 MappingHistory = (current.MappingHistory ?? []).Append(current.CustomMapping!).DistinctBy(x => x.Id).ToArray(),
                 Controls = original.Controls.Select(x => x with { Label = labels[x.Control] }).ToArray()
             };
@@ -63,6 +72,17 @@ namespace Dcs.Ipia.Application
             if (history.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count() != history.Count || history.Any(x => x.Id == revision.Id))
                 throw new InvalidDataException("Drawing history contains duplicate/current revision identities.");
             foreach (var previous in history) DrawioMappingImporter.Validate(previous);
+            ValidateOriginalDrawing(diagram, revision);
+            var actual = diagram.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
+            var expected = revision.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
+            if (actual.Length != expected.Length || actual.Where((x, i) => (x with { Label = expected[i].Label }) != expected[i]).Any() ||
+                actual.Any(x => string.IsNullOrWhiteSpace(x.Label) || x.Label.Length > 200 || x.Label.Any(char.IsControl)))
+                throw new InvalidDataException("Custom control geometry/identity differs from its verified mapping.");
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        private static void ValidateOriginalDrawing(UiLayerDiagram diagram, UserMappingRevision revision)
+        {
             if (diagram.OriginalDrawing is { } original)
             {
                 if (diagram.GenericCapabilities is not null || original.Path.StartsWith("user-mappings/", StringComparison.Ordinal) ||
@@ -75,14 +95,7 @@ namespace Dcs.Ipia.Application
                     !DcsInputKey.SamePhysicalInput(x.InputKey, after.InputKey)))
                     throw new InvalidDataException("Original built-in controls differ from the pinned drawing.");
             }
-            var actual = diagram.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
-            var expected = revision.Controls.OrderBy(x => x.Control, StringComparer.Ordinal).ToArray();
-            if (actual.Length != expected.Length || actual.Where((x, i) => (x with { Label = expected[i].Label }) != expected[i]).Any() ||
-                actual.Any(x => string.IsNullOrWhiteSpace(x.Label) || x.Label.Length > 200 || x.Label.Any(char.IsControl)))
-                throw new InvalidDataException("Custom control geometry/identity differs from its verified mapping.");
         }
-        #endregion END Public
-        #region BEGIN private helpers
         private static UserMappingRevision[]? History(UiLayerDiagram current, UserMappingRevision revision)
         {
             var history = (current.MappingHistory ?? []).Concat(current.CustomMapping is { } previous ? [previous] : [])

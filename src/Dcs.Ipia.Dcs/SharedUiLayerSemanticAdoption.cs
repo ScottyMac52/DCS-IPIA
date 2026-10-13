@@ -50,22 +50,7 @@ namespace Dcs.Ipia.Dcs
                 var retained = current.Where(x => x.Disposition == BindingDisposition.Removed).ToList();
                 var merged = new List<DcsBinding>();
                 var removedModifiers = UiLayerLuaProfileRenderer.RemovedModifiers(module.Sources!);
-                foreach (var key in before.Keys.Union(after.Keys, StringComparer.Ordinal).Union(local.Keys, StringComparer.Ordinal).Order(StringComparer.Ordinal))
-                {
-                    before.TryGetValue(key, out var old);
-                    after.TryGetValue(key, out var proposed);
-                    local.TryGetValue(key, out var actual);
-                    var chosen = actual;
-                    var inherited = Same(actual, old);
-                    var protectedRemoval = proposed?.Reformers.Any(removedModifiers.Contains) == true;
-                    if (inherited && !protectedRemoval) chosen = proposed;
-                    if (!Same(old, proposed))
-                        changes.Add(new("Binding", device.FileName, key,
-                            protectedRemoval ? "Keep removed modifier" : inherited ? "Apply inherited change" :
-                                actual is null ? "Keep module clear" : "Keep module override",
-                            Display(actual), Display(proposed)));
-                    if (chosen is not null) merged.Add(chosen);
-                }
+                MergeBindings(device, before, after, local, removedModifiers, merged, changes);
                 // Preserve untouched history; new default history is appended without removing module tombstones.
                 retained.AddRange(newBindings.Where(x => x.Disposition == BindingDisposition.Removed));
                 sources[UiSource(device.ProfileId)] = ModuleLuaProfileRenderer.Write(retained.DistinctBy(x => JsonSerializer.Serialize(x)).Concat(merged).ToArray());
@@ -81,7 +66,8 @@ namespace Dcs.Ipia.Dcs
                         .SingleOrDefault(x => DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
                     if (original is not null) slot = original.Slot;
                     assignments.Add(new(slot, new(binding.CommandId, binding.CommandName,
-                        binding.Section == BindingSection.Axis, AssignmentLayer.UiLayer)) { Filter = binding.Filter });
+                        binding.Section == BindingSection.Axis, AssignmentLayer.UiLayer))
+                    { Filter = binding.Filter });
                     if (original is not null && labels.TryGetValue(original.Slot.Key, out var label) && label == original.Command.Name)
                     {
                         labels.Remove(original.Slot.Key);
@@ -102,6 +88,40 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static WorkspaceDevice? ModifierDevice(DcsModifier? proposed, Dictionary<Guid, string> paths, WorkspaceManagement state)
+        {
+            return proposed is null ? null : state.Devices.FirstOrDefault(x => x.Layer == AssignmentLayer.UiLayer &&
+                    paths.TryGetValue(x.ProfileId, out var path) &&
+                    (Path.GetFileName(path)[..^9].Equals(proposed.Device, StringComparison.OrdinalIgnoreCase) ||
+                        DcsPhysicalIdentity.FromFileName(Path.GetFileName(path)) is Guid physical &&
+                        DcsPhysicalIdentity.FromFileName(proposed.Device + ".diff.lua") == physical));
+        }
+        private static bool IsInheritedModifier(WorkspaceModifier? current, DcsModifier? previous, Dictionary<Guid, string> paths, WorkspaceManagement state)
+        {
+            return current is null ? previous is null : previous is not null &&
+                    current.Key == previous.Key && current.Mode == previous.Mode &&
+                    NativeMatches(previous.Device, current, paths, state);
+        }
+        private static void MergeBindings(WorkspaceDevice device, Dictionary<string, DcsBinding> before, Dictionary<string, DcsBinding> after,
+            Dictionary<string, DcsBinding> local, IReadOnlySet<string> removedModifiers, List<DcsBinding> merged, List<SharedUiLayerSemanticChange> changes)
+        {
+            foreach (var key in before.Keys.Union(after.Keys, StringComparer.Ordinal).Union(local.Keys, StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            {
+                before.TryGetValue(key, out var old);
+                after.TryGetValue(key, out var proposed);
+                local.TryGetValue(key, out var actual);
+                var chosen = actual;
+                var inherited = Same(actual, old);
+                var protectedRemoval = proposed?.Reformers.Any(removedModifiers.Contains) == true;
+                if (inherited && !protectedRemoval) chosen = proposed;
+                if (!Same(old, proposed))
+                    changes.Add(new("Binding", device.FileName, key,
+                        protectedRemoval ? "Keep removed modifier" : inherited ? "Apply inherited change" :
+                            actual is null ? "Keep module clear" : "Keep module override",
+                        Display(actual), Display(proposed)));
+                if (chosen is not null) merged.Add(chosen);
+            }
+        }
         private static string UiSource(Guid id) => "config/ipia-ui-" + id.ToString("N") + ".lua";
         private static IReadOnlyList<DcsBinding> Read(SharedUiLayerWorkspace defaults, string? path, Guid id) =>
             path is null ? [] : DcsLuaParser.ParseProfile(defaults.Sources[path], id);
@@ -176,17 +196,11 @@ namespace Dcs.Ipia.Dcs
                 next.TryGetValue(name, out var proposed);
                 if (previous == proposed) continue;
                 var current = result.SingleOrDefault(x => x.Layer == AssignmentLayer.UiLayer && x.Name == name);
-                var inherited = current is null ? previous is null : previous is not null &&
-                    current.Key == previous.Key && current.Mode == previous.Mode &&
-                    NativeMatches(previous.Device, current, paths, state);
+                var inherited = IsInheritedModifier(current, previous, paths, state);
                 var used = assignments.Any(x => x.Slot.Layer == AssignmentLayer.UiLayer &&
                     x.Slot.ModifierChord.Split('+').Contains(name, StringComparer.Ordinal));
                 var apply = inherited && !removed.Contains(name) && (proposed is not null || !used);
-                var device = proposed is null ? null : state.Devices.FirstOrDefault(x => x.Layer == AssignmentLayer.UiLayer &&
-                    paths.TryGetValue(x.ProfileId, out var path) &&
-                    (Path.GetFileName(path)[..^9].Equals(proposed.Device, StringComparison.OrdinalIgnoreCase) ||
-                        DcsPhysicalIdentity.FromFileName(Path.GetFileName(path)) is Guid physical &&
-                        DcsPhysicalIdentity.FromFileName(proposed.Device + ".diff.lua") == physical));
+                var device = ModifierDevice(proposed, paths, state);
                 var absentDevice = proposed is not null && proposed.Device != "Keyboard" && device is null;
                 if (apply && absentDevice && used)
                     throw new InvalidDataException("The new modifier requires a UI device not present in this module: " + proposed!.Device);
@@ -241,8 +255,12 @@ namespace Dcs.Ipia.Dcs
                     assignments[i] = assignment with { Command = assignment.Command with { Name = proposed.Name } };
                 }
             }
-            return updated with { UiCommands = result.Values.OrderBy(x => x.DcsCommandId, StringComparer.Ordinal).ToArray(),
-                Assignments = assignments, Labels = labels };
+            return updated with
+            {
+                UiCommands = result.Values.OrderBy(x => x.DcsCommandId, StringComparer.Ordinal).ToArray(),
+                Assignments = assignments,
+                Labels = labels
+            };
         }
         private static DcsCommandDefinition[] Commands(SharedUiLayerWorkspace defaults)
         {

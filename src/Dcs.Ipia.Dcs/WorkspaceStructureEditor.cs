@@ -57,7 +57,8 @@ namespace Dcs.Ipia.Dcs
         {
             if (workspace.Sources?.TryGetValue("config/ipia-hardware.json", out var source) == true)
                 return JsonSerializer.Deserialize<WorkspaceHardware[]>(source) ?? [];
-            return workspace.Diagrams.Select(x => {
+            return workspace.Diagrams.Select(x =>
+            {
                 var profile = workspace.Configuration.Profiles.Single(p => p.Id == x.ProfileId);
                 return new WorkspaceHardware(profile.DeviceId, x.Device, profile.SourceName, x);
             }).DistinctBy(x => x.DeviceId).ToArray();
@@ -89,8 +90,7 @@ namespace Dcs.Ipia.Dcs
             role = Optional(role);
             var physicalGuid = DcsPhysicalIdentity.FromFileName(fileName.Trim());
             var identity = instance ?? role ?? physicalGuid?.ToString("D");
-            var profile = workspace.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == hardware.DeviceId &&
-                (physicalGuid is not null ? state.Devices.Any(d => d.ProfileId == x.Id && (d.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(d.FileName)) == physicalGuid) : x.Instance == identity));
+            var profile = FindExistingProfile(workspace, state, hardware, physicalGuid, identity);
             if (profile is not null && state.Devices.Any(x => x.ProfileId == profile.Id && x.Layer == layer))
                 throw new InvalidOperationException("This physical device already belongs to that scope. Select a different physical unit or scope.");
             var isNew = profile is null;
@@ -100,7 +100,8 @@ namespace Dcs.Ipia.Dcs
             if (isNew)
             {
                 var diagram = hardware.Diagram with { ProfileId = profile.Id, Instance = instance ?? role, Callouts = [], SupportsUiLayer = layer == AssignmentLayer.UiLayer };
-                workspace = workspace with {
+                workspace = workspace with
+                {
                     Configuration = Configuration(workspace, workspace.Configuration.Profiles.Append(profile), workspace.Configuration.Modifiers, workspace.Configuration.Bindings),
                     Diagrams = [.. workspace.Diagrams, diagram]
                 };
@@ -112,10 +113,7 @@ namespace Dcs.Ipia.Dcs
             if (layer == AssignmentLayer.Module && profile.SourceName != membership.FileName)
                 workspace = RenameProfile(workspace, profile, membership.FileName, identity, role);
             workspace = SetUiSupport(Store(workspace, state with { Devices = [.. state.Devices, membership] }), profile.Id);
-            if (layer == AssignmentLayer.Module && kneeboardTitle is not null)
-                workspace = SetKneeboardTitle(workspace, profile.Id, kneeboardTitle);
-            if (layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
-                workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
+            workspace = SetDevicePageText(workspace, profile.Id, layer, kneeboardTitle, kneeboardSubtitle);
             if (physicalGuid is { } reviewed)
                 workspace = ModulePhysicalBindingReview.Confirm(workspace, profile.Id, reviewed);
             return workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance ?? role ?? (isNew ? physicalGuid?.ToString("D") : x.Instance) } : x).ToArray() };
@@ -149,22 +147,7 @@ namespace Dcs.Ipia.Dcs
             ValidateMembership(state, updated, device);
             var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
             if (hardware is not null && hardware.DeviceId != profile.DeviceId)
-            {
-                if (EffectiveBindings(workspace).Any(x => x.ProfileId == profile.Id) || state.Modifiers.Any(x => x.ProfileId == profile.Id))
-                    throw new InvalidOperationException("Clear assignments and move or remove modifiers before changing shared hardware.");
-                var replacement = new DeviceProfile(profile.Id, hardware.DeviceId, instance ?? role, role ?? hardware.DeviceId, profile.SourceName);
-                workspace = workspace with {
-                    Configuration = Configuration(workspace, workspace.Configuration.Profiles.Select(x => x.Id == profile.Id ? replacement : x),
-                        workspace.Configuration.Modifiers, workspace.Configuration.Bindings.Where(x => x.ProfileId != profile.Id)),
-                    Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id
-                        ? hardware.Diagram with { ProfileId = profile.Id, Instance = instance ?? role, Callouts = [],
-                            SupportsUiLayer = state.Devices.Any(d => d.ProfileId == profile.Id && d.Layer == AssignmentLayer.UiLayer) } : x).ToArray()
-                };
-                workspace = SetSource(workspace, UiSource(profile.Id), ModuleLuaProfileRenderer.Write([]));
-                workspace = Manifest(workspace, replacement, profile.SourceName, true);
-                workspace = Manifest(workspace, replacement, null, false);
-                profile = replacement;
-            }
+                (workspace, profile) = ReplaceDeviceHardware(workspace, state, profile, hardware, instance, role);
             var identityChanged = instance != device.Instance || role != device.Role;
             var identity = identityChanged ? instance ?? role ?? physicalGuid?.ToString("D") : profile.Instance;
             var diagramInstance = identityChanged ? instance ?? role : workspace.Diagrams.Single(x => x.ProfileId == profile.Id).Instance;
@@ -172,16 +155,10 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidOperationException("Another device already uses that instance or role.");
             workspace = RenameProfile(workspace, profile,
                 device.Layer == AssignmentLayer.Module || !state.Devices.Any(x => x.ProfileId == profile.Id && x.Layer == AssignmentLayer.Module) ? updated.FileName : profile.SourceName, identity, role);
-            var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id && x.Layer == device.Layer
-                ? x with { NativeDevice = Native(updated.FileName) } : x).ToArray();
-            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance, PhysicalGuid = physicalGuid } : x).ToArray(), Modifiers = modifiers });
-            workspace = workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = diagramInstance } : x).ToArray() };
+            workspace = UpdateDeviceMembership(workspace, state, profile, device, updated, instance, physicalGuid, diagramInstance);
             if (device.Layer == AssignmentLayer.Module && profile.DeviceId == "tm-mfd" && mfdLabels is not null)
                 workspace = MfdLabels(workspace, profile.Id, mfdLabels);
-            if (device.Layer == AssignmentLayer.Module && kneeboardTitle is not null)
-                workspace = SetKneeboardTitle(workspace, profile.Id, kneeboardTitle);
-            if (device.Layer == AssignmentLayer.Module && kneeboardSubtitle is not null)
-                workspace = SetKneeboardSubtitle(workspace, profile.Id, kneeboardSubtitle);
+            workspace = SetDevicePageText(workspace, profile.Id, device.Layer, kneeboardTitle, kneeboardSubtitle);
             return workspace;
         }
         /// <summary>Explicitly rebinds both scopes to another physical unit while retaining all authored profile data.</summary>
@@ -216,7 +193,8 @@ namespace Dcs.Ipia.Dcs
             workspace = RenameProfile(workspace, profile, fileName.Trim(), identity, role);
             workspace = Store(workspace, state with { Devices = memberships, Modifiers = modifiers });
             workspace = ModulePhysicalBindingReview.Confirm(workspace, profile.Id, guid);
-            return workspace with {
+            return workspace with
+            {
                 Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Device = DcsPhysicalIdentity.NameFromFileName(fileName.Trim()), Instance = instance ?? role ?? guid.ToString("D") } : x).ToArray(),
                 Images = []
             };
@@ -244,7 +222,8 @@ namespace Dcs.Ipia.Dcs
             }
             var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
             workspace = Manifest(workspace, profile, profile.SourceName, true);
-            return workspace with {
+            return workspace with
+            {
                 Configuration = Configuration(workspace, workspace.Configuration.Profiles.Where(x => x.Id != profile.Id), workspace.Configuration.Modifiers,
                     workspace.Configuration.Bindings.Where(x => x.ProfileId != profile.Id)),
                 Diagrams = workspace.Diagrams.Where(x => x.ProfileId != profile.Id).ToArray(),
@@ -309,7 +288,8 @@ namespace Dcs.Ipia.Dcs
             var bindings = workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId ||
                 x.Disposition == BindingDisposition.Removed || x.Section == BindingSection.Axis)
                 .Select(x => x.ProfileId == device.ProfileId && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x);
-            workspace = workspace with {
+            workspace = workspace with
+            {
                 Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, bindings),
                 Assignments = workspace.Assignments.Where(x => x.Slot.ProfileId != device.ProfileId).ToArray(),
                 Labels = workspace.Labels.Where(x => !cleared.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal)
@@ -334,14 +314,18 @@ namespace Dcs.Ipia.Dcs
                 x.Slot.ModifierChord == normalized).Select(x => x.Slot.Key).ToHashSet(StringComparer.Ordinal);
             bool Keep(DcsBinding binding) => binding.Disposition == BindingDisposition.Removed ||
                 !binding.Reformers.Order(StringComparer.Ordinal).SequenceEqual(chord, StringComparer.Ordinal);
-            workspace = workspace with {
+            workspace = workspace with
+            {
                 Assignments = workspace.Assignments.Where(x => !cleared.Contains(x.Slot.Key)).ToArray(),
                 Labels = workspace.Labels.Where(x => !cleared.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal)
             };
             if (device.Layer == AssignmentLayer.Module)
-                workspace = workspace with { Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers,
+                workspace = workspace with
+                {
+                    Configuration = Configuration(workspace, workspace.Configuration.Profiles, workspace.Configuration.Modifiers,
                     workspace.Configuration.Bindings.Where(x => x.ProfileId != device.ProfileId || Keep(x) || x.Section == BindingSection.Axis)
-                        .Select(x => x.ProfileId == device.ProfileId && !Keep(x) && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x)) };
+                        .Select(x => x.ProfileId == device.ProfileId && !Keep(x) && x.Section == BindingSection.Axis ? ModuleLuaProfileRenderer.Removed(x) : x))
+                };
             else if (workspace.Sources!.TryGetValue(UiSource(device.ProfileId), out var source))
                 workspace = SetSource(workspace, UiSource(device.ProfileId), ModuleLuaProfileRenderer.Write(
                     DcsLuaParser.ParseProfile(source, device.ProfileId).Where(x => Keep(x) || x.Section == BindingSection.Axis)
@@ -359,6 +343,49 @@ namespace Dcs.Ipia.Dcs
                     : []).Distinct(StringComparer.Ordinal);
         #endregion END Public
         #region BEGIN private helpers
+        private static EditorWorkspaceSnapshot UpdateDeviceMembership(EditorWorkspaceSnapshot workspace, WorkspaceManagement state, DeviceProfile profile,
+            WorkspaceDevice device, WorkspaceDevice updated, string? instance, Guid? physicalGuid, string? diagramInstance)
+        {
+            var modifiers = state.Modifiers.Select(x => x.ProfileId == profile.Id && x.Layer == device.Layer
+                ? x with { NativeDevice = Native(updated.FileName) } : x).ToArray();
+            workspace = Store(workspace, state with { Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId && x.Layer == device.Layer ? updated : x.ProfileId == profile.Id ? x with { Instance = instance, PhysicalGuid = physicalGuid } : x).ToArray(), Modifiers = modifiers });
+            workspace = workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = diagramInstance } : x).ToArray() };
+            return workspace;
+        }
+        private static EditorWorkspaceSnapshot SetDevicePageText(EditorWorkspaceSnapshot workspace, Guid profileId, AssignmentLayer layer, string? title, string? subtitle)
+        {
+            if (layer == AssignmentLayer.Module && title is not null) workspace = SetKneeboardTitle(workspace, profileId, title);
+            if (layer == AssignmentLayer.Module && subtitle is not null) workspace = SetKneeboardSubtitle(workspace, profileId, subtitle);
+            return workspace;
+        }
+        private static (EditorWorkspaceSnapshot Workspace, DeviceProfile Profile) ReplaceDeviceHardware(EditorWorkspaceSnapshot workspace, WorkspaceManagement state, DeviceProfile profile, WorkspaceHardware hardware, string? instance, string? role)
+        {
+            if (EffectiveBindings(workspace).Any(x => x.ProfileId == profile.Id) || state.Modifiers.Any(x => x.ProfileId == profile.Id))
+                throw new InvalidOperationException("Clear assignments and move or remove modifiers before changing shared hardware.");
+            var replacement = new DeviceProfile(profile.Id, hardware.DeviceId, instance ?? role, role ?? hardware.DeviceId, profile.SourceName);
+            workspace = workspace with
+            {
+                Configuration = Configuration(workspace, workspace.Configuration.Profiles.Select(x => x.Id == profile.Id ? replacement : x),
+                    workspace.Configuration.Modifiers, workspace.Configuration.Bindings.Where(x => x.ProfileId != profile.Id)),
+                Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id
+                    ? hardware.Diagram with
+                    {
+                        ProfileId = profile.Id,
+                        Instance = instance ?? role,
+                        Callouts = [],
+                        SupportsUiLayer = state.Devices.Any(d => d.ProfileId == profile.Id && d.Layer == AssignmentLayer.UiLayer)
+                    } : x).ToArray()
+            };
+            workspace = SetSource(workspace, UiSource(profile.Id), ModuleLuaProfileRenderer.Write([]));
+            workspace = Manifest(workspace, replacement, profile.SourceName, true);
+            workspace = Manifest(workspace, replacement, null, false);
+            return (workspace, replacement);
+        }
+        private static DeviceProfile? FindExistingProfile(EditorWorkspaceSnapshot workspace, WorkspaceManagement state, WorkspaceHardware hardware, Guid? physicalGuid, string? identity)
+        {
+            return workspace.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == hardware.DeviceId &&
+                (physicalGuid is not null ? state.Devices.Any(d => d.ProfileId == x.Id && (d.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(d.FileName)) == physicalGuid) : x.Instance == identity));
+        }
         private static EditorWorkspaceSnapshot Prepare(EditorWorkspaceSnapshot workspace)
         {
             var state = Describe(workspace);
@@ -422,20 +449,23 @@ namespace Dcs.Ipia.Dcs
         private static EditorWorkspaceSnapshot RenameProfile(EditorWorkspaceSnapshot workspace, DeviceProfile profile, string file, string? instance, string? role)
         {
             var updated = new DeviceProfile(profile.Id, profile.DeviceId, instance, role ?? profile.DeviceId, file);
-            workspace = workspace with {
+            workspace = workspace with
+            {
                 Configuration = Configuration(workspace, workspace.Configuration.Profiles.Select(x => x.Id == profile.Id ? updated : x), workspace.Configuration.Modifiers, workspace.Configuration.Bindings),
                 Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Instance = instance } : x).ToArray()
             };
             return Manifest(workspace, updated, profile.SourceName, false);
         }
-        private static EditorWorkspaceSnapshot SetUiSupport(EditorWorkspaceSnapshot workspace, Guid id) => workspace with {
+        private static EditorWorkspaceSnapshot SetUiSupport(EditorWorkspaceSnapshot workspace, Guid id) => workspace with
+        {
             Diagrams = workspace.Diagrams.Select(x => x.ProfileId == id ? x with { SupportsUiLayer = Describe(workspace).Devices.Any(d => d.ProfileId == id && d.Layer == AssignmentLayer.UiLayer) } : x).ToArray()
         };
         private static EditorWorkspaceSnapshot RenameModifier(EditorWorkspaceSnapshot workspace, AssignmentLayer layer, string oldName, string newName)
         {
             DcsBinding Rename(DcsBinding binding) => new(binding.ProfileId, binding.Section, binding.CommandId, binding.CommandName,
                 binding.Disposition, binding.InputKey, binding.Reformers.Select(x => x == oldName ? newName : x), binding.Filter);
-            var assignments = workspace.Assignments.Select(x => x.Slot.Layer == layer ? x with {
+            var assignments = workspace.Assignments.Select(x => x.Slot.Layer == layer ? x with
+            {
                 Slot = x.Slot with { ModifierChord = string.Join("+", x.Slot.ModifierChord.Split('+').Select(n => n == oldName ? newName : n)) }
             } : x).ToArray();
             var labels = new Dictionary<string, string>(workspace.Labels, StringComparer.Ordinal);
@@ -487,8 +517,11 @@ namespace Dcs.Ipia.Dcs
             var pageKeys = affected.Select(x => x!["file"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
             foreach (var page in affected)
                 page!["title"] = title.Trim();
-            workspace = workspace with { Pages = workspace.Pages.Select(x => pageKeys.Contains(x.StableKey)
-                ? x with { Title = title.Trim() } : x).ToArray() };
+            workspace = workspace with
+            {
+                Pages = workspace.Pages.Select(x => pageKeys.Contains(x.StableKey)
+                ? x with { Title = title.Trim() } : x).ToArray()
+            };
             return SetSource(workspace, "config/kneeboard.json", root.ToJsonString());
         }
         private static EditorWorkspaceSnapshot SetKneeboardSubtitle(EditorWorkspaceSnapshot workspace, Guid id, string subtitle)
@@ -531,7 +564,8 @@ namespace Dcs.Ipia.Dcs
                             layerCategories.Remove("mfd-category-middle");
                         }
             }
-            var diagrams = workspace.Diagrams.Select(d => {
+            var diagrams = workspace.Diagrams.Select(d =>
+            {
                 if (d.ProfileId != id) return d;
                 var svg = XDocument.Parse(d.Svg);
                 foreach (var obsolete in svg.Descendants().Where(x => x.Attribute("id")?.Value == "meta-mfd-category-middle").ToArray())

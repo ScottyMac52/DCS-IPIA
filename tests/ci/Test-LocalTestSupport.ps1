@@ -108,3 +108,6 @@ try {
     foreach ($name in 'LocalTestCalls', 'LocalTestFailure', 'LocalTestToolVersion') { Remove-Variable $name -Scope Global -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# Expected nonzero fixture exits must not fail the enclosing GitHub Actions shell.
+$global:LASTEXITCODE = 0

@@ -33,48 +33,10 @@ namespace Dcs.Ipia.Application
                 frames.Any(x => x.Inputs.Any(v => !double.IsFinite(v.Value) || v.Value < 0 || v.Value > 1)))
                 throw new InvalidDataException("Incomplete or invalid input sample; restart the test session.");
             var sampled = frames.ToDictionary(x => x.PhysicalGuid, x => x.Inputs);
-            foreach (var modifier in _modifiers)
-            {
-                var now = Value(sampled, modifier.PhysicalGuid, modifier.InputKey) > 0.5;
-                var was = Value(_previous, modifier.PhysicalGuid, modifier.InputKey) > 0.5;
-                if (modifier.Mode == ModifierMode.Toggle && _previous.ContainsKey(modifier.PhysicalGuid) && now && !was)
-                {
-                    var identity = (modifier.Layer, modifier.Name);
-                    if (!_toggles.Remove(identity)) _toggles.Add(identity);
-                }
-            }
-            foreach (var layer in Enum.GetValues<AssignmentLayer>())
-                _active[layer] = string.Join("+", _modifiers.Where(x => x.Layer == layer &&
-                    (x.Mode == ModifierMode.Toggle ? _toggles.Contains((layer, x.Name)) : Value(sampled, x.PhysicalGuid, x.InputKey) > 0.5))
-                    .Select(x => x.Name).Order(StringComparer.Ordinal));
+            UpdateModifiers(sampled);
             var results = new List<InputTestResult>();
             foreach (var frame in frames)
-                foreach (var (key, value) in frame.Inputs)
-                {
-                    var axis = key.StartsWith("JOY_", StringComparison.Ordinal) && !key.StartsWith("JOY_BTN", StringComparison.Ordinal) &&
-                        !key.StartsWith("JOY_POV", StringComparison.Ordinal);
-                    var identity = (frame.PhysicalGuid, key);
-                    var known = _previous.TryGetValue(frame.PhysicalGuid, out var prior);
-                    if (!known || !prior!.ContainsKey(key))
-                    {
-                        if (axis) _reportedAxes[identity] = value;
-                        continue;
-                    }
-                    var old = prior[key];
-                    if (axis ? Math.Abs(_reportedAxes[identity] - value) < 0.01
-                             : (old > 0.5) == (value > 0.5)) continue;
-                    var matches = _bindings.Where(x => x.PhysicalGuid == frame.PhysicalGuid &&
-                        (x.Binding.Section == BindingSection.Axis) == axis && DcsInputKey.SamePhysicalInput(x.Binding.InputKey, key) &&
-                        x.Chord == _active.GetValueOrDefault(x.Layer, "")).ToArray();
-                    if (axis) _reportedAxes[identity] = value;
-                    else if (value > 0.5) _pressed[identity] = matches;
-                    else
-                    {
-                        matches = _pressed.GetValueOrDefault(identity)?.ToArray() ?? [];
-                        _pressed.Remove(identity);
-                    }
-                    results.Add(new(frame.PhysicalGuid, key, value, axis ? "Position" : value > 0.5 ? "Press" : "Release", matches));
-                }
+                ProcessFrame(frame, results);
             _previous.Clear();
             foreach (var frame in frames) _previous.Add(frame.PhysicalGuid, new Dictionary<string, double>(frame.Inputs));
             return results;
@@ -92,6 +54,52 @@ namespace Dcs.Ipia.Application
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void ProcessFrame(DeviceInputFrame frame, List<InputTestResult> results)
+        {
+            foreach (var (key, value) in frame.Inputs)
+            {
+                var axis = key.StartsWith("JOY_", StringComparison.Ordinal) && !key.StartsWith("JOY_BTN", StringComparison.Ordinal) &&
+                    !key.StartsWith("JOY_POV", StringComparison.Ordinal);
+                var identity = (frame.PhysicalGuid, key);
+                var known = _previous.TryGetValue(frame.PhysicalGuid, out var prior);
+                if (!known || !prior!.ContainsKey(key))
+                {
+                    if (axis) _reportedAxes[identity] = value;
+                    continue;
+                }
+                var old = prior[key];
+                if (axis ? Math.Abs(_reportedAxes[identity] - value) < 0.01
+                         : (old > 0.5) == (value > 0.5)) continue;
+                var matches = _bindings.Where(x => x.PhysicalGuid == frame.PhysicalGuid &&
+                    (x.Binding.Section == BindingSection.Axis) == axis && DcsInputKey.SamePhysicalInput(x.Binding.InputKey, key) &&
+                    x.Chord == _active.GetValueOrDefault(x.Layer, "")).ToArray();
+                if (axis) _reportedAxes[identity] = value;
+                else if (value > 0.5) _pressed[identity] = matches;
+                else
+                {
+                    matches = _pressed.GetValueOrDefault(identity)?.ToArray() ?? [];
+                    _pressed.Remove(identity);
+                }
+                results.Add(new(frame.PhysicalGuid, key, value, axis ? "Position" : value > 0.5 ? "Press" : "Release", matches));
+            }
+        }
+        private void UpdateModifiers(Dictionary<Guid, IReadOnlyDictionary<string, double>> sampled)
+        {
+            foreach (var modifier in _modifiers)
+            {
+                var now = Value(sampled, modifier.PhysicalGuid, modifier.InputKey) > 0.5;
+                var was = Value(_previous, modifier.PhysicalGuid, modifier.InputKey) > 0.5;
+                if (modifier.Mode == ModifierMode.Toggle && _previous.ContainsKey(modifier.PhysicalGuid) && now && !was)
+                {
+                    var identity = (modifier.Layer, modifier.Name);
+                    if (!_toggles.Remove(identity)) _toggles.Add(identity);
+                }
+            }
+            foreach (var layer in Enum.GetValues<AssignmentLayer>())
+                _active[layer] = string.Join("+", _modifiers.Where(x => x.Layer == layer &&
+                    (x.Mode == ModifierMode.Toggle ? _toggles.Contains((layer, x.Name)) : Value(sampled, x.PhysicalGuid, x.InputKey) > 0.5))
+                    .Select(x => x.Name).Order(StringComparer.Ordinal));
+        }
         private static double Value(Dictionary<Guid, IReadOnlyDictionary<string, double>> frames, Guid device, string input) =>
             frames.TryGetValue(device, out var values) ? values.FirstOrDefault(x => DcsInputKey.SamePhysicalInput(x.Key, input)).Value : 0;
         #endregion END private helpers

@@ -97,7 +97,7 @@ def publish_html_metrics(output, metrics, errors):
 <h1>Method coverage and CRAP scores</h1>
 <p>All methods, initially ordered by highest CRAP score. Click a column heading to sort.</p>
 <p>CRAP = complexity² × (1 − line coverage fraction)³ + complexity. Lower is better.
-Coverage and complexity are from OpenCover; these scores do not change the 80/80 gates.</p>
+Coverage and complexity are from OpenCover. The separate quality gate enforces independent 80/80 coverage and CRAP ≤ 50 for the six production assemblies.</p>
 <p><a href="crap-scores.csv">Download CSV</a> · <a href="crap-scores.json">Download JSON</a></p>
 <label for="ipia-method-filter">Filter assembly, class, or method:</label>
 <input id="ipia-method-filter" type="search" placeholder="e.g. ConsumerSourceImporter" />
@@ -209,7 +209,7 @@ def publish(raw, output, summary):
     lines.extend(["", "## Method risk (CRAP)", "",
                   "CRAP = complexity² × (1 − line coverage fraction)³ + complexity. Lower is better.",
                   "Complexity comes from Coverlet's IL branch analysis, including compiler-generated methods.",
-                  "Scores are diagnostic, not an additional pass/fail gate. Full metrics are in crap-scores.csv/json.", "",
+                  "The separate quality gate enforces CRAP ≤ 50 for the six production assemblies. Full metrics are in crap-scores.csv/json.", "",
                   f"Methods analyzed: {len(metrics)}; methods with CRAP ≥ 30: {sum(row['crap_score'] >= 30 for row in metrics)}.", "",
                   "### Highest 20 scores", "", "| Assembly | Method | Complexity | Line coverage % | CRAP |",
                   "|---|---|---:|---:|---:|"])

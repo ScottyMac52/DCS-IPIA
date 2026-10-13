@@ -113,6 +113,91 @@ namespace Dcs.Ipia.Application
                 if (entries.Count > 0)
                     variants[control.Control] = entries;
             }
+            var (title, kicker, categories, staticLabels) = ReadPageMetadata(snapshot, diagram);
+            foreach (var (control, text) in staticLabels)
+                if (!variants.ContainsKey(control))
+                    variants[control] = [new(text, "#ffffff", AssignmentLayer.Module, "")];
+            var legend = CreateLegend(snapshot, diagram, modifiers, moduleChords, uiChords, moduleColors, uiColors, used);
+            AddModifierLabels(snapshot, diagram, modifiers, moduleChords, uiChords, moduleColors, uiColors, variants, legend);
+            return new(title, kicker, variants, categories, legend);
+        }
+        /// <summary>Maps one graphic control to the exact assignment slot for a scope and chord.</summary>
+        /// <param name="snapshot">Selected module configuration.</param>
+        /// <param name="diagram">Authored device graphic.</param>
+        /// <param name="control">Physical graphic control.</param>
+        /// <param name="scope">Module or module UI Layer.</param>
+        /// <param name="chord">Modifier chord; empty means Base.</param>
+        /// <returns>The mapped slot, or null when the control does not appear on this layer.</returns>
+        public static DraftAssignmentSlot? SlotForControl(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram,
+                                                          HardwareGraphicControl control, AssignmentLayer scope,
+                                                          string chord)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            ArgumentNullException.ThrowIfNull(diagram);
+            ArgumentNullException.ThrowIfNull(control);
+            ArgumentNullException.ThrowIfNull(chord);
+            if (scope == AssignmentLayer.UiLayer && !diagram.SupportsUiLayer)
+                return null;
+            var shifted = control.Control.EndsWith("-shifted", StringComparison.Ordinal);
+            if (shifted && chord.Length == 0)
+                return null;
+            var hasShiftedPair = !shifted && diagram.Controls.Any(x => x.Control == control.Control + "-shifted");
+            if (scope == AssignmentLayer.UiLayer && hasShiftedPair && chord.Length > 0)
+                return null;
+            var effectiveChord = hasShiftedPair ? "" : chord;
+            var section = control.IsAxis ? BindingSection.Axis : BindingSection.Key;
+            var input = DcsInputKey.Resolve(snapshot.Configuration, diagram.ProfileId, section, control.InputKey,
+                                            scope == AssignmentLayer.Module ? effectiveChord : null);
+            return new(snapshot.Configuration.Module.Id, diagram.ProfileId, scope, section, input, effectiveChord);
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        private static List<KneeboardModifierLegend> CreateLegend(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram, IReadOnlyList<WorkspaceModifier> modifiers,
+            string[] moduleChords, string[] uiChords, string[] moduleColors, string[] uiColors, HashSet<string> used)
+        {
+            var legend = new List<KneeboardModifierLegend>();
+            if (used.Any(x => x != AssignmentLayer.Module + "\u001f"))
+                legend.Add(new("Base (no modifier)", "#ffffff"));
+            for (var i = 0; i < moduleChords.Length; i++)
+                if (used.Contains(AssignmentLayer.Module + "\u001f" + moduleChords[i]))
+                    legend.Add(new(DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.Module, moduleChords[i]),
+                                   moduleColors[Math.Min(i, moduleColors.Length - 1)]));
+            if (diagram.SupportsUiLayer && used.Contains(AssignmentLayer.UiLayer + "\u001f"))
+                legend.Add(new("UI Layer — Base", uiColors[0]));
+            for (var i = 0; i < uiChords.Length; i++)
+                if (used.Contains(AssignmentLayer.UiLayer + "\u001f" + uiChords[i]))
+                    legend.Add(new("UI Layer — " + DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.UiLayer, uiChords[i]),
+                                   uiColors[Math.Min(i + 1, uiColors.Length - 1)]));
+            return legend;
+        }
+        private static void AddModifierLabels(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram, IReadOnlyList<WorkspaceModifier> modifiers,
+            string[] moduleChords, string[] uiChords, string[] moduleColors, string[] uiColors,
+            Dictionary<string, IReadOnlyList<KneeboardLabelVariant>> variants, List<KneeboardModifierLegend> legend)
+        {
+            foreach (var modifier in modifiers.Where(x => x.ProfileId == diagram.ProfileId &&
+                (x.Layer == AssignmentLayer.Module || diagram.SupportsUiLayer)))
+            {
+                var matching = diagram.Controls.Where(x => !x.IsAxis && !x.Control.EndsWith("-shifted", StringComparison.Ordinal) &&
+                    DcsInputKey.SamePhysicalInput(x.InputKey, modifier.Key)).ToArray();
+                var chords = modifier.Layer == AssignmentLayer.Module ? moduleChords : uiChords;
+                var index = Array.FindIndex(chords, chord => chord.Split('+').Contains(modifier.Name, StringComparer.Ordinal));
+                var color = index < 0 ? "#94a3b8" : modifier.Layer == AssignmentLayer.Module
+                    ? moduleColors[Math.Min(index, moduleColors.Length - 1)]
+                    : uiColors[Math.Min(index + 1, uiColors.Length - 1)];
+                foreach (var control in matching)
+                {
+                    var existing = variants.GetValueOrDefault(control.Control) ?? [];
+                    variants[control.Control] = existing.Append(new KneeboardLabelVariant(
+                        (modifier.Layer == AssignmentLayer.UiLayer ? "UI: " : "") + modifier.Name + " (" + modifier.Mode + ")",
+                        color, modifier.Layer, "")).ToArray();
+                }
+                if (index < 0 && matching.Length > 0)
+                    legend.Add(new((modifier.Layer == AssignmentLayer.UiLayer ? "UI Layer — " : "") +
+                        DescribeChord(snapshot, diagram, modifiers, modifier.Layer, modifier.Name), color));
+            }
+        }
+        private static (string Title, string Kicker, Dictionary<string, string> Categories, Dictionary<string, string> StaticLabels) ReadPageMetadata(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram)
+        {
             var title = diagram.Title;
             var kicker = "CURRENT DRAFT";
             var categories = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -147,80 +232,13 @@ namespace Dcs.Ipia.Application
                     }
                 }
             }
-            foreach (var (control, text) in staticLabels)
-                if (!variants.ContainsKey(control))
-                    variants[control] = [new(text, "#ffffff", AssignmentLayer.Module, "")];
-            var legend = new List<KneeboardModifierLegend>();
-            if (used.Any(x => x != AssignmentLayer.Module + "\u001f"))
-                legend.Add(new("Base (no modifier)", "#ffffff"));
-            for (var i = 0; i < moduleChords.Length; i++)
-                if (used.Contains(AssignmentLayer.Module + "\u001f" + moduleChords[i]))
-                    legend.Add(new(DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.Module, moduleChords[i]),
-                                   moduleColors[Math.Min(i, moduleColors.Length - 1)]));
-            if (diagram.SupportsUiLayer && used.Contains(AssignmentLayer.UiLayer + "\u001f"))
-                legend.Add(new("UI Layer — Base", uiColors[0]));
-            for (var i = 0; i < uiChords.Length; i++)
-                if (used.Contains(AssignmentLayer.UiLayer + "\u001f" + uiChords[i]))
-                    legend.Add(new("UI Layer — " + DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.UiLayer, uiChords[i]),
-                                   uiColors[Math.Min(i + 1, uiColors.Length - 1)]));
-            foreach (var modifier in modifiers.Where(x => x.ProfileId == diagram.ProfileId &&
-                (x.Layer == AssignmentLayer.Module || diagram.SupportsUiLayer)))
-            {
-                var matching = diagram.Controls.Where(x => !x.IsAxis && !x.Control.EndsWith("-shifted", StringComparison.Ordinal) &&
-                    DcsInputKey.SamePhysicalInput(x.InputKey, modifier.Key)).ToArray();
-                var chords = modifier.Layer == AssignmentLayer.Module ? moduleChords : uiChords;
-                var index = Array.FindIndex(chords, chord => chord.Split('+').Contains(modifier.Name, StringComparer.Ordinal));
-                var color = index < 0 ? "#94a3b8" : modifier.Layer == AssignmentLayer.Module
-                    ? moduleColors[Math.Min(index, moduleColors.Length - 1)]
-                    : uiColors[Math.Min(index + 1, uiColors.Length - 1)];
-                foreach (var control in matching)
-                {
-                    var existing = variants.GetValueOrDefault(control.Control) ?? [];
-                    variants[control.Control] = existing.Append(new KneeboardLabelVariant(
-                        (modifier.Layer == AssignmentLayer.UiLayer ? "UI: " : "") + modifier.Name + " (" + modifier.Mode + ")",
-                        color, modifier.Layer, "")).ToArray();
-                }
-                if (index < 0 && matching.Length > 0)
-                    legend.Add(new((modifier.Layer == AssignmentLayer.UiLayer ? "UI Layer — " : "") +
-                        DescribeChord(snapshot, diagram, modifiers, modifier.Layer, modifier.Name), color));
-            }
-            return new(title, kicker, variants, categories, legend);
+            return (title, kicker, categories, staticLabels);
         }
-        /// <summary>Maps one graphic control to the exact assignment slot for a scope and chord.</summary>
-        /// <param name="snapshot">Selected module configuration.</param>
-        /// <param name="diagram">Authored device graphic.</param>
-        /// <param name="control">Physical graphic control.</param>
-        /// <param name="scope">Module or module UI Layer.</param>
-        /// <param name="chord">Modifier chord; empty means Base.</param>
-        /// <returns>The mapped slot, or null when the control does not appear on this layer.</returns>
-        public static DraftAssignmentSlot? SlotForControl(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram,
-                                                          HardwareGraphicControl control, AssignmentLayer scope,
-                                                          string chord)
-        {
-            ArgumentNullException.ThrowIfNull(snapshot);
-            ArgumentNullException.ThrowIfNull(diagram);
-            ArgumentNullException.ThrowIfNull(control);
-            ArgumentNullException.ThrowIfNull(chord);
-            if (scope == AssignmentLayer.UiLayer && !diagram.SupportsUiLayer)
-                return null;
-            var shifted = control.Control.EndsWith("-shifted", StringComparison.Ordinal);
-            if (shifted && chord.Length == 0)
-                return null;
-            var hasShiftedPair = !shifted && diagram.Controls.Any(x => x.Control == control.Control + "-shifted");
-            if (scope == AssignmentLayer.UiLayer && hasShiftedPair && chord.Length > 0)
-                return null;
-            var effectiveChord = hasShiftedPair ? "" : chord;
-            var section = control.IsAxis ? BindingSection.Axis : BindingSection.Key;
-            var input = DcsInputKey.Resolve(snapshot.Configuration, diagram.ProfileId, section, control.InputKey,
-                                            scope == AssignmentLayer.Module ? effectiveChord : null);
-            return new(snapshot.Configuration.Module.Id, diagram.ProfileId, scope, section, input, effectiveChord);
-        }
-        #endregion END Public
-        #region BEGIN private helpers
         private static IReadOnlyList<WorkspaceModifier> ModifierDefinitions(EditorWorkspaceSnapshot snapshot)
         {
             if (WorkspaceManagement.Read(snapshot) is { } managed) return managed.Modifiers;
-            return snapshot.Configuration.Modifiers.Select(modifier => {
+            return snapshot.Configuration.Modifiers.Select(modifier =>
+            {
                 var matches = snapshot.Configuration.Profiles.Where(profile =>
                     string.Equals(NativeName(profile.SourceName), modifier.Device, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(profile.DeviceId, modifier.Device, StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -232,7 +250,8 @@ namespace Dcs.Ipia.Application
             ? source[..^9] : source;
         private static string DescribeChord(EditorWorkspaceSnapshot snapshot, UiLayerDiagram current,
             IReadOnlyList<WorkspaceModifier> modifiers, AssignmentLayer scope, string chord) =>
-            string.Join(" + ", chord.Split('+').Select(name => {
+            string.Join(" + ", chord.Split('+').Select(name =>
+            {
                 var modifier = modifiers.SingleOrDefault(x => x.Layer == scope && x.Name == name);
                 if (modifier is null) return name;
                 var device = snapshot.Diagrams.SingleOrDefault(x => x.ProfileId == modifier.ProfileId);

@@ -16,8 +16,8 @@ Windows TRX results, coverage JSON/CSV, `crap-scores.csv`, `crap-scores.json`, a
 The run summary lists the highest 20 method CRAP scores and the number at or above
 30. CRAP combines Coverlet's IL-derived method complexity with method line
 coverage: `complexity² × (1 − coverage fraction)³ + complexity`. These scores
-include compiler-generated methods and are diagnostic; they do not add a new
-quality gate. The independent **80% line / 80% branch gates for every included
+include compiler-generated methods. The separate consumer quality gate enforces
+CRAP ≤ 50 for methods in the six measured production assemblies. The independent **80% line / 80% branch gates for every included
 assembly** remain enforced by the shared workflow. Linux and Windows test counts
 are displayed as separate runs, rather than counting the same tests twice.
 
@@ -62,3 +62,5 @@ dotnet test DCS-IPIA.sln --configuration Release --no-build
 Read [CONTRIBUTING.md](CONTRIBUTING.md), [the architecture](docs/architecture/README.md), [the glossary](docs/architecture/terminology.md), and [ADR-001](docs/adr/0001-local-sqlite-and-immutable-snapshots.md).
 
 CI requires restore, formatting, build, and tests. Every measured production assembly must independently retain at least 80% line and branch coverage.
+
+See [coverage and CRAP gates](docs/development/quality-gates.md) for independent 80/80 output, the enforcing CRAP ceiling, and local verification commands.

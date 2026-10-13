@@ -112,6 +112,24 @@ namespace Dcs.Ipia.Application
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidateStencilNesting(XElement node, string name)
+        {
+            if (name is "move" or "line" or "close" && node.Parent?.Name != "path" ||
+                name is "path" or "fillstroke" && node.Parent?.Name != "foreground")
+                throw new InvalidDataException("Unsupported freehand stencil nesting.");
+        }
+        private static bool SupportedStencilAttribute(string name, XAttribute attribute) =>
+            name == "shape" && attribute.Name == "strokewidth" && attribute.Value == "inherit" ||
+            name is "move" or "line" && attribute.Name.LocalName is "x" or "y" && attribute.Name.Namespace == XNamespace.None;
+        private static void ValidateStencilNode(XElement node)
+        {
+            var name = node.Name.LocalName;
+            if (node.Name.Namespace != XNamespace.None || name is not ("shape" or "foreground" or "path" or "move" or "line" or "close" or "fillstroke"))
+                throw new InvalidDataException("Unsupported freehand stencil command: " + node.Name);
+            if (node.Attributes().Any(a => !SupportedStencilAttribute(name, a)))
+                throw new InvalidDataException("Unsupported freehand stencil attributes.");
+            ValidateStencilNesting(node, name);
+        }
         private static XElement Stencil(string encoded)
         {
             if (encoded.Length > 1_000_000) throw new InvalidDataException("Freehand stencil exceeds 1 MB.");
@@ -132,15 +150,7 @@ namespace Dcs.Ipia.Application
                 throw new InvalidDataException("Freehand stencils must contain one foreground.");
             foreach (var node in shape.DescendantsAndSelf())
             {
-                var name = node.Name.LocalName;
-                if (node.Name.Namespace != XNamespace.None || name is not ("shape" or "foreground" or "path" or "move" or "line" or "close" or "fillstroke"))
-                    throw new InvalidDataException("Unsupported freehand stencil command: " + node.Name);
-                if (node.Attributes().Any(a => !(name == "shape" && a.Name == "strokewidth" && a.Value == "inherit") &&
-                    !(name is "move" or "line" && a.Name.LocalName is "x" or "y" && a.Name.Namespace == XNamespace.None)))
-                    throw new InvalidDataException("Unsupported freehand stencil attributes.");
-                if (name is "move" or "line" or "close" && node.Parent?.Name != "path" ||
-                    name is "path" or "fillstroke" && node.Parent?.Name != "foreground")
-                    throw new InvalidDataException("Unsupported freehand stencil nesting.");
+                ValidateStencilNode(node);
             }
             return shape;
         }

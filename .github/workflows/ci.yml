@@ -129,7 +129,7 @@ jobs:
           "-reports:TestResults/raw/linux/**/*.opencover.xml"
           "-targetdir:TestResults/report"
           "-sourcedirs:${{ github.workspace }}"
-          "-reporttypes:Html;MarkdownSummaryGithub;JsonSummary;CsvSummary"
+          "-reporttypes:Html;Cobertura;MarkdownSummaryGithub;JsonSummary;CsvSummary"
       - name: Publish test outcomes and method risk scores
         if: ${{ always() && !cancelled() }}
         env:
@@ -150,6 +150,15 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           python scripts/publish_test_results.py --raw TestResults/raw --output TestResults/report --summary "$GITHUB_STEP_SUMMARY"
+      - name: Enforce independent 80/80 coverage and method CRAP ceiling
+        if: ${{ always() && !cancelled() }}
+        run: >-
+          python scripts/assert_quality_gates.py
+          --coverage TestResults/report/Cobertura.xml
+          --raw TestResults/raw/linux
+          --output TestResults/report
+          --summary "$GITHUB_STEP_SUMMARY"
+          --crap-ceiling 50
       - name: Upload full coverage, CRAP, and test results
         id: report
         if: ${{ always() && !cancelled() }}

@@ -15,10 +15,18 @@ namespace Dcs.Ipia.Infrastructure
         private const long MaximumBytes = 2L * 1024 * 1024 * 1024;
         private static readonly Dictionary<string, int> RequiredTables = new(StringComparer.Ordinal)
         {
-            ["modules"] = 1, ["device_profiles"] = 2, ["modifiers"] = 2, ["bindings"] = 2,
-            ["editor_workspaces"] = 3, ["app_preferences"] = 4, ["shared_ui_layer_revisions"] = 5,
-            ["module_update_history"] = 6, ["fly_now_deployment"] = 7,
-            ["hardware_definitions"] = 8, ["hardware_inventory"] = 8, ["hardware_observations"] = 8
+            ["modules"] = 1,
+            ["device_profiles"] = 2,
+            ["modifiers"] = 2,
+            ["bindings"] = 2,
+            ["editor_workspaces"] = 3,
+            ["app_preferences"] = 4,
+            ["shared_ui_layer_revisions"] = 5,
+            ["module_update_history"] = 6,
+            ["fly_now_deployment"] = 7,
+            ["hardware_definitions"] = 8,
+            ["hardware_inventory"] = 8,
+            ["hardware_observations"] = 8
         };
         private readonly string _version;
         private readonly Action<string>? _checkpoint;
@@ -170,6 +178,21 @@ namespace Dcs.Ipia.Infrastructure
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ExtractFiles(UserDataBackupManifest manifest, Dictionary<string, ZipArchiveEntry> entries, string stage)
+        {
+            foreach (var (relative, expected) in manifest.Files)
+            {
+                ValidatePath(relative);
+                if (relative is ManifestName or "ipia.db-wal" or "ipia.db-shm" or "ipia.db.flynow.lock" || expected is null ||
+                    expected.Length < 0 || expected.Length > MaximumBytes || !entries.TryGetValue(relative, out var entry) || entry.FullName != relative || entry.Length != expected.Length)
+                    throw new InvalidDataException("Invalid manifest entry: " + relative);
+                var target = Path.Combine(stage, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                using (var input = entry.Open())
+                using (var output = File.Create(target)) CopyBounded(input, output, expected.Length);
+                if (Describe(target) != expected) throw new InvalidDataException("Backup checksum differs: " + relative);
+            }
+        }
         private static IEnumerable<string> EnumerateFiles(string directory)
         {
             RejectLinks(directory);
@@ -204,18 +227,7 @@ namespace Dcs.Ipia.Infrastructure
             if (!manifest.Files.ContainsKey("ipia.db") || entries.Count != manifest.Files.Count + 1)
                 throw new InvalidDataException("Backup payload differs from its manifest.");
             Directory.CreateDirectory(stage);
-            foreach (var (relative, expected) in manifest.Files)
-            {
-                ValidatePath(relative);
-                if (relative is ManifestName or "ipia.db-wal" or "ipia.db-shm" or "ipia.db.flynow.lock" || expected is null ||
-                    expected.Length < 0 || expected.Length > MaximumBytes || !entries.TryGetValue(relative, out var entry) || entry.FullName != relative || entry.Length != expected.Length)
-                    throw new InvalidDataException("Invalid manifest entry: " + relative);
-                var target = Path.Combine(stage, relative);
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                using (var input = entry.Open())
-                using (var output = File.Create(target)) CopyBounded(input, output, expected.Length);
-                if (Describe(target) != expected) throw new InvalidDataException("Backup checksum differs: " + relative);
-            }
+            ExtractFiles(manifest, entries, stage);
             if (VerifyDatabase(stage) != manifest.DatabaseSchemaVersion) throw new InvalidDataException("Database schema differs from the manifest.");
             return new(manifest.ApplicationVersion, manifest.DatabaseSchemaVersion, manifest.Files.Count);
         }

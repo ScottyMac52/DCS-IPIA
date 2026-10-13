@@ -61,6 +61,37 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidateHardwareHeader(bool started, bool ended, bool version, bool hasControls, string? id, string? name, int count, PhysicalDevice device)
+        {
+            if (!started || !ended || !version || !hasControls || id != device.StableKey ||
+                string.IsNullOrWhiteSpace(name) || count == 0)
+                throw new FormatException(
+                    $"Invalid hardware definition for {device.StableKey}: expected schema v1, matching ID, name, and controls.");
+        }
+        private static SharedHardwareControl ParseHardwareControl(string value, PhysicalDevice device)
+        {
+            var match = ControlRow.Match(value);
+            if (!match.Success)
+                throw new FormatException($"Unsupported hardware control row: {value}");
+            var key = match.Groups["id"].Value;
+            var type = match.Groups["type"].Value;
+            var kind =
+                type switch
+                {
+                    "axis" => ControlKind.Axis,
+                    "hat" or "hat-direction" => ControlKind.Hat,
+                    "rocker-position" => ControlKind.Rocker,
+                    "switch-position" => ControlKind.Switch,
+                    "rotary-position" => ControlKind.Encoder,
+                    "button" or "button-position" or "trigger-stage" or "paddle" => ControlKind.Button,
+                    _ => throw new FormatException($"Unsupported hardware control type {type}.")
+                };
+            var control = new DeviceControl(StableIdentity.Create("control", $"{device.StableKey}/{key}"),
+                                            device.Id, key, match.Groups["label"].Value, kind, null);
+            return new(control, match.Groups["key"].Value, type,
+                           match.Groups["group"].Success ? match.Groups["group"].Value : null,
+                           match.Groups["position"].Success ? match.Groups["position"].Value : null);
+        }
         /// <summary>Accumulates request errors before any Lua is parsed.</summary>
         private static void ValidateRequest(SharedLuaImportRequest request, List<ImportDiagnostic> diagnostics)
         {
@@ -148,7 +179,7 @@ namespace Dcs.Ipia.Dcs
                                              List<DcsBinding> bindings)
         {
             var filename = Path.GetFileName(source.Path);
-            var name = GuidSuffix.Replace(filename[..^ ".diff.lua".Length], string.Empty).TrimEnd();
+            var name = GuidSuffix.Replace(filename[..^".diff.lua".Length], string.Empty).TrimEnd();
             var deviceKey = source.Path.Contains("/keyboard/", StringComparison.Ordinal)
                                 ? "keyboard"
                                 : ResolveDevice(name, catalog.DeviceMap!);
@@ -276,29 +307,9 @@ namespace Dcs.Ipia.Dcs
                     ended = true;
                     continue;
                 }
-                var match = ControlRow.Match(value);
-                if (!match.Success)
-                    throw new FormatException($"Unsupported hardware control row: {value}");
-                var key = match.Groups["id"].Value;
-                var type = match.Groups["type"].Value;
-                var kind =
-                    type switch { "axis" => ControlKind.Axis,
-                                  "hat" or "hat-direction" => ControlKind.Hat,
-                                  "rocker-position" => ControlKind.Rocker,
-                                  "switch-position" => ControlKind.Switch,
-                                  "rotary-position" => ControlKind.Encoder,
-                                  "button" or "button-position" or "trigger-stage" or "paddle" => ControlKind.Button,
-                                  _ => throw new FormatException($"Unsupported hardware control type {type}.") };
-                var control = new DeviceControl(StableIdentity.Create("control", $"{device.StableKey}/{key}"),
-                                                device.Id, key, match.Groups["label"].Value, kind, null);
-                output.Add(new(control, match.Groups["key"].Value, type,
-                               match.Groups["group"].Success ? match.Groups["group"].Value : null,
-                               match.Groups["position"].Success ? match.Groups["position"].Value : null));
+                output.Add(ParseHardwareControl(value, device));
             }
-            if (!started || !ended || !version || !hasControls || id != device.StableKey ||
-                string.IsNullOrWhiteSpace(name) || output.Count == 0)
-                throw new FormatException(
-                    $"Invalid hardware definition for {device.StableKey}: expected schema v1, matching ID, name, and controls.");
+            ValidateHardwareHeader(started, ended, version, hasControls, id, name, output.Count, device);
             if (output.Select(x => x.Control.StableKey).Distinct(StringComparer.OrdinalIgnoreCase).Count() !=
                 output.Count)
                 throw new FormatException($"Duplicate control ID in {device.StableKey}.");
@@ -310,7 +321,7 @@ namespace Dcs.Ipia.Dcs
             if (!line.StartsWith(prefix, StringComparison.Ordinal) || !line.EndsWith("\",", StringComparison.Ordinal) ||
                 line.Length <= prefix.Length + 2)
                 throw new FormatException($"Invalid {name} field.");
-            return line[prefix.Length..^ 2];
+            return line[prefix.Length..^2];
         }
         private static readonly Regex GuidSuffix =
             new(@" \{[0-9A-Fa-f-]{36}\}$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));

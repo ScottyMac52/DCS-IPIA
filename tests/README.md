@@ -51,7 +51,7 @@ Reporting depends on coverage collection; the full installer cycle is last.
 | 4 | [installer-helper-tests.ps1](installer-helper-tests.ps1) | Uninstaller completion/file-lock cleanup, runtime-pack notices and Saved Games settings compatibility tests. Requires Windows. | Console diagnostics; helper fixtures use temporary directories. |
 | 5 | [smoke-tests.ps1](smoke-tests.ps1) | Build the Windows solution, run the WPF UI smoke application and run .NET tests on Windows. Requires an interactive Windows desktop. This repeats the unit tests, as CI does. | TRX under `TestResults/raw/windows`, pictures under `TestResults/custom-mapping-preview`, parity evidence under `TestResults/huey-parity`. |
 | 6 | [crap-tests.ps1](crap-tests.ps1) | Prepare the pinned ReportGenerator tool. The uploaded filename is retained; this installs a tool rather than running CRAP tests. Safe to repeat; an existing 5.5.11 installation is retained. | `.tools/reportgenerator`. |
-| 7 | [generate-test-reports.ps1](generate-test-reports.ps1) | Read the collected OpenCover/TRX files, generate coverage and CRAP/test summaries and open the HTML report. Requires steps 3 and 6; step 5 adds Windows results. Pass `-NoOpen` to suppress opening the browser. | HTML, JSON/CSV, CRAP scores, test results and `LOCAL-SUMMARY.md` under `TestResults/report`. |
+| 7 | [generate-test-reports.ps1](generate-test-reports.ps1) | Read the collected OpenCover/TRX files, generate coverage and CRAP/test summaries and open the HTML report. Requires steps 3 and 6; step 5 adds Windows results. Pass `-NoOpen` to suppress opening the browser. | HTML, merged Cobertura, JSON/CSV, CRAP scores, `QualityGateSummary.md`, test results and `LOCAL-SUMMARY.md` under `TestResults/report`. |
 | 8 | [release-candidate-tests.ps1](release-candidate-tests.ps1) | Publish the self-contained app; build and test portable, installed and archived payloads; exercise upgrade/uninstall/reinstall and verify profiles/settings/payload hashes. Requires Windows, Git and Inno Setup. | A unique `release-assets-local-<guid>` folder with installer, ZIP, checksums and test/distribution evidence; failed drawing comparisons under `release-acceptance-diagnostics`. |
 
 ```powershell
@@ -95,8 +95,10 @@ A normal .NET test run proves tests pass but does not collect coverage; use
 failures happen after tests complete, so `failed: 0` alone is not a gate pass.
 
 `crap-tests.ps1` only prepares ReportGenerator. `generate-test-reports.ps1` runs the
-reporting tools. CRAP scores are diagnostics based on complexity and coverage, not
-a new quality gate. The local publisher records results found in raw TRX files;
+reporting tools. CRAP scores measure complexity and coverage. Reporting enforces a maximum of 50
+for every measured method in the six production assemblies, alongside independent
+80/80 assembly coverage. Gate failures are written to `QualityGateSummary.md`
+and `LOCAL-SUMMARY.md` before the script stops. The local publisher records results found in raw TRX files;
 it cannot infer a failed build from a missing TRX file. Keep the console error too.
 
 The reporter includes files currently present under `TestResults/raw`. Repeated
