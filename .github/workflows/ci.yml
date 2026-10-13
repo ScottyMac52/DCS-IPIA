@@ -73,10 +73,8 @@ jobs:
           path: ${{ runner.temp }}/huey-parity
           if-no-files-found: warn
 
-  # TEMPORARY: disabled during ModuleWorkspaceWindow refactor (issue #202).
-  # Re-enable csharp-layout first after the structural extracts land, then the rest.
+  # Structural layout and documentation checks restored after the refactor cleanup (#219).
   csharp-layout:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -166,9 +164,7 @@ jobs:
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo "[Download HTML coverage, CRAP scores, and test results]($REPORT_URL) — open report/index.html after extraction for searchable CRAP, complexity, line coverage, and branch coverage in one table." >> "$GITHUB_STEP_SUMMARY"
 
-  # TEMPORARY: disabled during ModuleWorkspaceWindow refactor (issue #202).
   asset-authoring:
-    if: false
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
