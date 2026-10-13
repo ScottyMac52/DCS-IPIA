@@ -73,10 +73,8 @@ jobs:
           path: ${{ runner.temp }}/huey-parity
           if-no-files-found: warn
 
-  # TEMPORARY: disabled during ModuleWorkspaceWindow refactor (issue #202).
-  # Re-enable csharp-layout first after the structural extracts land, then the rest.
+  # Structural layout and documentation checks restored after the refactor cleanup (#219).
   csharp-layout:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
