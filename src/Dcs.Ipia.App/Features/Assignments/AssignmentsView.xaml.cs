@@ -194,7 +194,20 @@ namespace DcsIpia.Features.Assignments
             DeviceTitle.Text = diagram.Title;
             try
             {
-                var png = CanonicalSvgRenderer.Render(diagram.Svg, diagram.Width, diagram.Height);
+                var previewSvg = diagram.Svg;
+                if (diagram.Svg.Contains("meta-mfd-category-", StringComparison.Ordinal))
+                {
+                    // Apply saved MFD side headings; interactive controls supply assignment text below.
+                    var page = KneeboardDraftProjection.CreateCombined(
+                        _context.Working, diagram, _context.Draft?.Snapshot ?? _context.Working.Assignments,
+                        _context.Labels);
+                    var categoryPage = page with
+                    {
+                        Labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>()
+                    };
+                    previewSvg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, categoryPage);
+                }
+                var png = CanonicalSvgRenderer.Render(previewSvg, diagram.Width, diagram.Height);
                 using var stream = new MemoryStream(png);
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
