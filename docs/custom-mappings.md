@@ -28,7 +28,15 @@ Version 1 supports one native or raw-deflate/URI-encoded draw.io diagram in an `
 - Optional `anchor-<marker>` cells and `connector-<marker>` edges connect the matching label to the anchor. Absolute waypoints and the tested label-edge/anchor-center endpoint calculation are retained. No connectors are required for box overlays.
 - Optional `hardware-image-*` cells contain embedded PNG/JPEG data or safe relative local PNG/JPEG filenames. Import captures referenced local bytes; it never downloads images. `mask-*` rectangles and `presentation-*` text regions are also supported.
 
-This is a documented subset, not an arbitrary draw.io renderer. Groups, transformed/custom shapes, rich HTML labels, external links, script/event attributes, external images, DTDs and unknown vertices/constructs produce errors before publication. Existing bundled sources that depend on a separate Common control manifest must acquire explicit input metadata before being imported as user mappings. Duplicate IDs, multiple labels for the same native key and unknown/ambiguous inputs are rejected rather than inferred.
+This is a documented subset, not an arbitrary draw.io renderer. Groups, transformed shapes, unsupported custom stencils, rich HTML labels, external links, script/event attributes, external images, DTDs and unknown vertices/constructs produce errors before publication. Bundled drawing copies, including renamed copies, can acquire native keys from installed catalog mappings only when their complete stable-marker set matches an unambiguous catalog entry for the selected native definition. Keep the original label IDs; otherwise supply explicit input metadata. Duplicate IDs, multiple labels for the same native key and unknown/ambiguous inputs are rejected rather than inferred.
+
+## Ordinary draw.io artwork edits
+
+The importer selects exporter `ipia-drawio-4` for ordinary blank cover rectangles, draw.io freehand stencils made from move/line/close paths, straight decorative lines and embedded images with arbitrary cell IDs. Artwork retains draw.io painter order. White strokes and cover shapes can hide headings or lines without changing control IDs. Empty presentation headings remain empty. `light-dark(...)` artwork colors use the first visible color, including white when its alternative is transparent.
+
+Images and decorative artwork may extend beyond the page; rendering clips them to the original page instead of rejecting a slight overhang or expanding the page. Native control labels and anchors must still fit inside the canvas. Artwork coordinates and dimensions remain bounded, stencil payloads are limited to 1 MB before and after inflation, and an aggregate 100,000-command budget applies to stencil paths and decorative lines. Curves, arrowed decorative edges, arbitrary stencil instructions, active content and transformed artwork remain unsupported.
+
+Earlier immutable revisions retain exporters 1–3 and reproduce their original SVG and hashes. Saving an edited drawing creates a new revision; it does not rewrite existing saved drawings.
 
 ## Partial mappings
 

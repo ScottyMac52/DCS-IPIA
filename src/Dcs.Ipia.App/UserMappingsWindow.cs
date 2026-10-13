@@ -152,7 +152,7 @@ namespace DcsIpia.Presentation
             {
                 IReadOnlyDictionary<string, string>? catalogInputs = null;
                 _bundledInputs.TryGetValue(Path.GetFileName(path), out catalogInputs);
-                var revision = await Task.Run(() => DrawioMappingFileImport.Load(path, definition, ApplicationVersion.Label, catalogInputs));
+                var revision = await Task.Run(() => DrawioMappingFileImport.Load(path, definition, ApplicationVersion.Label, catalogInputs, _bundledInputs.Values));
                 Preview(revision);
                 _candidate = revision;
                 _status.Text = "Verified preview: " + revision.MappedInputs.Count + " mapped / " + revision.Controls.Count +
