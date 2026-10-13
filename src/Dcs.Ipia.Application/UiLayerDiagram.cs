@@ -31,7 +31,9 @@ namespace Dcs.Ipia.Application
         /// <summary>Gets retained older drawing pins for source-free rollback; omitted by older payloads.</summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public IReadOnlyList<UserMappingRevision>? MappingHistory { get; init; }
+        /// <summary>Gets source-independent original built-in artwork for explicit rollback.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public OriginalHardwareDrawing? OriginalDrawing { get; init; }
         #endregion END Public
     }
 }
-

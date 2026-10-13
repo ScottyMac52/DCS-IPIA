@@ -150,7 +150,7 @@ namespace Dcs.Ipia.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static HardwareDefinition Definition(IEnumerable<string> keys)
+        internal static HardwareDefinition Definition(IEnumerable<string> keys)
         {
             var all = keys.Select(x => x.StartsWith("JOY_POV", StringComparison.Ordinal) ? "JOY_BTN_POV" + x[7..] : x)
                 .Distinct(StringComparer.Ordinal).ToArray();

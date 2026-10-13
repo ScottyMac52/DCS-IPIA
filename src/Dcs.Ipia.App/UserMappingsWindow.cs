@@ -86,7 +86,7 @@ namespace DcsIpia.Presentation
             _save = Button("Save drawing", "SaveMappingButton", SaveClicked);
             _export = Button("Export editable bundle…", "ExportMappingButton", ExportClicked);
             _starter = Button("Export starter draw.io…", "ExportMappingStarterButton", StarterClicked);
-            _review = Button("Review adoption / rollback…", "ReviewMappingRevisionButton", ReviewClicked);
+            _review = Button("Review replacements / rollback…", "ReviewMappingRevisionButton", ReviewClicked);
             _delete = Button("Delete saved drawing…", "DeleteMappingRevisionButton", DeleteClicked);
             buttons.Children.Add(_starter); buttons.Children.Add(_import); buttons.Children.Add(_bundled); buttons.Children.Add(_save); buttons.Children.Add(_export); buttons.Children.Add(_delete);
             if (_workspaces is not null) buttons.Children.Add(_review);
@@ -170,7 +170,7 @@ namespace DcsIpia.Presentation
                 await _library.SaveAsync(revision);
                 _candidate = null;
                 await RefreshRevisionsAsync();
-                _status.Text = "Saved drawing: " + revision.Title + ". Next: Open module → Devices → select the device and this drawing → Apply drawing to selected device → Save.";
+                _status.Text = "Saved drawing: " + revision.Title + ". Upload only: no modules changed. Choose Review replacements / rollback to replace selected devices across modules, or apply it from a module’s Devices tab.";
             }
             catch (Exception ex) { _status.Text = "Unable to save drawing: " + ex.Message; }
             finally { SetBusy(false); }
