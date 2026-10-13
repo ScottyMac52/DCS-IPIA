@@ -59,3 +59,5 @@ dotnet test DCS-IPIA.sln --configuration Release --no-build
 Read [CONTRIBUTING.md](CONTRIBUTING.md), [the architecture](docs/architecture/README.md), [the glossary](docs/architecture/terminology.md), and [ADR-001](docs/adr/0001-local-sqlite-and-immutable-snapshots.md).
 
 CI requires restore, formatting, build, and tests. Every measured production assembly must independently retain at least 80% line and branch coverage.
+
+See [coverage and CRAP gates](docs/development/quality-gates.md) for independent 80/80 output, the enforcing CRAP ceiling, and local verification commands.
