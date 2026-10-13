@@ -92,9 +92,8 @@ jobs:
       - name: Test CI report calculations and failure paths
         run: python3 -m unittest discover -s tests/ci -p 'test_*.py'
 
-  # TEMPORARY: disabled during ModuleWorkspaceWindow refactor (issue #202).
   test-reports:
-    if: false
+    if: ${{ !cancelled() }}
     name: Publish test results, coverage, and CRAP scores
     needs: [dotnet, solution]
     runs-on: ubuntu-latest
