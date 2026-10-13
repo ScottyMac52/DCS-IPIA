@@ -1,4 +1,4 @@
-﻿using Dcs.Ipia.Application;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
@@ -180,10 +180,13 @@ namespace DcsIpia.Features.Commands
                 Filter = html ? "DCS Controls HTML|*.html;*.htm" : "IPI command catalog JSON|*.json",
                 Multiselect = html
             };
-            if (picker.ShowDialog(Window.GetWindow(this)) != true) return;
+            var paths = _context.CommandFilePicker is null
+                ? (picker.ShowDialog(Window.GetWindow(this)) == true ? picker.FileNames : null)
+                : _context.CommandFilePicker(html);
+            if (paths is null) return;
             try
             {
-                var review = ModuleCommandCatalogImport.ReadFiles(_context.Working, picker.FileNames, html);
+                var review = ModuleCommandCatalogImport.ReadFiles(_context.Working, paths, html);
                 var dialog = new CommandImportReviewWindow(_context.Working.Configuration.Module.DisplayName, review) { Owner = Window.GetWindow(this) };
                 if (dialog.ShowDialog() != true) return;
                 _context.RunStructureEdit(w => ModuleCommandCatalogImport.Apply(w, review));
@@ -296,3 +299,4 @@ namespace DcsIpia.Features.Commands
         }
     }
 }
+

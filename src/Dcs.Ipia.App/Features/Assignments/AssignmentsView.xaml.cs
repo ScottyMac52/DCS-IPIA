@@ -1,4 +1,6 @@
-﻿
+using System.Xml;
+using System.Xml.Linq;
+
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
@@ -104,9 +106,12 @@ namespace DcsIpia.Features.Assignments
                 .Concat(state.Modifiers.Where(x => x.Layer == CurrentLayer).Select(x => x.Name))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
-            Layers.ItemsSource = choices;
-            if (Layers.SelectedIndex < 0)
-                Layers.SelectedIndex = 0;
+            var selectedLayer = Layers.SelectedItem as string;
+            if (!(Layers.ItemsSource as string[] ?? []).SequenceEqual(choices))
+            {
+                Layers.ItemsSource = choices;
+                Layers.SelectedItem = choices.Contains(selectedLayer) ? selectedLayer : selectedLayer is not null && selectedLayer != "Base" && choices.Length > 1 ? choices[1] : choices[0];
+            }
 
             StatusText.Text = $"{devices.Length} devices · layer {Layers.SelectedItem}";
             RefreshDiagram();
@@ -133,6 +138,39 @@ namespace DcsIpia.Features.Assignments
             if (double.TryParse(ZoomPercent.Text, out var percent))
                 Zoom.Value = Math.Clamp(percent / 100.0, Zoom.Minimum, Zoom.Maximum);
         }
+        private static void CoverAuthoredLabels(Canvas surface, string svg)
+        {
+            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4_000_000
+            });
+            var root = XDocument.Load(reader, LoadOptions.PreserveWhitespace).Root;
+            if (root is null)
+                return;
+            foreach (var (control, box) in SvgCalloutLocator.Find(root))
+            {
+                var x = double.Parse(box.Attribute("x")?.Value ?? "0", CultureInfo.InvariantCulture);
+                var y = double.Parse(box.Attribute("y")?.Value ?? "0", CultureInfo.InvariantCulture);
+                var width = double.Parse(box.Attribute("width")?.Value ?? "0", CultureInfo.InvariantCulture);
+                var height = double.Parse(box.Attribute("height")?.Value ?? "0", CultureInfo.InvariantCulture);
+                if (width <= 0 || height <= 0)
+                    continue;
+                var mask =
+                    new Border { Width = width,
+                                 Height = height,
+                                 Background = Brushes.White,
+                                 BorderBrush = Brushes.SlateGray,
+                                 BorderThickness = new Thickness(1),
+                                 Tag = control,
+                                 Child = new TextBlock { Text = "Unassigned", TextAlignment = TextAlignment.Center,
+                                                         TextWrapping = TextWrapping.Wrap,
+                                                         VerticalAlignment = VerticalAlignment.Center, FontSize = 11,
+                                                         Foreground = Brushes.Black } };
+                Canvas.SetLeft(mask, x);
+                Canvas.SetTop(mask, y);
+                surface.Children.Add(mask);
+            }
+        }
+
         private void RefreshDiagram()
         {
             Diagram.Children.Clear();
@@ -158,7 +196,10 @@ namespace DcsIpia.Features.Assignments
                 Diagram.Width = diagram.Width;
                 Diagram.Height = diagram.Height;
                 Diagram.LayoutTransform = new ScaleTransform(Zoom.Value, Zoom.Value);
-                Diagram.Children.Add(new Image { Source = bitmap, Width = diagram.Width, Height = diagram.Height });
+                var surface = new Canvas { Width = diagram.Width, Height = diagram.Height };
+                surface.Children.Add(new Image { Source = bitmap, Width = diagram.Width, Height = diagram.Height });
+                CoverAuthoredLabels(surface, diagram.Svg);
+                Diagram.Children.Add(surface);
 
                 var layer = CurrentLayer;
                 var chord = Layers.SelectedItem as string == BaseLayerName ? "" : (Layers.SelectedItem as string ?? "").Replace(LayerSeparator, LayerSeparatorTrim, StringComparison.Ordinal);
@@ -171,8 +212,8 @@ namespace DcsIpia.Features.Assignments
 
                     var assignment = snapshot.FirstOrDefault(x =>
                         DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
-                    var caption = _context.Labels.GetValueOrDefault(slot.Key)
-                        ?? (assignment is null ? UnAssignedText : assignment.Command.Name);
+                    var caption = assignment is null ? UnAssignedText
+                        : _context.Labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
 
                     var text = new TextBlock
                     {
@@ -195,7 +236,7 @@ namespace DcsIpia.Features.Assignments
                     };
                     Canvas.SetLeft(border, control.X);
                     Canvas.SetTop(border, control.Y);
-                    Diagram.Children.Add(border);
+                    surface.Children.Add(border);
                     border.Cursor = Cursors.Hand;
                     border.AllowDrop = true;
                     border.DragOver += (_, args) =>

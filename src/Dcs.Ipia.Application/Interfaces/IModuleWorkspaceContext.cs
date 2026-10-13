@@ -1,4 +1,4 @@
-﻿namespace Dcs.Ipia.Application.Interfaces
+namespace Dcs.Ipia.Application.Interfaces
 {
     public interface IModuleWorkspaceContext
     {
@@ -13,6 +13,10 @@
         HardwareInventoryManager? Inventory { get; }
         IUserMappingLibrary? UserMappings { get; }
         Func<MappingRevisionReview, bool>? MappingReviewConfirmation { get; }
+        Func<bool, IReadOnlyList<string>?>? CommandFilePicker { get; }
+        Func<string?>? IntegrationFilePicker { get; }
+        Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? InputSourceFactory { get; }
+        Action<string, string>? InputLogClipboardWriter { get; }
         Func<string?>? AxisDefaultsFilePicker { get; }
         string SavedGamesRoot { get; set; }
 

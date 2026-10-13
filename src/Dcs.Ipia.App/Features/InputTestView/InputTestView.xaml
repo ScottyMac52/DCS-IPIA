@@ -1,8 +1,8 @@
-﻿<UserControl x:Class="DcsIpia.Features.InputTest.InputTestView"
+<UserControl x:Class="DcsIpia.Features.InputTest.InputTestView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
-    <Grid Margin="12">
+    <Grid x:Name="InputTestPanes" Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="180" MinHeight="80"/>
@@ -18,10 +18,12 @@
             </WrapPanel>
             <WrapPanel Margin="0,8,0,0">
                 <pres:ActionBar>
-                    <Button Content="Start test" Click="StartInputTestClicked" Style="{StaticResource ActionButton}"/>
-                    <Button Content="Stop test" Click="StopInputTestClicked" Style="{StaticResource ActionButton}" IsEnabled="False"/>
+                    <Button x:Name="StartInputTestButton" Content="Start test" Click="StartInputTestClicked" Style="{StaticResource ActionButton}"/>
+                    <Button x:Name="StopInputTestButton" Content="Stop test" Click="StopInputTestClicked" Style="{StaticResource ActionButton}" IsEnabled="False"/>
                 </pres:ActionBar>
             </WrapPanel>
+            <ComboBox x:Name="InputTestSnapshotChoice" SelectedIndex="0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
+            <TextBlock x:Name="InputTestLogMessage"/>
             <TextBlock x:Name="InputTestStatus" TextWrapping="Wrap" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
             <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource AppLabel}"/>
         </StackPanel>
@@ -29,7 +31,8 @@
         <DockPanel Grid.Row="1" Margin="0,8,0,0">
             <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
                 <TextBlock Text="Events" VerticalAlignment="Center" Style="{StaticResource AppLabel}"/>
-                <Button Content="Clear log" Click="ClearLogClicked" Padding="6,2" Margin="8,0,0,0" Style="{StaticResource ActionButton}"/>
+                <Button x:Name="ClearInputTestLogButton" IsEnabled="False" Content="Clear log" Click="ClearInputTestLogClicked" Padding="6,2" Margin="8,0,0,0" Style="{StaticResource ActionButton}"/>
+                <Button x:Name="CopyInputTestLogButton" Content="Copy events" Click="CopyInputTestLogClicked" IsEnabled="False"/>
                 <ComboBox x:Name="EventFilter" Width="100" Margin="12,0,0,0" SelectedIndex="0" SelectionChanged="EventFilterChanged" Style="{StaticResource AppComboBox}">
                     <ComboBoxItem Content="Both"/>
                     <ComboBoxItem Content="Press"/>
@@ -37,10 +40,10 @@
                 </ComboBox>
                 <CheckBox x:Name="ShowAxis" Content="Show axis values" Margin="12,0,0,0" VerticalAlignment="Center" Checked="EventFilterChanged" Unchecked="EventFilterChanged"/>
             </WrapPanel>
-            <ListBox x:Name="InputTestLog"/>
+            <ListBox x:Name="InputTestLog" SelectionMode="Extended" DisplayMemberPath="Display"/>
         </DockPanel>
 
-        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent"/>
+        <GridSplitter x:Name="InputTestSplitter" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent"/>
 
         <DockPanel Grid.Row="3" Margin="0,4,0,0">
             <TextBlock x:Name="DeviceTitle" DockPanel.Dock="Top" Margin="0,0,0,4" Style="{StaticResource AppLabel}"/>

@@ -39,12 +39,12 @@ namespace Dcs.Ipia.App.Smoke
                 var library = new FileUserMappingLibrary(root);
                 var empty = new UserMappingsWindow(library, [], canDiscoverHardware: true);
                 empty.Show();
-                Pump(empty, () => ((TextBlock)empty.FindName("MappingStatus")!).Text.Contains("No controllers are available", StringComparison.Ordinal));
-                if (((Button)empty.FindName("PreviewMappingButton")!).IsEnabled ||
-                    ((Button)empty.FindName("SaveMappingButton")!).IsEnabled ||
-                    !((Button)empty.FindName("DiscoverMappingHardwareButton")!).IsEnabled)
+                Pump(empty, () => ((TextBlock)WorkspaceUi.Find(empty, "MappingStatus")!).Text.Contains("No controllers are available", StringComparison.Ordinal));
+                if (((Button)WorkspaceUi.Find(empty, "PreviewMappingButton")!).IsEnabled ||
+                    ((Button)WorkspaceUi.Find(empty, "SaveMappingButton")!).IsEnabled ||
+                    !((Button)WorkspaceUi.Find(empty, "DiscoverMappingHardwareButton")!).IsEnabled)
                     throw new InvalidOperationException("Empty drawing import does not explain and expose hardware discovery.");
-                Click((Button)empty.FindName("DiscoverMappingHardwareButton")!);
+                Click((Button)WorkspaceUi.Find(empty, "DiscoverMappingHardwareButton")!);
                 if (!empty.DiscoverHardwareRequested || empty.IsVisible ||
                     library.ListAsync().GetAwaiter().GetResult().Count != 0)
                     throw new InvalidOperationException("Discovery handoff changed saved drawings or failed to close the import.");
@@ -52,14 +52,14 @@ namespace Dcs.Ipia.App.Smoke
                     bundledInputs: new Dictionary<string, IReadOnlyDictionary<string, string>>
                     { ["custom.drawio"] = new Dictionary<string, string> { ["trigger"] = "JOY_BTN1" } });
                 tools.Show();
-                Pump(tools, () => ((Button)tools.FindName("PreviewMappingButton")!).IsEnabled);
-                if (!((Button)tools.FindName("BundledMappingButton")!).IsEnabled)
+                Pump(tools, () => ((Button)WorkspaceUi.Find(tools, "PreviewMappingButton")!).IsEnabled);
+                if (!((Button)WorkspaceUi.Find(tools, "BundledMappingButton")!).IsEnabled)
                     throw new InvalidOperationException("Bundled drawing selection is unavailable for a saved controller.");
-                Click((Button)tools.FindName("BundledMappingButton")!);
-                Pump(tools, () => ((TextBlock)tools.FindName("MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(tools, "BundledMappingButton")!);
+                Pump(tools, () => ((TextBlock)WorkspaceUi.Find(tools, "MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
                 if (library.ListAsync().GetAwaiter().GetResult().Count != 0) throw new InvalidOperationException("Preview mutated the library.");
-                Click((Button)tools.FindName("SaveMappingButton")!);
-                Pump(tools, () => ((TextBlock)tools.FindName("MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(tools, "SaveMappingButton")!);
+                Pump(tools, () => ((TextBlock)WorkspaceUi.Find(tools, "MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
                 tools.Close(); File.Delete(source);
                 var revision = library.ListAsync().GetAwaiter().GetResult().Single();
                 if (!revision.Source.Contains("inputKey=\"JOY_BTN1\"", StringComparison.Ordinal))
@@ -68,11 +68,11 @@ namespace Dcs.Ipia.App.Smoke
                 var starter = Path.Combine(root, "starter.drawio");
                 var reopened = new UserMappingsWindow(library, [definition], exportPicker: () => bundle, starterPicker: () => starter);
                 reopened.Show();
-                var revisions = (ListBox)reopened.FindName("MappingRevisions")!;
+                var revisions = (ListBox)WorkspaceUi.Find(reopened, "MappingRevisions")!;
                 Pump(reopened, () => revisions.Items.Count == 1);
-                revisions.SelectedIndex = 0; Click((Button)reopened.FindName("ExportMappingButton")!);
+                revisions.SelectedIndex = 0; Click((Button)WorkspaceUi.Find(reopened, "ExportMappingButton")!);
                 if (!File.Exists(bundle)) throw new InvalidOperationException("Saved mapping did not export without its source file.");
-                Click((Button)reopened.FindName("ExportMappingStarterButton")!);
+                Click((Button)WorkspaceUi.Find(reopened, "ExportMappingStarterButton")!);
                 if (!File.Exists(starter) || DrawioMappingFileImport.Load(starter, definition, "smoke").MappedInputs.Count != 4)
                     throw new InvalidOperationException("The starter export lost native inputs.");
                 reopened.Close();
@@ -85,20 +85,20 @@ namespace Dcs.Ipia.App.Smoke
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, userMappings: library, mappingReviewConfirmation: _ => true);
                 editor.Show();
-                var choices = (ComboBox)editor.FindName("CustomMappingRevisions")!;
+                var choices = (ComboBox)WorkspaceUi.Find(editor, "CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
                 choices.SelectedIndex = 0;
-                ((DataGrid)editor.FindName("ManagedDevices")!).SelectedIndex = 0;
-                Click((Button)editor.FindName("AdoptCustomMappingButton")!);
-                if (!((TextBlock)editor.FindName("DevicesMessage")!).Text.StartsWith("Change staged", StringComparison.Ordinal))
+                ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
+                Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
+                if (!((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")!).Text.Contains("staged", StringComparison.Ordinal))
                     throw new InvalidOperationException("Custom mapping adoption was not staged.");
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Any(x => x.CustomMapping is not null))
                     throw new InvalidOperationException("Staged mapping silently changed saved module data.");
-                Click((Button)editor.FindName("DiscardAuthoringButton")!);
-                choices.SelectedIndex = 0; ((DataGrid)editor.FindName("ManagedDevices")!).SelectedIndex = 0;
-                Click((Button)editor.FindName("AdoptCustomMappingButton")!);
-                Click((Button)editor.FindName("SaveAuthoringButton")!);
-                Pump(editor, () => ((TextBlock)editor.FindName("PendingSummary")!).Text == "No pending assignment changes");
+                Click((Button)WorkspaceUi.Find(editor, "DiscardAuthoringButton")!);
+                choices.SelectedIndex = 0; ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
+                Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
+                Click((Button)WorkspaceUi.Find(editor, "SaveAuthoringButton")!);
+                Pump(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "PendingSummary")!).Text == "No pending assignment changes");
                 editor.Close();
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping?.Id != revision.Id)
                     throw new InvalidOperationException("Saved custom mapping lost its immutable revision.");
@@ -107,21 +107,21 @@ namespace Dcs.Ipia.App.Smoke
                 library.SaveAsync(next).GetAwaiter().GetResult();
                 var reviewWindow = new MappingRevisionReviewWindow(next, repository);
                 reviewWindow.Show();
-                Pump(reviewWindow, () => reviewWindow.FindName("RevisionTarget_0") is CheckBox);
-                Click((Button)reviewWindow.FindName("PreviewRevisionTarget_0")!);
-                if (((Image)reviewWindow.FindName("RevisionBeforePreview")!).Source is null ||
-                    ((Image)reviewWindow.FindName("RevisionAfterPreview")!).Source is null)
+                Pump(reviewWindow, () => WorkspaceUi.Find(reviewWindow, "RevisionTarget_0") is CheckBox);
+                Click((Button)WorkspaceUi.Find(reviewWindow, "PreviewRevisionTarget_0")!);
+                if (((Image)WorkspaceUi.Find(reviewWindow, "RevisionBeforePreview")!).Source is null ||
+                    ((Image)WorkspaceUi.Find(reviewWindow, "RevisionAfterPreview")!).Source is null)
                     throw new InvalidOperationException("Revision comparison did not show current and proposed artwork.");
-                var target = (CheckBox)reviewWindow.FindName("RevisionTarget_0")!;
+                var target = (CheckBox)WorkspaceUi.Find(reviewWindow, "RevisionTarget_0")!;
                 target.IsChecked = true;
-                Click((Button)reviewWindow.FindName("StageRevisionTargetsButton")!);
+                Click((Button)WorkspaceUi.Find(reviewWindow, "StageRevisionTargetsButton")!);
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping!.Id != revision.Id)
                     throw new InvalidOperationException("Revision review staging changed saved data.");
-                Click((Button)reviewWindow.FindName("DiscardRevisionTargetsButton")!);
+                Click((Button)WorkspaceUi.Find(reviewWindow, "DiscardRevisionTargetsButton")!);
                 target.IsChecked = true;
-                Click((Button)reviewWindow.FindName("StageRevisionTargetsButton")!);
-                Click((Button)reviewWindow.FindName("SaveRevisionTargetsButton")!);
-                Pump(reviewWindow, () => ((TextBlock)reviewWindow.FindName("RevisionReviewStatus")!).Text.StartsWith("Saved reviewed changes", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(reviewWindow, "StageRevisionTargetsButton")!);
+                Click((Button)WorkspaceUi.Find(reviewWindow, "SaveRevisionTargetsButton")!);
+                Pump(reviewWindow, () => ((TextBlock)WorkspaceUi.Find(reviewWindow, "RevisionReviewStatus")!).Text.StartsWith("Saved reviewed changes", StringComparison.Ordinal));
                 reviewWindow.Close();
                 var revised = repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single();
                 if (revised.CustomMapping!.Id != next.Id || revised.MappingHistory?.Single().Id != revision.Id)
@@ -130,9 +130,9 @@ namespace Dcs.Ipia.App.Smoke
                 var portableBundle = Path.Combine(root, "portable-pin.zip");
                 var pinnedTools = new UserMappingsWindow(portableLibrary, [definition], exportPicker: () => portableBundle, modulePins: [revision]);
                 pinnedTools.Show();
-                var pinnedChoices = (ListBox)pinnedTools.FindName("MappingRevisions")!;
+                var pinnedChoices = (ListBox)WorkspaceUi.Find(pinnedTools, "MappingRevisions")!;
                 Pump(pinnedTools, () => pinnedChoices.Items.Count == 1);
-                pinnedChoices.SelectedIndex = 0; Click((Button)pinnedTools.FindName("ExportMappingButton")!);
+                pinnedChoices.SelectedIndex = 0; Click((Button)WorkspaceUi.Find(pinnedTools, "ExportMappingButton")!);
                 if (!File.Exists(portableBundle) || portableLibrary.ListAsync().GetAwaiter().GetResult().Count != 0)
                     throw new InvalidOperationException("A portable module pin could not export without silently publishing a library entry.");
                 pinnedTools.Close();
@@ -146,11 +146,11 @@ namespace Dcs.Ipia.App.Smoke
                     bundledInputs: new Dictionary<string, IReadOnlyDictionary<string, string>>
                     { ["tm-mfd.drawio"] = mfd.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal) });
                 mfdTools.Show();
-                Pump(mfdTools, () => ((Button)mfdTools.FindName("PreviewMappingButton")!).IsEnabled);
-                Click((Button)mfdTools.FindName("PreviewMappingButton")!); // Normal file picker also accepts bundled sources.
-                Pump(mfdTools, () => ((TextBlock)mfdTools.FindName("MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
-                Click((Button)mfdTools.FindName("SaveMappingButton")!);
-                Pump(mfdTools, () => ((TextBlock)mfdTools.FindName("MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
+                Pump(mfdTools, () => ((Button)WorkspaceUi.Find(mfdTools, "PreviewMappingButton")!).IsEnabled);
+                Click((Button)WorkspaceUi.Find(mfdTools, "PreviewMappingButton")!); // Normal file picker also accepts bundled sources.
+                Pump(mfdTools, () => ((TextBlock)WorkspaceUi.Find(mfdTools, "MappingStatus")!).Text.StartsWith("Verified preview:", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(mfdTools, "SaveMappingButton")!);
+                Pump(mfdTools, () => ((TextBlock)WorkspaceUi.Find(mfdTools, "MappingStatus")!).Text.StartsWith("Saved drawing:", StringComparison.Ordinal));
                 mfdTools.Close();
                 var savedMfd = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd.drawio");
                 if (savedMfd.Controls.Count != 48 || savedMfd.MappedInputs.Count != 28)
@@ -180,3 +180,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

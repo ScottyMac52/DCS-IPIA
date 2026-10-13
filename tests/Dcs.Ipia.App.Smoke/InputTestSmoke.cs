@@ -41,21 +41,19 @@ namespace Dcs.Ipia.App.Smoke
                     clipboard = new(html, text);
                 });
             window.Show();
-            var tabs = (TabControl)window.FindName("ImportedTabs")!;
-            tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => Equals(x.Header, "Assignments"));
+            var view = WorkspaceUi.Navigate(window, "InputTest");
             window.UpdateLayout();
             window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-            var device = (ComboBox)window.FindName("DeviceChoice")!;
-            device.SelectedItem = device.Items.Cast<UiLayerDiagram>().Single(x => x.ProfileId == workspace.Diagrams[0].ProfileId);
+            var device = (ComboBox)view.FindName("FeedbackDevice")!;
+            device.SelectedItem = device.Items.Cast<WorkspaceDevice>().Single(x => x.ProfileId == workspace.Diagrams[0].ProfileId);
             window.UpdateLayout();
-            var start = (Button)window.FindName("StartInputTestButton")!;
-            var stop = (Button)window.FindName("StopInputTestButton")!;
-            var log = (ListBox)window.FindName("InputTestLog")!;
-            var choice = (ComboBox)window.FindName("InputTestSnapshotChoice")!;
-            var status = (TextBlock)window.FindName("InputTestStatus")!;
+            var start = (Button)WorkspaceUi.Find(window, "StartInputTestButton")!;
+            var stop = (Button)WorkspaceUi.Find(window, "StopInputTestButton")!;
+            var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
+            var choice = (ComboBox)WorkspaceUi.Find(window, "InputTestSnapshotChoice")!;
+            var status = (TextBlock)WorkspaceUi.Find(window, "InputTestStatus")!;
             start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            if (log.Items.Count != 0 || ((Canvas)window.FindName("Diagram")!).Children.OfType<Canvas>()
-                .SelectMany(x => x.Children.OfType<Border>()).Any(x => x.Background == Brushes.LightSkyBlue))
+            if (log.Items.Count != 0 || ((Canvas)view.FindName("Diagram")!).Children.OfType<Border>().Any(x => x.Background == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("The initial sample reported or highlighted existing input states.");
             source!.ButtonValue = 1;
             Wait(window, () => log.Items.Count > 0);
@@ -64,17 +62,16 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Live test did not resolve its frozen generated profile.");
             if (log.Items.Cast<InputTestLogEntry>().Select(x => x.Display).Any(x => x.Contains(otherPhysical.ToString("D"), StringComparison.Ordinal) || x.Contains("JOY_X", StringComparison.Ordinal) || x.Contains("JOY_BTN2", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Unchanged baseline inputs or another controller leaked into feedback.");
-            var diagram = (Canvas)window.FindName("Diagram")!;
-            if (!diagram.Children.OfType<Canvas>().SelectMany(x => x.Children.OfType<Border>()).Any(x => x.Background == Brushes.LightSkyBlue))
+            var diagram = (Canvas)view.FindName("Diagram")!;
+            if (!diagram.Children.OfType<Border>().Any(x => x.Background == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Physical activity did not highlight its control.");
-            if (diagram.Children.OfType<Canvas>().SelectMany(x => x.Children.OfType<Border>()).Any(x =>
+            if (diagram.Children.OfType<Border>().Any(x =>
                 x.Tag is HardwareGraphicControl control && control.InputKey != "JOY_BTN1" && x.Background == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Initially held buttons or stationary axes were highlighted.");
-            var panes = (Grid)window.FindName("AssignmentPanes")!;
-            var splitter = (GridSplitter)window.FindName("InputTestSplitter")!;
-            var testPane = (Expander)window.FindName("InputTestPane")!;
-            var upper = panes.RowDefinitions[0];
-            var lower = panes.RowDefinitions[2];
+            var panes = (Grid)view.FindName("InputTestPanes")!;
+            var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
+            var upper = panes.RowDefinitions[1];
+            var lower = panes.RowDefinitions[3];
             if (upper.ActualHeight + lower.ActualHeight - upper.MinHeight - lower.MinHeight < 20)
             {
                 window.Height += 160;
@@ -90,14 +87,6 @@ namespace Dcs.Ipia.App.Smoke
                 Math.Abs(upper.ActualHeight - upperBefore) < 1 || Math.Abs(lower.ActualHeight - lowerBefore) < 1 ||
                 Math.Abs(upper.ActualHeight + lower.ActualHeight - upperBefore - lowerBefore) > 1)
                 throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}.");
-            testPane.IsExpanded = false;
-            window.UpdateLayout();
-            if (splitter.Visibility != Visibility.Collapsed || !upper.Height.IsAuto)
-                throw new InvalidOperationException("Collapsed input test did not release its pane height.");
-            testPane.IsExpanded = true;
-            window.UpdateLayout();
-            if (splitter.Visibility != Visibility.Visible || upper.Height.IsAuto)
-                throw new InvalidOperationException("Expanded input test did not restore its pane height.");
             InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (source?.Disposed != true || !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)
@@ -117,6 +106,8 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Device loss was not reported.");
             if (EditorSnapshotSerializer.Serialize(workspace) != before)
                 throw new InvalidOperationException("Input testing mutated the original workspace.");
+            WorkspaceUi.Navigate(window, "Devices");
+            if (source?.Disposed != true) throw new InvalidOperationException("Navigation did not release device input.");
             window.Close();
         }
         #endregion END Public
@@ -126,7 +117,7 @@ namespace Dcs.Ipia.App.Smoke
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!ready())
             {
-                var status = ((TextBlock)window.FindName("InputTestStatus")!).Text;
+                var status = ((TextBlock)WorkspaceUi.Find(window, "InputTestStatus")!).Text;
                 if (status.StartsWith("Input test could not start:", StringComparison.Ordinal) || DateTime.UtcNow > deadline)
                     throw new InvalidOperationException("Input test UI failed: " + status);
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
@@ -156,4 +147,5 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
