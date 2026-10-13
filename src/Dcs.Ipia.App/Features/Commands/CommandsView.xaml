@@ -1,0 +1,6 @@
+﻿<UserControl x:Class="DcsIpia.Features.Commands.CommandsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DcsIpia.Features.Commands">
+    <local:CommandsManagementView x:Name="Manager"/>
+</UserControl>
