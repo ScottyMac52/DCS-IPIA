@@ -145,6 +145,10 @@ namespace Dcs.Ipia.Tests
                 Assert.Equal(3, zip.Entries.Count);
                 Assert.NotNull(zip.GetEntry("mapping.drawio")); Assert.NotNull(zip.GetEntry("image.png"));
                 await Assert.ThrowsAsync<InvalidDataException>(() => library.SaveAsync(local with { Svg = "forged" }));
+                await library.DeleteAsync(local.Id);
+                Assert.Empty(await library.ListAsync());
+                await Assert.ThrowsAsync<FileNotFoundException>(() => library.DeleteAsync(local.Id));
+                await library.SaveAsync(local);
                 await File.WriteAllTextAsync(Path.Combine(root, "profile", "UserMappings", local.Id + ".json"), "broken");
                 await Assert.ThrowsAnyAsync<Exception>(() => library.ListAsync());
             }

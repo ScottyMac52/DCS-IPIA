@@ -50,6 +50,25 @@ namespace Dcs.Ipia.Infrastructure
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
+        /// <inheritdoc/>
+        public async Task DeleteAsync(string revisionId)
+        {
+            if (string.IsNullOrWhiteSpace(revisionId) || revisionId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+                revisionId is "." or ".." || revisionId.Contains('/') || revisionId.Contains('\\'))
+                throw new ArgumentException("A valid mapping revision ID is required.", nameof(revisionId));
+            var directory = DirectoryPath();
+            var path = Path.Combine(directory, revisionId + ".json");
+            RejectLink(path);
+            if (!File.Exists(path)) throw new FileNotFoundException("The saved mapping revision was not found.", path);
+            if (new FileInfo(path).Length > 20_000_000) throw new InvalidDataException("Mapping revision exceeds 20 MB.");
+            var revision = JsonSerializer.Deserialize<UserMappingRevision>(await File.ReadAllTextAsync(path))
+                ?? throw new InvalidDataException("Empty user mapping revision.");
+            DrawioMappingImporter.Validate(revision);
+            if (!string.Equals(Path.GetFileNameWithoutExtension(path), revision.Id, StringComparison.Ordinal) ||
+                !string.Equals(revision.Id, revisionId, StringComparison.Ordinal))
+                throw new InvalidDataException("Mapping revision filename differs from its identity.");
+            File.Delete(path);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private string DirectoryPath()

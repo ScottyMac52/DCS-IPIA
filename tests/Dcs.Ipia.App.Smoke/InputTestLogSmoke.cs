@@ -18,11 +18,11 @@ namespace Dcs.Ipia.App.Smoke
         public static void VerifyLive(ModuleWorkspaceWindow window, FakeDeviceInputSource source,
             Func<InputTestLogClipboard?> clipboard, Action<bool> setFailure)
         {
-            var log = (ListBox)window.FindName("InputTestLog")!;
-            var clear = (Button)window.FindName("ClearInputTestLogButton")!;
-            var copy = (Button)window.FindName("CopyInputTestLogButton")!;
-            var message = (TextBlock)window.FindName("InputTestLogMessage")!;
-            var stop = (Button)window.FindName("StopInputTestButton")!;
+            var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
+            var clear = (Button)WorkspaceUi.Find(window, "ClearInputTestLogButton")!;
+            var copy = (Button)WorkspaceUi.Find(window, "CopyInputTestLogButton")!;
+            var message = (TextBlock)WorkspaceUi.Find(window, "InputTestLogMessage")!;
+            var stop = (Button)WorkspaceUi.Find(window, "StopInputTestButton")!;
             var first = log.Items.Cast<InputTestLogEntry>().Single();
             var second = first with { Commands = "Second <event> & é" };
             var third = first with { Commands = "Third" };
@@ -66,9 +66,9 @@ namespace Dcs.Ipia.App.Smoke
         /// <param name="clipboard">Returns the captured clipboard payload.</param>
         public static void VerifyStopped(ModuleWorkspaceWindow window, Func<InputTestLogClipboard?> clipboard)
         {
-            var log = (ListBox)window.FindName("InputTestLog")!;
-            var clear = (Button)window.FindName("ClearInputTestLogButton")!;
-            var copy = (Button)window.FindName("CopyInputTestLogButton")!;
+            var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
+            var clear = (Button)WorkspaceUi.Find(window, "ClearInputTestLogButton")!;
+            var copy = (Button)WorkspaceUi.Find(window, "CopyInputTestLogButton")!;
             Click(copy);
             if (clipboard()?.Text.Split("\r\n").Length != 2) throw new InvalidOperationException("Stopped log was not copied.");
             Click(clear);
@@ -82,3 +82,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

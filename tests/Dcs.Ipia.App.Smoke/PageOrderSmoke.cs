@@ -36,9 +36,8 @@ namespace Dcs.Ipia.App.Smoke
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
-                var tabs = (TabControl)window.FindName("ImportedTabs")!;
-                tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => x.Header.ToString() == "Pages");
-                var pages = (DataGrid)window.FindName("AuthoredPages")!;
+                WorkspaceUi.Navigate(window, "Pages");
+                var pages = (DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!;
                 window.UpdateLayout();
                 if (!pages.AllowDrop || pages.CanUserSortColumns)
                     throw new InvalidOperationException("Page rows do not support output-order drag/drop.");
@@ -55,7 +54,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (over.Effects != DragDropEffects.Move) throw new InvalidOperationException("A current page drag was rejected.");
                 pages.RaiseEvent(DragArgs(payload, pages, point, DragDrop.PreviewDropEvent));
                 Check(pages, [original[1].Id, original[2].Id, original[0].Id]);
-                if ((pages.SelectedItem as KneeboardPage)?.Id != first.Id || ((TextBox)window.FindName("AuthoredPageOrder")!).Text != "2")
+                if ((pages.SelectedItem as KneeboardPage)?.Id != first.Id || ((TextBox)WorkspaceUi.Find(window, "AuthoredPageOrder")!).Text != "2")
                     throw new InvalidOperationException("Moved page selection or order field was not refreshed.");
                 window.UpdateLayout();
                 var row = (DataGridRow)pages.ItemContainerGenerator.ContainerFromIndex(0);
@@ -78,7 +77,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Page drop bypassed Save to database.");
                 var previous = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
-                try { ((Button)window.FindName("SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+                try { ((Button)WorkspaceUi.Find(window, "SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
                 finally { SynchronizationContext.SetSynchronizationContext(previous); }
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 while (true)
@@ -114,3 +113,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

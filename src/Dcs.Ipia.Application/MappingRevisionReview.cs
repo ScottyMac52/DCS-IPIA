@@ -24,9 +24,18 @@ namespace Dcs.Ipia.Application
             var conflicts = new List<string>();
             var keys = current.Controls.Select(x => revision.Definition.Capabilities.DcsKeys
                 .FirstOrDefault(key => DcsInputKey.SamePhysicalInput(key, x.InputKey)) ?? x.InputKey).ToHashSet(StringComparer.Ordinal);
-            if (!keys.SetEquals(revision.Definition.Capabilities.DcsKeys) ||
+            var definitionKeys = revision.Definition.Capabilities.DcsKeys.ToHashSet(StringComparer.Ordinal);
+            if (!keys.SetEquals(definitionKeys) ||
                 current.GenericCapabilities is not null && ControllerCapabilityMapper.Fingerprint(current.GenericCapabilities) != revision.Definition.Id)
-                conflicts.Add("Native controls differ. Reconcile the controller definition, assignments and modifiers before importing a compatible drawing.");
+            {
+                var onlyInCurrent = keys.Except(definitionKeys, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                var onlyInDefinition = definitionKeys.Except(keys, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                var detail = new List<string>();
+                if (onlyInCurrent.Length > 0) detail.Add("profile-only: " + string.Join(", ", onlyInCurrent));
+                if (onlyInDefinition.Length > 0) detail.Add("definition-only: " + string.Join(", ", onlyInDefinition));
+                conflicts.Add("Native controls differ" + (detail.Count == 0 ? " (capability fingerprint changed)" : ": " + string.Join("; ", detail)) +
+                    ". The profile's existing controls are compared with the selected hardware definition; reconcile the definition, assignments and modifiers before importing.");
+            }
             if (current.CustomMapping is { } previous)
             {
                 var before = previous.Controls.ToDictionary(x => x.Control, StringComparer.Ordinal);

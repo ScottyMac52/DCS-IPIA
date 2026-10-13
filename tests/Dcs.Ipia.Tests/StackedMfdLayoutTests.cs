@@ -13,7 +13,7 @@ namespace Dcs.Ipia.Tests
         #region BEGIN Public
         /// <summary>The supplied drawing imports every Cougar input and reproduces its saved revision.</summary>
         [Fact]
-        public void ImportsCompleteMfdAndPreservesStaticHeadings()
+        public void ImportsCompleteMfdAndPreservesCategoryRegions()
         {
             var revision = Revision();
             Assert.Equal("ipia-drawio-3", revision.ExporterVersion);
@@ -24,7 +24,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("stacked", Text(document, "lbl-b1").Attribute("data-ipia-text-layout")?.Value);
             Assert.Equal("stacked", Text(document, "lbl-b15").Attribute("data-ipia-text-layout")?.Value);
             Assert.Equal("horizontal", Text(document, "lbl-b6").Attribute("data-ipia-text-layout")?.Value);
-            Assert.Equal("LEFT", Text(document, "static-heading-left").Value);
+            Assert.Equal("LEFT", Text(document, "meta-mfd-category-left").Value);
         }
         /// <summary>Base, modifier and UI Layer text keeps its complete content and independent column color.</summary>
         [Theory]
@@ -46,7 +46,9 @@ namespace Dcs.Ipia.Tests
                 Assert.All(column, x => Assert.Equal(variant.Color == "#ffffff" ? "#172033" : variant.Color, x.Attribute("fill")?.Value));
             }
             Assert.Equal(3, spans.Select(x => x.Attribute("x")!.Value).Distinct().Count());
-            Assert.Equal("LEFT", Text(document, "static-heading-left").Value);
+            Assert.All(spans, span => Assert.InRange(float.Parse(span.Attribute("font-size")!.Value,
+                System.Globalization.CultureInfo.InvariantCulture), 16.25f, 36));
+            Assert.Equal("LEFT", Text(document, "meta-mfd-category-left").Value);
             using var png = SKBitmap.Decode(CompositeKneeboardRenderer.Render(diagram, page));
             Assert.Equal(1200, png.Width);
             Assert.Equal(1600, png.Height);
@@ -113,6 +115,62 @@ namespace Dcs.Ipia.Tests
             var page = Page("b1");
             Assert.Contains("larger callout", Assert.Throws<InvalidDataException>(() => CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page)).Message);
         }
+        /// <summary>Short assignments use the authored font instead of a fixed 16-unit cap.</summary>
+        [Theory]
+        [InlineData("b1")]
+        [InlineData("b6")]
+        public void HonorsAuthoredFontForShortAssignments(string control)
+        {
+            var page = new KneeboardComposite("MFD", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                [control] = [new("Gear", "#ffffff", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), []);
+            var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(Diagram(Revision()), page));
+            Assert.All(Text(document, "lbl-" + control).Elements(), x => Assert.Equal("36", x.Attribute("font-size")?.Value));
+        }
+        /// <summary>Existing MFD category keys substitute text at the new upright/horizontal regions.</summary>
+        [Fact]
+        public void ReplacesAllFourCategoryHeadingsAtAuthoredPositions()
+        {
+            var revision = Revision();
+            var categories = new Dictionary<string, string>
+            {
+                ["mfd-category-left"] = "Flight",
+                ["mfd-category-right"] = "Radio",
+                ["mfd-category-top"] = "Navigation",
+                ["mfd-category-bottom"] = "Weapons"
+            };
+            var page = new KneeboardComposite("MFD", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(), categories, []);
+            var document = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(Diagram(revision), page));
+            foreach (var (key, value) in categories)
+            {
+                var text = Text(document, "meta-" + key);
+                Assert.Equal(value, text.Value);
+                var original = Text(XDocument.Parse(revision.Svg), "meta-" + key);
+                Assert.Equal(double.Parse(original.Attribute("x")!.Value, System.Globalization.CultureInfo.InvariantCulture),
+                    double.Parse(text.Attribute("x")!.Value, System.Globalization.CultureInfo.InvariantCulture), 3);
+                Assert.All(text.Elements(), span => Assert.Equal("32", span.Attribute("font-size")?.Value));
+                if (key.EndsWith("left", StringComparison.Ordinal) || key.EndsWith("right", StringComparison.Ordinal))
+                    Assert.Equal(value.Length, text.Elements().Count());
+            }
+            using var png = SKBitmap.Decode(CompositeKneeboardRenderer.Render(Diagram(revision), page));
+            Assert.NotNull(png);
+        }
+        /// <summary>Existing drawings ignore authored sizes unless they opt into the new layout.</summary>
+        [Fact]
+        public void UnmarkedLiveLabelsKeepLegacyFontSize()
+        {
+            var diagram = Diagram(Revision());
+            var svg = XDocument.Parse(diagram.Svg);
+            foreach (var text in svg.Descendants()) text.Attribute("data-ipia-text-layout")?.Remove();
+            diagram = diagram with { Svg = svg.ToString() };
+            var page = new KneeboardComposite("MFD", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["b6"] = [new("Gear", "#ffffff", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), []);
+            var rendered = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            Assert.All(Text(rendered, "lbl-b6").Elements(), span => Assert.Equal("16", span.Attribute("font-size")?.Value));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static UserMappingRevision Revision() => DrawioMappingImporter.Import(
@@ -132,7 +190,7 @@ namespace Dcs.Ipia.Tests
             [control] = [new("Base command", "#ffffff", AssignmentLayer.Module, ""),
                 new("Shift command", "#dc2626", AssignmentLayer.Module, "SHIFT"),
                 new("UI command", "#0891b2", AssignmentLayer.UiLayer, "")]
-        }, new Dictionary<string, string>(), [new("Base", "#ffffff"), new("SHIFT", "#dc2626"), new("UI Layer", "#0891b2")]);
+        }, new Dictionary<string, string> { ["mfd-category-left"] = "LEFT" }, [new("Base", "#ffffff"), new("SHIFT", "#dc2626"), new("UI Layer", "#0891b2")]);
         private static XElement Text(XDocument document, string id) => document.Descendants().Single(x => x.Attribute("id")?.Value == id);
         #endregion END private helpers
     }
