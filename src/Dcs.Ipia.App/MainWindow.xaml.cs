@@ -241,7 +241,7 @@ namespace DcsIpia.Presentation
                             if (diagram.CustomMapping is { } pin) modulePins.Add(pin);
                         }
                     }
-                    var definitions = inventory.Definitions.Concat(revisions.Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
+                    var definitions = inventory.Definitions.Concat(revisions.Concat(modulePins).Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
                     var dialog = new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins,
                         bundledDrawingsDirectory: Path.Combine(BundledSharedCatalog.Root, "assets", "shared", "hardware", "drawio"),
                         canDiscoverHardware: true, bundledInputs: bundledInputs, workspaces: _workspaces) { Owner = this };
