@@ -113,6 +113,10 @@ namespace Dcs.Ipia.App.Smoke
                     ((Image)WorkspaceUi.Find(reviewWindow, "RevisionAfterPreview")!).Source is null)
                     throw new InvalidOperationException("Revision comparison did not show current and proposed artwork.");
                 var target = (CheckBox)WorkspaceUi.Find(reviewWindow, "RevisionTarget_0")!;
+                Click((Button)WorkspaceUi.Find(reviewWindow, "SelectAllRevisionTargetsButton")!);
+                if (target.IsChecked != true) throw new InvalidOperationException("Select all compatible omitted an eligible device.");
+                Click((Button)WorkspaceUi.Find(reviewWindow, "ClearRevisionTargetsButton")!);
+                if (target.IsChecked != false) throw new InvalidOperationException("Clear selection retained a selected device.");
                 target.IsChecked = true;
                 Click((Button)WorkspaceUi.Find(reviewWindow, "StageRevisionTargetsButton")!);
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping!.Id != revision.Id)
@@ -155,7 +159,40 @@ namespace Dcs.Ipia.App.Smoke
                 var savedMfd = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd.drawio");
                 if (savedMfd.Controls.Count != 48 || savedMfd.MappedInputs.Count != 28)
                     throw new InvalidOperationException("Real bundled MFD preview lost its base/shifted label pairs.");
-                Console.WriteLine("Custom mapping preview, save, source-free reopen/export and staged/discarded/saved adoption passed.");
+                var mfdWorkspace = NewModuleWorkspaceFactory.Create("GLOBAL-MFD-SMOKE", "Global MFD smoke", defaults,
+                    new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true);
+                mfdWorkspace = WorkspaceStructureEditor.AddDevice(mfdWorkspace, mfd, AssignmentLayer.Module,
+                    "MFD {22222222-2222-2222-2222-222222222222}.diff.lua", "Left", "Pilot");
+                repository.SaveAsync(mfdWorkspace).GetAwaiter().GetResult();
+                var globalReview = new MappingRevisionReviewWindow(savedMfd, repository);
+                globalReview.Show();
+                Pump(globalReview, () => WorkspaceUi.Find(globalReview, "RevisionTarget_1") is CheckBox);
+                var targets = Enumerable.Range(0, 2).Select(i => (Index: i, Choice: (CheckBox)WorkspaceUi.Find(globalReview, "RevisionTarget_" + i)!)).ToArray();
+                Click((Button)WorkspaceUi.Find(globalReview, "SelectAllRevisionTargetsButton")!);
+                if (targets.Count(x => x.Choice.IsChecked == true) != 1 ||
+                    !targets.Single(x => x.Choice.IsChecked == true).Choice.Content.ToString()!.Contains("Global MFD smoke", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Global drawing selection included an incompatible device or omitted a built-in MFD.");
+                Click((Button)WorkspaceUi.Find(globalReview, "StageRevisionTargetsButton")!);
+                Click((Button)WorkspaceUi.Find(globalReview, "SaveRevisionTargetsButton")!);
+                Pump(globalReview, () => ((TextBlock)WorkspaceUi.Find(globalReview, "RevisionReviewStatus")!).Text.StartsWith("Saved reviewed changes", StringComparison.Ordinal));
+                globalReview.Close();
+                var changedMfd = repository.GetAsync(mfdWorkspace.Configuration.Module.Id).GetAwaiter().GetResult()!;
+                if (changedMfd.Diagrams.Single().OriginalDrawing is null || changedMfd.Diagrams.Single().CustomMapping?.Id != savedMfd.Id)
+                    throw new InvalidOperationException("Global MFD replacement did not retain the original built-in artwork.");
+                var rollbackReview = new MappingRevisionReviewWindow(savedMfd, repository);
+                rollbackReview.Show();
+                Pump(rollbackReview, () => WorkspaceUi.Find(rollbackReview, "RevisionTarget_1") is CheckBox);
+                var originalButton = Enumerable.Range(0, 2).Select(i => WorkspaceUi.Find(rollbackReview, "RestoreOriginalDrawing_" + i)).OfType<Button>().Single();
+                Click(originalButton);
+                if (repository.GetAsync(mfdWorkspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single().CustomMapping is null)
+                    throw new InvalidOperationException("Staging an original drawing changed saved data.");
+                Click((Button)WorkspaceUi.Find(rollbackReview, "SaveRevisionTargetsButton")!);
+                Pump(rollbackReview, () => ((TextBlock)WorkspaceUi.Find(rollbackReview, "RevisionReviewStatus")!).Text.StartsWith("Saved reviewed changes", StringComparison.Ordinal));
+                rollbackReview.Close();
+                var restoredMfd = repository.GetAsync(mfdWorkspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Single();
+                if (restoredMfd.CustomMapping is not null || restoredMfd.Svg != mfdWorkspace.Diagrams.Single().Svg || restoredMfd.MappingHistory?.Count != 1)
+                    throw new InvalidOperationException("Original built-in drawing restoration lost artwork or custom history.");
+                Console.WriteLine("Custom mapping upload, selective/global replacement and original built-in rollback passed.");
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
         }

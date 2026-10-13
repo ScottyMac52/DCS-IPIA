@@ -25,7 +25,8 @@ namespace Dcs.Ipia.Application
             var keys = current.Controls.Select(x => revision.Definition.Capabilities.DcsKeys
                 .FirstOrDefault(key => DcsInputKey.SamePhysicalInput(key, x.InputKey)) ?? x.InputKey).ToHashSet(StringComparer.Ordinal);
             var definitionKeys = revision.Definition.Capabilities.DcsKeys.ToHashSet(StringComparer.Ordinal);
-            if (!keys.SetEquals(definitionKeys) ||
+            var firstBuiltInReplacement = current.CustomMapping is null && current.GenericCapabilities is null;
+            if (!(firstBuiltInReplacement ? keys.IsSubsetOf(definitionKeys) : keys.SetEquals(definitionKeys)) ||
                 current.GenericCapabilities is not null && ControllerCapabilityMapper.Fingerprint(current.GenericCapabilities) != revision.Definition.Id)
             {
                 var onlyInCurrent = keys.Except(definitionKeys, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
@@ -40,15 +41,7 @@ namespace Dcs.Ipia.Application
             {
                 var before = previous.Controls.ToDictionary(x => x.Control, StringComparer.Ordinal);
                 var after = revision.Controls.ToDictionary(x => x.Control, StringComparer.Ordinal);
-                foreach (var control in before.Values)
-                {
-                    if (!after.TryGetValue(control.Control, out var replacement))
-                        conflicts.Add("Removed or renamed marker " + control.Control + ". Restore its stable label ID and inputKey in draw.io; control changes require reconciliation.");
-                    else if (!DcsInputKey.SamePhysicalInput(control.InputKey, replacement.InputKey) || control.IsAxis != replacement.IsAxis)
-                        conflicts.Add("Marker " + control.Control + " moved from " + control.InputKey + " to " + replacement.InputKey + ". Restore the original inputKey or reconcile assignments explicitly.");
-                }
-                foreach (var control in after.Values.Where(x => !before.ContainsKey(x.Control)))
-                    conflicts.Add("Added or renamed marker " + control.Control + ". Preserve existing marker IDs or reconcile control identities before adoption.");
+                CheckMarkers(previous.Controls, revision.Controls, conflicts, allowAdded: false);
                 var moved = before.Values.Count(x => after.TryGetValue(x.Control, out var next) &&
                     (x.X != next.X || x.Y != next.Y || x.Width != next.Width || x.Height != next.Height));
                 changes.Add(moved + " control boxes moved or resized.");
@@ -58,10 +51,32 @@ namespace Dcs.Ipia.Application
                 changes.Add(previous.SourceSha256 == revision.SourceSha256 ? "Editable source unchanged." : "Editable source changed.");
                 changes.Add("Pinned " + previous.Title + " → " + revision.Title + ".");
             }
-            else changes.Add("Replace the current layout with " + revision.Title + ".");
+            else
+            {
+                if (current.GenericCapabilities is null)
+                    CheckMarkers(current.Controls, revision.Controls, conflicts, allowAdded: true);
+                changes.Add("Replace the current layout with " + revision.Title + ".");
+            }
             changes.Add("Assignments, tuning, modifiers, physical profile identities and module-owned labels are preserved.");
             return new(changes, conflicts);
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static void CheckMarkers(IReadOnlyList<HardwareGraphicControl> before,
+            IReadOnlyList<HardwareGraphicControl> after, List<string> conflicts, bool allowAdded)
+        {
+            var replacements = after.ToDictionary(x => x.Control, StringComparer.Ordinal);
+            foreach (var control in before)
+            {
+                if (!replacements.TryGetValue(control.Control, out var replacement))
+                    conflicts.Add("Removed or renamed marker " + control.Control + ". Restore its stable label ID and inputKey in draw.io; control changes require reconciliation.");
+                else if (!DcsInputKey.SamePhysicalInput(control.InputKey, replacement.InputKey) || control.IsAxis != replacement.IsAxis)
+                    conflicts.Add("Marker " + control.Control + " moved from " + control.InputKey + " to " + replacement.InputKey + ". Restore the original inputKey or reconcile assignments explicitly.");
+            }
+            var markers = before.Select(x => x.Control).ToHashSet(StringComparer.Ordinal);
+            foreach (var control in after.Where(x => !allowAdded && !markers.Contains(x.Control)))
+                conflicts.Add("Added or renamed marker " + control.Control + ". Preserve existing marker IDs or reconcile control identities before adoption.");
+        }
+        #endregion END private helpers
     }
 }
