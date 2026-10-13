@@ -72,9 +72,11 @@ namespace Dcs.Ipia.App.Smoke
             var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
             var upper = panes.RowDefinitions[1];
             var lower = panes.RowDefinitions[3];
-            if (upper.ActualHeight + lower.ActualHeight - upper.MinHeight - lower.MinHeight < 20)
+            for (var attempt = 0; attempt < 5 &&
+                upper.ActualHeight + lower.ActualHeight - upper.MinHeight - lower.MinHeight < 40; attempt++)
             {
                 window.Height += 160;
+                window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
                 window.UpdateLayout();
             }
             var upperBefore = upper.ActualHeight;
@@ -86,7 +88,7 @@ namespace Dcs.Ipia.App.Smoke
             if (splitter.ResizeDirection != GridResizeDirection.Rows || splitter.ResizeBehavior != GridResizeBehavior.PreviousAndNext ||
                 Math.Abs(upper.ActualHeight - upperBefore) < 1 || Math.Abs(lower.ActualHeight - lowerBefore) < 1 ||
                 Math.Abs(upper.ActualHeight + lower.ActualHeight - upperBefore - lowerBefore) > 1)
-                throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}.");
+                throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}; window={window.ActualHeight}, view={view.ActualHeight}, panes={panes.ActualHeight}.");
             InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (source?.Disposed != true || !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)

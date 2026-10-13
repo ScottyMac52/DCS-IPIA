@@ -112,7 +112,8 @@ namespace DcsIpia.Features.Assignments
                 .Concat(assignments.Where(x => x.Slot.Layer == CurrentLayer).Select(x => x.Slot.ModifierChord))
                 .Concat(importedUiChords)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Replace(LayerSeparatorTrim, LayerSeparator, StringComparison.Ordinal))
+                .Select(x => x.Replace(LayerSeparator, LayerSeparatorTrim, StringComparison.Ordinal)
+                    .Replace(LayerSeparatorTrim, LayerSeparator, StringComparison.Ordinal))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
             var selectedLayer = Layers.SelectedItem as string;
