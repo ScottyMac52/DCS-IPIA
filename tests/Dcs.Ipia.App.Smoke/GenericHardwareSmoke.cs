@@ -43,13 +43,13 @@ namespace Dcs.Ipia.App.Smoke
                 var deadline = DateTime.UtcNow.AddSeconds(30);
                 timer.Tick += (_, _) =>
                 {
-                    var choices = (ComboBox)creation.FindName("InventoryChoices")!;
+                    var choices = (ComboBox)WorkspaceUi.Find(creation, "InventoryChoices")!;
                     if (submitted)
                     {
                         if (creation.CreatedWorkspace is not null) { timer.Stop(); return; }
-                        if (((Button)creation.FindName("CreateButton")!).IsEnabled || DateTime.UtcNow >= deadline)
+                        if (((Button)WorkspaceUi.Find(creation, "CreateButton")!).IsEnabled || DateTime.UtcNow >= deadline)
                         {
-                            failure = new InvalidOperationException("Generic creation failed: " + ((TextBlock)creation.FindName("CreationError")!).Text);
+                            failure = new InvalidOperationException("Generic creation failed: " + ((TextBlock)WorkspaceUi.Find(creation, "CreationError")!).Text);
                             timer.Stop(); creation.Close();
                         }
                         return;
@@ -57,19 +57,19 @@ namespace Dcs.Ipia.App.Smoke
                     if (choices.Items.Count != 2 && DateTime.UtcNow < deadline) return;
                     try
                     {
-                        if (choices.Items.Count != 2 || ((CheckBox)creation.FindName("EmptyDefaults")!).IsChecked != true)
+                        if (choices.Items.Count != 2 || ((CheckBox)WorkspaceUi.Find(creation, "EmptyDefaults")!).IsChecked != true)
                             throw new InvalidOperationException("Neutral creation or repeated inventory selection is missing.");
-                        ((TextBox)creation.FindName("DcsIdInput")!).Text = "GENERIC-SMOKE";
-                        ((TextBox)creation.FindName("DisplayNameInput")!).Text = "Generic smoke";
+                        ((TextBox)WorkspaceUi.Find(creation, "DcsIdInput")!).Text = "GENERIC-SMOKE";
+                        ((TextBox)WorkspaceUi.Find(creation, "DisplayNameInput")!).Text = "Generic smoke";
                         for (var index = 0; index < 2; index++)
                         {
                             choices.SelectedIndex = index;
-                            Click((Button)creation.FindName("AddUnitButton")!);
+                            Click((Button)WorkspaceUi.Find(creation, "AddUnitButton")!);
                         }
-                        if (((ListBox)creation.FindName("SelectedUnits")!).Items.Count != 2)
-                            throw new InvalidOperationException("Generic units were not explicitly added: " + ((TextBlock)creation.FindName("CreationError")!).Text);
+                        if (((ListBox)WorkspaceUi.Find(creation, "SelectedUnits")!).Items.Count != 2)
+                            throw new InvalidOperationException("Generic units were not explicitly added: " + ((TextBlock)WorkspaceUi.Find(creation, "CreationError")!).Text);
                         submitted = true;
-                        Click((Button)creation.FindName("CreateButton")!);
+                        Click((Button)WorkspaceUi.Find(creation, "CreateButton")!);
                     }
                     catch (Exception ex) { failure = ex; timer.Stop(); creation.Close(); }
                 };
@@ -82,28 +82,28 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Generic creation copied personal defaults or lost distinct physical units.");
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, inventory: manager);
                 editor.Show();
-                var units = (ComboBox)editor.FindName("InventoryUnits")!;
+                var units = (ComboBox)WorkspaceUi.Find(editor, "InventoryUnits")!;
                 Pump(editor, () => units.Items.Count == 2);
-                ((ComboBox)editor.FindName("DevicesScope")!).SelectedIndex = 1;
+                ((ComboBox)WorkspaceUi.Find(editor, "DevicesScope")!).SelectedIndex = 1;
                 units.SelectedIndex = 0;
-                Click((Button)editor.FindName("AddInventoryButton")!);
-                var message = ((TextBlock)editor.FindName("DevicesMessage")!).Text;
-                if (!message.StartsWith("Change staged", StringComparison.Ordinal)) throw new InvalidOperationException(message);
-                var canvas = (Canvas)editor.FindName("Diagram")!;
+                Click((Button)WorkspaceUi.Find(editor, "AddInventoryButton")!);
+                var message = ((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")!).Text;
+                if (!message.Contains("staged", StringComparison.Ordinal)) throw new InvalidOperationException(message);
+                var canvas = (Canvas)WorkspaceUi.Find(editor, "Diagram")!;
                 var target = canvas.Children.OfType<Canvas>().Single().Children.OfType<Border>()
                     .First(x => x.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1");
                 target.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
                     { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
-                ((TextBox)editor.FindName("GenericControlName")!).Text = "Master arm";
-                Click((Button)editor.FindName("RenameGenericControlButton")!);
-                Click((Button)editor.FindName("SaveAuthoringButton")!);
-                Pump(editor, () => ((TextBlock)editor.FindName("PendingSummary")!).Text == "No pending assignment changes");
-                var pages = (ComboBox)editor.FindName("GenericPageChoice")!;
-                ((ListBox)editor.FindName("KneeboardList")!).SelectedIndex = 0;
+                ((TextBox)WorkspaceUi.Find(editor, "GenericControlName")!).Text = "Master arm";
+                Click((Button)WorkspaceUi.Find(editor, "RenameGenericControlButton")!);
+                Click((Button)WorkspaceUi.Find(editor, "SaveAuthoringButton")!);
+                Pump(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "PendingSummary")!).Text == "No pending assignment changes");
+                var pages = (ComboBox)WorkspaceUi.Find(editor, "GenericPageChoice")!;
+                ((ListBox)WorkspaceUi.Find(editor, "KneeboardList")!).SelectedIndex = 0;
                 Pump(editor, () => pages.Items.Count > 1);
                 pages.SelectedIndex = 1;
-                if (!((TextBlock)editor.FindName("KneeboardCaption")!).Text.Contains("-002.png", StringComparison.Ordinal) ||
-                    ((Image)editor.FindName("KneeboardPreview")!).Source is null)
+                if (!((TextBlock)WorkspaceUi.Find(editor, "KneeboardCaption")!).Text.Contains("-002.png", StringComparison.Ordinal) ||
+                    ((Image)WorkspaceUi.Find(editor, "KneeboardPreview")!).Source is null)
                     throw new InvalidOperationException("Saved generic pagination did not select the packaged second page.");
                 editor.Close();
                 var reopened = repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!;
@@ -134,3 +134,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

@@ -28,7 +28,7 @@ namespace Dcs.Ipia.App.Smoke
             LoggingSmoke.Verify();
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
             var app = new System.Windows.Application();
-            foreach (var theme in new[] { "Light", "Styles" })
+            foreach (var theme in new[] { "Light", "Styles", "Controls" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
                     Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute)
@@ -61,7 +61,7 @@ namespace Dcs.Ipia.App.Smoke
             PageOrderSmoke.Verify();
             Console.WriteLine("Smoke: input testing.");
             InputTestSmoke.Verify();
-            var defaultText = (TextBox)defaultsWindow.FindName("SourceText")!;
+            var defaultText = (TextBox)WorkspaceUi.Find(defaultsWindow, "SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
             Console.WriteLine("Smoke: hardware inventory.");
@@ -82,10 +82,11 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Workspace title must show only a four-part application version.");
             defaultsWindow.Close();
             folderWindow.UpdateLayout();
-            var folderTabs = (TabControl)folderWindow.FindName("ImportedTabs")!;
-            if (!folderWindow.IsVisible || (folderTabs.SelectedItem as TabItem)?.Header?.ToString() != "Diagnostics")
+            var folderNav = (ListBox)folderWindow.FindName("FeatureNav")!;
+            var diagnostics = (ListBox)folderWindow.FindName("ImportDiagnostics")!;
+            if (!folderWindow.IsVisible || !diagnostics.Items.Cast<string>().Any(x => x.Contains("bad-profile", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
-            if (!folderTabs.Items.Cast<TabItem>().Take(3).Select(x => x.Header.ToString()).SequenceEqual(NavigationHeaders))
+            if (!folderNav.Items.Cast<ListBoxItem>().Take(3).Select(x => x.Content.ToString()).SequenceEqual(NavigationHeaders))
                 throw new InvalidOperationException("Devices and Modifiers must precede Assignments.");
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             var mfd = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
@@ -175,21 +176,21 @@ namespace Dcs.Ipia.App.Smoke
             var savedWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(loaded), null, repository);
             savedWindow.Show();
             savedWindow.UpdateLayout();
-            if (!savedWindow.IsVisible || ((Canvas)savedWindow.FindName("Diagram")!).Children.Count == 0)
+            if (!savedWindow.IsVisible || ((Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!).Children.Count == 0)
                 throw new InvalidOperationException("Database-backed graphical assignment editor did not display.");
-            var managedDevices = (DataGrid)savedWindow.FindName("ManagedDevices")!;
+            var managedDevices = (DataGrid)WorkspaceUi.Find(savedWindow, "ManagedDevices")!;
             managedDevices.SelectedIndex = 0;
-            if (managedDevices.Items.Count != 1 || ((TextBox)savedWindow.FindName("ManagedFileName")!).Text != "MFD3.diff.lua" ||
-                !((GroupBox)savedWindow.FindName("MfdLabelFields")!).IsEnabled)
+            if (managedDevices.Items.Count != 1 || ((TextBox)WorkspaceUi.Find(savedWindow, "ManagedFileName")!).Text != "MFD3.diff.lua" ||
+                !((GroupBox)WorkspaceUi.Find(savedWindow, "MfdLabelFields")!).IsEnabled)
                 throw new InvalidOperationException("The Devices editor did not show the stored module MFD and its editable fields.");
-            var managedModifiers = (DataGrid)savedWindow.FindName("ManagedModifiers")!;
+            var managedModifiers = (DataGrid)WorkspaceUi.Find(savedWindow, "ManagedModifiers")!;
             if (managedModifiers.Items.Count != 1 || ((WorkspaceModifier)managedModifiers.Items[0]).Name != "MOZA_F16_F18_BTN3")
                 throw new InvalidOperationException("The Modifiers editor did not show the stored module definitions.");
-            var layers = (ComboBox)savedWindow.FindName("Layers")!;
-            var scope = (ComboBox)savedWindow.FindName("Scope")!;
+            var layers = (ComboBox)WorkspaceUi.Find(savedWindow, "Layers")!;
+            var scope = (ComboBox)WorkspaceUi.Find(savedWindow, "Scope")!;
             string Caption(string control)
             {
-                var canvas = (Canvas)savedWindow.FindName("Diagram")!;
+                var canvas = (Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!;
                 var surface = canvas.Children.OfType<Canvas>().Single();
                 var target = surface.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl item &&
                                                                            item.Control == control);
@@ -197,7 +198,7 @@ namespace Dcs.Ipia.App.Smoke
             }
             string MaskCaption(string id)
             {
-                var canvas = (Canvas)savedWindow.FindName("Diagram")!;
+                var canvas = (Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!;
                 var surface = canvas.Children.OfType<Canvas>().Single();
                 var target = surface.Children.OfType<Border>().Single(x => x.Tag is string marker && marker == id);
                 return ((TextBlock)target.Child).Text;
@@ -205,7 +206,7 @@ namespace Dcs.Ipia.App.Smoke
             if (Caption("mfd-osb-t1") != "Base authored" || Caption("trim-up") != "Pilot" ||
                 Caption("mfd-osb-t2") != "Unassigned" || MaskCaption("mfd-osb-t1-shifted") != "Unassigned" ||
                 MaskCaption("unmapped") != "Unassigned" ||
-                ((Canvas)savedWindow.FindName("Diagram")!)
+                ((Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!)
                     .Children.OfType<Canvas>()
                     .Single()
                     .Children.OfType<Border>()
@@ -241,10 +242,10 @@ namespace Dcs.Ipia.App.Smoke
                 new ModuleWorkspaceViewModel(repository.GetAsync(module.Id).GetAwaiter().GetResult()!), null,
                 repository);
             clearedWindow.Show();
-            ((ComboBox)clearedWindow.FindName("Scope")!).SelectedIndex = 1;
-            ((ComboBox)clearedWindow.FindName("Layers")!).SelectedIndex = 1;
+            ((ComboBox)WorkspaceUi.Find(clearedWindow, "Scope")!).SelectedIndex = 1;
+            ((ComboBox)WorkspaceUi.Find(clearedWindow, "Layers")!).SelectedIndex = 1;
             clearedWindow.UpdateLayout();
-            var clearedSurface = ((Canvas)clearedWindow.FindName("Diagram")!).Children.OfType<Canvas>().Single();
+            var clearedSurface = ((Canvas)WorkspaceUi.Find(clearedWindow, "Diagram")!).Children.OfType<Canvas>().Single();
             var clearedControl = clearedSurface.Children.OfType<Border>().Single(
                 x => x.Tag is HardwareGraphicControl item && item.Control == "mfd-osb-t1-shifted");
             if (((TextBlock)clearedControl.Child).Text != "Unassigned")
@@ -267,8 +268,8 @@ namespace Dcs.Ipia.App.Smoke
                 var preferencesWindow = new SettingsWindow(settings);
                 preferencesWindow.Show();
                 preferencesWindow.UpdateLayout();
-                ((ComboBox)preferencesWindow.FindName("ThemeChoice")!).SelectedIndex = 1;
-                ((ComboBox)preferencesWindow.FindName("ConflictChoice")!).SelectedIndex = 2;
+                ((ComboBox)WorkspaceUi.Find(preferencesWindow, "ThemeChoice")!).SelectedIndex = 1;
+                ((ComboBox)WorkspaceUi.Find(preferencesWindow, "ConflictChoice")!).SelectedIndex = 2;
                 if (settings.Current.Theme != AppearanceTheme.Dark ||
                     settings.Current.OccupiedDestinationBehavior != OccupiedDestinationBehavior.Reject ||
                     new SqliteAppSettingsService(preferenceConnection, Path.Combine(preferencesRoot, "defaults.json"),
@@ -316,44 +317,44 @@ namespace Dcs.Ipia.App.Smoke
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
-                var pages = (DataGrid)window.FindName("AuthoredPages")!;
-                var removePage = (Button)window.FindName("RemoveAuthoredPageButton")!;
-                ((Button)window.FindName("GenerateSummaryButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var pages = (DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!;
+                var removePage = (Button)WorkspaceUi.Find(window, "RemoveAuthoredPageButton")!;
+                ((Button)WorkspaceUi.Find(window, "GenerateSummaryButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (pages.Items.Count != 4 || pages.Items.Cast<KneeboardPage>().Count(x => x.Kind == KneeboardPageKind.Summary) != 2)
                     throw new InvalidOperationException("Generate Summary did not append a summary page.");
                 var generated = pages.Items.Cast<KneeboardPage>().Single(x => x.StableKey == "summary-2");
                 pages.SelectedItem = generated;
-                var cards = (ListBox)window.FindName("SummaryCards")!;
+                var cards = (ListBox)WorkspaceUi.Find(window, "SummaryCards")!;
                 if (cards.Items.Count != 2 || cards.Items.Cast<ModuleSummaryCard>().Last().Text != "Deleted device")
                     throw new InvalidOperationException("Generated summary did not include all device pages.");
-                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore pages after summary generation.");
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == live.Id);
                 if (!removePage.IsEnabled) throw new InvalidOperationException("A live device page could not be removed.");
                 removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (pages.Items.Count != 2 || ((DataGrid)window.FindName("ManagedDevices")!).Items.Count != 1)
+                if (pages.Items.Count != 2 || ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).Items.Count != 1)
                     throw new InvalidOperationException("Page removal did not retain its device.");
-                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore the live device page.");
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == orphan.Id);
                 if (!removePage.IsEnabled) throw new InvalidOperationException("An orphan page could not be removed.");
                 removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (pages.Items.Count != 3) throw new InvalidOperationException("Discard did not restore the orphan draft.");
                 pages.SelectedItem = pages.Items.Cast<KneeboardPage>().Single(x => x.Id == orphan.Id);
                 removePage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                ClickWithDispatcherContext((Button)window.FindName("SaveAuthoringButton")!);
+                ClickWithDispatcherContext((Button)WorkspaceUi.Find(window, "SaveAuthoringButton")!);
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 while (repository.GetAsync(module.Id).GetAwaiter().GetResult()!.Pages.Count != 2)
                 {
                     if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Orphan removal did not save.");
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
-                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
-                ((Button)window.FindName("RemoveManagedDeviceButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
+                ((Button)WorkspaceUi.Find(window, "RemoveManagedDeviceButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (pages.Items.Count != 1 || pages.Items.Cast<KneeboardPage>().Single().Id != summary.Id || pages.Items.Cast<KneeboardPage>().Single().Order != 0)
                     throw new InvalidOperationException("Device removal did not remove its page and compact order.");
-                ClickWithDispatcherContext((Button)window.FindName("SaveAuthoringButton")!);
+                ClickWithDispatcherContext((Button)WorkspaceUi.Find(window, "SaveAuthoringButton")!);
                 deadline = DateTime.UtcNow.AddSeconds(15);
                 while (repository.GetAsync(module.Id).GetAwaiter().GetResult()!.Pages.Count != 1)
                 {
@@ -396,50 +397,50 @@ namespace Dcs.Ipia.App.Smoke
                     axisDefaultsFilePicker: () => Path.Combine(htmlRoot, "axes.diff.lua"));
                 window.Show();
                 window.UpdateLayout();
-                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
-                if (((TextBox)window.FindName("ManagedFileName")!).Text != profile.SourceName)
+                ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
+                if (((TextBox)WorkspaceUi.Find(window, "ManagedFileName")!).Text != profile.SourceName)
                     throw new InvalidOperationException("A newly created device without page metadata could not be selected.");
-                ((Button)window.FindName("MissingDevicePagesButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (((DataGrid)window.FindName("AuthoredPages")!).Items.Count != 1)
+                ((Button)WorkspaceUi.Find(window, "MissingDevicePagesButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (((DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!).Items.Count != 1)
                     throw new InvalidOperationException("Missing device pages did not initialize from the New Module manifest.");
-                ((TextBox)window.FindName("AircraftCommandCode")!).Text = "KEY";
-                ((TextBox)window.FindName("AircraftCommandName")!).Text = "Test action";
-                ((TextBox)window.FindName("AircraftCommandCategory")!).Text = "Keys";
-                ((Button)window.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var commands = (DataGrid)window.FindName("AuthoredCommands")!;
-                var palette = (ListBox)window.FindName("Commands")!;
-                if (commands.Items.Count != 1 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "KEY"))
+                ((TextBox)WorkspaceUi.Find(window, "AircraftCommandCode")!).Text = "KEY";
+                ((TextBox)WorkspaceUi.Find(window, "AircraftCommandName")!).Text = "Test action";
+                ((TextBox)WorkspaceUi.Find(window, "AircraftCommandCategory")!).Text = "Keys";
+                ((Button)WorkspaceUi.Find(window, "StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var commands = (DataGrid)WorkspaceUi.Find(window, "AuthoredCommands")!;
+                var palette = (DataGrid)WorkspaceUi.Find(window, "Commands")!;
+                if (commands.Items.Count != 1 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "KEY"))
                     throw new InvalidOperationException("Authored aircraft command did not refresh the assignment palette.");
                 foreach (var buttonName in CommandImportButtons)
                 {
                     window.Dispatcher.BeginInvoke(new Action(() => {
                         var reviewWindow = System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single();
-                        if (((DataGrid)reviewWindow.FindName("ImportChanges")!).Items.Count != 1 ||
-                            !((Button)reviewWindow.FindName("StageImportButton")!).IsEnabled)
+                        if (((DataGrid)WorkspaceUi.Find(reviewWindow, "ImportChanges")!).Items.Count != 1 ||
+                            !((Button)WorkspaceUi.Find(reviewWindow, "StageImportButton")!).IsEnabled)
                             throw new InvalidOperationException("Command import review did not expose the validated addition.");
-                        ((Button)reviewWindow.FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        ((Button)WorkspaceUi.Find(reviewWindow, "StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }));
-                    ((Button)window.FindName(buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((Button)WorkspaceUi.Find(window, buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }
-                if (commands.Items.Count != 3 || !palette.Items.Cast<CommandPaletteEntry>().Any(x => x.Id == "a2001cdnil") ||
-                    !((ComboBox)window.FindName("CommandCategory")!).Items.Cast<string>().Contains("Flight"))
+                if (commands.Items.Count != 3 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "a2001cdnil") ||
+                    !((ComboBox)WorkspaceUi.Find(window, "CommandCategory")!).Items.Cast<string>().Contains("Flight"))
                     throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().DialogResult = false;
                 }));
-                ((Button)window.FindName("LoadCommandHtmlButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "LoadCommandHtmlButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3) throw new InvalidOperationException("Cancelling import changed the catalog.");
-                ((ComboBox)window.FindName("AuthoredPageKind")!).SelectedItem = KneeboardPageKind.Summary;
-                ((TextBox)window.FindName("AuthoredPageFile")!).Text = "overview";
-                ((TextBox)window.FindName("AuthoredPageTitle")!).Text = "OVERVIEW";
-                ((TextBox)window.FindName("AuthoredPageSubtitle")!).Text = "CONTROLS";
-                ((TextBox)window.FindName("SummaryCardKey")!).Text = "STICK";
-                ((TextBox)window.FindName("SummaryCardText")!).Text = "Flight controls";
-                ((Button)window.FindName("SetSummaryCardButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                ((Button)window.FindName("StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (((DataGrid)window.FindName("AuthoredPages")!).Items.Count != 2)
+                ((ComboBox)WorkspaceUi.Find(window, "AuthoredPageKind")!).SelectedItem = KneeboardPageKind.Summary;
+                ((TextBox)WorkspaceUi.Find(window, "AuthoredPageFile")!).Text = "overview";
+                ((TextBox)WorkspaceUi.Find(window, "AuthoredPageTitle")!).Text = "OVERVIEW";
+                ((TextBox)WorkspaceUi.Find(window, "AuthoredPageSubtitle")!).Text = "CONTROLS";
+                ((TextBox)WorkspaceUi.Find(window, "SummaryCardKey")!).Text = "STICK";
+                ((TextBox)WorkspaceUi.Find(window, "SummaryCardText")!).Text = "Flight controls";
+                ((Button)WorkspaceUi.Find(window, "SetSummaryCardButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (((DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!).Items.Count != 2)
                     throw new InvalidOperationException("Authored summary page did not stage.");
-                ((Button)window.FindName("SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 while (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.Pages.Count != 2)
                 {
@@ -447,11 +448,11 @@ namespace Dcs.Ipia.App.Smoke
                         throw new InvalidOperationException("Commands and pages did not save to SQLite.");
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
-                commands.SelectedItem = commands.Items.Cast<CommandPaletteEntry>().Single(x => x.Id == "KEY");
-                ((TextBox)window.FindName("AircraftCommandName")!).Text = "Discarded name";
-                ((Button)window.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (commands.Items.Cast<CommandPaletteEntry>().Single(x => x.Id == "KEY").Name != "Test action")
+                WorkspaceUi.SelectCommand(commands, "KEY");
+                ((TextBox)WorkspaceUi.Find(window, "AircraftCommandName")!).Text = "Discarded name";
+                ((Button)WorkspaceUi.Find(window, "StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (WorkspaceUi.Entries(commands).Single(x => x.Id == "KEY").Name != "Test action")
                     throw new InvalidOperationException("Discard did not restore the saved aircraft catalog.");
                 if (repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Single(x => x.Id == "KEY").Name != "Test action")
                     throw new InvalidOperationException("Discard altered the saved aircraft catalog.");
@@ -462,9 +463,9 @@ namespace Dcs.Ipia.App.Smoke
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     ((Button)System.Windows.Application.Current.Windows.OfType<CommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }));
-                ((Button)window.FindName("LoadCommandJsonButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "LoadCommandJsonButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 4) throw new InvalidOperationException("The discardable import did not stage.");
-                ((Button)window.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
                     throw new InvalidOperationException("Discard did not restore the saved catalog after import.");
                 VerifyIntegrationInstructions(window, repository, configuration.Module.Id, integrationPath);
@@ -480,26 +481,26 @@ namespace Dcs.Ipia.App.Smoke
             File.WriteAllText(path, source);
             void Import(bool stage)
             {
-                ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
+                ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     var review = System.Windows.Application.Current.Windows.OfType<AxisDefaultsReviewWindow>().Single();
-                    if (!((TextBlock)review.FindName("AxisDefaultsHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
-                        !((TextBox)review.FindName("AxisDefaultsChanges")!).Text.Contains("JOY_X", StringComparison.Ordinal))
+                    if (!((TextBlock)WorkspaceUi.Find(review, "AxisDefaultsHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
+                        !((TextBox)WorkspaceUi.Find(review, "AxisDefaultsChanges")!).Text.Contains("JOY_X", StringComparison.Ordinal))
                         throw new InvalidOperationException("Axis default review did not show its destination and removals.");
-                    if (stage) ((Button)review.FindName("StageAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (stage) ((Button)WorkspaceUi.Find(review, "StageAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else review.DialogResult = false;
                 }));
-                ((Button)window.FindName("ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
             Import(false);
-            if (((TextBlock)window.FindName("PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
+            if (((TextBlock)WorkspaceUi.Find(window, "PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
                 throw new InvalidOperationException("Cancelled axis import changed the draft.");
             Import(true);
-            if (!((TextBlock)window.FindName("PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
+            if (!((TextBlock)WorkspaceUi.Find(window, "PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))
                 throw new InvalidOperationException("Axis import did not stage.");
-            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            ((Button)WorkspaceUi.Find(window, "DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Import(true);
-            ClickWithDispatcherContext((Button)window.FindName("SaveIntegrationInstructionsButton")!);
+            ClickWithDispatcherContext((Button)WorkspaceUi.Find(window, "SaveIntegrationInstructionsButton")!);
             var deadline = DateTime.UtcNow.AddSeconds(15);
             while (!repository.GetAsync(moduleId).GetAwaiter().GetResult()!.Sources!.Values.Contains(source, StringComparer.Ordinal))
             {
@@ -513,25 +514,25 @@ namespace Dcs.Ipia.App.Smoke
                 .Any(x => x.InputKey == "JOY_X" && x.Disposition == BindingDisposition.Removed))
                 throw new InvalidOperationException("Saved axis defaults did not survive reopen/export.");
             File.WriteAllText(path, "local diff = {} return diff");
-            ((DataGrid)window.FindName("ManagedDevices")!).SelectedIndex = 0;
-            ((Button)window.FindName("ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            if (!((TextBlock)window.FindName("DevicesMessage")!).Text.StartsWith("Axis default import failed:", StringComparison.Ordinal))
+            ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
+            ((Button)WorkspaceUi.Find(window, "ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (!((TextBlock)WorkspaceUi.Find(window, "DevicesMessage")!).Text.StartsWith("Axis default import failed:", StringComparison.Ordinal))
                 throw new InvalidOperationException("Malformed axis import hid its error.");
         }
         private static void VerifyIntegrationInstructions(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
         {
-            var load = (Button)window.FindName("LoadIntegrationInstructionsButton")!;
-            var groups = (ListBox)window.FindName("IntegrationInstructions")!;
-            var text = (TextBox)window.FindName("IntegrationInstructionText")!;
+            var load = (Button)WorkspaceUi.Find(window, "LoadIntegrationInstructionsButton")!;
+            var groups = (ListBox)WorkspaceUi.Find(window, "IntegrationInstructions")!;
+            var text = (TextBox)WorkspaceUi.Find(window, "IntegrationInstructionText")!;
             File.WriteAllText(path, """{"schemaVersion":1,"moduleDcsId":"AUTHORING","integrations":[{"name":"OpenKneeboard","instructions":"Use this module's generated kneeboard folder."}]}""");
             void Import(bool stage)
             {
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     var review = System.Windows.Application.Current.Windows.OfType<IntegrationImportReviewWindow>().Single();
-                    if (!((TextBlock)review.FindName("IntegrationImportHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
-                        !((TextBox)review.FindName("IntegrationImportChanges")!).Text.Contains("Proposed:", StringComparison.Ordinal))
+                    if (!((TextBlock)WorkspaceUi.Find(review, "IntegrationImportHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
+                        !((TextBox)WorkspaceUi.Find(review, "IntegrationImportChanges")!).Text.Contains("Proposed:", StringComparison.Ordinal))
                         throw new InvalidOperationException("Instruction review did not show the module and complete proposal.");
-                    if (stage) ((Button)review.FindName("StageIntegrationImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (stage) ((Button)WorkspaceUi.Find(review, "StageIntegrationImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else review.DialogResult = false;
                 }));
                 load.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -541,10 +542,10 @@ namespace Dcs.Ipia.App.Smoke
             Import(true);
             if (groups.Items.Count != 1 || !text.Text.Contains("generated kneeboard folder", StringComparison.Ordinal))
                 throw new InvalidOperationException("Integration instructions did not stage/display.");
-            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            ((Button)WorkspaceUi.Find(window, "DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (groups.Items.Count != 0) throw new InvalidOperationException("Discard retained unsaved integration instructions.");
             Import(true);
-            ClickWithDispatcherContext((Button)window.FindName("SaveIntegrationInstructionsButton")!);
+            ClickWithDispatcherContext((Button)WorkspaceUi.Find(window, "SaveIntegrationInstructionsButton")!);
             var deadline = DateTime.UtcNow.AddSeconds(15);
             while (!repository.GetAsync(moduleId).GetAwaiter().GetResult()!.Sources!.ContainsKey("config/integrations.json"))
             {
@@ -553,18 +554,18 @@ namespace Dcs.Ipia.App.Smoke
             }
             // Drain Save's continuation before removing the instruction from the next draft.
             window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
-            ((Button)window.FindName("RemoveIntegrationInstructionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            ((Button)WorkspaceUi.Find(window, "RemoveIntegrationInstructionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (groups.Items.Count != 0) throw new InvalidOperationException("Selected instruction did not remove.");
-            ((Button)window.FindName("DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            ((Button)WorkspaceUi.Find(window, "DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (groups.Items.Count != 1) throw new InvalidOperationException("Discard did not restore saved instructions.");
             var reopened = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(repository.GetAsync(moduleId).GetAwaiter().GetResult()!), repository: repository);
             reopened.Show();
-            if (((ListBox)reopened.FindName("IntegrationInstructions")!).Items.Count != 1)
+            if (((ListBox)WorkspaceUi.Find(reopened, "IntegrationInstructions")!).Items.Count != 1)
                 throw new InvalidOperationException("Saved integration instructions did not reopen.");
             reopened.Close();
             File.WriteAllText(path, "{}");
             load.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            if (groups.Items.Count != 1 || !((TextBlock)window.FindName("IntegrationStatus")!).Text.StartsWith("Integration import failed:", StringComparison.Ordinal))
+            if (groups.Items.Count != 1 || !((TextBlock)WorkspaceUi.Find(window, "IntegrationStatus")!).Text.StartsWith("Integration import failed:", StringComparison.Ordinal))
                 throw new InvalidOperationException("Malformed instruction import changed the draft or hid the error.");
         }
         private static void VerifyModuleSnapshotButtons(ModuleWorkspaceWindow authoring, SqliteEditorWorkspaceRepository source, Guid moduleId)
@@ -579,12 +580,12 @@ namespace Dcs.Ipia.App.Smoke
                     outputPathPicker: snapshot => snapshot ? snapshotPath : root, documentationFolderPicker: () => root,
                     completeReleaseFolderPicker: () => root);
                 editor.Show();
-                ((TextBox)editor.FindName("PackageVersion")!).Text = "1.2.3";
-                var validate = (Button)editor.FindName("ValidateModuleButton")!;
-                var export = (Button)editor.FindName("ExportModuleSnapshotButton")!;
-                var build = (Button)editor.FindName("BuildButton")!;
-                var documentation = (Button)editor.FindName("ExportModuleDocumentationButton")!;
-                var complete = (Button)editor.FindName("ExportCompleteReleaseButton")!;
+                ((TextBox)WorkspaceUi.Find(editor, "PackageVersion")!).Text = "1.2.3";
+                var validate = (Button)WorkspaceUi.Find(editor, "ValidateModuleButton")!;
+                var export = (Button)WorkspaceUi.Find(editor, "ExportModuleSnapshotButton")!;
+                var build = (Button)WorkspaceUi.Find(editor, "BuildButton")!;
+                var documentation = (Button)WorkspaceUi.Find(editor, "ExportModuleDocumentationButton")!;
+                var complete = (Button)WorkspaceUi.Find(editor, "ExportCompleteReleaseButton")!;
                 if (!validate.IsEnabled || !export.IsEnabled || !build.IsEnabled || !documentation.IsEnabled || !complete.IsEnabled)
                     throw new InvalidOperationException("Clean saved module output actions are unavailable.");
                 ClickWithDispatcherContext(validate);
@@ -610,13 +611,13 @@ namespace Dcs.Ipia.App.Smoke
                 var original = File.ReadAllBytes(Path.Combine(root, "DCS-AUTHORING-Components-1.2.3-OVGME.zip"));
                 if (!original.SequenceEqual(global::Dcs.Ipia.Dcs.ModuleSnapshotWorkflow.Build(snapshot).Bytes))
                     throw new InvalidOperationException("UI build did not use the exported immutable inputs.");
-                ((TextBox)editor.FindName("AircraftCommandCode")!).Text = "UNSAVED";
-                ((TextBox)editor.FindName("AircraftCommandName")!).Text = "Pending";
-                ((TextBox)editor.FindName("AircraftCommandCategory")!).Text = "Keys";
-                ((Button)editor.FindName("StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((TextBox)WorkspaceUi.Find(editor, "AircraftCommandCode")!).Text = "UNSAVED";
+                ((TextBox)WorkspaceUi.Find(editor, "AircraftCommandName")!).Text = "Pending";
+                ((TextBox)WorkspaceUi.Find(editor, "AircraftCommandCategory")!).Text = "Keys";
+                ((Button)WorkspaceUi.Find(editor, "StageAircraftCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (validate.IsEnabled || export.IsEnabled || build.IsEnabled || documentation.IsEnabled || complete.IsEnabled)
                     throw new InvalidOperationException("Pending authoring edits did not disable saved output actions.");
-                ((Button)editor.FindName("DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(editor, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 editor.Close();
 
                 var connection = "Data Source=" + Path.Combine(root, "restore.db") + ";Pooling=False";
@@ -629,20 +630,20 @@ namespace Dcs.Ipia.App.Smoke
                 main.Show();
                 if (main.Title != "DCS-IPIA — Modules · " + ApplicationVersion.Label)
                     throw new InvalidOperationException("Main window title did not include the application version.");
-                var restore = (Button)main.FindName("RestoreModuleSnapshotButton")!;
+                var restore = (Button)WorkspaceUi.Find(main, "RestoreModuleSnapshotButton")!;
                 ClickWithDispatcherContext(restore);
                 var deadline = DateTime.UtcNow.AddSeconds(60);
-                while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Restored ", StringComparison.Ordinal))
+                while (!((TextBlock)WorkspaceUi.Find(main, "ImportStatus")!).Text.StartsWith("Restored ", StringComparison.Ordinal))
                 {
-                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Module snapshot UI restore failed: " + ((TextBlock)main.FindName("ImportStatus")!).Text);
+                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Module snapshot UI restore failed: " + ((TextBlock)WorkspaceUi.Find(main, "ImportStatus")!).Text);
                     main.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
-                if (((ComboBox)main.FindName("SavedModules")!).SelectedItem is null ||
+                if (((ComboBox)WorkspaceUi.Find(main, "SavedModules")!).SelectedItem is null ||
                     global::Dcs.Ipia.Dcs.EditorSnapshotSerializer.Serialize(restored.GetAsync(moduleId).GetAwaiter().GetResult()!) != snapshot.Workspace)
                     throw new InvalidOperationException("Restored snapshot did not populate the saved module selector losslessly.");
                 ClickWithDispatcherContext(restore);
                 deadline = DateTime.UtcNow.AddSeconds(60);
-                while (!((TextBlock)main.FindName("ImportStatus")!).Text.StartsWith("Module snapshot was not restored:", StringComparison.Ordinal))
+                while (!((TextBlock)WorkspaceUi.Find(main, "ImportStatus")!).Text.StartsWith("Module snapshot was not restored:", StringComparison.Ordinal))
                 {
                     if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Duplicate snapshot restore was not blocked.");
                     main.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
@@ -651,8 +652,8 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Duplicate restore changed saved module membership.");
                 main.Close();
                 FlyNowSmoke.Verify(connection, restored, settings, root, moduleId);
-                ((TextBox)authoring.FindName("PackageVersion")!).Text = "1.2.3";
-                if (!((Button)authoring.FindName("ExportModuleSnapshotButton")!).IsEnabled)
+                ((TextBox)WorkspaceUi.Find(authoring, "PackageVersion")!).Text = "1.2.3";
+                if (!((Button)WorkspaceUi.Find(authoring, "ExportModuleSnapshotButton")!).IsEnabled)
                     throw new InvalidOperationException("Original module became dirty during isolated restore.");
             }
             finally { Directory.Delete(root, true); }
@@ -667,14 +668,14 @@ namespace Dcs.Ipia.App.Smoke
         private static void WaitForOutput(ModuleWorkspaceWindow editor, string prefix)
         {
             var deadline = DateTime.UtcNow.AddSeconds(60);
-            var status = (TextBlock)editor.FindName("BuildStatus")!;
+            var status = (TextBlock)WorkspaceUi.Find(editor, "BuildStatus")!;
             while (!status.Text.StartsWith(prefix, StringComparison.Ordinal))
             {
                 if (status.Text.StartsWith("Module output failed:", StringComparison.Ordinal) || DateTime.UtcNow > deadline)
                     throw new InvalidOperationException("Module output UI failed: " + status.Text);
                 editor.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
-            while (!((Button)editor.FindName("BuildButton")!).IsEnabled)
+            while (!((Button)WorkspaceUi.Find(editor, "BuildButton")!).IsEnabled)
             {
                 if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Output action did not release its busy state.");
                 editor.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
@@ -693,43 +694,43 @@ namespace Dcs.Ipia.App.Smoke
                 var sources = global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader.LoadHardwareAsync(
                     global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root).GetAwaiter().GetResult();
                 var window = new NewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery());
-                ((CheckBox)window.FindName("EmptyDefaults")!).IsChecked = false;
+                ((CheckBox)WorkspaceUi.Find(window, "EmptyDefaults")!).IsChecked = false;
                 Exception? failure = null;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     try
                     {
-                        ((TextBox)window.FindName("DcsIdInput")!).Text = "P47-D-30";
-                        ((TextBox)window.FindName("DisplayNameInput")!).Text = "P-47D Thunderbolt";
-                        var physical = (ComboBox)window.FindName("PhysicalChoices")!;
+                        ((TextBox)WorkspaceUi.Find(window, "DcsIdInput")!).Text = "P47-D-30";
+                        ((TextBox)WorkspaceUi.Find(window, "DisplayNameInput")!).Text = "P-47D Thunderbolt";
+                        var physical = (ComboBox)WorkspaceUi.Find(window, "PhysicalChoices")!;
                         var offline = new DetectedDcsDevice(Guid.NewGuid(), "Captured offline unit", false);
                         physical.ItemsSource = new[] { offline };
                         physical.SelectedItem = offline;
-                        ((Button)window.FindName("ManualFileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        ((Button)WorkspaceUi.Find(window, "ManualFileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                         if (physical.SelectedItem is not null) throw new InvalidOperationException("Manual filename entry retained a stale discovered-unit GUID.");
-                        var hardware = (ComboBox)window.FindName("HardwareChoices")!;
-                        var rows = (ListBox)window.FindName("SelectedUnits")!;
+                        var hardware = (ComboBox)WorkspaceUi.Find(window, "HardwareChoices")!;
+                        var rows = (ListBox)WorkspaceUi.Find(window, "SelectedUnits")!;
                         var ids = CreationHardware;
                         for (var i = 0; i < ids.Length; i++)
                         {
                             hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == ids[i]);
                             var choice = (WorkspaceHardware)hardware.SelectedItem;
-                            ((TextBox)window.FindName("NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), choice.Label, false).FileName;
-                            ((TextBox)window.FindName("UnitInstance")!).Text = "Unit " + i;
-                            if (i == 0) ((ComboBox)window.FindName("BaselineChoices")!).SelectedIndex = 0;
-                            ((Button)window.FindName("AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                            if (rows.Items.Count != i + 1) throw new InvalidOperationException("Repeated physical-unit selection did not add an independent row: " + ((TextBlock)window.FindName("CreationError")!).Text);
+                            ((TextBox)WorkspaceUi.Find(window, "NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), choice.Label, false).FileName;
+                            ((TextBox)WorkspaceUi.Find(window, "UnitInstance")!).Text = "Unit " + i;
+                            if (i == 0) ((ComboBox)WorkspaceUi.Find(window, "BaselineChoices")!).SelectedIndex = 0;
+                            ((Button)WorkspaceUi.Find(window, "AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                            if (rows.Items.Count != i + 1) throw new InvalidOperationException("Repeated physical-unit selection did not add an independent row: " + ((TextBlock)WorkspaceUi.Find(window, "CreationError")!).Text);
                         }
                         hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().First(x => x.Label.Contains("Pendular", StringComparison.OrdinalIgnoreCase));
-                        ((TextBox)window.FindName("NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), "T-Pendular Rudder", false).FileName;
-                        ((Button)window.FindName("AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        ((TextBox)WorkspaceUi.Find(window, "NativeFileInput")!).Text = new DetectedDcsDevice(Guid.NewGuid(), "T-Pendular Rudder", false).FileName;
+                        ((Button)WorkspaceUi.Find(window, "AddUnitButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                         if (rows.Items.Count != 11) throw new InvalidOperationException("The reported rudder choice was not staged.");
-                        ((Button)window.FindName("CreateButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        ((Button)WorkspaceUi.Find(window, "CreateButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }
                     catch (Exception ex) { failure = ex; window.Close(); }
                 }));
                 var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
                 timeout.Tick += (_, _) => {
-                    failure = new InvalidOperationException("New Module creation timed out: " + ((TextBlock)window.FindName("CreationError")!).Text);
+                    failure = new InvalidOperationException("New Module creation timed out: " + ((TextBlock)WorkspaceUi.Find(window, "CreationError")!).Text);
                     window.Close();
                 };
                 timeout.Start();
@@ -746,18 +747,18 @@ namespace Dcs.Ipia.App.Smoke
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
-                var dropdown = (ComboBox)editor.FindName("DeviceChoice")!;
+                var dropdown = (ComboBox)WorkspaceUi.Find(editor, "DeviceChoice")!;
                 if (dropdown.Items.Cast<UiLayerDiagram>().Any(x => x.Title.Contains(" {", StringComparison.Ordinal)))
                     throw new InvalidOperationException("Assignment device labels still expose duplicate native GUIDs.");
-                var grid = (DataGrid)editor.FindName("ManagedDevices")!;
+                var grid = (DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!;
                 foreach (var device in grid.Items.Cast<WorkspaceDevice>().ToArray())
                 {
                     grid.SelectedItem = device;
                     editor.UpdateLayout();
-                    if (((TextBox)editor.FindName("ManagedFileName")!).Text != device.FileName)
+                    if (((TextBox)WorkspaceUi.Find(editor, "ManagedFileName")!).Text != device.FileName)
                         throw new InvalidOperationException("New-module physical device selection failed.");
                 }
-                if (editor.FindName("RebindDeviceButton") is not Button)
+                if (WorkspaceUi.Find(editor, "RebindDeviceButton") is not Button)
                     throw new InvalidOperationException("Explicit physical rebinding is missing.");
                 editor.Close();
                 AxisCleanupFlyNowSmoke.Verify(connection, repository);
@@ -793,23 +794,23 @@ namespace Dcs.Ipia.App.Smoke
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     try
                     {
-                        var rows = ((ItemsControl)window.FindName("ProfileChoices")!).Items.Cast<SavedGamesProfileChoice>().ToArray();
+                        var rows = ((ItemsControl)WorkspaceUi.Find(window, "ProfileChoices")!).Items.Cast<SavedGamesProfileChoice>().ToArray();
                         if (rows.Length != 3 || rows[0].Hardware?.DeviceId != "tm-mfd" || rows[1].Hardware?.DeviceId != "tm-mfd" || rows[2].Hardware is not null)
                             throw new InvalidOperationException("Hardware suggestions lost repeated units or guessed an unknown panel.");
-                        var import = (Button)window.FindName("ImportSavedGamesButton")!;
+                        var import = (Button)WorkspaceUi.Find(window, "ImportSavedGamesButton")!;
                         import.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                        if (!((TextBlock)window.FindName("ImportError")!).Text.Contains("Choose hardware", StringComparison.Ordinal) || repository.ListAsync().GetAwaiter().GetResult().Count != 0)
+                        if (!((TextBlock)WorkspaceUi.Find(window, "ImportError")!).Text.Contains("Choose hardware", StringComparison.Ordinal) || repository.ListAsync().GetAwaiter().GetResult().Count != 0)
                             throw new InvalidOperationException("Unresolved hardware saved a partial module.");
                         rows[2].Hardware = rows[2].HardwareChoices.Single(x => x.DeviceId == "tm-mfd");
-                        ((TextBox)window.FindName("DcsIdInput")!).Text = "CUSTOM-HELICOPTER";
-                        ((TextBox)window.FindName("DisplayNameInput")!).Text = "Custom helicopter";
+                        ((TextBox)WorkspaceUi.Find(window, "DcsIdInput")!).Text = "CUSTOM-HELICOPTER";
+                        ((TextBox)WorkspaceUi.Find(window, "DisplayNameInput")!).Text = "Custom helicopter";
                         ClickWithDispatcherContext(import);
                     }
                     catch (Exception ex) { failure = ex; window.Close(); }
                 }));
                 var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
                 timeout.Tick += (_, _) => {
-                    failure = new InvalidOperationException("Saved Games import timed out: " + ((TextBlock)window.FindName("ImportError")!).Text);
+                    failure = new InvalidOperationException("Saved Games import timed out: " + ((TextBlock)WorkspaceUi.Find(window, "ImportError")!).Text);
                     window.Close();
                 };
                 timeout.Start();
@@ -824,7 +825,7 @@ namespace Dcs.Ipia.App.Smoke
                 var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
-                if (((DataGrid)editor.FindName("ManagedDevices")!).Items.Count == 0 || ((ComboBox)editor.FindName("DeviceChoice")!).Items.Count == 0)
+                if (((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).Items.Count == 0 || ((ComboBox)WorkspaceUi.Find(editor, "DeviceChoice")!).Items.Count == 0)
                     throw new InvalidOperationException("Saved Games devices remained invisible in the editable workspace.");
                 editor.Close();
             }
@@ -846,8 +847,8 @@ namespace Dcs.Ipia.App.Smoke
                     Path.Combine(root, "user-settings.json"), Path.Combine(root, "theme.txt"));
                 var window = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(),
                     new global::Dcs.Ipia.Dcs.DcsFolderImporter(), settings, repository);
-                var modules = (ComboBox)window.FindName("SavedModules")!;
-                var delete = (Button)window.FindName("DeleteModuleButton")!;
+                var modules = (ComboBox)WorkspaceUi.Find(window, "SavedModules")!;
+                var delete = (Button)WorkspaceUi.Find(window, "DeleteModuleButton")!;
                 if (delete.IsEnabled || delete.Content?.ToString() != "Delete")
                     throw new InvalidOperationException("Delete must be labeled and disabled without a selected module.");
                 window.Show();
@@ -897,9 +898,9 @@ namespace Dcs.Ipia.App.Smoke
                 modules.SaveAsync(ImpactModule("UNKNOWN", null)).GetAwaiter().GetResult();
                 var window = new SharedUiLayerWorkspaceWindow(first, repository, modules);
                 window.Show();
-                var impactRows = (DataGrid)window.FindName("ImpactModules")!;
-                var impactChanges = (DataGrid)window.FindName("ImpactChanges")!;
-                var impactButton = (Button)window.FindName("ImpactRefreshButton")!;
+                var impactRows = (DataGrid)WorkspaceUi.Find(window, "ImpactModules")!;
+                var impactChanges = (DataGrid)WorkspaceUi.Find(window, "ImpactChanges")!;
+                var impactButton = (Button)WorkspaceUi.Find(window, "ImpactRefreshButton")!;
                 void ReviewImpact()
                 {
                     impactButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -925,125 +926,125 @@ namespace Dcs.Ipia.App.Smoke
                             throw new InvalidOperationException("Reviewed module update did not complete.");
                         window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                     }
-                    if (((TextBlock)window.FindName("AdoptionStatus")!).Text.StartsWith("Module was not changed", StringComparison.Ordinal))
-                        throw new InvalidOperationException(((TextBlock)window.FindName("AdoptionStatus")!).Text);
+                    if (((TextBlock)WorkspaceUi.Find(window, "AdoptionStatus")!).Text.StartsWith("Module was not changed", StringComparison.Ordinal))
+                        throw new InvalidOperationException(((TextBlock)WorkspaceUi.Find(window, "AdoptionStatus")!).Text);
                 }
                 impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
-                ((Button)window.FindName("RecordBaselineButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RecordBaselineButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 WaitModuleUpdate();
                 if (modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!.SharedDefault?.ContentSha256 != first.ContentSha256)
                     throw new InvalidOperationException("Recording a module baseline did not reopen its verified reference.");
                 ReviewImpact();
                 const string smokeFile = "Smoke controller {00000001-0000-0000-8001-444553540000}.diff.lua";
-                var deviceRows = (DataGrid)window.FindName("DeviceRows")!;
-                var cloneChoice = (ComboBox)window.FindName("CloneProfileChoice")!;
+                var deviceRows = (DataGrid)WorkspaceUi.Find(window, "DeviceRows")!;
+                var cloneChoice = (ComboBox)WorkspaceUi.Find(window, "CloneProfileChoice")!;
                 var template = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().First(x => !x.Protected);
                 void AddSmokeProfile(bool copy)
                 {
-                    ((Button)window.FindName("NewProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    ((TextBox)window.FindName("DeviceFileName")!).Text = smokeFile;
+                    ((Button)WorkspaceUi.Find(window, "NewProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((TextBox)WorkspaceUi.Find(window, "DeviceFileName")!).Text = smokeFile;
                     cloneChoice.SelectedItem = copy ? cloneChoice.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().First(x => x.Path == template.Path) : null;
-                    ((Button)window.FindName("AddProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((Button)WorkspaceUi.Find(window, "AddProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }
                 AddSmokeProfile(true);
                 var copy = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.FileName == smokeFile);
-                if (copy.Source != template.Source || !((ComboBox)window.FindName("ProfilePaths")!).Items.Contains(copy.Path) ||
-                    !((ListBox)window.FindName("SourcePaths")!).Items.Contains(copy.Path))
+                if (copy.Source != template.Source || !((ComboBox)WorkspaceUi.Find(window, "ProfilePaths")!).Items.Contains(copy.Path) ||
+                    !((ListBox)WorkspaceUi.Find(window, "SourcePaths")!).Items.Contains(copy.Path))
                     throw new InvalidOperationException("Shared profile clone did not preserve its source and refresh selectors.");
                 deviceRows.SelectedItem = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.Path == template.Path);
                 var renamedFile = "Smoke renamed " + template.FileName;
-                ((TextBox)window.FindName("DeviceFileName")!).Text = renamedFile;
-                ((Button)window.FindName("RenameProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((TextBox)WorkspaceUi.Find(window, "DeviceFileName")!).Text = renamedFile;
+                ((Button)WorkspaceUi.Find(window, "RenameProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var renamedProfile = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.FileName == renamedFile);
-                if (renamedProfile.Source != template.Source || !((ComboBox)window.FindName("ModifierDevice")!).Items.Contains(renamedFile[..^9]) ||
-                    ((DataGrid)window.FindName("ModifierRows")!).Items.OfType<DcsModifier>().Any(x => x.Device == template.FileName[..^9]))
+                if (renamedProfile.Source != template.Source || !((ComboBox)WorkspaceUi.Find(window, "ModifierDevice")!).Items.Contains(renamedFile[..^9]) ||
+                    ((DataGrid)WorkspaceUi.Find(window, "ModifierRows")!).Items.OfType<DcsModifier>().Any(x => x.Device == template.FileName[..^9]))
                     throw new InvalidOperationException("Shared profile rename lost bindings or native modifier references.");
-                ((Button)window.FindName("RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (!deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == renamedFile))
                     throw new InvalidOperationException("A bound shared profile was removed.");
                 deviceRows.SelectedItem = deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Single(x => x.Protected);
-                if (((Button)window.FindName("RenameProfileButton")!).IsEnabled || ((Button)window.FindName("RemoveProfileButton")!).IsEnabled)
+                if (((Button)WorkspaceUi.Find(window, "RenameProfileButton")!).IsEnabled || ((Button)WorkspaceUi.Find(window, "RemoveProfileButton")!).IsEnabled)
                     throw new InvalidOperationException("The default keyboard profile is editable.");
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == smokeFile || x.FileName == renamedFile))
                     throw new InvalidOperationException("Discard did not restore the saved device profiles.");
                 AddSmokeProfile(false);
-                ((Button)window.FindName("RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RemoveProfileButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (deviceRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerDeviceProfile>().Any(x => x.FileName == smokeFile))
                     throw new InvalidOperationException("An empty unreferenced shared profile was not removed.");
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var modifierRows = (DataGrid)window.FindName("ModifierRows")!;
-                var modifierDevices = (ComboBox)window.FindName("ModifierDevice")!;
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var modifierRows = (DataGrid)WorkspaceUi.Find(window, "ModifierRows")!;
+                var modifierDevices = (ComboBox)WorkspaceUi.Find(window, "ModifierDevice")!;
                 var nativeDevice = modifierDevices.Items.OfType<string>().First(x => x != "Keyboard");
                 void AddSmokeModifier()
                 {
-                    ((TextBox)window.FindName("ModifierName")!).Text = "SMOKE_MODIFIER";
+                    ((TextBox)WorkspaceUi.Find(window, "ModifierName")!).Text = "SMOKE_MODIFIER";
                     modifierDevices.SelectedItem = nativeDevice;
-                    ((TextBox)window.FindName("ModifierInput")!).Text = "JOY_BTN9999";
-                    ((ComboBox)window.FindName("ModifierModeChoice")!).SelectedItem = ModifierMode.Hold;
-                    ((Button)window.FindName("AddModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    ((TextBox)WorkspaceUi.Find(window, "ModifierInput")!).Text = "JOY_BTN9999";
+                    ((ComboBox)WorkspaceUi.Find(window, "ModifierModeChoice")!).SelectedItem = ModifierMode.Hold;
+                    ((Button)WorkspaceUi.Find(window, "AddModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }
                 AddSmokeModifier();
                 modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER");
-                ((ComboBox)window.FindName("ModifierModeChoice")!).SelectedItem = ModifierMode.Toggle;
-                ((Button)window.FindName("UpdateModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((ComboBox)WorkspaceUi.Find(window, "ModifierModeChoice")!).SelectedItem = ModifierMode.Toggle;
+                ((Button)WorkspaceUi.Find(window, "UpdateModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER").Mode != ModifierMode.Toggle ||
-                    !((ComboBox)window.FindName("ClearLayerChoice")!).Items.Contains("SMOKE_MODIFIER"))
+                    !((ComboBox)WorkspaceUi.Find(window, "ClearLayerChoice")!).Items.Contains("SMOKE_MODIFIER"))
                     throw new InvalidOperationException("Shared modifier update did not refresh modes and layer choices.");
                 modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "LCtrl");
-                if (((Button)window.FindName("UpdateModifierButton")!).IsEnabled || ((Button)window.FindName("RemoveModifierButton")!).IsEnabled)
+                if (((Button)WorkspaceUi.Find(window, "UpdateModifierButton")!).IsEnabled || ((Button)WorkspaceUi.Find(window, "RemoveModifierButton")!).IsEnabled)
                     throw new InvalidOperationException("Built-in keyboard defaults are editable.");
                 modifierRows.SelectedItem = modifierRows.Items.OfType<DcsModifier>().Single(x => x.Name == "SMOKE_MODIFIER");
-                ((Button)window.FindName("RemoveModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RemoveModifierButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (modifierRows.Items.OfType<DcsModifier>().Any(x => x.Name == "SMOKE_MODIFIER"))
                     throw new InvalidOperationException("Unused shared modifier was not removed.");
                 AddSmokeModifier();
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (modifierRows.Items.OfType<DcsModifier>().Any(x => x.Name == "SMOKE_MODIFIER"))
                     throw new InvalidOperationException("Discard did not restore saved shared modifiers.");
-                var catalogRows = (DataGrid)window.FindName("CatalogRows")!;
-                var addCommand = (Button)window.FindName("AddCommandButton")!;
+                var catalogRows = (DataGrid)WorkspaceUi.Find(window, "CatalogRows")!;
+                var addCommand = (Button)WorkspaceUi.Find(window, "AddCommandButton")!;
                 void AddCatalogCommand()
                 {
-                    ((TextBox)window.FindName("CatalogIdentity")!).Text = "smoke-command";
-                    ((TextBox)window.FindName("CatalogCode")!).Text = "SMOKE_COMMAND";
-                    ((TextBox)window.FindName("CatalogLabel")!).Text = "Smoke command";
-                    ((TextBox)window.FindName("CatalogCategory")!).Text = "General";
+                    ((TextBox)WorkspaceUi.Find(window, "CatalogIdentity")!).Text = "smoke-command";
+                    ((TextBox)WorkspaceUi.Find(window, "CatalogCode")!).Text = "SMOKE_COMMAND";
+                    ((TextBox)WorkspaceUi.Find(window, "CatalogLabel")!).Text = "Smoke command";
+                    ((TextBox)WorkspaceUi.Find(window, "CatalogCategory")!).Text = "General";
                     addCommand.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }
                 AddCatalogCommand();
                 catalogRows.SelectedItem = catalogRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerCommand>().Single(x => x.Id == "smoke-command");
-                ((TextBox)window.FindName("CatalogLabel")!).Text = "Updated smoke command";
-                ((TextBox)window.FindName("CatalogCategory")!).Text = "VR";
-                ((Button)window.FindName("UpdateCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (!((ComboBox)window.FindName("CommandChoice")!).Items.OfType<DraftCommand>()
+                ((TextBox)WorkspaceUi.Find(window, "CatalogLabel")!).Text = "Updated smoke command";
+                ((TextBox)WorkspaceUi.Find(window, "CatalogCategory")!).Text = "VR";
+                ((Button)WorkspaceUi.Find(window, "UpdateCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!((ComboBox)WorkspaceUi.Find(window, "CommandChoice")!).Items.OfType<DraftCommand>()
                     .Any(x => x.Id == "SMOKE_COMMAND" && x.Name == "Updated smoke command"))
                     throw new InvalidOperationException("Catalog changes did not refresh the binding command choices.");
-                ((Button)window.FindName("RemoveCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RemoveCommandButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (catalogRows.Items.OfType<global::Dcs.Ipia.Dcs.SharedUiLayerCommand>().Any(x => x.Id == "smoke-command"))
                     throw new InvalidOperationException("Unused catalog command was not removed.");
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (catalogRows.Items.Count != global::Dcs.Ipia.Dcs.SharedUiLayerCommandEditor.Commands(first).Count)
                     throw new InvalidOperationException("Discard did not restore the shared command catalog.");
-                var profiles = (ComboBox)window.FindName("ProfilePaths")!;
+                var profiles = (ComboBox)WorkspaceUi.Find(window, "ProfilePaths")!;
                 profiles.SelectedIndex = 0;
                 var profilePath = (string)profiles.SelectedItem;
-                var rows = (DataGrid)window.FindName("BindingRows")!;
-                var clearLayer = (ComboBox)window.FindName("ClearLayerChoice")!;
+                var rows = (DataGrid)WorkspaceUi.Find(window, "BindingRows")!;
+                var clearLayer = (ComboBox)WorkspaceUi.Find(window, "ClearLayerChoice")!;
                 clearLayer.SelectedItem = "Base";
-                ((Button)window.FindName("ClearLayerButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "ClearLayerButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (rows.Items.OfType<DcsBinding>().Any(x => x.Disposition != BindingDisposition.Removed && x.Reformers.Count == 0) ||
-                    !((Button)window.FindName("SaveDefaultsButton")!).IsEnabled)
+                    !((Button)WorkspaceUi.Find(window, "SaveDefaultsButton")!).IsEnabled)
                     throw new InvalidOperationException("Shared layer clear did not stage all base keys and axes.");
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (!rows.Items.OfType<DcsBinding>().Any(x => x.Disposition != BindingDisposition.Removed))
                     throw new InvalidOperationException("Discard did not restore cleared shared layer bindings.");
                 var selected = rows.Items.OfType<DcsBinding>().First(x => x.Section == BindingSection.Key && x.Disposition != BindingDisposition.Removed);
                 rows.SelectedItem = selected;
-                ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
-                var update = (Button)window.FindName("UpdateBindingButton")!;
+                ((TextBox)WorkspaceUi.Find(window, "InputKey")!).Text = "JOY_BTN999";
+                var update = (Button)WorkspaceUi.Find(window, "UpdateBindingButton")!;
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var save = (Button)window.FindName("SaveDefaultsButton")!;
+                var save = (Button)WorkspaceUi.Find(window, "SaveDefaultsButton")!;
                 if (!save.IsEnabled) throw new InvalidOperationException("Shared default binding edit was not staged.");
                 if (impactRows.Items.Count != 0)
                     throw new InvalidOperationException("An edit left a stale module impact report visible.");
@@ -1054,22 +1055,22 @@ namespace Dcs.Ipia.App.Smoke
                     localImpact.Sources.Single(x => x.Path == profilePath).Status != "Different source")
                     throw new InvalidOperationException("Module impact evidence missed pinned or local source versions.");
                 impactRows.SelectedItem = localImpact;
-                if (!((DataGrid)window.FindName("ImpactDetails")!).Items.OfType<SharedUiLayerModuleSourceImpact>()
+                if (!((DataGrid)WorkspaceUi.Find(window, "ImpactDetails")!).Items.OfType<SharedUiLayerModuleSourceImpact>()
                     .Any(x => x.Path == profilePath && x.Status == "Different source"))
                     throw new InvalidOperationException("Module selection did not display source evidence.");
-                ((Button)window.FindName("DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "DiscardDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (save.IsEnabled || !rows.Items.OfType<DcsBinding>().Any(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId))
                     throw new InvalidOperationException("Discard did not restore the saved shared bindings.");
                 if (impactRows.Items.Count != 0)
                     throw new InvalidOperationException("Discard left a stale impact report visible.");
                 rows.SelectedItem = rows.Items.OfType<DcsBinding>().First(x => x.InputKey == selected.InputKey && x.CommandId == selected.CommandId);
-                ((TextBox)window.FindName("InputKey")!).Text = "JOY_BTN999";
+                ((TextBox)WorkspaceUi.Find(window, "InputKey")!).Text = "JOY_BTN999";
                 update.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 AddCatalogCommand();
                 AddSmokeModifier();
                 AddSmokeProfile(false);
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var status = (TextBlock)window.FindName("EditorStatus")!;
+                var status = (TextBlock)WorkspaceUi.Find(window, "EditorStatus")!;
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 while (!status.Text.StartsWith("Shared default revision saved", StringComparison.Ordinal))
                 {
@@ -1097,17 +1098,17 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Saving defaults changed saved modules or retained a stale impact report.");
                 ReviewImpact();
                 impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
-                if (!((Button)window.FindName("ExportSharedButton")!).IsEnabled ||
-                    !((Button)window.FindName("RestoreSharedButton")!).IsEnabled ||
-                    !((Button)window.FindName("RebuildSharedButton")!).IsEnabled)
+                if (!((Button)WorkspaceUi.Find(window, "ExportSharedButton")!).IsEnabled ||
+                    !((Button)WorkspaceUi.Find(window, "RestoreSharedButton")!).IsEnabled ||
+                    !((Button)WorkspaceUi.Find(window, "RebuildSharedButton")!).IsEnabled)
                     throw new InvalidOperationException("Saved shared defaults did not enable independent output and restore.");
-                var adoptionRows = (DataGrid)window.FindName("AdoptionChoices")!;
+                var adoptionRows = (DataGrid)WorkspaceUi.Find(window, "AdoptionChoices")!;
                 if (!adoptionRows.Items.OfType<SharedUiLayerAdoptionChoice>().Any(x => x.Path == profilePath && x.TakeDefault && !x.Conflict))
                     throw new InvalidOperationException("Safe baseline source changes were not offered for adoption.");
-                ((Button)window.FindName("ReviewSemanticButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                if (!((Button)window.FindName("AdoptDefaultsButton")!).IsEnabled)
-                    throw new InvalidOperationException(((TextBlock)window.FindName("AdoptionStatus")!).Text);
-                ((Button)window.FindName("AdoptDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "ReviewSemanticButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (!((Button)WorkspaceUi.Find(window, "AdoptDefaultsButton")!).IsEnabled)
+                    throw new InvalidOperationException(((TextBlock)WorkspaceUi.Find(window, "AdoptionStatus")!).Text);
+                ((Button)WorkspaceUi.Find(window, "AdoptDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 WaitModuleUpdate();
                 var adopted = modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!;
                 if (adopted.SharedDefault?.Revision != 2 || adopted.Sources![profilePath] != saved.Sources[profilePath] ||
@@ -1115,7 +1116,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Reviewed adoption did not preserve module isolation.");
                 ReviewImpact();
                 impactRows.SelectedItem = impactRows.Items.OfType<SharedUiLayerModuleImpact>().Single(x => x.ModuleId == pinnedModule.Configuration.Module.Id);
-                ((Button)window.FindName("RollbackAdoptionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "RollbackAdoptionButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 WaitModuleUpdate();
                 var rolledBack = modules.GetAsync(pinnedModule.Configuration.Module.Id).GetAwaiter().GetResult()!;
                 if (rolledBack.SharedDefault?.Revision != 1 || rolledBack.Sources![profilePath] != first.Sources[profilePath])
@@ -1138,8 +1139,8 @@ namespace Dcs.Ipia.App.Smoke
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
                 if (impactRows.Items.Count != 0 || impactChanges.Items.Count != 0 ||
-                    !((TextBlock)window.FindName("ImpactStatus")!).Text.StartsWith("Unable to review module impact", StringComparison.Ordinal) ||
-                    !((StackPanel)window.FindName("BindingFields")!).IsEnabled)
+                    !((TextBlock)WorkspaceUi.Find(window, "ImpactStatus")!).Text.StartsWith("Unable to review module impact", StringComparison.Ordinal) ||
+                    !((StackPanel)WorkspaceUi.Find(window, "BindingFields")!).IsEnabled)
                     throw new InvalidOperationException("Failed impact review retained stale results or disabled editing.");
                 window.Close();
                 System.Console.WriteLine("Shared default binding editor staged, discarded, saved and reopened an independent revision.");
@@ -1149,5 +1150,6 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
 

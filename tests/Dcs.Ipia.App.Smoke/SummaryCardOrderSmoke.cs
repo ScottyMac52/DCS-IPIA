@@ -37,10 +37,9 @@ namespace Dcs.Ipia.App.Smoke
                 var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
-                var tabs = (TabControl)window.FindName("ImportedTabs")!;
-                tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(x => x.Header.ToString() == "Pages");
-                ((DataGrid)window.FindName("AuthoredPages")!).SelectedIndex = 0;
-                var cards = (ListBox)window.FindName("SummaryCards")!;
+                WorkspaceUi.Navigate(window, "Pages");
+                ((DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!).SelectedIndex = 0;
+                var cards = (ListBox)WorkspaceUi.Find(window, "SummaryCards")!;
                 cards.BringIntoView();
                 window.UpdateLayout();
                 if (!cards.AllowDrop || cards.ItemContainerGenerator.ContainerFromIndex(0) is not ListBoxItem)
@@ -61,7 +60,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (over.Effects != DragDropEffects.Move) throw new InvalidOperationException("A same-list drag was rejected.");
                 cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "Second,Third,First");
-                if (cards.SelectedIndex != 2 || ((TextBox)window.FindName("SummaryCardKey")!).Text != "03")
+                if (cards.SelectedIndex != 2 || ((TextBox)WorkspaceUi.Find(window, "SummaryCardKey")!).Text != "03")
                     throw new InvalidOperationException("The moved card/editor selection was not refreshed.");
                 // Move upward onto the upper half of the first row.
                 window.UpdateLayout();
@@ -84,10 +83,10 @@ namespace Dcs.Ipia.App.Smoke
                 var saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
                 if (ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards[0].Key != "07")
                     throw new InvalidOperationException("A form drag bypassed Stage/Save.");
-                ((Button)window.FindName("StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)WorkspaceUi.Find(window, "StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var previous = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
-                try { ((Button)window.FindName("SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+                try { ((Button)WorkspaceUi.Find(window, "SaveAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
                 finally { SynchronizationContext.SetSynchronizationContext(previous); }
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 while (true)
@@ -95,9 +94,9 @@ namespace Dcs.Ipia.App.Smoke
                     saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
                     var savedCards = ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards;
                     if (savedCards[0].Text == "Second" && savedCards[0].Key == "01" &&
-                        ((TextBlock)window.FindName("PageAuthoringStatus")!).Text.EndsWith("saved to database.", StringComparison.Ordinal)) break;
-                    if (((TextBlock)window.FindName("EditorMessage")!).Text.StartsWith("Database save failed:", StringComparison.Ordinal))
-                        throw new InvalidOperationException(((TextBlock)window.FindName("EditorMessage")!).Text);
+                        ((TextBlock)WorkspaceUi.Find(window, "PageAuthoringStatus")!).Text.Equals("Saved to database.", StringComparison.Ordinal)) break;
+                    if (((TextBlock)WorkspaceUi.Find(window, "EditorMessage")!).Text.StartsWith("Database save failed:", StringComparison.Ordinal))
+                        throw new InvalidOperationException(((TextBlock)WorkspaceUi.Find(window, "EditorMessage")!).Text);
                     if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Summary card order did not save.");
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
@@ -109,7 +108,7 @@ namespace Dcs.Ipia.App.Smoke
         #region BEGIN private helpers
         private static void VerifyResizing(ModuleWorkspaceWindow window, ListBox cards)
         {
-            var handle = window.FindName("SummaryCardsResizeHandle") as Thumb
+            var handle = WorkspaceUi.Find(window, "SummaryCardsResizeHandle") as Thumb
                 ?? throw new InvalidOperationException("Summary cards have no vertical resize handle.");
             if (!handle.Focusable || handle.ActualHeight < 8)
                 throw new InvalidOperationException("Summary resize handle is not accessible or usable.");
@@ -151,3 +150,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

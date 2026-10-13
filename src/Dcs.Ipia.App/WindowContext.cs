@@ -18,6 +18,10 @@ namespace DcsIpia.Presentation
         public HardwareInventoryManager? Inventory => _window._inventory;
         public IUserMappingLibrary? UserMappings => _window._userMappings;
         public Func<MappingRevisionReview, bool>? MappingReviewConfirmation => _window._mappingReviewConfirmation;
+        public Func<bool, IReadOnlyList<string>?>? CommandFilePicker => _window._commandFilePicker;
+        public Func<string?>? IntegrationFilePicker => _window._integrationFilePicker;
+        public Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? InputSourceFactory => _window._inputSourceFactory;
+        public Action<string, string>? InputLogClipboardWriter => _window._inputLogClipboardWriter;
         public Func<string?>? AxisDefaultsFilePicker => _window._axisDefaultsFilePicker;
         public string SavedGamesRoot
         {
@@ -35,11 +39,7 @@ namespace DcsIpia.Presentation
         public void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit)
             => _window.RunStructureEdit(edit);
 
-        public Task SaveAsync()
-        {
-            _window.SaveClicked(null!, null!);
-            return Task.CompletedTask;
-        }
+        public Task SaveAsync() => _window.SaveWorkspaceAsync();
 
         public void Discard() => _window.DiscardClicked(null!, null!);
 
@@ -51,6 +51,7 @@ namespace DcsIpia.Presentation
                 _window._labels.Remove(key);
             else
                 _window._labels[key] = value;
+            _window.UpdateBuildAvailability();
             RaiseStateChanged();
         }
     }

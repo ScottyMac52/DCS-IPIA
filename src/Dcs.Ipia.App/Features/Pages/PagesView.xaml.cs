@@ -53,6 +53,7 @@ namespace DcsIpia.Features.Pages
             Refresh();
             PageKind.ItemsSource = Enum.GetValues<KneeboardPageKind>();
             PageKind.SelectedIndex = 0;
+            PageOrder.Text = _context.Working?.Pages.Count.ToString(CultureInfo.InvariantCulture) ?? "0";
         }
 
         private void PageSelected(object sender, SelectionChangedEventArgs e)
@@ -70,21 +71,29 @@ namespace DcsIpia.Features.Pages
                 ClearForm();
                 return;
             }
-            var settings = ModuleKneeboardPageEditor.Describe(_context.Working, _selected);
-            _refreshing = true;
-            PageKind.SelectedItem = settings.Kind;
-            PageKind.IsEnabled = false;
-            PageDevice.SelectedItem = _context.Working.Configuration.Profiles.FirstOrDefault(x => x.Id == settings.ProfileId);
-            PageDevice.IsEnabled = false;
-            PageFile.Text = settings.File;
-            PageTitle.Text = settings.Title;
-            PageSubtitle.Text = settings.Subtitle;
-            PageOrder.Text = settings.Order.ToString(CultureInfo.InvariantCulture);
-            _cards.Clear();
-            _cards.AddRange(settings.Cards);
-            SummaryCards.ItemsSource = _cards.ToArray();
-            SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
-            _refreshing = false;
+            try
+            {
+                var settings = ModuleKneeboardPageEditor.Describe(_context.Working, _selected);
+                _refreshing = true;
+                PageKind.SelectedItem = settings.Kind;
+                PageKind.IsEnabled = false;
+                PageDevice.SelectedItem = _context.Working.Configuration.Profiles.FirstOrDefault(x => x.Id == settings.ProfileId);
+                PageDevice.IsEnabled = false;
+                PageFile.Text = settings.File;
+                PageTitle.Text = settings.Title;
+                PageSubtitle.Text = settings.Subtitle;
+                PageOrder.Text = settings.Order.ToString(CultureInfo.InvariantCulture);
+                _cards.Clear();
+                _cards.AddRange(settings.Cards);
+                SummaryCards.ItemsSource = _cards.ToArray();
+                SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
+            }
+            catch (Exception ex)
+            {
+                ClearForm();
+                StatusText.Text = "Unable to edit page: " + ex.Message + " You can still remove this page.";
+            }
+            finally { _refreshing = false; }
         }
 
         private void NewClicked(object sender, RoutedEventArgs e)
@@ -152,8 +161,12 @@ namespace DcsIpia.Features.Pages
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            StatusText.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                StatusText.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusText.Text = "Database save failed: " + ex.Message; }
         }
 
         private void DiscardClicked(object sender, RoutedEventArgs e)
@@ -172,8 +185,10 @@ namespace DcsIpia.Features.Pages
                 Pages.ItemsSource = null;
                 return;
             }
+            var selectedId = (Pages.SelectedItem as KneeboardPage)?.Id;
             var pages = _context.Working.Pages.OrderBy(x => x.Order).ToArray();
             Pages.ItemsSource = pages;
+            Pages.SelectedItem = pages.FirstOrDefault(x => x.Id == selectedId);
             StatusText.Text = $"{pages.Length} pages";
             PageDevice.ItemsSource = _context.Working.Configuration.Profiles;
         }
@@ -261,7 +276,7 @@ namespace DcsIpia.Features.Pages
             SummaryCards.AddHandler(DragDrop.GiveFeedbackEvent, feedback, true);
             try
             {
-                DragDrop.DoDragDrop(SummaryCards, new DataObject(typeof(ModuleSummaryCard), _cardDrag), DragDropEffects.Move);
+                DragDrop.DoDragDrop(SummaryCards, new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(SummaryCards, _cardDrag)), DragDropEffects.Move);
             }
             finally
             {
@@ -285,29 +300,33 @@ namespace DcsIpia.Features.Pages
 
         private void CardDragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(typeof(ModuleSummaryCard)) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Effects = CardSource(e) >= 0 ? DragDropEffects.Move : DragDropEffects.None;
             e.Handled = true;
         }
 
         private void CardDrop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetData(typeof(ModuleSummaryCard)) is not ModuleSummaryCard source) return;
-            var point = e.GetPosition(SummaryCards);
+            var source = CardSource(e);
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            if (source < 0) return;
             var insertion = _cards.Count;
-            if (SummaryCards.InputHitTest(point) is DependencyObject element &&
+            if (SummaryCards.InputHitTest(e.GetPosition(SummaryCards)) is DependencyObject element &&
                 ItemsControl.ContainerFromElement(SummaryCards, element) is ListBoxItem row)
             {
                 insertion = SummaryCards.ItemContainerGenerator.IndexFromContainer(row);
                 if (e.GetPosition(row).Y >= row.ActualHeight / 2) insertion++;
             }
-            var from = _cards.IndexOf(source);
-            if (from < 0) return;
-            if (insertion > from) insertion--;
-            if (insertion == from) return;
-            _cards.RemoveAt(from);
-            _cards.Insert(Math.Clamp(insertion, 0, _cards.Count), source);
+            var moved = SummaryCardOrder.Move(_cards, source, insertion);
+            if (ReferenceEquals(moved, _cards)) return;
+            var destination = insertion > source ? insertion - 1 : insertion;
+            _cards.Clear();
+            _cards.AddRange(moved);
             SummaryCards.ItemsSource = _cards.ToArray();
-            e.Handled = true;
+            SummaryCards.SelectedIndex = destination;
+            SummaryCards.ScrollIntoView(SummaryCards.SelectedItem);
+            e.Effects = DragDropEffects.Move;
+            StatusText.Text = "Cards reordered and renumbered in the form. Stage page, then Save to database to keep them.";
         }
 
         private void GenerateSummaryClicked(object sender, RoutedEventArgs e)
@@ -319,6 +338,21 @@ namespace DcsIpia.Features.Pages
                 StatusText.Text = "Summary pages generated and staged.";
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
+        }
+
+        private KneeboardPage? PageDragSource(DragEventArgs e)
+        {
+            if (_context!.Working is null || e.Data.GetData(typeof(KneeboardPageDrag)) is not KneeboardPageDrag drag ||
+                !ReferenceEquals(drag.Source, Pages)) return null;
+            return _context!.Working.Pages.FirstOrDefault(x => ReferenceEquals(x, drag.Page));
+        }
+
+        private int CardSource(DragEventArgs e)
+        {
+            if (_context!.Working is null || !SummaryGroup.IsEnabled ||
+                (e.AllowedEffects & DragDropEffects.Move) == 0 ||
+                e.Data.GetData(typeof(SummaryCardDrag)) is not SummaryCardDrag drag || !ReferenceEquals(drag.Source, SummaryCards)) return -1;
+            return _cards.FindIndex(x => ReferenceEquals(x, drag.Card));
         }
 
         private void PageDragStart(object sender, MouseButtonEventArgs e)
@@ -337,40 +371,34 @@ namespace DcsIpia.Features.Pages
             _layer = AdornerLayer.GetAdornerLayer(Pages);
             _adorner = new TitleAdorner(Pages, _dragPage.Title);
             _layer?.Add(_adorner);
-            DragDrop.DoDragDrop(Pages, new DataObject(typeof(KneeboardPage), _dragPage), DragDropEffects.Move);
+            DragDrop.DoDragDrop(Pages, new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(Pages, _dragPage)), DragDropEffects.Move);
             if (_adorner is not null) _layer?.Remove(_adorner);
             _adorner = null;
         }
 
         private void PageDragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(KneeboardPage)))
-            {
-                e.Effects = DragDropEffects.None;
-                e.Handled = true;
-                return;
-            }
-            e.Effects = DragDropEffects.Move;
+            e.Effects = PageDragSource(e) is null ? DragDropEffects.None : DragDropEffects.Move;
             e.Handled = true;
-            _adorner?.Update(e.GetPosition(Pages));
         }
 
         private void PageDrop(object sender, DragEventArgs e)
         {
-            if (_context is null || e.Data.GetData(typeof(KneeboardPage)) is not KneeboardPage source) return;
-            var point = e.GetPosition(Pages);
-            var row = Pages.InputHitTest(point) as DependencyObject;
-            while (row is not null && row is not DataGridRow)
-                row = VisualTreeHelper.GetParent(row);
-            var target = (row as DataGridRow)?.Item as KneeboardPage;
-            if (target is null || target.Id == source.Id) return;
-            try
-            {
-                _context.RunStructureEdit(workspace => ModuleKneeboardPageEditor.Move(workspace, source, target.Order));
-                StatusText.Text = "Page order staged.";
-            }
-            catch (Exception ex) { StatusText.Text = ex.Message; }
+            e.Effects = DragDropEffects.None;
             e.Handled = true;
+            if (PageDragSource(e) is not { } page) return;
+            var insertion = Pages.Items.Count;
+            if (Pages.InputHitTest(e.GetPosition(Pages)) is DependencyObject element &&
+                ItemsControl.ContainerFromElement(Pages, element) is DataGridRow row)
+            {
+                insertion = row.GetIndex();
+                if (e.GetPosition(row).Y >= row.ActualHeight / 2) insertion++;
+            }
+            if (_context!.Working is null || ReferenceEquals(ModuleKneeboardPageEditor.Move(_context!.Working, page, insertion), _context!.Working)) return;
+            _context!.RunStructureEdit(workspace => ModuleKneeboardPageEditor.Move(workspace, page, insertion));
+            Pages.SelectedItem = _context!.Working.Pages.FirstOrDefault(x => x.Id == page.Id);
+            if (Pages.SelectedItem is not null) Pages.ScrollIntoView(Pages.SelectedItem);
+            e.Effects = DragDropEffects.Move;
         }
 
         private void PageGiveFeedback(object sender, GiveFeedbackEventArgs e)
@@ -417,9 +445,16 @@ namespace DcsIpia.Features.Pages
             catch (Exception ex) { StatusText.Text = "Preview failed: " + ex.Message; }
         }
 
+        private void SummaryCardsResizeKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key is not (Key.Up or Key.Down)) return;
+            SummaryCards.Height = Math.Clamp(SummaryCards.Height + (e.Key == Key.Down ? 20 : -20), SummaryCards.MinHeight, SummaryCards.MaxHeight);
+            e.Handled = true;
+        }
+
         private void SummaryCardsResizeDragged(object sender, DragDeltaEventArgs e)
         {
-            SummaryCards.Height = Math.Clamp(SummaryCards.Height + e.VerticalChange, 60, 400);
+            SummaryCards.Height = Math.Clamp(SummaryCards.Height + e.VerticalChange, SummaryCards.MinHeight, SummaryCards.MaxHeight);
             e.Handled = true;
         }
     }

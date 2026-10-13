@@ -25,6 +25,7 @@ namespace DcsIpia.Presentation
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private readonly INavigationService _navigation;
 #pragma warning restore CA1859 // Use concrete types when possible for improved performance
+        private readonly Dictionary<string, UserControl> _views = new(StringComparer.Ordinal);
         private readonly string[] _knownKeys = { "Devices", "Modifiers", "Assignments", "InputTest", "Commands", "Pages", "Kneeboards", "Documentation" };
 
         internal readonly ModuleWorkspaceViewModel _viewModel;
@@ -38,19 +39,19 @@ namespace DcsIpia.Presentation
         internal readonly HardwareInventoryManager? _inventory;
         internal readonly IUserMappingLibrary? _userMappings;
         internal readonly Func<MappingRevisionReview, bool>? _mappingReviewConfirmation;
-        private readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
+        internal readonly Func<bool, IReadOnlyList<string>?>? _commandFilePicker;
         private readonly Func<bool, string?>? _outputPathPicker;
         private readonly Func<string?>? _documentationFolderPicker;
         private readonly Func<string?>? _completeReleaseFolderPicker;
-        private readonly Func<string?>? _integrationFilePicker;
+        internal readonly Func<string?>? _integrationFilePicker;
         internal readonly Func<string?>? _axisDefaultsFilePicker;
         internal string _savedGamesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
         private bool _structureDirty;
         private bool _managementRefreshing;
         internal readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private bool _building;
-        private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? _inputSourceFactory;
-        private readonly Action<string, string>? _inputLogClipboardWriter;
+        internal readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? _inputSourceFactory;
+        internal readonly Action<string, string>? _inputLogClipboardWriter;
 
         public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
@@ -104,7 +105,13 @@ namespace DcsIpia.Presentation
 
         private void LoadCurrentView()
         {
-            FeatureContent.Content = _navigation.CurrentFeatureKey switch
+            var key = _navigation.CurrentFeatureKey ?? "Devices";
+            if (_views.TryGetValue(key, out var cached))
+            {
+                FeatureContent.Content = cached;
+                return;
+            }
+            FeatureContent.Content = key switch
             {
                 "Devices" => CreateDevicesView(),
                 "Modifiers" => CreateModifiersView(),
@@ -116,6 +123,7 @@ namespace DcsIpia.Presentation
                 "Documentation" => CreateDocumentationView(),
                 _ => null
             };
+            if (FeatureContent.Content is UserControl view) _views[key] = view;
         }
 
         private DevicesView CreateDevicesView()
@@ -221,6 +229,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 _context.RaiseStatus(ex.Message);
+                EditorMessage.Text = ex.Message;
             }
         }
 
@@ -232,7 +241,9 @@ namespace DcsIpia.Presentation
             ThemeManager.Apply(_settings.Current.Theme.ToString());
         }
 
-        internal async void SaveClicked(object sender, RoutedEventArgs e)
+        internal async void SaveClicked(object sender, RoutedEventArgs e) => await SaveWorkspaceAsync();
+
+        internal async Task SaveWorkspaceAsync()
         {
             if (_repository is null || _saved is null || _draft is null) return;
             try
@@ -255,10 +266,14 @@ namespace DcsIpia.Presentation
                     WorkspaceStructureEditor.UiModifierNames(updated));
                 RefreshManagement();
                 UpdateBuildAvailability();
+                _context.RaiseStateChanged();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                EditorMessage.Text = "Database save failed: " + ex.Message;
+                _context.RaiseStatus(EditorMessage.Text);
                 UpdateBuildAvailability();
+                throw;
             }
         }
 
@@ -274,6 +289,7 @@ namespace DcsIpia.Presentation
                     _labels[pair.Key] = pair.Value;
             RefreshManagement();
             UpdateBuildAvailability();
+            _context.RaiseStateChanged();
         }
 
         private bool HasPendingChanges() =>
@@ -284,9 +300,10 @@ namespace DcsIpia.Presentation
 
         private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();
 
-        private void UpdateBuildAvailability()
+        internal void UpdateBuildAvailability()
         {
             if (BuildButton is null || PackageVersion is null) return;
+            PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
                                     !_viewModel.HasErrors && !HasPendingChanges() &&
                                     !string.IsNullOrWhiteSpace(PackageVersion.Text);
@@ -358,6 +375,7 @@ namespace DcsIpia.Presentation
                 ApplicationLog.ModuleOutputFailure(_logger, operation, _saved.Configuration.Module.Id,
                     _saved.Configuration.Module.DcsId, PackageVersion.Text.Trim(), ex);
                 BuildStatus.Text = "Module output failed: " + ex.Message;
+                OutputFailureDiagnostic.Text = operation + ": " + ex.Message;
             }
             finally { _building = false; UpdateBuildAvailability(); }
         }

@@ -37,11 +37,11 @@ namespace Dcs.Ipia.App.Smoke
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
                 editor.Show();
                 // Duplicate import evidence must also pass the real validation and snapshot export actions.
-                ((TextBox)editor.FindName("PackageVersion")!).Text = "1.0.0.0";
-                Click((Button)editor.FindName("ValidateModuleButton")!);
-                Wait(editor, () => ((TextBlock)editor.FindName("BuildStatus")!).Text.StartsWith("Validated", StringComparison.Ordinal));
-                Click((Button)editor.FindName("ExportModuleSnapshotButton")!);
-                Wait(editor, () => ((TextBlock)editor.FindName("BuildStatus")!).Text.StartsWith("Exported module snapshot:", StringComparison.Ordinal));
+                ((TextBox)WorkspaceUi.Find(editor, "PackageVersion")!).Text = "1.0.0.0";
+                Click((Button)WorkspaceUi.Find(editor, "ValidateModuleButton")!);
+                Wait(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "BuildStatus")!).Text.StartsWith("Validated", StringComparison.Ordinal));
+                Click((Button)WorkspaceUi.Find(editor, "ExportModuleSnapshotButton")!);
+                Wait(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "BuildStatus")!).Text.StartsWith("Exported module snapshot:", StringComparison.Ordinal));
                 if (!File.Exists(exportPath) || output.Events.Count != 0)
                     throw new InvalidOperationException("Duplicate imported bindings blocked saved-module output.");
                 editor.Close();
@@ -53,14 +53,14 @@ namespace Dcs.Ipia.App.Smoke
                 foreach (var (button, operation) in new[] { ("ValidateModuleButton", "Validate"),
                     ("ExportModuleSnapshotButton", "Export module snapshot") })
                 {
-                    ((TextBox)editor.FindName("PackageVersion")!).Text = "1.0.0.0";
+                    ((TextBox)WorkspaceUi.Find(editor, "PackageVersion")!).Text = "1.0.0.0";
                     var count = output.Events.Count;
-                    Click((Button)editor.FindName(button)!);
-                    Wait(editor, () => output.Events.Count > count && ((Button)editor.FindName(button)!).IsEnabled);
+                    Click((Button)WorkspaceUi.Find(editor, button)!);
+                    Wait(editor, () => output.Events.Count > count && ((Button)WorkspaceUi.Find(editor, button)!).IsEnabled);
                     VerifyEvent(output.Events[^1], saved.Configuration.Module.Id, saved.Configuration.Module.DcsId, operation);
-                    var status = ((TextBlock)editor.FindName("BuildStatus")!).Text;
+                    var status = ((TextBlock)WorkspaceUi.Find(editor, "BuildStatus")!).Text;
                     if (!status.StartsWith("Module output failed:", StringComparison.Ordinal) ||
-                        !((TextBlock)editor.FindName("OutputFailureDiagnostic")!).Text.StartsWith(operation + ":", StringComparison.Ordinal))
+                        !((TextBlock)WorkspaceUi.Find(editor, "OutputFailureDiagnostic")!).Text.StartsWith(operation + ":", StringComparison.Ordinal))
                         throw new InvalidOperationException("Output failure lost visible status or Diagnostics feedback.");
                 }
                 editor.Close();
@@ -69,14 +69,14 @@ namespace Dcs.Ipia.App.Smoke
                 main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
                     flyNow: new FailingModuleOutputFlyNow(), deviceDiscovery: new EmptyDeviceDiscovery(), logger: fly);
                 main.Show();
-                var modules = (ComboBox)main.FindName("SavedModules")!;
-                Wait(main, () => modules.Items.Count > 0 && ((TextBlock)main.FindName("FlyNowStatus")!).Text.StartsWith("No module", StringComparison.Ordinal));
+                var modules = (ComboBox)WorkspaceUi.Find(main, "SavedModules")!;
+                Wait(main, () => modules.Items.Count > 0 && ((TextBlock)WorkspaceUi.Find(main, "FlyNowStatus")!).Text.StartsWith("No module", StringComparison.Ordinal));
                 modules.SelectedItem = modules.Items.Cast<SavedModuleChoice>().Single(x => x.Id == saved.Configuration.Module.Id);
-                Click((Button)main.FindName("FlyNowButton")!);
-                Wait(main, () => fly.Events.Count == 1 && ((Button)main.FindName("FlyNowButton")!).IsEnabled);
+                Click((Button)WorkspaceUi.Find(main, "FlyNowButton")!);
+                Wait(main, () => fly.Events.Count == 1 && ((Button)WorkspaceUi.Find(main, "FlyNowButton")!).IsEnabled);
                 VerifyEvent(fly.Events[0], saved.Configuration.Module.Id, saved.Configuration.Module.DcsId, "Fly Now!");
                 if (fly.Events[0].Exception?.Message != FailingModuleOutputFlyNow.Detail ||
-                    !((TextBlock)main.FindName("ImportStatus")!).Text.Contains(FailingModuleOutputFlyNow.Detail, StringComparison.Ordinal))
+                    !((TextBlock)WorkspaceUi.Find(main, "ImportStatus")!).Text.Contains(FailingModuleOutputFlyNow.Detail, StringComparison.Ordinal))
                     throw new InvalidOperationException("Fly Now lost exception details or visible feedback.");
             }
             finally { editor?.Close(); main?.Close(); Directory.Delete(root, true); }
@@ -111,3 +111,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

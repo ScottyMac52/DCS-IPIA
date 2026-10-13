@@ -29,9 +29,12 @@ namespace DcsIpia.Features.Devices
             _context.StatusChanged += (_, msg) => StatusMessage.Text = msg;
             DevicesScope.SelectedIndex = 0;
             Refresh();
-            _ = RefreshDetectedDevicesAsync();
-            _ = LoadInventoryChoicesAsync();
-            _ = LoadUserMappingsAsync();
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                await RefreshDetectedDevicesAsync();
+                await LoadInventoryChoicesAsync();
+                await LoadUserMappingsAsync();
+            });
         }
 
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
@@ -169,9 +172,13 @@ namespace DcsIpia.Features.Devices
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            Refresh();
-            StatusMessage.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                Refresh();
+                StatusMessage.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusMessage.Text = "Database save failed: " + ex.Message; }
         }
 
         private void NewDeviceClicked(object sender, RoutedEventArgs e)

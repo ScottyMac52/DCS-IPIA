@@ -36,6 +36,7 @@ jobs:
         shell: pwsh
         run: ./tests/installer/Test-RuntimePackNotices.ps1
       - name: Build Visual Studio solution
+        id: solution_build
         run: dotnet build DCS-IPIA.sln --configuration Release
       - name: Test setup folder defaults and appsettings persistence
         shell: powershell
@@ -46,6 +47,7 @@ jobs:
           IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
         run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
       - name: Run tests on Windows
+        if: ${{ !cancelled() && steps.solution_build.outcome == 'success' }}
         env:
           IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
           IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
@@ -220,3 +222,4 @@ jobs:
           name: DCS-IPIA-tested-release-candidate
           path: release-assets/*
           if-no-files-found: error
+

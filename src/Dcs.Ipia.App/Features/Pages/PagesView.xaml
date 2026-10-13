@@ -9,7 +9,7 @@
             <ColumnDefinition Width="400" MinWidth="300"/>
         </Grid.ColumnDefinitions>
 
-        <DataGrid x:Name="Pages" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+        <DataGrid x:Name="Pages" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False"
                   SelectionChanged="PageSelected"
                   PreviewMouseLeftButtonDown="PageDragStart"
                   PreviewMouseMove="PageDrag"
@@ -56,7 +56,7 @@
                 <GroupBox x:Name="SummaryGroup" Header="Summary cards — two columns, up to 14 cards" Padding="8" Margin="0,8,0,0" IsEnabled="False">
                     <StackPanel>
                         <AdornerDecorator>
-                            <ListBox x:Name="SummaryCards" DisplayMemberPath="Key" Height="100"
+                            <ListBox x:Name="SummaryCards" DisplayMemberPath="Key" Height="140" MinHeight="120" MaxHeight="560"
                                  AllowDrop="True"
                                  SelectionChanged="CardSelected"
                                  PreviewMouseLeftButtonDown="CardDragStart"
@@ -65,7 +65,7 @@
                                  PreviewDrop="CardDrop"/>
                         </AdornerDecorator>
                             <Thumb x:Name="SummaryCardsResize" Height="12" Margin="0,2,0,0" Cursor="SizeNS" Focusable="True"
-       Background="{DynamicResource BorderBrush}" DragDelta="SummaryCardsResizeDragged"
+       Background="{DynamicResource BorderBrush}" DragDelta="SummaryCardsResizeDragged" KeyDown="SummaryCardsResizeKeyDown"
        ToolTip="Drag to resize the card list">
                             <Thumb.Template>
                                 <ControlTemplate TargetType="Thumb">

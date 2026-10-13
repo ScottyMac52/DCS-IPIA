@@ -58,16 +58,19 @@ namespace DcsIpia.Features.Documentation
                 Title = "Select integration instructions",
                 Filter = "Integration instructions|*.json;*.md|JSON|*.json|Markdown|*.md"
             };
-            if (picker.ShowDialog(Window.GetWindow(this)) != true) return;
+            var path = _context.IntegrationFilePicker is null
+                ? (picker.ShowDialog(Window.GetWindow(this)) == true ? picker.FileName : null)
+                : _context.IntegrationFilePicker();
+            if (path is null) return;
             try
             {
-                var review = ModuleIntegrationImport.ReadFile(_context.Working, picker.FileName);
+                var review = ModuleIntegrationImport.ReadFile(_context.Working, path);
                 var dialog = new IntegrationImportReviewWindow(_context.Working, review) { Owner = Window.GetWindow(this) };
                 if (dialog.ShowDialog() != true) return;
                 _context.RunStructureEdit(w => ModuleIntegrationImport.Apply(w, review));
                 StatusText.Text = "Instructions staged.";
             }
-            catch (Exception ex) { StatusText.Text = "Import failed: " + ex.Message; }
+            catch (Exception ex) { StatusText.Text = "Integration import failed: " + ex.Message; }
         }
 
         private void RemoveClicked(object sender, RoutedEventArgs e)
@@ -80,13 +83,18 @@ namespace DcsIpia.Features.Documentation
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            StatusText.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                StatusText.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusText.Text = "Database save failed: " + ex.Message; }
         }
 
         private void DiscardClicked(object sender, RoutedEventArgs e)
         {
             _context?.Discard();
+            Refresh();
             StatusText.Text = "Pending edits discarded.";
         }
     }
