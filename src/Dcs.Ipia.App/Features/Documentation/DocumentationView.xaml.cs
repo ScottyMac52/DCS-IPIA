@@ -83,8 +83,12 @@ namespace DcsIpia.Features.Documentation
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            StatusText.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                StatusText.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusText.Text = "Database save failed: " + ex.Message; }
         }
 
         private void DiscardClicked(object sender, RoutedEventArgs e)

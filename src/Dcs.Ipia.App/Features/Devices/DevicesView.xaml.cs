@@ -172,9 +172,13 @@ namespace DcsIpia.Features.Devices
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            Refresh();
-            StatusMessage.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                Refresh();
+                StatusMessage.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusMessage.Text = "Database save failed: " + ex.Message; }
         }
 
         private void NewDeviceClicked(object sender, RoutedEventArgs e)

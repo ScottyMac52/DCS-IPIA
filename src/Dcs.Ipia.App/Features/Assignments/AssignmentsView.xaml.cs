@@ -710,9 +710,13 @@ namespace DcsIpia.Features.Assignments
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            RefreshDiagram();
-            SelectedCallout.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                RefreshDiagram();
+                SelectedCallout.Text = "Saved to database.";
+            }
+            catch (Exception ex) { SelectedCallout.Text = "Database save failed: " + ex.Message; }
         }
 
         private void DiscardClicked(object sender, RoutedEventArgs e)

@@ -213,8 +213,12 @@ namespace DcsIpia.Features.Modifiers
         private async void SaveClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null) return;
-            await _context.SaveAsync();
-            StatusMessage.Text = "Saved to database.";
+            try
+            {
+                await _context.SaveAsync();
+                StatusMessage.Text = "Saved to database.";
+            }
+            catch (Exception ex) { StatusMessage.Text = "Database save failed: " + ex.Message; }
         }
 
         private void DiscardClicked(object sender, RoutedEventArgs e)
