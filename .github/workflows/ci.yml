@@ -164,9 +164,7 @@ jobs:
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo "[Download HTML coverage, CRAP scores, and test results]($REPORT_URL) — open report/index.html after extraction for searchable CRAP, complexity, line coverage, and branch coverage in one table." >> "$GITHUB_STEP_SUMMARY"
 
-  # TEMPORARY: disabled during ModuleWorkspaceWindow refactor (issue #202).
   asset-authoring:
-    if: false
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
