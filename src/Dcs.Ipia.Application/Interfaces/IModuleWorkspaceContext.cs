@@ -2,6 +2,8 @@
 {
     public interface IModuleWorkspaceContext
     {
+        IReadOnlyDictionary<string, string> Labels { get; }
+        void SetLabel(string key, string? value);
         EditorWorkspaceSnapshot? Working { get; }
         DraftAssignmentService? Draft { get; }
         EditorWorkspaceSnapshot? Saved { get; }

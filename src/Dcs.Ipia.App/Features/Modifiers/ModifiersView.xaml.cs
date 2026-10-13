@@ -10,7 +10,7 @@ namespace DcsIpia.Features.Modifiers
     public partial class ModifiersView : UserControl
     {
         private IModuleWorkspaceContext? _context;
-        private AssignmentLayer _layer = AssignmentLayer.Module;
+        private AssignmentLayer CurrentLayer => ModifiersScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
 
         public ModifiersView()
         {
@@ -31,7 +31,6 @@ namespace DcsIpia.Features.Modifiers
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_context is null || ModifiersScope.SelectedIndex < 0) return;
-            _layer = ModifiersScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
             Refresh();
         }
 
@@ -45,10 +44,10 @@ namespace DcsIpia.Features.Modifiers
             }
 
             var state = WorkspaceStructureEditor.Describe(_context.Working);
-            var modifiers = state.Modifiers.Where(x => x.Layer == _layer).ToArray();
+            var modifiers = state.Modifiers.Where(x => x.Layer == CurrentLayer).ToArray();
             ManagedModifiers.ItemsSource = modifiers;
-            ModifierDevice.ItemsSource = state.Devices.Where(x => x.Layer == _layer).ToArray();
-            StatusText.Text = $"{modifiers.Length} modifiers in {_layer}";
+            ModifierDevice.ItemsSource = state.Devices.Where(x => x.Layer == CurrentLayer).ToArray();
+            StatusText.Text = $"{modifiers.Length} modifiers in {CurrentLayer}";
         }
 
         private void ManagedModifierSelected(object sender, SelectionChangedEventArgs e)
@@ -68,7 +67,7 @@ namespace DcsIpia.Features.Modifiers
             ModifierModeChoice.SelectedItem = modifier.Mode;
 
             var devices = WorkspaceStructureEditor.Describe(_context.Working).Devices
-                .Where(x => x.Layer == _layer).ToArray();
+                .Where(x => x.Layer == CurrentLayer).ToArray();
             ModifierDevice.ItemsSource = devices;
             ModifierDevice.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == modifier.ProfileId);
 
@@ -91,7 +90,7 @@ namespace DcsIpia.Features.Modifiers
             var mode = ModifierModeChoice.SelectedItem is ModifierMode value
                 ? value
                 : throw new InvalidOperationException("Select Hold or Toggle.");
-            return new(_layer, device.ProfileId, ModifierName.Text, control.InputKey, ModifierSemantic.Text, mode, "");
+            return new(CurrentLayer, device.ProfileId, ModifierName.Text, control.InputKey, ModifierSemantic.Text, mode, "");
         }
 
         private void UpdateModifierClicked(object sender, RoutedEventArgs e)
@@ -176,5 +175,52 @@ namespace DcsIpia.Features.Modifiers
             ModifierControl.SelectedIndex = controls.Length > 0 ? 0 : -1;
         }
 
+        private void ClearAssignmentsClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context?.Working is null) return;
+            var selected = ManagedModifiers.SelectedItem as WorkspaceModifier;
+            var scope = CurrentLayer;
+            var message = selected is null
+                ? $"Clear all assignments in the {scope} scope?"
+                : $"Clear assignments for modifier \"{selected.Name}\" in the {scope} scope?";
+            if (MessageBox.Show(Window.GetWindow(this), message, "Clear assignments",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
+
+            _context.RunStructureEdit(workspace =>
+            {
+                var devices = WorkspaceStructureEditor.Describe(workspace).Devices
+                    .Where(d => d.Layer == scope);
+                var current = workspace;
+                if (selected is null)
+                {
+                    foreach (var device in devices)
+                        current = WorkspaceStructureEditor.ClearLayerAssignments(current, device, "");
+                    foreach (var mod in WorkspaceStructureEditor.Describe(current).Modifiers.Where(m => m.Layer == scope))
+                        foreach (var device in devices)
+                            current = WorkspaceStructureEditor.ClearLayerAssignments(current, device, mod.Name);
+                }
+                else
+                {
+                    foreach (var device in devices)
+                        current = WorkspaceStructureEditor.ClearLayerAssignments(current, device, selected.Name);
+                }
+                return current;
+            });
+            StatusMessage.Text = "Assignments cleared and staged.";
+        }
+
+        private async void SaveClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context is null) return;
+            await _context.SaveAsync();
+            StatusMessage.Text = "Saved to database.";
+        }
+
+        private void DiscardClicked(object sender, RoutedEventArgs e)
+        {
+            _context?.Discard();
+            StatusMessage.Text = "Pending edits discarded.";
+        }
     }
 }
