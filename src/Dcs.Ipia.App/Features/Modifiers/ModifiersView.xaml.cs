@@ -7,17 +7,20 @@ using System.Windows.Controls;
 
 namespace DcsIpia.Features.Modifiers
 {
+    /// <summary>Edits module and UI Layer modifier definitions.</summary>
     public partial class ModifiersView : UserControl
     {
         private IModuleWorkspaceContext? _context;
         private AssignmentLayer CurrentLayer => ModifiersScope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
 
+        #region BEGIN Public
         public ModifiersView()
         {
             InitializeComponent();
             ModifierModeChoice.ItemsSource = Enum.GetValues<ModifierMode>();
         }
         
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -27,7 +30,9 @@ namespace DcsIpia.Features.Modifiers
             ModifiersScope.SelectedIndex = 0;
             Refresh();
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_context is null || ModifiersScope.SelectedIndex < 0) return;
@@ -226,5 +231,6 @@ namespace DcsIpia.Features.Modifiers
             _context?.Discard();
             StatusMessage.Text = "Pending edits discarded.";
         }
+        #endregion END private helpers
     }
 }

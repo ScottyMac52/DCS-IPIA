@@ -16,7 +16,7 @@ using System.Windows.Threading;
 namespace DcsIpia.Features.InputTest
 {
 
-
+    /// <summary>Displays live input feedback for a frozen generated mapping plan.</summary>
     public partial class InputTestView : UserControl, IDisposable
     {
         private IModuleWorkspaceContext? _context;
@@ -53,6 +53,7 @@ namespace DcsIpia.Features.InputTest
             Brushes.Khaki,           // 12
         ];
 
+        #region BEGIN Public
         public InputTestView()
         {
             InitializeComponent();
@@ -61,8 +62,7 @@ namespace DcsIpia.Features.InputTest
             Loaded += OnLoaded;
         }
 
-        #region IDisposable Support
-
+        /// <summary>Stops live input polling and releases the input source.</summary>
         public void Dispose()
         {
             Stop("Stopped.");
@@ -70,17 +70,7 @@ namespace DcsIpia.Features.InputTest
             GC.SuppressFinalize(this);
         }
 
-        #endregion IDisposable Support
-
-        private void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            Loaded -= OnLoaded;
-            var window = Window.GetWindow(this);
-            if (window is null) return;
-            window.Deactivated += (_, _) => Stop("Stopped on focus loss; restart to clear modifier state.");
-            window.Closed += (_, _) => Stop("Stopped.");
-        }
-
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -106,6 +96,17 @@ namespace DcsIpia.Features.InputTest
                 window.Closed += (_, _) => Stop("Stopped.");
             }
             RenderDiagram();
+        }
+        #endregion END Public
+
+        #region BEGIN private helpers
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= OnLoaded;
+            var window = Window.GetWindow(this);
+            if (window is null) return;
+            window.Deactivated += (_, _) => Stop("Stopped on focus loss; restart to clear modifier state.");
+            window.Closed += (_, _) => Stop("Stopped.");
         }
 
         private void StartInputTestClicked(object sender, RoutedEventArgs e)
@@ -363,5 +364,6 @@ namespace DcsIpia.Features.InputTest
             "Enter" => Key.Return, "Backspace" => Key.Back,
             _ => Enum.TryParse<Key>(name, true, out var key) && key != Key.None ? key : null
         };
+        #endregion END private helpers
     }
 }

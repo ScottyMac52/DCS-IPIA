@@ -78,6 +78,8 @@ namespace Dcs.Ipia.App.Smoke
                 ["SummaryCardsResizeHandle"] = ("Pages", "SummaryCardsResize", false),
         };
 
+        #region BEGIN Public
+        /// <summary>Selects a workspace feature and returns its active user control.</summary>
         public static UserControl Navigate(ModuleWorkspaceWindow window, string feature)
         {
             var nav = (ListBox)window.FindName("FeatureNav");
@@ -86,6 +88,7 @@ namespace Dcs.Ipia.App.Smoke
             return (UserControl)((ContentControl)window.FindName("FeatureContent")).Content;
         }
 
+        /// <summary>Finds a host or feature control using the smoke test control-name mapping.</summary>
         public static object Find(FrameworkElement root, string name)
         {
             if (root is not ModuleWorkspaceWindow window) return root.FindName(name)!;
@@ -110,16 +113,20 @@ namespace Dcs.Ipia.App.Smoke
                 ?? throw new InvalidOperationException($"Missing {target.Feature} control: {target.Name}");
         }
 
+        /// <summary>Reads the displayed command palette entries from a grid.</summary>
         public static IReadOnlyList<CommandPaletteEntry> Entries(DataGrid grid) => grid.Items.Cast<object>().Select(row =>
             new CommandPaletteEntry((string)row.GetType().GetProperty("Id")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Name")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Category")!.GetValue(row)!,
                 (bool)row.GetType().GetProperty("IsAxis")!.GetValue(row)!)).ToArray();
 
+        /// <summary>Selects a displayed command by its stable command identifier.</summary>
         public static void SelectCommand(DataGrid grid, string id) => grid.SelectedItem = grid.Items.Cast<object>()
             .Single(row => Equals(row.GetType().GetProperty("Id")!.GetValue(row), id));
 
+        /// <summary>Finds an action button by caption or reports a missing smoke test control.</summary>
         public static Button Button(DependencyObject view, string caption) =>
             ActionBar.FindButton(view, caption) ?? throw new InvalidOperationException("Missing action: " + caption);
+        #endregion END Public
     }
 }

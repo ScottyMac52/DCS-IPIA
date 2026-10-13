@@ -12,13 +12,16 @@ using System.Windows.Media.Imaging;
 
 namespace DcsIpia.Features.Kneeboards
 {
+    /// <summary>Previews the module kneeboard pages.</summary>
     public partial class KneeboardsView : UserControl
     {
         private IModuleWorkspaceContext? _context;
         private bool _updating;
 
+        #region BEGIN Public
         public KneeboardsView() => InitializeComponent();
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -26,7 +29,9 @@ namespace DcsIpia.Features.Kneeboards
             _context.StateChanged += (_, _) => Refresh();
             Refresh();
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         private void Refresh()
         {
             if (_context?.Working is null && _context?.Saved is null)
@@ -132,5 +137,6 @@ namespace DcsIpia.Features.Kneeboards
         }
 
         private void ZoomReset(object sender, MouseButtonEventArgs e) => Zoom.Value = 1.0;
+        #endregion END private helpers
     }
 }

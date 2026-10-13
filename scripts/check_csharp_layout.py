@@ -9,7 +9,12 @@ TYPE = re.compile(
     r"(?:record(?:\s+(?:struct|class))?|class|struct|enum|interface)\s+(\w+)", re.M
 )
 errors = []
-files = sorted((*ROOT.glob("src/**/*.cs"), *ROOT.glob("tests/**/*.cs")))
+files = sorted(
+    path
+    for folder in ("src", "tests")
+    for path in (ROOT / folder).rglob("*.cs")
+    if not any(part.lower() in {"bin", "obj"} for part in path.relative_to(ROOT).parts[:-1])
+)
 for path in files:
     text = path.read_text(encoding="utf-8")
     matches = list(TYPE.finditer(text))

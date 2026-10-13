@@ -4,24 +4,12 @@ using Dcs.Ipia.Rendering;
 
 namespace DcsIpia.Features.InputTest
 {
-    public sealed record InputTestCallout(
-        string InputKey,
-        string Chord,
-        double X,
-        double Y,
-        double Width,
-        double Height,
-        string Caption,
-        int ColorIndex);
 
-    public sealed record InputTestDiagramModel(
-        byte[] BackgroundPng,
-        double Width,
-        double Height,
-        IReadOnlyList<InputTestCallout> Callouts);
-
+    /// <summary>Composes a device background and assignment slices for live input feedback.</summary>
     public static class InputTestDiagramComposer
     {
+        #region BEGIN Public
+        /// <summary>Creates the live input diagram from the supplied workspace, assignments and personal labels.</summary>
         public static InputTestDiagramModel Compose(
             UiLayerDiagram diagram,
             EditorWorkspaceSnapshot workspace,
@@ -86,5 +74,6 @@ namespace DcsIpia.Features.InputTest
 
             return new(png, diagram.Width, diagram.Height, callouts);
         }
+        #endregion END Public
     }
 }

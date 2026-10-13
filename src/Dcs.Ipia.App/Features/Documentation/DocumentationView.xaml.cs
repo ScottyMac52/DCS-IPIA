@@ -8,12 +8,15 @@ using System.Windows.Controls;
 
 namespace DcsIpia.Features.Documentation
 {
+    /// <summary>Edits module-owned integration instructions.</summary>
     public partial class DocumentationView : UserControl
     {
         private IModuleWorkspaceContext? _context;
 
+        #region BEGIN Public
         public DocumentationView() => InitializeComponent();
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -21,7 +24,9 @@ namespace DcsIpia.Features.Documentation
             _context.StateChanged += (_, _) => Refresh();
             Refresh();
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         private void Refresh()
         {
             if (_context?.Working is null)
@@ -97,5 +102,6 @@ namespace DcsIpia.Features.Documentation
             Refresh();
             StatusText.Text = "Pending edits discarded.";
         }
+        #endregion END private helpers
     }
 }
