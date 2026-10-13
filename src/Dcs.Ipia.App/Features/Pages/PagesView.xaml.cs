@@ -1,4 +1,4 @@
-using Dcs.Ipia.Application;
+﻿using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
@@ -71,21 +71,29 @@ namespace DcsIpia.Features.Pages
                 ClearForm();
                 return;
             }
-            var settings = ModuleKneeboardPageEditor.Describe(_context.Working, _selected);
-            _refreshing = true;
-            PageKind.SelectedItem = settings.Kind;
-            PageKind.IsEnabled = false;
-            PageDevice.SelectedItem = _context.Working.Configuration.Profiles.FirstOrDefault(x => x.Id == settings.ProfileId);
-            PageDevice.IsEnabled = false;
-            PageFile.Text = settings.File;
-            PageTitle.Text = settings.Title;
-            PageSubtitle.Text = settings.Subtitle;
-            PageOrder.Text = settings.Order.ToString(CultureInfo.InvariantCulture);
-            _cards.Clear();
-            _cards.AddRange(settings.Cards);
-            SummaryCards.ItemsSource = _cards.ToArray();
-            SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
-            _refreshing = false;
+            try
+            {
+                var settings = ModuleKneeboardPageEditor.Describe(_context.Working, _selected);
+                _refreshing = true;
+                PageKind.SelectedItem = settings.Kind;
+                PageKind.IsEnabled = false;
+                PageDevice.SelectedItem = _context.Working.Configuration.Profiles.FirstOrDefault(x => x.Id == settings.ProfileId);
+                PageDevice.IsEnabled = false;
+                PageFile.Text = settings.File;
+                PageTitle.Text = settings.Title;
+                PageSubtitle.Text = settings.Subtitle;
+                PageOrder.Text = settings.Order.ToString(CultureInfo.InvariantCulture);
+                _cards.Clear();
+                _cards.AddRange(settings.Cards);
+                SummaryCards.ItemsSource = _cards.ToArray();
+                SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
+            }
+            catch (Exception ex)
+            {
+                ClearForm();
+                StatusText.Text = "Unable to edit page: " + ex.Message + " You can still remove this page.";
+            }
+            finally { _refreshing = false; }
         }
 
         private void NewClicked(object sender, RoutedEventArgs e)

@@ -1,4 +1,4 @@
-<UserControl x:Class="DcsIpia.Features.InputTest.InputTestView"
+﻿<UserControl x:Class="DcsIpia.Features.InputTest.InputTestView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">

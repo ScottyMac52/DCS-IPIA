@@ -1,4 +1,4 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
@@ -27,7 +27,7 @@ namespace DcsIpia.Features.InputTest
         private InputTestSession? _session;
         private GeneratedInputTestPlan? _plan;
         private readonly Dictionary<string, Border> _callouts = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, DateTime> _flashUntil = new(StringComparer.Ordinal);
+        private readonly Dictionary<Border, Brush> _testHighlights = [];
         private readonly List<InputTestLogEntry> _events = [];
         private readonly Dictionary<string, System.Windows.Input.Key> _testKeyboard = new(StringComparer.Ordinal);
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
@@ -180,7 +180,7 @@ namespace DcsIpia.Features.InputTest
                 if (_inputFeedbackDevice != physicalDevice)
                 {
                     InputTestLog.Items.Clear();
-                _events.Clear();
+                    _events.Clear();
                     InputTestLogMessage.Text = "";
                     _liveAxisUntil.Clear();
                     _livePressedInputs.Clear();
@@ -334,19 +334,23 @@ namespace DcsIpia.Features.InputTest
 
         private void ClearInputHighlights()
         {
-            _flashUntil.Clear();
-            RenderDiagram();
+            foreach (var (border, background) in _testHighlights) border.Background = background;
+            _testHighlights.Clear();
         }
 
         private void HighlightInputControls()
         {
+            ClearInputHighlights();
             var guid = CurrentInputTestDevice();
             foreach (var (key, border) in _callouts)
             {
                 var input = key.Split('|')[0];
                 if (guid is { } physical && (_livePressedInputs.Any(x => x.Device == physical && DcsInputKey.SamePhysicalInput(x.Key, input)) ||
                     _liveAxisUntil.Any(x => x.Key.Device == physical && DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow)))
+                {
+                    _testHighlights[border] = border.Background;
                     border.Background = Brushes.LightSkyBlue;
+                }
             }
         }
 

@@ -106,7 +106,9 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Device loss was not reported.");
             if (EditorSnapshotSerializer.Serialize(workspace) != before)
                 throw new InvalidOperationException("Input testing mutated the original workspace.");
+            start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             WorkspaceUi.Navigate(window, "Devices");
+            window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             if (source?.Disposed != true) throw new InvalidOperationException("Navigation did not release device input.");
             window.Close();
         }

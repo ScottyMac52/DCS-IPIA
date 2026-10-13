@@ -1,4 +1,4 @@
-namespace Dcs.Ipia.Application.Interfaces
+﻿namespace Dcs.Ipia.Application.Interfaces
 {
     public interface IModuleWorkspaceContext
     {
