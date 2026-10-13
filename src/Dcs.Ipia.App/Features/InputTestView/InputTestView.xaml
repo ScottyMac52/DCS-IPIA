@@ -5,12 +5,12 @@
     <Grid x:Name="InputTestPanes" Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*" MinHeight="80"/>
+            <RowDefinition Height="*" MinHeight="60"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*" MinHeight="120"/>
+            <RowDefinition Height="*" MinHeight="80"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" MaxHeight="200" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="0" MaxHeight="160" VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <TextBlock x:Name="StatusText" TextWrapping="Wrap" Style="{StaticResource AppLabel}"/>
             <WrapPanel Margin="0,8,0,0">
