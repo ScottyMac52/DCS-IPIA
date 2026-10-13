@@ -173,7 +173,7 @@ namespace Dcs.Ipia.App.Smoke
             var deadline = DateTime.UtcNow.AddSeconds(30);
             while (!ready())
             {
-                if (DateTime.UtcNow >= deadline) throw new InvalidOperationException("Custom mapping UI timed out.");
+                if (DateTime.UtcNow >= deadline) throw new InvalidOperationException("Custom mapping UI timed out." + (window is ModuleWorkspaceWindow editor ? " " + ((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")).Text : ""));
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }
