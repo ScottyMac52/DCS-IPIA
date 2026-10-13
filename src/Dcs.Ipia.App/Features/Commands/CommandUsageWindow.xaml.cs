@@ -5,8 +5,10 @@ using System.Windows.Controls;
 
 namespace DcsIpia.Features.Commands
 {
+    /// <summary>Shows every device assignment using a selected command.</summary>
     public partial class CommandUsageWindow : Window
     {
+        #region BEGIN Public
         public CommandUsageWindow(
             string commandName,
             string category,
@@ -47,7 +49,10 @@ namespace DcsIpia.Features.Commands
             if (Usage.Items.Count == 0)
                 Usage.Items.Add(new TreeViewItem { Header = "Not used" });
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         private void CloseClicked(object sender, RoutedEventArgs e) => Close();
+        #endregion END private helpers
     }
 }

@@ -20,18 +20,9 @@ using System.Windows.Media.Imaging;
 
 namespace DcsIpia.Features.Assignments
 {
+    /// <summary>Edits module and UI Layer assignments on device drawings.</summary>
     public partial class AssignmentsView : UserControl
     {
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetCursorPos(out POINT point);
 
         private IModuleWorkspaceContext? _context;
         private Point? _calloutDragStart;
@@ -65,8 +56,10 @@ namespace DcsIpia.Features.Assignments
         private const string SelectDeviceText = "Select a device";
         private const string UnableToRenderMessage = "Unable to render: ";
         private HardwareGraphicControl? _selected;
+        #region BEGIN Public
         public AssignmentsView() => InitializeComponent();
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -79,6 +72,12 @@ namespace DcsIpia.Features.Assignments
 
         private AssignmentLayer CurrentLayer =>
             Scope.SelectedIndex == 1 ? AssignmentLayer.UiLayer : AssignmentLayer.Module;
+        #endregion END Public
+
+        #region BEGIN private helpers
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out NativeScreenPoint point);
 
         private void RefreshChoices()
         {
@@ -863,5 +862,6 @@ namespace DcsIpia.Features.Assignments
             RefreshDiagram();
             SelectedCallout.Text = "Generic control renamed and staged.";
         }
+        #endregion END private helpers
     }
 }

@@ -19,6 +19,7 @@ using System.Windows.Controls;
 
 namespace DcsIpia.Presentation
 {
+    /// <summary>Hosts the module feature views and coordinates shared draft, save and build operations.</summary>
     public partial class ModuleWorkspaceWindow : Window
     {
         private readonly WindowContext _context;

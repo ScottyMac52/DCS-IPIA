@@ -3,10 +3,12 @@ using Xunit;
 
 namespace Dcs.Ipia.Tests
 {
+    /// <summary>Verifies feature selection, notification and navigation key validation.</summary>
     public class NavigationServiceTests
     {
-        private static NavigationService Create(params string[] keys) => new(keys);
 
+        #region BEGIN Public
+        /// <summary>Selecting a known feature updates the current key and notifies subscribers.</summary>
         [Fact]
         public void NavigateTo_sets_current_key_and_raises_event()
         {
@@ -20,6 +22,7 @@ namespace Dcs.Ipia.Tests
             Assert.True(raised);
         }
 
+        /// <summary>Selecting the current feature does not emit another change notification.</summary>
         [Fact]
         public void NavigateTo_same_key_is_noop()
         {
@@ -33,6 +36,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(1, count);
         }
 
+        /// <summary>Unknown features are rejected before changing navigation state.</summary>
         [Fact]
         public void NavigateTo_unknown_key_throws()
         {
@@ -40,6 +44,7 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<ArgumentException>(() => sut.NavigateTo("Nope"));
         }
 
+        /// <summary>Known keys compare without regard to case and unknown keys are rejected.</summary>
         [Fact]
         public void CanNavigateTo_is_case_insensitive()
         {
@@ -48,6 +53,7 @@ namespace Dcs.Ipia.Tests
             Assert.False(sut.CanNavigateTo("Assignments"));
         }
 
+        /// <summary>Null, empty and whitespace keys cannot select a feature.</summary>
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -57,5 +63,11 @@ namespace Dcs.Ipia.Tests
             var sut = Create("Devices");
             Assert.Throws<ArgumentException>(() => sut.NavigateTo(key!));
         }
+        #endregion END Public
+
+        #region BEGIN private helpers
+        private static NavigationService Create(params string[] keys) => new(keys);
+
+        #endregion END private helpers
     }
 }

@@ -5,19 +5,24 @@ using System.Windows.Media;
 
 namespace DcsIpia.Presentation
 {
+    /// <summary>Displays a dragged command or page title near the screen cursor.</summary>
     public sealed class TitleAdorner : Adorner
     {
         private readonly string _title;
         private Point _pos;
 
+        #region BEGIN Public
         public TitleAdorner(UIElement adorned, string title) : base(adorned) => _title = title;
 
+        /// <summary>Moves the drag preview and schedules a redraw.</summary>
         public void Update(Point pos)
         {
             _pos = pos;
             InvalidateVisual();
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         protected override void OnRender(DrawingContext drawingContext)
         {
             var text = new FormattedText(
@@ -32,5 +37,6 @@ namespace DcsIpia.Presentation
             drawingContext.DrawRoundedRectangle(Brushes.White, new Pen(Brushes.SteelBlue, 1), rect, 3, 3);
             drawingContext.DrawText(text, new Point(rect.X + 6, rect.Y + 4));
         }
+        #endregion END private helpers
     }
 }

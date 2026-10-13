@@ -13,18 +13,9 @@ using System.Windows.Input;
 
 namespace DcsIpia.Features.Commands
 {
+    /// <summary>Browses, imports and edits the module command catalog.</summary>
     public partial class CommandsManagementView : UserControl
     {
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetCursorPos(out POINT point);
 
         private UIElement? _previewHost;
         private IModuleWorkspaceContext? _context;
@@ -34,7 +25,10 @@ namespace DcsIpia.Features.Commands
         private TitleAdorner? _adorner;
         private AdornerLayer? _layer;
 
+        #region BEGIN Public
+        /// <summary>Occurs when the command selection changes.</summary>
         public event EventHandler<CommandPaletteEntry?>? SelectedCommandChanged;
+        /// <summary>Gets the currently selected command, if any.</summary>
         public CommandPaletteEntry? SelectedCommand => _selected;
 
         public CommandsManagementView()
@@ -47,6 +41,7 @@ namespace DcsIpia.Features.Commands
             Commands.AddHandler(DragDrop.GiveFeedbackEvent, feedback, true);
         }
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -54,6 +49,12 @@ namespace DcsIpia.Features.Commands
             _context.StateChanged += (_, _) => Refresh();
             Refresh();
         }
+        #endregion END Public
+
+        #region BEGIN private helpers
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out NativeScreenPoint point);
 
         private void Refresh()
         {
@@ -301,6 +302,6 @@ namespace DcsIpia.Features.Commands
             Mouse.SetCursor(e.Effects == DragDropEffects.None ? Cursors.No : Cursors.Arrow);
             e.Handled = true;
         }
+        #endregion END private helpers
     }
 }
-

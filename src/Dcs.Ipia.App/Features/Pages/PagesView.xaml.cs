@@ -17,13 +17,9 @@ using System.Windows.Media.Imaging;
 
 namespace DcsIpia.Features.Pages
 {
+    /// <summary>Edits kneeboard pages and their summary cards.</summary>
     public partial class PagesView : UserControl
     {
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT { public int X; public int Y; }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out POINT point);
         private IModuleWorkspaceContext? _context;
         private KneeboardPage? _selected;
         private bool _refreshing;
@@ -38,6 +34,7 @@ namespace DcsIpia.Features.Pages
         private TitleAdorner? _cardAdorner;
         private AdornerLayer? _cardLayer;
 
+        #region BEGIN Public
         public PagesView()
         {
             InitializeComponent();
@@ -45,6 +42,7 @@ namespace DcsIpia.Features.Pages
             CardAccent.SelectedIndex = 0;
         }
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -55,6 +53,11 @@ namespace DcsIpia.Features.Pages
             PageKind.SelectedIndex = 0;
             PageOrder.Text = _context.Working?.Pages.Count.ToString(CultureInfo.InvariantCulture) ?? "0";
         }
+        #endregion END Public
+
+        #region BEGIN private helpers
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out NativeScreenPoint point);
 
         private void PageSelected(object sender, SelectionChangedEventArgs e)
         {
@@ -457,5 +460,6 @@ namespace DcsIpia.Features.Pages
             SummaryCards.Height = Math.Clamp(SummaryCards.Height + e.VerticalChange, SummaryCards.MinHeight, SummaryCards.MaxHeight);
             e.Handled = true;
         }
+        #endregion END private helpers
     }
 }

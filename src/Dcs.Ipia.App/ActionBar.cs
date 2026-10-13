@@ -4,10 +4,13 @@ using System.Windows.Media;
 
 namespace DcsIpia.Presentation
 {
+    /// <summary>Arranges workspace actions and locates their buttons by caption.</summary>
     public class ActionBar : WrapPanel
     {
+        #region BEGIN Public
         public ActionBar() => Orientation = Orientation.Horizontal;
 
+        /// <summary>Finds a button by its displayed caption within a visual tree.</summary>
         public static Button? FindButton(DependencyObject root, string content)
         {
             if (root is null) return null;
@@ -21,5 +24,6 @@ namespace DcsIpia.Presentation
             }
             return null;
         }
+        #endregion END Public
     }
 }

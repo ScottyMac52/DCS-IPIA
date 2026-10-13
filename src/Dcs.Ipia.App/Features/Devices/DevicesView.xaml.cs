@@ -10,17 +10,20 @@ using System.Windows.Controls;
 
 namespace DcsIpia.Features.Devices
 {
+    /// <summary>Manages physical device profiles and their saved hardware drawings.</summary>
     public partial class DevicesView : UserControl
     {
         private IModuleWorkspaceContext? _context;
         private AssignmentLayer _layer = AssignmentLayer.Module;
 
+        #region BEGIN Public
         public DevicesView()
         {
             InitializeComponent();
             ManagedDevices.SelectionChanged += ManagedDeviceSelected;
         }
 
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -36,7 +39,9 @@ namespace DcsIpia.Features.Devices
                 await LoadUserMappingsAsync();
             });
         }
+        #endregion END Public
 
+        #region BEGIN private helpers
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_context is null || DevicesScope.SelectedIndex < 0) return;
@@ -422,7 +427,7 @@ namespace DcsIpia.Features.Devices
                 StatusMessage.Text = "Unable to review drawing: " + ex.Message;
             }
         }
+        #endregion END private helpers
     }
-
 
 }
