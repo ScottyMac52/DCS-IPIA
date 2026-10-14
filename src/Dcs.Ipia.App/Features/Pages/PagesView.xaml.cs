@@ -427,7 +427,8 @@ namespace DcsIpia.Features.Pages
                         .Where(x => x.Key == prefix + ".png" ||
                             (x.Key.StartsWith(prefix + "-", StringComparison.Ordinal) &&
                              x.Key.EndsWith(".png", StringComparison.Ordinal)))
-                        .OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Value).ToArray();
+                        .OrderBy(x => x.Key == prefix + ".png" ? 0 : 1)
+                        .ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Value).ToArray();
                 }
                 else
                 {
