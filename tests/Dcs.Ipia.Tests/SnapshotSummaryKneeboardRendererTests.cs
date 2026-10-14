@@ -176,8 +176,8 @@ namespace Dcs.Ipia.Tests
             using var bitmap = SKBitmap.Decode(Assert.Single(images).Value);
             // Card one grows past its original 350px lower edge; both columns
             // in the row share a height, and the next row begins below it.
-            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 370));
-            Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 370));
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(210, 370));
+            Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(690, 370));
             Assert.Contains(Enumerable.Range(390, 240), y => bitmap.GetPixel(400, y) == SKColor.Parse("#38131c"));
         }
 
