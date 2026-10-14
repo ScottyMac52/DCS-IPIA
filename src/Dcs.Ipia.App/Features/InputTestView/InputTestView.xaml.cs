@@ -393,7 +393,8 @@ namespace DcsIpia.Features.InputTest
                 var moving = _liveAxisUntil.Any(x => x.Key.Device == guid &&
                     DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow);
                 if (!pressed && !moving) continue;
-                var color = KneeboardLiveProjection.ActiveColor(_currentDiagramModel.Page, control, active);
+                var color = KneeboardLiveProjection.ActiveColor(_currentDiagramModel.Page, control,
+                    _currentDiagram?.Controls ?? [], active);
                 if (color is not null) desired[border] = color;
             }
             foreach (var (border, color) in _highlightColors)
