@@ -51,6 +51,7 @@ namespace Dcs.Ipia.Rendering
         // Each row takes the height of its tallest card. Oversized rows continue on new
         // kneeboard pages, so even a single very long description cannot be clipped.
 
+
         private static List<byte[]> Render(JsonElement summary, JsonElement items, int page, int total)
         {
             using var stream = typeof(CompositeKneeboardRenderer).Assembly
@@ -63,93 +64,119 @@ namespace Dcs.Ipia.Rendering
                 Key: item.GetProperty("key").GetString() ?? "",
                 Accent: item.GetProperty("accent").GetString() ?? "",
                 Lines: Wrap(item.GetProperty("text").GetString() ?? "", typeface))).ToArray();
-            const int top = 220, bottom = 1460, minHeight = 130, lineHeight = 28, rowGap = 40;
+            var pages = LayoutCards(cards);
+            return pages.Select((slices, part) =>
+                RenderPage(summary, typeface, slices, page, total, part, pages.Count)).ToList();
+        }
+
+        private static List<List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)>> LayoutCards(
+            (string Key, string Accent, string[] Lines)[] cards)
+        {
             var pages = new List<List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)>> { new() };
-            var y = top;
+            var y = 220;
             for (var index = 0; index < cards.Length; index += 2)
             {
-                var left = cards[index];
                 var hasRight = index + 1 < cards.Length;
-                var right = hasRight ? cards[index + 1] : default;
-                var leftOffset = 0;
-                var rightOffset = 0;
-                var firstSegment = true;
-                do
-                {
-                    if (y + minHeight > bottom)
-                    {
-                        pages.Add([]);
-                        y = top;
-                    }
-                    var capacity = 2 + (bottom - y - minHeight) / lineHeight;
-                    var drawLeft = firstSegment || leftOffset < left.Lines.Length;
-                    var drawRight = hasRight && (firstSegment || rightOffset < right.Lines.Length);
-                    var leftCount = drawLeft ? Math.Min(capacity, left.Lines.Length - leftOffset) : 0;
-                    var rightCount = drawRight ? Math.Min(capacity, right.Lines.Length - rightOffset) : 0;
-                    var height = minHeight + Math.Max(0, Math.Max(leftCount, rightCount) - 2) * lineHeight;
-                    if (drawLeft)
-                        pages[^1].Add((left.Key, left.Accent, left.Lines.Skip(leftOffset).Take(leftCount).ToArray(), 96, y, height));
-                    if (drawRight)
-                        pages[^1].Add((right.Key, right.Accent, right.Lines.Skip(rightOffset).Take(rightCount).ToArray(), 576, y, height));
-                    leftOffset += leftCount;
-                    rightOffset += rightCount;
-                    y += height + rowGap;
-                    firstSegment = false;
-                }
-                while (leftOffset < left.Lines.Length || (hasRight && rightOffset < right.Lines.Length));
+                AddCardRow(cards[index], hasRight ? cards[index + 1] : default, hasRight, pages, ref y);
             }
+            return pages;
+        }
 
-            var output = new List<byte[]>(pages.Count);
-            for (var part = 0; part < pages.Count; part++)
+        private static void AddCardRow(
+            (string Key, string Accent, string[] Lines) left,
+            (string Key, string Accent, string[] Lines) right,
+            bool hasRight,
+            List<List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)>> pages,
+            ref int y)
+        {
+            const int top = 220, bottom = 1460, minHeight = 130, lineHeight = 28, rowGap = 40;
+            var leftOffset = 0;
+            var rightOffset = 0;
+            var firstSegment = true;
+            do
             {
-                using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
-                                    throw new InvalidDataException("Could not allocate kneeboard surface.");
-                var canvas = surface.Canvas;
-                canvas.Clear(SKColor.Parse("#07111d"));
-                Box(new SKRect(48, 48, 1152, 1552), 28, "#0a1629", "#2c4566", 3);
-                Box(new SKRect(48, 48, 1152, 168), 28, "#12253d");
-                Write(summary.GetProperty("title").GetString() ?? "", 96, 118, 38, "#f4f8fb");
-                Write(summary.GetProperty("kicker").GetString() ?? "", 96, 154, 18, "#63d7ff");
-                foreach (var slice in pages[part])
+                if (y + minHeight > bottom)
                 {
-                    var (x, topY, height) = (slice.X, slice.Y, slice.Height);
-                    var (fill, stroke) = Accent(slice.Accent);
-                    Box(new SKRect(x, topY, x + 420, topY + height), 16, fill, stroke, 2);
-                    Box(new SKRect(x + 16, topY + 14, x + 102, topY + height - 14), 12, "#07111d", stroke, 2);
-                    Write(slice.Key, x + 59, topY + 69, 22, stroke, SKTextAlign.Center);
-                    for (var line = 0; line < slice.Lines.Length; line++)
-                        Write(slice.Lines[line], x + 122, topY + 42 + line * lineHeight,
-                              line == 0 ? 18 : 16, line == 0 ? "#f5f9ff" : "#dbe7f4", maxWidth: 290);
+                    pages.Add([]);
+                    y = top;
                 }
-                Write("DCS-Common shared kneeboard renderer", 96, 1520, 18, "#88a3ba");
-                var footer = pages.Count == 1 ? $"{page} / {total}" : $"{page} / {total} (part {part + 1} / {pages.Count})";
-                Write(footer, 1104, 1520, 18, "#88a3ba", SKTextAlign.Right);
-                using var image = surface.Snapshot();
-                using var png = image.Encode(SKEncodedImageFormat.Png, 100);
-                output.Add(png.ToArray());
-
-                void Box(SKRect bounds, float radius, string fill, string? stroke = null, float strokeWidth = 0)
-                {
-                    using var background = new SKPaint { IsAntialias = true, Color = SKColor.Parse(fill) };
-                    canvas.DrawRoundRect(bounds, radius, radius, background);
-                    if (stroke is null)
-                        return;
-                    using var border = new SKPaint { IsAntialias = true, Color = SKColor.Parse(stroke),
-                                                     Style = SKPaintStyle.Stroke, StrokeWidth = strokeWidth };
-                    canvas.DrawRoundRect(bounds, radius, radius, border);
-                }
-                void Write(string value, float x, float textY, float size, string color,
-                           SKTextAlign alignment = SKTextAlign.Left, float maxWidth = 1040)
-                {
-                    using var font = new SKFont(typeface, size);
-                    if (value.Length == 0 || font.GetGlyphs(value).Any(glyph => glyph == 0) ||
-                        font.MeasureText(value) > maxWidth)
-                        throw new InvalidDataException("Summary text is empty, unsupported, or too wide: " + value);
-                    using var paint = new SKPaint { IsAntialias = true, Color = SKColor.Parse(color) };
-                    canvas.DrawText(value, x, textY, alignment, font, paint);
-                }
+                var capacity = 2 + (bottom - y - minHeight) / lineHeight;
+                var drawLeft = firstSegment || leftOffset < left.Lines.Length;
+                var drawRight = hasRight && (firstSegment || rightOffset < right.Lines.Length);
+                var leftCount = drawLeft ? Math.Min(capacity, left.Lines.Length - leftOffset) : 0;
+                var rightCount = drawRight ? Math.Min(capacity, right.Lines.Length - rightOffset) : 0;
+                var height = minHeight + Math.Max(0, Math.Max(leftCount, rightCount) - 2) * lineHeight;
+                if (drawLeft)
+                    pages[^1].Add((left.Key, left.Accent, left.Lines.Skip(leftOffset).Take(leftCount).ToArray(), 96, y, height));
+                if (drawRight)
+                    pages[^1].Add((right.Key, right.Accent, right.Lines.Skip(rightOffset).Take(rightCount).ToArray(), 576, y, height));
+                leftOffset += leftCount;
+                rightOffset += rightCount;
+                y += height + rowGap;
+                firstSegment = false;
             }
-            return output;
+            while (leftOffset < left.Lines.Length || (hasRight && rightOffset < right.Lines.Length));
+        }
+
+        private static byte[] RenderPage(
+            JsonElement summary, SKTypeface typeface,
+            List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)> slices,
+            int page, int total, int part, int pageCount)
+        {
+            using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
+                                throw new InvalidDataException("Could not allocate kneeboard surface.");
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColor.Parse("#07111d"));
+            DrawBox(canvas, new SKRect(48, 48, 1152, 1552), 28, "#0a1629", "#2c4566", 3);
+            DrawBox(canvas, new SKRect(48, 48, 1152, 168), 28, "#12253d");
+            Write(canvas, typeface, summary.GetProperty("title").GetString() ?? "", 96, 118, 38, "#f4f8fb");
+            Write(canvas, typeface, summary.GetProperty("kicker").GetString() ?? "", 96, 154, 18, "#63d7ff");
+            foreach (var slice in slices)
+                DrawCard(canvas, typeface, slice);
+            Write(canvas, typeface, "DCS-Common shared kneeboard renderer", 96, 1520, 18, "#88a3ba");
+            var footer = pageCount == 1 ? $"{page} / {total}" : $"{page} / {total} (part {part + 1} / {pageCount})";
+            Write(canvas, typeface, footer, 1104, 1520, 18, "#88a3ba", SKTextAlign.Right);
+            using var image = surface.Snapshot();
+            using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+            return png.ToArray();
+        }
+
+        private static void DrawCard(SKCanvas canvas, SKTypeface typeface,
+            (string Key, string Accent, string[] Lines, int X, int Y, int Height) slice)
+        {
+            const int lineHeight = 28;
+            var (x, topY, height) = (slice.X, slice.Y, slice.Height);
+            var (fill, stroke) = Accent(slice.Accent);
+            DrawBox(canvas, new SKRect(x, topY, x + 420, topY + height), 16, fill, stroke, 2);
+            DrawBox(canvas, new SKRect(x + 16, topY + 14, x + 102, topY + height - 14),
+                12, "#07111d", stroke, 2);
+            Write(canvas, typeface, slice.Key, x + 59, topY + 69, 22, stroke, SKTextAlign.Center);
+            for (var line = 0; line < slice.Lines.Length; line++)
+                Write(canvas, typeface, slice.Lines[line], x + 122, topY + 42 + line * lineHeight,
+                    line == 0 ? 18 : 16, line == 0 ? "#f5f9ff" : "#dbe7f4", maxWidth: 290);
+        }
+
+        private static void DrawBox(SKCanvas canvas, SKRect bounds, float radius,
+                                    string fill, string? stroke = null, float strokeWidth = 0)
+        {
+            using var background = new SKPaint { IsAntialias = true, Color = SKColor.Parse(fill) };
+            canvas.DrawRoundRect(bounds, radius, radius, background);
+            if (stroke is null) return;
+            using var border = new SKPaint { IsAntialias = true, Color = SKColor.Parse(stroke),
+                                             Style = SKPaintStyle.Stroke, StrokeWidth = strokeWidth };
+            canvas.DrawRoundRect(bounds, radius, radius, border);
+        }
+
+        private static void Write(SKCanvas canvas, SKTypeface typeface, string value,
+                                  float x, float textY, float size, string color,
+                                  SKTextAlign alignment = SKTextAlign.Left, float maxWidth = 1040)
+        {
+            using var font = new SKFont(typeface, size);
+            if (value.Length == 0 || font.GetGlyphs(value).Any(glyph => glyph == 0) ||
+                font.MeasureText(value) > maxWidth)
+                throw new InvalidDataException("Summary text is empty, unsupported, or too wide: " + value);
+            using var paint = new SKPaint { IsAntialias = true, Color = SKColor.Parse(color) };
+            canvas.DrawText(value, x, textY, alignment, font, paint);
         }
         private static (string Fill, string Stroke) Accent(string? name) => name switch
         {
