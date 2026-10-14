@@ -32,6 +32,7 @@ namespace DcsIpia.Features.Assignments
         private string? _selectedInputKey;
         private Guid? _selectedDeviceId;
         private Button? TuneAxisButton => ActionBar.FindButton(this, "Tune axis…");
+        private Button? AssignButton => ActionBar.FindButton(this, "Assign selected command");
         private const string BaseLayerName = "Base";
         private const string UiLayerName = "UI Layer";
         private const string ModuleLayerName = "Module Layer";
@@ -194,6 +195,17 @@ namespace DcsIpia.Features.Assignments
             }
         }
 
+        private IReadOnlyList<WorkspaceModifier> Reserved(UiLayerDiagram diagram, string key) =>
+            _context?.Working is { } workspace
+                ? ModifierAssignmentReservation.Find(WorkspaceStructureEditor.Describe(workspace), diagram.ProfileId, key)
+                : [];
+
+        private string? ReservationError(UiLayerDiagram diagram, string key)
+        {
+            var held = Reserved(diagram, key);
+            return held.Count == 0 ? null : ModifierAssignmentReservation.BlockReason(key, held);
+        }
+
         private void RefreshDiagram()
         {
             Diagram.Children.Clear();
@@ -240,6 +252,7 @@ namespace DcsIpia.Features.Assignments
                 var layer = CurrentLayer;
                 var chord = Layers.SelectedItem as string == BaseLayerName ? "" : (Layers.SelectedItem as string ?? "").Replace(LayerSeparator, LayerSeparatorTrim, StringComparison.Ordinal);
                 var snapshot = _context.Draft?.Snapshot ?? _context.Working.Assignments;
+                var management = WorkspaceStructureEditor.Describe(_context.Working);
 
                 foreach (var control in diagram.Controls)
                 {
@@ -248,7 +261,11 @@ namespace DcsIpia.Features.Assignments
 
                     var assignment = snapshot.FirstOrDefault(x =>
                         DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
-                    var caption = assignment is null ? UnAssignedText
+                    var reserved = ModifierAssignmentReservation.Find(management, diagram.ProfileId, control.InputKey);
+                    var protectedInput = reserved.Count != 0;
+                    var modifierDescription = string.Join("\n", reserved.Select(ModifierAssignmentReservation.Description));
+                    var caption = protectedInput ? "MODIFIER\n" + string.Join(", ", reserved.Select(x => x.Name))
+                        : assignment is null ? UnAssignedText
                         : _context.Labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
 
                     var text = new TextBlock
@@ -258,15 +275,19 @@ namespace DcsIpia.Features.Assignments
                         TextWrapping = TextWrapping.Wrap,
                         VerticalAlignment = VerticalAlignment.Center,
                         FontSize = 11,
+                        FontWeight = protectedInput ? FontWeights.Bold : FontWeights.Normal,
                         Foreground = Brushes.Black
                     };
                     var border = new Border
                     {
                         Width = control.Width,
                         Height = control.Height,
-                        Background = Brushes.White,
-                        BorderBrush = assignment is null ? Brushes.SlateGray : Brushes.White,
-                        BorderThickness = new Thickness(1),
+                        Background = protectedInput ? Brushes.LemonChiffon : Brushes.White,
+                        BorderBrush = protectedInput ? Brushes.DarkGoldenrod :
+                            assignment is null ? Brushes.SlateGray : Brushes.White,
+                        BorderThickness = new Thickness(protectedInput ? 2 : 1),
+                        ToolTip = protectedInput ? modifierDescription +
+                            "\nChange or remove the modifier in Modifiers before assigning." : null,
                         Child = text,
                         Tag = control
                     };
@@ -274,13 +295,13 @@ namespace DcsIpia.Features.Assignments
                     Canvas.SetTop(border, control.Y);
                     surface.Children.Add(border);
                     border.Cursor = Cursors.Hand;
-                    border.AllowDrop = true;
+                    border.AllowDrop = !protectedInput;
                     border.DragOver += (_, args) =>
                     {
-                        var ok = args.Data.GetDataPresent(typeof(CommandPaletteEntry)) ||
-                                 args.Data.GetDataPresent(typeof(EditorControlDrag));
+                        var ok = !protectedInput && (args.Data.GetDataPresent(typeof(CommandPaletteEntry)) ||
+                                 args.Data.GetDataPresent(typeof(EditorControlDrag)));
                         args.Effects = ok ? DragDropEffects.Copy : DragDropEffects.None;
-                        if (args.Data.GetDataPresent(typeof(EditorControlDrag)))
+                        if (ok && args.Data.GetDataPresent(typeof(EditorControlDrag)))
                             args.Effects = (Keyboard.Modifiers & ModifierKeys.Control) != 0 ? DragDropEffects.Copy : DragDropEffects.Move;
                         args.Handled = true;
                     };
@@ -290,7 +311,9 @@ namespace DcsIpia.Features.Assignments
                     {
                         _selected = control;
                         _selectedInputKey = control.InputKey;
-                        SelectedCallout.Text = $"{control.Label} · {control.InputKey} → {caption}";
+                        SelectedCallout.Text = protectedInput
+                            ? $"{control.Label} · {control.InputKey} · MODIFIER (reserved)"
+                            : $"{control.Label} · {control.InputKey} → {caption}";
                         var selectedSlot = KneeboardDraftProjection.SlotForControl(
                             _context!.Working!, diagram, control, CurrentLayer,
                             Layers.SelectedItem as string == "Base" ? "" : (Layers.SelectedItem as string ?? "").Replace(" + ", "+", StringComparison.Ordinal));
@@ -306,9 +329,15 @@ namespace DcsIpia.Features.Assignments
                             : $"Input: {control.InputKey}   Chord: {(selectedSlot.ModifierChord.Length == 0 ? "Base" : selectedSlot.ModifierChord)}\n" +
                               $"Saved: {original?.Command.Name ?? "Unassigned"}   Pending: {pendingAssignment?.Command.Name ?? "Unassigned"}\n" +
                               $"Default label: {control.Label}";
-                        TuneAxisButton?.IsEnabled = control.IsAxis && pendingAssignment is not null;
+                        if (protectedInput)
+                            InspectorDetails.Text += "\n" + modifierDescription +
+                                "\nReserved: change or remove it in Modifiers before assigning a command." +
+                                (pendingAssignment is null ? "" : "\nExisting assignment can still be cleared.");
+                        if (AssignButton is { } assignButton) assignButton.IsEnabled = !protectedInput;
+                        TuneAxisButton?.IsEnabled = !protectedInput && control.IsAxis && pendingAssignment is not null;
                         _updatingLabel = true;
-                        LabelEditor.Text = caption == UnAssignedText ? "" : caption;
+                        LabelEditor.Text = protectedInput || caption == UnAssignedText ? "" : caption;
+                        LabelEditor.IsEnabled = !protectedInput;
                         _updatingLabel = false;
                         var isGeneric = diagram.GenericCapabilities is not null;
                         GenericControlName.IsEnabled = isGeneric;
@@ -346,9 +375,9 @@ namespace DcsIpia.Features.Assignments
                         SelectCallout();
                         var currentAssignment = _context?.Draft?.Snapshot.FirstOrDefault(x =>
                             DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
-                        changeLabel.IsEnabled = _context?.Working is not null;
+                        changeLabel.IsEnabled = !protectedInput && _context?.Working is not null;
                         clearAssignment.IsEnabled = currentAssignment is not null;
-                        tuneAxis.IsEnabled = control.IsAxis && currentAssignment is not null;
+                        tuneAxis.IsEnabled = !protectedInput && control.IsAxis && currentAssignment is not null;
                     };
                     border.PreviewMouseMove += (_, args) =>
                     {
@@ -369,7 +398,12 @@ namespace DcsIpia.Features.Assignments
                     {
                         _selected = match;
                         // re-apply the same selection UI you already have
-                        SelectedCallout.Text = $"{match.Label} · {match.InputKey}";
+                        var currentReservation = Reserved(diagram, match.InputKey);
+                        SelectedCallout.Text = currentReservation.Count > 0
+                            ? $"{match.Label} · {match.InputKey} · MODIFIER (reserved)"
+                            : $"{match.Label} · {match.InputKey}";
+                        if (AssignButton is { } assignButton) assignButton.IsEnabled = currentReservation.Count == 0;
+                        LabelEditor.IsEnabled = currentReservation.Count == 0;
                         GenericControlName.Text = diagram.GenericCapabilities is not null ? match.Label : "";
                     }
                 }
@@ -382,6 +416,13 @@ namespace DcsIpia.Features.Assignments
 
         private void AssignClicked(object sender, RoutedEventArgs e)
         {
+            if (_context?.Working is { } workspace && _selected is { } selected &&
+                DeviceChoice.SelectedItem is UiLayerDiagram target &&
+                ReservationError(target, selected.InputKey) is { } reason)
+            {
+                SelectedCallout.Text = reason;
+                return;
+            }
             if (_context?.Draft is null || _selected is null || CommandManager.SelectedCommand is not { } command)
             {
                 SelectedCallout.Text = "Select a callout and a command.";
@@ -549,6 +590,13 @@ namespace DcsIpia.Features.Assignments
         private void DropOnCallout(HardwareGraphicControl control, DragEventArgs e)
         {
             if (_context?.Draft is null || DeviceChoice.SelectedItem is not UiLayerDiagram diagram) return;
+            if (ReservationError(diagram, control.InputKey) is { } blocked)
+            {
+                SelectedCallout.Text = blocked;
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
 
             var layer = CurrentLayer;
             var chord = Layers.SelectedItem as string == "Base" ? "" : (Layers.SelectedItem as string ?? "").Replace(" + ", "+", StringComparison.Ordinal);
@@ -558,6 +606,15 @@ namespace DcsIpia.Features.Assignments
             if (e.Data.GetData(typeof(EditorControlDrag)) is EditorControlDrag sourceDrag)
             {
                 var copy = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+                var sourceReservation = ReservationError(diagram, sourceDrag.Slot.InputKey);
+                if (copy && sourceReservation is not null)
+                {
+                    SelectedCallout.Text = "Copying an assignment from a reserved modifier is not permitted. " +
+                        sourceReservation;
+                    e.Effects = DragDropEffects.None;
+                    e.Handled = true;
+                    return;
+                }
                 var result = copy
                     ? _context.Draft.Copy(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, null)
                     : _context.Draft.Move(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, null);
@@ -573,6 +630,13 @@ namespace DcsIpia.Features.Assignments
                         MessageBoxResult.No => DraftConflictChoice.Swap,
                         _ => DraftConflictChoice.Cancel
                     };
+                    if (choice == DraftConflictChoice.Swap && sourceReservation is not null)
+                    {
+                        SelectedCallout.Text = "Cannot swap an assignment into a reserved modifier. " + sourceReservation;
+                        e.Effects = DragDropEffects.None;
+                        e.Handled = true;
+                        return;
+                    }
                     result = copy
                         ? _context.Draft.Copy(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, choice)
                         : _context.Draft.Move(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, choice);
@@ -623,6 +687,10 @@ namespace DcsIpia.Features.Assignments
         {
             if (_context?.Draft is null)
                 return new(DraftOutcome.Blocked, "No draft.");
+            if (_context.Working is { } workspace &&
+                workspace.Diagrams.FirstOrDefault(x => x.ProfileId == slot.ProfileId) is { } diagram &&
+                ReservationError(diagram, slot.InputKey) is { } blocked)
+                return new(DraftOutcome.Blocked, blocked);
 
             var result = _context.Draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
             if (result.Outcome != DraftOutcome.ConfirmationRequired)
