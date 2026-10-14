@@ -9,9 +9,16 @@ namespace Dcs.Ipia.Application
                                     IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
         {
             ArgumentNullException.ThrowIfNull(entry);
+            return Matches(entry.Layer, entry.Chord, activeModifiers);
+        }
+        /// <summary>Checks the full modifier chord of one scope without interpreting display text.</summary>
+        public static bool Matches(AssignmentLayer layer, string chord,
+                                   IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
+        {
+            ArgumentNullException.ThrowIfNull(chord);
             ArgumentNullException.ThrowIfNull(activeModifiers);
-            var active = activeModifiers.GetValueOrDefault(entry.Layer) ?? "";
-            return string.Equals(Normalize(entry.Chord), Normalize(active), StringComparison.Ordinal);
+            return string.Equals(Normalize(chord), Normalize(activeModifiers.GetValueOrDefault(layer) ?? ""),
+                StringComparison.Ordinal);
         }
         #endregion END Public
 

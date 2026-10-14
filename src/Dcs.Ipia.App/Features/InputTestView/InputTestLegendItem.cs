@@ -20,7 +20,8 @@ namespace DcsIpia.Features.InputTest
         public string Label => Entry.Label;
 
         /// <summary>Identical color to the exported kneeboard legend.</summary>
-        public string Color => Entry.Color;
+        public string Color => Entry.Layer == AssignmentLayer.Module && Entry.Chord.Length == 0
+            ? KneeboardLiveProjection.BaseHighlightColor : Entry.Color;
 
         /// <summary>True for every polling frame in which this layer/chord is applicable.</summary>
         public bool IsActive

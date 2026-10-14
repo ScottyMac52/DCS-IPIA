@@ -3,26 +3,30 @@ using Dcs.Ipia.Rendering;
 
 namespace DcsIpia.Features.InputTest
 {
-    /// <summary>Creates the kneeboard-quality hardware image and transparent input hit regions.</summary>
+    /// <summary>Renders kneeboard-quality authored labels while emphasizing only applicable live layers.</summary>
     public static class InputTestDiagramComposer
     {
         #region BEGIN Public
-        /// <summary>Uses the same combined labels, authored categories and legend as the device kneeboard.</summary>
+        /// <summary>Builds hardware artwork from a single canonical kneeboard projection and a live modifier chord.</summary>
         public static InputTestDiagramModel Compose(
-            UiLayerDiagram diagram,
-            EditorWorkspaceSnapshot workspace,
-            IReadOnlyList<DraftAssignment> assignments,
-            IReadOnlyDictionary<string, string> labels)
+            UiLayerDiagram diagram, EditorWorkspaceSnapshot workspace,
+            IReadOnlyList<DraftAssignment> assignments, IReadOnlyDictionary<string, string> labels,
+            IReadOnlyDictionary<AssignmentLayer, string>? activeModifiers = null)
         {
             ArgumentNullException.ThrowIfNull(diagram);
             var page = KneeboardDraftProjection.CreateCombined(workspace, diagram, assignments, labels);
-            var svg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page);
-            var png = CanonicalSvgRenderer.RenderComplete(svg, diagram.Width, diagram.Height);
+            var png = RenderLive(diagram, page, activeModifiers ?? new Dictionary<AssignmentLayer, string>());
             var regions = diagram.Controls.Select(control =>
                 new InputTestCallout(control.InputKey, control.Control, control.X, control.Y,
-                    control.Width, control.Height, "", 0)).ToArray();
-            return new(png, diagram.Width, diagram.Height, regions, page.Legend);
+                    control.Width, control.Height)).ToArray();
+            return new(png, diagram.Width, diagram.Height, regions, page.Legend, page);
         }
+
+        /// <summary>Redraws the SVG for a changed modifier chord without recomputing its authored labels.</summary>
+        public static byte[] RenderLive(UiLayerDiagram diagram, KneeboardComposite page,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers) =>
+            CanonicalSvgRenderer.RenderComplete(CompositeKneeboardRenderer.BuildDeviceSvg(
+                diagram, KneeboardLiveProjection.Focus(page, activeModifiers)), diagram.Width, diagram.Height);
         #endregion END Public
     }
 }
