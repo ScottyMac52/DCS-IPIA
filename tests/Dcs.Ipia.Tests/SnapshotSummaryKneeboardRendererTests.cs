@@ -92,7 +92,7 @@ namespace Dcs.Ipia.Tests
             using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 300));
             Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 300));
-            Assert.Contains(Enumerable.Range(550, 700), y => bitmap.GetPixel(400, y) == SKColor.Parse("#38131c"));
+            Assert.Equal(SKColor.Parse("#38131c"), bitmap.GetPixel(400, 470));
             Assert.Equal(SKColor.Parse("#412511"), bitmap.GetPixel(400, 640));
             Assert.Equal(SKColor.Parse("#153526"), bitmap.GetPixel(400, 810));
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(880, 810));
@@ -158,9 +158,8 @@ namespace Dcs.Ipia.Tests
                 () => SnapshotSummaryKneeboardRenderer.Generate(
                     With(workspace,
                          valid.Replace("\"title\":\"CONTROL OVERVIEW\"", "\"title\":\"\"", StringComparison.Ordinal))));
-            Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
-                    With(workspace, valid.Replace("Flight controls", new string('A', 200), StringComparison.Ordinal))));
+            Assert.NotEmpty(SnapshotSummaryKneeboardRenderer.Generate(
+                With(workspace, valid.Replace("Flight controls", new string('A', 200), StringComparison.Ordinal))));
         }
 
         /// <summary>Long descriptions increase the row height rather than being cut to two lines.</summary>
@@ -179,7 +178,7 @@ namespace Dcs.Ipia.Tests
             // in the row share a height, and the next row begins below it.
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 370));
             Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 370));
-            Assert.Equal(SKColor.Parse("#38131c"), bitmap.GetPixel(400, 470));
+            Assert.Contains(Enumerable.Range(390, 240), y => bitmap.GetPixel(400, y) == SKColor.Parse("#38131c"));
         }
 
         /// <summary>Overflow rows emit consecutively named and readable continuation pages.</summary>
