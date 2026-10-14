@@ -288,7 +288,7 @@ namespace DcsIpia.Features.InputTest
                     BorderBrush = Brushes.Transparent,
                     BorderThickness = new Thickness(3),
                     Background = Brushes.Transparent,
-                    Tag = region.InputKey,
+                    Tag = region.InputKey + "|" + region.Chord,
                     IsHitTestVisible = false
                 };
                 Canvas.SetLeft(border, region.X);
