@@ -158,9 +158,73 @@ namespace Dcs.Ipia.Tests
                 () => SnapshotSummaryKneeboardRenderer.Generate(
                     With(workspace,
                          valid.Replace("\"title\":\"CONTROL OVERVIEW\"", "\"title\":\"\"", StringComparison.Ordinal))));
-            Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
-                    With(workspace, valid.Replace("Flight controls", new string('A', 200), StringComparison.Ordinal))));
+            Assert.NotEmpty(SnapshotSummaryKneeboardRenderer.Generate(
+                With(workspace, valid.Replace("Flight controls", new string('A', 200), StringComparison.Ordinal))));
+        }
+
+        /// <summary>Long descriptions increase the row height rather than being cut to two lines.</summary>
+        [Fact]
+        public void ExpandsRowsForWrappedDescriptionsWithoutOverlappingTheNextRow()
+        {
+            var text = string.Join(" ", Enumerable.Repeat("Flight control description", 5));
+            var workspace = WithCards(new[] {
+                new { key = "CYCLIC", text, accent = "cyan" },
+                new { key = "COLL", text = "Short", accent = "gold" },
+                new { key = "PEDALS", text = "Rudder controls", accent = "red" }
+            });
+            var images = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+            using var bitmap = SKBitmap.Decode(Assert.Single(images).Value);
+            // Card one grows past its original 350px lower edge; both columns
+            // in the row share a height, and the next row begins below it.
+            Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(210, 370));
+            Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(690, 370));
+            Assert.Contains(Enumerable.Range(390, 240), y => bitmap.GetPixel(400, y) == SKColor.Parse("#38131c"));
+        }
+
+        /// <summary>Overflow rows emit consecutively named and readable continuation pages.</summary>
+        [Fact]
+        public void PaginatesVeryLongDescriptionsAndKeepsAllCards()
+        {
+            var longText = string.Join(" ", Enumerable.Repeat("cyclic collective throttle rudder", 95));
+            var workspace = WithCards(new[] {
+                new { key = "CYCLIC", text = longText, accent = "cyan" },
+                new { key = "COLL", text = "Short", accent = "gold" },
+                new { key = "PEDALS", text = "Rudder controls", accent = "red" }
+            });
+            var images = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+            Assert.True(images.Count > 1);
+            Assert.Contains("KNEEBOARD/TEST/00-OVERVIEW.png", images.Keys);
+            Assert.Contains("KNEEBOARD/TEST/00-OVERVIEW-002.png", images.Keys);
+            foreach (var image in images.Values)
+            {
+                using var bitmap = SKBitmap.Decode(image);
+                Assert.Equal(1200, bitmap.Width);
+                Assert.Equal(1600, bitmap.Height);
+            }
+            using var last = SKBitmap.Decode(images.Last().Value);
+            Assert.NotNull(last);
+        }
+
+        /// <summary>Empty descriptions still have the standard card height.</summary>
+        [Fact]
+        public void EmptyDescriptionRetainsMinimumCardHeight()
+        {
+            var workspace = WithCards(new[] { new { key = "EMPTY", text = "", accent = "blue" } });
+            using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(workspace)).Value);
+            Assert.Equal(SKColor.Parse("#142b52"), bitmap.GetPixel(400, 300));
+            Assert.Equal(SKColor.Parse("#0a1629"), bitmap.GetPixel(400, 360));
+        }
+
+        private static EditorWorkspaceSnapshot WithCards<T>(IEnumerable<T> cards)
+        {
+            var workspace = Workspace();
+            var manifest = System.Text.Json.JsonSerializer.Serialize(new {
+                summaryPages = new[] { new { type = "summary", file = "00-OVERVIEW",
+                    title = "CONTROL OVERVIEW", kicker = "PHYSICAL CONTROLLERS", items = cards } }
+            });
+            return workspace with {
+                Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
+            };
         }
         #endregion END Public
         #region BEGIN private helpers
