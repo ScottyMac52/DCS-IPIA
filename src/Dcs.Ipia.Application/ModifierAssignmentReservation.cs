@@ -1,3 +1,5 @@
+using Dcs.Ipia.Domain;
+
 namespace Dcs.Ipia.Application
 {
     /// <summary>Reserves physical inputs used as modifiers in either workspace scope.</summary>
