@@ -47,7 +47,12 @@
 
         <GridSplitter x:Name="InputTestSplitter" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent"/>
 
-        <DockPanel Grid.Row="3" Margin="0,4,0,0">
+        <Grid Grid.Row="3" Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="260"/>
+            </Grid.ColumnDefinitions>
+            <DockPanel Grid.Column="0" Margin="0,0,8,0">
             <TextBlock x:Name="DeviceTitle" DockPanel.Dock="Top" Margin="0,0,0,4" Style="{StaticResource AppLabel}"/>
             <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
                 <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
@@ -59,6 +64,60 @@
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <Canvas x:Name="Diagram"/>
             </ScrollViewer>
-        </DockPanel>
+            </DockPanel>
+            <!-- Legend is outside the zoomed hardware image and cannot shrink the event/diagram splitter. -->
+            <GroupBox Grid.Column="1" Header="SHIFT / MODIFIER" Padding="6"
+                      AutomationProperties.Name="Live shift and modifier legend">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="ModifierLegend">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}"
+                                        Margin="0,0,0,5" Padding="2,3">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Width="13" Height="13" VerticalAlignment="Top" Margin="0,3,0,0"
+                                                Background="{Binding Color}" BorderBrush="{DynamicResource PrimaryTextBrush}"
+                                                BorderThickness="1" CornerRadius="2">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Opacity" Value="0.35"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding Label}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource PrimaryTextBrush}" FontSize="11"/>
+                                        <TextBlock Grid.Column="2" Text="●" Margin="5,0,0,0"
+                                                   Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="Bold"
+                                                   AutomationProperties.Name="Modifier active">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </GroupBox>
+        </Grid>
     </Grid>
 </UserControl>

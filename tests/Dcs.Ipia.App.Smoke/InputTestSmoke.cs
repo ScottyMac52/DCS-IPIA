@@ -27,7 +27,10 @@ namespace Dcs.Ipia.App.Smoke
             workspace = workspace with { Configuration = new(config.Module, [.. config.Profiles, otherProfile],
                 [new DcsModifier("S3", $"Test {{{otherPhysical:D}}}", "JOY_BTN1", ModifierMode.Hold)], config.Bindings, config.Provenance),
                 Diagrams = [.. workspace.Diagrams, workspace.Diagrams[0] with { ProfileId = otherProfile.Id, Device = "Other controller",
-                    Controls = workspace.Diagrams[0].Controls }] };
+                    Controls = workspace.Diagrams[0].Controls }],
+                Assignments = [.. workspace.Assignments, new DraftAssignment(
+                    new(config.Module.Id, config.Profiles[0].Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "S3"),
+                    new("SHIFTED", "Shifted action", false, AssignmentLayer.Module))] };
             var before = EditorSnapshotSerializer.Serialize(workspace);
             FakeDeviceInputSource? source = null;
             InputTestLogClipboard? clipboard = null;
@@ -53,7 +56,7 @@ namespace Dcs.Ipia.App.Smoke
             var choice = (ComboBox)WorkspaceUi.Find(window, "InputTestSnapshotChoice")!;
             var status = (TextBlock)WorkspaceUi.Find(window, "InputTestStatus")!;
             start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            if (log.Items.Count != 0 || ((Canvas)view.FindName("Diagram")!).Children.OfType<Border>().Any(x => x.Background == Brushes.LightSkyBlue))
+            if (log.Items.Count != 0 || ((Canvas)view.FindName("Diagram")!).Children.OfType<Border>().Any(x => x.BorderBrush == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("The initial sample reported or highlighted existing input states.");
             source!.ButtonValue = 1;
             Wait(window, () => log.Items.Count > 0);
@@ -63,11 +66,24 @@ namespace Dcs.Ipia.App.Smoke
             if (log.Items.Cast<InputTestLogEntry>().Select(x => x.Display).Any(x => x.Contains(otherPhysical.ToString("D"), StringComparison.Ordinal) || x.Contains("JOY_X", StringComparison.Ordinal) || x.Contains("JOY_BTN2", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Unchanged baseline inputs or another controller leaked into feedback.");
             var diagram = (Canvas)view.FindName("Diagram")!;
-            if (!diagram.Children.OfType<Border>().Any(x => x.Background == Brushes.LightSkyBlue))
+            if (!diagram.Children.OfType<Border>().Any(x => x.BorderBrush == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Physical activity did not highlight its control.");
             if (diagram.Children.OfType<Border>().Any(x =>
-                x.Tag is HardwareGraphicControl control && control.InputKey != "JOY_BTN1" && x.Background == Brushes.LightSkyBlue))
+                x.Tag is string input && input != "JOY_BTN1" && x.BorderBrush == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Initially held buttons or stationary axes were highlighted.");
+            var legend = (ItemsControl)view.FindName("ModifierLegend")!;
+            var shift = legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>()
+                .Single(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == "S3");
+            if (shift.IsActive || diagram.Children.OfType<Border>().Any(x => x.Background != Brushes.Transparent))
+                throw new InvalidOperationException("The input test obscured the finished device drawing or activated a neutral shift.");
+            source.ModifierValue = 1;
+            Wait(window, () => shift.IsActive);
+            if (!shift.IsActive)
+                throw new InvalidOperationException("A modifier on another controller did not light its legend entry.");
+            source.ModifierValue = 0;
+            Wait(window, () => !shift.IsActive);
+            if (shift.IsActive)
+                throw new InvalidOperationException("A released Hold modifier remained lit.");
             var panes = (Grid)view.FindName("InputTestPanes")!;
             var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
             var upper = panes.RowDefinitions[1];
@@ -91,6 +107,8 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}; window={window.ActualHeight}, view={view.ActualHeight}, panes={panes.ActualHeight}.");
             InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>().Any(x => x.IsActive))
+                throw new InvalidOperationException("Stop did not turn off live modifier swatches.");
             if (source?.Disposed != true || !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)
                 throw new InvalidOperationException("Stop did not release device input.");
             InputTestLogSmoke.VerifyStopped(window, () => clipboard);

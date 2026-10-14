@@ -19,6 +19,8 @@ namespace Dcs.Ipia.App.Smoke
         public bool Fail { get; set; }
         /// <summary>Gets or sets a controlled button value after the initial sample.</summary>
         public double? ButtonValue { get; set; }
+        /// <summary>Controlled hold value on the separate physical modifier controller.</summary>
+        public double ModifierValue { get; set; }
         /// <summary>Gets the supported native inputs.</summary>
         public IReadOnlyDictionary<Guid, IReadOnlyCollection<string>> SupportedInputs
         {
@@ -39,7 +41,7 @@ namespace Dcs.Ipia.App.Smoke
             _reads++;
             var frames = new List<DeviceInputFrame> { new(physical, new Dictionary<string, double> { ["JOY_BTN1"] = value, ["JOY_BTN2"] = 1, ["JOY_X"] = 0.5 }) };
             if (otherDevice is { } other)
-                frames.Add(new(other, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = _reads % 2 == 0 ? 0.25 : 0.75 }));
+                frames.Add(new(other, new Dictionary<string, double> { ["JOY_BTN1"] = ModifierValue, ["JOY_X"] = _reads % 2 == 0 ? 0.25 : 0.75 }));
             return frames;
         }
         /// <summary>Records native handle release.</summary>
