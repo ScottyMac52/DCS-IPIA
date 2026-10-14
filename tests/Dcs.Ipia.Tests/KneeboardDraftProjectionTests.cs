@@ -182,6 +182,23 @@ namespace Dcs.Ipia.Tests
             Assert.Equal("Flight", page.CategoryLabels["mfd-category-top"]);
             Assert.Equal("Systems", page.CategoryLabels["mfd-category-right"]);
             Assert.Contains(page.Legend, x => x.Label == "UI Layer — UI_BTN7");
+
+            // One physical input has separate Module Base and UI Layer SHIFT callouts.
+            // The live image must light exactly the one that applies, without changing the printed page.
+            var neutral = new Dictionary<AssignmentLayer, string>();
+            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
+                KneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, neutral));
+            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, neutral));
+            var uiShifted = new Dictionary<AssignmentLayer, string> {
+                [AssignmentLayer.UiLayer] = "UI_BTN7"
+            };
+            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, uiShifted));
+            Assert.Equal("#7c3aed",
+                KneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, uiShifted));
+            var live = KneeboardLiveProjection.Focus(page, diagram.Controls, uiShifted);
+            Assert.Equal(KneeboardLiveProjection.InactiveLabelColor, live.Labels["one"][0].Color);
+            Assert.Equal("#7c3aed", live.Labels["one-shifted"][0].Color);
+            Assert.Equal("#ffffff", page.Labels["one"][0].Color);
         }
         #endregion END Public
     }
