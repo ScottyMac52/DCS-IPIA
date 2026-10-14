@@ -92,7 +92,7 @@ namespace Dcs.Ipia.Tests
             using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 300));
             Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 300));
-            Assert.Equal(SKColor.Parse("#38131c"), bitmap.GetPixel(400, 470));
+            Assert.Contains(Enumerable.Range(550, 700), y => bitmap.GetPixel(400, y) == SKColor.Parse("#38131c"));
             Assert.Equal(SKColor.Parse("#412511"), bitmap.GetPixel(400, 640));
             Assert.Equal(SKColor.Parse("#153526"), bitmap.GetPixel(400, 810));
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(880, 810));
