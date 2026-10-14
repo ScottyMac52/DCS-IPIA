@@ -54,7 +54,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <!-- Reserve the same toolbar space for every feature, even when there are no actions. -->
-      <RowDefinition Height="64"/>
+      <RowDefinition Height="48"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
@@ -84,7 +84,7 @@
         <ListBoxItem Content="Documentation" Tag="Documentation"/>
     </ListBox>
 
-        <local:FeatureActionBar x:Name="FeatureActions" Grid.Row="1" Margin="170,0,0,8"/>
+        <local:FeatureActionBar x:Name="FeatureActions" Grid.Row="1" Margin="170,0,0,0"/>
         <ContentControl x:Name="FeatureContent" Grid.Row="2" Margin="170,0,0,0"
                         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     <DockPanel Grid.Row="3" Margin="0,16,0,0">
