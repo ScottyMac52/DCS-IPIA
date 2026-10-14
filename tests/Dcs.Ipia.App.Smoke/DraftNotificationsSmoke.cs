@@ -37,8 +37,8 @@ namespace Dcs.Ipia.App.Smoke
                     Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100'/></svg>",
                     Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
                 };
-                var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [],
-                    [new CommandPaletteEntry("KEY", "Test action", "Keys", false)], [], new Dictionary<string, string>(),
+                var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram],
+                    [new CommandPaletteEntry("KEY", "Test action", "Keys", false)], [], [], new Dictionary<string, string>(),
                     new Dictionary<string, string> {
                         ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
