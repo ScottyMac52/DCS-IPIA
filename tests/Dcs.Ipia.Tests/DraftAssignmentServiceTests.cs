@@ -76,13 +76,14 @@ namespace Dcs.Ipia.Tests
             service.TuneAxis(axisSlot, filter);
             service.TuneAxis(axisSlot, new AxisFilter(5));
             service.TuneAxis(axisSlot, new AxisFilter(double.NaN));
-            Assert.Equal(new[] { true }, dirty);
+            Assert.True(Assert.Single(dirty));
             service.Restore(axisSlot);
-            Assert.Equal(new[] { true, false }, dirty);
+            Assert.Collection(dirty, value => Assert.True(value), value => Assert.False(value));
             service.TuneAxis(axisSlot, filter);
             service.Discard();
             service.Discard();
-            Assert.Equal(new[] { true, false, true, false }, dirty);
+            Assert.Collection(dirty, value => Assert.True(value), value => Assert.False(value),
+                value => Assert.True(value), value => Assert.False(value));
             Assert.Empty(service.History);
             Assert.Null(Assert.Single(service.Snapshot).Filter);
         }
