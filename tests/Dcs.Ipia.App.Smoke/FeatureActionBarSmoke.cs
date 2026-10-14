@@ -26,6 +26,13 @@ namespace Dcs.Ipia.App.Smoke
                 WorkspaceUi.Navigate(window, "Devices");
                 AssertActions(bar, "Load built-in hardware", "New", "Save to database", "Discard draft",
                     "Import DCS axis defaults…");
+                var contentHost = (ContentControl)window.FindName("FeatureContent")!;
+                var scroll = (ScrollViewer)bar.FindName("ActionScroll")!;
+                if (scroll.HorizontalScrollBarVisibility != ScrollBarVisibility.Auto ||
+                    scroll.VerticalScrollBarVisibility != ScrollBarVisibility.Disabled)
+                    throw new InvalidOperationException("The feature action strip should scroll horizontally, not wrap.");
+                var top = contentHost.TranslatePoint(new Point(), window).Y;
+                var height = contentHost.ActualHeight;
                 var oldCommand = bar.Actions.Single(x => x.Label == "New").Command;
                 Click(bar, "New");
                 var device = (UserControl)((ContentControl)window.FindName("FeatureContent")!).Content;
@@ -33,6 +40,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("The shared action did not invoke the Devices handler.");
 
                 WorkspaceUi.Navigate(window, "Pages");
+                AssertLayoutStable(window, contentHost, top, height);
                 if (oldCommand.CanExecute(null))
                     throw new InvalidOperationException("The inactive feature command was not detached.");
                 AssertActions(bar, "New page", "Add missing device pages", "Generate Summary",
@@ -43,9 +51,11 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("The shared action did not invoke the Pages handler.");
 
                 WorkspaceUi.Navigate(window, "Kneeboards");
-                if (bar.Actions.Count != 0 || bar.Visibility != Visibility.Collapsed)
+                AssertLayoutStable(window, contentHost, top, height);
+                if (bar.Actions.Length != 0 || bar.Visibility != Visibility.Visible)
                     throw new InvalidOperationException("The empty feature retained inactive actions.");
                 WorkspaceUi.Navigate(window, "Devices");
+                AssertLayoutStable(window, contentHost, top, height);
                 AssertActions(bar, "Load built-in hardware", "New", "Save to database", "Discard draft",
                     "Import DCS axis defaults…");
             }
@@ -54,6 +64,15 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
+        private static void AssertLayoutStable(Window window, ContentControl content, double top, double height)
+        {
+            window.UpdateLayout();
+            var currentTop = content.TranslatePoint(new Point(), window).Y;
+            if (Math.Abs(currentTop - top) > 0.5 || Math.Abs(content.ActualHeight - height) > 0.5)
+                throw new InvalidOperationException(
+                    $"Navigation shifted the content host: top {top} to {currentTop}, height {height} to {content.ActualHeight}.");
+        }
+
         private static void AssertActions(FeatureActionBar bar, params string[] expected)
         {
             if (!bar.Actions.Select(x => x.Label).SequenceEqual(expected, StringComparer.Ordinal))
