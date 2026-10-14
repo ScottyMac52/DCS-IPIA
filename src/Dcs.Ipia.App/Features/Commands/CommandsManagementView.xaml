@@ -27,7 +27,7 @@
                     <TextBlock Text="Axis" Style="{StaticResource AppLabel}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </StackPanel>
             </Grid>
-            <pres:ActionBar>
+            <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
                 <Button Content="Add" Click="AddClicked" Style="{StaticResource ActionButton}"/>
                 <Button Content="Update" Click="UpdateClicked" Style="{StaticResource ActionButton}"/>
                 <Button Content="Remove" Click="RemoveClicked" Style="{StaticResource ActionButton}"/>

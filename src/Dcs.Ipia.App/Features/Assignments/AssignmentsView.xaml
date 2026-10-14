@@ -52,7 +52,7 @@
                     <TextBox x:Name="GenericControlName" Style="{StaticResource AppTextBox}"/>
                 </DockPanel>
                 <TextBlock x:Name="InspectorDetails" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.8"/>
-                <pres:ActionBar Margin="0,8,0,0">
+                <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" Margin="0,8,0,0">
                     <Button Content="Assign selected command" Click="AssignClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Clear assignment" Click="ClearClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Clear layer" Click="ClearLayerClicked" Style="{StaticResource ActionButton}"/>
