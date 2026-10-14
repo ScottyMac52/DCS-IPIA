@@ -31,6 +31,7 @@ namespace Dcs.Ipia.App.Smoke
             var diagram = new UiLayerDiagram("TM MFD", "MFD 2", "mfd.svg", 130, 100, [], [])
             {
                 ProfileId = profile.Id, Svg = svg, SupportsUiLayer = true,
+                CanonicalUiLayerSourcePath = "assets/shared/ui-layer/input/UiLayer/joystick/MFD.diff.lua",
                 Controls = [
                     new("reserved", "BTN7", "JOY_BTN7", 10, 10, 48, 34),
                     new("reserved-shifted", "SHIFT BTN7", "JOY_BTN7", 64, 10, 50, 34),
@@ -51,6 +52,11 @@ namespace Dcs.Ipia.App.Smoke
                 [new DraftAssignment(slot, new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> {
                     ["config/kneeboard.json"] = "{}",
+                    ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] =
+                        "local modifiers = { [\"UI SHIFT\"] = { [\"device\"] = \"MFD\", " +
+                        "[\"key\"] = \"JOY_BTN7\", [\"switch\"] = true } } return modifiers",
+                    ["assets/shared/ui-layer/input/UiLayer/joystick/MFD.diff.lua"] =
+                        "local diff = { [\"keyDiffs\"] = {} } return diff",
                     [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(management)
                 });
             var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
@@ -85,8 +91,10 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Reserved callout still allowed Assign.");
                 var clear = ActionBar.FindButton(view, "Clear assignment")!;
                 clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, clear));
-                if (!((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal))
-                    throw new InvalidOperationException("Clearing a legacy assignment removed a modifier.");
+                if (!((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
+                    new WindowContext(window).Draft?.Snapshot.Any(a =>
+                        DcsInputKey.SamePhysicalInput(a.Slot.InputKey, "JOY_BTN7")) != false)
+                    throw new InvalidOperationException("Legacy assignment could not be cleared independently.");
 
                 var context = new WindowContext(window);
                 context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
@@ -96,7 +104,13 @@ namespace Dcs.Ipia.App.Smoke
                 context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
                     WorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer)));
                 if (!Callout("reserved").AllowDrop)
-                    throw new InvalidOperationException("Removing modifiers did not release reserved inputs.");
+                {
+                    var remaining = string.Join(", ", WorkspaceStructureEditor.Describe(context.Working!).Modifiers
+                        .Select(x => x.Layer + ":" + x.Name));
+                    var error = ((TextBlock)window.FindName("EditorMessage")!).Text;
+                    throw new InvalidOperationException("Removing modifiers did not release reserved inputs. " +
+                        "Remaining modifiers: " + remaining + "; structure edit: " + error);
+                }
                 context.Discard();
                 if (Callout("reserved").AllowDrop ||
                     !((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal))
