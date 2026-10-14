@@ -25,6 +25,7 @@ namespace DcsIpia.Features.Assignments
     {
 
         private IModuleWorkspaceContext? _context;
+        private bool _refreshingChoices;
         private Point? _calloutDragStart;
         private HardwareGraphicControl? _calloutDragControl;
         private bool _updatingLabel;
@@ -63,8 +64,10 @@ namespace DcsIpia.Features.Assignments
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
+            if (ReferenceEquals(_context, context)) return;
+            if (_context is not null) _context.StateChanged -= WorkspaceStateChanged;
             _context = context;
-            _context.StateChanged += (_, _) => RefreshChoices();
+            _context.StateChanged += WorkspaceStateChanged;
             Scope.SelectedIndex = 0;
             RefreshChoices();
             CommandManager.Initialize(context);
@@ -80,6 +83,16 @@ namespace DcsIpia.Features.Assignments
         private static extern bool GetCursorPos(out NativeScreenPoint point);
 
         private void RefreshChoices()
+        {
+            if (_refreshingChoices) return;
+            _refreshingChoices = true;
+            try { RefreshWorkspaceChoices(); }
+            finally { _refreshingChoices = false; }
+        }
+
+        private void WorkspaceStateChanged(object? sender, EventArgs e) => RefreshChoices();
+
+        private void RefreshWorkspaceChoices()
         {
             if (_context?.Working is null)
             {
@@ -128,6 +141,7 @@ namespace DcsIpia.Features.Assignments
 
         private void DeviceChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_refreshingChoices) return;
             if (DeviceChoice.SelectedItem is UiLayerDiagram d)
                 _selectedDeviceId = d.ProfileId;
             RefreshChoices();
@@ -865,3 +879,4 @@ namespace DcsIpia.Features.Assignments
         #endregion END private helpers
     }
 }
+

@@ -53,6 +53,8 @@ namespace Dcs.Ipia.App.Smoke
             VerifySavedGamesImportForm();
             Console.WriteLine("Smoke: module authoring.");
             VerifyModuleAuthoring();
+            Console.WriteLine("Smoke: draft notifications across cached features.");
+            DraftNotificationsSmoke.Verify();
             Console.WriteLine("Smoke: device page deletion.");
             VerifyDevicePageDeletion();
             Console.WriteLine("Smoke: summary order.");
@@ -1150,6 +1152,7 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+
 
 
 

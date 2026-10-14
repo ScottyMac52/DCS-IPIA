@@ -8,6 +8,85 @@ namespace Dcs.Ipia.Tests
     public sealed class DraftAssignmentServiceTests
     {
         #region BEGIN Public
+        /// <summary>Observers see one complete atomic mutation and the resulting dirty state, including undo.</summary>
+        [Theory]
+        [InlineData("assign")]
+        [InlineData("remove")]
+        [InlineData("move")]
+        [InlineData("copy")]
+        [InlineData("swap")]
+        public void Applied_mutations_notify_once_after_state_and_history_are_updated(string operation)
+        {
+            var (service, source, target, _, first, second) = Fixture();
+            var observed = new List<(bool Dirty, int History, DraftAssignment[] Assignments)>();
+            service.Changed += (_, _) => observed.Add((service.HasChanges, service.History.Count, service.Snapshot.ToArray()));
+            var result = operation switch
+            {
+                "assign" => service.Assign(source, second, OccupiedDestinationBehavior.Ask, DraftConflictChoice.Replace),
+                "remove" => service.Remove(source),
+                "move" => service.Move(source, target, OccupiedDestinationBehavior.Ask, DraftConflictChoice.Replace),
+                "copy" => service.Copy(source, target, OccupiedDestinationBehavior.ReplaceInDraft),
+                _ => service.Swap(source, target)
+            };
+            Assert.Equal(DraftOutcome.Applied, result.Outcome);
+            var change = Assert.Single(observed);
+            Assert.True(change.Dirty);
+            Assert.Equal(1, change.History);
+            Assert.Equal(service.Snapshot, change.Assignments);
+            Assert.Equal(DraftOutcome.Applied, service.Undo().Outcome);
+            Assert.Equal(2, observed.Count);
+            Assert.False(observed[1].Dirty);
+            Assert.Equal(0, observed[1].History);
+            Assert.Equal(first, Assert.Single(observed[1].Assignments, x => x.Slot == source).Command);
+        }
+
+        /// <summary>Rejected, cancelled, unconfirmed and unchanged edits never notify observers.</summary>
+        [Fact]
+        public void Unapplied_operations_do_not_notify()
+        {
+            var (service, source, target, other, first, _) = Fixture();
+            var notifications = 0;
+            service.Changed += (_, _) => notifications++;
+            service.Assign(source, first, OccupiedDestinationBehavior.Ask);
+            service.Move(source, target, OccupiedDestinationBehavior.Ask);
+            service.Move(source, target, OccupiedDestinationBehavior.Ask, DraftConflictChoice.Cancel);
+            service.Copy(source, target, OccupiedDestinationBehavior.Reject);
+            service.Move(source, other, OccupiedDestinationBehavior.ReplaceInDraft);
+            service.Remove(source with { InputKey = "JOY_BTN99" });
+            service.Restore(source);
+            service.Undo();
+            service.Discard();
+            Assert.Equal(0, notifications);
+            Assert.False(service.HasChanges);
+            Assert.Empty(service.History);
+        }
+
+        /// <summary>Axis tuning and restoring or discarding edits publish only actual assignment changes.</summary>
+        [Fact]
+        public void Tuning_restore_and_discard_notify_resulting_state()
+        {
+            var (_, source, _, _, _, _) = Fixture();
+            var axisSlot = source with { Section = BindingSection.Axis, InputKey = "JOY_X" };
+            var axis = new DraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module);
+            var config = BuildModule(source.ModuleId, source.ProfileId, Guid.NewGuid());
+            var service = new DraftAssignmentService(config, [axis], [new(axisSlot, axis)]);
+            var dirty = new List<bool>();
+            service.Changed += (_, _) => dirty.Add(service.HasChanges);
+            var filter = new AxisFilter(5);
+            service.TuneAxis(axisSlot, filter);
+            service.TuneAxis(axisSlot, new AxisFilter(5));
+            service.TuneAxis(axisSlot, new AxisFilter(double.NaN));
+            Assert.Equal(new[] { true }, dirty);
+            service.Restore(axisSlot);
+            Assert.Equal(new[] { true, false }, dirty);
+            service.TuneAxis(axisSlot, filter);
+            service.Discard();
+            service.Discard();
+            Assert.Equal(new[] { true, false, true, false }, dirty);
+            Assert.Empty(service.History);
+            Assert.Null(Assert.Single(service.Snapshot).Filter);
+        }
+
         /// <summary>A newly imported module command becomes assignable without resetting the pending draft.</summary>
         [Fact]
         public void Imported_catalog_command_is_assignable_without_losing_history()
@@ -290,3 +369,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
