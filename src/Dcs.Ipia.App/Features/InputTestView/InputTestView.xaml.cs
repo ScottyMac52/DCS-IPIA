@@ -38,23 +38,6 @@ namespace DcsIpia.Features.InputTest
         private Button? StartButton => ActionBar.FindButton(this, "Start test");
         private Button? StopButton => ActionBar.FindButton(this, "Stop test");
 
-        private static readonly Brush[] LayerColors =
-        [
-            Brushes.Gray,            // 0 = Base
-            Brushes.DodgerBlue,      // 1
-            Brushes.Orange,          // 2
-            Brushes.MediumPurple,    // 3
-            Brushes.Gold,            // 4
-            Brushes.LimeGreen,       // 5
-            Brushes.HotPink,         // 6
-            Brushes.Cyan,            // 7
-            Brushes.Coral,           // 8
-            Brushes.MediumSeaGreen,  // 9
-            Brushes.SteelBlue,       // 10
-            Brushes.Orchid,          // 11
-            Brushes.Khaki,           // 12
-        ];
-
         #region BEGIN Public
         public InputTestView()
         {
@@ -288,6 +271,7 @@ namespace DcsIpia.Features.InputTest
                     BorderBrush = Brushes.Transparent,
                     BorderThickness = new Thickness(3),
                     Background = Brushes.Transparent,
+                    Tag = region.InputKey,
                     IsHitTestVisible = false
                 };
                 Canvas.SetLeft(border, region.X);
