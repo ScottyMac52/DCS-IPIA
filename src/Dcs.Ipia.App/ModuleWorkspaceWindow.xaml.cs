@@ -95,7 +95,11 @@ namespace DcsIpia.Presentation
             _navigation = new NavigationService(_knownKeys);
             _context = new WindowContext(this);
             SetDraft(_draft);
-            Closed += (_, _) => SetDraft(null);
+            Closed += (_, _) =>
+            {
+                FeatureActions.ClearActions();
+                SetDraft(null);
+            };
             _navigation.CurrentFeatureChanged += (_, _) => LoadCurrentView();
             FeatureNav.SelectedIndex = 0;
         }
@@ -112,6 +116,7 @@ namespace DcsIpia.Presentation
             if (_views.TryGetValue(key, out var cached))
             {
                 FeatureContent.Content = cached;
+                FeatureActions.ShowActions(cached);
                 return;
             }
             FeatureContent.Content = key switch
@@ -126,7 +131,12 @@ namespace DcsIpia.Presentation
                 "Documentation" => CreateDocumentationView(),
                 _ => null
             };
-            if (FeatureContent.Content is UserControl view) _views[key] = view;
+            if (FeatureContent.Content is UserControl view)
+            {
+                _views[key] = view;
+                FeatureActions.ShowActions(view);
+            }
+            else FeatureActions.ClearActions();
         }
 
         private DevicesView CreateDevicesView()

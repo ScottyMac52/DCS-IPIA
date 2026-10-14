@@ -18,7 +18,7 @@
                 <ComboBox x:Name="FeedbackDevice" Width="240" DisplayMemberPath="Title" Style="{StaticResource AppComboBox}"/>
             </WrapPanel>
             <WrapPanel Margin="0,8,0,0">
-                <pres:ActionBar>
+                <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
                     <Button x:Name="StartInputTestButton" Content="Start test" Click="StartInputTestClicked" Style="{StaticResource ActionButton}"/>
                     <Button x:Name="StopInputTestButton" Content="Stop test" Click="StopInputTestClicked" Style="{StaticResource ActionButton}" IsEnabled="False"/>
                 </pres:ActionBar>

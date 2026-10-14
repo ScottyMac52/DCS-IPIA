@@ -10,6 +10,9 @@ namespace DcsIpia.Presentation
         #region BEGIN Public
         public ActionBar() => Orientation = Orientation.Horizontal;
 
+        /// <summary>Marks the view-owned action group for workspace presentation.</summary>
+        public bool IsFeatureActions { get; set; }
+
         /// <summary>Finds a button by its displayed caption within a visual tree.</summary>
         public static Button? FindButton(DependencyObject root, string content)
         {
