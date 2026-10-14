@@ -18,7 +18,7 @@ namespace DcsIpia.Features.InputTest
             var png = RenderLive(diagram, page, activeModifiers ?? new Dictionary<AssignmentLayer, string>());
             var regions = diagram.Controls.Select(control =>
                 new InputTestCallout(control.InputKey, control.Control, control.X, control.Y,
-                    control.Width, control.Height, "", 0)).ToArray();
+                    control.Width, control.Height)).ToArray();
             return new(png, diagram.Width, diagram.Height, regions, page.Legend, page);
         }
 
