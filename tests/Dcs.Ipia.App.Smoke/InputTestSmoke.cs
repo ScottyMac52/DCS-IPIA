@@ -69,12 +69,16 @@ namespace Dcs.Ipia.App.Smoke
             if (!diagram.Children.OfType<Border>().Any(x => x.BorderBrush != Brushes.Transparent))
                 throw new InvalidOperationException("Physical activity did not highlight its control.");
             if (diagram.Children.OfType<Border>().Any(x =>
-                x.Tag is string input && input != "JOY_BTN1" && x.BorderBrush != Brushes.Transparent))
+                x.Tag is string input && !input.StartsWith("JOY_BTN1|", StringComparison.Ordinal) &&
+                x.BorderBrush != Brushes.Transparent))
                 throw new InvalidOperationException("Initially held buttons or stationary axes were highlighted.");
             var activeOutline = diagram.Children.OfType<Border>()
-                .Single(x => x.Tag is string key && key == "JOY_BTN1");
+                .Single(x => x.Tag is string key && key == "JOY_BTN1|button");
+            var shiftedOutline = diagram.Children.OfType<Border>()
+                .Single(x => x.Tag is string key && key == "JOY_BTN1|button-shifted");
             var baseColor = (Color)ColorConverter.ConvertFromString(KneeboardLiveProjection.BaseHighlightColor);
-            if ((activeOutline.BorderBrush as SolidColorBrush)?.Color != baseColor)
+            if ((activeOutline.BorderBrush as SolidColorBrush)?.Color != baseColor ||
+                shiftedOutline.BorderBrush != Brushes.Transparent)
                 throw new InvalidOperationException("Base input highlight was not yellow.");
             var legend = (ItemsControl)view.FindName("ModifierLegend")!;
             var shift = legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>()
@@ -84,12 +88,14 @@ namespace Dcs.Ipia.App.Smoke
             source.ModifierValue = 1;
             var shiftedColor = (Color)ColorConverter.ConvertFromString(shift.Color);
             Wait(window, () => shift.IsActive &&
-                (activeOutline.BorderBrush as SolidColorBrush)?.Color == shiftedColor);
+                (shiftedOutline.BorderBrush as SolidColorBrush)?.Color == shiftedColor &&
+                activeOutline.BorderBrush == Brushes.Transparent);
             if (!shift.IsActive)
                 throw new InvalidOperationException("A modifier on another controller did not light its legend entry.");
             source.ModifierValue = 0;
             Wait(window, () => !shift.IsActive &&
-                (activeOutline.BorderBrush as SolidColorBrush)?.Color == baseColor);
+                (activeOutline.BorderBrush as SolidColorBrush)?.Color == baseColor &&
+                shiftedOutline.BorderBrush == Brushes.Transparent);
             if (shift.IsActive)
                 throw new InvalidOperationException("A released Hold modifier remained lit.");
             var panes = (Grid)view.FindName("InputTestPanes")!;
@@ -165,6 +171,7 @@ namespace Dcs.Ipia.App.Smoke
                 ProfileId = profile.Id,
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
                 Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20),
+                    new("button-shifted", "Shifted button", "JOY_BTN1", 5, 30, 20, 20),
                     new("held", "Initially held", "JOY_BTN2", 35, 5, 20, 20), new("axis", "Stationary axis", "JOY_X", 65, 5, 20, 20, true)]
             };
             return new(configuration, [], [], [diagram], [new("KEY", "Test action", "Keys", false)], [], [assignment], new Dictionary<string, string>(),
