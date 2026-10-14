@@ -64,12 +64,19 @@ namespace Dcs.Ipia.App.Smoke
                         .Children.OfType<Border>().Single(x =>
                             x.Tag is HardwareGraphicControl c && c.Control == name);
                 if (!((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
-                    !((TextBlock)Callout("reserved-shifted").Child).Text.Contains("UI SHIFT", StringComparison.Ordinal) ||
-                    Callout("reserved").AllowDrop || Callout("reserved-shifted").AllowDrop ||
+                    Callout("reserved").AllowDrop ||
                     !Callout("free").AllowDrop ||
                     Callout("reserved").ToolTip?.ToString()?.Contains("S3 (Hold)", StringComparison.Ordinal) != true ||
                     Callout("reserved").ToolTip?.ToString()?.Contains("UI SHIFT (Toggle)", StringComparison.Ordinal) != true)
                     throw new InvalidOperationException("Modifier callouts were not labeled or protected.");
+                var layers = (ComboBox)view.FindName("Layers")!;
+                layers.SelectedIndex = 1;
+                window.UpdateLayout();
+                if (!((TextBlock)Callout("reserved-shifted").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
+                    Callout("reserved-shifted").AllowDrop)
+                    throw new InvalidOperationException("The shifted drawing bypassed the modifier reservation.");
+                layers.SelectedIndex = 0;
+                window.UpdateLayout();
 
                 Callout("reserved").RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) {
                     RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent
@@ -88,7 +95,7 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("The UI Layer modifier was not respected.");
                 context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
                     WorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer)));
-                if (!Callout("reserved").AllowDrop || !Callout("reserved-shifted").AllowDrop)
+                if (!Callout("reserved").AllowDrop)
                     throw new InvalidOperationException("Removing modifiers did not release reserved inputs.");
                 context.Discard();
                 if (Callout("reserved").AllowDrop ||
