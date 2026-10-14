@@ -369,4 +369,3 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
-
