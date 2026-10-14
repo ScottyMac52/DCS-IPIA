@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 namespace DcsIpia.Features.InputTest
@@ -26,11 +27,15 @@ namespace DcsIpia.Features.InputTest
 #pragma warning restore CA1859 // Use concrete types when possible for improved performance
         private InputTestSession? _session;
         private GeneratedInputTestPlan? _plan;
-        private readonly List<(string InputKey, Border Highlight)> _callouts = [];
+        private readonly List<(string InputKey, string Control, Border Highlight)> _callouts = [];
+        private readonly Dictionary<Border, string> _highlightColors = [];
+        private UiLayerDiagram? _currentDiagram;
+        private InputTestDiagramModel? _currentDiagramModel;
+        private Image? _currentArtwork;
+        private string? _lastModifierSignature;
         private InputTestLegendItem[] _legendItems = [];
         private EditorWorkspaceSnapshot? _testSnapshot;
-        private readonly Dictionary<Border, Brush> _testHighlights = [];
-        private readonly List<InputTestLogEntry> _events = [];
+         private readonly List<InputTestLogEntry> _events = [];
         private readonly Dictionary<string, System.Windows.Input.Key> _testKeyboard = new(StringComparer.Ordinal);
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
         private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
@@ -147,6 +152,7 @@ namespace DcsIpia.Features.InputTest
             _session?.Reset(); _session = null; _plan = null;
             _testSnapshot = null;
             UpdateModifierLegend();
+            RefreshLiveArtwork();
             _inputFeedbackDevice = null;
             _inputSource?.Dispose(); _inputSource = null;
             _testKeyboard.Clear(); _liveAxisUntil.Clear(); _livePressedInputs.Clear();
@@ -192,6 +198,7 @@ namespace DcsIpia.Features.InputTest
                 }
                 InputTestModifiers.Text = string.Join(" · ", _session.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
                 UpdateModifierLegend();
+                RefreshLiveArtwork();
                 if (results.Count > 0) RefreshEventLog();
                 HighlightInputControls();
                 UpdateLogButtons();
@@ -231,6 +238,11 @@ namespace DcsIpia.Features.InputTest
         {
             Diagram.Children.Clear();
             _callouts.Clear();
+            _highlightColors.Clear();
+            _currentDiagram = null;
+            _currentDiagramModel = null;
+            _currentArtwork = null;
+            _lastModifierSignature = null;
             _legendItems = [];
             ModifierLegend.ItemsSource = _legendItems;
             var snapshot = _testSnapshot ?? _context?.Working;
@@ -244,7 +256,8 @@ namespace DcsIpia.Features.InputTest
                 diagram,
                 snapshot,
                 _testSnapshot is not null ? snapshot.Assignments : _context?.Draft?.Snapshot ?? snapshot.Assignments,
-                _testSnapshot is not null ? snapshot.Labels : _context?.Labels ?? snapshot.Labels);
+                _testSnapshot is not null ? snapshot.Labels : _context?.Labels ?? snapshot.Labels,
+                _session?.ActiveModifiers);
             _legendItems = model.Legend.Select(item => new InputTestLegendItem(item)).ToArray();
             ModifierLegend.ItemsSource = _legendItems;
             UpdateModifierLegend();
@@ -259,7 +272,11 @@ namespace DcsIpia.Features.InputTest
 
             Diagram.Width = model.Width;
             Diagram.Height = model.Height;
-            Diagram.Children.Add(new Image { Source = bitmap, Width = model.Width, Height = model.Height });
+            _currentDiagram = diagram;
+            _currentDiagramModel = model;
+            _currentArtwork = new Image { Source = bitmap, Width = model.Width, Height = model.Height };
+            _lastModifierSignature = ModifierSignature();
+            Diagram.Children.Add(_currentArtwork);
 
             foreach (var region in model.Callouts)
             {
@@ -277,8 +294,33 @@ namespace DcsIpia.Features.InputTest
                 Canvas.SetLeft(border, region.X);
                 Canvas.SetTop(border, region.Y);
                 Diagram.Children.Add(border);
-                _callouts.Add((region.InputKey, border));
+                _callouts.Add((region.InputKey, region.Chord, border));
             }
+        }
+
+        private string ModifierSignature()
+        {
+            var active = _session?.ActiveModifiers;
+            return (active?.GetValueOrDefault(AssignmentLayer.Module) ?? "") + "|" +
+                   (active?.GetValueOrDefault(AssignmentLayer.UiLayer) ?? "");
+        }
+
+        private void RefreshLiveArtwork()
+        {
+            if (_currentDiagram is null || _currentDiagramModel is null || _currentArtwork is null) return;
+            var signature = ModifierSignature();
+            if (signature == _lastModifierSignature) return;
+            var active = _session?.ActiveModifiers ?? new Dictionary<AssignmentLayer, string>();
+            var png = InputTestDiagramComposer.RenderLive(_currentDiagram, _currentDiagramModel.Page, active);
+            using var stream = new MemoryStream(png);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            _currentArtwork.Source = bitmap;
+            _lastModifierSignature = signature;
         }
 
         private void UpdateModifierLegend()
@@ -330,23 +372,47 @@ namespace DcsIpia.Features.InputTest
 
         private void ClearInputHighlights()
         {
-            foreach (var (border, previous) in _testHighlights) border.BorderBrush = previous;
-            _testHighlights.Clear();
+            foreach (var border in _highlightColors.Keys)
+            {
+                border.BorderBrush = Brushes.Transparent;
+                border.Effect = null;
+            }
+            _highlightColors.Clear();
         }
 
         private void HighlightInputControls()
         {
-            ClearInputHighlights();
-            var guid = CurrentInputTestDevice();
-            foreach (var (input, border) in _callouts)
+            var physical = CurrentInputTestDevice();
+            var active = _session?.ActiveModifiers ?? new Dictionary<AssignmentLayer, string>();
+            var desired = new Dictionary<Border, string>();
+            foreach (var (input, control, border) in _callouts)
             {
-                if (guid is { } physical && (_livePressedInputs.Any(x => x.Device == physical && DcsInputKey.SamePhysicalInput(x.Key, input)) ||
-                    _liveAxisUntil.Any(x => x.Key.Device == physical && DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow)))
-                {
-                    _testHighlights[border] = border.BorderBrush;
-                    border.BorderBrush = Brushes.LightSkyBlue;
-                }
+                if (physical is not { } guid || _currentDiagramModel is null) continue;
+                var pressed = _livePressedInputs.Any(x => x.Device == guid &&
+                    DcsInputKey.SamePhysicalInput(x.Key, input));
+                var moving = _liveAxisUntil.Any(x => x.Key.Device == guid &&
+                    DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow);
+                if (!pressed && !moving) continue;
+                var color = KneeboardLiveProjection.ActiveColor(_currentDiagramModel.Page, control, active);
+                if (color is not null) desired[border] = color;
             }
+            foreach (var (border, color) in _highlightColors)
+                if (!desired.TryGetValue(border, out var next) || next != color)
+                {
+                    border.BorderBrush = Brushes.Transparent;
+                    border.Effect = null;
+                }
+            foreach (var (border, color) in desired)
+                if (!_highlightColors.TryGetValue(border, out var old) || old != color)
+                {
+                    border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                    // Dark halo maintains visibility against both black and white hardware.
+                    border.Effect = new DropShadowEffect {
+                        Color = Colors.Black, BlurRadius = 3, ShadowDepth = 0, Opacity = 0.95
+                    };
+                }
+            _highlightColors.Clear();
+            foreach (var (border, color) in desired) _highlightColors.Add(border, color);
         }
 
         private static Key? KeyboardTestKey(string name) => name switch
