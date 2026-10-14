@@ -53,6 +53,8 @@ namespace Dcs.Ipia.App.Smoke
             VerifySavedGamesImportForm();
             Console.WriteLine("Smoke: module authoring.");
             VerifyModuleAuthoring();
+            Console.WriteLine("Smoke: reserved modifier callouts.");
+            ModifierReservationSmoke.Verify();
             Console.WriteLine("Smoke: shared feature action bar.");
             FeatureActionBarSmoke.Verify();
             Console.WriteLine("Smoke: draft notifications across cached features.");
