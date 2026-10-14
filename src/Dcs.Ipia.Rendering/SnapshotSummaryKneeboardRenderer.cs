@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
@@ -51,8 +50,6 @@ namespace Dcs.Ipia.Rendering
 
         // Each row takes the height of its tallest card. Oversized rows continue on new
         // kneeboard pages, so even a single very long description cannot be clipped.
-        private sealed record Card(string Key, string Accent, string[] Lines);
-        private sealed record CardSlice(Card Card, int X, int Y, int Height, string[] Lines);
 
         private static IReadOnlyList<byte[]> Render(JsonElement summary, JsonElement items, int page, int total)
         {
@@ -62,17 +59,18 @@ namespace Dcs.Ipia.Rendering
             using var typeface = SKTypeface.FromStream(stream) ??
                                  throw new InvalidDataException("The pinned kneeboard font is invalid.");
 
-            var cards = items.EnumerateArray().Select(item => new Card(
-                item.GetProperty("key").GetString() ?? "",
-                item.GetProperty("accent").GetString() ?? "",
-                Wrap(item.GetProperty("text").GetString() ?? "", typeface))).ToArray();
+            var cards = items.EnumerateArray().Select(item => (
+                Key: item.GetProperty("key").GetString() ?? "",
+                Accent: item.GetProperty("accent").GetString() ?? "",
+                Lines: Wrap(item.GetProperty("text").GetString() ?? "", typeface))).ToArray();
             const int top = 220, bottom = 1460, minHeight = 130, lineHeight = 28, rowGap = 40;
-            var pages = new List<List<CardSlice>> { [] };
+            var pages = new List<List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)>> { new() };
             var y = top;
             for (var index = 0; index < cards.Length; index += 2)
             {
                 var left = cards[index];
-                Card? right = index + 1 < cards.Length ? cards[index + 1] : null;
+                var hasRight = index + 1 < cards.Length;
+                var right = hasRight ? cards[index + 1] : default;
                 var leftOffset = 0;
                 var rightOffset = 0;
                 var firstSegment = true;
@@ -85,20 +83,20 @@ namespace Dcs.Ipia.Rendering
                     }
                     var capacity = 2 + (bottom - y - minHeight) / lineHeight;
                     var drawLeft = firstSegment || leftOffset < left.Lines.Length;
-                    var drawRight = right is not null && (firstSegment || rightOffset < right.Lines.Length);
+                    var drawRight = hasRight && (firstSegment || rightOffset < right.Lines.Length);
                     var leftCount = drawLeft ? Math.Min(capacity, left.Lines.Length - leftOffset) : 0;
-                    var rightCount = drawRight ? Math.Min(capacity, right!.Lines.Length - rightOffset) : 0;
+                    var rightCount = drawRight ? Math.Min(capacity, right.Lines.Length - rightOffset) : 0;
                     var height = minHeight + Math.Max(0, Math.Max(leftCount, rightCount) - 2) * lineHeight;
                     if (drawLeft)
-                        pages[^1].Add(new CardSlice(left, 96, y, height, left.Lines.Skip(leftOffset).Take(leftCount).ToArray()));
+                        pages[^1].Add((left.Key, left.Accent, left.Lines.Skip(leftOffset).Take(leftCount).ToArray(), 96, y, height));
                     if (drawRight)
-                        pages[^1].Add(new CardSlice(right!, 576, y, height, right!.Lines.Skip(rightOffset).Take(rightCount).ToArray()));
+                        pages[^1].Add((right.Key, right.Accent, right.Lines.Skip(rightOffset).Take(rightCount).ToArray(), 576, y, height));
                     leftOffset += leftCount;
                     rightOffset += rightCount;
                     y += height + rowGap;
                     firstSegment = false;
                 }
-                while (leftOffset < left.Lines.Length || (right is not null && rightOffset < right.Lines.Length));
+                while (leftOffset < left.Lines.Length || (hasRight && rightOffset < right.Lines.Length));
             }
 
             var output = new List<byte[]>(pages.Count);
@@ -115,10 +113,10 @@ namespace Dcs.Ipia.Rendering
                 foreach (var slice in pages[part])
                 {
                     var (x, topY, height) = (slice.X, slice.Y, slice.Height);
-                    var (fill, stroke) = Accent(slice.Card.Accent);
+                    var (fill, stroke) = Accent(slice.Accent);
                     Box(new SKRect(x, topY, x + 420, topY + height), 16, fill, stroke, 2);
                     Box(new SKRect(x + 16, topY + 14, x + 102, topY + height - 14), 12, "#07111d", stroke, 2);
-                    Write(slice.Card.Key, x + 59, topY + 69, 22, stroke, SKTextAlign.Center);
+                    Write(slice.Key, x + 59, topY + 69, 22, stroke, SKTextAlign.Center);
                     for (var line = 0; line < slice.Lines.Length; line++)
                         Write(slice.Lines[line], x + 122, topY + 42 + line * lineHeight,
                               line == 0 ? 18 : 16, line == 0 ? "#f5f9ff" : "#dbe7f4", maxWidth: 290);
