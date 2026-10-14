@@ -34,6 +34,8 @@ namespace Dcs.Ipia.Application
             ArgumentNullException.ThrowIfNull(activeModifiers);
             var labels = page.Labels.ToDictionary(x => x.Key, x =>
             {
+                if (!controls.Any(control => control.Control == x.Key))
+                    return (IReadOnlyList<KneeboardLabelVariant>)x.Value;
                 var chosen = Preferred(page, x.Key, controls, activeModifiers);
                 return (IReadOnlyList<KneeboardLabelVariant>)x.Value.Select(variant =>
                     chosen is { } selected && selected.Control == x.Key &&
@@ -68,7 +70,10 @@ namespace Dcs.Ipia.Application
             var selected = Preferred(page, control, controls, activeModifiers);
             if (selected is { } match)
                 return match.Control == control ? Color(match.Variant) : null;
-            return page.Labels.ContainsKey(control) ? null : BaseHighlightColor;
+            var physical = controls.FirstOrDefault(x => x.Control == control);
+            return physical is null || controls.Any(x => DcsInputKey.SamePhysicalInput(
+                x.InputKey, physical.InputKey) && page.Labels.ContainsKey(x.Control))
+                ? null : BaseHighlightColor;
         }
         #endregion END Public
 
@@ -80,9 +85,8 @@ namespace Dcs.Ipia.Application
             var physical = controls.FirstOrDefault(x => x.Control == control);
             if (physical is null) return null;
             var matches = controls.Where(x => DcsInputKey.SamePhysicalInput(x.InputKey, physical.InputKey))
-                .SelectMany(x => page.Labels.GetValueOrDefault(x.Control) is { } variants
-                    ? variants.Select(variant => (Control: x.Control, Variant: variant))
-                    : [])
+                .SelectMany(x => (page.Labels.GetValueOrDefault(x.Control) ?? [])
+                    .Select(variant => (Control: x.Control, Variant: variant)))
                 .Where(x => KneeboardLegendActivity.Matches(x.Variant.Scope, x.Variant.ModifierChord, activeModifiers))
                 .OrderByDescending(x => Priority(x.Variant)).ToArray();
             return matches.Length == 0 ? null : matches[0];
