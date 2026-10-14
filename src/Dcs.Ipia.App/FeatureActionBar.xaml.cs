@@ -1,10 +1,9 @@
-using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace DcsIpia.Presentation
 {
-    /// <summary>Hosts consistent, navigation-aware feature buttons without feature business logic.</summary>
+    /// <summary>Displays stable-position buttons owned by the active workspace feature.</summary>
     public partial class FeatureActionBar : UserControl
     {
         private readonly List<FeatureActionCommand> _commands = [];
@@ -13,35 +12,42 @@ namespace DcsIpia.Presentation
         public FeatureActionBar()
         {
             InitializeComponent();
-            Visibility = Visibility.Collapsed;
         }
 
-        /// <summary>Active view's action descriptors; empty when no actions are supplied.</summary>
-        public ObservableCollection<FeatureAction> Actions { get; } = [];
+        /// <summary>Bindable action array, changed with one notification per navigation.</summary>
+        public static readonly DependencyProperty ActionsProperty =
+            DependencyProperty.Register(nameof(Actions), typeof(FeatureAction[]),
+                typeof(FeatureActionBar), new PropertyMetadata(Array.Empty<FeatureAction>()));
 
-        /// <summary>Presents the active view's explicitly marked actions in declaration order.</summary>
+        /// <summary>Current feature's actions; an empty array leaves the reserved toolbar visible.</summary>
+        public FeatureAction[] Actions
+        {
+            get => (FeatureAction[])GetValue(ActionsProperty);
+            private set => SetValue(ActionsProperty, value);
+        }
+
+        /// <summary>Replaces the action set atomically, without collapsing the toolbar in between views.</summary>
         public void ShowActions(DependencyObject view)
         {
             ArgumentNullException.ThrowIfNull(view);
-            ClearActions();
-            var index = 0;
-            foreach (var button in FindSources(view))
-            {
-                var command = new FeatureActionCommand(button);
-                _commands.Add(command);
-                Actions.Add(new FeatureAction(button.Name.Length > 0 ? button.Name : "action-" + index++,
-                    button.Content?.ToString() ?? "", command, button.ToolTip));
-            }
-            Visibility = Actions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            var buttons = FindSources(view).ToArray();
+            var commands = buttons.Select(button => new FeatureActionCommand(button)).ToArray();
+            var next = buttons.Select((button, index) => new FeatureAction(
+                button.Name.Length > 0 ? button.Name : "action-" + index,
+                button.Content?.ToString() ?? "", commands[index], button.ToolTip)).ToArray();
+
+            Actions = next;
+            foreach (var old in _commands) old.Dispose();
+            _commands.Clear();
+            _commands.AddRange(commands);
         }
 
-        /// <summary>Releases stale commands and availability subscriptions.</summary>
+        /// <summary>Disposes subscriptions when the workspace closes or cannot resolve a feature.</summary>
         public void ClearActions()
         {
-            Actions.Clear();
+            Actions = Array.Empty<FeatureAction>();
             foreach (var command in _commands) command.Dispose();
             _commands.Clear();
-            Visibility = Visibility.Collapsed;
         }
         #endregion END Public
 

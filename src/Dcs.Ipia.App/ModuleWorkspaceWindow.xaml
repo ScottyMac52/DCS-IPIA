@@ -53,7 +53,8 @@
   <Grid Margin="24">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
+      <!-- Reserve the same toolbar space for every feature, even when there are no actions. -->
+      <RowDefinition Height="64"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
