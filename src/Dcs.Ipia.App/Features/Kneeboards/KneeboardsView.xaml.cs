@@ -103,7 +103,23 @@ namespace DcsIpia.Features.Kneeboards
                     }
                 }
                 else if (page.Kind == KneeboardPageKind.Summary)
-                    bytes = SnapshotSummaryKneeboardRenderer.Generate(workspace)[path];
+                {
+                    var rendered = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+                    var pages = rendered.Where(x => x.Key == path ||
+                        (x.Key.StartsWith(path[..^4] + "-", StringComparison.Ordinal) &&
+                         x.Key.EndsWith(".png", StringComparison.Ordinal)))
+                        .OrderBy(x => x.Key, StringComparer.Ordinal).ToArray();
+                    var choices = Enumerable.Range(1, pages.Length).Select(x => "Page " + x).ToArray();
+                    _updating = true;
+                    GenericPageChoice.ItemsSource = choices;
+                    if (GenericPageChoice.SelectedIndex < 0 || GenericPageChoice.SelectedIndex >= pages.Length)
+                        GenericPageChoice.SelectedIndex = 0;
+                    _updating = false;
+                    GenericPageChoice.IsEnabled = pages.Length > 1;
+                    var selected = Math.Max(0, GenericPageChoice.SelectedIndex);
+                    bytes = pages[selected].Value;
+                    path = pages[selected].Key;
+                }
                 else
                     throw new InvalidDataException("Unsupported page: " + page.StableKey);
 
