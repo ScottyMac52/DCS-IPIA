@@ -26,7 +26,7 @@ namespace DcsIpia.Features.InputTest
         public static byte[] RenderLive(UiLayerDiagram diagram, KneeboardComposite page,
             IReadOnlyDictionary<AssignmentLayer, string> activeModifiers) =>
             CanonicalSvgRenderer.RenderComplete(CompositeKneeboardRenderer.BuildDeviceSvg(
-                diagram, KneeboardLiveProjection.Focus(page, activeModifiers)), diagram.Width, diagram.Height);
+                diagram, KneeboardLiveProjection.Focus(page, diagram.Controls, activeModifiers)), diagram.Width, diagram.Height);
         #endregion END Public
     }
 }
