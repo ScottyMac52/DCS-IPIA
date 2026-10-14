@@ -21,6 +21,7 @@ namespace DcsIpia.Features.Commands
         private IModuleWorkspaceContext? _context;
         private CommandPaletteEntry? _selected;
         private bool _updatingFilters;
+        private bool _refreshing;
         private Point? _dragStart;
         private TitleAdorner? _adorner;
         private AdornerLayer? _layer;
@@ -45,8 +46,10 @@ namespace DcsIpia.Features.Commands
         public void Initialize(IModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
+            if (ReferenceEquals(_context, context)) return;
+            if (_context is not null) _context.StateChanged -= WorkspaceStateChanged;
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceStateChanged;
             Refresh();
         }
         #endregion END Public
@@ -58,6 +61,16 @@ namespace DcsIpia.Features.Commands
 
         private void Refresh()
         {
+            if (_refreshing) return;
+            _refreshing = true;
+            try { RefreshCommands(); }
+            finally { _refreshing = false; }
+        }
+
+        private void WorkspaceStateChanged(object? sender, EventArgs e) => Refresh();
+
+        private void RefreshCommands()
+        {
             if (_context?.Working is null || CommandSearch is null || CommandCategoryFilter is null ||
                 CommandTypeFilter is null || CommandStateFilter is null)
             {
@@ -66,6 +79,7 @@ namespace DcsIpia.Features.Commands
                 return;
             }
 
+            var selectedId = _selected?.Id;
             var all = _context.Working.ModuleCommands;
             var categories = Enumerable.Repeat("All", 1)
                 .Concat(all.Select(x => x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
@@ -110,7 +124,16 @@ namespace DcsIpia.Features.Commands
                 };
             }).ToArray();
 
-            Commands.ItemsSource = filtered.Select(x => new { x.Id, x.Name, x.Category, x.IsAxis, Bound = bound.GetValueOrDefault(x.Id) }).ToArray();
+            var rows = filtered.Select(x => new { x.Id, x.Name, x.Category, x.IsAxis, Bound = bound.GetValueOrDefault(x.Id) }).ToArray();
+            Commands.ItemsSource = rows;
+            Commands.SelectedItem = rows.FirstOrDefault(x => x.Id == selectedId);
+            var selected = filtered.FirstOrDefault(x => x.Id == selectedId);
+            if (_selected != selected)
+            {
+                _refreshing = false;
+                try { CommandSelected(Commands, null!); }
+                finally { _refreshing = true; }
+            }
             StatusText.Text = $"{filtered.Length} of {all.Count} module commands";
         }
 
@@ -118,6 +141,7 @@ namespace DcsIpia.Features.Commands
 
         private void CommandSelected(object sender, SelectionChangedEventArgs e)
         {
+            if (_refreshing) return;
             var id = (Commands.SelectedItem as dynamic)?.Id as string;
             _selected = id is null ? null : _context?.Working?.ModuleCommands.FirstOrDefault(x => x.Id == id);
             if (_selected is null)

@@ -94,6 +94,8 @@ namespace DcsIpia.Presentation
 
             _navigation = new NavigationService(_knownKeys);
             _context = new WindowContext(this);
+            SetDraft(_draft);
+            Closed += (_, _) => SetDraft(null);
             _navigation.CurrentFeatureChanged += (_, _) => LoadCurrentView();
             FeatureNav.SelectedIndex = 0;
         }
@@ -197,8 +199,21 @@ namespace DcsIpia.Presentation
         {
             var commands = workspace.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
                 .Concat(workspace.UiCommands.Select(x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer)));
-            _draft = new DraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
-                WorkspaceStructureEditor.UiModifierNames(workspace));
+            SetDraft(new DraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
+                WorkspaceStructureEditor.UiModifierNames(workspace)));
+        }
+
+        private void SetDraft(DraftAssignmentService? draft)
+        {
+            if (_draft is not null) _draft.Changed -= DraftChanged;
+            _draft = draft;
+            if (_draft is not null) _draft.Changed += DraftChanged;
+        }
+
+        private void DraftChanged(object? sender, EventArgs e)
+        {
+            UpdateBuildAvailability();
+            _context.RaiseStateChanged();
         }
 
         private void RefreshManagement()
@@ -261,10 +276,7 @@ namespace DcsIpia.Presentation
                 _saved = updated;
                 _working = updated;
                 _structureDirty = false;
-                var allowed = updated.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
-                    .Concat(updated.UiCommands.Select(x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer)));
-                _draft = new DraftAssignmentService(updated.Configuration, allowed, updated.Assignments,
-                    WorkspaceStructureEditor.UiModifierNames(updated));
+                RebuildDraft(updated);
                 RefreshManagement();
                 UpdateBuildAvailability();
                 _context.RaiseStateChanged();

@@ -52,6 +52,9 @@ namespace Dcs.Ipia.Application
             }
         }
         #region BEGIN Public
+        /// <summary>Occurs once after an applied assignment mutation, undo, or state-changing discard.</summary>
+        public event EventHandler? Changed;
+
         /// <summary>Adds validated commands imported after the editor opens without changing staged assignments.</summary>
         /// <param name="commands">Commands from the selected module's verified catalog.</param>
         public void AddCommands(IEnumerable<DraftCommand> commands)
@@ -193,16 +196,19 @@ namespace Dcs.Ipia.Application
                 Set(DcsInputKey.PhysicalSlotKey(change.Slot), change.Before);
             _history.RemoveAt(_history.Count - 1);
             var reversed = last.Changes.Select(x => new DraftChange(x.Slot, x.After, x.Before)).ToArray();
+            Changed?.Invoke(this, EventArgs.Empty);
             return new(DraftOutcome.Applied, "Undid " + last.Name,
                        new("Undo " + last.Name, Array.AsReadOnly(reversed)));
         }
         /// <summary>Discards the whole draft and restores the imported snapshot.</summary>
         public void Discard()
         {
+            var changed = HasChanges;
             _current.Clear();
             foreach (var (key, value) in _original)
                 _current.Add(key, value);
             _history.Clear();
+            if (changed) Changed?.Invoke(this, EventArgs.Empty);
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -317,6 +323,7 @@ namespace Dcs.Ipia.Application
                 Set(DcsInputKey.PhysicalSlotKey(change.Slot), change.After);
             var operation = new DraftOperation(name, Array.AsReadOnly(changes));
             _history.Add(operation);
+            Changed?.Invoke(this, EventArgs.Empty);
             return new(DraftOutcome.Applied, name + " staged.", operation);
         }
         private void Set(string key, DraftAssignment? value)
