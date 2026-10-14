@@ -288,13 +288,13 @@ namespace DcsIpia.Features.InputTest
                     BorderBrush = Brushes.Transparent,
                     BorderThickness = new Thickness(3),
                     Background = Brushes.Transparent,
-                    Tag = region.InputKey + "|" + region.Chord,
+                    Tag = region.InputKey + "|" + region.ControlId,
                     IsHitTestVisible = false
                 };
                 Canvas.SetLeft(border, region.X);
                 Canvas.SetTop(border, region.Y);
                 Diagram.Children.Add(border);
-                _callouts.Add((region.InputKey, region.Chord, border));
+                _callouts.Add((region.InputKey, region.ControlId, border));
             }
         }
 
