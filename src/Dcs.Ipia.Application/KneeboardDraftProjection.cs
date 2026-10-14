@@ -157,17 +157,17 @@ namespace Dcs.Ipia.Application
         {
             var legend = new List<KneeboardModifierLegend>();
             if (used.Any(x => x != AssignmentLayer.Module + "\u001f"))
-                legend.Add(new("Base (no modifier)", "#ffffff"));
+                legend.Add(new("Base (no modifier)", "#ffffff", AssignmentLayer.Module, ""));
             for (var i = 0; i < moduleChords.Length; i++)
                 if (used.Contains(AssignmentLayer.Module + "\u001f" + moduleChords[i]))
                     legend.Add(new(DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.Module, moduleChords[i]),
-                                   moduleColors[Math.Min(i, moduleColors.Length - 1)]));
+                                   moduleColors[Math.Min(i, moduleColors.Length - 1)], AssignmentLayer.Module, moduleChords[i]));
             if (diagram.SupportsUiLayer && used.Contains(AssignmentLayer.UiLayer + "\u001f"))
-                legend.Add(new("UI Layer — Base", uiColors[0]));
+                legend.Add(new("UI Layer — Base", uiColors[0], AssignmentLayer.UiLayer, ""));
             for (var i = 0; i < uiChords.Length; i++)
                 if (used.Contains(AssignmentLayer.UiLayer + "\u001f" + uiChords[i]))
                     legend.Add(new("UI Layer — " + DescribeChord(snapshot, diagram, modifiers, AssignmentLayer.UiLayer, uiChords[i]),
-                                   uiColors[Math.Min(i + 1, uiColors.Length - 1)]));
+                                   uiColors[Math.Min(i + 1, uiColors.Length - 1)], AssignmentLayer.UiLayer, uiChords[i]));
             return legend;
         }
         private static void AddModifierLabels(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram, IReadOnlyList<WorkspaceModifier> modifiers,
@@ -193,7 +193,7 @@ namespace Dcs.Ipia.Application
                 }
                 if (index < 0 && matching.Length > 0)
                     legend.Add(new((modifier.Layer == AssignmentLayer.UiLayer ? "UI Layer — " : "") +
-                        DescribeChord(snapshot, diagram, modifiers, modifier.Layer, modifier.Name), color));
+                        DescribeChord(snapshot, diagram, modifiers, modifier.Layer, modifier.Name), color, modifier.Layer, modifier.Name));
             }
         }
         private static (string Title, string Kicker, Dictionary<string, string> Categories, Dictionary<string, string> StaticLabels) ReadPageMetadata(EditorWorkspaceSnapshot snapshot, UiLayerDiagram diagram)
