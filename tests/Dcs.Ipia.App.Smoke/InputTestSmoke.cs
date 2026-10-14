@@ -69,7 +69,7 @@ namespace Dcs.Ipia.App.Smoke
             if (!diagram.Children.OfType<Border>().Any(x => x.BorderBrush == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Physical activity did not highlight its control.");
             if (diagram.Children.OfType<Border>().Any(x =>
-                x.Tag is HardwareGraphicControl control && control.InputKey != "JOY_BTN1" && x.BorderBrush == Brushes.LightSkyBlue))
+                x.Tag is string input && input != "JOY_BTN1" && x.BorderBrush == Brushes.LightSkyBlue))
                 throw new InvalidOperationException("Initially held buttons or stationary axes were highlighted.");
             var legend = (ItemsControl)view.FindName("ModifierLegend")!;
             var shift = legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>()
