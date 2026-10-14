@@ -108,7 +108,7 @@ namespace DcsIpia.Features.Kneeboards
                     var pages = rendered.Where(x => x.Key == path ||
                         (x.Key.StartsWith(path[..^4] + "-", StringComparison.Ordinal) &&
                          x.Key.EndsWith(".png", StringComparison.Ordinal)))
-                        .OrderBy(x => x.Key, StringComparer.Ordinal).ToArray();
+                        .OrderBy(x => x.Key == path ? 0 : 1).ThenBy(x => x.Key, StringComparer.Ordinal).ToArray();
                     var choices = Enumerable.Range(1, pages.Length).Select(x => "Page " + x).ToArray();
                     _updating = true;
                     GenericPageChoice.ItemsSource = choices;
