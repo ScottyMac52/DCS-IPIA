@@ -3,13 +3,13 @@ namespace Dcs.Ipia.Application
     /// <summary>Emphasizes only the live modifier layer without altering the exported kneeboard artwork.</summary>
     public static class KneeboardLiveProjection
     {
+        #region BEGIN Public
         /// <summary>Yellow active-Base outline, visible against a dark or light hardware image.</summary>
         public const string BaseHighlightColor = "#facc15";
 
         /// <summary>Muted lettering for inactive modifier variants in the live Input Test image.</summary>
         public const string InactiveLabelColor = "#78818e";
 
-        #region BEGIN Public
         /// <summary>Preserves all authored labels but fades only variants that do not match the active layer.</summary>
         public static KneeboardComposite Focus(KneeboardComposite page,
             IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
