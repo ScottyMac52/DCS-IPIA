@@ -26,7 +26,9 @@ namespace DcsIpia.Features.InputTest
 #pragma warning restore CA1859 // Use concrete types when possible for improved performance
         private InputTestSession? _session;
         private GeneratedInputTestPlan? _plan;
-        private readonly Dictionary<string, Border> _callouts = new(StringComparer.Ordinal);
+        private readonly List<(string InputKey, Border Highlight)> _callouts = [];
+        private InputTestLegendItem[] _legendItems = [];
+        private EditorWorkspaceSnapshot? _testSnapshot;
         private readonly Dictionary<Border, Brush> _testHighlights = [];
         private readonly List<InputTestLogEntry> _events = [];
         private readonly Dictionary<string, System.Windows.Input.Key> _testKeyboard = new(StringComparer.Ordinal);
@@ -124,6 +126,8 @@ namespace DcsIpia.Features.InputTest
                     new WindowsDeviceInputSource(new System.Windows.Interop.WindowInteropHelper(Window.GetWindow(this)).EnsureHandle(), devices);
                 _plan = plan;
                 _session = new(plan.Bindings, plan.Modifiers);
+                _testSnapshot = snapshot;
+                RenderDiagram();
                 _testKeyboard.Clear();
                 var diagnostics = new List<string>(plan.Diagnostics);
                 diagnostics.AddRange(required.Where(x => !attached.Contains(x)).Select(x => "Missing controller/modifier device: " + x.ToString("D")));
@@ -158,6 +162,8 @@ namespace DcsIpia.Features.InputTest
         {
             _timer.Stop();
             _session?.Reset(); _session = null; _plan = null;
+            _testSnapshot = null;
+            UpdateModifierLegend();
             _inputFeedbackDevice = null;
             _inputSource?.Dispose(); _inputSource = null;
             _testKeyboard.Clear(); _liveAxisUntil.Clear(); _livePressedInputs.Clear();
@@ -202,6 +208,7 @@ namespace DcsIpia.Features.InputTest
                     else if (result.Transition == "Release") _livePressedInputs.Remove((result.PhysicalGuid, result.InputKey));
                 }
                 InputTestModifiers.Text = string.Join(" · ", _session.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
+                UpdateModifierLegend();
                 if (results.Count > 0) RefreshEventLog();
                 HighlightInputControls();
                 UpdateLogButtons();
@@ -241,17 +248,23 @@ namespace DcsIpia.Features.InputTest
         {
             Diagram.Children.Clear();
             _callouts.Clear();
-            if (_context?.Working is null || FeedbackDevice.SelectedItem is not WorkspaceDevice device) return;
+            _legendItems = [];
+            ModifierLegend.ItemsSource = _legendItems;
+            var snapshot = _testSnapshot ?? _context?.Working;
+            if (snapshot is null || FeedbackDevice.SelectedItem is not WorkspaceDevice device) return;
 
-            var diagram = _context.Working.Diagrams.FirstOrDefault(x => x.ProfileId == device.ProfileId);
+            var diagram = snapshot.Diagrams.FirstOrDefault(x => x.ProfileId == device.ProfileId);
             if (diagram is null || string.IsNullOrWhiteSpace(diagram.Svg)) return;
 
             DeviceTitle.Text = diagram.Title;
             var model = InputTestDiagramComposer.Compose(
                 diagram,
-                _context.Working,
-                _context.Draft?.Snapshot ?? _context.Working.Assignments,
-                _context.Labels);
+                snapshot,
+                _testSnapshot is not null ? snapshot.Assignments : _context?.Draft?.Snapshot ?? snapshot.Assignments,
+                _testSnapshot is not null ? snapshot.Labels : _context?.Labels ?? snapshot.Labels);
+            _legendItems = model.Legend.Select(item => new InputTestLegendItem(item)).ToArray();
+            ModifierLegend.ItemsSource = _legendItems;
+            UpdateModifierLegend();
 
             using var stream = new MemoryStream(model.BackgroundPng);
             var bitmap = new BitmapImage();
@@ -265,32 +278,30 @@ namespace DcsIpia.Features.InputTest
             Diagram.Height = model.Height;
             Diagram.Children.Add(new Image { Source = bitmap, Width = model.Width, Height = model.Height });
 
-            foreach (var c in model.Callouts)
+            foreach (var region in model.Callouts)
             {
+                // Only the outline lights up; the finished kneeboard text remains unobscured.
                 var border = new Border
                 {
-                    Width = c.Width,
-                    Height = c.Height,
-                    Background = LayerColors[c.ColorIndex % LayerColors.Length],
-                    Opacity = 0.9,
-                    BorderBrush = Brushes.Black,
-                    BorderThickness = new Thickness(0.5),
-                    Child = new TextBlock
-                    {
-                        Text = c.Caption,
-                        FontSize = 9,
-                        TextAlignment = TextAlignment.Center,
-                        TextWrapping = TextWrapping.NoWrap,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        Foreground = Brushes.Black,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
+                    Width = region.Width,
+                    Height = region.Height,
+                    BorderBrush = Brushes.Transparent,
+                    BorderThickness = new Thickness(3),
+                    Background = Brushes.Transparent,
+                    IsHitTestVisible = false
                 };
-                Canvas.SetLeft(border, c.X);
-                Canvas.SetTop(border, c.Y);
+                Canvas.SetLeft(border, region.X);
+                Canvas.SetTop(border, region.Y);
                 Diagram.Children.Add(border);
-                _callouts[$"{c.InputKey}|{c.Chord}"] = border;
+                _callouts.Add((region.InputKey, border));
             }
+        }
+
+        private void UpdateModifierLegend()
+        {
+            foreach (var item in _legendItems)
+                item.IsActive = _session is not null &&
+                    KneeboardLegendActivity.IsActive(item.Entry, _session.ActiveModifiers);
         }
 
         private void Zoom_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -335,7 +346,7 @@ namespace DcsIpia.Features.InputTest
 
         private void ClearInputHighlights()
         {
-            foreach (var (border, background) in _testHighlights) border.Background = background;
+            foreach (var (border, previous) in _testHighlights) border.BorderBrush = previous;
             _testHighlights.Clear();
         }
 
@@ -343,14 +354,13 @@ namespace DcsIpia.Features.InputTest
         {
             ClearInputHighlights();
             var guid = CurrentInputTestDevice();
-            foreach (var (key, border) in _callouts)
+            foreach (var (input, border) in _callouts)
             {
-                var input = key.Split('|')[0];
                 if (guid is { } physical && (_livePressedInputs.Any(x => x.Device == physical && DcsInputKey.SamePhysicalInput(x.Key, input)) ||
                     _liveAxisUntil.Any(x => x.Key.Device == physical && DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow)))
                 {
-                    _testHighlights[border] = border.Background;
-                    border.Background = Brushes.LightSkyBlue;
+                    _testHighlights[border] = border.BorderBrush;
+                    border.BorderBrush = Brushes.LightSkyBlue;
                 }
             }
         }
