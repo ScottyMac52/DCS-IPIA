@@ -51,7 +51,7 @@ namespace Dcs.Ipia.Rendering
         // Each row takes the height of its tallest card. Oversized rows continue on new
         // kneeboard pages, so even a single very long description cannot be clipped.
 
-        private static IReadOnlyList<byte[]> Render(JsonElement summary, JsonElement items, int page, int total)
+        private static List<byte[]> Render(JsonElement summary, JsonElement items, int page, int total)
         {
             using var stream = typeof(CompositeKneeboardRenderer).Assembly
                 .GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.ttf") ??
