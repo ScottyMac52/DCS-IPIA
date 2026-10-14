@@ -8,6 +8,7 @@ namespace Dcs.Ipia.Tests
     public sealed class KneeboardLegendActivityTests
     {
         #region BEGIN Public
+        /// <summary>Hold, Toggle and combination colors remain lit for the full applicable state.</summary>
         [Fact]
         public void BaseAndShiftChordsFollowHoldAndToggleStates()
         {
@@ -52,6 +53,7 @@ namespace Dcs.Ipia.Tests
             Assert.False(KneeboardLegendActivity.IsActive(shift, session.ActiveModifiers));
         }
 
+        /// <summary>Same-named modifiers in different layers do not leak activity between scopes.</summary>
         [Fact]
         public void SameChordNameInDifferentScopesDoesNotLightWrongLegend()
         {
