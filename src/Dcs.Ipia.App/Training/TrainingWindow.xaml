@@ -1,0 +1,49 @@
+<Window x:Class="DcsIpia.Presentation.TrainingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="IPIA Training — isolated sample configuration" Width="1620" Height="1000"
+        MinWidth="1280" MinHeight="800" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
+  <Grid Margin="12">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="360"/></Grid.ColumnDefinitions>
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,12,0">
+      <AdornerDecorator>
+        <ContentControl x:Name="ApplicationView" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                        IsHitTestVisible="False" KeyboardNavigation.TabNavigation="None" PreviewKeyDown="BlockApplicationKeys"/>
+      </AdornerDecorator>
+    </Border>
+    <DockPanel Grid.Column="1" LastChildFill="True">
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="TRAINING" FontSize="24" FontWeight="Bold"/>
+        <TextBlock Text="Sample data · your configuration stays unchanged" TextWrapping="Wrap" Margin="0,6,0,12"/>
+        <TextBlock Text="Scenario"/>
+        <ComboBox x:Name="ScenarioChoice" DisplayMemberPath="Title" SelectionChanged="ScenarioChanged"
+                  AutomationProperties.Name="Training scenario" Margin="0,4,0,12"/>
+        <WrapPanel>
+          <Button x:Name="PlayButton" Content="Play / Resume" Click="PlayClicked" Padding="10,7" Margin="0,0,6,6"/>
+          <Button x:Name="PauseButton" Content="Pause" Click="PauseClicked" Padding="10,7" Margin="0,0,6,6"/>
+          <Button x:Name="NextButton" Content="Next step" Click="NextClicked" Padding="10,7" Margin="0,0,6,6"/>
+          <Button x:Name="RestartButton" Content="Restart scenario" Click="RestartClicked" Padding="10,7" Margin="0,0,6,6"/>
+          <Button x:Name="ExitButton" Content="Exit training" Click="ExitClicked" Padding="10,7" Margin="0,0,6,6"/>
+        </WrapPanel>
+        <WrapPanel Margin="0,6,0,10">
+          <TextBlock Text="Playback speed" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <ComboBox x:Name="SpeedChoice" SelectedIndex="1" SelectionChanged="SpeedChanged" Width="100" AutomationProperties.Name="Playback speed">
+            <ComboBoxItem Content="0.5×" Tag="0.5"/><ComboBoxItem Content="1×" Tag="1"/>
+            <ComboBoxItem Content="2×" Tag="2"/>
+          </ComboBox>
+        </WrapPanel>
+        <TextBlock x:Name="ProgressText" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.LiveSetting="Polite"/>
+      </StackPanel>
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+        <StackPanel>
+          <TextBlock x:Name="StepTitle" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap"/>
+          <TextBlock x:Name="ExplanationText" FontSize="16" TextWrapping="Wrap" Margin="0,12,0,12"/>
+          <TextBlock x:Name="ErrorText" FontSize="16" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.LiveSetting="Assertive"/>
+          <TextBlock Text="Reading checkpoints pause automatically. Next step performs one action and pauses. Speed changes the time between automatic steps. You can resize this window while reading."
+                     TextWrapping="Wrap" Margin="0,18,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Grid>
+</Window>

@@ -14,6 +14,7 @@ namespace DcsIpia.Presentation
     public partial class NewModuleWindow : Window
     {
         private readonly IEditorWorkspaceRepository _repository;
+        private readonly Action? _completed;
         private readonly SharedUiLayerWorkspace _defaults;
         private readonly IReadOnlyDictionary<string, string> _hardwareSources;
         private readonly IConnectedDeviceDiscovery _discovery;
@@ -29,10 +30,14 @@ namespace DcsIpia.Presentation
         /// <param name="inventory">Optional saved physical inventory.</param>
         /// <param name="discovery">Optional physical controller discovery adapter.</param>
         /// <param name="logger">Optional DI-configured diagnostic logger.</param>
+        /// <param name="completed">Optional completion callback for an embedded form.</param>
+        /// <param name="savedGamesRoot">Optional isolated discovery root.</param>
         public NewModuleWindow(IEditorWorkspaceRepository repository, SharedUiLayerWorkspace defaults,
             IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null, HardwareInventoryManager? inventory = null,
-            ILogger<NewModuleWindow>? logger = null)
+            ILogger<NewModuleWindow>? logger = null, Action? completed = null, string? savedGamesRoot = null)
         {
+            _completed = completed;
+            if (savedGamesRoot is not null) _savedGamesRoot = savedGamesRoot;
             _logger = logger ?? NullLogger<NewModuleWindow>.Instance;
             _inventory = inventory;
             _repository = repository;
@@ -223,7 +228,8 @@ namespace DcsIpia.Presentation
                 await _repository.SaveAsync(workspace);
                 CreatedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new System.IO.InvalidDataException("The new module could not be reopened from SQLite.");
-                DialogResult = true;
+                if (_completed is null) DialogResult = true;
+                else _completed();
             }
             catch (Exception ex)
             {

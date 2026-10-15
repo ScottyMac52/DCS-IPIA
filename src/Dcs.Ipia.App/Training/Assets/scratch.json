@@ -1,0 +1,175 @@
+{
+  "SchemaVersion": 1,
+  "Id": "scratch",
+  "Title": "Starting from scratch",
+  "Steps": [
+    {
+      "Id": "new",
+      "Action": "new",
+      "Title": "Open New module",
+      "Explanation": "This is the real New module form with a supplied, fictional physical device. No DCS installation or connected controller is required.",
+      "Target": "Form:DcsIdInput",
+      "Checkpoint": true
+    },
+    {
+      "Id": "identify",
+      "Action": "identify",
+      "Title": "Enter module identity",
+      "Explanation": "TRAINING is a sample aircraft folder identity. In real use, enter the exact DCS aircraft input-folder name and a readable display name.",
+      "Target": "Form:DisplayNameInput",
+      "Checkpoint": false
+    },
+    {
+      "Id": "add-device",
+      "Action": "add-device",
+      "Title": "Add the supplied physical unit",
+      "Explanation": "Choose the Logitech template and explicitly bind its copied UI Layer profile to the sample physical unit. Repeat this process for each real device.",
+      "Target": "Form:SelectedUnits",
+      "Checkpoint": true
+    },
+    {
+      "Id": "create",
+      "Action": "create",
+      "Title": "Create and open the module",
+      "Explanation": "The form saves a new module into the isolated database and opens its actual feature workspace. Its shared-default revision is pinned.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "devices",
+      "Action": "devices",
+      "Title": "Review physical devices",
+      "Explanation": "Sample filenames identify a fictional controller. Review or rebind physical units to your own GUIDs before a real deployment. The aircraft and module-owned UI Layer are separate scopes.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "catalog",
+      "Action": "catalog",
+      "Title": "Load a complete command catalog",
+      "Explanation": "Review the bundled JSON catalog and stage its definitions. Loading commands expands the palette; it does not assign those commands to hardware.",
+      "Target": "Commands:Manager",
+      "Checkpoint": true
+    },
+    {
+      "Id": "base",
+      "Action": "base",
+      "Title": "Assign a base-layer command",
+      "Explanation": "Select a callout and a command, then Assign selected command. This demonstration assigns a sample landing light to JOY_BTN1 on the Base layer.",
+      "Target": "Assignments:Diagram",
+      "Checkpoint": true
+    },
+    {
+      "Id": "modifier",
+      "Action": "modifier",
+      "Title": "Review the shift modifier",
+      "Explanation": "A modifier reserves its physical control. TRAIN_SHIFT uses JOY_BTN3 in Hold mode; change or remove the modifier before assigning an ordinary command to that input.",
+      "Target": "Modifiers:ManagedModifiers",
+      "Checkpoint": true
+    },
+    {
+      "Id": "shifted",
+      "Action": "shifted",
+      "Title": "Assign on the shifted layer",
+      "Explanation": "The same physical button can perform a different action with TRAIN_SHIFT held. Only the selected modifier layer is being edited.",
+      "Target": "Assignments:Layers",
+      "Checkpoint": true
+    },
+    {
+      "Id": "label",
+      "Action": "label",
+      "Title": "Customize a callout label",
+      "Explanation": "Change the selected callout caption to LIGHTS. The label and assignment are still draft changes until Save to database.",
+      "Target": "Assignments:LabelEditor",
+      "Checkpoint": false
+    },
+    {
+      "Id": "axis",
+      "Action": "axis",
+      "Title": "Assign and tune an axis",
+      "Explanation": "Assign Sample pitch axis to JOY_X. In Tune axis, apply a deadzone of 3 and curvature of 15. Axis tuning is staged with the other edits.",
+      "Target": "Assignments:Diagram",
+      "Checkpoint": true
+    },
+    {
+      "Id": "ui",
+      "Action": "ui",
+      "Title": "Assign a UI Layer command",
+      "Explanation": "Switch to Module UI Layer and assign Pause to JOY_BTN2 on Base. This module owns its copied UI state; the saved shared-default revision remains unchanged.",
+      "Target": "Assignments:Scope",
+      "Checkpoint": true
+    },
+    {
+      "Id": "save",
+      "Action": "save",
+      "Title": "Save the module",
+      "Explanation": "Save to database persists staged assignments, modifiers, labels and tuning together in the training SQLite database.",
+      "Target": "Assignments:Diagram",
+      "Checkpoint": true
+    },
+    {
+      "Id": "discard",
+      "Action": "discard",
+      "Title": "Discard a temporary change",
+      "Explanation": "A temporary label is staged and then discarded. Discard restores the saved workspace; it does not remove the saved assignments.",
+      "Target": "Assignments:LabelEditor",
+      "Checkpoint": true
+    },
+    {
+      "Id": "reopen",
+      "Action": "reopen",
+      "Title": "Reopen saved state",
+      "Explanation": "The workspace has been reloaded from SQLite. These assignments and labels survive closing and reopening IPIA.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "pages",
+      "Action": "pages",
+      "Title": "Create device pages and summary",
+      "Explanation": "Add missing device pages, then Generate Summary. The summary lists the actual device pages and their order.",
+      "Target": "Pages:Pages",
+      "Checkpoint": true
+    },
+    {
+      "Id": "kneeboard",
+      "Action": "kneeboard",
+      "Title": "Preview generated kneeboards",
+      "Explanation": "This is a real generated kneeboard preview from the saved configuration. Device pages and summary pages are part of the module.",
+      "Target": "Kneeboards:KneeboardPreview",
+      "Checkpoint": true
+    },
+    {
+      "Id": "validate",
+      "Action": "validate",
+      "Title": "Validate saved output",
+      "Explanation": "Validation checks saved state, pinned assets and generated Lua/package layout. It does not prove that controls work inside DCS.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "snapshot",
+      "Action": "snapshot",
+      "Title": "Export a portable snapshot",
+      "Explanation": "A snapshot preserves editable configuration and its pinned assets. This example is written inside the temporary training directory.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": false
+    },
+    {
+      "Id": "package",
+      "Action": "package",
+      "Title": "Build an OvGME package",
+      "Explanation": "The generated ZIP and checksum contain deployable files. A package differs from the editable snapshot. All output here stays in the training directory.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "finish",
+      "Action": "finish",
+      "Title": "Continue with your own configuration",
+      "Explanation": "Training is complete. Outside training, back up DCS controls, select the real Saved Games destination, then use Fly Now! or install the OvGME package and verify in DCS. Diff files do not reconstruct unchanged defaults: capture cleared default axes when needed. DCS itself is not operated by this demonstration.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    }
+  ]
+}

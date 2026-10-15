@@ -43,6 +43,14 @@ On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Re
 - Enter a package version and **Validate saved module**, **Export module snapshot…** or **Build OvGME package…**. **Restore module snapshot…** inserts verified exported state without replacing an existing module identity. See [module authoring](docs/module-authoring.md) and [new-module creation](docs/new-module-creation.md).
 - Diagnostics, Sources and read-only Import details expose errors and source evidence.
 
+## Interactive training
+
+Choose **Help → Training / Guided workflows…** to watch the real application
+create a module from scratch or import a supplied DCS Saved Games configuration.
+Pause to read, advance one step, restart, or adjust playback speed. Sample data
+and outputs use an isolated temporary database; your configuration stays unchanged.
+See [interactive training](docs/interactive-training.md).
+
 ## Migration and OvGME status
 
 The app validates and generates native aircraft/UI Layer Lua, device and summary PNGs, and a deterministic consumer-layout OvGME ZIP from frozen saved inputs. Portable snapshots preserve editor state and pinned assets across empty-database restore. Every package is independently verified before writing its ZIP and separate checksum.
