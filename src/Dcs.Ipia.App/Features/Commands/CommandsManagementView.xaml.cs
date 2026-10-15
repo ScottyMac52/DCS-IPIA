@@ -1,4 +1,4 @@
-﻿using Dcs.Ipia.Application;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
@@ -22,6 +22,8 @@ namespace DcsIpia.Features.Commands
         private CommandPaletteEntry? _selected;
         private bool _updatingFilters;
         private bool _refreshing;
+        private AssignmentLayer? _assignmentScope;
+        private static readonly string[] CatalogActions = ["Add", "Update", "Remove", "Import JSON…", "Import HTML…", "Clear all"];
         private Point? _dragStart;
         private TitleAdorner? _adorner;
         private AdornerLayer? _layer;
@@ -52,6 +54,16 @@ namespace DcsIpia.Features.Commands
             _context.StateChanged += WorkspaceStateChanged;
             Refresh();
         }
+        /// <summary>Selects the assignment palette scope while keeping UI Layer catalog authoring read-only.</summary>
+        public void UseAssignmentPalette(AssignmentLayer scope)
+        {
+            if (_assignmentScope == scope) return;
+            _assignmentScope = scope;
+            CatalogFields.IsEnabled = scope == AssignmentLayer.Module;
+            foreach (var caption in CatalogActions)
+                if (ActionBar.FindButton(this, caption) is { } button) button.IsEnabled = scope == AssignmentLayer.Module;
+            Refresh();
+        }
         #endregion END Public
 
         #region BEGIN private helpers
@@ -80,7 +92,7 @@ namespace DcsIpia.Features.Commands
             }
 
             var selectedId = _selected?.Id;
-            var all = _context.Working.ModuleCommands;
+            var all = CurrentPalette();
             var categories = Enumerable.Repeat("All", 1)
                 .Concat(all.Select(x => x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
                 .ToArray();
@@ -102,8 +114,10 @@ namespace DcsIpia.Features.Commands
                 (CommandTypeFilter.SelectedIndex == 0 || (CommandTypeFilter.SelectedIndex == 2) == x.IsAxis))
                 .ToArray();
 
-            var assignments = _context.Draft?.Snapshot ?? _context.Working.Assignments;
-            var devices = WorkspaceStructureEditor.Describe(_context.Working).Devices;
+            var assignments = (_context.Draft?.Snapshot ?? _context.Working.Assignments)
+                .Where(x => _assignmentScope is null || x.Slot.Layer == _assignmentScope).ToArray();
+            var devices = WorkspaceStructureEditor.Describe(_context.Working).Devices
+                .Where(x => _assignmentScope is null || x.Layer == _assignmentScope);
             var deviceCount = devices.Select(d => d.ProfileId).Distinct().Count();
             var usage = assignments.GroupBy(a => a.Command.Id, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.Select(a => a.Slot.ProfileId).Distinct().Count(), StringComparer.Ordinal);
@@ -134,16 +148,19 @@ namespace DcsIpia.Features.Commands
                 try { CommandSelected(Commands, null!); }
                 finally { _refreshing = true; }
             }
-            StatusText.Text = $"{filtered.Length} of {all.Count} module commands";
+            StatusText.Text = $"{filtered.Length} of {all.Count} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
         }
 
         private void FiltersChanged(object sender, EventArgs e) { if (!_updatingFilters) Refresh(); }
+
+        private IReadOnlyList<CommandPaletteEntry> CurrentPalette() => _context?.Working is not { } working ? [] :
+            _assignmentScope == AssignmentLayer.UiLayer ? CommandPalette.FromUiLayer(working.UiCommands) : working.ModuleCommands;
 
         private void CommandSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
             var id = (Commands.SelectedItem as dynamic)?.Id as string;
-            _selected = id is null ? null : _context?.Working?.ModuleCommands.FirstOrDefault(x => x.Id == id);
+            _selected = id is null ? null : CurrentPalette().FirstOrDefault(x => x.Id == id);
             if (_selected is null)
             {
                 CommandId.Text = ""; CommandName.Text = ""; CommandCategory.Text = "";

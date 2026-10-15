@@ -162,7 +162,9 @@ namespace DcsIpia.Presentation
         {
             var nav = Get<ListBox>(_workspace!, "FeatureNav");
             nav.SelectedItem = nav.Items.Cast<ListBoxItem>().Single(x => Equals(x.Tag, feature));
-            return (UserControl)Get<ContentControl>(_workspace!, "FeatureContent").Content;
+            var view = (UserControl)Get<ContentControl>(_workspace!, "FeatureContent").Content;
+            view.UpdateLayout();
+            return view;
         }
         private void SelectDevice()
         {
@@ -216,17 +218,6 @@ namespace DcsIpia.Presentation
         private void Assign(string key, string command, string layer, bool ui)
         {
             var view = SelectAssignment(key, layer, ui);
-            if (ui)
-            {
-                var diagram = (UiLayerDiagram)Get<ComboBox>(view, "DeviceChoice").SelectedItem;
-                var control = diagram.Controls.First(x => x.InputKey == key);
-                var slot = KneeboardDraftProjection.SlotForControl(_workspace!._working!, diagram, control, AssignmentLayer.UiLayer, "")
-                    ?? throw new InvalidDataException("UI Layer slot is missing.");
-                var definition = _workspace._working!.UiCommands.Single(x => x.DcsCommandId == command);
-                var result = _workspace._draft!.Assign(slot, new(command, definition.Name, false, AssignmentLayer.UiLayer), OccupiedDestinationBehavior.Reject);
-                Require(result.Outcome == DraftOutcome.Applied, result.Message);
-                return;
-            }
             var manager = Get<UserControl>(view, "CommandManager");
             var grid = Get<DataGrid>(manager, "Commands");
             grid.SelectedItem = grid.Items.Cast<object>().Single(x => Equals(x.GetType().GetProperty("Id")!.GetValue(x), command));

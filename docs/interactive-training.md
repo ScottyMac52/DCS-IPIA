@@ -59,12 +59,9 @@ validation run before playback; each action verifies completion, and asynchronou
 forms/outputs have bounded waits. Delays are pacing only.
 
 The training shell hosts real WPF content and uses normal event handlers or
-application operations, without referencing the smoke-test executable. The UI
-Layer step currently uses the normal draft assignment service and its change
-notifications because the embedded command manager lists aircraft commands. The
-scope/callout and resulting assignment are shown in the real Assignments view.
-This limitation should be removed when the assignment command palette supports
-UI commands directly.
+application operations, without referencing the smoke-test executable. The assignment palette follows the selected aircraft/UI Layer scope, so UI commands
+are selected through the same controls as ordinary assignments. UI Layer catalog
+editing remains separate from aircraft command authoring.
 
 Core runner tests exercise pause/checkpoint/next/stop/restart/error semantics.
 Fixture integration tests use real SQLite, imports and package validation. The
