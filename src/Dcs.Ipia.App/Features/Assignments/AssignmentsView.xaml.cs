@@ -1,4 +1,4 @@
-﻿using System.Xml;
+using System.Xml;
 using System.Xml.Linq;
 
 using Dcs.Ipia.Application;
@@ -72,6 +72,7 @@ namespace DcsIpia.Features.Assignments
             Scope.SelectedIndex = 0;
             RefreshChoices();
             CommandManager.Initialize(context);
+            CommandManager.UseAssignmentPalette(CurrentLayer);
         }
 
         private AssignmentLayer CurrentLayer =>
@@ -147,7 +148,11 @@ namespace DcsIpia.Features.Assignments
                 _selectedDeviceId = d.ProfileId;
             RefreshChoices();
         }
-        private void ScopeChanged(object sender, SelectionChangedEventArgs e) => RefreshChoices();
+        private void ScopeChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RefreshChoices();
+            if (_context is not null) CommandManager.UseAssignmentPalette(CurrentLayer);
+        }
         private void LayerChanged(object sender, SelectionChangedEventArgs e) => RefreshChoices();
 
         private void ZoomChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

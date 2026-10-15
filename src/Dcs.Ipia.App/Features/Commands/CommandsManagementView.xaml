@@ -1,11 +1,11 @@
-﻿<UserControl x:Class="DcsIpia.Features.Commands.CommandsManagementView"
+<UserControl x:Class="DcsIpia.Features.Commands.CommandsManagementView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
     <DockPanel>
         <TextBlock x:Name="StatusText" DockPanel.Dock="Top" Margin="0,0,0,8"/>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-            <Grid Margin="0,0,0,8">
+            <Grid x:Name="CatalogFields" Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>

@@ -689,6 +689,11 @@ namespace DcsIpia.Presentation
             ThemeSaveStatus.Text =
                 saved ? string.Empty : _settings.LastError ?? "Theme changed for this session but was not saved.";
         }
+        private void TrainingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy) return;
+            new TrainingWindow { Owner = this }.ShowDialog();
+        }
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
             if (_moduleOperationBusy) return;

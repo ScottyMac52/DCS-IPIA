@@ -10,6 +10,7 @@ namespace DcsIpia.Presentation
     public partial class SavedGamesImportWindow : Window
     {
         private readonly DcsFolderImportResult _folder;
+        private readonly Action? _completed;
         private readonly SharedUiLayerWorkspace _defaults;
         private readonly IReadOnlyDictionary<string, string> _hardwareSources;
         private readonly IEditorWorkspaceRepository _repository;
@@ -19,9 +20,11 @@ namespace DcsIpia.Presentation
         /// <param name="defaults">Current shared UI Layer revision to pin.</param>
         /// <param name="hardwareSources">Internal hardware sources and recognition rules.</param>
         /// <param name="repository">Destination module storage.</param>
+        /// <param name="completed">Optional completion callback for an embedded form.</param>
         public SavedGamesImportWindow(DcsFolderImportResult folder, SharedUiLayerWorkspace defaults,
-            IReadOnlyDictionary<string, string> hardwareSources, IEditorWorkspaceRepository repository)
+            IReadOnlyDictionary<string, string> hardwareSources, IEditorWorkspaceRepository repository, Action? completed = null)
         {
+            _completed = completed;
             _folder = folder;
             _defaults = defaults;
             _hardwareSources = hardwareSources;
@@ -70,7 +73,8 @@ namespace DcsIpia.Presentation
                 await _repository.SaveAsync(workspace);
                 ImportedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new InvalidDataException("The imported module could not be reopened from SQLite.");
-                DialogResult = true;
+                if (_completed is null) DialogResult = true;
+                else _completed();
             }
             catch (Exception ex) { ImportError.Text = "Module was not imported: " + ex.Message; }
             finally { ImportSavedGamesButton.IsEnabled = _folder.Succeeded; }

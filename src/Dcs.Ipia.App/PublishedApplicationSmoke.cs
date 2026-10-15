@@ -19,6 +19,7 @@ namespace DcsIpia.Presentation
         public static async Task VerifyAsync(Window window, string folder)
         {
             BundledSharedCatalog.Validate(BundledSharedCatalog.Root);
+            if (TrainingAssets.Scenarios().Count != 2) throw new InvalidDataException("Published training scenarios are unavailable.");
             var version = typeof(App).Assembly.GetName().Version!.ToString(4);
             if (window.Title != "DCS-IPIA — Modules · version " + version)
                 throw new InvalidDataException("Published application title differs from its four-part release version.");

@@ -65,6 +65,8 @@ namespace Dcs.Ipia.App.Smoke
             SummaryCardOrderSmoke.Verify();
             Console.WriteLine("Smoke: page row ordering.");
             PageOrderSmoke.Verify();
+            Console.WriteLine("Smoke: interactive training.");
+            TrainingSmoke.Verify();
             Console.WriteLine("Smoke: input testing.");
             InputTestSmoke.Verify();
             var defaultText = (TextBox)WorkspaceUi.Find(defaultsWindow, "SourceText")!;

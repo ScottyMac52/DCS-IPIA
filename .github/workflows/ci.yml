@@ -44,8 +44,8 @@ jobs:
       - name: Test setup folder defaults and appsettings persistence
         shell: powershell
         run: ./tests/installer/Test-SavedGamesSettings.ps1
-      - name: Open both WPF import previews
-        timeout-minutes: 3
+      - name: Open WPF previews and complete both interactive training scenarios
+        timeout-minutes: 6
         env:
           IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
         run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
