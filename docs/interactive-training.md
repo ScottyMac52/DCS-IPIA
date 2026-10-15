@@ -10,7 +10,9 @@ in DCS**. Choose **Play / Resume** to demonstrate actions, or **Next step** to
 perform one action and pause. Reading checkpoints pause automatically. **Pause**
 lets the active operation finish before stopping; it never interrupts a database
 save halfway through. The explanation and yellow/black target outline remain
-visible while paused. Playback speed changes the interval between automatic
+visible while paused. The application viewport scrolls to the demonstrated control
+and keeps native text sizes on smaller displays; its scrollbars remain available
+for inspection. Kneeboard previews fit the available preview area. Playback speed changes the interval between automatic
 steps; explicit checkpoints still require Resume or Next.
 
 **Restart scenario** creates a fresh sample database and files. Changing scenario

@@ -40,6 +40,19 @@ namespace DcsIpia.Presentation
         }
         /// <summary>Gets the active runner for independent Windows acceptance checks.</summary>
         public TrainingRunner? Runner => _runner;
+        /// <summary>Gets whether the highlighted control is fully inside the visible application viewport.</summary>
+        public bool IsHighlightedTargetVisible
+        {
+            get
+            {
+                if (_highlight?.AdornedElement is not FrameworkElement target || !ApplicationViewport.IsAncestorOf(target)) return false;
+                ApplicationView.UpdateLayout();
+                var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
+                var viewport = new Rect(0, 0, ApplicationViewport.ViewportWidth, ApplicationViewport.ViewportHeight);
+                viewport.Inflate(2, 2);
+                return viewport.Contains(bounds);
+            }
+        }
         /// <summary>Gets the isolated folder for acceptance checks and diagnostics while training is open.</summary>
         public string? TrainingDirectory => _environment?.Root;
         #endregion END Public
@@ -69,6 +82,12 @@ namespace DcsIpia.Presentation
             await _environment.InitializeAsync();
             _actions = new TrainingActions(_environment, Mount, Highlight);
         }
+        private void ViewportChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (ApplicationView is null) return;
+            ApplicationView.Width = Math.Max(1100, ApplicationViewport.ViewportWidth);
+            ApplicationView.Height = Math.Max(1100, ApplicationViewport.ViewportHeight);
+        }
         private void Mount(Window window)
         {
             ClearHighlight();
@@ -83,6 +102,15 @@ namespace DcsIpia.Presentation
         private void Highlight(FrameworkElement target)
         {
             ClearHighlight();
+            ApplicationView.UpdateLayout();
+            var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
+            var width = Math.Min(bounds.Width, ApplicationViewport.ViewportWidth);
+            var height = Math.Min(bounds.Height, ApplicationViewport.ViewportHeight);
+            var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Left + width - ApplicationViewport.ViewportWidth);
+            var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Top + height - ApplicationViewport.ViewportHeight);
+            ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + horizontal);
+            ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + vertical);
+            ApplicationView.UpdateLayout();
             _highlightLayer = AdornerLayer.GetAdornerLayer(target)
                 ?? throw new InvalidOperationException("Training highlight layer is unavailable.");
             _highlight = new TrainingHighlightAdorner(target);

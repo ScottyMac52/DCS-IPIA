@@ -56,7 +56,7 @@
       "Action": "base",
       "Title": "Assign a base-layer command",
       "Explanation": "Select a callout and a command, then Assign selected command. This demonstration assigns a sample landing light to JOY_BTN1 on the Base layer.",
-      "Target": "Assignments:Diagram",
+      "Target": "Assignments:JOY_BTN1",
       "Checkpoint": true
     },
     {
@@ -72,7 +72,7 @@
       "Action": "shifted",
       "Title": "Assign on the shifted layer",
       "Explanation": "The same physical button can perform a different action with TRAIN_SHIFT held. Only the selected modifier layer is being edited.",
-      "Target": "Assignments:Layers",
+      "Target": "Assignments:JOY_BTN1",
       "Checkpoint": true
     },
     {
@@ -88,7 +88,7 @@
       "Action": "axis",
       "Title": "Assign and tune an axis",
       "Explanation": "Assign Sample pitch axis to JOY_X. In Tune axis, apply a deadzone of 3 and curvature of 15. Axis tuning is staged with the other edits.",
-      "Target": "Assignments:Diagram",
+      "Target": "Assignments:JOY_X",
       "Checkpoint": true
     },
     {
@@ -96,7 +96,7 @@
       "Action": "ui",
       "Title": "Assign a UI Layer command",
       "Explanation": "Switch to Module UI Layer and assign Pause to JOY_BTN2 on Base. This module owns its copied UI state; the saved shared-default revision remains unchanged.",
-      "Target": "Assignments:Scope",
+      "Target": "Assignments:JOY_BTN2",
       "Checkpoint": true
     },
     {
@@ -104,7 +104,7 @@
       "Action": "save",
       "Title": "Save the module",
       "Explanation": "Save to database persists staged assignments, modifiers, labels and tuning together in the training SQLite database.",
-      "Target": "Assignments:Diagram",
+      "Target": "Host:PendingSummary",
       "Checkpoint": true
     },
     {

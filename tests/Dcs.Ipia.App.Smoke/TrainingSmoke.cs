@@ -72,7 +72,12 @@ namespace Dcs.Ipia.App.Smoke
                     PumpUntil(() => !runner.IsBusy, "Training step timed out: " + step.Id);
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
-                    if (step.Action is "base" or "kneeboard") Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
+                    if (step.Action is "base" or "kneeboard")
+                    {
+                        Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
+                        if (!window.IsHighlightedTargetVisible)
+                            throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id);
+                    }
                     if (runner.CurrentStep?.Id != step.Id)
                         throw new InvalidOperationException("Training skipped or repeated a step: " + step.Id);
                 }
