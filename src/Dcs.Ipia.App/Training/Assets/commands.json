@@ -1,1 +1,86 @@
-{"schemaVersion":1,"moduleId":"TRAINING","commands":[{"bindingKey":"d3001pnilu3001cd1vd1vpnilvu0","name":"Sample landing light","categoryPath":["Training"],"type":"button"},{"bindingKey":"d3002pnilu3002cd1vd1vpnilvu0","name":"Sample shifted action","categoryPath":["Training"],"type":"button"},{"bindingKey":"a2001cdnil","name":"Sample pitch axis","categoryPath":["Flight"],"type":"axis"}]}
+{
+  "schemaVersion": 1,
+  "moduleId": "TRAINING",
+  "commands": [
+    {
+      "bindingKey": "d3001pnilu3001cd1vd1vpnilvu0",
+      "name": "Sample landing light",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3002pnilu3002cd1vd1vpnilvu0",
+      "name": "Sample shifted action",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "a2001cdnil",
+      "name": "Sample pitch axis",
+      "categoryPath": [
+        "Flight"
+      ],
+      "type": "axis"
+    },
+    {
+      "bindingKey": "a2002cdnil",
+      "name": "Sample roll axis",
+      "categoryPath": [
+        "Flight"
+      ],
+      "type": "axis"
+    },
+    {
+      "bindingKey": "d3003pnilu3003cd1vd1vpnilvu0",
+      "name": "Sample toggle-layer action",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3004pnilu3004cd1vd1vpnilvu0",
+      "name": "Sample two-position UP",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3005pnilu3005cd1vd1vpnilvu0",
+      "name": "Sample two-position DOWN",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3006pnilu3006cd1vd1vpnilvu0",
+      "name": "Sample three-position UP",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3007pnilu3007cd1vd1vpnilvu0",
+      "name": "Sample three-position CENTER",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    },
+    {
+      "bindingKey": "d3008pnilu3008cd1vd1vpnilvu0",
+      "name": "Sample three-position DOWN",
+      "categoryPath": [
+        "Training"
+      ],
+      "type": "button"
+    }
+  ]
+}

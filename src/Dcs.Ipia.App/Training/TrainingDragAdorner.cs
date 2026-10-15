@@ -1,0 +1,26 @@
+using System.Windows;
+using System.Windows.Documents;
+using System.Windows.Media;
+
+namespace DcsIpia.Presentation
+{
+    /// <summary>Illustrates a palette command travelling to its real drop target.</summary>
+    public sealed class TrainingDragAdorner(UIElement element, Point start, Point end) : Adorner(element)
+    {
+        #region BEGIN Public
+        /// <summary>Gets or sets the fraction of the illustrated gesture that has completed.</summary>
+        public double Progress { get; set; }
+        #endregion END Public
+        #region BEGIN private helpers
+        /// <inheritdoc/>
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            var pen = new Pen(Brushes.Gold, 4) { DashStyle = DashStyles.Dash };
+            drawingContext.DrawLine(new Pen(Brushes.Black, 7), start, end);
+            drawingContext.DrawLine(pen, start, end);
+            var point = new Point(start.X + (end.X - start.X) * Progress, start.Y + (end.Y - start.Y) * Progress);
+            drawingContext.DrawEllipse(Brushes.Gold, new Pen(Brushes.Black, 3), point, 13, 13);
+        }
+        #endregion END private helpers
+    }
+}

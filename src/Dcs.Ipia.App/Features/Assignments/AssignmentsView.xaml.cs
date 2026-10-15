@@ -672,20 +672,32 @@ namespace DcsIpia.Features.Assignments
             }
             else if (e.Data.GetData(typeof(CommandPaletteEntry)) is CommandPaletteEntry command)
             {
-                // existing command-drop path stays here
-                var result = AssignWithConfirmation(destination, new DraftCommand(command.Id, command.Name, command.IsAxis, layer));
-                if (result.Outcome == DraftOutcome.Applied)
-                {
-                    _selected = control;
-                    RefreshDiagram();
-                    SelectedCallout.Text = $"{control.Label} assigned to {command.Name} (staged).";
-                }
-                else
-                {
-                    SelectedCallout.Text = result.Message;
-                }
+                DropPaletteCommand(control, command);
             }
             e.Handled = true;
+        }
+
+        internal void DropPaletteCommand(HardwareGraphicControl control, CommandPaletteEntry command)
+        {
+            if (_context?.Draft is null || DeviceChoice.SelectedItem is not UiLayerDiagram diagram) return;
+            if (ReservationError(diagram, control.InputKey) is { } blocked)
+            {
+                SelectedCallout.Text = blocked;
+                return;
+            }
+            var layer = CurrentLayer;
+            var chord = Layers.SelectedItem as string == "Base" ? "" :
+                (Layers.SelectedItem as string ?? "").Replace(" + ", "+", StringComparison.Ordinal);
+            var destination = KneeboardDraftProjection.SlotForControl(_context.Working!, diagram, control, layer, chord);
+            if (destination is null) return;
+            var result = AssignWithConfirmation(destination, new DraftCommand(command.Id, command.Name, command.IsAxis, layer));
+            if (result.Outcome == DraftOutcome.Applied)
+            {
+                _selected = control;
+                RefreshDiagram();
+                SelectedCallout.Text = $"{control.Label} assigned to {command.Name} (staged).";
+            }
+            else SelectedCallout.Text = result.Message;
         }
 
         private DraftResult AssignWithConfirmation(DraftAssignmentSlot slot, DraftCommand command)
@@ -825,6 +837,8 @@ namespace DcsIpia.Features.Assignments
             SelectedCallout.Text = "Pending edits discarded.";
         }
 
+        internal Action<AxisTuningWindow>? AxisTuningPresenter { get; set; }
+
         private void TuneAxisClicked(object sender, RoutedEventArgs e)
         {
             if (_context?.Draft is null || _selected is null || !_selected.IsAxis) return;
@@ -843,13 +857,17 @@ namespace DcsIpia.Features.Assignments
                 return;
             }
 
-            var dialog = new AxisTuningWindow(assignment.Filter) { Owner = Window.GetWindow(this) };
-            if (dialog.ShowDialog() != true) return;
-
-            var result = _context.Draft.TuneAxis(slot, dialog.Filter);
-            SelectedCallout.Text = result.Message;
-            if (result.Outcome == DraftOutcome.Applied)
-                RefreshDiagram();
+            AxisTuningWindow? dialog = null;
+            void Apply()
+            {
+                var result = _context.Draft.TuneAxis(slot, dialog!.Filter);
+                SelectedCallout.Text = result.Message;
+                if (result.Outcome == DraftOutcome.Applied) RefreshDiagram();
+            }
+            dialog = new AxisTuningWindow(assignment.Filter, AxisTuningPresenter is null ? null : Apply)
+                { Owner = Window.GetWindow(this) };
+            if (AxisTuningPresenter is { } presenter) presenter(dialog);
+            else if (dialog.ShowDialog() == true) Apply();
         }
 
         private void RenderClicked(object sender, RoutedEventArgs e)

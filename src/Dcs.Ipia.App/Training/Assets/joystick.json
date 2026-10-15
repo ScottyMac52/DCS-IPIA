@@ -1,0 +1,136 @@
+{
+  "DeviceId": "training-joystick",
+  "Label": "Generic training joystick",
+  "DefaultFileName": "Generic training joystick.diff.lua",
+  "Diagram": {
+    "Device": "Generic training joystick",
+    "Instance": null,
+    "Path": "assets/shared/hardware/svg/training-joystick.svg",
+    "Width": 900,
+    "Height": 650,
+    "Background": "",
+    "Callouts": [],
+    "Controls": [
+      {
+        "Control": "JOY_BTN1",
+        "Label": "Trigger / base button",
+        "InputKey": "JOY_BTN1",
+        "X": 310,
+        "Y": 68,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN2",
+        "Label": "Base button / UI Pause",
+        "InputKey": "JOY_BTN2",
+        "X": 310,
+        "Y": 117,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN3",
+        "Label": "Hold modifier",
+        "InputKey": "JOY_BTN3",
+        "X": 310,
+        "Y": 166,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN4",
+        "Label": "Toggle modifier",
+        "InputKey": "JOY_BTN4",
+        "X": 310,
+        "Y": 215,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN5",
+        "Label": "Base button / drag-and-drop",
+        "InputKey": "JOY_BTN5",
+        "X": 310,
+        "Y": 264,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN6",
+        "Label": "Two-position switch: UP",
+        "InputKey": "JOY_BTN6",
+        "X": 310,
+        "Y": 313,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN7",
+        "Label": "Two-position switch: DOWN",
+        "InputKey": "JOY_BTN7",
+        "X": 310,
+        "Y": 362,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN8",
+        "Label": "Three-position switch: UP",
+        "InputKey": "JOY_BTN8",
+        "X": 310,
+        "Y": 411,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN9",
+        "Label": "Three-position switch: CENTER",
+        "InputKey": "JOY_BTN9",
+        "X": 310,
+        "Y": 460,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_BTN10",
+        "Label": "Three-position switch: DOWN",
+        "InputKey": "JOY_BTN10",
+        "X": 310,
+        "Y": 509,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": false
+      },
+      {
+        "Control": "JOY_X",
+        "Label": "Stick X / roll axis",
+        "InputKey": "JOY_X",
+        "X": 310,
+        "Y": 558,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": true
+      },
+      {
+        "Control": "JOY_Y",
+        "Label": "Stick Y / pitch axis",
+        "InputKey": "JOY_Y",
+        "X": 310,
+        "Y": 607,
+        "Width": 565,
+        "Height": 27,
+        "IsAxis": true
+      }
+    ]
+  }
+}

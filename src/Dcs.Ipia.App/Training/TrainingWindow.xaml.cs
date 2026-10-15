@@ -80,7 +80,7 @@ namespace DcsIpia.Presentation
         {
             _environment = new TrainingEnvironment();
             await _environment.InitializeAsync();
-            _actions = new TrainingActions(_environment, Mount, Highlight);
+            _actions = new TrainingActions(_environment, Mount, Highlight, AnimateDragAsync);
         }
         private void ViewportChanged(object sender, SizeChangedEventArgs e)
         {
@@ -88,13 +88,22 @@ namespace DcsIpia.Presentation
             ApplicationView.Width = Math.Max(1100, ApplicationViewport.ViewportWidth);
             ApplicationView.Height = Math.Max(1100, ApplicationViewport.ViewportHeight);
         }
+        private Window? _mountedWindow;
         private void Mount(Window window)
         {
             ClearHighlight();
+            if (_mountedWindow is not null)
+            {
+                var previous = ApplicationView.Content;
+                ApplicationView.Content = null;
+                _mountedWindow.Content = previous;
+            }
+            _mountedWindow = window;
             var content = (FrameworkElement)window.Content;
             window.Content = null;
             content.DataContext = window.DataContext;
-            content.Resources.MergedDictionaries.Add(window.Resources);
+            if (!content.Resources.MergedDictionaries.Contains(window.Resources))
+                content.Resources.MergedDictionaries.Add(window.Resources);
             if (NameScope.GetNameScope(window) is { } scope) NameScope.SetNameScope(content, scope);
             ApplicationView.Content = content;
             ApplicationView.UpdateLayout();
@@ -115,6 +124,25 @@ namespace DcsIpia.Presentation
                 ?? throw new InvalidOperationException("Training highlight layer is unavailable.");
             _highlight = new TrainingHighlightAdorner(target);
             _highlightLayer.Add(_highlight);
+        }
+        private async Task AnimateDragAsync(FrameworkElement source, FrameworkElement destination)
+        {
+            Highlight(destination);
+            var layer = AdornerLayer.GetAdornerLayer(ApplicationView)!;
+            var start = source.TranslatePoint(new Point(source.ActualWidth / 2, source.ActualHeight / 2), ApplicationView);
+            var end = destination.TranslatePoint(new Point(destination.ActualWidth / 2, destination.ActualHeight / 2), ApplicationView);
+            var drag = new TrainingDragAdorner(ApplicationView, start, end);
+            layer.Add(drag);
+            try
+            {
+                for (var frame = 0; frame <= 24; frame++)
+                {
+                    drag.Progress = frame / 24.0;
+                    drag.InvalidateVisual();
+                    await Task.Delay(30);
+                }
+            }
+            finally { layer.Remove(drag); }
         }
         private void ClearHighlight()
         {
@@ -218,8 +246,14 @@ namespace DcsIpia.Presentation
         private void ReleaseViews()
         {
             ClearHighlight();
-            ApplicationView.Content = null;
-            _actions?.Close();
+            if (_mountedWindow is not null)
+            {
+                var content = ApplicationView.Content;
+                ApplicationView.Content = null;
+                _mountedWindow.Content = content;
+                _mountedWindow = null;
+            }
+            _actions?.Dispose();
             _actions = null;
         }
         #endregion END private helpers

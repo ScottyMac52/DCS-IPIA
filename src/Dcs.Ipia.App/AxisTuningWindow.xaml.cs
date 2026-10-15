@@ -7,10 +7,13 @@ namespace DcsIpia.Presentation
     /// <summary>Edits sparse DCS axis filter values before staging them in a module draft.</summary>
     public partial class AxisTuningWindow : Window
     {
+        private readonly Action? _completed;
         /// <summary>Displays the current axis filter, including unset boolean fields.</summary>
         /// <param name="filter">Current tuning or null if none is stored.</param>
-        public AxisTuningWindow(AxisFilter? filter)
+        /// <param name="completed">Optional completion callback for an embedded editor.</param>
+        public AxisTuningWindow(AxisFilter? filter, Action? completed = null)
         {
+            _completed = completed;
             InitializeComponent();
             Deadzone.Text = Format(filter?.Deadzone);
             SaturationX.Text = Format(filter?.SaturationX);
@@ -66,7 +69,8 @@ namespace DcsIpia.Presentation
                         HardwareDetentMax : null
                     })
                     Filter = null;
-                DialogResult = true;
+                if (_completed is null) DialogResult = true;
+                else _completed();
             }
             catch (FormatException ex)
             {
@@ -76,7 +80,8 @@ namespace DcsIpia.Presentation
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
             Filter = null;
-            DialogResult = true;
+            if (_completed is null) DialogResult = true;
+                else _completed();
         }
         #endregion END private helpers
     }
