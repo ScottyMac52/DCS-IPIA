@@ -77,10 +77,11 @@ namespace Dcs.Ipia.App.Smoke
                         throw new InvalidOperationException(runner.Error);
                     CheckTrainingState(window, step.Action);
                     if (step.Action is "base" or "kneeboard" or "drag-ready" or "drag" or "axis-options" or
+                        "axis" or "switches" or
                         "test-base" or "test-hold" or "test-toggle-release" or "test-switches" or "test-axes")
                     {
                         Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
-                        if (step.Action is "base" or "kneeboard" && !window.IsHighlightedTargetVisible)
+                        if (step.Action is "base" or "kneeboard" or "axis" or "switches" or "test-axes" && !window.IsHighlightedTargetVisible)
                             throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id);
                     }
                     if (runner.CurrentStep?.Id != step.Id)
@@ -108,9 +109,9 @@ namespace Dcs.Ipia.App.Smoke
                 var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
                 var menu = Descendants((Canvas)feature.FindName("Diagram")).OfType<Border>()
                     .Select(x => x.ContextMenu).Single(x => x?.IsOpen == true)!;
-                if (!menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Change label…")) ||
+                if (!menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Change label\u2026")) ||
                     !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Clear assignment")) ||
-                    action == "context-axis" && !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Tune axis…")))
+                    action == "context-axis" && !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Tune axis\u2026")))
                     throw new InvalidOperationException("Training context menu is incomplete: " + action);
                 Capture(menu, "training-" + ((TrainingScenario)((ComboBox)window.FindName("ScenarioChoice")).SelectedItem).Id + "-" + action);
             }
