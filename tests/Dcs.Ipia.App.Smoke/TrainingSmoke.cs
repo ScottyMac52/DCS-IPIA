@@ -81,7 +81,9 @@ namespace Dcs.Ipia.App.Smoke
                         "test-base" or "test-hold" or "test-toggle-release" or "test-switches" or "test-axes")
                     {
                         Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
-                        if (step.Action is "base" or "kneeboard" or "axis" or "switches" or "test-axes" && !window.IsHighlightedTargetVisible)
+                        // Full containment only for compact targets (diagram callouts / previews).
+                        // Large controls such as the input-test log cannot fit entirely in the viewport.
+                        if (step.Action is "base" or "kneeboard" or "axis" or "switches" && !window.IsHighlightedTargetVisible)
                             throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id);
                     }
                     if (runner.CurrentStep?.Id != step.Id)
