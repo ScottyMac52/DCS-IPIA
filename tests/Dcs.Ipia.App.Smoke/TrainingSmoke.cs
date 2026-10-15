@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
 using DcsIpia.Presentation;
 
@@ -27,6 +29,7 @@ namespace Dcs.Ipia.App.Smoke
             if (window.Runner!.CompletedSteps != 1 || window.Runner.State != TrainingState.Paused ||
                 string.IsNullOrWhiteSpace(((TextBlock)window.FindName("ExplanationText")).Text))
                 throw new InvalidOperationException("Checkpoint lost its explanation.");
+            Capture(window, "training-new-module");
             window.Width = 1400;
             window.UpdateLayout();
             foreach (var theme in new[] { "Dark", "Light" })
@@ -34,6 +37,7 @@ namespace Dcs.Ipia.App.Smoke
                 System.Windows.Application.Current.Resources.MergedDictionaries[0] = new ResourceDictionary
                 { Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
                 window.UpdateLayout();
+                Capture(window, "training-new-module-" + theme);
                 if (((AdornerDecorator)((Border)((Grid)window.Content).Children[0]).Child).AdornerLayer is null)
                     throw new InvalidOperationException("Training lost its highlighting layer.");
             }
@@ -68,6 +72,7 @@ namespace Dcs.Ipia.App.Smoke
                     PumpUntil(() => !runner.IsBusy, "Training step timed out: " + step.Id);
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
+                    if (step.Action is "base" or "kneeboard") Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
                     if (runner.CurrentStep?.Id != step.Id)
                         throw new InvalidOperationException("Training skipped or repeated a step: " + step.Id);
                 }
@@ -85,6 +90,20 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void Capture(Window window, string name)
+        {
+            var folder = Environment.GetEnvironmentVariable("IPIA_MAPPING_PREVIEW");
+            if (string.IsNullOrWhiteSpace(folder)) return;
+            Directory.CreateDirectory(folder);
+            window.UpdateLayout();
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth), (int)Math.Ceiling(window.ActualHeight),
+                96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(window);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(Path.Combine(folder, name + ".png"));
+            encoder.Save(stream);
+        }
         private static void Click(Button button)
         {
             var previous = SynchronizationContext.Current;

@@ -75,6 +75,8 @@ namespace DcsIpia.Presentation
             var content = (FrameworkElement)window.Content;
             window.Content = null;
             content.DataContext = window.DataContext;
+            content.Resources.MergedDictionaries.Add(window.Resources);
+            if (NameScope.GetNameScope(window) is { } scope) NameScope.SetNameScope(content, scope);
             ApplicationView.Content = content;
             ApplicationView.UpdateLayout();
         }

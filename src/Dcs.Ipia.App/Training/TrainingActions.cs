@@ -128,6 +128,7 @@ namespace DcsIpia.Presentation
             _mount(_form);
             foreach (var choice in Get<ItemsControl>(_form, "ProfileChoices").Items.Cast<SavedGamesProfileChoice>())
                 choice.Hardware = choice.HardwareChoices.Single(x => x.DeviceId == "logitech-throttle-quadrant");
+            Get<ItemsControl>(_form, "ProfileChoices").Items.Refresh();
         }
         private async Task ImportAsync()
         {

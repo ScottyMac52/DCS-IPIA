@@ -59,7 +59,8 @@ validation run before playback; each action verifies completion, and asynchronou
 forms/outputs have bounded waits. Delays are pacing only.
 
 The training shell hosts real WPF content and uses normal event handlers or
-application operations, without referencing the smoke-test executable. The assignment palette follows the selected aircraft/UI Layer scope, so UI commands
+application operations, without referencing the smoke-test executable. The
+assignment palette follows the selected aircraft/UI Layer scope, so UI commands
 are selected through the same controls as ordinary assignments. UI Layer catalog
 editing remains separate from aircraft command authoring.
 
@@ -70,6 +71,9 @@ restart, and verifies actual snapshot/package output and cleanup. Published
 application smoke validates that both embedded scenarios can load. Existing
 coverage and CRAP gates remain unchanged. Manual review on Windows is still
 needed for narration pacing, theme contrast, resizing/scaling and keyboard focus.
+When `IPIA_MAPPING_PREVIEW` is set (as in CI), the smoke suite saves training PNGs
+for the creation form, assignments, and kneeboard previews in the
+`custom-mapping-preview` artifact for visual review.
 
 The small Lua/JSON fixtures and scenario narration were authored for this project;
 shipped hardware artwork retains its existing provenance and attribution.
