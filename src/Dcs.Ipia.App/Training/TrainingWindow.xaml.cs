@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 using Dcs.Ipia.Application;
 
 namespace DcsIpia.Presentation
@@ -112,11 +113,16 @@ namespace DcsIpia.Presentation
         {
             ClearHighlight();
             ApplicationView.UpdateLayout();
+
+            // Bring the target into its nearest nested ScrollViewer (diagram viewers in Assignments/InputTest)
+            // before adjusting the outer training viewport. This keeps lower callouts (switches, axes, etc.) visible.
+            ScrollTargetIntoNearestViewer(target);
+
             if (target.Tag is HardwareGraphicControl)
             {
                 DependencyObject? ancestor = target;
                 while (ancestor is not null && ancestor is not Canvas { Name: "Diagram" })
-                    ancestor = System.Windows.Media.VisualTreeHelper.GetParent(ancestor);
+                    ancestor = VisualTreeHelper.GetParent(ancestor);
                 if (ancestor is Canvas diagram)
                 {
                     var origin = diagram.TranslatePoint(new Point(), ApplicationViewport);
@@ -137,6 +143,32 @@ namespace DcsIpia.Presentation
                 ?? throw new InvalidOperationException("Training highlight layer is unavailable.");
             _highlight = new TrainingHighlightAdorner(target);
             _highlightLayer.Add(_highlight);
+        }
+        /// <summary>Scrolls the nearest ancestor ScrollViewer (other than the outer training viewport) so the target is inside its viewport.</summary>
+        private static void ScrollTargetIntoNearestViewer(FrameworkElement target)
+        {
+            var viewer = FindAncestor<ScrollViewer>(target);
+            if (viewer is null || viewer.Name == "ApplicationViewport") return;
+
+            viewer.UpdateLayout();
+            var bounds = target.TransformToAncestor(viewer).TransformBounds(new Rect(target.RenderSize));
+            var viewport = new Rect(0, 0, viewer.ViewportWidth, viewer.ViewportHeight);
+            if (viewport.Contains(bounds)) return;
+
+            var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Bottom - viewport.Height);
+            var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Right - viewport.Width);
+            viewer.ScrollToVerticalOffset(viewer.VerticalOffset + vertical);
+            viewer.ScrollToHorizontalOffset(viewer.HorizontalOffset + horizontal);
+            viewer.UpdateLayout();
+        }
+        private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
+        {
+            while (current is not null)
+            {
+                if (current is T match) return match;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
         }
         private async Task AnimateDragAsync(FrameworkElement source, FrameworkElement destination)
         {
@@ -184,8 +216,8 @@ namespace DcsIpia.Presentation
             RestartButton.IsEnabled = available && !_runner!.IsBusy;
             ScenarioChoice.IsEnabled = !_changing && !_closing && _runner?.IsBusy != true;
             ExitButton.IsEnabled = !_closing;
-            ProgressText.Text = _runner is null ? "Preparing training…" :
-                $"{_runner.State} · {_runner.CompletedSteps} / {((TrainingScenario)ScenarioChoice.SelectedItem).Steps.Count} steps complete";
+            ProgressText.Text = _runner is null ? "Preparing training\u2026" :
+                $"{_runner.State} \u00b7 {_runner.CompletedSteps} / {((TrainingScenario)ScenarioChoice.SelectedItem).Steps.Count} steps complete";
         }
         private async void PlayClicked(object sender, RoutedEventArgs e)
         {
