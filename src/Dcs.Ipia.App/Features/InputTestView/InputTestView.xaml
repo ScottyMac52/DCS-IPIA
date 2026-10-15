@@ -40,7 +40,7 @@
                     <ComboBoxItem Content="Press"/>
                     <ComboBoxItem Content="Release"/>
                 </ComboBox>
-                <CheckBox x:Name="ShowAxis" Content="Show axis values" Margin="12,0,0,0" VerticalAlignment="Center" Checked="EventFilterChanged" Unchecked="EventFilterChanged"/>
+                <CheckBox x:Name="ShowAxis" Content="Show axis values" Style="{StaticResource AppCheckBox}" Margin="12,0,0,0" Checked="EventFilterChanged" Unchecked="EventFilterChanged"/>
             </WrapPanel>
             <ListBox x:Name="InputTestLog" SelectionMode="Extended" DisplayMemberPath="Display"/>
         </DockPanel>
