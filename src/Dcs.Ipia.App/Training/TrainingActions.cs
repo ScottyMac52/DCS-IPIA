@@ -254,6 +254,8 @@ namespace DcsIpia.Presentation
             Get<ComboBox>(view, "Layers").SelectedItem = layer;
             Require(Equals(Get<ComboBox>(view, "Layers").SelectedItem, layer), "Modifier layer is unavailable: " + layer);
             view.UpdateLayout();
+            Get<Slider>(view, "Zoom").Value = 0.7;
+            view.UpdateLayout();
             var diagram = Get<Canvas>(view, "Diagram");
             var border = Descendants(diagram).OfType<Border>().FirstOrDefault(x => x.Tag is HardwareGraphicControl control &&
                 control.InputKey == key && !control.Control.EndsWith("-shifted", StringComparison.Ordinal))
@@ -308,6 +310,7 @@ namespace DcsIpia.Presentation
             _highlight(target);
             _menu = target.ContextMenu ?? throw new InvalidDataException("Callout has no context menu.");
             _menu.PlacementTarget = target;
+            _menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             _menu.StaysOpen = true;
             _menu.IsOpen = true;
         }
@@ -349,7 +352,7 @@ namespace DcsIpia.Presentation
         }
         private void ApplyAxis()
         {
-            Click(Action(_form!, "Apply to draft"));
+            Click(Get<Button>(_form!, "ApplyToDraftButton"));
             Require(_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_Y" && x.Filter?.Deadzone == 3), "Axis tuning was not staged.");
             _mount(_workspace);
             _form!.Close();

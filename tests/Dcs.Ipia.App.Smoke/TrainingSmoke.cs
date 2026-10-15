@@ -103,6 +103,17 @@ namespace Dcs.Ipia.App.Smoke
         private static void CheckTrainingState(TrainingWindow window, string action)
         {
             var root = (FrameworkElement)((ContentControl)window.FindName("ApplicationView")).Content;
+            if (action.StartsWith("context-", StringComparison.Ordinal))
+            {
+                var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
+                var menu = Descendants((Canvas)feature.FindName("Diagram")).OfType<Border>()
+                    .Select(x => x.ContextMenu).Single(x => x?.IsOpen == true)!;
+                if (!menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Change label…")) ||
+                    !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Clear assignment")) ||
+                    action == "context-axis" && !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Tune axis…")))
+                    throw new InvalidOperationException("Training context menu is incomplete: " + action);
+                Capture(menu, "training-" + ((TrainingScenario)((ComboBox)window.FindName("ScenarioChoice")).SelectedItem).Id + "-" + action);
+            }
             if (action == "axis-options")
             {
                 if (((TextBox)root.FindName("Deadzone")).Text != "3" ||
@@ -139,7 +150,16 @@ namespace Dcs.Ipia.App.Smoke
             };
             if (!valid) throw new InvalidOperationException("Training input-test acceptance failed: " + action);
         }
-        private static void Capture(Window window, string name)
+        private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+        {
+            for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            {
+                var child = VisualTreeHelper.GetChild(root, index);
+                yield return child;
+                foreach (var nested in Descendants(child)) yield return nested;
+            }
+        }
+        private static void Capture(FrameworkElement window, string name)
         {
             var folder = Environment.GetEnvironmentVariable("IPIA_MAPPING_PREVIEW");
             if (string.IsNullOrWhiteSpace(folder)) return;
