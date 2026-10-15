@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650">
+<rect width="900" height="650" fill="#f8fafc"/>
+<text x="20" y="28" font-family="sans-serif" font-size="21" fill="#142235">YOUR CONTROLLER · fictional training joystick</text>
+<g stroke="#25364b" stroke-width="3" fill="#70839b"><ellipse cx="145" cy="492" rx="112" ry="38"/><path d="M52 470 L74 404 Q145 375 216 404 L238 470 Z"/><path d="M128 404 L112 220 Q80 190 100 149 Q126 122 157 142 L185 218 L160 404 Z" fill="#33465d"/><rect x="103" y="157" width="24" height="34" rx="7" fill="#e45858"/><circle cx="152" cy="204" r="12" fill="#f1c54b"/><circle cx="128" cy="265" r="11" fill="#6acbce"/><circle cx="158" cy="311" r="11" fill="#aa9ee8"/><circle cx="102" cy="436" r="10" fill="#f1c54b"/><path d="M157 433 L157 410 M187 436 L193 412" stroke="#142235" stroke-width="6"/></g>
+<g font-family="sans-serif" font-size="14" fill="#142235"><text x="30" y="100">1 Trigger · 2 Base button</text><text x="30" y="122">3 Hold · 4 Toggle</text><text x="30" y="542">5 Base · 6–7 Two-position</text><text x="30" y="564">8–10 Three-position</text><text x="30" y="586">X / Y: move the stick</text><text x="30" y="616">Simulated equipment · no brand required</text></g>
+<text x="310" y="63" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN1 · Trigger / base button</text>
+<rect id="box-JOY_BTN1" x="310" y="68" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN1" x="318" y="87" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="112" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN2 · Base button / UI Pause</text>
+<rect id="box-JOY_BTN2" x="310" y="117" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN2" x="318" y="136" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="161" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN3 · Hold modifier</text>
+<rect id="box-JOY_BTN3" x="310" y="166" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN3" x="318" y="185" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="210" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN4 · Toggle modifier</text>
+<rect id="box-JOY_BTN4" x="310" y="215" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN4" x="318" y="234" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="259" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN5 · Base button / drag-and-drop</text>
+<rect id="box-JOY_BTN5" x="310" y="264" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN5" x="318" y="283" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="308" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN6 · Two-position switch: UP</text>
+<rect id="box-JOY_BTN6" x="310" y="313" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN6" x="318" y="332" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="357" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN7 · Two-position switch: DOWN</text>
+<rect id="box-JOY_BTN7" x="310" y="362" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN7" x="318" y="381" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="406" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN8 · Three-position switch: UP</text>
+<rect id="box-JOY_BTN8" x="310" y="411" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN8" x="318" y="430" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="455" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN9 · Three-position switch: CENTER</text>
+<rect id="box-JOY_BTN9" x="310" y="460" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN9" x="318" y="479" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="504" font-family="sans-serif" font-size="13" fill="#142235">JOY_BTN10 · Three-position switch: DOWN</text>
+<rect id="box-JOY_BTN10" x="310" y="509" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_BTN10" x="318" y="528" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="553" font-family="sans-serif" font-size="13" fill="#142235">JOY_X · Stick X / roll axis</text>
+<rect id="box-JOY_X" x="310" y="558" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_X" x="318" y="577" font-size="13" fill="#142235">Unassigned</text>
+<text x="310" y="602" font-family="sans-serif" font-size="13" fill="#142235">JOY_Y · Stick Y / pitch axis</text>
+<rect id="box-JOY_Y" x="310" y="607" width="565" height="27" fill="white" stroke="#64748b"/>
+<text id="lbl-JOY_Y" x="318" y="626" font-size="13" fill="#142235">Unassigned</text>
+</svg>

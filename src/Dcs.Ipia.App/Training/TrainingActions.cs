@@ -6,15 +6,19 @@ using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Dcs;
+using DcsIpia.Features.Assignments;
 
 namespace DcsIpia.Presentation
 {
     /// <summary>Drives approved training actions through real feature controls and their normal application boundaries.</summary>
-    public sealed class TrainingActions
+    public sealed class TrainingActions : IDisposable
     {
         private readonly TrainingEnvironment _environment;
         private readonly Action<Window> _mount;
         private readonly Action<FrameworkElement> _highlight;
+        private readonly Func<FrameworkElement, FrameworkElement, Task> _animateDrag;
+        private ContextMenu? _menu;
+        private TrainingInputSource? _input;
         private Window? _form;
         private ModuleWorkspaceWindow? _workspace;
         private TaskCompletionSource? _formCompletion;
@@ -22,16 +26,21 @@ namespace DcsIpia.Presentation
         private const string Shifted = "d3002pnilu3002cd1vd1vpnilvu0";
         private const string Pitch = "a2001cdnil";
         /// <summary>Connects an isolated environment to the visual training shell.</summary>
-        public TrainingActions(TrainingEnvironment environment, Action<Window> mount, Action<FrameworkElement> highlight)
+        public TrainingActions(TrainingEnvironment environment, Action<Window> mount, Action<FrameworkElement> highlight,
+            Func<FrameworkElement, FrameworkElement, Task> animateDrag)
         {
             _environment = environment;
             _mount = mount;
             _highlight = highlight;
+            _animateDrag = animateDrag;
         }
         #region BEGIN Public
         /// <summary>Gets the only actions scenario data may request.</summary>
         public static IReadOnlySet<string> Supported { get; } = new HashSet<string>(StringComparer.Ordinal)
         {
+            "drag-ready", "drag", "context-label", "context-clear", "clear", "context-axis", "axis-options", "axis-apply",
+            "toggle", "toggled", "switches", "test-start", "test-base", "test-hold", "test-release", "test-toggle",
+            "test-toggle-release", "test-toggle-off", "test-switches", "test-axes", "test-stop",
             "new", "identify", "add-device", "create", "import-review", "import", "devices", "catalog", "base", "modifier",
             "shifted", "label", "axis", "ui", "save", "discard", "reopen", "pages", "kneeboard", "validate", "snapshot", "package", "finish"
         };
@@ -49,9 +58,32 @@ namespace DcsIpia.Presentation
                 case "devices": SelectDevice(); break;
                 case "catalog": ImportCatalog(); break;
                 case "base": Assign("JOY_BTN1", Light, "Base", false); break;
-                case "modifier": AddModifier(); break;
+                case "modifier": AddModifier("TRAIN_SHIFT", "JOY_BTN3", ModifierMode.Hold); break;
                 case "shifted": Assign("JOY_BTN1", Shifted, "TRAIN_SHIFT", false); break;
-                case "label": SetLabel("LIGHTS"); break;
+                case "drag-ready": SelectPalette("JOY_BTN5", Light, "Base", false); break;
+                case "drag": await DragAssignAsync("JOY_BTN5", Light); break;
+                case "context-label": OpenContext("JOY_BTN1"); break;
+                case "context-clear": OpenContext("JOY_BTN5"); break;
+                case "clear": MenuClick("Clear assignment");
+                    Require(!_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_BTN5" && x.Slot.ModifierChord.Length == 0 && x.Slot.Layer == AssignmentLayer.Module), "Context clear did not remove the assignment."); break;
+                case "label": ContextLabel(); break;
+                case "toggle": AddModifier("TRAIN_TOGGLE", "JOY_BTN4", ModifierMode.Toggle); break;
+                case "toggled": Assign("JOY_BTN1", ButtonCommand(3), "TRAIN_TOGGLE", false); break;
+                case "switches": MapSwitches(); break;
+                case "context-axis": OpenContext("JOY_Y"); break;
+                case "axis-options": AxisOptions(); break;
+                case "axis-apply": ApplyAxis(); break;
+                case "test-start": StartTest(); break;
+                case "test-base": await SampleAsync(("JOY_BTN1", 1)); break;
+                case "test-hold": await SampleAsync(("JOY_BTN3", 1)); break;
+                case "test-release": await SampleAsync(("JOY_BTN3", 0), ("JOY_BTN1", 0)); break;
+                case "test-toggle": await SampleAsync(("JOY_BTN4", 1)); break;
+                case "test-toggle-release": await SampleAsync(("JOY_BTN4", 0), ("JOY_BTN1", 1)); break;
+                case "test-toggle-off": await SampleAsync(("JOY_BTN4", 1), ("JOY_BTN1", 0));
+                    await SampleAsync(("JOY_BTN4", 0)); break;
+                case "test-switches": await TestSwitchesAsync(); break;
+                case "test-axes": await SampleAsync(("JOY_X", 0.75), ("JOY_Y", 0.25)); break;
+                case "test-stop": Click(Get<Button>(Navigate("InputTest"), "StopInputTestButton")); break;
                 case "axis": TuneAxis(); break;
                 case "ui": Assign("JOY_BTN2", "d52pnilunilcdnilvdnilvpnilvunil", "Base", true); break;
                 case "save": await SaveAsync(); break;
@@ -71,15 +103,24 @@ namespace DcsIpia.Presentation
             target.UpdateLayout();
             _highlight(target);
         }
+        /// <summary>Releases the isolated views and simulated input source.</summary>
+        public void Dispose()
+        {
+            Close();
+            GC.SuppressFinalize(this);
+        }
         /// <summary>Detaches workspace subscriptions and discards only the isolated draft.</summary>
         public void Close()
         {
+            if (_menu is not null) { _menu.IsOpen = false; _menu = null; }
             if (_workspace is not null)
             {
                 _workspace.DiscardClicked(null!, null!);
                 _workspace.Close();
                 _workspace = null;
             }
+            _input?.Dispose();
+            _input = null;
             _form?.Close();
             _form = null;
         }
@@ -105,7 +146,7 @@ namespace DcsIpia.Presentation
             var physical = Get<ComboBox>(_form!, "PhysicalChoices");
             physical.SelectedIndex = 0;
             var hardware = Get<ComboBox>(_form!, "HardwareChoices");
-            hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == "logitech-throttle-quadrant");
+            hardware.SelectedItem = hardware.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == "training-joystick");
             var baseline = Get<ComboBox>(_form!, "BaselineChoices");
             baseline.SelectedItem = baseline.Items.Cast<string>().Single(x => x == TrainingDiscovery.Unit.FileName);
             Click(Get<Button>(_form!, "AddUnitButton"));
@@ -127,7 +168,7 @@ namespace DcsIpia.Presentation
                 () => _formCompletion.SetResult());
             _mount(_form);
             foreach (var choice in Get<ItemsControl>(_form, "ProfileChoices").Items.Cast<SavedGamesProfileChoice>())
-                choice.Hardware = choice.HardwareChoices.Single(x => x.DeviceId == "logitech-throttle-quadrant");
+                choice.Hardware = choice.HardwareChoices.Single(x => x.DeviceId == "training-joystick");
             Get<ItemsControl>(_form, "ProfileChoices").Items.Refresh();
         }
         private async Task ImportAsync()
@@ -155,7 +196,9 @@ namespace DcsIpia.Presentation
                 deviceDiscovery: new TrainingDiscovery(), commandFilePicker: _ => [Path.Combine(_environment.Root, "commands.json")],
                 outputPathPicker: snapshot => snapshot ? Path.Combine(_environment.Outputs, "training.ipia-module.json") : _environment.Outputs,
                 documentationFolderPicker: () => _environment.Outputs, completeReleaseFolderPicker: () => _environment.Outputs,
-                integrationFilePicker: () => null, axisDefaultsFilePicker: () => null);
+                integrationFilePicker: () => null, axisDefaultsFilePicker: () => null,
+                inputSourceFactory: (_, devices) => devices.Contains(TrainingDiscovery.Unit.PhysicalGuid)
+                    ? _input = new TrainingInputSource() : throw new InvalidDataException("Sample controller was not acquired."));
             _workspace._savedGamesRoot = _environment.ImportFolder;
             _mount(_workspace);
         }
@@ -183,22 +226,22 @@ namespace DcsIpia.Presentation
                 _workspace._working.Sources!.Keys.Any(x => x.StartsWith("config/ipia-command-imports/", StringComparison.Ordinal)),
                 "Command catalog import failed.");
         }
-        private void AddModifier()
+        private void AddModifier(string name, string key, ModifierMode mode)
         {
             var view = Navigate("Modifiers");
             var rows = Get<DataGrid>(view, "ManagedModifiers");
-            if (!rows.Items.Cast<WorkspaceModifier>().Any(x => x.Name == "TRAIN_SHIFT"))
+            if (!rows.Items.Cast<WorkspaceModifier>().Any(x => x.Name == name))
             {
                 Click(Action(view, "New"));
-                Get<TextBox>(view, "ModifierName").Text = "TRAIN_SHIFT";
-                Get<TextBox>(view, "ModifierSemantic").Text = "TRAIN_SHIFT";
-                Get<ComboBox>(view, "ModifierModeChoice").SelectedItem = ModifierMode.Hold;
+                Get<TextBox>(view, "ModifierName").Text = name;
+                Get<TextBox>(view, "ModifierSemantic").Text = name;
+                Get<ComboBox>(view, "ModifierModeChoice").SelectedItem = mode;
                 Get<ComboBox>(view, "ModifierDevice").SelectedIndex = 0;
                 var control = Get<ComboBox>(view, "ModifierControl");
-                control.SelectedItem = control.Items.Cast<HardwareGraphicControl>().First(x => x.InputKey == "JOY_BTN3");
+                control.SelectedItem = control.Items.Cast<HardwareGraphicControl>().First(x => x.InputKey == key);
                 Click(Action(view, "Add"));
             }
-            rows.SelectedItem = rows.Items.Cast<WorkspaceModifier>().FirstOrDefault(x => x.Name == "TRAIN_SHIFT")
+            rows.SelectedItem = rows.Items.Cast<WorkspaceModifier>().FirstOrDefault(x => x.Name == name)
                 ?? throw new InvalidDataException("Modifier was not staged: " + Get<TextBlock>(_workspace!, "EditorMessage").Text +
                     " " + Get<TextBlock>(view, "StatusMessage").Text);
         }
@@ -211,6 +254,8 @@ namespace DcsIpia.Presentation
             Get<ComboBox>(view, "Layers").SelectedItem = layer;
             Require(Equals(Get<ComboBox>(view, "Layers").SelectedItem, layer), "Modifier layer is unavailable: " + layer);
             view.UpdateLayout();
+            Get<Slider>(view, "Zoom").Value = 0.7;
+            view.UpdateLayout();
             var diagram = Get<Canvas>(view, "Diagram");
             var border = Descendants(diagram).OfType<Border>().FirstOrDefault(x => x.Tag is HardwareGraphicControl control &&
                 control.InputKey == key && !control.Control.EndsWith("-shifted", StringComparison.Ordinal))
@@ -219,12 +264,18 @@ namespace DcsIpia.Presentation
                 { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
             return view;
         }
-        private void Assign(string key, string command, string layer, bool ui)
+        private UserControl SelectPalette(string key, string command, string layer, bool ui)
         {
             var view = SelectAssignment(key, layer, ui);
             var manager = Get<UserControl>(view, "CommandManager");
             var grid = Get<DataGrid>(manager, "Commands");
             grid.SelectedItem = grid.Items.Cast<object>().Single(x => Equals(x.GetType().GetProperty("Id")!.GetValue(x), command));
+            grid.ScrollIntoView(grid.SelectedItem);
+            return view;
+        }
+        private void Assign(string key, string command, string layer, bool ui)
+        {
+            var view = SelectPalette(key, command, layer, ui);
             Click(Action(view, "Assign selected command"));
             Require(_workspace!._draft!.Snapshot.Any(x => x.Command.Id == command && x.Slot.InputKey == key &&
                 x.Slot.ModifierChord == (layer == "Base" ? "" : layer) && x.Slot.Layer == (ui ? AssignmentLayer.UiLayer : AssignmentLayer.Module)),
@@ -236,17 +287,111 @@ namespace DcsIpia.Presentation
             Get<TextBox>(view, "LabelEditor").Text = text;
             Require(_workspace!._labels.Values.Contains(text, StringComparer.Ordinal), "Label was not staged.");
         }
+        private static string ButtonCommand(int index) => $"d{3000 + index}pnilu{3000 + index}cd1vd1vpnilvu0";
+        private static Border Callout(UserControl view, string key) => Descendants(Get<Canvas>(view, "Diagram")).OfType<Border>()
+            .First(x => x.Tag is HardwareGraphicControl control && control.InputKey == key);
+        private async Task DragAssignAsync(string key, string command)
+        {
+            var view = SelectPalette(key, command, "Base", false);
+            var grid = Get<DataGrid>(Get<UserControl>(view, "CommandManager"), "Commands");
+            view.UpdateLayout();
+            var source = grid.ItemContainerGenerator.ContainerFromItem(grid.SelectedItem) as FrameworkElement ?? grid;
+            var target = Callout(view, key);
+            await _animateDrag(source, target);
+            var definition = _workspace!._working!.ModuleCommands.Single(x => x.Id == command);
+            ((AssignmentsView)view).DropPaletteCommand((HardwareGraphicControl)target.Tag,
+                new(definition.Id, definition.Name, definition.Category, definition.IsAxis));
+            Require(_workspace._draft!.Snapshot.Any(x => x.Slot.InputKey == key && x.Command.Id == command), "Palette drop was not applied.");
+        }
+        private void OpenContext(string key)
+        {
+            var view = SelectAssignment(key, "Base", false);
+            var target = Callout(view, key);
+            _highlight(target);
+            _menu = target.ContextMenu ?? throw new InvalidDataException("Callout has no context menu.");
+            _menu.PlacementTarget = target;
+            _menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            _menu.StaysOpen = true;
+            _menu.IsOpen = true;
+        }
+        private void MenuClick(string caption)
+        {
+            var item = _menu?.Items.OfType<MenuItem>().Single(x => Equals(x.Header, caption))
+                ?? throw new InvalidDataException("Training context menu is not open.");
+            _menu!.IsOpen = false;
+            _menu = null;
+            Require(item.IsEnabled, "Context action is disabled: " + caption);
+            item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        }
+        private void ContextLabel()
+        {
+            WithDialog<Window>(() => MenuClick("Change label…"), dialog =>
+            {
+                Descendants(dialog).OfType<TextBox>().Single().Text = "LIGHTS";
+                Click(Action(dialog, "OK"));
+            });
+            Require(_workspace!._labels.Values.Contains("LIGHTS", StringComparer.Ordinal), "Context label was not staged.");
+        }
         private void TuneAxis()
         {
-            Assign("JOY_X", Pitch, "Base", false);
-            var view = SelectAssignment("JOY_X", "Base", false);
-            WithDialog<AxisTuningWindow>(() => Click(Action(view, "Tune axis…")), dialog =>
+            Assign("JOY_Y", Pitch, "Base", false);
+            Assign("JOY_X", "a2002cdnil", "Base", false);
+            SelectAssignment("JOY_Y", "Base", false);
+        }
+        private void AxisOptions()
+        {
+            var view = (AssignmentsView)Navigate("Assignments");
+            view.AxisTuningPresenter = dialog => { _form = dialog; _mount(dialog); };
+            try { MenuClick("Tune axis…"); }
+            finally { view.AxisTuningPresenter = null; }
+            Require(_form is AxisTuningWindow, "Axis editor was not opened from the context menu.");
+            Get<TextBox>(_form!, "Deadzone").Text = "3";
+            Get<TextBox>(_form!, "Curvature").Text = "15";
+            Get<TextBox>(_form!, "SaturationX").Text = "100";
+            Get<TextBox>(_form!, "SaturationY").Text = "100";
+        }
+        private void ApplyAxis()
+        {
+            Click(Get<Button>(_form!, "ApplyToDraftButton"));
+            Require(_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_Y" && x.Filter?.Deadzone == 3), "Axis tuning was not staged.");
+            _mount(_workspace);
+            _form!.Close();
+            _form = null;
+            SelectAssignment("JOY_Y", "Base", false);
+        }
+        private void MapSwitches()
+        {
+            for (var index = 0; index < 5; index++)
+                Assign("JOY_BTN" + (6 + index), ButtonCommand(4 + index), "Base", false);
+        }
+        private void StartTest()
+        {
+            var view = Navigate("InputTest");
+            Get<ComboBox>(view, "InputTestSnapshotChoice").SelectedIndex = 1;
+            Get<CheckBox>(view, "ShowAxis").IsChecked = true;
+            Get<Slider>(view, "Zoom").Value = 0.4;
+            Click(Get<Button>(view, "StartInputTestButton"));
+            Require(Get<TextBlock>(view, "InputTestStatus").Text.StartsWith("Testing frozen saved profile", StringComparison.Ordinal),
+                Get<TextBlock>(view, "InputTestStatus").Text);
+        }
+        private async Task SampleAsync(params (string Key, double Value)[] values)
+        {
+            foreach (var (key, value) in values) _input!.Set(key, value);
+            // The actual input-test timer consumes the sample, resolves generated Lua and updates the legend/log.
+            var log = Get<ListBox>(Navigate("InputTest"), "InputTestLog");
+            var count = log.Items.Count;
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (log.Items.Count == count)
             {
-                Get<TextBox>(dialog, "Deadzone").Text = "3";
-                Get<TextBox>(dialog, "Curvature").Text = "15";
-                Click(Action(dialog, "Apply to draft"));
-            });
-            Require(_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_X" && x.Filter?.Deadzone == 3), "Axis tuning was not staged.");
+                if (DateTime.UtcNow > deadline) throw new InvalidDataException("Simulated input did not reach the tester.");
+                await Task.Delay(30);
+            }
+        }
+        private async Task TestSwitchesAsync()
+        {
+            await SampleAsync(("JOY_BTN6", 1), ("JOY_BTN8", 1));
+            await SampleAsync(("JOY_BTN6", 0), ("JOY_BTN7", 1), ("JOY_BTN8", 0), ("JOY_BTN9", 1));
+            await SampleAsync(("JOY_BTN9", 0), ("JOY_BTN10", 1));
         }
         private async Task SaveAsync()
         {
@@ -347,7 +492,8 @@ namespace DcsIpia.Presentation
             var operated = false;
             var operation = System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
-                var dialog = System.Windows.Application.Current.Windows.OfType<T>().SingleOrDefault();
+                var dialog = System.Windows.Application.Current.Windows.OfType<T>().SingleOrDefault(x =>
+                    typeof(T) != typeof(Window) || x.Title.StartsWith("Change label", StringComparison.Ordinal));
                 try
                 {
                     if (dialog is null) throw new InvalidDataException("Expected training review did not open.");

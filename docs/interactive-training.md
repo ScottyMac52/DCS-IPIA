@@ -79,3 +79,13 @@ for the creation form, assignments, and kneeboard previews in the
 
 The small Lua/JSON fixtures and scenario narration were authored for this project;
 shipped hardware artwork retains its existing provenance and attribution.
+
+## Learning with your own controller
+
+Both scenarios use a fictional, brand-neutral joystick with original bundled vector artwork. Its GUID is a sample identity. The walkthrough explains selecting your own physical unit, matching a drawing, and the inventory/generic-layout or custom-mapping alternatives when no built-in drawing matches.
+
+The sequence demonstrates the assignment button and an animated palette-to-callout drag. The animation invokes the same palette-drop operation used by the real routed drop handler. It opens the real callout context menus for changing a label, clearing an assignment, and tuning an axis. The real axis editor is embedded for a reading checkpoint before applying the filter; normal editing still uses its modal dialog.
+
+The sample has two axes, base buttons, separate Hold and Toggle modifiers, a two-position switch, and a three-position switch. Each fictional switch position reports a distinct button; the narration explains that real hardware can instead have a silent center. Do not assume the example's key numbering matches your equipment.
+
+After saving and reopening, the actual input tester consumes a deterministic simulated source for that same physical identity. Reading checkpoints demonstrate base presses, Hold activation/release, Toggle latching after release and reset on a second press, switch transitions, both axes, the event log, stored tuning, and Stop. Simulated values stay fixed while paused. No real controller is acquired during training. With your own configuration, perform those inputs yourself; stop and restart the tester after editing its frozen profile.

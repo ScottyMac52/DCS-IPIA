@@ -1,6 +1,6 @@
 local diff = {
   ["keyDiffs"] = {
-    ["d3001pnilu3001cd1vd1vpnilvu0"] = { ["name"] = "Sample landing light", ["added"] = { [1] = { ["key"] = "JOY_BTN4" } } },
+    ["d3001pnilu3001cd1vd1vpnilvu0"] = { ["name"] = "Sample landing light", ["added"] = { [1] = { ["key"] = "JOY_BTN2" } } },
     ["d3002pnilu3002cd1vd1vpnilvu0"] = { ["name"] = "Sample shifted action", ["added"] = { [1] = { ["key"] = "JOY_BTN5", ["reformers"] = { [1] = "TRAIN_SHIFT" } } } }
   },
   ["axisDiffs"] = {

@@ -38,7 +38,10 @@ namespace DcsIpia.Presentation
             Directory.CreateDirectory(Outputs);
             Directory.CreateDirectory(Path.Combine(ImportFolder, "joystick"));
             await new SqliteMigrationRunner(_connection).MigrateAsync();
-            Hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sample = JsonSerializer.Deserialize<WorkspaceHardware>(TrainingAssets.Read("joystick.json"))!;
+            sample = sample with { Diagram = sample.Diagram with { Svg = TrainingAssets.Read("joystick.svg") } };
+            Hardware = new Dictionary<string, string> { ["config/ipia-hardware.json"] = JsonSerializer.Serialize(new[] { sample }),
+                [sample.Diagram.Path] = sample.Diagram.Svg };
             await File.WriteAllTextAsync(Path.Combine(ImportFolder, "joystick", TrainingDiscovery.Unit.FileName), TrainingAssets.Read("profile.lua"));
             await File.WriteAllTextAsync(Path.Combine(ImportFolder, "modifiers.lua"), TrainingAssets.Read("modifiers.lua"));
             await File.WriteAllTextAsync(Path.Combine(Root, "commands.json"), TrainingAssets.Read("commands.json"));
@@ -48,7 +51,7 @@ namespace DcsIpia.Presentation
                 ["assets/shared/ui-layer/functions.json"] = TrainingAssets.Read("ui-commands.json"),
                 ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers",
                 [path] = "local diff = {} return diff",
-                ["assets/shared/ui-layer/ipia-device-hardware.json"] = JsonSerializer.Serialize(new Dictionary<string, string> { [path] = "logitech-throttle-quadrant" })
+                ["assets/shared/ui-layer/ipia-device-hardware.json"] = JsonSerializer.Serialize(new Dictionary<string, string> { [path] = "training-joystick" })
             };
             Defaults = await new SqliteSharedUiLayerWorkspaceRepository(_connection).SaveAsync(new(0, BundledSharedCatalog.SourceCommit(), sources));
         }

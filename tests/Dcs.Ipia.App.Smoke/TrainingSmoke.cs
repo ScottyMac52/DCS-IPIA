@@ -6,6 +6,8 @@ using System.Windows.Threading;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Domain;
+using DcsIpia.Features.InputTest;
 using DcsIpia.Presentation;
 
 namespace Dcs.Ipia.App.Smoke
@@ -13,6 +15,7 @@ namespace Dcs.Ipia.App.Smoke
     /// <summary>Runs both shipped training sequences through their real controls and verifies isolation and playback.</summary>
     public static class TrainingSmoke
     {
+        private static readonly string[] AxisKeys = ["JOY_X", "JOY_Y"];
         #region BEGIN Public
         /// <summary>Checks scenario completion, independent intermediate state, restart, failure recovery and cleanup.</summary>
         public static void Verify()
@@ -72,10 +75,12 @@ namespace Dcs.Ipia.App.Smoke
                     PumpUntil(() => !runner.IsBusy, "Training step timed out: " + step.Id);
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
-                    if (step.Action is "base" or "kneeboard")
+                    CheckTrainingState(window, step.Action);
+                    if (step.Action is "base" or "kneeboard" or "drag-ready" or "drag" or "axis-options" or
+                        "test-base" or "test-hold" or "test-toggle-release" or "test-switches" or "test-axes")
                     {
                         Capture(window, "training-" + scenarioData.Id + "-" + step.Action);
-                        if (!window.IsHighlightedTargetVisible)
+                        if (step.Action is "base" or "kneeboard" && !window.IsHighlightedTargetVisible)
                             throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id);
                     }
                     if (runner.CurrentStep?.Id != step.Id)
@@ -95,7 +100,66 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void Capture(Window window, string name)
+        private static void CheckTrainingState(TrainingWindow window, string action)
+        {
+            var root = (FrameworkElement)((ContentControl)window.FindName("ApplicationView")).Content;
+            if (action.StartsWith("context-", StringComparison.Ordinal))
+            {
+                var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
+                var menu = Descendants((Canvas)feature.FindName("Diagram")).OfType<Border>()
+                    .Select(x => x.ContextMenu).Single(x => x?.IsOpen == true)!;
+                if (!menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Change label…")) ||
+                    !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Clear assignment")) ||
+                    action == "context-axis" && !menu.Items.OfType<MenuItem>().Any(x => Equals(x.Header, "Tune axis…")))
+                    throw new InvalidOperationException("Training context menu is incomplete: " + action);
+                Capture(menu, "training-" + ((TrainingScenario)((ComboBox)window.FindName("ScenarioChoice")).SelectedItem).Id + "-" + action);
+            }
+            if (action == "axis-options")
+            {
+                if (((TextBox)root.FindName("Deadzone")).Text != "3" ||
+                    ((TextBox)root.FindName("Curvature")).Text != "15")
+                    throw new InvalidOperationException("Axis options are not visible at the reading checkpoint.");
+                return;
+            }
+            if (action == "toggle")
+            {
+                var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
+                var modifiers = ((DataGrid)feature.FindName("ManagedModifiers")).Items.Cast<WorkspaceModifier>().ToArray();
+                if (!modifiers.Any(x => x.Name == "TRAIN_SHIFT" && x.Mode == ModifierMode.Hold) ||
+                    !modifiers.Any(x => x.Name == "TRAIN_TOGGLE" && x.Mode == ModifierMode.Toggle))
+                    throw new InvalidOperationException("Training did not create both modifier modes.");
+            }
+            if (!action.StartsWith("test-", StringComparison.Ordinal)) return;
+            var view = (InputTestView)((ContentControl)root.FindName("FeatureContent")).Content;
+            var log = ((ListBox)view.FindName("InputTestLog")).Items.Cast<InputTestLogEntry>().ToArray();
+            var legend = ((ItemsControl)view.FindName("ModifierLegend")).Items.Cast<InputTestLegendItem>().ToArray();
+            bool Active(string chord) => legend.Any(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == chord && x.IsActive);
+            var valid = action switch
+            {
+                "test-start" => log.Length == 0,
+                "test-base" => log.Any(x => x.InputKey == "JOY_BTN1" && x.Commands.Contains("Sample landing light", StringComparison.Ordinal)),
+                "test-hold" => Active("TRAIN_SHIFT"),
+                "test-release" => !Active("TRAIN_SHIFT"),
+                "test-toggle-release" => Active("TRAIN_TOGGLE") && log.Any(x => x.Commands.Contains("Sample toggle-layer action", StringComparison.Ordinal)),
+                "test-toggle-off" => !Active("TRAIN_TOGGLE"),
+                "test-switches" => Enumerable.Range(6, 5).All(index => log.Any(x => x.InputKey == "JOY_BTN" + index && x.Transition == "Press" && x.Commands.Contains("Sample", StringComparison.Ordinal))),
+                "test-axes" => AxisKeys.All(key => log.Any(x => x.InputKey == key && x.Transition == "Position")) &&
+                    log.Any(x => x.InputKey == "JOY_Y" && x.Commands.Contains("tuning=", StringComparison.Ordinal)),
+                "test-stop" => !legend.Any(x => x.IsActive) && ((Button)view.FindName("StartInputTestButton")).IsEnabled,
+                _ => true
+            };
+            if (!valid) throw new InvalidOperationException("Training input-test acceptance failed: " + action);
+        }
+        private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+        {
+            for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            {
+                var child = VisualTreeHelper.GetChild(root, index);
+                yield return child;
+                foreach (var nested in Descendants(child)) yield return nested;
+            }
+        }
+        private static void Capture(FrameworkElement window, string name)
         {
             var folder = Environment.GetEnvironmentVariable("IPIA_MAPPING_PREVIEW");
             if (string.IsNullOrWhiteSpace(folder)) return;
