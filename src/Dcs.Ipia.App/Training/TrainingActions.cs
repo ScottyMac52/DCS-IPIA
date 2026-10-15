@@ -190,13 +190,16 @@ namespace DcsIpia.Presentation
             {
                 Click(Action(view, "New"));
                 Get<TextBox>(view, "ModifierName").Text = "TRAIN_SHIFT";
+                Get<TextBox>(view, "ModifierSemantic").Text = "TRAIN_SHIFT";
                 Get<ComboBox>(view, "ModifierModeChoice").SelectedItem = ModifierMode.Hold;
                 Get<ComboBox>(view, "ModifierDevice").SelectedIndex = 0;
                 var control = Get<ComboBox>(view, "ModifierControl");
                 control.SelectedItem = control.Items.Cast<HardwareGraphicControl>().First(x => x.InputKey == "JOY_BTN3");
                 Click(Action(view, "Add"));
             }
-            rows.SelectedItem = rows.Items.Cast<WorkspaceModifier>().Single(x => x.Name == "TRAIN_SHIFT");
+            rows.SelectedItem = rows.Items.Cast<WorkspaceModifier>().FirstOrDefault(x => x.Name == "TRAIN_SHIFT")
+                ?? throw new InvalidDataException("Modifier was not staged: " + Get<TextBlock>(_workspace!, "EditorMessage").Text +
+                    " " + Get<TextBlock>(view, "StatusMessage").Text);
         }
         private UserControl SelectAssignment(string key, string layer, bool ui)
         {

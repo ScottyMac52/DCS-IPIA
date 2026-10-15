@@ -47,7 +47,7 @@
       "Id": "modifier",
       "Action": "modifier",
       "Title": "Review the shift modifier",
-      "Explanation": "A modifier reserves its physical control. TRAIN_SHIFT uses JOY_BTN3 in Hold mode; change or remove the modifier before assigning an ordinary command to that input.",
+      "Explanation": "A modifier reserves its physical control. TRAIN_SHIFT uses JOY_BTN3 in Hold mode with semantic layer TRAIN_SHIFT; change or remove the modifier before assigning an ordinary command to that input.",
       "Target": "Modifiers:ManagedModifiers",
       "Checkpoint": true
     },

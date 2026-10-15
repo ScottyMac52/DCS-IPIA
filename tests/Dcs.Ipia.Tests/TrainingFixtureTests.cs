@@ -58,6 +58,26 @@ namespace Dcs.Ipia.Tests
                 await File.WriteAllTextAsync(catalog, Asset("commands.json"));
                 workspace = ModuleCommandCatalogImport.Apply(workspace, ModuleCommandCatalogImport.ReadFiles(workspace, [catalog], false));
                 Assert.Equal(existing ? 4 : 3, workspace.ModuleCommands.Count);
+                var device = WorkspaceStructureEditor.Describe(workspace).Devices.Single(x => x.Layer == AssignmentLayer.Module);
+                if (!existing)
+                    workspace = WorkspaceStructureEditor.SetModifier(workspace, null,
+                        new(AssignmentLayer.Module, device.ProfileId, "TRAIN_SHIFT", "JOY_BTN3", "TRAIN_SHIFT", ModifierMode.Hold, ""));
+                var draft = new DraftAssignmentService(workspace.Configuration,
+                    workspace.ModuleCommands.Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
+                        .Concat(workspace.UiCommands.Select(x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer))),
+                    workspace.Assignments, WorkspaceStructureEditor.UiModifierNames(workspace));
+                var module = workspace.Configuration.Module.Id;
+                var light = new DraftAssignmentSlot(module, device.ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
+                var shifted = light with { ModifierChord = "TRAIN_SHIFT" };
+                var axis = light with { Section = BindingSection.Axis, InputKey = "JOY_X" };
+                var uiDevice = WorkspaceStructureEditor.Describe(workspace).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+                var ui = light with { Layer = AssignmentLayer.UiLayer, ProfileId = uiDevice.ProfileId, InputKey = "JOY_BTN2" };
+                Assert.Equal(DraftOutcome.Applied, draft.Assign(light, new("d3001pnilu3001cd1vd1vpnilvu0", "Light", false, AssignmentLayer.Module), OccupiedDestinationBehavior.Reject).Outcome);
+                Assert.Equal(DraftOutcome.Applied, draft.Assign(shifted, new("d3002pnilu3002cd1vd1vpnilvu0", "Shifted", false, AssignmentLayer.Module), OccupiedDestinationBehavior.Reject).Outcome);
+                Assert.Equal(DraftOutcome.Applied, draft.Assign(axis, new("a2001cdnil", "Pitch", true, AssignmentLayer.Module), OccupiedDestinationBehavior.Reject).Outcome);
+                Assert.Equal(DraftOutcome.Applied, draft.TuneAxis(axis, new(Deadzone: 3, Curvature: new double[] { 15 })).Outcome);
+                Assert.Equal(DraftOutcome.Applied, draft.Assign(ui, new("d52pnilunilcdnilvdnilvpnilvunil", "Pause", false, AssignmentLayer.UiLayer), OccupiedDestinationBehavior.Reject).Outcome);
+                workspace = workspace with { Assignments = draft.Snapshot, Labels = new Dictionary<string, string> { [light.Key] = "LIGHTS" } };
                 workspace = ModuleKneeboardPageEditor.GenerateSummary(ModuleKneeboardPageEditor.AddMissingDevicePages(workspace));
                 await repository.SaveAsync(workspace);
                 var saved = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
