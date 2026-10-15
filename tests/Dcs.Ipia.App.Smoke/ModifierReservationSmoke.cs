@@ -52,6 +52,8 @@ namespace Dcs.Ipia.App.Smoke
                 [new DraftAssignment(slot, new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> {
                     ["config/kneeboard.json"] = "{}",
+                    ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] =
+                        "local diff = { [\"keyDiffs\"] = {} } return diff",
                     ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] =
                         "local modifiers = { [\"UI SHIFT\"] = { [\"device\"] = \"MFD\", " +
                         "[\"key\"] = \"JOY_BTN7\", [\"switch\"] = true } } return modifiers",
