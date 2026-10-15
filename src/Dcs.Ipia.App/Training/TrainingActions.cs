@@ -259,6 +259,7 @@ namespace DcsIpia.Presentation
             SetLabel("TEMPORARY - discard this");
             var view = Navigate("Assignments");
             Click(Action(view, "Discard draft"));
+            SelectAssignment("JOY_BTN1", "Base", false);
             Require(!_workspace!._labels.Values.Contains("TEMPORARY - discard this", StringComparer.Ordinal), "Discard did not restore saved labels.");
         }
         private async Task ReopenAsync()
@@ -280,7 +281,13 @@ namespace DcsIpia.Presentation
         private void Preview()
         {
             var view = Navigate("Kneeboards");
-            Require(Get<Image>(view, "KneeboardPreview").Source is not null, "Kneeboard preview failed.");
+            var source = Get<Image>(view, "KneeboardPreview").Source
+                ?? throw new InvalidDataException("Kneeboard preview failed.");
+            var box = Get<Viewbox>(view, "ZoomBox");
+            var viewport = Descendants(view).OfType<ScrollViewer>().Single(x => ReferenceEquals(x.Content, box));
+            var fit = Math.Min((viewport.ViewportWidth - 8) / source.Width, (viewport.ViewportHeight - 8) / source.Height);
+            Get<Slider>(view, "Zoom").Value = Math.Clamp(Math.Floor(fit * 10) / 10, 0.1, 1);
+            view.UpdateLayout();
         }
         private async Task OutputAsync(string button, string expected)
         {
@@ -305,6 +312,11 @@ namespace DcsIpia.Presentation
                 "Host" => _workspace ?? throw new InvalidDataException("Training workspace is not open."),
                 _ => Navigate(parts[0])
             };
+            if (parts[0] == "Assignments" && parts[1].StartsWith("JOY_", StringComparison.Ordinal))
+                return Descendants(Get<Canvas>(root, "Diagram")).OfType<Border>().FirstOrDefault(x =>
+                    x.Tag is HardwareGraphicControl control && control.InputKey == parts[1] &&
+                    !control.Control.EndsWith("-shifted", StringComparison.Ordinal))
+                    ?? throw new InvalidDataException("Missing training callout: " + parts[1]);
             return Get<FrameworkElement>(root, parts[1]);
         }
         private static T Get<T>(FrameworkElement root, string name) where T : class => root.FindName(name) as T

@@ -4,12 +4,24 @@
         Title="IPIA Training — isolated sample configuration" Width="1620" Height="1000"
         MinWidth="1280" MinHeight="800" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
+  <Window.Resources>
+    <Style TargetType="Label">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+    </Style>
+    <Style TargetType="CheckBox" BasedOn="{StaticResource AppCheckBox}">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+    </Style>
+  </Window.Resources>
   <Grid Margin="12">
     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="360"/></Grid.ColumnDefinitions>
     <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,12,0">
       <AdornerDecorator>
-        <ContentControl x:Name="ApplicationView" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-                        IsHitTestVisible="False" KeyboardNavigation.TabNavigation="None" PreviewKeyDown="BlockApplicationKeys"/>
+        <ScrollViewer x:Name="ApplicationViewport" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      SizeChanged="ViewportChanged" Focusable="False" Background="Transparent">
+          <ContentControl x:Name="ApplicationView" Width="1100" Height="1100"
+                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                          IsHitTestVisible="False" KeyboardNavigation.TabNavigation="None" PreviewKeyDown="BlockApplicationKeys"/>
+        </ScrollViewer>
       </AdornerDecorator>
     </Border>
     <DockPanel Grid.Column="1" LastChildFill="True">
