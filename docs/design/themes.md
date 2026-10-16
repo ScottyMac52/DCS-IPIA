@@ -21,3 +21,11 @@ The Light/Dark persisted identities and colors remain compatible; their UI names
 Run `python3 scripts/check_theme_resources.py` for palette parity and unresolved dynamic resources throughout application XAML; the checker also rejects fixed brush references in shared theme dictionaries. Existing Windows smoke captures each skin in the custom-mapping-preview CI artifact. Manual keyboard/high-contrast/scaling acceptance remains in #191. Generated kneeboards, assignment/modifier legend colors and immutable snapshots are independent of the application palette.
 
 Branding/icon assets, custom accents and imported palettes remain follow-up work in #246. No arbitrary XAML skin loading is introduced.
+
+## Main window and menus
+
+The main-window client area, menu bar, menu/context popups, separators and menu-item highlight/disabled/focus/check/submenu states share the active palette. Menus.xaml supplies painted templates while preserving WPF MenuItem roles, PART_Popup, routed commands, access keys, input-gesture text and keyboard navigation. Already-open popups update with the same dynamic brushes. The main theme selector also refreshes on activation after a workspace changes appearance.
+
+The native main-window title bar uses Windows 11 DWM caption/text/border colors from the palette, applied after handle creation and on live skin changes. Standard Windows caption buttons, dragging, resizing and system menus remain native. Older Windows retain system chrome; native high-contrast mode resets caption colors to system defaults on application. Unsupported DWM attributes do not prevent startup. See Microsoft's DWMWINDOWATTRIBUTE documentation: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute.
+
+MainWindowThemeSmoke renders the actual main window/menu under all four skins, switches while a submenu is open, checks disabled commands, nested/checkable/context items, keyboard Down/Enter and routed command execution, and reads Windows 11 caption attributes. Main/menu screenshots are added to the custom-mapping-preview artifact.

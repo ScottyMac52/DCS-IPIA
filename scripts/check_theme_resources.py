@@ -37,6 +37,11 @@ for filename in ("MainWindow.xaml", "SettingsWindow.xaml"):
 for path in (ROOT / "Themes").glob("*.xaml"):
     if re.search(r"\{StaticResource \w+Brush\}", path.read_text(encoding="utf-8-sig")):
         problems.append(f"Fixed palette reference in {path.name}; use DynamicResource")
+menu_styles = (ROOT / "Themes" / "Menus.xaml")
+if not menu_styles.exists():
+    problems.append("Missing shared menu templates: Menus.xaml")
+else:
+    styles.update(keys(menu_styles))
 styles.update(keys(ROOT / "Themes" / "Controls.xaml"))
 if missing := used - light - styles:
     problems.append(f"Unresolved dynamic resources: {sorted(missing)}")

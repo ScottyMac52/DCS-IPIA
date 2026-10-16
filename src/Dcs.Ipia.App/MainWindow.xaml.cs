@@ -92,6 +92,8 @@ namespace DcsIpia.Presentation
             _supportReports = supportReports;
             InitializeComponent();
             BindMainCommands();
+            SourceInitialized += (_, _) => WindowThemeChrome.Apply(this);
+            Activated += (_, _) => ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             if (profile is not null)
                 ProfileIndicator.Text = (profile.IsTest ? "TEST PROFILE: " : "Profile: ") + profile.Name + " · " + profile.DataDirectory +

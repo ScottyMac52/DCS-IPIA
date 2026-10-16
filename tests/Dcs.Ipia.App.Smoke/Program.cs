@@ -28,7 +28,7 @@ namespace Dcs.Ipia.App.Smoke
             LoggingSmoke.Verify();
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
             var app = new System.Windows.Application();
-            foreach (var theme in new[] { "Light", "Styles", "Controls" })
+            foreach (var theme in new[] { "Light", "Styles", "Controls", "Menus" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
                     Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute)
@@ -40,6 +40,7 @@ namespace Dcs.Ipia.App.Smoke
             defaultsWindow.UpdateLayout();
             Console.WriteLine("Smoke: rendered theme control states and dropdown keyboard behavior.");
             ThemeControlSmoke.Verify();
+            MainWindowThemeSmoke.Verify();
             VerifySharedDefaultBindingEditor();
             Console.WriteLine("Smoke: module deletion.");
             VerifyModuleDeleteButton();
