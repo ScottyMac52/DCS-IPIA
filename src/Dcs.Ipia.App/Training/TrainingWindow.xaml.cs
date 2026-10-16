@@ -225,7 +225,7 @@ namespace DcsIpia.Presentation
                 ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + delta);
             }
             ApplicationViewport.UpdateLayout();
-            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ContextIdle);
+            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
             var viewport = new Rect(0, 0, vw, vh);
             viewport.Inflate(4, 4);
             AreDragEndpointsVisible = viewport.Contains(source.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(source.RenderSize))) &&
