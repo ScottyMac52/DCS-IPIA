@@ -210,5 +210,22 @@
     <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
     <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="4,2"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource SelectedBackgroundBrush}"/>
+    <Setter Property="SelectionTextBrush" Value="{DynamicResource ControlForegroundBrush}"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource ControlForegroundBrush}"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+      <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"/>
+      </Border>
+    </ControlTemplate></Setter.Value></Setter>
+    <Style.Triggers>
+      <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}"/></Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="{DynamicResource DisabledBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
+      </Trigger>
+    </Style.Triggers>
   </Style>
 </ResourceDictionary>

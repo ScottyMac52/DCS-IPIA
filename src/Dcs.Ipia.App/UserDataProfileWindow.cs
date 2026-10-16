@@ -80,7 +80,7 @@ namespace DcsIpia.Presentation
                 FileName = "IPIA-before-reset-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip",
                 OverwritePrompt = false };
             if (picker.ShowDialog(this) != true) return;
-            if (MessageBox.Show(this, "Reset " + _profile.Name + " at\n" + _profile.DataDirectory +
+            if (ThemeMessageBox.Show(this, "Reset " + _profile.Name + " at\n" + _profile.DataDirectory +
                 "?\n\nThis removes saved modules, settings, artwork and setup completion from this profile. A full verified backup is mandatory and the original directory is retained. DCS files stay untouched; existing deployments must be inspected manually before deploying again. IPIA will close; restart using the same profile arguments.",
                 "Confirm destructive profile reset", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
             _busy = true;

@@ -23,6 +23,7 @@ namespace DcsIpia.Presentation
         /// <param name="loggerFactory">Shared factory, disposed after database shutdown.</param>
         public App(ILogger<App> logger, ILoggerFactory loggerFactory)
         {
+            ApplicationTheme.Initialize();
             _logger = logger;
             _loggerFactory = loggerFactory;
             DispatcherUnhandledException += (_, e) => ApplicationLog.DispatcherFailure(_logger, e.Exception);
@@ -45,7 +46,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 ApplicationLog.InvalidProfile(_logger, ex);
-                MessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ThemeMessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;
             }
@@ -68,7 +69,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 ApplicationLog.DataLockFailure(_logger, userFolder, ex);
-                MessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
+                ThemeMessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
                     "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;

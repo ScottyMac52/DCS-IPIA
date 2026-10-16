@@ -103,7 +103,7 @@ namespace DcsIpia.Presentation
             {
                 _status.Text = "Verifying archive checksums, database integrity and schema compatibility…";
                 var info = await Task.Run(() => _recovery.Inspect(path));
-                var confirmed = _restoreConfirmation?.Invoke() ?? MessageBox.Show(this,
+                var confirmed = _restoreConfirmation?.Invoke() ?? ThemeMessageBox.Show(this,
                     $"Replace saved user data with this verified backup ({info.FileCount} files; app {info.ApplicationVersion}; database schema {info.DatabaseSchemaVersion})?\n\nThe previous directory will be retained beside the active data. A verified safety archive is also created when the current database is readable. IPIA must close and restart. DCS files remain untouched. Restored deployment records require review.",
                     "Confirm user-data restore", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
                 if (!confirmed) { _status.Text = "Restore cancelled; current data is unchanged."; return; }
@@ -118,7 +118,7 @@ namespace DcsIpia.Presentation
         private void ReviewClicked(object sender, RoutedEventArgs e)
         {
             if (_busy || RequiresRestart || _recovery.DeploymentReview is not { } record) return;
-            if (MessageBox.Show(this, "This record may describe another computer or an earlier state:\n\n" + record +
+            if (ThemeMessageBox.Show(this, "This record may describe another computer or an earlier state:\n\n" + record +
                 "\n\nForget this restored record without deleting or restoring any DCS files? Existing deployed files remain on disk and are no longer managed by Clear. Inspect and clean them manually before deploying again. The backup and retained original directory keep the old evidence.",
                 "Review restored deployment", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
             try { _recovery.ForgetReviewedDeployment(); _review.IsEnabled = false; _status.Text = "Restored record forgotten. No DCS files were changed. Inspect existing files before deploying again."; }

@@ -435,7 +435,7 @@ namespace DcsIpia.Presentation
         private void ConfirmClose(object? sender, CancelEventArgs e)
         {
             if (HasPendingChanges() &&
-                MessageBox.Show(this, "Discard unsaved command, page, device, modifier, assignment, and label changes?", "Pending changes",
+                ThemeMessageBox.Show(this, "Discard unsaved command, page, device, modifier, assignment, and label changes?", "Pending changes",
                                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 e.Cancel = true;
         }

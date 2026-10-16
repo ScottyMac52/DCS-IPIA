@@ -4,14 +4,7 @@
         Title="IPIA Training — isolated sample configuration" Width="1620" Height="1000"
         MinWidth="1280" MinHeight="800" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
-  <Window.Resources>
-    <Style TargetType="Label">
-      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-    </Style>
-    <Style TargetType="CheckBox" BasedOn="{StaticResource AppCheckBox}">
-      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-    </Style>
-  </Window.Resources>
+
   <Grid Margin="12">
     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="360"/></Grid.ColumnDefinitions>
     <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,12,0">

@@ -65,8 +65,8 @@ namespace Dcs.Ipia.App.Smoke
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(choices, 6, 6, "ControlBackgroundBrush");
-                    AssertPixel(legacyText, 6, 6, "SurfaceBrush");
-                    AssertPixel(legacyChoice, 6, 6, "SurfaceBrush");
+                    AssertPixel(legacyText, 6, 6, "ControlBackgroundBrush");
+                    AssertPixel(legacyChoice, 6, 6, "ControlBackgroundBrush");
                     if (legacyText.Foreground is not SolidColorBrush foreground || foreground.Color != Brush("PrimaryTextBrush") ||
                         legacyLabel.Foreground is not SolidColorBrush label || label.Color != Brush("PrimaryTextBrush") ||
                         legacyCheck.Foreground is not SolidColorBrush check || check.Color != Brush("PrimaryTextBrush"))
@@ -112,13 +112,13 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void Pump(Window window)
+        internal static void Pump(Window window)
         {
             window.UpdateLayout();
             window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
             window.UpdateLayout();
         }
-        private static void Press(UIElement control, Key key) => control.RaiseEvent(new KeyEventArgs(
+        internal static void Press(UIElement control, Key key) => control.RaiseEvent(new KeyEventArgs(
             Keyboard.PrimaryDevice, PresentationSource.FromVisual(control)!, 0, key) { RoutedEvent = Keyboard.KeyDownEvent });
         private static Color Brush(string key) => ((SolidColorBrush)System.Windows.Application.Current.FindResource(key)).Color;
         private static CroppedBitmap Render(FrameworkElement control)
@@ -134,19 +134,19 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Control capture is outside its surface: " + rectangle + " within " + image.PixelWidth + "x" + image.PixelHeight + ".");
             return new CroppedBitmap(image, rectangle);
         }
-        private static void AssertPixel(FrameworkElement control, int x, int y, string key)
+        internal static void AssertPixel(FrameworkElement control, int x, int y, string key)
         {
             var pixels = new byte[4]; Render(control).CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
             var actual = Color.FromArgb(pixels[3], pixels[2], pixels[1], pixels[0]);
             if (actual != Brush(key)) throw new InvalidOperationException(control.GetType().Name + " rendered " + actual + " instead of " + key + ".");
         }
-        private static void AssertText(DependencyObject control, string text, string key)
+        internal static void AssertText(DependencyObject control, string text, string key)
         {
             var labels = Children(control).OfType<TextBlock>().Where(x => new TextRange(x.ContentStart, x.ContentEnd).Text.Contains(text, StringComparison.Ordinal)).ToArray();
             if (labels.Length == 0 || labels.Any(x => x.Foreground is not SolidColorBrush brush || brush.Color != Brush(key)))
                 throw new InvalidOperationException("Rendered text '" + text + "' did not use " + key + ".");
         }
-        private static IEnumerable<DependencyObject> Children(DependencyObject root)
+        internal static IEnumerable<DependencyObject> Children(DependencyObject root)
         {
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
             {
@@ -154,7 +154,7 @@ namespace Dcs.Ipia.App.Smoke
                 foreach (var descendant in Children(child)) yield return descendant;
             }
         }
-        private static void SaveImage(FrameworkElement control, string name)
+        internal static void SaveImage(FrameworkElement control, string name)
         {
             var folder = Environment.GetEnvironmentVariable("IPIA_MAPPING_PREVIEW");
             if (string.IsNullOrWhiteSpace(folder)) return;

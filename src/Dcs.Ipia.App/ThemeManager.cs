@@ -24,6 +24,8 @@ namespace DcsIpia.Presentation
                     Source =
                         new Uri($"pack://application:,,,/Dcs.Ipia.App;component/Themes/{selected}.xaml", UriKind.Absolute)
                 };
+                foreach (var window in Application.Current.Windows.OfType<Window>())
+                    WindowThemeChrome.Apply(window);
                 return;
             }
             throw new InvalidOperationException("The application theme dictionary is missing.");

@@ -18,4 +18,23 @@
   <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#315B8E"/>
   <SolidColorBrush x:Key="DisabledTextBrush" Color="#B8C5D8"/>
   <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#25334A"/>
+  <SolidColorBrush x:Key="ErrorTextBrush" Color="#FFB4B4"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#23334D"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightLightBrushKey}" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="#627A9B"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkDarkBrushKey}" Color="#627A9B"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#B8C5D8"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#315B8E"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#315B8E"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InfoBrushKey}" Color="#23334D"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F8FAFC"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ScrollBarBrushKey}" Color="#1B2B42"/>
 </ResourceDictionary>

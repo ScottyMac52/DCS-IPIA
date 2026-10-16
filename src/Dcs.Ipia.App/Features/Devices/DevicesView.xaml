@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="DcsIpia.Features.Devices.DevicesView"
+<UserControl x:Class="DcsIpia.Features.Devices.DevicesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
@@ -37,7 +37,7 @@
                     <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
-            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"/>
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}"/>
             <GroupBox Grid.Column="2" Header="Device" Padding="12" Margin="4,0,0,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
