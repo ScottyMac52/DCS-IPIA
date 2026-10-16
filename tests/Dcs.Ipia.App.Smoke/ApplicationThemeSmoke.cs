@@ -86,6 +86,17 @@ namespace Dcs.Ipia.App.Smoke
                         throw new InvalidOperationException("Generated table checkbox lost its themed display behavior: template=" +
                             (check.Template.FindName("Check", check) is not null) + "; hitTest=" + check.IsHitTestVisible +
                             "; defaultStyle=" + ReferenceEquals(check.Style, DataGridCheckBoxColumn.DefaultElementStyle));
+                    grid.CurrentCell = new DataGridCellInfo(grid.Items[0], grid.Columns[1]);
+                    if (!grid.BeginEdit()) throw new InvalidOperationException("Themed boolean column would not enter edit mode.");
+                    ThemeControlSmoke.Pump(fixture);
+                    var booleanEditor = ThemeControlSmoke.Children(grid).OfType<CheckBox>().First();
+                    if (booleanEditor.Template.FindName("Check", booleanEditor) is null || !booleanEditor.IsHitTestVisible)
+                        throw new InvalidOperationException("Generated boolean editor lost its theme or interactivity.");
+                    var booleanValue = !(bool)table.Rows[0]["Enabled"];
+                    booleanEditor.IsChecked = booleanValue;
+                    grid.CommitEdit(DataGridEditingUnit.Cell, true); grid.CommitEdit();
+                    if ((bool)table.Rows[0]["Enabled"] != booleanValue)
+                        throw new InvalidOperationException("Boolean table edit was not committed.");
                     Keyboard.Focus(slider); var before = slider.Value; ThemeControlSmoke.Press(slider, Key.Right);
                     if (slider.Value <= before) throw new InvalidOperationException("Themed slider lost keyboard adjustment.");
                     scroll.ScrollToVerticalOffset(80); ThemeControlSmoke.Pump(fixture);
