@@ -21,6 +21,18 @@ namespace DcsIpia.Presentation
                     window.SetResourceReference(Window.ForegroundProperty, "PrimaryTextBrush");
                     WindowThemeChrome.Apply(window);
                 }));
+            EventManager.RegisterClassHandler(typeof(CheckBox), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler((sender, args) =>
+                {
+                    if (sender is not CheckBox check) return;
+                    var display = ReferenceEquals(check.Style, DataGridCheckBoxColumn.DefaultElementStyle);
+                    var editing = ReferenceEquals(check.Style, DataGridCheckBoxColumn.DefaultEditingElementStyle);
+                    if (!display && !editing) return;
+                    var style = new Style(typeof(CheckBox), (Style)check.FindResource(typeof(CheckBox)));
+                    foreach (var setter in (display ? DataGridCheckBoxColumn.DefaultElementStyle :
+                        DataGridCheckBoxColumn.DefaultEditingElementStyle).Setters) style.Setters.Add(setter);
+                    check.Style = style;
+                }), true);
             EventManager.RegisterClassHandler(typeof(DataGrid), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler((sender, args) =>
                 {
