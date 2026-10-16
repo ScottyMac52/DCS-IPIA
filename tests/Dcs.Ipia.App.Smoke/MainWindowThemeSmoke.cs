@@ -63,7 +63,7 @@ namespace Dcs.Ipia.App.Smoke
                     ThemeControlSmoke.AssertPixel(window, 5, (int)menu.ActualHeight + 8, "WindowBackgroundBrush");
                     ThemeControlSmoke.AssertPixel(menu, (int)menu.ActualWidth - 10, 5, "SurfaceBrush");
                     ThemeControlSmoke.AssertPixel(file, 3, 3, "SelectedBackgroundBrush");
-                    ThemeControlSmoke.AssertPixel(action, 3, 3, "ControlBackgroundBrush");
+                    ThemeControlSmoke.AssertPixel(action, 3, 3, action.IsHighlighted ? "SelectedBackgroundBrush" : "ControlBackgroundBrush");
                     ThemeControlSmoke.AssertText(action, "Theme smoke action", "ControlForegroundBrush");
                     ThemeControlSmoke.AssertText(disabled, "New module", "DisabledTextBrush");
                     if (disabled.IsEnabled) throw new InvalidOperationException("Disabled main-menu command was enabled by styling.");
@@ -82,12 +82,15 @@ namespace Dcs.Ipia.App.Smoke
                     Keyboard.Focus(action); ThemeControlSmoke.Pump(window);
                     ThemeControlSmoke.AssertPixel(action, 0, 8, "AccentTextBrush");
                     ThemeControlSmoke.Press(action, Key.Enter); ThemeControlSmoke.Pump(window);
-                    if (calls != (int)skin + 1 || file.IsSubmenuOpen)
+                    if (calls != (int)skin * 2 + 1 || file.IsSubmenuOpen)
                         throw new InvalidOperationException("Enter did not invoke the routed menu command and close the popup.");
                     context.IsOpen = true; ThemeControlSmoke.Pump(window);
-                    ThemeControlSmoke.AssertPixel(contextAction, 3, 3, "ControlBackgroundBrush");
+                    ThemeControlSmoke.AssertPixel(contextAction, 3, 3, contextAction.IsHighlighted ? "SelectedBackgroundBrush" : "ControlBackgroundBrush");
                     ThemeControlSmoke.AssertText(contextAction, "Context action", "ControlForegroundBrush");
-                    context.IsOpen = false;
+                    Keyboard.Focus(contextAction); ThemeControlSmoke.Press(contextAction, Key.Enter);
+                    ThemeControlSmoke.Pump(window);
+                    if (calls != (int)skin * 2 + 2 || context.IsOpen)
+                        throw new InvalidOperationException("The themed context command did not execute and close.");
                 }
             }
             finally
