@@ -51,6 +51,39 @@ empty diff does not clear inherited axes. Review the
 DCS itself, including generating Controls HTML/default captures and in-game input
 verification, is not automated by training.
 
+## Run the training smoke checks locally
+
+From the repository root on Windows, with the .NET 10 SDK installed, run:
+
+```powershell
+dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj -c Release
+```
+
+This builds and runs the full WPF smoke executable, which includes
+`TrainingSmoke.Verify()` for both training scenarios. There is currently no
+training-only command-line switch. Look for `Smoke: interactive training.` in
+the console output. The checks advance the real controls automatically, including
+restart, completed-scenario cleanup, and exit while paused in the axis editor.
+They verify that no hidden training windows remain and that unrelated windows
+stay open. Run this in an interactive Windows desktop session so WPF can open
+its test windows.
+
+To save preview screenshots as well (PowerShell):
+
+```powershell
+$env:IPIA_MAPPING_PREVIEW = Join-Path $env:TEMP "DCS-IPIA-smoke-previews"
+try {
+    dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj -c Release
+}
+finally {
+    Remove-Item Env:IPIA_MAPPING_PREVIEW
+}
+```
+
+After building the smoke project in Release, you can append `--no-build` to
+either run command. Building only the application project does not build the
+smoke executable.
+
 ## Maintenance and validation
 
 Scenario narration/targets/checkpoints live in versioned JSON under
