@@ -18,7 +18,7 @@ namespace DcsIpia.Presentation
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             InitializeComponent();
-            ThemeChoice.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
+            ThemeChoice.SelectedIndex = (int)_settings.Current.Theme;
             ConflictChoice.SelectedIndex = (int)_settings.Current.OccupiedDestinationBehavior;
             SaveStatus.Text = _settings.LastError ?? string.Empty;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
@@ -35,6 +35,16 @@ namespace DcsIpia.Presentation
             if (picker.ShowDialog(this) != true) return;
             SaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(picker.FolderName) ? "Saved Games DCS Folder saved." : _settings.LastError;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
+        }
+
+        private void ResetAppearanceClicked(object sender, RoutedEventArgs e)
+        {
+            // Persist even when Light is already selected, so a previous save failure can be retried.
+            _ready = false;
+            ThemeChoice.SelectedIndex = (int)AppearanceTheme.Light;
+            _ready = true;
+            ThemeManager.Apply(nameof(AppearanceTheme.Light));
+            SaveStatus.Text = _settings.TryUpdateTheme(AppearanceTheme.Light) ? "Default appearance saved." : _settings.LastError;
         }
 
         private void ThemeChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)

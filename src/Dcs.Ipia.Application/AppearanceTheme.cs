@@ -4,6 +4,8 @@ namespace Dcs.Ipia.Application
     public enum AppearanceTheme
     {
         Light,
-        Dark
+        Dark,
+        NavyAmber,
+        CockpitGreen
     }
 }

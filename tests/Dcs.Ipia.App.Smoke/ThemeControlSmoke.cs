@@ -14,7 +14,7 @@ namespace Dcs.Ipia.App.Smoke
     public static class ThemeControlSmoke
     {
         #region BEGIN Public
-        /// <summary>Reproduces selected navigation, disabled actions, dropdowns and expander headers in both themes.</summary>
+        /// <summary>Reproduces selected navigation, disabled actions, dropdowns and expander headers in all four skins, including legacy explicit styles.</summary>
         public static void Verify()
         {
             var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
@@ -35,16 +35,25 @@ namespace Dcs.Ipia.App.Smoke
             choices.Items.Add(new ComboBoxItem { Content = "Unavailable controller", IsEnabled = false });
             choices.SelectedIndex = 0;
             var details = new Expander { Header = "_Import details", Content = new TextBlock { Text = "Imported profiles" } };
+            var legacyText = new TextBox { Text = "Legacy input", Width = 240, Height = 30,
+                Style = (Style)System.Windows.Application.Current.FindResource("AppTextBox") };
+            var legacyChoice = new ComboBox { Width = 240, Height = 30,
+                Style = (Style)System.Windows.Application.Current.FindResource("AppComboBox") };
+            legacyChoice.Items.Add("Legacy selection"); legacyChoice.SelectedIndex = 0;
+            var legacyLabel = new TextBlock { Text = "Legacy label",
+                Style = (Style)System.Windows.Application.Current.FindResource("AppLabel") };
+            var legacyCheck = new CheckBox { Content = "Legacy checkbox", IsChecked = true,
+                Style = (Style)System.Windows.Application.Current.FindResource("AppCheckBox") };
             var panel = new StackPanel { Margin = new Thickness(20) };
-            foreach (var child in new FrameworkElement[] { tabs, scope, choices, enabled, disabled, details })
+            foreach (var child in new FrameworkElement[] { tabs, scope, choices, enabled, disabled, details, legacyText, legacyChoice, legacyLabel, legacyCheck })
             { child.Margin = new Thickness(0, 4, 0, 4); panel.Children.Add(child); }
-            var window = new Window { Title = "Theme control regression", Width = 680, Height = 460, Content = panel };
+            var window = new Window { Title = "Theme control regression", Width = 680, Height = 660, Content = panel };
             window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush");
             window.SetResourceReference(Window.ForegroundProperty, "PrimaryTextBrush");
             try
             {
                 window.Show(); window.Activate();
-                foreach (var theme in new[] { "Dark", "Light", "Dark" })
+                foreach (var theme in new[] { "Dark", "NavyAmber", "CockpitGreen", "Light", "Dark" })
                 {
                     dictionaries[index] = new ResourceDictionary { Source = new Uri(
                         "pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
@@ -56,6 +65,12 @@ namespace Dcs.Ipia.App.Smoke
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(choices, 6, 6, "ControlBackgroundBrush");
+                    AssertPixel(legacyText, 6, 6, "SurfaceBrush");
+                    AssertPixel(legacyChoice, 6, 6, "SurfaceBrush");
+                    if (legacyText.Foreground is not SolidColorBrush foreground || foreground.Color != Brush("PrimaryTextBrush") ||
+                        legacyLabel.Foreground is not SolidColorBrush label || label.Color != Brush("PrimaryTextBrush") ||
+                        legacyCheck.Foreground is not SolidColorBrush check || check.Color != Brush("PrimaryTextBrush"))
+                        throw new InvalidOperationException("Legacy explicit styles retained a previous palette.");
                     AssertText(selected, "Devices", "ControlForegroundBrush");
                     AssertText(disabled, "Export module snapshot", "DisabledTextBrush");
                     AssertText(scope, "Module", "DisabledTextBrush");

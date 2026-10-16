@@ -136,6 +136,39 @@ namespace Dcs.Ipia.Tests
                 Directory.Delete(folder, true);
             }
         }
+        /// <summary>Each built-in skin persists independently in its own migrated user-profile database.</summary>
+        /// <returns>Completion of the profile-isolation and preference round-trip checks.</returns>
+        [Theory]
+        [InlineData(AppearanceTheme.Light)]
+        [InlineData(AppearanceTheme.Dark)]
+        [InlineData(AppearanceTheme.NavyAmber)]
+        [InlineData(AppearanceTheme.CockpitGreen)]
+        public async Task Built_in_skins_round_trip_without_changing_other_profiles(AppearanceTheme theme)
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "ipia-skins-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var selected = "Data Source=" + Path.Combine(folder, "selected.db") + ";Pooling=False";
+                var other = "Data Source=" + Path.Combine(folder, "other.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(selected).MigrateAsync();
+                await new SqliteMigrationRunner(other).MigrateAsync();
+                SqliteAppSettingsService Open(string connection) => new(connection,
+                    Path.Combine(folder, "defaults.json"), Path.Combine(folder, "legacy.json"),
+                    Path.Combine(folder, "theme.txt"));
+                var settings = Open(selected);
+                Assert.True(settings.TryUpdateOccupiedDestinationBehavior(OccupiedDestinationBehavior.Reject));
+                Assert.True(settings.TryUpdateTheme(theme));
+                Assert.Equal(theme, Open(selected).Current.Theme);
+                Assert.Equal(OccupiedDestinationBehavior.Reject, Open(selected).Current.OccupiedDestinationBehavior);
+                Assert.Equal(AppearanceTheme.Light, Open(other).Current.Theme);
+                Assert.Equal(OccupiedDestinationBehavior.Ask, Open(other).Current.OccupiedDestinationBehavior);
+                Assert.True(settings.TryUpdateTheme(AppearanceTheme.Light));
+                Assert.Equal(AppearanceTheme.Light, Open(selected).Current.Theme);
+                Assert.Equal(OccupiedDestinationBehavior.Reject, Open(selected).Current.OccupiedDestinationBehavior);
+            }
+            finally { Directory.Delete(folder, true); }
+        }
         #endregion END Public
     }
 }

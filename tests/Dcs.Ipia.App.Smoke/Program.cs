@@ -286,7 +286,56 @@ namespace Dcs.Ipia.App.Smoke
                             .Current.OccupiedDestinationBehavior != OccupiedDestinationBehavior.Reject)
                     throw new InvalidOperationException(
                         "Settings window did not apply and save theme and destination preferences.");
+                var skinChoice = (ComboBox)WorkspaceUi.Find(preferencesWindow, "ThemeChoice")!;
+                foreach (var skin in Enum.GetValues<AppearanceTheme>())
+                {
+                    skinChoice.SelectedIndex = (int)skin;
+                    preferencesWindow.UpdateLayout();
+                    var saved = new SqliteAppSettingsService(preferenceConnection,
+                        Path.Combine(preferencesRoot, "defaults.json"), Path.Combine(preferencesRoot, "user-settings.json"),
+                        Path.Combine(preferencesRoot, "theme.txt"));
+                    if (settings.Current.Theme != skin || saved.Current.Theme != skin ||
+                        saved.Current.OccupiedDestinationBehavior != OccupiedDestinationBehavior.Reject)
+                        throw new InvalidOperationException("Skin selection failed to apply/persist: " + skin);
+                    var palette = app.Resources.MergedDictionaries.Single(x =>
+                        x.Source?.OriginalString.EndsWith("/" + skin + ".xaml", StringComparison.Ordinal) == true);
+                    if (palette is null) throw new InvalidOperationException("Skin was not applied immediately.");
+                    var reopened = new SettingsWindow(saved);
+                    reopened.Show(); reopened.UpdateLayout();
+                    if (((ComboBox)WorkspaceUi.Find(reopened, "ThemeChoice")!).SelectedIndex != (int)skin)
+                        throw new InvalidOperationException("Settings reopened with the wrong skin.");
+                    reopened.Close();
+                }
+                var reset = (Button)WorkspaceUi.Find(preferencesWindow, "ResetAppearance")!;
+                reset.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                reset.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (settings.Current.Theme != AppearanceTheme.Light || skinChoice.SelectedIndex != 0 ||
+                    settings.Current.OccupiedDestinationBehavior != OccupiedDestinationBehavior.Reject)
+                    throw new InvalidOperationException("Appearance reset changed unrelated settings or failed.");
                 preferencesWindow.Close();
+                var mainSettings = new SqliteAppSettingsService(preferenceConnection,
+                    Path.Combine(preferencesRoot, "defaults.json"), Path.Combine(preferencesRoot, "user-settings.json"),
+                    Path.Combine(preferencesRoot, "theme.txt"));
+                if (mainSettings.Current.Theme != AppearanceTheme.Light)
+                    throw new InvalidOperationException("Default appearance was not persisted.");
+                foreach (var skin in Enum.GetValues<AppearanceTheme>())
+                {
+                    mainSettings.TryUpdateTheme(skin);
+                    var main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(),
+                        new global::Dcs.Ipia.Dcs.DcsFolderImporter(), mainSettings,
+                        new SqliteEditorWorkspaceRepository(preferenceConnection), deviceDiscovery: new EmptyDeviceDiscovery());
+                    try
+                    {
+                        main.Show(); main.UpdateLayout();
+                        var picker = (ComboBox)WorkspaceUi.Find(main, "ThemePicker")!;
+                        if (picker.SelectedIndex != (int)skin || mainSettings.Current.Theme != skin)
+                            throw new InvalidOperationException("Main window lost its saved skin on startup.");
+                        picker.SelectedIndex = ((int)skin + 1) % Enum.GetValues<AppearanceTheme>().Length;
+                        if ((int)mainSettings.Current.Theme != picker.SelectedIndex)
+                            throw new InvalidOperationException("Main window skin selector failed to persist.");
+                    }
+                    finally { main.Close(); }
+                }
             }
             finally
             {
