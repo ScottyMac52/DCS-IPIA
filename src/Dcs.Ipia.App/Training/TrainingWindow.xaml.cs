@@ -350,9 +350,14 @@ namespace DcsIpia.Presentation
         {
             ClearHighlight();
             ApplicationView.Content = null;
-            _mountedContent.Clear();
+            // Discard the isolated draft and stop its input session before closing any remaining hosts.
             _actions?.Dispose();
             _actions = null;
+            // WPF registers even unshown Windows in Application.Windows. The creation/import form
+            // can be replaced by the axis editor, so closing only TrainingActions' latest references
+            // leaves invisible windows keeping OnLastWindowClose (and dotnet run) alive.
+            foreach (var window in _mountedContent.Keys.ToArray()) window.Close();
+            _mountedContent.Clear();
         }
         #endregion END private helpers
     }

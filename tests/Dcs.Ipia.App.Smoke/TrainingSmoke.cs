@@ -20,6 +20,7 @@ namespace Dcs.Ipia.App.Smoke
         /// <summary>Checks scenario completion, independent intermediate state, restart, failure recovery and cleanup.</summary>
         public static void Verify()
         {
+            var existingWindows = System.Windows.Application.Current.Windows.Cast<Window>().ToHashSet();
             var window = new TrainingWindow();
             window.Show();
             PumpUntil(() => window.Runner is not null, "Training did not initialize.");
@@ -100,14 +101,54 @@ namespace Dcs.Ipia.App.Smoke
                 var profile = Directory.GetFiles(root, "*.diff.lua", SearchOption.AllDirectories).Single();
                 if (File.ReadAllText(profile) != TrainingAssets.Read("profile.lua"))
                     throw new InvalidOperationException("Training changed imported source data.");
+                Click(restart);
+                PumpUntil(() => window.Runner!.State == TrainingState.Ready, "Completed scenario did not restart.");
+                CheckRetainedWindows(existingWindows, window);
+                if (Directory.Exists(root)) throw new InvalidOperationException("Restart retained completed scenario data.");
             }
             var lastDirectory = window.TrainingDirectory!;
             window.Close();
             PumpUntil(() => !window.IsVisible, "Exit training did not close.");
             if (Directory.Exists(lastDirectory)) throw new InvalidOperationException("Training did not clean its data.");
+            CheckRetainedWindows(existingWindows);
+            VerifyAxisEditorExit(existingWindows);
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void CheckRetainedWindows(HashSet<Window> existingWindows, Window? training = null)
+        {
+            var retained = System.Windows.Application.Current.Windows.Cast<Window>()
+                .Where(window => !existingWindows.Contains(window) && !ReferenceEquals(window, training)).ToArray();
+            if (retained.Length != 0)
+                throw new InvalidOperationException("Training retained hidden WPF windows that prevent application shutdown: " +
+                    string.Join(", ", retained.Select(window => window.GetType().Name)));
+            if (existingWindows.Any(window => !System.Windows.Application.Current.Windows.Cast<Window>().Contains(window)))
+                throw new InvalidOperationException("Training cleanup closed an unrelated application window.");
+        }
+        private static void VerifyAxisEditorExit(HashSet<Window> existingWindows)
+        {
+            // The axis editor replaces the creation form reference while a dirty workspace is still mounted.
+            // Exiting at this checkpoint must close all three unshown host windows without a discard prompt.
+            var window = new TrainingWindow();
+            window.Show();
+            PumpUntil(() => window.Runner is not null, "Early-exit training did not initialize.");
+            var next = (Button)window.FindName("NextButton");
+            var scenario = (TrainingScenario)((ComboBox)window.FindName("ScenarioChoice")).SelectedItem;
+            foreach (var step in scenario.Steps)
+            {
+                Click(next);
+                PumpUntil(() => !window.Runner!.IsBusy, "Early-exit step did not settle: " + step.Id);
+                if (window.Runner!.State == TrainingState.Failed) throw new InvalidOperationException(window.Runner.Error);
+                if (step.Action == "axis-options") break;
+            }
+            if (window.Runner!.CurrentStep?.Action != "axis-options")
+                throw new InvalidOperationException("Early-exit smoke did not reach the axis editor.");
+            var directory = window.TrainingDirectory!;
+            window.Close();
+            PumpUntil(() => !window.IsVisible, "Training exit from the axis editor did not finish.");
+            CheckRetainedWindows(existingWindows);
+            if (Directory.Exists(directory)) throw new InvalidOperationException("Early exit retained training data.");
+        }
         private static void CheckTrainingState(TrainingWindow window, string action)
         {
             var root = (FrameworkElement)((ContentControl)window.FindName("ApplicationView")).Content;
