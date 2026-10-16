@@ -102,6 +102,8 @@ namespace DcsIpia.Presentation
             target.BringIntoView();
             target.UpdateLayout();
             _highlight(target);
+            // ScrollViewer applies queued offsets during layout. Finish the step after that work settles.
+            await Dispatcher.Yield(DispatcherPriority.ContextIdle);
         }
         /// <summary>Releases the isolated views and simulated input source.</summary>
         public void Dispose()
