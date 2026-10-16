@@ -62,7 +62,10 @@ for required in ("DataGrid", "DataGridCell", "DataGridColumnHeader", "ListBox", 
         problems.append(f"Missing shared appearance style: {required}")
 for path in ROOT.rglob("*.cs"):
     if path.name != "ThemeMessageBox.cs" and not any(part in {"obj", "bin"} for part in path.parts):
-        if re.search(r"(?<!Theme)MessageBox\.Show\(", path.read_text(encoding="utf-8-sig")):
+        source = path.read_text(encoding="utf-8-sig")
+        if re.search(r"Brushes\.(?:White|Black|Gray|DarkRed|Gold|Yellow|SlateGray|SteelBlue|LemonChiffon|DarkGoldenrod)\b", source):
+            problems.append(f"Fixed interactive UI brush in {path.relative_to(ROOT)}")
+        if re.search(r"(?<!Theme)MessageBox\.Show\(", source):
             problems.append(f"Unthemed message dialog in {path.relative_to(ROOT)}")
 if problems:
     print("\n".join(problems), file=sys.stderr)
