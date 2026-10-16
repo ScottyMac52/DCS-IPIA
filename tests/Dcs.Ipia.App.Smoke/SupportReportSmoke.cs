@@ -41,9 +41,9 @@ namespace Dcs.Ipia.App.Smoke
                 cancelled.Close();
                 var help = new WorkflowHelpWindow();
                 help.Show(); help.UpdateLayout();
-                var tabs = (TabControl)help.Content;
-                var topics = tabs.Items.Cast<TabItem>().Select(x => ((TextBox)x.Content).Text).ToArray();
-                if (!help.Title.Contains(ApplicationVersion.Label, StringComparison.Ordinal) || tabs.Items.Count != 4 ||
+                var tabs = ThemeControlSmoke.Children(help).OfType<TabControl>().Single();
+                var topics = tabs.Items.Cast<TabItem>().Select(x => x.Content).OfType<TextBox>().Select(x => x.Text).ToArray();
+                if (!help.Title.Contains(ApplicationVersion.Label, StringComparison.Ordinal) || tabs.Items.Count != 5 ||
                     !topics[0].Contains(ApplicationVersion.Label, StringComparison.Ordinal) ||
                     !topics[1].Contains("--test-profile", StringComparison.Ordinal) ||
                     !topics[2].Contains("GUIDs", StringComparison.Ordinal) || !topics[3].Contains("user-owned", StringComparison.Ordinal))

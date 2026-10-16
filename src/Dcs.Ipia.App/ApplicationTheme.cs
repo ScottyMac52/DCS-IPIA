@@ -26,6 +26,7 @@ namespace DcsIpia.Presentation
                     if (sender is not Window window || !ReferenceEquals(args.OriginalSource, window)) return;
                     window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush");
                     window.SetResourceReference(Window.ForegroundProperty, "PrimaryTextBrush");
+                    window.Icon ??= ApplicationBranding.Icon;
                     WindowThemeChrome.Apply(window);
                 }));
 

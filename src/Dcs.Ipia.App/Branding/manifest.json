@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sha256": {
+    "scripts/generate_flight_patch.py": "fda66e8df7da4b0ae26376c559c124221219a86ad1e845f78e2d20d19f676080",
+    "src/Dcs.Ipia.App/Branding/flight-patch-banner.png": "2f0ce832cecd6ae5fd592f87bf12ba4629a76d84ff271a2fc31c09f873c7b59a",
+    "src/Dcs.Ipia.App/Branding/flight-patch-banner.svg": "8e161bd0edcb90bbfcc6972aa3411ae133c58b9e9a26e106630781c3b46578f5",
+    "src/Dcs.Ipia.App/Branding/flight-patch-compact.svg": "cdcd4dc3a0f8888f67186564213a52d7a9c0a86d4e940e6c85b9b97cd8c89ce3",
+    "src/Dcs.Ipia.App/Branding/flight-patch.ico": "de68cf699b30ee97f58a16aff4592b3c5f274f9a5df3d9a542928a766c4feb0e",
+    "src/Dcs.Ipia.App/Branding/flight-patch.png": "e555d081ccc57197976dcd55be9cb5e6c4d9824e73c099c9643c53c9f4480513",
+    "src/Dcs.Ipia.App/Branding/flight-patch.svg": "c254639a7ec647eb67209a2e7d1b5b6393ab28d33cb0eca156debd3953fedfae",
+    "src/Dcs.Ipia.App/Branding/setup-sidebar.bmp": "0d3df74b351200008d773a7db8580d59a71bdec51ec04d72d5c65d7fc156f8b2",
+    "src/Dcs.Ipia.App/Branding/setup-sidebar.svg": "bc02c898c948e1b303c3136426bdf82ac2c4d17242a5d98752500ec1f6ccfe57",
+    "src/Dcs.Ipia.App/Branding/setup-small.bmp": "88565cd3d2cf64cd49647db45dfc9d57e526a523bfb10d67cb59ca577934eaca",
+    "src/Dcs.Ipia.Rendering/Fonts/DejaVuSans-IPIA.ttf": "5327fd62551d3b35b42288f4afa3c44611a37a02e6499b03225296e123462e73"
+  }
+}
