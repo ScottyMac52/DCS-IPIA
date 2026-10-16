@@ -41,10 +41,14 @@ namespace DcsIpia.Presentation
             foreach (var column in grid.Columns.OfType<DataGridBoundColumn>())
             {
                 if (column is not (DataGridTextColumn or DataGridCheckBoxColumn)) continue;
-                if (column.ReadLocalValue(DataGridBoundColumn.EditingElementStyleProperty) == DependencyProperty.UnsetValue)
+                var defaultEditor = column is DataGridCheckBoxColumn
+                    ? DataGridCheckBoxColumn.DefaultEditingElementStyle : DataGridTextColumn.DefaultEditingElementStyle;
+                if (column.ReadLocalValue(DataGridBoundColumn.EditingElementStyleProperty) == DependencyProperty.UnsetValue ||
+                    ReferenceEquals(column.EditingElementStyle, defaultEditor))
                     column.EditingElementStyle = (Style)grid.FindResource(column is DataGridCheckBoxColumn ? typeof(CheckBox) : typeof(TextBox));
                 if (column is not DataGridCheckBoxColumn ||
-                    column.ReadLocalValue(DataGridBoundColumn.ElementStyleProperty) != DependencyProperty.UnsetValue) continue;
+                    column.ReadLocalValue(DataGridBoundColumn.ElementStyleProperty) != DependencyProperty.UnsetValue &&
+                    !ReferenceEquals(column.ElementStyle, DataGridCheckBoxColumn.DefaultElementStyle)) continue;
                 var display = new Style(typeof(CheckBox), (Style)grid.FindResource(typeof(CheckBox)));
                 display.Setters.Add(new Setter(UIElement.IsHitTestVisibleProperty, false));
                 display.Setters.Add(new Setter(UIElement.FocusableProperty, false));

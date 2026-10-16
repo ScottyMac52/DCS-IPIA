@@ -83,7 +83,9 @@ namespace Dcs.Ipia.App.Smoke
                         throw new InvalidOperationException("Table edits were not committed.");
                     var check = ThemeControlSmoke.Children(grid).OfType<CheckBox>().First();
                     if (check.Template.FindName("Check", check) is null || check.IsHitTestVisible)
-                        throw new InvalidOperationException("Generated table checkbox lost its themed display behavior.");
+                        throw new InvalidOperationException("Generated table checkbox lost its themed display behavior: template=" +
+                            (check.Template.FindName("Check", check) is not null) + "; hitTest=" + check.IsHitTestVisible +
+                            "; defaultStyle=" + ReferenceEquals(check.Style, DataGridCheckBoxColumn.DefaultElementStyle));
                     Keyboard.Focus(slider); var before = slider.Value; ThemeControlSmoke.Press(slider, Key.Right);
                     if (slider.Value <= before) throw new InvalidOperationException("Themed slider lost keyboard adjustment.");
                     scroll.ScrollToVerticalOffset(80); ThemeControlSmoke.Pump(fixture);
@@ -123,7 +125,7 @@ namespace Dcs.Ipia.App.Smoke
             timer.Tick += (_, _) =>
             {
                 var dialog = System.Windows.Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.Name == "ThemeMessageDialog");
-                if (dialog is null) return;
+                if (dialog is null || !dialog.IsLoaded || !dialog.IsVisible) return;
                 timer.Stop();
                 try
                 {
