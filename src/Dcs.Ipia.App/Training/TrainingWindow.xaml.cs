@@ -50,10 +50,23 @@ namespace DcsIpia.Presentation
                 ApplicationView.UpdateLayout();
                 var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
                 var viewport = new Rect(0, 0, ApplicationViewport.ViewportWidth, ApplicationViewport.ViewportHeight);
-                viewport.Inflate(2, 2);
-                return viewport.Contains(bounds);
+                viewport.Inflate(4, 4);
+                if (viewport.Contains(bounds)) return true;
+                // Compact callouts must be fully contained. Only oversized reading panels may overlap.
+                if (bounds.Width <= viewport.Width && bounds.Height <= viewport.Height) return false;
+                var intersection = Rect.Intersect(viewport, bounds);
+                return !intersection.IsEmpty && bounds.Top >= -12 && bounds.Top < viewport.Height - 20;
             }
         }
+        /// <summary>Gets whether both endpoints were visible when the latest drag animation began.</summary>
+        public bool AreDragEndpointsVisible { get; private set; }
+        /// <summary>Describes the current target and scroll extent when a visibility acceptance check fails.</summary>
+        public string HighlightedTargetVisibilityDetails => _highlight?.AdornedElement is FrameworkElement target
+            ? $"target={target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize))}; " +
+                $"viewport={ApplicationViewport.ViewportWidth}x{ApplicationViewport.ViewportHeight}; " +
+                $"extent={ApplicationViewport.ExtentWidth}x{ApplicationViewport.ExtentHeight}; " +
+                $"offset={ApplicationViewport.HorizontalOffset},{ApplicationViewport.VerticalOffset}"
+            : "No highlighted target";
         /// <summary>Gets the isolated folder for acceptance checks and diagnostics while training is open.</summary>
         public string? TrainingDirectory => _environment?.Root;
         #endregion END Public
@@ -86,6 +99,8 @@ namespace DcsIpia.Presentation
         private void ViewportChanged(object sender, SizeChangedEventArgs e)
         {
             if (ApplicationView is null) return;
+            // The real workspace has fixed-height headers, palette and inspector rows. Below this
+            // native size the diagram overflows the content extent and cannot be reached by scrolling.
             ApplicationView.Width = Math.Max(1100, ApplicationViewport.ViewportWidth);
             ApplicationView.Height = Math.Max(1100, ApplicationViewport.ViewportHeight);
         }
@@ -114,65 +129,108 @@ namespace DcsIpia.Presentation
             ClearHighlight();
             ApplicationView.UpdateLayout();
 
-            // Bring the target into its nearest nested ScrollViewer (diagram viewers in Assignments/InputTest)
-            // before adjusting the outer training viewport. This keeps lower callouts (switches, axes, etc.) visible.
-            ScrollTargetIntoNearestViewer(target);
+            // Bring the target into every nested ScrollViewer first (diagram viewers etc.).
+            ScrollTargetIntoAncestors(target);
 
-            if (target.Tag is HardwareGraphicControl)
-            {
-                DependencyObject? ancestor = target;
-                while (ancestor is not null && ancestor is not Canvas { Name: "Diagram" })
-                    ancestor = VisualTreeHelper.GetParent(ancestor);
-                if (ancestor is Canvas diagram)
-                {
-                    var origin = diagram.TranslatePoint(new Point(), ApplicationViewport);
-                    ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + origin.Y - 16);
-                    ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + origin.X - 16);
-                    ApplicationView.UpdateLayout();
-                }
-            }
-            var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
-            var width = Math.Min(bounds.Width, ApplicationViewport.ViewportWidth);
-            var height = Math.Min(bounds.Height, ApplicationViewport.ViewportHeight);
-            var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Left + width - ApplicationViewport.ViewportWidth);
-            var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Top + height - ApplicationViewport.ViewportHeight);
-            ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + horizontal);
-            ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + vertical);
+            // Then make sure it is fully inside the outer training viewport with minimal movement.
+            EnsureFullyInOuterViewport(target);
+
             ApplicationView.UpdateLayout();
             _highlightLayer = AdornerLayer.GetAdornerLayer(target)
                 ?? throw new InvalidOperationException("Training highlight layer is unavailable.");
             _highlight = new TrainingHighlightAdorner(target);
             _highlightLayer.Add(_highlight);
         }
-        /// <summary>Scrolls the nearest ancestor ScrollViewer (other than the outer training viewport) so the target is inside its viewport.</summary>
-        private static void ScrollTargetIntoNearestViewer(FrameworkElement target)
+        /// <summary>Scrolls every ancestor ScrollViewer (except the outer training viewport) so the target is inside it.</summary>
+        private static void ScrollTargetIntoAncestors(FrameworkElement target)
         {
-            var viewer = FindAncestor<ScrollViewer>(target);
-            if (viewer is null || viewer.Name == "ApplicationViewport") return;
-
-            viewer.UpdateLayout();
-            var bounds = target.TransformToAncestor(viewer).TransformBounds(new Rect(target.RenderSize));
-            var viewport = new Rect(0, 0, viewer.ViewportWidth, viewer.ViewportHeight);
-            if (viewport.Contains(bounds)) return;
-
-            var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Bottom - viewport.Height);
-            var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Right - viewport.Width);
-            viewer.ScrollToVerticalOffset(viewer.VerticalOffset + vertical);
-            viewer.ScrollToHorizontalOffset(viewer.HorizontalOffset + horizontal);
-            viewer.UpdateLayout();
-        }
-        private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
-        {
+            DependencyObject? current = target;
             while (current is not null)
             {
-                if (current is T match) return match;
+                if (current is ScrollViewer viewer && viewer.Name != "ApplicationViewport")
+                {
+                    // DataGrid/ListBox viewers use item offsets, not pixel offsets.
+                    // Their owning control already scrolls the selected item into view.
+                    if (viewer.CanContentScroll)
+                    {
+                        current = VisualTreeHelper.GetParent(current);
+                        continue;
+                    }
+                    viewer.UpdateLayout();
+                    var bounds = target.TransformToAncestor(viewer).TransformBounds(new Rect(target.RenderSize));
+                    var viewport = new Rect(0, 0, viewer.ViewportWidth, viewer.ViewportHeight);
+                    if (!viewport.Contains(bounds))
+                    {
+                        var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Bottom - viewport.Height);
+                        var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Right - viewport.Width);
+                        viewer.ScrollToVerticalOffset(viewer.VerticalOffset + vertical);
+                        viewer.ScrollToHorizontalOffset(viewer.HorizontalOffset + horizontal);
+                        viewer.UpdateLayout();
+                    }
+                }
                 current = VisualTreeHelper.GetParent(current);
             }
-            return null;
+        }
+        /// <summary>Minimal outer-viewport scroll so the target bounds are fully contained when they fit.</summary>
+        private void EnsureFullyInOuterViewport(FrameworkElement target)
+        {
+            ApplicationView.UpdateLayout();
+            var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
+            var vw = ApplicationViewport.ViewportWidth;
+            var vh = ApplicationViewport.ViewportHeight;
+
+            double horizontal = 0;
+            if (bounds.Left < 0)
+                horizontal = bounds.Left;
+            else if (bounds.Left + Math.Min(bounds.Width, vw) > vw)
+                horizontal = bounds.Left + Math.Min(bounds.Width, vw) - vw;
+
+            double vertical = 0;
+            if (bounds.Top < 0)
+                vertical = bounds.Top;
+            else if (bounds.Top + Math.Min(bounds.Height, vh) > vh)
+                vertical = bounds.Top + Math.Min(bounds.Height, vh) - vh;
+
+            if (horizontal != 0)
+                ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + horizontal);
+            if (vertical != 0)
+                ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + vertical);
         }
         private async Task AnimateDragAsync(FrameworkElement source, FrameworkElement destination)
         {
+            // Make the palette source visible first.
+            ScrollTargetIntoAncestors(source);
+            EnsureFullyInOuterViewport(source);
+            ApplicationView.UpdateLayout();
+
+            // Highlight (and scroll) the drop target.
             Highlight(destination);
+
+            // Scroll the union when it fits, so both ends stay visible. Scroll commands are queued;
+            // do not overwrite a requested offset with the old VerticalOffset/HorizontalOffset.
+            ApplicationView.UpdateLayout();
+            var srcBounds = source.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(source.RenderSize));
+            var destBounds = destination.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(destination.RenderSize));
+            var combined = Rect.Union(srcBounds, destBounds);
+            var vw = ApplicationViewport.ViewportWidth;
+            var vh = ApplicationViewport.ViewportHeight;
+            if (combined.Width <= vw)
+            {
+                var delta = combined.Left < 0 ? combined.Left : Math.Max(0, combined.Right - vw);
+                ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + delta);
+            }
+            if (combined.Height <= vh)
+            {
+                var delta = combined.Top < 0 ? combined.Top : Math.Max(0, combined.Bottom - vh);
+                ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + delta);
+            }
+            ApplicationViewport.UpdateLayout();
+            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+            var viewport = new Rect(0, 0, vw, vh);
+            viewport.Inflate(4, 4);
+            AreDragEndpointsVisible = viewport.Contains(source.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(source.RenderSize))) &&
+                viewport.Contains(destination.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(destination.RenderSize)));
+
             var layer = AdornerLayer.GetAdornerLayer(ApplicationView)!;
             var start = source.TranslatePoint(new Point(source.ActualWidth / 2, source.ActualHeight / 2), ApplicationView);
             var end = destination.TranslatePoint(new Point(destination.ActualWidth / 2, destination.ActualHeight / 2), ApplicationView);

@@ -59,6 +59,9 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Restart retained its old training environment.");
             for (var scenario = 0; scenario < scenarios.Items.Count; scenario++)
             {
+                // Exercise both supported narrow-window sizes rather than only the default 1620px window.
+                window.Width = scenario == 0 ? 1280 : 1400;
+                window.UpdateLayout();
                 var previous = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
                 try { scenarios.SelectedIndex = scenario; }
@@ -76,6 +79,8 @@ namespace Dcs.Ipia.App.Smoke
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
                     CheckTrainingState(window, step.Action);
+                    if (step.Action == "drag" && !window.AreDragEndpointsVisible)
+                        throw new InvalidOperationException("Training drag endpoints were clipped: " + step.Id + "; " + window.HighlightedTargetVisibilityDetails);
                     if (step.Action is "base" or "kneeboard" or "drag-ready" or "drag" or "axis-options" or
                         "axis" or "switches" or
                         "test-base" or "test-hold" or "test-toggle-release" or "test-switches" or "test-axes")
@@ -84,7 +89,7 @@ namespace Dcs.Ipia.App.Smoke
                         // Full containment only for compact targets (diagram callouts / previews).
                         // Large controls such as the input-test log cannot fit entirely in the viewport.
                         if (step.Action is "base" or "kneeboard" or "axis" or "switches" && !window.IsHighlightedTargetVisible)
-                            throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id);
+                            throw new InvalidOperationException("Training target is outside the visible viewport: " + step.Id + "; " + window.HighlightedTargetVisibilityDetails);
                     }
                     if (runner.CurrentStep?.Id != step.Id)
                         throw new InvalidOperationException("Training skipped or repeated a step: " + step.Id);
