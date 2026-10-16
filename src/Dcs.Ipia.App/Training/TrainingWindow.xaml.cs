@@ -50,11 +50,11 @@ namespace DcsIpia.Presentation
                 ApplicationView.UpdateLayout();
                 var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
                 var viewport = new Rect(0, 0, ApplicationViewport.ViewportWidth, ApplicationViewport.ViewportHeight);
-                viewport.Inflate(2, 2);
+                viewport.Inflate(4, 4);
                 if (viewport.Contains(bounds)) return true;
                 // Large targets (logs etc.) are acceptable if their top is in view and there is overlap.
                 var intersection = Rect.Intersect(viewport, bounds);
-                return !intersection.IsEmpty && bounds.Top >= -8 && bounds.Top < viewport.Height - 40;
+                return !intersection.IsEmpty && bounds.Top >= -12 && bounds.Top < viewport.Height - 20;
             }
         }
         /// <summary>Gets the isolated folder for acceptance checks and diagnostics while training is open.</summary>
@@ -89,10 +89,9 @@ namespace DcsIpia.Presentation
         private void ViewportChanged(object sender, SizeChangedEventArgs e)
         {
             if (ApplicationView is null) return;
-            // Prefer the actual viewport size so smaller windows don't force excessive outer scrolling.
-            // Keep a modest floor so feature layouts don't collapse below usable dimensions.
-            ApplicationView.Width = Math.Max(900, ApplicationViewport.ViewportWidth);
-            ApplicationView.Height = Math.Max(700, ApplicationViewport.ViewportHeight);
+            // Modest floor so feature layouts stay usable; do not force a huge canvas that always requires scrolling.
+            ApplicationView.Width = Math.Max(960, ApplicationViewport.ViewportWidth);
+            ApplicationView.Height = Math.Max(760, ApplicationViewport.ViewportHeight);
         }
         private readonly Dictionary<Window, FrameworkElement> _mountedContent = [];
         private void Mount(Window window)
@@ -119,19 +118,11 @@ namespace DcsIpia.Presentation
             ClearHighlight();
             ApplicationView.UpdateLayout();
 
-            // Scroll every nested ScrollViewer so the target is inside each of them first.
+            // Bring the target into every nested ScrollViewer first (diagram viewers etc.).
             ScrollTargetIntoAncestors(target);
 
-            // Prefer centering a diagram callout in the outer viewport rather than always
-            // pinning the diagram origin to the top-left (which hides lower items and the palette).
-            if (target.Tag is HardwareGraphicControl)
-            {
-                CenterInViewport(target, preferUpper: false);
-            }
-            else
-            {
-                EnsureInViewport(target);
-            }
+            // Then make sure it is fully inside the outer training viewport with minimal movement.
+            EnsureFullyInOuterViewport(target);
 
             ApplicationView.UpdateLayout();
             _highlightLayer = AdornerLayer.GetAdornerLayer(target)
@@ -162,48 +153,42 @@ namespace DcsIpia.Presentation
                 current = VisualTreeHelper.GetParent(current);
             }
         }
-        private void EnsureInViewport(FrameworkElement target)
+        /// <summary>Minimal outer-viewport scroll so the target bounds are fully contained when they fit.</summary>
+        private void EnsureFullyInOuterViewport(FrameworkElement target)
         {
             ApplicationView.UpdateLayout();
             var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
             var vw = ApplicationViewport.ViewportWidth;
             var vh = ApplicationViewport.ViewportHeight;
-            var width = Math.Min(bounds.Width, vw);
-            var height = Math.Min(bounds.Height, vh);
-            var horizontal = bounds.Left < 0 ? bounds.Left : Math.Max(0, bounds.Left + width - vw);
-            var vertical = bounds.Top < 0 ? bounds.Top : Math.Max(0, bounds.Top + height - vh);
-            ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + horizontal);
-            ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + vertical);
-        }
-        private void CenterInViewport(FrameworkElement target, bool preferUpper)
-        {
-            ApplicationView.UpdateLayout();
-            var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
-            var vw = ApplicationViewport.ViewportWidth;
-            var vh = ApplicationViewport.ViewportHeight;
-            // Center the callout, but bias slightly upward so the label above it stays readable.
-            var targetCenterX = bounds.Left + bounds.Width / 2;
-            var targetCenterY = bounds.Top + bounds.Height / 2;
-            var desiredX = targetCenterX - vw / 2;
-            var desiredY = preferUpper ? bounds.Top - 40 : targetCenterY - vh * 0.4;
-            ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + desiredX);
-            ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + desiredY);
-            // Clamp so we don't overscroll past content.
-            ApplicationViewport.ScrollToHorizontalOffset(Math.Max(0, ApplicationViewport.HorizontalOffset));
-            ApplicationViewport.ScrollToVerticalOffset(Math.Max(0, ApplicationViewport.VerticalOffset));
+
+            double horizontal = 0;
+            if (bounds.Left < 0)
+                horizontal = bounds.Left;
+            else if (bounds.Right > vw)
+                horizontal = bounds.Right - vw;
+
+            double vertical = 0;
+            if (bounds.Top < 0)
+                vertical = bounds.Top;
+            else if (bounds.Bottom > vh)
+                vertical = bounds.Bottom - vh;
+
+            if (horizontal != 0)
+                ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + horizontal);
+            if (vertical != 0)
+                ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + vertical);
         }
         private async Task AnimateDragAsync(FrameworkElement source, FrameworkElement destination)
         {
-            // Make the palette item visible first so the gesture starts on-screen.
+            // Make the palette source visible first.
             ScrollTargetIntoAncestors(source);
-            EnsureInViewport(source);
+            EnsureFullyInOuterViewport(source);
             ApplicationView.UpdateLayout();
 
-            // Then bring the drop target into view (this may move the outer scroll).
+            // Highlight (and scroll) the drop target.
             Highlight(destination);
 
-            // If the source was pushed completely out of the viewport, compromise by
-            // scrolling so both are at least partially visible when possible.
+            // If the source was pushed completely off-screen, compromise so both stay at least partially visible.
             ApplicationView.UpdateLayout();
             var srcBounds = source.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(source.RenderSize));
             var destBounds = destination.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(destination.RenderSize));
@@ -211,10 +196,9 @@ namespace DcsIpia.Presentation
             var vh = ApplicationViewport.ViewportHeight;
             if (srcBounds.Bottom < 0 || srcBounds.Top > vh || srcBounds.Right < 0 || srcBounds.Left > vw)
             {
-                // Midpoint bias toward the destination.
                 var midX = (srcBounds.Left + destBounds.Left) / 2;
                 var midY = (srcBounds.Top + destBounds.Top) / 2;
-                ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + midX - vw * 0.3);
+                ApplicationViewport.ScrollToHorizontalOffset(ApplicationViewport.HorizontalOffset + midX - vw * 0.35);
                 ApplicationViewport.ScrollToVerticalOffset(ApplicationViewport.VerticalOffset + midY - vh * 0.35);
                 ApplicationViewport.ScrollToHorizontalOffset(Math.Max(0, ApplicationViewport.HorizontalOffset));
                 ApplicationViewport.ScrollToVerticalOffset(Math.Max(0, ApplicationViewport.VerticalOffset));
