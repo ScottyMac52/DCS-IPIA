@@ -51,6 +51,23 @@ namespace Dcs.Ipia.Tests
                 "1", JsonDocument.Parse(File.ReadAllText(User)).RootElement.GetProperty("SchemaVersion").ToString());
         }
 
+        /// <summary>Every built-in skin survives JSON restart and changing it preserves other preferences.</summary>
+        [Theory]
+        [InlineData(AppearanceTheme.Light)]
+        [InlineData(AppearanceTheme.Dark)]
+        [InlineData(AppearanceTheme.NavyAmber)]
+        [InlineData(AppearanceTheme.CockpitGreen)]
+        public void Built_in_skins_round_trip(AppearanceTheme theme)
+        {
+            WriteDefaults("Light", "Reject");
+            var settings = Open();
+            Assert.True(settings.TryUpdateTheme(theme));
+            Assert.Equal(theme, Open().Current.Theme);
+            Assert.Equal(OccupiedDestinationBehavior.Reject, Open().Current.OccupiedDestinationBehavior);
+            Assert.True(settings.TryUpdateTheme(AppearanceTheme.Light));
+            Assert.Equal(AppearanceTheme.Light, Open().Current.Theme);
+        }
+
         /// <summary>Each bad override falls back independently without losing another valid value.</summary>
         [Fact]
         public void Invalid_theme_keeps_valid_occupied_target_policy()

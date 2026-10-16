@@ -100,7 +100,7 @@ namespace DcsIpia.Presentation
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
-            ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
+            ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
             Loaded += async (_, _) =>
             {
@@ -699,7 +699,7 @@ namespace DcsIpia.Presentation
             if (_moduleOperationBusy) return;
             var dialog = new SettingsWindow(_settings) { Owner = this };
             dialog.ShowDialog();
-            ThemePicker.SelectedIndex = _settings.Current.Theme == AppearanceTheme.Dark ? 1 : 0;
+            ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
             ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
             UpdateFlyNowControls();
         }
