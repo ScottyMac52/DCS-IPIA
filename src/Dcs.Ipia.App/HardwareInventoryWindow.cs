@@ -132,7 +132,7 @@ namespace DcsIpia.Presentation
         }
         private void Text(string title, string property, bool readOnly = true) =>
             _grid.Columns.Add(new DataGridTextColumn { Header = title, Binding = new Binding(property), IsReadOnly = readOnly });
-        private bool DiscardEdits() => !_dirty || MessageBox.Show(this,
+        private bool DiscardEdits() => !_dirty || ThemeMessageBox.Show(this,
             "Discard the unsaved inventory selection and label edits?", "Hardware inventory",
             MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
         private async Task InitializeAsync()

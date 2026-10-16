@@ -92,7 +92,6 @@ namespace DcsIpia.Presentation
             _supportReports = supportReports;
             InitializeComponent();
             BindMainCommands();
-            SourceInitialized += (_, _) => WindowThemeChrome.Apply(this);
             Activated += (_, _) => ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             if (profile is not null)
@@ -182,7 +181,7 @@ namespace DcsIpia.Presentation
         }
         private void ShowDataLocationClicked(object sender, RoutedEventArgs e)
         {
-            if (_recovery is not null) MessageBox.Show(this, _recovery.DataDirectory, "IPIA user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (_recovery is not null) ThemeMessageBox.Show(this, _recovery.DataDirectory, "IPIA user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         private void OpenProfilesClicked(object sender, RoutedEventArgs e)
         {
@@ -204,7 +203,7 @@ namespace DcsIpia.Presentation
                 if (!dialog.SetupConfirmed) return;
                 if (_settings is SqliteAppSettingsService sqlite) sqlite.ReloadDestination();
                 UpdateFlyNowControls();
-                if (_recovery is not null && MessageBox.Show(this,
+                if (_recovery is not null && ThemeMessageBox.Show(this,
                     "Setup is saved. Create a verified full-profile backup now? You can then create, import or open a module.",
                     "Setup complete", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
                     OpenRecoveryClicked(this, new RoutedEventArgs());
@@ -555,7 +554,7 @@ namespace DcsIpia.Presentation
         {
             if (_moduleOperationBusy || !DeleteModuleButton.IsEnabled || SavedModules.SelectedItem is not SavedModuleChoice choice)
                 return;
-            if (MessageBox.Show(this,
+            if (ThemeMessageBox.Show(this,
                 $"Delete {choice.DisplayName} and all of its saved profiles, assignments, labels, and kneeboards from the local database? You can import it again from scratch.",
                 "Delete module", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
                 return;
@@ -672,7 +671,7 @@ namespace DcsIpia.Presentation
         private void ShowImportError(string message)
         {
             ImportStatus.Text = message;
-            MessageBox.Show(this, message, "Import needs attention", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemeMessageBox.Show(this, message, "Import needs attention", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         private void ShowImported()
         {

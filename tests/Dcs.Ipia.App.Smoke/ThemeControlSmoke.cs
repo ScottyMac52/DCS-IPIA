@@ -65,8 +65,8 @@ namespace Dcs.Ipia.App.Smoke
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(choices, 6, 6, "ControlBackgroundBrush");
-                    AssertPixel(legacyText, 6, 6, "SurfaceBrush");
-                    AssertPixel(legacyChoice, 6, 6, "SurfaceBrush");
+                    AssertPixel(legacyText, 6, 6, "ControlBackgroundBrush");
+                    AssertPixel(legacyChoice, 6, 6, "ControlBackgroundBrush");
                     if (legacyText.Foreground is not SolidColorBrush foreground || foreground.Color != Brush("PrimaryTextBrush") ||
                         legacyLabel.Foreground is not SolidColorBrush label || label.Color != Brush("PrimaryTextBrush") ||
                         legacyCheck.Foreground is not SolidColorBrush check || check.Color != Brush("PrimaryTextBrush"))
@@ -146,7 +146,7 @@ namespace Dcs.Ipia.App.Smoke
             if (labels.Length == 0 || labels.Any(x => x.Foreground is not SolidColorBrush brush || brush.Color != Brush(key)))
                 throw new InvalidOperationException("Rendered text '" + text + "' did not use " + key + ".");
         }
-        private static IEnumerable<DependencyObject> Children(DependencyObject root)
+        internal static IEnumerable<DependencyObject> Children(DependencyObject root)
         {
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
             {

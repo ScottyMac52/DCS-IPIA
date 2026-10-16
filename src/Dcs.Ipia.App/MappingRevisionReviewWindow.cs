@@ -72,7 +72,7 @@ namespace DcsIpia.Presentation
             Closing += (_, e) =>
             {
                 if (_busy) { e.Cancel = true; return; }
-                if (_session.StagedModuleCount > 0 && MessageBox.Show(this, "Discard staged drawing changes and close?", "Unsaved drawing changes",
+                if (_session.StagedModuleCount > 0 && ThemeMessageBox.Show(this, "Discard staged drawing changes and close?", "Unsaved drawing changes",
                     MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) e.Cancel = true;
             };
             SetBusy(false);

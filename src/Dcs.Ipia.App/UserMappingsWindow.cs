@@ -179,7 +179,7 @@ namespace DcsIpia.Presentation
         {
             if (_revisions.SelectedItem is not UserMappingRevision revision ||
                 !_libraryRevisionIds.Contains(revision.Id)) return;
-            var answer = MessageBox.Show(this,
+            var answer = ThemeMessageBox.Show(this,
                 "Permanently delete the saved drawing revision “" + revision.Title +
                 "”? This removes it from your saved drawing library. Existing module pins and bundled drawings are not changed.",
                 "Delete saved drawing", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);

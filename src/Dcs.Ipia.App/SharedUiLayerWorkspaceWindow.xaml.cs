@@ -55,7 +55,7 @@ namespace DcsIpia.Presentation
             ProfilePaths.SelectedIndex = 0;
             Buttons();
             Closing += (_, e) => {
-                if (_saving || _reviewing || _adopting || _dirty && MessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
+                if (_saving || _reviewing || _adopting || _dirty && ThemeMessageBox.Show(this, "Discard pending shared default changes?", "Pending shared defaults",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) e.Cancel = true;
             };
         }

@@ -1,4 +1,5 @@
-﻿using Dcs.Ipia.Application;
+using DcsIpia.Presentation;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Domain;
@@ -188,7 +189,7 @@ namespace DcsIpia.Features.Modifiers
             var message = selected is null
                 ? $"Clear all assignments in the {scope} scope?"
                 : $"Clear assignments for modifier \"{selected.Name}\" in the {scope} scope?";
-            if (MessageBox.Show(Window.GetWindow(this), message, "Clear assignments",
+            if (ThemeMessageBox.Show(Window.GetWindow(this), message, "Clear assignments",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 return;
 

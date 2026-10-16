@@ -242,7 +242,7 @@ namespace DcsIpia.Features.Commands
             if (_context?.Working is null) return;
             var count = _context.Working.ModuleCommands.Count;
             if (count == 0) { StatusText.Text = "No commands to clear."; return; }
-            if (MessageBox.Show(Window.GetWindow(this), $"Clear all {count} module commands? Assignments that use them must be removed first.",
+            if (ThemeMessageBox.Show(Window.GetWindow(this), $"Clear all {count} module commands? Assignments that use them must be removed first.",
                 "Clear all commands", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             try
             {

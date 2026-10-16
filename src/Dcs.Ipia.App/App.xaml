@@ -6,6 +6,8 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Themes/Light.xaml"/>
         <ResourceDictionary Source="Themes/Styles.xaml"/>
+        <ResourceDictionary Source="Themes/Primitives.xaml"/>
+        <ResourceDictionary Source="Themes/Collections.xaml"/>
         <ResourceDictionary Source="Themes/Controls.xaml"/>
         <ResourceDictionary Source="Themes/Menus.xaml"/>
     </ResourceDictionary.MergedDictionaries>

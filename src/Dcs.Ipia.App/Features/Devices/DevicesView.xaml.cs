@@ -1,4 +1,4 @@
-﻿using Dcs.Ipia.Application;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
@@ -276,7 +276,7 @@ namespace DcsIpia.Features.Devices
                 return;
             }
 
-            var result = MessageBox.Show(
+            var result = ThemeMessageBox.Show(
                 Window.GetWindow(this),
                 "Rebind this profile in both aircraft and UI Layer scopes?\n\n" + device.FileName +
                 "\n→ " + ManagedFileName.Text + "\n\nAssignments, labels, filters and modifier references will be retained. Save to keep the staged change.",
@@ -409,7 +409,7 @@ namespace DcsIpia.Features.Devices
                 }
 
                 var confirmed = _context.MappingReviewConfirmation?.Invoke(review) ??
-                    MessageBox.Show(Window.GetWindow(this),
+                    ThemeMessageBox.Show(Window.GetWindow(this),
                         string.Join("\n", review.Changes) + "\n\nStage this drawing on the selected device? Save/Discard controls the final change.",
                         "Review drawing change",
                         MessageBoxButton.YesNo,

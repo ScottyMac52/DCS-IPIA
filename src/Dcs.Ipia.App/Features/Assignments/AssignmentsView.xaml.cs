@@ -186,14 +186,15 @@ namespace DcsIpia.Features.Assignments
                 var mask =
                     new Border { Width = width,
                                  Height = height,
-                                 Background = Brushes.White,
-                                 BorderBrush = Brushes.SlateGray,
                                  BorderThickness = new Thickness(1),
                                  Tag = control,
                                  Child = new TextBlock { Text = "Unassigned", TextAlignment = TextAlignment.Center,
                                                          TextWrapping = TextWrapping.Wrap,
                                                          VerticalAlignment = VerticalAlignment.Center, FontSize = 11,
-                                                         Foreground = Brushes.Black } };
+                                                         } };
+                mask.SetResourceReference(Border.BackgroundProperty, "ControlBackgroundBrush");
+                mask.SetResourceReference(Border.BorderBrushProperty, "ControlBorderBrush");
+                ((TextBlock)mask.Child).SetResourceReference(TextBlock.ForegroundProperty, "ControlForegroundBrush");
                 Canvas.SetLeft(mask, x);
                 Canvas.SetTop(mask, y);
                 surface.Children.Add(mask);
@@ -280,22 +281,21 @@ namespace DcsIpia.Features.Assignments
                         TextWrapping = TextWrapping.Wrap,
                         VerticalAlignment = VerticalAlignment.Center,
                         FontSize = 11,
-                        FontWeight = protectedInput ? FontWeights.Bold : FontWeights.Normal,
-                        Foreground = Brushes.Black
+                        FontWeight = protectedInput ? FontWeights.Bold : FontWeights.Normal
                     };
                     var border = new Border
                     {
                         Width = control.Width,
                         Height = control.Height,
-                        Background = protectedInput ? Brushes.LemonChiffon : Brushes.White,
-                        BorderBrush = protectedInput ? Brushes.DarkGoldenrod :
-                            assignment is null ? Brushes.SlateGray : Brushes.White,
                         BorderThickness = new Thickness(protectedInput ? 2 : 1),
                         ToolTip = protectedInput ? modifierDescription +
                             "\nChange or remove the modifier in Modifiers before assigning." : null,
                         Child = text,
                         Tag = control
                     };
+                    text.SetResourceReference(TextBlock.ForegroundProperty, "ControlForegroundBrush");
+                    border.SetResourceReference(Border.BackgroundProperty, protectedInput ? "BadgeBackgroundBrush" : "ControlBackgroundBrush");
+                    border.SetResourceReference(Border.BorderBrushProperty, protectedInput || assignment is not null ? "AccentTextBrush" : "ControlBorderBrush");
                     Canvas.SetLeft(border, control.X);
                     Canvas.SetTop(border, control.Y);
                     surface.Children.Add(border);
@@ -626,7 +626,7 @@ namespace DcsIpia.Features.Assignments
 
                 if (result.Outcome == DraftOutcome.ConfirmationRequired)
                 {
-                    var decision = MessageBox.Show(Window.GetWindow(this),
+                    var decision = ThemeMessageBox.Show(Window.GetWindow(this),
                         "Destination is occupied. Yes: replace; No: swap; Cancel: keep both.",
                         "Occupied control", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
                     var choice = decision switch
@@ -713,7 +713,7 @@ namespace DcsIpia.Features.Assignments
             if (result.Outcome != DraftOutcome.ConfirmationRequired)
                 return result;
 
-            var decision = MessageBox.Show(
+            var decision = ThemeMessageBox.Show(
                 Window.GetWindow(this),
                 "Destination is occupied. Yes: replace; No: swap; Cancel: keep both.",
                 "Occupied control",

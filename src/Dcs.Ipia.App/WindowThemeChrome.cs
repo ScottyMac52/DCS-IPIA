@@ -5,7 +5,7 @@ using System.Windows.Media;
 
 namespace DcsIpia.Presentation
 {
-    /// <summary>Colors native Windows 11 main-window chrome while retaining system window behavior.</summary>
+    /// <summary>Colors native Windows 11 window chrome while retaining system window behavior.</summary>
     internal static class WindowThemeChrome
     {
         #region BEGIN Public

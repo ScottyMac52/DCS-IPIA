@@ -35,7 +35,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 if (logger is not null) ApplicationLog.Terminated(logger, ex);
-                MessageBox.Show("Unable to start IPIA: " + ex.Message +
+                ThemeMessageBox.Show("Unable to start IPIA: " + ex.Message +
                     "\nCheck appsettings.json and the configured log folder.", "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Error);
                 return 1;
             }

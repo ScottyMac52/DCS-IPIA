@@ -108,6 +108,11 @@ namespace Dcs.Ipia.App.Smoke
             foreach (var (attribute, key) in new[] { (35, "WindowBackgroundBrush"), (36, "PrimaryTextBrush"), (34, "ControlBorderBrush") })
             {
                 var result = DwmGetWindowAttribute(new WindowInteropHelper(window).Handle, attribute, out var actual, sizeof(int));
+                if (result == unchecked((int)0x80070057) || result == unchecked((int)0x80263001))
+                {
+                    Console.WriteLine("Native caption inspection unsupported on this desktop; rendered UI checks remain enforced.");
+                    return;
+                }
                 if (result != 0) throw new InvalidOperationException("Unable to inspect Windows 11 caption attribute " + attribute);
                 var color = ((SolidColorBrush)window.FindResource(key)).Color;
                 if (actual != (color.R | color.G << 8 | color.B << 16))

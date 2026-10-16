@@ -37,6 +37,12 @@ for filename in ("MainWindow.xaml", "SettingsWindow.xaml"):
 for path in (ROOT / "Themes").glob("*.xaml"):
     if re.search(r"\{StaticResource \w+Brush\}", path.read_text(encoding="utf-8-sig")):
         problems.append(f"Fixed palette reference in {path.name}; use DynamicResource")
+for dictionary in ("Primitives", "Collections"):
+    path = ROOT / "Themes" / f"{dictionary}.xaml"
+    if path.exists():
+        styles.update(keys(path))
+    else:
+        problems.append(f"Missing shared control dictionary: {dictionary}")
 menu_styles = (ROOT / "Themes" / "Menus.xaml")
 if not menu_styles.exists():
     problems.append("Missing shared menu templates: Menus.xaml")
@@ -45,6 +51,19 @@ else:
 styles.update(keys(ROOT / "Themes" / "Controls.xaml"))
 if missing := used - light - styles:
     problems.append(f"Unresolved dynamic resources: {sorted(missing)}")
+for path in ROOT.rglob("*.xaml"):
+    if any(part in {"Themes", "obj", "bin"} for part in path.parts):
+        continue
+    if re.search(r'(?:Background|Foreground|BorderBrush)="(?:#[0-9a-fA-F]+|White|Black|DarkRed|Gray|Silver)"', path.read_text(encoding="utf-8-sig")):
+        problems.append(f"Fixed UI color in {path.relative_to(ROOT)}")
+for required in ("DataGrid", "DataGridCell", "DataGridColumnHeader", "ListBox", "ListBoxItem", "TreeView", "TreeViewItem", "CheckBox", "Slider", "ScrollBar", "TextBox", "ToolTip", "Label", "Expander", "Menu", "MenuItem", "ContextMenu"):
+    source = "\n".join(path.read_text(encoding="utf-8-sig") for path in (ROOT / "Themes").glob("*.xaml"))
+    if f'<Style TargetType="{required}">' not in source:
+        problems.append(f"Missing shared appearance style: {required}")
+for path in ROOT.rglob("*.cs"):
+    if path.name != "ThemeMessageBox.cs" and not any(part in {"obj", "bin"} for part in path.parts):
+        if re.search(r"(?<!Theme)MessageBox\.Show\(", path.read_text(encoding="utf-8-sig")):
+            problems.append(f"Unthemed message dialog in {path.relative_to(ROOT)}")
 if problems:
     print("\n".join(problems), file=sys.stderr)
     sys.exit(1)
