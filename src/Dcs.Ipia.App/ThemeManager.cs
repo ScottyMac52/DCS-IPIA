@@ -13,6 +13,7 @@ namespace DcsIpia.Presentation
         {
             if (!Enum.TryParse<AppearanceTheme>(theme, out var selected) || !Enum.IsDefined(selected))
                 throw new ArgumentException("Unknown appearance theme.", nameof(theme));
+            selected = EditionAccess.Policy.EffectiveTheme(selected);
             var palettes = Application.Current.Resources.MergedDictionaries;
             for (var i = 0; i < palettes.Count; i++)
             {

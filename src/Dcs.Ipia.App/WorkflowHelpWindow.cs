@@ -24,10 +24,13 @@ namespace DcsIpia.Presentation
             about.Children.Add(new TextBlock { Text = ApplicationVersion.Label, Margin = new Thickness(0, 8, 0, 12), HorizontalAlignment = HorizontalAlignment.Center });
             about.Children.Add(new TextBlock { Text = "Organize your flight controls, assign aircraft commands and build DCS input profiles and kneeboards.",
                 TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
+            about.Children.Add(new TextBlock { Text = EditionAccess.Policy.Label, Margin = new Thickness(0, 12, 0, 0), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
             tabs.Items.Add(new TabItem { Header = "_About", Content = new ScrollViewer { Content = about, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
             tabs.Items.Add(Topic("_Getting started", """
                 DCS-IPIA
                 VERSION
+
+                Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Generic hardware and interactive input-test walkthroughs below require the licensed edition.
 
                 Hardware → Discover devices / Rescan reads controllers. Review capabilities, select each physical unit and give repeated units distinct labels/roles before saving. Saved devices may be disconnected: saved selection is not proof of current connectivity. Review unsupported objects and changed capabilities explicitly.
 
@@ -55,6 +58,8 @@ namespace DcsIpia.Presentation
                 """));
             tabs.Items.Add(Topic("_Attribution", """
                 Release notices are shipped in the notices folder beside the application. The distribution guide lists dependency metadata and bundled artwork/font provenance, and separates remaining licensing decisions from technical acceptance.
+
+                Free Edition background: DoD photo by Petty Officer 3rd Class Eben Boothby, U.S. Navy (Released), DVIDS image 9214816. The appearance of U.S. Department of War (DoW) visual information does not imply or constitute DoW endorsement. Source and use guidance: notices/free-edition-background-PROVENANCE.md.
 
                 Custom drawings and images remain user-owned inputs. Import only content you have permission to use and redistribute. Import validation does not establish ownership or grant rights; retain source/permission evidence before sharing a module snapshot or backup.
 

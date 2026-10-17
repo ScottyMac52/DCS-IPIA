@@ -4,6 +4,12 @@
 
 [Flight Patch artwork and asset guide](src/Dcs.Ipia.App/Branding/PROVENANCE.md).
 
+## Initial Free Edition
+
+The initial release supports the reviewed Thrustmaster catalog with a fixed Flight Patch/Navy-Amber photographic appearance. Premium is planned for additional supported hardware, live input testing and appearance customization; **availability and pricing TBA**. There is no checkout or subscription in this release. Existing data and saved appearance preferences are retained.
+
+See the [Free Edition and owner activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
+
 ## Test and coverage reports
 
 See [the local test guide](tests/README.md) for prerequisites, each PowerShell

@@ -113,6 +113,13 @@ namespace DcsIpia.Presentation
         private void LoadCurrentView()
         {
             var key = _navigation.CurrentFeatureKey ?? "Devices";
+            FeatureContent.IsEnabled = FeatureActions.IsEnabled = EditionAccess.AllowsWorkspace(_working);
+            if (!FeatureContent.IsEnabled) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
+            if (key == "InputTest" && !EditionAccess.Policy.IsOwner)
+            {
+                FeatureContent.Content = new TextBlock { Text = "Live input testing is reserved for Premium. Availability and pricing TBA.", TextWrapping = TextWrapping.Wrap };
+                FeatureActions.ClearActions(); return;
+            }
             if (_views.TryGetValue(key, out var cached))
             {
                 FeatureContent.Content = cached;
@@ -243,6 +250,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var updated = edit(EditSnapshot());
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
                 RebuildDraft(updated);
                 _working = updated;
                 _structureDirty = true;
@@ -279,7 +287,9 @@ namespace DcsIpia.Presentation
                     Assignments = _draft.Snapshot,
                     Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal)
                 };
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
                 updated = PinnedUiLayerProfileRecovery.Restore(updated);
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
                 SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 ModuleIntegrationImport.Instructions(updated);
                 await _repository.SaveAsync(updated);
@@ -328,7 +338,7 @@ namespace DcsIpia.Presentation
             if (BuildButton is null || PackageVersion is null) return;
             PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
-                                    !_viewModel.HasErrors && !HasPendingChanges() &&
+                                    EditionAccess.AllowsWorkspace(_saved) && !_viewModel.HasErrors && !HasPendingChanges() &&
                                     !string.IsNullOrWhiteSpace(PackageVersion.Text);
             ValidateModuleButton.IsEnabled = BuildButton.IsEnabled;
             ExportModuleSnapshotButton.IsEnabled = BuildButton.IsEnabled;
@@ -351,6 +361,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var saved = _saved;
+                EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
                 var version = PackageVersion.Text.Trim();
                 var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Freeze(saved, version));
                 if (snapshotExport is null)

@@ -81,7 +81,8 @@ namespace Dcs.Ipia.Tests
             sources.Remove(Profile);
             draft = draft with { Sources = sources };
             var hardware = Hardware();
-            Assert.Throws<InvalidDataException>(() => SharedUiLayerHardwareMapping.Resolve(draft, [hardware]));
+            var unresolved = SharedUiLayerHardwareMapping.Resolve(draft, [hardware]);
+            Assert.Empty(unresolved);
             var path = Profile.Replace("Stick", "Custom", StringComparison.Ordinal);
             var mapped = SharedUiLayerHardwareMapping.Set(draft, path, hardware);
             Assert.Equal("stick.svg", SharedUiLayerHardwareMapping.Resolve(mapped, [hardware])[path].Path);

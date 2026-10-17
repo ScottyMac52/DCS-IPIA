@@ -32,6 +32,9 @@ jobs:
       - name: Test local PowerShell runner failure paths
         shell: pwsh
         run: ./tests/ci/Test-LocalTestSupport.ps1
+      - name: Test owner license issuer with ephemeral keys
+        shell: pwsh
+        run: ./tests/ci/Test-OwnerLicenseIssuer.ps1
       - name: Test release cleanup and uninstaller completion
         shell: pwsh
         run: ./tests/installer/Test-ReleaseCleanup.ps1

@@ -42,6 +42,7 @@ namespace DcsIpia.Presentation
         /// <summary>Applies a validated draft to all open windows without writing settings or files.</summary>
         public static void Preview(AppearanceSettings settings, BitmapSource? image)
         {
+            if (!EditionAccess.Policy.IsOwner) { settings = FreeEditionAppearance.Settings; image = FreeEditionAppearance.Image; }
             AppearanceValidation.Validate(settings);
             var dictionary = BuildPalette(settings, image is not null);
             _active = settings; _image = image;
@@ -55,6 +56,7 @@ namespace DcsIpia.Presentation
         /// <summary>Reloads the accepted appearance after Cancel, close or successful persistence.</summary>
         public static void Restore()
         {
+            if (!EditionAccess.Policy.IsOwner) { Preview(FreeEditionAppearance.Settings, FreeEditionAppearance.Image); return; }
             var settings = Store?.Current ?? new(); BitmapSource? image = null;
             string? diagnostic = Store?.LastError;
             try
@@ -85,6 +87,12 @@ namespace DcsIpia.Presentation
                 window.SizeChanged += (_, _) => Paint(window);
             }
             Paint(window);
+        }
+        /// <summary>Releases fixture preview state before palette-only smoke; never changes the edition entitlement.</summary>
+        internal static void ResetForTests()
+        {
+            if (_overlay is not null) System.Windows.Application.Current.Resources.MergedDictionaries.Remove(_overlay);
+            _overlay = null; Store = null; _active = new(); _image = null;
         }
         #endregion END Public
         #region BEGIN private helpers

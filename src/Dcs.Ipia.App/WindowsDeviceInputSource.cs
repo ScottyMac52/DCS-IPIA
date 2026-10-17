@@ -6,7 +6,7 @@ namespace DcsIpia.Presentation
     /// <summary>Owns the exact attached controllers participating in one test session.</summary>
     public sealed class WindowsDeviceInputSource : IDeviceInputSource
     {
-        private readonly WindowsDirectInputConnection _connection = new();
+        private readonly WindowsDirectInputConnection _connection;
         private readonly Dictionary<Guid, WindowsDirectInputController> _controllers = [];
         private bool _disposed;
         /// <summary>Acquires requested devices by exact instance GUID.</summary>
@@ -14,6 +14,8 @@ namespace DcsIpia.Presentation
         /// <param name="devices">Attached physical identities.</param>
         public WindowsDeviceInputSource(nint window, IReadOnlyList<Guid> devices)
         {
+            EditionAccess.Policy.RequireOwner();
+            _connection = new WindowsDirectInputConnection();
             try
             {
                 foreach (var guid in devices.Distinct()) _controllers.Add(guid, new(_connection.CreateDevice(guid), window));

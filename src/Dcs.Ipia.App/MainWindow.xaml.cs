@@ -92,7 +92,7 @@ namespace DcsIpia.Presentation
             _supportReports = supportReports;
             InitializeComponent();
             BindMainCommands();
-            Activated += (_, _) => ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
+            Activated += (_, _) => ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             if (profile is not null)
                 ProfileIndicator.Text = (profile.IsTest ? "TEST PROFILE: " : "Profile: ") + profile.Name + " · " + profile.DataDirectory +
@@ -101,7 +101,9 @@ namespace DcsIpia.Presentation
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
-            ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
+            ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            EditionStatus.Text = EditionAccess.Policy.Label;
             ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             Loaded += async (_, _) =>
             {
@@ -324,8 +326,10 @@ namespace DcsIpia.Presentation
                 FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
                 var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
                     SavedGamesDeviceDiscovery.Discover(destination)));
+                EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
                 var captured = ModuleAxisCleanup.CaptureDevices(saved,
-                    devices.Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
+                    devices.Where(x => EditionAccess.Policy.IsOwner || EditionAccess.Policy.AllowsDevice(x) ||
+                        saved.Configuration.Profiles.Any(profile => DcsPhysicalIdentity.FromFileName(profile.SourceName) == x.PhysicalGuid)).Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
                         .Where(x => DcsPhysicalIdentity.FromFileName(x) is not null)));
                 if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
                 FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
@@ -522,6 +526,7 @@ namespace DcsIpia.Presentation
                             .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
                     saved = PinnedUiLayerProfileRecovery.Restore(saved);
                     SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
+                    EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
                     await _workspaces.SaveAsync(saved);
                     var persisted =
                         await _workspaces.GetAsync(module.Module.Id) ??
@@ -587,7 +592,7 @@ namespace DcsIpia.Presentation
             RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
             SharedDefaultsButton.IsEnabled = !busy && _sharedDefaults is not null;
-            ThemePicker.IsEnabled = !busy;
+            ThemePicker.IsEnabled = !busy && EditionAccess.Policy.IsOwner;
             CommandManager.InvalidateRequerySuggested();
             UpdateFlyNowControls();
         }
@@ -685,6 +690,7 @@ namespace DcsIpia.Presentation
         {
             if (ThemePicker.SelectedItem is not ComboBoxItem { Tag: string theme })
                 return;
+            if (!EditionAccess.Policy.IsOwner) return;
             ThemeManager.Apply(theme);
             var saved = _settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
             ThemeSaveStatus.Text =
@@ -700,7 +706,9 @@ namespace DcsIpia.Presentation
             if (_moduleOperationBusy) return;
             var dialog = new SettingsWindow(_settings) { Owner = this };
             dialog.ShowDialog();
-            ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
+            ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            EditionStatus.Text = EditionAccess.Policy.Label;
             ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             UpdateFlyNowControls();
         }

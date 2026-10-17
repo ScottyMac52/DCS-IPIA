@@ -21,6 +21,7 @@ namespace DcsIpia.Presentation
         /// <summary>Opens an appearance session using the current profile's accepted settings.</summary>
         public AppearanceWindow(IAppearanceStore store)
         {
+            EditionAccess.Policy.RequireOwner();
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _draft = store.Current;
             _image = AppearanceManager.Image;

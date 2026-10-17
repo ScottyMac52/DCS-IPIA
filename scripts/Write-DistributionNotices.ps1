@@ -8,6 +8,7 @@ New-Item -ItemType Directory -Path $notices -Force | Out-Null
 $copies = @{
     'LICENSE' = 'IPIA-LICENSE.txt'
     'src/Dcs.Ipia.App/Branding/PROVENANCE.md' = 'flight-patch-PROVENANCE.md'
+    'src/Dcs.Ipia.App/Branding/FreeEdition/PROVENANCE.md' = 'free-edition-background-PROVENANCE.md'
     'data/shared-assets/DCS-Common-LICENSE.txt' = 'DCS-Common-LICENSE.txt'
     'data/shared-assets/provenance.json' = 'shared-assets-provenance.json'
     'data/shared-assets/assets/shared/hardware/SOURCES.md' = 'hardware-SOURCES.md'

@@ -428,3 +428,10 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /.tools/reportgenerator
+
+# Private owner licensing material is never a repository or release asset.
+owner-license.json
+*.owner-license.json
+owner-signing-key.pem
+*.owner-key.pem
+*Owner-Recovery*.zip

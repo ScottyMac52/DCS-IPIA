@@ -31,7 +31,7 @@ namespace DcsIpia.Presentation
             _repository = repository;
             var catalog = new EditorWorkspaceSnapshot(new(new(Guid.NewGuid(), "catalog", "Hardware"), [], [], [], "internal catalog"),
                 [], [], [], [], [], [], new Dictionary<string, string>(), hardwareSources);
-            var hardware = WorkspaceStructureEditor.Hardware(catalog);
+            var hardware = EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(catalog)).ToArray();
             _choices = folder.Profiles.Select(profile =>
             {
                 var physical = DcsPhysicalIdentity.FromFileName(profile.SourceName);
@@ -69,7 +69,8 @@ namespace DcsIpia.Presentation
                     if ((await _repository.GetAsync(id))?.Configuration.Module.DcsId.Equals(DcsIdInput.Text, StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidDataException("This DCS input folder already has a saved module. Open it, or delete it explicitly before importing a replacement.");
                 var workspace = SavedGamesWorkspaceFactory.Create(_folder, DcsIdInput.Text, DisplayNameInput.Text, _defaults,
-                    _hardwareSources, _choices.Select(x => new SavedGamesDeviceSelection(x.Profile.Id, x.Hardware!)).ToArray());
+                    _hardwareSources, _choices.Select(x => new SavedGamesDeviceSelection(x.Profile.Id, x.Hardware!)).ToArray(), emptyDefaults: !EditionAccess.Policy.IsOwner);
+                EditionAccess.RequireWorkspace(workspace);
                 await _repository.SaveAsync(workspace);
                 ImportedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new InvalidDataException("The imported module could not be reopened from SQLite.");

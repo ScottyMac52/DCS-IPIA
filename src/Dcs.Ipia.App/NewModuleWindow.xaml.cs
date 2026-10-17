@@ -49,6 +49,7 @@ namespace DcsIpia.Presentation
                 [], [], [], [], [], [], new Dictionary<string, string>(), hardwareSources));
             InitializeComponent();
             BaselineText.Text = $"Shared default UI Layer revision {defaults.Revision} will be copied into this module. Its filenames are baseline identities; select a copied profile below to explicitly bind it to your unit.";
+            _hardware = EditionAccess.Hardware(_hardware).ToArray();
             HardwareChoices.ItemsSource = _hardware;
             SelectedUnits.ItemsSource = _selections;
             DefaultChoiceChanged(this, new RoutedEventArgs());
@@ -65,9 +66,10 @@ namespace DcsIpia.Presentation
             try
             {
                 var choices = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync());
-                InventoryChoices.ItemsSource = choices;
+                InventoryChoices.ItemsSource = EditionAccess.Policy.IsOwner ? choices : [];
                 _hardware = _hardware.Concat(choices.Select(x => GenericHardwareLayout.Create(x.Definition)))
                     .DistinctBy(x => x.DeviceId).ToArray();
+                _hardware = EditionAccess.Hardware(_hardware).ToArray();
                 HardwareChoices.ItemsSource = _hardware;
             }
             catch (Exception ex)
@@ -120,7 +122,8 @@ namespace DcsIpia.Presentation
                 });
                 if (_logger.IsEnabled(LogLevel.Debug))
                     ApplicationLog.DevicesDiscovered(_logger, choices.Count, _savedGamesRoot, null);
-                PhysicalChoices.ItemsSource = choices;
+                PhysicalChoices.ItemsSource = EditionAccess.Policy.IsOwner ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
+                    DcsPhysicalIdentity.NameFromFileName(item.DefaultFileName).Equals(device.Name, StringComparison.OrdinalIgnoreCase))).ToArray();
                 CreationError.Text = choices.Count + " physical unit(s). " + string.Join(" ", errors);
             }
             finally { RefreshDevicesButton.IsEnabled = true; }
@@ -225,6 +228,7 @@ namespace DcsIpia.Presentation
                 workspace = ModuleAxisCleanup.CaptureDevices(workspace,
                     (PhysicalChoices.ItemsSource as IEnumerable<DetectedDcsDevice> ?? []).Select(x => x.FileName)
                         .Concat(_selections.Select(x => x.FileName)));
+                EditionAccess.RequireWorkspace(workspace, _discovery);
                 await _repository.SaveAsync(workspace);
                 CreatedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new System.IO.InvalidDataException("The new module could not be reopened from SQLite.");

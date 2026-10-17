@@ -25,10 +25,10 @@ namespace Dcs.Ipia.Dcs
             };
             return defaults with { Sources = sources, ContentSha256 = null };
         }
-        /// <summary>Resolves explicit mappings or unique native filename/physical matches; ambiguity requires a choice.</summary>
+        /// <summary>Resolves explicit mappings or unique native filename/physical matches; ambiguity requires a choice. Unresolvable profiles (no matching hardware) are skipped.</summary>
         /// <param name="defaults">Saved default revision.</param>
         /// <param name="hardware">Pinned catalog choices.</param>
-        /// <returns>Exact graphics for every joystick profile.</returns>
+        /// <returns>Exact graphics for resolvable joystick profiles.</returns>
         public static IReadOnlyDictionary<string, UiLayerDiagram> Resolve(SharedUiLayerWorkspace defaults, IEnumerable<WorkspaceHardware> hardware)
         {
             var choices = hardware.ToArray();
@@ -47,8 +47,10 @@ namespace Dcs.Ipia.Dcs
                 if (candidates.Length == 0 && explicitIds.Length == 0)
                     candidates = choices.Where(x => Name(x.DefaultFileName).Equals(Name(file), StringComparison.OrdinalIgnoreCase)).ToArray();
                 var diagrams = candidates.DistinctBy(x => (x.Diagram.Path, JsonSerializer.Serialize(x.Diagram.Controls))).ToArray();
-                if (diagrams.Length != 1)
+                if (diagrams.Length > 1)
                     throw new InvalidDataException("Choose output hardware for " + file + " in the Devices tab.");
+                if (diagrams.Length == 0)
+                    continue;
                 result.Add(path, diagrams[0].Diagram with { Device = file[..^9], Instance = null, Callouts = [] });
             }
             return result;

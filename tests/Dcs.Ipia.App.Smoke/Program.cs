@@ -34,6 +34,8 @@ namespace Dcs.Ipia.App.Smoke
                     Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute)
                 });
             ApplicationTheme.Initialize();
+            Console.WriteLine("Smoke: Free Edition and signed Owner entitlement.");
+            EditionSmoke.Verify();
             BrandingSmoke.Verify();
             global::Dcs.Ipia.Dcs.BundledSharedCatalog.Validate(global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root);
             var defaultsWindow = new SharedUiLayerWorkspaceWindow(new SharedUiLayerWorkspace(1, new string('a', 40),
