@@ -10,8 +10,8 @@
   </StackPanel>
   <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-    <Button x:Name="CancelAppearance" Content="Cancel" IsCancel="True" Click="CancelClicked" Margin="8,0,0,0" Padding="16,8"/>
-    <Button x:Name="ApplyAppearance" Content="Apply" IsDefault="True" Click="ApplyClicked" Margin="8,0,0,0" Padding="16,8"/>
+    <Button x:Name="CancelAppearance" Content="Cancel" IsCancel="True" Click="CancelClicked" Margin="8,0,0,0" Padding="16,4"/>
+    <Button x:Name="ApplyAppearance" Content="Apply" IsDefault="True" Click="ApplyClicked" Margin="8,0,0,0" Padding="16,4"/>
    </StackPanel>
    <TextBlock x:Name="AppearanceStatus" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" VerticalAlignment="Center"/>
   </DockPanel>
@@ -19,8 +19,8 @@
    <Border Style="{DynamicResource Card}" Margin="0,0,16,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
     <TextBlock Text="Background image" FontSize="18" FontWeight="SemiBold"/>
     <WrapPanel Margin="0,8,0,8">
-     <Button Content="Choose JPG / PNG…" Click="ChooseImageClicked" Padding="10,6"/>
-     <Button Content="Remove image" Click="RemoveImageClicked" Padding="10,6" Margin="8,0,0,0"/>
+     <Button Content="Choose JPG / PNG…" Click="ChooseImageClicked" Padding="10,4"/>
+     <Button Content="Remove image" Click="RemoveImageClicked" Padding="10,4" Margin="8,0,0,0"/>
     </WrapPanel>
     <TextBlock x:Name="ImageStatus" TextWrapping="Wrap" Margin="0,0,0,8"/>
     <CheckBox x:Name="BackgroundEnabled" Content="Enable background" Checked="AdjustmentChanged" Unchecked="AdjustmentChanged"/>
@@ -47,11 +47,11 @@
     <TextBlock Text="Accent and palette" FontSize="18" FontWeight="SemiBold" Margin="0,18,0,8"/>
     <TextBlock Text="Accent #RRGGBB (blank uses skin default)" TextWrapping="Wrap"/>
     <TextBox x:Name="AccentColor" TextChanged="AccentChanged" Margin="0,4,0,8" AutomationProperties.Name="Accent color"/>
-    <WrapPanel><Button Content="Import palette JSON…" Click="ImportPaletteClicked" Padding="10,6"/>
-     <Button Content="Use skin palette" Click="ClearPaletteClicked" Padding="10,6" Margin="8,0,0,0"/>
+    <WrapPanel><Button Content="Import palette JSON…" Click="ImportPaletteClicked" Padding="10,4"/>
+     <Button Content="Use skin palette" Click="ClearPaletteClicked" Padding="10,4" Margin="8,0,0,0"/>
     </WrapPanel>
     <TextBlock x:Name="PaletteStatus" TextWrapping="Wrap" Margin="0,8,0,12"/>
-    <Button Content="Clear customization" Click="ResetClicked" HorizontalAlignment="Left" Padding="10,6"/>
+    <Button Content="Clear customization" Click="ResetClicked" HorizontalAlignment="Left" Padding="10,4"/>
    </StackPanel></ScrollViewer></Border>
    <StackPanel Grid.Column="1">
     <TextBlock Text="Live preview" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
@@ -61,7 +61,7 @@
      <TextBlock Text="Aircraft profile"/><TextBox x:Name="PreviewText" Text="F-14B — Carrier operations" Margin="0,6,0,12"/>
      <CheckBox Content="Enable controller input" IsChecked="True" Margin="0,0,0,12"/>
      <ListBox x:Name="PreviewList" Height="90" SelectedIndex="0"><ListBoxItem Content="Joystick — pitch and roll"/><ListBoxItem Content="Throttle — engine power"/></ListBox>
-     <WrapPanel Margin="0,12,0,0"><Button Content="Sample action" Padding="12,8"/><Button Content="Unavailable" IsEnabled="False" Padding="12,8" Margin="8,0,0,0"/></WrapPanel>
+     <WrapPanel Margin="0,12,0,0"><Button Content="Sample action" Padding="12,4"/><Button Content="Unavailable" IsEnabled="False" Padding="12,4" Margin="8,0,0,0"/></WrapPanel>
     </StackPanel></Border>
     <TextBlock Text="The whole application is previewing these changes. Readability protection may soften the photograph or increase panel opacity. Decorative backgrounds are suppressed in Windows high contrast." TextWrapping="Wrap" Margin="0,16,0,0"/>
     <TextBlock Text="To change the base skin, close this editor and use the UI skin selector in Settings. Restore default appearance clears customization and returns to Modern Light." TextWrapping="Wrap" Margin="0,12,0,0"/>

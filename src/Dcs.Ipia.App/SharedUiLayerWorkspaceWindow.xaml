@@ -21,7 +21,7 @@
             <WrapPanel Margin="0,0,0,10">
               <TextBlock Text="Modifier layer:" VerticalAlignment="Center" Margin="0,0,8,0"/>
               <ComboBox x:Name="ClearLayerChoice" MinWidth="160"/>
-              <Button x:Name="ClearLayerButton" Content="Clear layer assignments" Click="ClearLayerClicked" Padding="10,6" Margin="8,0,0,0"/>
+              <Button x:Name="ClearLayerButton" Content="Clear layer assignments" Click="ClearLayerClicked" Padding="10,4" Margin="8,0,0,0"/>
             </WrapPanel>
           </StackPanel>
           <DataGrid x:Name="BindingRows" Grid.Row="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
@@ -42,10 +42,10 @@
               <TextBlock x:Name="DeclaredModifiers" TextWrapping="Wrap" Margin="0,0,0,8"/>
               <TextBlock Text="Add/Update stages the selected key binding. Axis bindings and removal history remain read-only." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
-                <Button Content="New binding" Click="NewBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button Content="Add" Click="AddBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="UpdateBindingButton" Content="Update" Click="UpdateBindingClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button Content="Remove" Click="RemoveBindingClicked" Padding="10,6"/>
+                <Button Content="New binding" Click="NewBindingClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button Content="Add" Click="AddBindingClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="UpdateBindingButton" Content="Update" Click="UpdateBindingClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button Content="Remove" Click="RemoveBindingClicked" Padding="10,4"/>
               </WrapPanel>
             </StackPanel>
           </ScrollViewer>
@@ -71,10 +71,10 @@
               <TextBlock Text="Category"/><TextBox x:Name="CatalogCategory" Margin="0,4,0,8"/>
               <TextBlock Text="Command codes must come from DCS. Clear assignments before removing an entry or changing an assigned command's code." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
-                <Button Content="New command" Click="NewCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="AddCommandButton" Content="Add" Click="AddCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="UpdateCommandButton" Content="Update" Click="UpdateCommandClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="RemoveCommandButton" Content="Remove" Click="RemoveCommandClicked" Padding="10,6"/>
+                <Button Content="New command" Click="NewCommandClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="AddCommandButton" Content="Add" Click="AddCommandClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="UpdateCommandButton" Content="Update" Click="UpdateCommandClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="RemoveCommandButton" Content="Remove" Click="RemoveCommandClicked" Padding="10,4"/>
               </WrapPanel>
             </StackPanel>
           </ScrollViewer>
@@ -95,9 +95,9 @@
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="240">
             <StackPanel x:Name="DeviceFields">
               <TextBlock Text="Output hardware for custom or ambiguous joystick profiles" TextWrapping="Wrap"/>
-              <Button x:Name="LoadOutputHardwareButton" Content="Load output hardware choices" Click="LoadOutputHardwareClicked" Padding="10,6"/>
+              <Button x:Name="LoadOutputHardwareButton" Content="Load output hardware choices" Click="LoadOutputHardwareClicked" Padding="10,4"/>
               <ComboBox x:Name="OutputHardwareChoice" DisplayMemberPath="Title" Margin="0,6,0,6"/>
-              <Button x:Name="SetOutputHardwareButton" Content="Stage selected output hardware" Click="SetOutputHardwareClicked" Padding="10,6"/>
+              <Button x:Name="SetOutputHardwareButton" Content="Stage selected output hardware" Click="SetOutputHardwareClicked" Padding="10,4"/>
 
               <TextBlock Text="Exact native DCS joystick filename, including {physical GUID}.diff.lua" TextWrapping="Wrap"/>
               <TextBox x:Name="DeviceFileName" Margin="0,4,0,8"/>
@@ -105,10 +105,10 @@
               <ComboBox x:Name="CloneProfileChoice" DisplayMemberPath="FileName" Margin="0,4,0,8"/>
               <TextBlock Text="Rename keeps the same physical GUID and updates modifier device names. Clear assignments and device modifiers before deleting. The keyboard profile is protected." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
-                <Button x:Name="NewProfileButton" Content="New profile" Click="NewProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="AddProfileButton" Content="Add" Click="AddProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="RenameProfileButton" Content="Rename" Click="RenameProfileClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="RemoveProfileButton" Content="Remove" Click="RemoveProfileClicked" Padding="10,6"/>
+                <Button x:Name="NewProfileButton" Content="New profile" Click="NewProfileClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="AddProfileButton" Content="Add" Click="AddProfileClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="RenameProfileButton" Content="Rename" Click="RenameProfileClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="RemoveProfileButton" Content="Remove" Click="RemoveProfileClicked" Padding="10,4"/>
               </WrapPanel>
             </StackPanel>
           </ScrollViewer>
@@ -134,10 +134,10 @@
               <TextBlock Text="Mode"/><ComboBox x:Name="ModifierModeChoice" Margin="0,4,0,8"/>
               <TextBlock Text="Hold is a modifier; Toggle is a switch. Keyboard defaults are protected. Clear assignments before removing or renaming a modifier they use." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
-                <Button Content="New modifier" Click="NewModifierClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="AddModifierButton" Content="Add" Click="AddModifierClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="UpdateModifierButton" Content="Update" Click="UpdateModifierClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="RemoveModifierButton" Content="Remove" Click="RemoveModifierClicked" Padding="10,6"/>
+                <Button Content="New modifier" Click="NewModifierClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="AddModifierButton" Content="Add" Click="AddModifierClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="UpdateModifierButton" Content="Update" Click="UpdateModifierClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="RemoveModifierButton" Content="Remove" Click="RemoveModifierClicked" Padding="10,4"/>
               </WrapPanel>
             </StackPanel>
           </ScrollViewer>
@@ -149,7 +149,7 @@
           <StackPanel>
             <TextBlock Text="Review proposed shared source changes against saved modules before saving. Refresh after edits or module changes." TextWrapping="Wrap"/>
             <TextBlock Text="Matches baseline: pinned source is unchanged. Different source: module has another source version. Not pinned: no source evidence. Matches proposal: source already agrees. This review does not apply changes to modules." TextWrapping="Wrap" Margin="0,6,0,6"/>
-            <Button x:Name="ImpactRefreshButton" Content="Refresh module impact" Click="ReviewImpactClicked" HorizontalAlignment="Left" Padding="10,6"/>
+            <Button x:Name="ImpactRefreshButton" Content="Refresh module impact" Click="ReviewImpactClicked" HorizontalAlignment="Left" Padding="10,4"/>
             <TextBlock x:Name="ImpactStatus" Text="Refresh to review saved modules. Module adoption is a separate action." TextWrapping="Wrap" Margin="0,8,0,8"/>
           </StackPanel>
           <DataGrid x:Name="ImpactChanges" Grid.Row="1" MaxHeight="140" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,10"
@@ -192,10 +192,10 @@
               <DataGrid x:Name="SemanticChanges" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" MaxHeight="160" AutomationProperties.Name="Assignment and catalog adoption decisions"/>
               <TextBlock x:Name="AdoptionStatus" TextWrapping="Wrap" Margin="0,6,0,6"/>
               <WrapPanel>
-                <Button x:Name="RecordBaselineButton" Content="Record this baseline" Click="RecordBaselineClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="ReviewSemanticButton" Content="Review assignment/catalog changes" Click="ReviewSemanticClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="AdoptDefaultsButton" Content="Apply selected defaults" Click="AdoptDefaultsClicked" Padding="10,6" Margin="0,0,8,0"/>
-                <Button x:Name="RollbackAdoptionButton" Content="Restore prior module state" Click="RollbackAdoptionClicked" Padding="10,6"/>
+                <Button x:Name="RecordBaselineButton" Content="Record this baseline" Click="RecordBaselineClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="ReviewSemanticButton" Content="Review assignment/catalog changes" Click="ReviewSemanticClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="AdoptDefaultsButton" Content="Apply selected defaults" Click="AdoptDefaultsClicked" Padding="10,4" Margin="0,0,8,0"/>
+                <Button x:Name="RollbackAdoptionButton" Content="Restore prior module state" Click="RollbackAdoptionClicked" Padding="10,4"/>
               </WrapPanel>
             </StackPanel>
           </ScrollViewer>
@@ -215,11 +215,11 @@
     <StackPanel Grid.Row="2" Margin="0,12,0,0">
       <TextBlock x:Name="EditorStatus" TextWrapping="Wrap"/>
       <WrapPanel Margin="0,8,0,0">
-        <Button x:Name="SaveDefaultsButton" Content="Save new default revision" Click="SaveClicked" Padding="14,7" Margin="0,0,8,0"/>
-        <Button x:Name="ExportSharedButton" Content="Export shared defaults" Click="ExportSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
-        <Button x:Name="RestoreSharedButton" Content="Restore exported defaults" Click="ReadSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
-        <Button x:Name="RebuildSharedButton" Content="Rebuild exported defaults" Click="ReadSharedClicked" Padding="14,7" Margin="0,0,8,0"/>
-        <Button x:Name="DiscardDefaultsButton" Content="Discard draft" Click="DiscardClicked" Padding="14,7"/>
+        <Button x:Name="SaveDefaultsButton" Content="Save new default revision" Click="SaveClicked" Padding="14,4" Margin="0,0,8,0"/>
+        <Button x:Name="ExportSharedButton" Content="Export shared defaults" Click="ExportSharedClicked" Padding="14,4" Margin="0,0,8,0"/>
+        <Button x:Name="RestoreSharedButton" Content="Restore exported defaults" Click="ReadSharedClicked" Padding="14,4" Margin="0,0,8,0"/>
+        <Button x:Name="RebuildSharedButton" Content="Rebuild exported defaults" Click="ReadSharedClicked" Padding="14,4" Margin="0,0,8,0"/>
+        <Button x:Name="DiscardDefaultsButton" Content="Discard draft" Click="DiscardClicked" Padding="14,4"/>
       </WrapPanel>
     </StackPanel>
   </Grid>

@@ -35,7 +35,7 @@
     <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Padding" Value="10,4"/>
         <Setter Property="MinWidth" Value="72"/>
-        <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="MinHeight" Value="28"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,0,10,6"/>
     </Style>

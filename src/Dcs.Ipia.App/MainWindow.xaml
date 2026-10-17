@@ -90,29 +90,29 @@
           <ComboBox x:Name="SavedModules" MinWidth="300" HorizontalAlignment="Left"
                   DisplayMemberPath="DisplayName" AutomationProperties.Name="Saved module selection"
                   SelectionChanged="SavedModuleChanged"/>
-          <Button x:Name="DeleteModuleButton" Content="Delete" Padding="16,9" Margin="8,0,0,0"
+          <Button x:Name="DeleteModuleButton" Content="Delete" Padding="16,4" Margin="8,0,0,0"
                   IsEnabled="False" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.DeleteModule}" AutomationProperties.Name="Delete selected module"
                   ToolTip="Delete the selected module and all of its saved data from the local database."/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-          <Button x:Name="NewModuleButton" Content="New module" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.NewModule}" Margin="0,0,8,0" AutomationProperties.Name="Create new module"/>
-          <Button x:Name="OpenModuleButton" Content="Open module" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.OpenModule}" Margin="0,0,8,0"/>
-          <Button x:Name="ImportButton" Content="Import module sources" Padding="16,9"
+          <Button x:Name="NewModuleButton" Content="New module" Padding="16,4" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.NewModule}" Margin="0,0,8,0" AutomationProperties.Name="Create new module"/>
+          <Button x:Name="OpenModuleButton" Content="Open module" Padding="16,4" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.OpenModule}" Margin="0,0,8,0"/>
+          <Button x:Name="ImportButton" Content="Import module sources" Padding="16,4"
                   Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.ImportModule}" ToolTip="Choose a module Git repository or a DCS Saved Games module/joystick folder."/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-          <Button x:Name="RestoreModuleSnapshotButton" Content="Restore module snapshot…" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.RestoreModule}" Padding="16,9" ToolTip="Restore a verified exported module into the database without replacing an existing module."/>
-          <Button x:Name="ClearFlyNowButton" Content="Clear" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.ClearDeployment}" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" AutomationProperties.Name="Clear active Fly Now deployment" ToolTip="Delete exactly the files copied by the active Fly Now deployment, including its UI Layer."/>
+          <Button x:Name="RestoreModuleSnapshotButton" Content="Restore module snapshot…" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.RestoreModule}" Padding="16,4" ToolTip="Restore a verified exported module into the database without replacing an existing module."/>
+          <Button x:Name="ClearFlyNowButton" Content="Clear" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.ClearDeployment}" Padding="16,4" Margin="8,0,0,0" IsEnabled="False" AutomationProperties.Name="Clear active Fly Now deployment" ToolTip="Delete exactly the files copied by the active Fly Now deployment, including its UI Layer."/>
         </StackPanel>
         <TextBlock FontWeight="SemiBold" Text="Saved Games DCS Folder" Margin="0,16,0,4"/>
         <TextBlock x:Name="SavedGamesDestination" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-          <Button x:Name="BrowseSavedGamesButton" Content="Browse…" Padding="16,9" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Destination}" AutomationProperties.Name="Browse Saved Games DCS Folder"/>
-          <Button x:Name="FlyNowButton" Content="Fly Now!" Padding="16,9" Margin="8,0,0,0" IsEnabled="False" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.FlyNow}" AutomationProperties.Name="Fly Now selected module"/>
+          <Button x:Name="BrowseSavedGamesButton" Content="Browse…" Padding="16,4" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Destination}" AutomationProperties.Name="Browse Saved Games DCS Folder"/>
+          <Button x:Name="FlyNowButton" Content="Fly Now!" Padding="16,4" Margin="8,0,0,0" IsEnabled="False" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.FlyNow}" AutomationProperties.Name="Fly Now selected module"/>
         </StackPanel>
         <TextBlock x:Name="FlyNowStatus" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" AutomationProperties.LiveSetting="Polite"/>
         <Button x:Name="SharedDefaultsButton" Content="Shared default UI Layer" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.SharedDefaults}"
-                HorizontalAlignment="Left" Padding="16,9" Margin="0,12,0,0"/>
+                HorizontalAlignment="Left" Padding="16,4" Margin="0,12,0,0"/>
       </StackPanel>
       </ScrollViewer>
     </Border>

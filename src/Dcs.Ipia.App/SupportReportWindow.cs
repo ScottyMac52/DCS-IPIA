@@ -34,7 +34,7 @@ namespace DcsIpia.Presentation
             };
             DockPanel.SetDock(scope, Dock.Top); panel.Children.Add(scope);
             var actions = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
-            var save = new Button { Name = "SaveSupportReportButton", Content = "_Save report…", HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(14, 8, 14, 8) };
+            var save = new Button { Name = "SaveSupportReportButton", Content = "_Save report…", HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(14, 4, 14, 4) };
             RegisterName(save.Name, save); save.Click += SaveClicked; actions.Children.Add(save);
             _status = new TextBlock { Name = "SupportReportStatus", Text = "Choose a new filename; existing reports are never replaced.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
             RegisterName(_status.Name, _status); actions.Children.Add(_status);
