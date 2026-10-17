@@ -1,5 +1,4 @@
 using System.Windows;
-using Microsoft.Win32;
 using System.Windows.Controls;
 using System.Windows.Data;
 using Dcs.Ipia.Application;
@@ -123,7 +122,7 @@ namespace DcsIpia.Presentation
             var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
             panel.Children.Add(new TextBlock { Text = "Welcome. Review your destination, select usable controllers, and confirm their labels and mapping. Scanning writes nothing. Skip or cancel to continue with New, Import or Open Module; resume setup from Settings.", TextWrapping = TextWrapping.Wrap });
             var browse = new Button { Content = "_Browse…", Margin = new Thickness(8, 0, 0, 0) };
-            browse.Click += (_, _) => { var picker = new OpenFolderDialog { Title = "Select Saved Games DCS folder" }; if (picker.ShowDialog(this) == true) _destination.Text = picker.FolderName; };
+            browse.Click += (_, _) => { var picker = new ThemeBrowseDialog { SelectFolder = true, Title = "Select Saved Games DCS folder" }; if (picker.ShowDialog(this) == true) _destination.Text = picker.FolderName; };
             var folder = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
             folder.Children.Add(new Label { Content = "Saved _Games DCS folder", Target = _destination });
             DockPanel.SetDock(browse, Dock.Right); folder.Children.Add(browse); folder.Children.Add(_destination);

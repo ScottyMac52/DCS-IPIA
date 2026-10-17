@@ -2,7 +2,6 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
-using Microsoft.Win32;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -314,7 +313,7 @@ namespace DcsIpia.Features.Devices
                 return;
             }
 
-            var picker = new OpenFileDialog
+            var picker = new ThemeBrowseDialog
             {
                 Title = "Select the DCS profile saved after clearing all axes",
                 Filter = "DCS diff profile|*.diff.lua"

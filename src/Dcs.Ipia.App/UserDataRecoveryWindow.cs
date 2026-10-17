@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -79,7 +78,7 @@ namespace DcsIpia.Presentation
         private async void BackupClicked(object sender, RoutedEventArgs e)
         {
             if (_busy || RequiresRestart) return;
-            var picker = new SaveFileDialog { Title = "Back up saved IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip", FileName = "IPIA-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip", OverwritePrompt = false };
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Back up saved IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip", FileName = "IPIA-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip", OverwritePrompt = false };
             var path = _backupPicker is not null ? _backupPicker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) return;
             Busy(true);
@@ -95,7 +94,7 @@ namespace DcsIpia.Presentation
         private async void RestoreClicked(object sender, RoutedEventArgs e)
         {
             if (_busy) return;
-            var picker = new OpenFileDialog { Title = "Restore IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip" };
+            var picker = new ThemeBrowseDialog { Title = "Restore IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip" };
             var path = _restorePicker is not null ? _restorePicker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) return;
             Busy(true);

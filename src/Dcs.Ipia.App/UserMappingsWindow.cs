@@ -6,7 +6,6 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Infrastructure;
 using Dcs.Ipia.Rendering;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -139,7 +138,7 @@ namespace DcsIpia.Presentation
         private async Task PreviewSourceAsync(bool bundled)
         {
             if (_definitions.SelectedValue is not HardwareDefinition definition) return;
-            var dialog = new OpenFileDialog
+            var dialog = new ThemeBrowseDialog
             {
                 Title = bundled ? "Choose a bundled drawing for the selected controller" : "Choose an editable draw.io hardware drawing",
                 Filter = "Draw.io source|*.drawio;*.xml",
@@ -211,7 +210,7 @@ namespace DcsIpia.Presentation
         private void StarterClicked(object sender, RoutedEventArgs e)
         {
             if (_definitions.SelectedValue is not HardwareDefinition definition) return;
-            var dialog = new SaveFileDialog { Title = "Export editable controller starter", Filter = "Draw.io source|*.drawio", FileName = "controller-starter.drawio" };
+            var dialog = new ThemeBrowseDialog { Save = true, Title = "Export editable controller starter", Filter = "Draw.io source|*.drawio", FileName = "controller-starter.drawio" };
             var path = _starterPicker is not null ? _starterPicker() : dialog.ShowDialog(this) == true ? dialog.FileName : null;
             if (path is null) return;
             try
@@ -227,7 +226,7 @@ namespace DcsIpia.Presentation
         private void ExportClicked(object sender, RoutedEventArgs e)
         {
             if (_revisions.SelectedItem is not UserMappingRevision revision) return;
-            var dialog = new SaveFileDialog { Title = "Export editable mapping bundle", Filter = "Mapping bundle|*.ipia-mapping.zip", FileName = "mapping.ipia-mapping.zip" };
+            var dialog = new ThemeBrowseDialog { Save = true, Title = "Export editable mapping bundle", Filter = "Mapping bundle|*.ipia-mapping.zip", FileName = "mapping.ipia-mapping.zip" };
             var path = _exportPicker is not null ? _exportPicker() : dialog.ShowDialog(this) == true ? dialog.FileName : null;
             if (path is null) return;
             try

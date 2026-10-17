@@ -2,7 +2,6 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
-using Microsoft.Win32;
 using System.ComponentModel.Design;
 using System.Runtime.InteropServices;
 using System.Windows.Media;
@@ -216,7 +215,7 @@ namespace DcsIpia.Features.Commands
         private void ImportCommands(bool html)
         {
             if (_context?.Working is null) return;
-            var picker = new OpenFileDialog
+            var picker = new ThemeBrowseDialog
             {
                 Title = html ? "Select DCS Controls HTML" : "Select IPI command catalog JSON",
                 Filter = html ? "DCS Controls HTML|*.html;*.htm" : "IPI command catalog JSON|*.json",

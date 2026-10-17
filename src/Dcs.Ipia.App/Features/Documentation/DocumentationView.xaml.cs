@@ -2,7 +2,6 @@
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using DcsIpia.Presentation;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -58,7 +57,7 @@ namespace DcsIpia.Features.Documentation
         private void LoadClicked(object sender, RoutedEventArgs e)
         {
             if (_context?.Working is null) return;
-            var picker = new OpenFileDialog
+            var picker = new ThemeBrowseDialog
             {
                 Title = "Select integration instructions",
                 Filter = "Integration instructions|*.json;*.md|JSON|*.json|Markdown|*.md"

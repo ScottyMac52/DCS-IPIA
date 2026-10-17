@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Dcs.Ipia.Infrastructure;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -52,7 +51,7 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private void SaveClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new SaveFileDialog { Title = "Save reviewed support report locally", Filter = "Support report|*.json", FileName = "IPIA-support.json", OverwritePrompt = false };
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Save reviewed support report locally", Filter = "Support report|*.json", FileName = "IPIA-support.json", OverwritePrompt = false };
             var path = _picker is not null ? _picker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) { _status.Text = "Export cancelled."; return; }
             try { SupportReportFile.WriteNew(path, _preview); _status.Text = "Report saved locally. Nothing was uploaded."; }
