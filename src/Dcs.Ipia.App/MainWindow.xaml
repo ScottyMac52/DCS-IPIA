@@ -54,18 +54,20 @@
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <DockPanel Grid.Row="0" Margin="0,0,0,20">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0"/>
-        <ComboBox x:Name="ThemePicker" Width="155" Margin="0,0,12,0"
+    <DockPanel Grid.Row="0" Margin="0,0,0,12">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
+        <ComboBox x:Name="ThemePicker" Width="140" Height="28" Margin="0,0,8,0"
                   AutomationProperties.Name="Appearance theme"
-                  SelectionChanged="ThemePicker_SelectionChanged">
+                  SelectionChanged="ThemePicker_SelectionChanged"
+                  VerticalAlignment="Center">
           <ComboBoxItem Content="Modern Light" Tag="Light"/>
           <ComboBoxItem Content="Modern Dark" Tag="Dark"/>
           <ComboBoxItem Content="Navy/Amber" Tag="NavyAmber"/>
           <ComboBoxItem Content="Cockpit Green" Tag="CockpitGreen"/>
         </ComboBox>
-        <Button Content="Settings" Padding="14,8" Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Settings}"/>
+        <Button Content="Settings" Padding="10,4" Height="28" VerticalAlignment="Center"
+                Click="ExecuteMainQuickAction" Tag="{x:Static local:MainWindowCommands.Settings}"/>
       </StackPanel>
       <DockPanel>
         <Image x:Name="FlightPatchBadge" DockPanel.Dock="Left" Source="{x:Static local:ApplicationBranding.Badge}"
@@ -123,5 +125,3 @@
   </Grid>
   </DockPanel>
 </Window>
-
-
