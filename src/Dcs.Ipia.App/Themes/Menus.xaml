@@ -6,7 +6,7 @@
     <Setter Property="Padding" Value="4,2"/>
   </Style>
   <Style TargetType="ContextMenu">
-    <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource OpaqueControlBackgroundBrush}"/>
     <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
@@ -64,7 +64,7 @@
             </Border>
             <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False"
                    IsOpen="{TemplateBinding IsSubmenuOpen}" PopupAnimation="None">
-              <Border Background="{DynamicResource ControlBackgroundBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
+              <Border Background="{DynamicResource OpaqueControlBackgroundBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
                       BorderThickness="1" Padding="2">
                 <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto">
                   <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" KeyboardNavigation.TabNavigation="Cycle"/>

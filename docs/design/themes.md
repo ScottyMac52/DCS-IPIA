@@ -39,3 +39,7 @@ ApplicationTheme registers window-loaded handling before any UI is shown, applyi
 ThemeMessageBox preserves explicit confirmation defaults and return results with app-owned modal dialogs. Closing a Yes/No prompt returns No; Cancel remains Cancel. An OS message box is retained only for bootstrap/logging failures before WPF resources exist. Windows file/folder/save pickers remain operating-system dialogs and follow Windows appearance.
 
 ApplicationThemeSmoke keeps real axis tuning, command usage, support report, help and settings windows open while switching all skins. It checks shared rendered collections, committing a table edit, generated checkbox styling, keyboard slider changes, scrolling, validation colors and four confirmation button/result combinations. Existing hardware/drawing/recovery/training smoke continues to cover their real workflows. Resource checks reject new fixed XAML colors, direct unthemed message boxes and missing shared control styles.
+
+## Personal appearance overrides
+
+Settings → Customize appearance provides live background, accent and validated palette previews with Apply/Cancel and profile-local persistence. See [the appearance editor guide](appearance-editor.md) for image budgets, readability safeguards, the palette format and backup/reset behavior.

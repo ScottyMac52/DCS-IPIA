@@ -20,7 +20,8 @@ namespace DcsIpia.Presentation
             InitializeComponent();
             ThemeChoice.SelectedIndex = (int)_settings.Current.Theme;
             ConflictChoice.SelectedIndex = (int)_settings.Current.OccupiedDestinationBehavior;
-            SaveStatus.Text = _settings.LastError ?? string.Empty;
+            SaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
+            CustomizeAppearance.IsEnabled = AppearanceManager.Store is not null;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
             _ready = true;
         }
@@ -37,8 +38,17 @@ namespace DcsIpia.Presentation
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
         }
 
+        private void CustomizeAppearanceClicked(object sender, RoutedEventArgs e)
+        {
+            if (AppearanceManager.Store is { } store) new AppearanceWindow(store) { Owner = this }.ShowDialog();
+            SaveStatus.Text = AppearanceManager.LastError ?? "Appearance preview closed.";
+        }
+
         private void ResetAppearanceClicked(object sender, RoutedEventArgs e)
         {
+            if (AppearanceManager.Store is { } store && !store.TrySave(new AppearanceSettings()))
+            { SaveStatus.Text = store.LastError; return; }
+            AppearanceManager.Restore();
             // Persist even when Light is already selected, so a previous save failure can be retried.
             _ready = false;
             ThemeChoice.SelectedIndex = (int)AppearanceTheme.Light;
@@ -53,7 +63,7 @@ namespace DcsIpia.Presentation
                 return;
             var theme = Enum.Parse<AppearanceTheme>(value);
             ThemeManager.Apply(value);
-            SaveStatus.Text = _settings.TryUpdateTheme(theme) ? "Theme saved." : _settings.LastError;
+            SaveStatus.Text = _settings.TryUpdateTheme(theme) ? AppearanceManager.LastError ?? "Theme saved." : _settings.LastError;
         }
 
         private void ConflictChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)

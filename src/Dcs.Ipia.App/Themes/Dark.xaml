@@ -37,4 +37,6 @@
   <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#1B2B42"/>
   <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F8FAFC"/>
   <SolidColorBrush x:Key="{x:Static SystemColors.ScrollBarBrushKey}" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="ControlSurfaceBrush" Color="#1B2B42"/>
+  <SolidColorBrush x:Key="OpaqueControlBackgroundBrush" Color="#23334D"/>
 </ResourceDictionary>

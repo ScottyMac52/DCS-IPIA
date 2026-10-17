@@ -27,7 +27,7 @@
     </Setter>
   </Style>
   <Style TargetType="TabControl">
-    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource ControlSurfaceBrush}"/>
     <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
   </Style>
@@ -146,7 +146,7 @@
             </TextBox>
             <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False"
                    IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
-              <Border Background="{DynamicResource ControlBackgroundBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
+              <Border Background="{DynamicResource OpaqueControlBackgroundBrush}" BorderBrush="{DynamicResource ControlBorderBrush}"
                       BorderThickness="1" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
                 <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">

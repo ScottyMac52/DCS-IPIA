@@ -1,0 +1,24 @@
+{
+  "SchemaVersion": 1,
+  "Colors": {
+    "WindowBackgroundBrush": "#F4F7FB",
+    "PrimaryTextBrush": "#17263D",
+    "SurfaceBrush": "#FFFFFF",
+    "BorderBrush": "#D9E2EF",
+    "SecondaryTextBrush": "#475569",
+    "SampleControlBrush": "#E8F0FF",
+    "BadgeBackgroundBrush": "#EFF6FF",
+    "AccentTextBrush": "#1D4ED8",
+    "CanvasBorderBrush": "#9DB4D7",
+    "CanvasBackgroundBrush": "#F2F6FD",
+    "StatusBackgroundBrush": "#EAF0F8",
+    "StatusTextBrush": "#334155",
+    "ControlBackgroundBrush": "#FFFFFF",
+    "ControlForegroundBrush": "#17263D",
+    "ControlBorderBrush": "#9DB4D7",
+    "SelectedBackgroundBrush": "#DBEAFE",
+    "DisabledTextBrush": "#475569",
+    "DisabledBackgroundBrush": "#E8EEF6",
+    "ErrorTextBrush": "#A61B1B"
+  }
+}

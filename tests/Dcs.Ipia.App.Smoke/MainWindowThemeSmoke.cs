@@ -38,6 +38,9 @@ namespace Dcs.Ipia.App.Smoke
                     new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 var menu = (Menu)window.FindName("MainMenu")!;
+                // ContextMenu's owning Popup resolves this through its placement target.
+                // Capture the final colours, independent of the desktop's menu fade/slide setting.
+                menu.Resources[SystemParameters.MenuPopupAnimationKey] = PopupAnimation.None;
                 var file = (MenuItem)menu.Items[0];
                 var disabled = (MenuItem)file.Items[0];
                 var calls = 0;
@@ -85,6 +88,8 @@ namespace Dcs.Ipia.App.Smoke
                     if (calls != (int)skin * 2 + 1 || file.IsSubmenuOpen)
                         throw new InvalidOperationException("Enter did not invoke the routed menu command and close the popup.");
                     context.IsOpen = true; ThemeControlSmoke.Pump(window);
+                    if (LogicalTreeHelper.GetParent(context) is not Popup { PopupAnimation: PopupAnimation.None })
+                        throw new InvalidOperationException("Context-menu pixel checks require an animation-free popup.");
                     ThemeControlSmoke.AssertPixel(contextAction, 3, 3, contextAction.IsHighlighted ? "SelectedBackgroundBrush" : "ControlBackgroundBrush");
                     ThemeControlSmoke.AssertText(contextAction, "Context action", "ControlForegroundBrush");
                     Keyboard.Focus(contextAction); ThemeControlSmoke.Press(contextAction, Key.Enter);

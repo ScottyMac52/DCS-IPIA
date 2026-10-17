@@ -8,7 +8,7 @@
   <StackPanel Margin="24">
     <TextBlock FontSize="23" FontWeight="SemiBold" Text="Settings"/>
     <TextBlock Margin="0,6,0,22" Foreground="{DynamicResource SecondaryTextBrush}"
-               Text="Preferences apply now and are saved for this data profile."/>
+               Text="Choose preferences for this profile. Customize appearance offers an Apply/Cancel preview."/>
     <TextBlock FontWeight="SemiBold" Text="UI skin"/>
     <ComboBox x:Name="ThemeChoice" Width="180" HorizontalAlignment="Left" Margin="0,6,0,8"
               AutomationProperties.Name="Appearance theme" SelectionChanged="ThemeChoice_SelectionChanged">
@@ -17,6 +17,8 @@
       <ComboBoxItem Content="Navy/Amber" Tag="NavyAmber"/>
       <ComboBoxItem Content="Cockpit Green" Tag="CockpitGreen"/>
     </ComboBox>
+    <Button x:Name="CustomizeAppearance" Content="Customize appearance…" Click="CustomizeAppearanceClicked"
+            HorizontalAlignment="Left" Padding="10,6" Margin="0,0,0,8"/>
     <Button x:Name="ResetAppearance" Content="Restore default appearance" Click="ResetAppearanceClicked"
             HorizontalAlignment="Left" Padding="10,4" Margin="0,0,0,16"
             AutomationProperties.Name="Restore default appearance"/>
@@ -28,7 +30,7 @@
       <ComboBoxItem Content="Do not replace" Tag="Reject"/>
     </ComboBox>
     <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
-               Text="This choice controls assignment drops. Theme and drop preferences are stored in the local database."/>
+               Text="This choice controls assignment drops for the selected data profile."/>
     <TextBlock FontWeight="SemiBold" Text="Saved Games DCS Folder" Margin="0,14,0,4"/>
     <TextBlock x:Name="SavedGamesFolder" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
     <Button Content="Browse…" Click="BrowseSavedGamesClicked" HorizontalAlignment="Left" Padding="14,8" Margin="0,8,0,0" AutomationProperties.Name="Browse Saved Games DCS Folder"/>
