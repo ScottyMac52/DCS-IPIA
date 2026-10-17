@@ -7,15 +7,13 @@ namespace Dcs.Ipia.Application
         /// <summary>Gets the owner-issuance public key.</summary>
         public const string Pem = """
             -----BEGIN PUBLIC KEY-----
-            MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA44aHka8Ka2uvL0FUVP0q
-            vYF7wzVpbnEKGUdZZi0bKtIAO5UZUF19OFczNKG0nkZCC97ya4Y/1nCjcPcJxl6G
-            wulixYxTdgfGNR6F+OvlaKbpiaONCt2zVeGOKkRfSSt7puKZWL+zkLDDr4jhUWSU
-            KSuJIzBveObd8lCnxRnw5c/8SgVjXuFJWslnzlkqMTUKxAz8UKNKMwkp4faGSpdg
-            JaqORks72FHhNlGvtIyl4IDG9E/pLeopXAd4WBoO5HkiywLS15WE8VDDkfWvbbHX
-            puJDAmIW1Bzv2RLZfHShM2o0/feQhsZLTuxAisAiZd5A1T6YR8Hwp6dcIEz3zF+h
-            1awJmVQ/kr0p9prVrOTd90L5KeLCLQb2bvTlmcX9mYmYIqUpBVmyIdr1X0ZAnduE
-            HsLC4ML+qOMkhEObd13hBYzAK+YuDtcY1kDBBMuB8JfiIlPteoWJd/bf2y11EvY2
-            vIQCE9QCUmBVtf1DwsrWnj1pLWhvysVfdqroQzHPchl1AgMBAAE=
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Q/ianX6s6AyUoYBpMu/
+            Uv37hkk48DKyjzvgLqafwFlZZw15DHtM09fpm9i5QY3I8wSsr5KsAMVUZJUQadiG
+            lGIvNC6l12apIVdgiXRHKTqrASXnhM5s3DsPTIt1Mab366fdgHwb1ZtQhyftvJnP
+            IATCfGmD0Xk5704tmhsPUmkbm+PrdaxVaGxUWwmruXgAP6Yd4HdOqc6Yk4aIaxxB
+            UJxpmd4+QPqwfHZmmekOULC7wdJfbmRG3K1Bo64mX4vBxdxVjBgYzjQfSOZKOA8G
+            rC/1mRfz4jW8FPe6NblihSW3OzUm3Zi78Djc3lG17lRAnQw4N2x4FHvrXdIET4wV
+            WQIDAQAB
             -----END PUBLIC KEY-----
             """;
         #endregion END Public
