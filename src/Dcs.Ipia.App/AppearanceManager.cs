@@ -62,15 +62,16 @@ namespace DcsIpia.Presentation
             catch (Exception ex) when (ex is IOException or ArgumentException or NotSupportedException or System.IO.FileFormatException)
             { diagnostic = "Background image could not be decoded; choose it again in Appearance. " + ex.Message; }
             try { Preview(settings, image); }
-            catch (ArgumentException ex) { Preview(settings with { Accent = null, Palette = null }, image); diagnostic = ex.Message; }
+            catch (ArgumentException ex) { Preview(settings with { Accent = null }, image); _active = settings; diagnostic = ex.Message; }
             LastError = diagnostic ?? Store?.LastError;
         }
         /// <summary>Recomposes active overrides after the selected built-in skin or Windows contrast mode changes.</summary>
         public static void Reapply()
         {
             if (_overlay is null && Store is null) return;
-            try { Preview(_active, _image); }
-            catch (ArgumentException ex) { Preview(_active with { Accent = null }, _image); LastError = ex.Message; }
+            var requested = _active;
+            try { Preview(requested, _image); }
+            catch (ArgumentException ex) { Preview(requested with { Accent = null }, _image); _active = requested; LastError = ex.Message; }
         }
         /// <summary>Applies the current window background and updates it on resize.</summary>
         public static void Attach(Window window)

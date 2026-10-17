@@ -66,6 +66,16 @@ namespace Dcs.Ipia.App.Smoke
                     if (!store.TrySave(new AppearanceSettings())) throw new InvalidOperationException(store.LastError);
                     AppearanceManager.Restore();
                 }
+                if (!store.TrySave(new AppearanceSettings(Accent: "#F4F7FB"))) throw new InvalidOperationException(store.LastError);
+                AppearanceManager.Restore();
+                theme.SelectedIndex = 0;
+                if (AppearanceManager.Active.Accent != "#F4F7FB" || AppearanceManager.LastError is null)
+                    throw new InvalidOperationException("An incompatible skin discarded the accepted accent instead of using a temporary fallback.");
+                theme.SelectedIndex = 1;
+                if (((SolidColorBrush)System.Windows.Application.Current.FindResource("AccentTextBrush")).Color != Color.FromRgb(244, 247, 251))
+                    throw new InvalidOperationException("The saved accent was not reapplied on a compatible skin.");
+                if (!store.TrySave(new AppearanceSettings())) throw new InvalidOperationException(store.LastError);
+                AppearanceManager.Restore(); theme.SelectedIndex = 3;
                 var colors = AppearanceValidation.ColorKeys.ToDictionary(key => key, key =>
                     "#" + ((SolidColorBrush)System.Windows.Application.Current.FindResource(key)).Color.ToString(System.Globalization.CultureInfo.InvariantCulture)[3..]);
                 var palettePath = Path.Combine(root, "palette.json");
