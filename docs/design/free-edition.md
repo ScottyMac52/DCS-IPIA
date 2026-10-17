@@ -1,0 +1,27 @@
+# Free Edition and private owner activation
+
+The initial release is Free. Premium availability and pricing are **TBA**. No payment is accepted and there is no customer subscription/activation service in this change. The commercial roadmap is #252; the launch issue is #253. Ownership, commercial terms and distribution review remain release prerequisites. This change does not replace MIT notices or change repository visibility; previously published MIT copies retain their permissions.
+
+## Free release
+
+Free provides the reviewed Thrustmaster catalog: Cougar MFD, TPR, Warthog throttle/grip on supported Thrustmaster bases, AVA/Viper and Viper TQS/Mission Pack. This is an explicit catalog-ID allowlist, not a promise to support every Thrustmaster device. MOZA base/grip aliases, VKB, WINCTRL, Logitech, other brands and unknown/generic layouts remain reserved. The legacy `grip-f18c` entry uses mixed-base evidence and is excluded pending a separately reviewed Thrustmaster-base definition. Connected hardware is checked using native HID vendor evidence, never its editable display name. Offline manual units still require a reviewed catalog template.
+
+The fixed Flight Patch/Navy-Amber preset uses Scott's supplied Tomcat photograph at 20% requested image opacity, 10% theme blending, 35% panel opacity and 65% control opacity. Contrast protection may soften it further; Windows high contrast suppresses the photograph and decorative overrides. The photo is embedded and works without the original file. A second bundled background can be added through a future reviewed preset change; Free users cannot import/change the image or preset.
+
+Theme selection, customization and reset are disabled and direct appearance-editor construction is rejected. Previously saved appearance files are retained untouched for Owner. Live input testing is blocked both at the start handler and native acquisition boundary. Interactive training currently uses generic hardware and input testing, so Free shows an explicit Premium/TBA explanation instead of running that scenario.
+
+Normal authoring, save, build, export and deployment remain available for supported workspaces. Unsupported/mixed workspaces are retained and displayed read-only; authoring/output operations reject reserved profiles. Hardware selectors filter reserved templates, and connected vendor checks reject incompatible physical units. Shared-default output resolves all profiles against the allowed catalog. Backup/recovery and clearing an existing deployment remain available. Free Saved Games imports start with an empty UI Layer baseline, avoiding inherited personal/non-Thrustmaster profiles.
+
+## Owner entitlement
+
+Scott's owner entitlement unlocks all application features, hardware and appearance controls offline, without expiry, activation limits, checkout or a recurring service. It is a signed file, not a GUID password or a universal string. The application ships only the RSA public verification key. Claims require schema 1, product `DCS-IPIA`, edition `Owner`, a nonempty issuance GUID and an owner name. Verification uses RSA-PSS/SHA256 over the exact UTF-8 payload. Inputs are bounded and reject malformed, unknown, duplicate, foreign-key and tampered data.
+
+In **Settings → Install owner license…**, choose the privately delivered `owner-license.json`, then restart. The accepted file is stored under `%LOCALAPPDATA%\VyperIndustries\DCS-IPIA-Licensing\owner-license.json`, outside profile backup/restore roots. It applies to all profiles for that Windows account. Invalid imports do not replace an accepted license. Missing/invalid files fall back to Free, retaining module and appearance data. Restarting with a valid owner license restores saved customization.
+
+The owner license and private signing key must never be added to GitHub, support reports, CI variables/artifacts, installers or ordinary profile backups. Keep the recovery package separately backed up. The recovery key can issue another owner license using PowerShell 7 and `scripts/Issue-OwnerLicense.ps1 -SigningKeyPath <private-key.pem> -OutputPath <new-owner-license.json>`. The script verifies that the key matches the pinned application key before writing. There is no production environment-variable, debug-build or release-smoke owner bypass. Automated tests use ephemeral keys that do not authenticate against the shipped application.
+
+The existing MIT/public-source distribution means these client-side controls are not a promise of tamper-proof DRM. Future commercial policy, customer licenses, payments/refunds, supported upgrades, recovery and service operations are separate work in #252.
+
+## Validation
+
+Unit tests exercise exact catalog/vendor rules, owner feature access, invalid claims, wrong keys, signature tampering, duplicate/oversized documents, atomic activation and recovery. Windows smoke starts Free, creates/saves an actual Thrustmaster module, checks fixed photo/theme and preserved preferences, rejects a reserved hardware edit/direct input start, then verifies signed-owner restoration before running the full existing feature suite. Exact published payload checks continue to run as Free. Main-window/settings/workspace captures include the supplied photo; production owner credentials are never part of those artifacts.

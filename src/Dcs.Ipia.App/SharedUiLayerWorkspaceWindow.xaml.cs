@@ -196,6 +196,7 @@ namespace DcsIpia.Presentation
                 if (_dirty) throw new InvalidOperationException("Save or discard the shared draft before adopting a saved revision.");
                 var expected = ReviewedModule();
                 var updated = update(expected);
+                EditionAccess.RequireWorkspace(updated);
                 if (validateOutput) SnapshotLuaPayloadRenderer.Generate(updated);
                 _adopting = true;
                 Buttons();
@@ -217,6 +218,7 @@ namespace DcsIpia.Presentation
                 Buttons();
                 var prior = await repository.GetPriorAsync(expected.Configuration.Module.Id) ??
                     throw new InvalidOperationException("No prior reviewed module state is available.");
+                EditionAccess.RequireWorkspace(prior);
                 await repository.SaveIfUnchangedAsync(expected, prior);
                 ResetImpact("Prior module state restored. Refresh impact to review the restored baseline.");
                 AdoptionStatus.Text = "Rollback saved. Other modules and shared default history were not changed.";
@@ -295,7 +297,7 @@ namespace DcsIpia.Presentation
             {
                 var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
                 _outputHardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
-                OutputHardwareChoice.ItemsSource = _outputHardware;
+                OutputHardwareChoice.ItemsSource = EditionAccess.Hardware(_outputHardware).ToArray();
                 EditorStatus.Text = "Select a joystick profile and output hardware, then stage the mapping.";
             }
             catch (Exception ex) { EditorStatus.Text = "Unable to load output hardware: " + ex.Message; }
@@ -309,10 +311,16 @@ namespace DcsIpia.Presentation
             var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
             return SharedUiLayerOutputSerializer.Freeze(_workspace, BundledSharedCatalog.SourceCommit(),
-                SharedUiLayerHardwareMapping.Resolve(_workspace, hardware));
+                SharedUiLayerHardwareMapping.Resolve(_workspace, EditionAccess.Hardware(hardware)));
         }
         private async Task SaveOutputAsync(SharedUiLayerOutputSnapshot snapshot)
         {
+            if (!EditionAccess.Policy.IsOwner)
+            {
+                var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+                EditionAccess.RequireSharedDiagrams(snapshot, catalog);
+            }
             var dialog = new SaveFileDialog { Filter = "Shared defaults ZIP|*.zip", FileName = "IPIA-Shared-Defaults.zip" };
             if (dialog.ShowDialog(this) != true) return;
             var bytes = SharedUiLayerOutputArchive.Build(snapshot,
@@ -349,6 +357,7 @@ namespace DcsIpia.Presentation
                 else
                 {
                     if (_repository is null) throw new InvalidOperationException("Default revision storage is unavailable.");
+                    await EditionAccess.RequireDefaultsAsync(snapshot.Defaults);
                     _workspace = await _repository.SaveAsync(snapshot.Defaults with { Revision = _workspace.Revision, ContentSha256 = null });
                     _draft = _workspace;
                     RevisionText.Text = "Revision " + _workspace.Revision;
@@ -496,6 +505,7 @@ namespace DcsIpia.Presentation
             try
             {
                 SharedUiLayerBindingEditor.Validate(_draft);
+                await EditionAccess.RequireDefaultsAsync(_draft);
                 _workspace = await _repository.SaveAsync(_draft);
                 _draft = _workspace;
                 _dirty = false;

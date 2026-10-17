@@ -51,6 +51,7 @@ namespace DcsIpia.Presentation
                 return;
             }
             var userFolder = releaseSmoke ? Path.GetFullPath(e.Args[1]) : profile.DataDirectory;
+            EditionAccess.Load();
             AppearanceManager.Configure(new FileAppearanceStore(userFolder));
             var recovery = new UserDataRecoveryService(userFolder, ApplicationVersion.Label);
             var connectionString = new SqliteConnectionStringBuilder { DataSource = Path.Combine(userFolder, "ipia.db"),

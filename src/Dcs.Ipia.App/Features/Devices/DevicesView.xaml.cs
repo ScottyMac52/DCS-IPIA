@@ -66,7 +66,7 @@ namespace DcsIpia.Features.Devices
             ManagedDevices.ItemsSource = devices;
             ManagedDevices.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId);
             StatusText.Text = $"{devices.Length} devices in {_layer}";
-            ManagedHardware.ItemsSource = _context.Working is null ? null : WorkspaceStructureEditor.Hardware(_context.Working);
+            ManagedHardware.ItemsSource = _context.Working is null ? null : EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working)).ToArray();
         }
 
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
@@ -253,7 +253,7 @@ namespace DcsIpia.Features.Devices
             {
                 StatusMessage.Text = "Reading connected controllers…";
                 var connected = await Task.Run(() => _context.DeviceDiscovery.Discover());
-                DetectedDevice.ItemsSource = connected;
+                DetectedDevice.ItemsSource = connected.Where(device => EditionAccess.Policy.AllowsDevice(device)).ToArray();
                 StatusMessage.Text = $"{connected.Count} connected device(s).";
             }
             catch (Exception ex)
@@ -345,7 +345,8 @@ namespace DcsIpia.Features.Devices
             if (_context?.Inventory is null) return;
             try
             {
-                InventoryUnits.ItemsSource = InventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
+                var choices = InventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
+                InventoryUnits.ItemsSource = EditionAccess.Policy.IsOwner ? choices : [];
             }
             catch (Exception ex)
             {

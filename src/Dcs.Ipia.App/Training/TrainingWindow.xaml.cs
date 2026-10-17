@@ -73,6 +73,8 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private async void ScenarioChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!EditionAccess.Policy.IsOwner)
+            { ExplanationText.Text = "The interactive training uses generic hardware and live input testing reserved for Premium. Availability and pricing TBA."; return; }
             if (_changing || ScenarioChoice.SelectedItem is not TrainingScenario scenario) return;
             _changing = true;
             UpdateControls();

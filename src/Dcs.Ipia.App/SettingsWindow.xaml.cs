@@ -18,10 +18,12 @@ namespace DcsIpia.Presentation
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             InitializeComponent();
-            ThemeChoice.SelectedIndex = (int)_settings.Current.Theme;
+            ThemeChoice.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            ThemeChoice.IsEnabled = ResetAppearance.IsEnabled = EditionAccess.Policy.IsOwner;
+            EditionStatus.Text = EditionAccess.Policy.Label;
             ConflictChoice.SelectedIndex = (int)_settings.Current.OccupiedDestinationBehavior;
-            SaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
-            CustomizeAppearance.IsEnabled = AppearanceManager.Store is not null;
+            SaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? EditionAccess.Store.LastError ?? string.Empty;
+            CustomizeAppearance.IsEnabled = EditionAccess.Policy.IsOwner && AppearanceManager.Store is not null;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
             _ready = true;
         }
@@ -30,6 +32,15 @@ namespace DcsIpia.Presentation
         #endregion END Public
 
         #region BEGIN private helpers
+        private void InstallOwnerLicenseClicked(object sender, RoutedEventArgs e)
+        {
+            var picker = new OpenFileDialog { Title = "Install signed owner license", Filter = "Owner license JSON|*.json", CheckFileExists = true };
+            if (picker.ShowDialog(this) != true) return;
+            SaveStatus.Text = EditionAccess.Store.Import(picker.FileName)
+                ? "Owner license installed. Restart DCS-IPIA to unlock all features and restore your saved appearance."
+                : EditionAccess.Store.LastError;
+        }
+
         private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
         {
             var picker = new OpenFolderDialog { Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
@@ -40,12 +51,14 @@ namespace DcsIpia.Presentation
 
         private void CustomizeAppearanceClicked(object sender, RoutedEventArgs e)
         {
+            if (!EditionAccess.Policy.IsOwner) return;
             if (AppearanceManager.Store is { } store) new AppearanceWindow(store) { Owner = this }.ShowDialog();
             SaveStatus.Text = AppearanceManager.LastError ?? "Appearance preview closed.";
         }
 
         private void ResetAppearanceClicked(object sender, RoutedEventArgs e)
         {
+            if (!EditionAccess.Policy.IsOwner) return;
             if (AppearanceManager.Store is { } store && !store.TrySave(new AppearanceSettings()))
             { SaveStatus.Text = store.LastError; return; }
             AppearanceManager.Restore();
@@ -59,7 +72,7 @@ namespace DcsIpia.Presentation
 
         private void ThemeChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag: string value })
+            if (!EditionAccess.Policy.IsOwner || !_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag: string value })
                 return;
             var theme = Enum.Parse<AppearanceTheme>(value);
             ThemeManager.Apply(value);

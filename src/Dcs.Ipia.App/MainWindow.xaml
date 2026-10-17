@@ -72,6 +72,7 @@
                Width="48" Height="48" Margin="0,0,12,0" VerticalAlignment="Top" AutomationProperties.Name="DCS-IPIA Flight Patch"/>
       <StackPanel>
         <TextBlock FontSize="26" FontWeight="Bold" Text="DCS-IPIA"/>
+        <TextBlock x:Name="EditionStatus" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>
         <TextBlock x:Name="ProfileIndicator" TextWrapping="Wrap" Margin="0,4,0,4"/>
         <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Choose a module to work on"/>
       </StackPanel>

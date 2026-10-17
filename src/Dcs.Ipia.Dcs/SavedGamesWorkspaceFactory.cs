@@ -15,10 +15,11 @@ namespace Dcs.Ipia.Dcs
         /// <param name="defaults">Saved shared UI Layer revision to pin independently.</param>
         /// <param name="hardwareSources">Pinned hardware catalog and matching rules.</param>
         /// <param name="selections">One confirmed hardware template for every source profile.</param>
+        /// <param name="emptyDefaults">Whether to begin without inherited controller profiles.</param>
         /// <returns>A complete unsaved workspace; the source folder is never modified.</returns>
         public static EditorWorkspaceSnapshot Create(DcsFolderImportResult folder, string dcsId, string displayName,
             SharedUiLayerWorkspace defaults, IReadOnlyDictionary<string, string> hardwareSources,
-            IReadOnlyList<SavedGamesDeviceSelection> selections)
+            IReadOnlyList<SavedGamesDeviceSelection> selections, bool emptyDefaults = false)
         {
             if (!folder.Succeeded)
                 throw new InvalidDataException("Resolve Saved Games import errors before creating the module: " +
@@ -26,7 +27,7 @@ namespace Dcs.Ipia.Dcs
             if (selections.Count != folder.Profiles.Count || selections.Select(x => x.ProfileId).Distinct().Count() != selections.Count ||
                 selections.Any(x => folder.Profiles.All(p => p.Id != x.ProfileId)))
                 throw new InvalidDataException("Choose hardware for every imported profile exactly once.");
-            var workspace = NewModuleWorkspaceFactory.Create(dcsId, displayName, defaults, hardwareSources);
+            var workspace = NewModuleWorkspaceFactory.Create(dcsId, displayName, defaults, hardwareSources, emptyDefaults);
             var choices = WorkspaceStructureEditor.Hardware(workspace);
             var bindings = new List<DcsBinding>();
             var assignments = new List<DraftAssignment>(workspace.Assignments);
