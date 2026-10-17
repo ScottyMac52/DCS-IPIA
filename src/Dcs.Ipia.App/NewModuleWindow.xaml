@@ -8,8 +8,8 @@
     <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
       <TextBlock x:Name="CreationError" TextWrapping="Wrap" Margin="0,0,0,8"/>
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Content="Cancel" IsCancel="True" Padding="16,8" Margin="0,0,8,0"/>
-        <Button x:Name="CreateButton" Content="Create module" IsDefault="True" Padding="16,8" Click="CreateClicked"/>
+        <Button Content="Cancel" IsCancel="True" Padding="16,4" Margin="0,0,8,0"/>
+        <Button x:Name="CreateButton" Content="Create module" IsDefault="True" Padding="16,4" Click="CreateClicked"/>
       </StackPanel>
     </StackPanel>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -29,9 +29,9 @@
         <Label Target="{Binding ElementName=PhysicalChoices}" Content="Physical unit"/>
         <ComboBox x:Name="PhysicalChoices" DisplayMemberPath="Title" SelectionChanged="PhysicalChanged"/>
         <WrapPanel Margin="0,8,0,8">
-          <Button x:Name="RefreshDevicesButton" Content="Refresh devices" Click="RefreshDevicesClicked" Padding="10,6"/>
-          <Button Content="Saved Games folder…" Click="SavedGamesClicked" Margin="8,0,0,0" Padding="10,6"/>
-          <Button x:Name="ManualFileButton" Content="Use typed filename" Click="ManualFileClicked" Margin="8,0,0,0" Padding="10,6"/>
+          <Button x:Name="RefreshDevicesButton" Content="Refresh devices" Click="RefreshDevicesClicked" Padding="10,4"/>
+          <Button Content="Saved Games folder…" Click="SavedGamesClicked" Margin="8,0,0,0" Padding="10,4"/>
+          <Button x:Name="ManualFileButton" Content="Use typed filename" Click="ManualFileClicked" Margin="8,0,0,0" Padding="10,4"/>
         </WrapPanel>
         <Label Target="{Binding ElementName=HardwareChoices}" Content="Shared hardware template"/>
         <ComboBox x:Name="HardwareChoices" DisplayMemberPath="Title" SelectionChanged="HardwareChanged" AutomationProperties.Name="Initial module hardware"/>
@@ -46,9 +46,9 @@
         <TextBlock Text="Rebinding retains that profile's assignments and modifier references. Leave this empty to add an independent unit. Copied profiles not selected here retain their saved baseline identity and can be rebound in Devices."
                    TextWrapping="Wrap" Margin="0,8,0,8"/>
         <WrapPanel>
-          <Button Content="Use a new unit" Click="ClearBaselineClicked" Padding="10,6"/>
-          <Button x:Name="AddUnitButton" Content="Add selected unit" Click="AddUnitClicked" Margin="8,0,0,0" Padding="10,6"/>
-          <Button Content="Remove selected row" Click="RemoveUnitClicked" Margin="8,0,0,0" Padding="10,6"/>
+          <Button Content="Use a new unit" Click="ClearBaselineClicked" Padding="10,4"/>
+          <Button x:Name="AddUnitButton" Content="Add selected unit" Click="AddUnitClicked" Margin="8,0,0,0" Padding="10,4"/>
+          <Button Content="Remove selected row" Click="RemoveUnitClicked" Margin="8,0,0,0" Padding="10,4"/>
         </WrapPanel>
         <ListBox x:Name="SelectedUnits" DisplayMemberPath="Title" Height="130" Margin="0,12,0,0" AutomationProperties.Name="Selected physical units"/>
       </StackPanel>

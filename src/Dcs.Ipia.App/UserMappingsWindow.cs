@@ -120,7 +120,7 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private Button Button(string text, string name, RoutedEventHandler action)
         {
-            var button = new Button { Content = text, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 0, 8, 0) };
+            var button = new Button { Content = text, Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 8, 0) };
             RegisterName(name, button); button.Click += action; return button;
         }
         private async Task ReloadAsync()

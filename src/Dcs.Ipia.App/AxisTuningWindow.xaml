@@ -8,9 +8,9 @@
     <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
       <TextBlock x:Name="ValidationMessage" TextWrapping="Wrap" Foreground="{DynamicResource ErrorTextBrush}" Margin="0,0,0,8"/>
       <WrapPanel HorizontalAlignment="Right">
-        <Button Content="Clear tuning" Click="ClearClicked" Padding="12,6" Margin="0,0,8,0"/>
-        <Button Content="Cancel" IsCancel="True" Padding="12,6" Margin="0,0,8,0"/>
-        <Button x:Name="ApplyToDraftButton" Content="Apply to draft" Click="ApplyClicked" Padding="12,6"/>
+        <Button Content="Clear tuning" Click="ClearClicked" Padding="12,4" Margin="0,0,8,0"/>
+        <Button Content="Cancel" IsCancel="True" Padding="12,4" Margin="0,0,8,0"/>
+        <Button x:Name="ApplyToDraftButton" Content="Apply to draft" Click="ApplyClicked" Padding="12,4"/>
       </WrapPanel>
     </StackPanel>
     <ScrollViewer VerticalScrollBarVisibility="Auto">

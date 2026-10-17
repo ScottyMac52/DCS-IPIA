@@ -30,9 +30,9 @@
         <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-                    <Button Content="New page" Click="NewClicked" Padding="10,6" Margin="0,0,8,0"/>
-                    <Button Content="Add missing device pages" Click="AddMissingClicked" Padding="10,6" Margin="0,0,8,0"/>
-                    <Button Content="Generate Summary" Click="GenerateSummaryClicked" Padding="10,6"/>
+                    <Button Content="New page" Click="NewClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Add missing device pages" Click="AddMissingClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Generate Summary" Click="GenerateSummaryClicked" Padding="10,4"/>
                 </pres:ActionBar>
 
                 <TextBlock Text="Kind" Style="{StaticResource AppLabel}"/>
@@ -91,11 +91,11 @@
                 </GroupBox>
 
                 <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-                    <Button Content="Stage page" Click="UpdateClicked" Padding="10,6" Margin="0,0,8,0"/>
-                    <Button Content="Preview draft" Click="PreviewClicked" Padding="10,6"/>
+                    <Button Content="Stage page" Click="UpdateClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Preview draft" Click="PreviewClicked" Padding="10,4"/>
                 </pres:ActionBar>
                 <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-                    <Button Content="Remove page" Click="RemoveClicked" Padding="10,6" Margin="0,8,0,0"/>
+                    <Button Content="Remove page" Click="RemoveClicked" Padding="10,4" Margin="0,8,0,0"/>
                 </pres:ActionBar>
 
                 <TextBlock Text="Each device uses one combined page with its pinned hardware layout. Device headings and output names can be edited; summary cards follow their listed order."
@@ -103,8 +103,8 @@
 
                 <DockPanel Margin="0,12,0,0">
                     <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Right">
-                        <Button Content="Save to database" Click="SaveClicked" Padding="12,6"/>
-                        <Button Content="Discard draft" Click="DiscardClicked" Padding="12,6" Margin="8,0,0,0"/>
+                        <Button Content="Save to database" Click="SaveClicked" Padding="12,4"/>
+                        <Button Content="Discard draft" Click="DiscardClicked" Padding="12,4" Margin="8,0,0,0"/>
                     </pres:ActionBar>
                     <TextBlock x:Name="StatusText" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </DockPanel>

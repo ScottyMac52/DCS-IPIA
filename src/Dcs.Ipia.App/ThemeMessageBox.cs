@@ -57,7 +57,7 @@ namespace DcsIpia.Presentation
             Button? focused = null;
             foreach (var choice in choices)
             {
-                var button = new Button { Content = "_" + choice, Tag = choice, MinWidth = 80, Padding = new Thickness(12, 6, 12, 6),
+                var button = new Button { Content = "_" + choice, Tag = choice, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4),
                     Margin = new Thickness(8, 0, 0, 0), IsDefault = choice == (defaultResult == MessageBoxResult.None ? choices[0] : defaultResult),
                     IsCancel = choice == MessageBoxResult.Cancel || buttons == MessageBoxButton.YesNo && choice == MessageBoxResult.No ||
                         buttons == MessageBoxButton.OK };

@@ -25,11 +25,11 @@
         <ComboBox x:Name="ScenarioChoice" DisplayMemberPath="Title" SelectionChanged="ScenarioChanged"
                   AutomationProperties.Name="Training scenario" Margin="0,4,0,12"/>
         <WrapPanel>
-          <Button x:Name="PlayButton" Content="Play / Resume" Click="PlayClicked" Padding="10,7" Margin="0,0,6,6"/>
-          <Button x:Name="PauseButton" Content="Pause" Click="PauseClicked" Padding="10,7" Margin="0,0,6,6"/>
-          <Button x:Name="NextButton" Content="Next step" Click="NextClicked" Padding="10,7" Margin="0,0,6,6"/>
-          <Button x:Name="RestartButton" Content="Restart scenario" Click="RestartClicked" Padding="10,7" Margin="0,0,6,6"/>
-          <Button x:Name="ExitButton" Content="Exit training" Click="ExitClicked" Padding="10,7" Margin="0,0,6,6"/>
+          <Button x:Name="PlayButton" Content="Play / Resume" Click="PlayClicked" Padding="10,4" Margin="0,0,6,6"/>
+          <Button x:Name="PauseButton" Content="Pause" Click="PauseClicked" Padding="10,4" Margin="0,0,6,6"/>
+          <Button x:Name="NextButton" Content="Next step" Click="NextClicked" Padding="10,4" Margin="0,0,6,6"/>
+          <Button x:Name="RestartButton" Content="Restart scenario" Click="RestartClicked" Padding="10,4" Margin="0,0,6,6"/>
+          <Button x:Name="ExitButton" Content="Exit training" Click="ExitClicked" Padding="10,4" Margin="0,0,6,6"/>
         </WrapPanel>
         <WrapPanel Margin="0,6,0,10">
           <TextBlock Text="Playback speed" VerticalAlignment="Center" Margin="0,0,8,0"/>

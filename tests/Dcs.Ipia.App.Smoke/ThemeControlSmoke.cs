@@ -44,10 +44,18 @@ namespace Dcs.Ipia.App.Smoke
                 Style = (Style)System.Windows.Application.Current.FindResource("AppLabel") };
             var legacyCheck = new CheckBox { Content = "Legacy checkbox", IsChecked = true,
                 Style = (Style)System.Windows.Application.Current.FindResource("AppCheckBox") };
+            // A tall neighboring footer must not stretch ordinary dialog actions.
+            var footer = new DockPanel { Height = 90 };
+            var compact = new Button { Content = "Settings", MinWidth = 80 };
+            var compactAction = new Button { Content = "Close", MinWidth = 80,
+                Style = (Style)System.Windows.Application.Current.FindResource("ActionButton") };
+            DockPanel.SetDock(compact, Dock.Right); DockPanel.SetDock(compactAction, Dock.Right);
+            footer.Children.Add(compact); footer.Children.Add(compactAction);
+            footer.Children.Add(new TextBlock { Text = "Package actions and status", Height = 90 });
             var panel = new StackPanel { Margin = new Thickness(20) };
-            foreach (var child in new FrameworkElement[] { tabs, scope, choices, enabled, disabled, details, legacyText, legacyChoice, legacyLabel, legacyCheck })
+            foreach (var child in new FrameworkElement[] { tabs, scope, choices, enabled, disabled, details, legacyText, legacyChoice, legacyLabel, legacyCheck, footer })
             { child.Margin = new Thickness(0, 4, 0, 4); panel.Children.Add(child); }
-            var window = new Window { Title = "Theme control regression", Width = 680, Height = 660, Content = panel };
+            var window = new Window { Title = "Theme control regression", Width = 680, Height = 780, Content = panel };
             window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush");
             window.SetResourceReference(Window.ForegroundProperty, "PrimaryTextBrush");
             try
@@ -59,6 +67,18 @@ namespace Dcs.Ipia.App.Smoke
                         "pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
                     tabs.SelectedIndex = 0; choices.SelectedIndex = 0;
                     Pump(window);
+                    foreach (var button in new[] { compact, compactAction })
+                    {
+                        if (button.ActualHeight < 28 || button.ActualHeight > 36 ||
+                            button.TranslatePoint(new Point(), footer).Y < 20)
+                            throw new InvalidOperationException("Dialog buttons stretched to fill a tall footer.");
+                        var fontSize = button.FontSize;
+                        var normalHeight = button.ActualHeight;
+                        button.FontSize = 30; Pump(window);
+                        if (button.ActualHeight <= normalHeight || button.ActualHeight < 40)
+                            throw new InvalidOperationException("Compact buttons clipped enlarged text.");
+                        button.FontSize = fontSize; Pump(window);
+                    }
                     SaveImage(window, theme);
                     AssertPixel(selected, 6, 6, "SelectedBackgroundBrush");
                     AssertPixel(tabs, 220, 90, "SurfaceBrush");

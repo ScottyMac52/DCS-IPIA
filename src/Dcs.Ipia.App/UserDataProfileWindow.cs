@@ -58,7 +58,7 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private void Add(string label, RoutedEventHandler handler)
         {
-            var button = new Button { Content = label, Margin = new Thickness(0, 6, 0, 6), Padding = new Thickness(10) };
+            var button = new Button { Content = label, Margin = new Thickness(0, 6, 0, 6), Padding = new Thickness(10, 4, 10, 4) };
             button.Click += handler;
             _actions.Children.Add(button);
         }
