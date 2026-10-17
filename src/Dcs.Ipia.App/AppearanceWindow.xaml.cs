@@ -54,7 +54,8 @@ namespace DcsIpia.Presentation
         {
             _ready = false;
             BackgroundEnabled.IsChecked = _draft.Enabled; ImageOpacity.Value = _draft.Opacity; ImageTint.Value = _draft.Tint;
-            PanelOpacity.Value = _draft.PanelOpacity; CropX.Value = _draft.Horizontal; CropY.Value = _draft.Vertical;
+            PanelOpacity.Value = _draft.PanelOpacity; ControlOpacity.Value = _draft.ControlOpacity;
+            CropX.Value = _draft.Horizontal; CropY.Value = _draft.Vertical;
             ImageFit.SelectedIndex = _draft.Fit == "Fill" ? 0 : 1; AccentColor.Text = _draft.Accent ?? "";
             PaletteStatus.Text = _draft.Palette is null ? "Using the selected skin's colors." : "Custom palette preview (19 semantic colors).";
             ImageStatus.Text = _image is null ? "No usable image selected." : $"Image ready: {_image.PixelWidth} × {_image.PixelHeight} pixels.";
@@ -67,7 +68,7 @@ namespace DcsIpia.Presentation
             {
                 var candidate = _draft with { Accent = string.IsNullOrWhiteSpace(AccentColor.Text) ? null : AccentColor.Text.Trim(),
                     Enabled = BackgroundEnabled.IsChecked == true, Opacity = ImageOpacity.Value, Tint = ImageTint.Value,
-                    PanelOpacity = PanelOpacity.Value, Horizontal = CropX.Value, Vertical = CropY.Value,
+                    PanelOpacity = PanelOpacity.Value, ControlOpacity = ControlOpacity.Value, Horizontal = CropX.Value, Vertical = CropY.Value,
                     Fit = ImageFit.SelectedIndex == 0 ? "Fill" : "Fit" };
                 if (candidate.Enabled && _image is null) throw new ArgumentException("Choose an image before enabling the background.");
                 AppearanceManager.Preview(candidate, _image); _draft = candidate;

@@ -32,6 +32,10 @@
     <TextBlock Text="Panel opacity (0–100%)" Margin="0,8,0,0"/>
     <Slider x:Name="PanelOpacity" Minimum="0" Maximum="1" TickFrequency="0.01" IsSnapToTickEnabled="True" SmallChange="0.01" LargeChange="0.05" ValueChanged="SliderChanged" AutomationProperties.Name="Panel opacity"/>
     <TextBlock Text="{Binding ElementName=PanelOpacity, Path=Value, StringFormat={}{0:P0}}"/>
+    <TextBlock Text="Control opacity (0–100%)" Margin="0,8,0,0"/>
+    <Slider x:Name="ControlOpacity" Minimum="0" Maximum="1" TickFrequency="0.01" IsSnapToTickEnabled="True" SmallChange="0.01" LargeChange="0.05" ValueChanged="SliderChanged" AutomationProperties.Name="Control background opacity"/>
+    <TextBlock Text="{Binding ElementName=ControlOpacity, Path=Value, StringFormat={}{0:P0}}"/>
+    <TextBlock Text="Adjusts control fills separately from panels. Text and borders stay opaque; interaction states and open popups keep protected fills." TextWrapping="Wrap" Margin="0,4,0,0"/>
     <TextBlock Text="Image layout" Margin="0,8,0,4"/>
     <ComboBox x:Name="ImageFit" SelectionChanged="FitChanged" AutomationProperties.Name="Image layout">
      <ComboBoxItem Content="Fill — crop proportionally" Tag="Fill"/><ComboBoxItem Content="Fit — show whole image" Tag="Fit"/>
@@ -54,9 +58,9 @@
     <Border Style="{DynamicResource Card}"><StackPanel>
      <TextBlock Text="Flight controls" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Text="Text, selections and controls stay readable while the background changes." TextWrapping="Wrap" Margin="0,8,0,16"/>
-     <TextBlock Text="Aircraft profile"/><TextBox Text="F-14B — Carrier operations" Margin="0,6,0,12"/>
+     <TextBlock Text="Aircraft profile"/><TextBox x:Name="PreviewText" Text="F-14B — Carrier operations" Margin="0,6,0,12"/>
      <CheckBox Content="Enable controller input" IsChecked="True" Margin="0,0,0,12"/>
-     <ListBox Height="90" SelectedIndex="0"><ListBoxItem Content="Joystick — pitch and roll"/><ListBoxItem Content="Throttle — engine power"/></ListBox>
+     <ListBox x:Name="PreviewList" Height="90" SelectedIndex="0"><ListBoxItem Content="Joystick — pitch and roll"/><ListBoxItem Content="Throttle — engine power"/></ListBox>
      <WrapPanel Margin="0,12,0,0"><Button Content="Sample action" Padding="12,8"/><Button Content="Unavailable" IsEnabled="False" Padding="12,8" Margin="8,0,0,0"/></WrapPanel>
     </StackPanel></Border>
     <TextBlock Text="The whole application is previewing these changes. Readability protection may soften the photograph or increase panel opacity. Decorative backgrounds are suppressed in Windows high contrast." TextWrapping="Wrap" Margin="0,16,0,0"/>

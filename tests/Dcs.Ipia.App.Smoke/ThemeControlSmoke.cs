@@ -136,9 +136,13 @@ namespace Dcs.Ipia.App.Smoke
         }
         internal static void AssertPixel(FrameworkElement control, int x, int y, string key)
         {
-            var pixels = new byte[4]; Render(control).CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
-            var actual = Color.FromArgb(pixels[3], pixels[2], pixels[1], pixels[0]);
+            var actual = ReadPixel(control, x, y);
             if (actual != Brush(key)) throw new InvalidOperationException(control.GetType().Name + " rendered " + actual + " instead of " + key + ".");
+        }
+        internal static Color ReadPixel(FrameworkElement control, int x, int y)
+        {
+            var pixels = new byte[4]; Render(control).CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
+            return Color.FromArgb(pixels[3], pixels[2], pixels[1], pixels[0]);
         }
         internal static void AssertText(DependencyObject control, string text, string key)
         {

@@ -13,12 +13,13 @@ namespace Dcs.Ipia.Tests
         public void Settings_round_trip_preserves_adjustments()
         {
             var value = new AppearanceSettings(Accent: "#123456", Palette: Palette(), Image: new string('a', 64) + ".png",
-                Enabled: true, Opacity: 0.3, Horizontal: 0, Vertical: 1, Tint: 1, PanelOpacity: 0.9, Fit: "Fit");
+                Enabled: true, Opacity: 0.3, Horizontal: 0, Vertical: 1, Tint: 1, PanelOpacity: 0.9, Fit: "Fit", ControlOpacity: 0.4);
             var parsed = AppearanceValidation.ParseSettings(JsonSerializer.Serialize(value));
             Assert.Equal(value with { Palette = null }, parsed with { Palette = null });
             Assert.Equal(Palette().OrderBy(p => p.Key), parsed.Palette!.OrderBy(p => p.Key));
             Assert.Equal(19, AppearanceValidation.ColorKeys.Count);
             Assert.Equal(new AppearanceSettings(), AppearanceValidation.ParseSettings("{}"));
+            Assert.Equal(1, AppearanceValidation.ParseSettings("{\"PanelOpacity\":0.35}").ControlOpacity);
         }
         /// <summary>Strict RGB parsing rejects every non-data color spelling.</summary>
         [Theory]
@@ -49,12 +50,16 @@ namespace Dcs.Ipia.Tests
                 new AppearanceSettings(Horizontal: -1), new AppearanceSettings(Horizontal: 2), new AppearanceSettings(Vertical: -1),
                 new AppearanceSettings(Vertical: 2), new AppearanceSettings(Tint: -1), new AppearanceSettings(Tint: double.PositiveInfinity),
                 new AppearanceSettings(PanelOpacity: -0.01), new AppearanceSettings(PanelOpacity: 1.1), new AppearanceSettings(Fit: "Stretch"),
+                new AppearanceSettings(ControlOpacity: -0.01), new AppearanceSettings(ControlOpacity: 1.01),
+                new AppearanceSettings(ControlOpacity: double.NaN), new AppearanceSettings(ControlOpacity: double.PositiveInfinity),
                 new AppearanceSettings(Palette: new Dictionary<string, string>()) };
             foreach (var item in invalid) Assert.Throws<ArgumentException>(() => AppearanceValidation.Validate(item));
             Assert.Throws<ArgumentNullException>(() => AppearanceValidation.Validate(null!));
             AppearanceValidation.Validate(new AppearanceSettings(Image: new string('0', 64) + ".png", Opacity: 0));
             AppearanceValidation.Validate(new AppearanceSettings(PanelOpacity: 0));
             AppearanceValidation.Validate(new AppearanceSettings(PanelOpacity: 1));
+            AppearanceValidation.Validate(new AppearanceSettings(ControlOpacity: 0));
+            AppearanceValidation.Validate(new AppearanceSettings(ControlOpacity: 1));
         }
         /// <summary>Palettes require exact keys and readable text; no external resource interpretation occurs.</summary>
         [Fact]

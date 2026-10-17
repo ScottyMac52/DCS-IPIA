@@ -16,12 +16,13 @@ namespace Dcs.Ipia.Tests
         {
             var first = new FileAppearanceStore(Path.Combine(_root, "one"));
             Assert.Null(first.ReadImage()); Assert.Null(first.LastError);
-            Assert.True(first.TrySave(new AppearanceSettings(Enabled: true, Accent: "#123456"), Png));
+            Assert.True(first.TrySave(new AppearanceSettings(Enabled: true, Accent: "#123456", ControlOpacity: 0.4), Png));
             var imageName = first.Current.Image;
             Assert.NotNull(imageName); Assert.Null(first.LastError);
             Assert.Equal(Png, first.ReadImage());
             var reopened = new FileAppearanceStore(Path.Combine(_root, "one"));
             Assert.Equal(first.Current, reopened.Current); Assert.Equal(Png, reopened.ReadImage());
+            Assert.Equal(0.4, reopened.Current.ControlOpacity);
             var second = new FileAppearanceStore(Path.Combine(_root, "two"));
             Assert.Equal(new AppearanceSettings(), second.Current);
             Assert.True(reopened.TrySave(reopened.Current with { Opacity = 0.2 }));

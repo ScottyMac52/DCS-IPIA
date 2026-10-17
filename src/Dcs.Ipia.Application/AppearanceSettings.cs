@@ -12,8 +12,9 @@ namespace Dcs.Ipia.Application
     /// <param name="Tint">Amount of theme surface blending.</param>
     /// <param name="PanelOpacity">Minimum protected surface opacity.</param>
     /// <param name="Fit">Fill crops proportionally; Fit shows the entire image.</param>
+    /// <param name="ControlOpacity">Requested normal control-fill opacity, independent of panel opacity.</param>
     public sealed record AppearanceSettings(int SchemaVersion = 1, string? Accent = null,
         IReadOnlyDictionary<string, string>? Palette = null, string? Image = null, bool Enabled = false,
         double Opacity = 0.15, double Horizontal = 0.5, double Vertical = 0.5, double Tint = 0.2,
-        double PanelOpacity = 0.35, string Fit = "Fill");
+        double PanelOpacity = 0.35, string Fit = "Fill", double ControlOpacity = 1);
 }

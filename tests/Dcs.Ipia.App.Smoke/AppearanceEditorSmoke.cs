@@ -2,6 +2,8 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
@@ -37,7 +39,7 @@ namespace Dcs.Ipia.App.Smoke
                 var theme = (ComboBox)chooser.FindName("ThemeChoice")!;
                 foreach (var skin in new[] { 0, 1, 2, 3 })
                 {
-                    theme.SelectedIndex = skin; MakeImage(source);
+                    theme.SelectedIndex = skin; ((ComboBox)main.FindName("ThemePicker")!).SelectedIndex = skin; MakeImage(source);
                     var editor = new AppearanceWindow(store) { Owner = chooser }; editor.Show();
                     editor.LoadImage(source); File.Delete(source);
                     ((Slider)editor.FindName("ImageOpacity")!).Value = 0.2;
@@ -51,6 +53,7 @@ namespace Dcs.Ipia.App.Smoke
                     if (!AppearanceManager.Active.Enabled || AppearanceManager.Image is null || chooser.Background is not DrawingBrush)
                         throw new InvalidOperationException("Appearance preview did not reach another open window.");
                     VerifySurfaces(main, skin);
+                    VerifyControls(main, editor, skin);
                     var previous = store.Current;
                     ((TextBox)editor.FindName("AccentColor")!).Text = "not-a-color";
                     ((Button)editor.FindName("ApplyAppearance")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -58,16 +61,22 @@ namespace Dcs.Ipia.App.Smoke
                     ((TextBox)editor.FindName("AccentColor")!).Text = skin == 0 ? "#17263D" : "#F4F7FB";
                     ThemeControlSmoke.SaveImage(editor, "appearance-editor-" + skin);
                     ((Button)editor.FindName("CancelAppearance")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    if (AppearanceManager.Active != store.Current) throw new InvalidOperationException("Cancel did not restore the accepted appearance.");
+                    if (AppearanceManager.Active != store.Current || AppearanceManager.Active.ControlOpacity != 1)
+                        throw new InvalidOperationException("Cancel did not restore the accepted appearance.");
                     MakeImage(source); editor = new AppearanceWindow(store) { Owner = chooser }; editor.Show(); editor.LoadImage(source);
                     File.Delete(source);
                     ((Slider)editor.FindName("ImageOpacity")!).Value = 0.2;
+                    ((Slider)editor.FindName("ControlOpacity")!).Value = 0.45;
                     ((Button)editor.FindName("ApplyAppearance")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     if (editor.IsVisible || !store.Current.Enabled || store.Current.Image is null || store.ReadImage() is null)
                         throw new InvalidOperationException("Apply did not commit a portable managed image.");
                     var reopened = new FileAppearanceStore(root);
-                    if (reopened.Current != store.Current || reopened.ReadImage() is null) throw new InvalidOperationException("Appearance did not survive restart.");
+                    if (reopened.Current != store.Current || reopened.Current.ControlOpacity != 0.45 || reopened.ReadImage() is null)
+                        throw new InvalidOperationException("Appearance did not survive restart.");
                     editor = new AppearanceWindow(store); editor.Show();
+                    if (((Slider)editor.FindName("ControlOpacity")!).Value != 0.45)
+                        throw new InvalidOperationException("Reopened editor did not load saved control opacity.");
+                    ((Slider)editor.FindName("ControlOpacity")!).Value = 0.1;
                     ((Slider)editor.FindName("ImageOpacity")!).Value = 0.1; editor.Close();
                     if (AppearanceManager.Active != store.Current) throw new InvalidOperationException("Window close did not cancel preview.");
                     ThemeControlSmoke.SaveImage(chooser, "appearance-applied-" + skin);
@@ -112,6 +121,44 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyControls(MainWindow main, AppearanceWindow editor, int skin)
+        {
+            var slider = (Slider)editor.FindName("ControlOpacity")!;
+            var text = (TextBox)editor.FindName("PreviewText")!;
+            var list = (ListBox)editor.FindName("PreviewList")!;
+            ThemeControlSmoke.Pump(editor);
+            var opaque = ThemeControlSmoke.ReadPixel(text, (int)text.ActualWidth - 6, 6);
+            slider.Value = 0.35; ThemeControlSmoke.Pump(editor);
+            var translucent = ThemeControlSmoke.ReadPixel(text, (int)text.ActualWidth - 6, 6);
+            if (opaque == translucent || translucent.A != 255 || text.Opacity != 1 ||
+                ((SolidColorBrush)text.Background).Color.A >= 255 || ((SolidColorBrush)list.Background).Color.A >= 255 ||
+                ((SolidColorBrush)text.Foreground).Color.A != 255 || ((SolidColorBrush)text.BorderBrush).Color.A != 255 ||
+                AppearanceManager.Active.PanelOpacity != 0.35)
+                throw new InvalidOperationException("Control opacity did not change rendered fills independently of text, borders and panels.");
+            Keyboard.Focus(text); ThemeControlSmoke.Pump(editor);
+            if (!text.IsKeyboardFocusWithin || ((SolidColorBrush)text.BorderBrush).Color.A != 255)
+                throw new InvalidOperationException("Translucent text editor lost keyboard focus cues.");
+            var selected = (ListBoxItem)list.Items[0];
+            if (((SolidColorBrush)selected.Background).Color.A != 255)
+                throw new InvalidOperationException("Translucent controls lost protected selection fills.");
+            var disabled = ThemeControlSmoke.Children(editor).OfType<Button>().Single(button => Equals(button.Content, "Unavailable"));
+            if (disabled.IsEnabled || ((SolidColorBrush)disabled.Background).Color.A != 255 ||
+                ((SolidColorBrush)disabled.Foreground).Color.A != 255)
+                throw new InvalidOperationException("Translucent controls lost protected disabled-state cues.");
+            var choice = (ComboBox)main.FindName("ThemePicker")!;
+            var popup = (Popup)choice.Template.FindName("PART_Popup", choice);
+            popup.PopupAnimation = PopupAnimation.None; choice.IsDropDownOpen = true; ThemeControlSmoke.Pump(main);
+            if (((SolidColorBrush)((Border)popup.Child).Background).Color.A != 255)
+                throw new InvalidOperationException("Dropdown transparency exposed the desktop behind its popup.");
+            choice.IsDropDownOpen = false;
+            ThemeControlSmoke.SaveImage(editor, "control-opacity-editor-" + skin);
+            ThemeControlSmoke.SaveImage(main, "control-opacity-main-" + skin);
+            slider.Value = 0; ThemeControlSmoke.Pump(editor);
+            if (AppearanceManager.Active.ControlOpacity != 0) throw new InvalidOperationException("Control opacity rejected its lower endpoint.");
+            slider.Value = 1; ThemeControlSmoke.Pump(editor);
+            ThemeControlSmoke.AssertPixel(text, (int)text.ActualWidth - 6, 6, "ControlBackgroundBrush");
+            slider.Value = 0.35;
+        }
         private static void VerifySurfaces(MainWindow main, int skin)
         {
             ThemeControlSmoke.Pump(main);

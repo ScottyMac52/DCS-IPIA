@@ -112,18 +112,27 @@ namespace DcsIpia.Presentation
                 var color = (Color)ColorConverter.ConvertFromString(value);
                 if (key is "SurfaceBrush" or "StatusBackgroundBrush" && settings.Enabled && hasImage && !SystemParameters.HighContrast)
                     color.A = (byte)Math.Ceiling(255 * ProtectedPanelOpacity(colors, settings, key));
+                if (key == "ControlBackgroundBrush" && !SystemParameters.HighContrast)
+                    color.A = (byte)Math.Ceiling(255 * ProtectedControlOpacity(colors, settings, hasImage, key));
                 var brush = new SolidColorBrush(color); brush.Freeze(); dictionary[key] = brush;
             }
+            var surface = (Color)ColorConverter.ConvertFromString(colors["SurfaceBrush"]);
+            if (!SystemParameters.HighContrast)
+                surface.A = (byte)Math.Ceiling(255 * ProtectedControlOpacity(colors, settings, hasImage, "SurfaceBrush"));
+            var controlSurface = new SolidColorBrush(surface); controlSurface.Freeze(); dictionary["ControlSurfaceBrush"] = controlSurface;
+            // Popup HWNDs need an opaque base so transparency never reveals the desktop behind them.
+            var popup = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colors["ControlBackgroundBrush"]));
+            popup.Freeze(); dictionary["OpaqueControlBackgroundBrush"] = popup;
             var aliases = new Dictionary<object, string> {
-                [SystemColors.WindowBrushKey] = "SurfaceBrush", [SystemColors.WindowTextBrushKey] = "PrimaryTextBrush",
+                [SystemColors.WindowBrushKey] = "ControlSurfaceBrush", [SystemColors.WindowTextBrushKey] = "PrimaryTextBrush",
                 [SystemColors.ControlBrushKey] = "ControlBackgroundBrush", [SystemColors.ControlTextBrushKey] = "ControlForegroundBrush",
                 [SystemColors.HighlightBrushKey] = "SelectedBackgroundBrush", [SystemColors.HighlightTextBrushKey] = "PrimaryTextBrush",
                 [SystemColors.GrayTextBrushKey] = "DisabledTextBrush", [SystemColors.MenuBrushKey] = "SurfaceBrush",
-                [SystemColors.MenuTextBrushKey] = "PrimaryTextBrush", [SystemColors.ScrollBarBrushKey] = "SurfaceBrush",
+                [SystemColors.MenuTextBrushKey] = "PrimaryTextBrush", [SystemColors.ScrollBarBrushKey] = "ControlSurfaceBrush",
                 [SystemColors.InactiveSelectionHighlightBrushKey] = "SelectedBackgroundBrush", [SystemColors.InactiveSelectionHighlightTextBrushKey] = "PrimaryTextBrush",
-                [SystemColors.ControlLightBrushKey] = "SurfaceBrush", [SystemColors.ControlLightLightBrushKey] = "SurfaceBrush",
+                [SystemColors.ControlLightBrushKey] = "ControlSurfaceBrush", [SystemColors.ControlLightLightBrushKey] = "ControlSurfaceBrush",
                 [SystemColors.ControlDarkBrushKey] = "ControlBorderBrush", [SystemColors.ControlDarkDarkBrushKey] = "ControlBorderBrush",
-                [SystemColors.InfoBrushKey] = "ControlBackgroundBrush", [SystemColors.InfoTextBrushKey] = "ControlForegroundBrush" };
+                [SystemColors.InfoBrushKey] = "OpaqueControlBackgroundBrush", [SystemColors.InfoTextBrushKey] = "ControlForegroundBrush" };
             foreach (var (key, value) in aliases) dictionary[key] = dictionary[value];
             return dictionary;
         }
@@ -145,6 +154,25 @@ namespace DcsIpia.Presentation
         {
             while (opacity > 0 && text.Any(color => PhotoExtremes.Any(photo =>
                 AppearanceColors.Contrast(color, AppearanceColors.Blend(photo, background, opacity)) < 4.5))) opacity = Math.Max(0, opacity - 0.01);
+            return opacity;
+        }
+        private static double ProtectedControlOpacity(Dictionary<string, string> colors, AppearanceSettings settings, bool hasImage, string key)
+        {
+            var fill = AppearanceColors.Parse(colors[key]);
+            var basis = AppearanceColors.Parse(colors["WindowBackgroundBrush"]);
+            var text = WindowTextKeys.Select(name => AppearanceColors.Parse(colors[name])).ToArray();
+            var imageOpacity = settings.Enabled && hasImage ? ProtectedImageOpacity(basis, text, settings.Opacity) : 0;
+            var backgrounds = PhotoExtremes.Select(photo => AppearanceColors.Blend(photo, basis, imageOpacity))
+                .Append(AppearanceColors.Parse(colors["SurfaceBrush"]))
+                .Append(AppearanceColors.Parse(colors["StatusBackgroundBrush"]))
+                .Append(AppearanceColors.Parse(colors["ControlBackgroundBrush"])).ToArray();
+            var foregrounds = key == "SurfaceBrush"
+                ? new[] { AppearanceColors.Parse(colors["PrimaryTextBrush"]), AppearanceColors.Parse(colors["SecondaryTextBrush"]),
+                    AppearanceColors.Parse(colors["ControlForegroundBrush"]) }
+                : [AppearanceColors.Parse(colors["ControlForegroundBrush"])];
+            var opacity = settings.ControlOpacity;
+            while (opacity < 1 && backgrounds.Any(background => foregrounds.Any(foreground => AppearanceColors.Contrast(foreground,
+                AppearanceColors.Blend(fill, background, opacity)) < 4.5))) opacity = Math.Min(1, opacity + 0.01);
             return opacity;
         }
         private static void ReplaceOverlay(ResourceDictionary dictionary)

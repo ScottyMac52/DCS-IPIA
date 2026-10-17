@@ -185,7 +185,7 @@ namespace Dcs.Ipia.Tests
             var source = await Create("appearance-source", "saved");
             var store = new FileAppearanceStore(source);
             var image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGPUCKj4z8DAwMDEAAUAHNgB8zfAN28AAAAASUVORK5CYII=");
-            Assert.True(store.TrySave(new global::Dcs.Ipia.Application.AppearanceSettings(Enabled: true, Opacity: 0.2), image));
+            Assert.True(store.TrySave(new global::Dcs.Ipia.Application.AppearanceSettings(Enabled: true, Opacity: 0.2, ControlOpacity: 0.4), image));
             var archive = Path.Combine(_folder, "appearance.zip");
             new UserDataRecoveryService(source, "1.0").Backup(archive);
             var target = await Create("appearance-target", "old");
