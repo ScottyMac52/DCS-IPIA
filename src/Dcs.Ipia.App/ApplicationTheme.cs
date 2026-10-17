@@ -28,6 +28,7 @@ namespace DcsIpia.Presentation
                     window.SetResourceReference(Window.ForegroundProperty, "PrimaryTextBrush");
                     window.Icon ??= ApplicationBranding.Icon;
                     WindowThemeChrome.Apply(window);
+                    AppearanceManager.Attach(window);
                 }));
 
         }

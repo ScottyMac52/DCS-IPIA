@@ -102,7 +102,7 @@ namespace DcsIpia.Presentation
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
-            ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
+            ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             Loaded += async (_, _) =>
             {
                 await RefreshSavedModulesAsync(); await RefreshFlyNowAsync();
@@ -688,7 +688,7 @@ namespace DcsIpia.Presentation
             ThemeManager.Apply(theme);
             var saved = _settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
             ThemeSaveStatus.Text =
-                saved ? string.Empty : _settings.LastError ?? "Theme changed for this session but was not saved.";
+                saved ? AppearanceManager.LastError ?? string.Empty : _settings.LastError ?? "Theme changed for this session but was not saved.";
         }
         private void TrainingClicked(object sender, RoutedEventArgs e)
         {
@@ -701,7 +701,7 @@ namespace DcsIpia.Presentation
             var dialog = new SettingsWindow(_settings) { Owner = this };
             dialog.ShowDialog();
             ThemePicker.SelectedIndex = (int)_settings.Current.Theme;
-            ThemeSaveStatus.Text = _settings.LastError ?? string.Empty;
+            ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             UpdateFlyNowControls();
         }
         #endregion END private helpers

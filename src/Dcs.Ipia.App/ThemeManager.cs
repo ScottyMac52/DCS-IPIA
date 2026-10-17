@@ -24,6 +24,7 @@ namespace DcsIpia.Presentation
                     Source =
                         new Uri($"pack://application:,,,/Dcs.Ipia.App;component/Themes/{selected}.xaml", UriKind.Absolute)
                 };
+                AppearanceManager.Reapply();
                 foreach (var window in Application.Current.Windows.OfType<Window>())
                     WindowThemeChrome.Apply(window);
                 return;

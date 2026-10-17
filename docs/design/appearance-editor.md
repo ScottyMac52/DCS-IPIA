@@ -1,0 +1,31 @@
+# Personal appearance and background previews
+
+Open **Settings → Customize appearance**. Choose a local JPG/PNG and adjust image opacity, fill/fit, horizontal/vertical alignment, theme blending and panel opacity. The open application windows preview changes immediately. **Apply** commits the accepted appearance. **Cancel**, Escape or closing the editor restores the last saved appearance. A failed Apply restores the accepted appearance and leaves the editor open with an actionable status so you can retry.
+
+Skin choice in Settings/the main menu retains its existing immediate-save behavior. The advanced editor works with that selected skin. **Clear customization** previews removal of the image, accent and palette while keeping the chosen built-in skin; Apply confirms it. Settings' **Restore default appearance** clears custom appearance and returns to Modern Light. Assignment/drop and Saved Games preferences are independent.
+
+## Image controls and readability
+
+Images are limited to single-frame JPG/PNG, 20 MiB encoded, 8192 pixels per side and 24 million source pixels. Decode inspects dimensions before materializing pixels, downsamples widths above 2560 pixels, releases the original file and normalizes accepted content as a metadata-free PNG. The managed PNG must also fit 20 MiB. The image isn't copied into the profile during preview; Apply commits it. Moving/deleting the original after choosing it does not invalidate the decoded preview or saved background.
+
+Requested image opacity is 0–30%. Theme blending mixes the photograph toward the skin's surface color. **Fill** preserves aspect ratio while cropping to fill; **Fit** preserves the entire image with skin-colored letterboxing. Position controls determine which subject stays visible as the window resizes. Protected panels allow 90–100% opacity; buttons, text fields and selected states remain painted with the palette's readable colors.
+
+Readability protection may reduce effective image opacity or increase panel opacity. It conservatively tests both black/white photographic extrema against the primary/secondary/accent/error text colors and requires at least 4.5:1 for decoration compositing whenever the base colors support it. Imported palettes must independently meet 4.5:1 for documented text/background pairs. Windows high contrast suppresses image decoration and custom palette/accent overrides; it does not erase saved choices. The full real-Windows high-contrast/mixed-DPI matrix remains in #191.
+
+Flight Patch retains its identity colors. This customization paints app-owned window client areas and shared surfaces; authored drawings, input-test modifier/legend colors, module data, exports and kneeboards remain independent. Operating-system dialogs follow Windows appearance.
+
+## Accents and imported palettes
+
+An accent is an opaque `#RRGGBB` value, or blank to retain the skin default. It changes accent text/focus; selection colors come from the base/imported palette. Accent colors must meet 4.5:1 against window and panel backgrounds. An accent incompatible with a newly selected skin falls back to the skin accent with a diagnostic; its saved value remains available to edit.
+
+Palette imports are UTF-8 JSON, maximum 64 KiB, with exactly `SchemaVersion: 1` and a `Colors` object containing the 19 semantic keys in [the example palette](appearance-palette-example.json). Every color is opaque `#RRGGBB`. Unknown/duplicate keys, partial palettes, unsupported versions, malformed values and unreadable pairs are rejected before replacing the working preview. There is no XAML, script, external resource or image-path interpretation in the palette format. Imported colors are saved by value, so the source JSON can move later.
+
+Text/background pairs: primary and secondary text on the window and panels; accent and error text on the window and panels; control foreground/background; primary text on selected backgrounds; disabled text/background; status text/background. Existing built-in skins remain available after any import failure. Use skin palette/clear customization/reset for recovery.
+
+## Persistence and recovery
+
+`appearance/settings.json` is versioned independently of existing preferences and uses a safe relative, SHA256-addressed PNG name. Accepted PNGs live beside it under the current profile. JSON commits use a temporary file and atomic replacement; failed saves preserve the prior in-memory/persisted snapshot. Newly staged images are removed on a failed commit. Unused managed image versions are removed after a successful commit. No absolute source-image paths are persisted.
+
+Full profile backup/restore already includes this tree; automated coverage now verifies settings and PNG bytes survive an actual verified SQLite profile backup/restore. Profiles remain isolated. Missing/tampered/oversized images fall back to the built-in background and surface a diagnostic. Malformed/unsupported preferences fall back without rewriting the original evidence. Reset or choosing the image again repairs the supported cases.
+
+Regression coverage: `AppearanceValidationTests`, `FileAppearanceStoreTests` and the full-backup test. Windows `AppearanceEditorSmoke` exercises all skins, cross-window live preview, malformed accent rejection, Apply/Cancel/window-close rollback, original-file deletion, persistence/reopen, palette import and failed-save rollback. Synthetic background screenshots are included in the standard CI visual artifact; user photos are not bundled in this PR.

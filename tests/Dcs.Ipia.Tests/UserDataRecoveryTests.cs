@@ -178,6 +178,22 @@ namespace Dcs.Ipia.Tests
             Execute(target, "SELECT count(*) FROM fly_now_deployment");
         }
 
+        /// <summary>Appearance settings and managed background content travel with full profile backups.</summary>
+        [Fact]
+        public async Task Appearance_and_image_survive_full_backup_restore()
+        {
+            var source = await Create("appearance-source", "saved");
+            var store = new FileAppearanceStore(source);
+            var image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGPUCKj4z8DAwMDEAAUAHNgB8zfAN28AAAAASUVORK5CYII=");
+            Assert.True(store.TrySave(new global::Dcs.Ipia.Application.AppearanceSettings(Enabled: true, Opacity: 0.2), image));
+            var archive = Path.Combine(_folder, "appearance.zip");
+            new UserDataRecoveryService(source, "1.0").Backup(archive);
+            var target = await Create("appearance-target", "old");
+            new UserDataRecoveryService(target, "1.0").Restore(archive);
+            var restored = new FileAppearanceStore(target);
+            Assert.Equal(store.Current, restored.Current); Assert.Equal(image, restored.ReadImage());
+        }
+
         /// <summary>Backups cannot be stored inside data that a restore replaces or overwrite without consent.</summary>
         [Fact]
         public async Task Protects_backup_locations_and_existing_archives()
