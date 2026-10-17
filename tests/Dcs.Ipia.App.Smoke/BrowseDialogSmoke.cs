@@ -54,8 +54,16 @@ namespace Dcs.Ipia.App.Smoke
                     ((TextBox)window.FindName("Location")).Text = Path.Combine(root, "child");
                     ThemeControlSmoke.Press((TextBox)window.FindName("Location"), System.Windows.Input.Key.Enter);
                     await Ready(window);
+                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var prompt = System.Windows.Application.Current.Windows.OfType<Window>().Single(x => x.Title == "New folder");
+                        ThemeControlSmoke.Children(prompt).OfType<TextBox>().Single().Text = "created";
+                        var create = ThemeControlSmoke.Children(prompt).OfType<Button>().Single(x => x.IsDefault);
+                        create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }));
+                    Click(window, "NewFolder"); await Ready(window);
                     Click(window, "AcceptSelection");
-                }) != true || folder.FolderName != Path.Combine(root, "child"))
+                }) != true || folder.FolderName != Path.Combine(root, "child", "created") || !Directory.Exists(folder.FolderName))
                     throw new InvalidOperationException("Folder keyboard navigation/selection failed.");
 
                 var save = new ThemeBrowseDialog { Save = true, InitialDirectory = root, Filter = "Snapshot|*.ipia-module.json", FileName = "new" };

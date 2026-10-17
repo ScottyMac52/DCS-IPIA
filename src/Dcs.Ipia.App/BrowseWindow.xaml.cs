@@ -58,7 +58,7 @@ namespace DcsIpia.Presentation
             button.Click += async (_, _) => await NavigateAsync(path);
             Places.Children.Add(button);
         }
-        private string FullPath(string path) => Path.GetFullPath(Environment.ExpandEnvironmentVariables(path.Trim()), _directory);
+        private string FullPath(string path) => Path.GetFullPath(Environment.ExpandEnvironmentVariables(path.Trim().Trim('"')), _directory);
         private async Task NavigateAsync(string path)
         {
             var request = ++_navigation;
