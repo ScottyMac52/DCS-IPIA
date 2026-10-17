@@ -7,7 +7,6 @@ using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
-using Microsoft.Win32;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -361,7 +360,7 @@ namespace DcsIpia.Presentation
         private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
         {
             if (_moduleOperationBusy) return;
-            var picker = new OpenFolderDialog { Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
+            var picker = new ThemeBrowseDialog { SelectFolder = true, Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
             var folder = _savedGamesFolderPicker is not null ? _savedGamesFolderPicker() : picker.ShowDialog(this) == true ? picker.FolderName : null;
             if (folder is null) return;
             ThemeSaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(folder) ? "Saved Games DCS Folder saved." : _settings.LastError;
@@ -439,7 +438,7 @@ namespace DcsIpia.Presentation
         }
         private string? ChooseSnapshotFile()
         {
-            var picker = new OpenFileDialog { Title = "Restore a verified IPIA module snapshot", Filter = "IPIA module snapshot|*.ipia-module.json" };
+            var picker = new ThemeBrowseDialog { Title = "Restore a verified IPIA module snapshot", Filter = "IPIA module snapshot|*.ipia-module.json" };
             return picker.ShowDialog(this) == true ? picker.FileName : null;
         }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)
@@ -448,8 +447,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var selected =
-                    new OpenFolderDialog
-                    {
+                    new ThemeBrowseDialog { SelectFolder = true,
                         Title =
                                                "Select module repository root or Saved Games module/joystick folder"
                     };

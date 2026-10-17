@@ -5,7 +5,6 @@ using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -103,12 +102,12 @@ namespace DcsIpia.Presentation
         }
         private void ChooseImageClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFileDialog { Title = "Choose application background", Filter = "Images|*.jpg;*.jpeg;*.png", CheckFileExists = true };
+            var picker = new ThemeBrowseDialog { Title = "Choose application background", Filter = "Images|*.jpg;*.jpeg;*.png", CheckFileExists = true };
             if (picker.ShowDialog(this) == true) TryImport(() => LoadImage(picker.FileName));
         }
         private void ImportPaletteClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFileDialog { Title = "Import appearance palette", Filter = "Palette JSON|*.json", CheckFileExists = true };
+            var picker = new ThemeBrowseDialog { Title = "Import appearance palette", Filter = "Palette JSON|*.json", CheckFileExists = true };
             if (picker.ShowDialog(this) == true) TryImport(() => ImportPalette(picker.FileName));
         }
         private void TryImport(Action import)

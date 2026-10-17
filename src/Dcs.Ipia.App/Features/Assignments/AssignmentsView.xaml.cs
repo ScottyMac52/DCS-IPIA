@@ -6,7 +6,6 @@ using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Rendering;
 using DcsIpia.Presentation;
-using Microsoft.Win32;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -920,7 +919,7 @@ namespace DcsIpia.Features.Assignments
         {
             if (_context?.Working is null) return;
 
-            var picker = new OpenFileDialog
+            var picker = new ThemeBrowseDialog
             {
                 Title = "Select a module config/kneeboard.json file",
                 Filter = "kneeboard.json|kneeboard.json|JSON files|*.json"

@@ -11,7 +11,6 @@ using DcsIpia.Features.Modifiers;
 using DcsIpia.Features.Pages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Win32;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -418,8 +417,7 @@ namespace DcsIpia.Presentation
         {
             if (snapshot)
             {
-                var picker = new SaveFileDialog
-                {
+                var picker = new ThemeBrowseDialog { Save = true,
                     Title = "Export module snapshot to a new file",
                     Filter = "IPIA module snapshot|*.ipia-module.json",
                     FileName = _saved!.Configuration.Module.DcsId + ".ipia-module.json",
@@ -427,19 +425,19 @@ namespace DcsIpia.Presentation
                 };
                 return picker.ShowDialog(this) == true ? picker.FileName : null;
             }
-            var folder = new OpenFolderDialog { Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
+            var folder = new ThemeBrowseDialog { SelectFolder = true, Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };
             return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 
         private string? ChooseDocumentationFolder()
         {
-            var folder = new OpenFolderDialog { Title = "Select parent folder for a new module documentation folder" };
+            var folder = new ThemeBrowseDialog { SelectFolder = true, Title = "Select parent folder for a new module documentation folder" };
             return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 
         private string? ChooseCompleteReleaseFolder()
         {
-            var folder = new OpenFolderDialog { Title = "Select parent folder for a new Complete release and checksums" };
+            var folder = new ThemeBrowseDialog { SelectFolder = true, Title = "Select parent folder for a new Complete release and checksums" };
             return folder.ShowDialog(this) == true ? folder.FolderName : null;
         }
 

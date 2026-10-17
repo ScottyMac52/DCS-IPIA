@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.IO;
-using Microsoft.Win32;
 using Dcs.Ipia.Rendering;
 using System.Windows;
 using System.Windows.Controls;
@@ -321,7 +320,7 @@ namespace DcsIpia.Presentation
                 var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
                 EditionAccess.RequireSharedDiagrams(snapshot, catalog);
             }
-            var dialog = new SaveFileDialog { Filter = "Shared defaults ZIP|*.zip", FileName = "IPIA-Shared-Defaults.zip" };
+            var dialog = new ThemeBrowseDialog { Save = true, Filter = "Shared defaults ZIP|*.zip", FileName = "IPIA-Shared-Defaults.zip" };
             if (dialog.ShowDialog(this) != true) return;
             var bytes = SharedUiLayerOutputArchive.Build(snapshot,
                 SharedUiLayerKneeboardRenderer.Generate(SharedUiLayerOutputSerializer.CreatePreview(snapshot)));
@@ -346,7 +345,7 @@ namespace DcsIpia.Presentation
         private async void ReadSharedClicked(object sender, RoutedEventArgs e)
         {
             if (_dirty || _saving || _reviewing || _adopting) return;
-            var dialog = new OpenFileDialog { Filter = "Shared defaults ZIP|*.zip" };
+            var dialog = new ThemeBrowseDialog { Filter = "Shared defaults ZIP|*.zip" };
             if (dialog.ShowDialog(this) != true) return;
             _saving = true;
             Buttons();

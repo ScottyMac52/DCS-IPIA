@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Infrastructure;
 using Dcs.Ipia.Application.Interfaces;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -76,7 +75,7 @@ namespace DcsIpia.Presentation
         }
         private async void ResetClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new SaveFileDialog { Title = "Choose mandatory full backup", Filter = "IPIA backup|*.ipia-backup.zip",
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Choose mandatory full backup", Filter = "IPIA backup|*.ipia-backup.zip",
                 FileName = "IPIA-before-reset-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip",
                 OverwritePrompt = false };
             if (picker.ShowDialog(this) != true) return;

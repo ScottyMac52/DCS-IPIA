@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
-using Microsoft.Win32;
 
 namespace DcsIpia.Presentation
 {
@@ -34,7 +33,7 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private void InstallOwnerLicenseClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFileDialog { Title = "Install signed owner license", Filter = "Owner license JSON|*.json", CheckFileExists = true };
+            var picker = new ThemeBrowseDialog { Title = "Install signed owner license", Filter = "Owner license JSON|*.json", CheckFileExists = true };
             if (picker.ShowDialog(this) != true) return;
             SaveStatus.Text = EditionAccess.Store.Import(picker.FileName)
                 ? "Owner license installed. Restart DCS-IPIA to unlock all features and restore your saved appearance."
@@ -43,7 +42,7 @@ namespace DcsIpia.Presentation
 
         private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFolderDialog { Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
+            var picker = new ThemeBrowseDialog { SelectFolder = true, Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
             if (picker.ShowDialog(this) != true) return;
             SaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(picker.FolderName) ? "Saved Games DCS Folder saved." : _settings.LastError;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;

@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
-using Microsoft.Win32;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -131,7 +130,7 @@ namespace DcsIpia.Presentation
         private async void RefreshDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDevicesAsync();
         private async void SavedGamesClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new OpenFolderDialog { Title = "Select Saved Games or your DCS folder" };
+            var picker = new ThemeBrowseDialog { SelectFolder = true, Title = "Select Saved Games or your DCS folder" };
             if (picker.ShowDialog(this) != true) return;
             _savedGamesRoot = picker.FolderName;
             await RefreshDevicesAsync();
