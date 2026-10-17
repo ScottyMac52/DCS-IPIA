@@ -54,7 +54,7 @@ namespace Dcs.Ipia.App.Smoke
                     ((TextBox)window.FindName("Location")).Text = Path.Combine(root, "child");
                     ThemeControlSmoke.Press((TextBox)window.FindName("Location"), System.Windows.Input.Key.Enter);
                     await Ready(window);
-                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    _ = window.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         var prompt = System.Windows.Application.Current.Windows.OfType<Window>().Single(x => x.Title == "New folder");
                         ThemeControlSmoke.Children(prompt).OfType<TextBox>().Single().Text = "created";
@@ -89,7 +89,7 @@ namespace Dcs.Ipia.App.Smoke
                 var overwrite = new ThemeBrowseDialog { Save = true, InitialDirectory = root, FileName = "first.json", Filter = "JSON|*.json" };
                 Run(overwrite, window =>
                 {
-                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    _ = window.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         var confirmation = System.Windows.Application.Current.Windows.OfType<Window>().Single(x => x.Name == "ThemeMessageDialog");
                         var no = ThemeControlSmoke.Children(confirmation).OfType<Button>().Single(x => Equals(x.Tag, MessageBoxResult.No));

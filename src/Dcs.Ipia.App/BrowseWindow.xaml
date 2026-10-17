@@ -30,7 +30,7 @@
     </StackPanel>
     <DataGrid x:Name="Entries" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
               SelectionUnit="FullRow" SelectionChanged="EntrySelected" MouseDoubleClick="EntryDoubleClicked"
-              KeyDown="EntryKeyDown" AutomationProperties.Name="Files and folders">
+              PreviewKeyDown="EntryKeyDown" AutomationProperties.Name="Files and folders">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
         <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="100"/>
