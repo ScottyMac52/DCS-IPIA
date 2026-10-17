@@ -1,5 +1,9 @@
 # DCS-IPIA
 
+![DCS-IPIA Flight Patch — Inputs, Profiles, Aircraft](src/Dcs.Ipia.App/Branding/flight-patch-banner.png)
+
+[Flight Patch artwork and asset guide](src/Dcs.Ipia.App/Branding/PROVENANCE.md).
+
 ## Test and coverage reports
 
 See [the local test guide](tests/README.md) for prerequisites, each PowerShell

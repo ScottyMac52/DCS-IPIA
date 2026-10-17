@@ -24,6 +24,10 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
+SetupIconFile=..\src\Dcs.Ipia.App\Branding\flight-patch.ico
+UninstallDisplayIcon={app}\{#AppExeName}
+WizardImageFile=..\src\Dcs.Ipia.App\Branding\setup-sidebar.bmp
+WizardSmallImageFile=..\src\Dcs.Ipia.App\Branding\setup-small.bmp
 
 [Files]
 Source: "Configure-SavedGames.ps1"; Flags: dontcopy

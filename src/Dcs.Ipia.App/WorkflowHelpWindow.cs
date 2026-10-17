@@ -16,6 +16,15 @@ namespace DcsIpia.Presentation
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
             var tabs = new TabControl { Margin = new Thickness(20) };
+            var about = new StackPanel { Margin = new Thickness(20) };
+            var badge = new Image { Source = ApplicationBranding.Badge, Width = 144, Height = 144, Margin = new Thickness(0, 0, 0, 12) };
+            System.Windows.Automation.AutomationProperties.SetName(badge, "DCS-IPIA Flight Patch");
+            about.Children.Add(badge);
+            about.Children.Add(new TextBlock { Text = "DCS-IPIA", FontSize = 26, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center });
+            about.Children.Add(new TextBlock { Text = ApplicationVersion.Label, Margin = new Thickness(0, 8, 0, 12), HorizontalAlignment = HorizontalAlignment.Center });
+            about.Children.Add(new TextBlock { Text = "Organize your flight controls, assign aircraft commands and build DCS input profiles and kneeboards.",
+                TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
+            tabs.Items.Add(new TabItem { Header = "_About", Content = new ScrollViewer { Content = about, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
             tabs.Items.Add(Topic("_Getting started", """
                 DCS-IPIA
                 VERSION
@@ -51,7 +60,14 @@ namespace DcsIpia.Presentation
 
                 The notices and provenance inventory do not certify commercial distribution approval. Clean-Windows, actual-device and in-DCS acceptance must be recorded against the exact release version and commit.
                 """));
-            Content = tabs;
+            var layout = new DockPanel();
+            var banner = new Image { Source = ApplicationBranding.Banner, Height = 120, Stretch = System.Windows.Media.Stretch.Uniform,
+                Margin = new Thickness(20, 16, 20, 0) };
+            System.Windows.Automation.AutomationProperties.SetName(banner, "DCS-IPIA — Inputs, Profiles, Aircraft");
+            DockPanel.SetDock(banner, Dock.Top);
+            layout.Children.Add(banner);
+            layout.Children.Add(tabs);
+            Content = layout;
             PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
         }
         #region BEGIN Public
