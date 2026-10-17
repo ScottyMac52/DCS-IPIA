@@ -48,11 +48,13 @@ namespace Dcs.Ipia.Tests
                 new AppearanceSettings(Opacity: -0.01), new AppearanceSettings(Opacity: 0.31), new AppearanceSettings(Opacity: double.NaN),
                 new AppearanceSettings(Horizontal: -1), new AppearanceSettings(Horizontal: 2), new AppearanceSettings(Vertical: -1),
                 new AppearanceSettings(Vertical: 2), new AppearanceSettings(Tint: -1), new AppearanceSettings(Tint: double.PositiveInfinity),
-                new AppearanceSettings(PanelOpacity: 0.89), new AppearanceSettings(PanelOpacity: 1.1), new AppearanceSettings(Fit: "Stretch"),
+                new AppearanceSettings(PanelOpacity: -0.01), new AppearanceSettings(PanelOpacity: 1.1), new AppearanceSettings(Fit: "Stretch"),
                 new AppearanceSettings(Palette: new Dictionary<string, string>()) };
             foreach (var item in invalid) Assert.Throws<ArgumentException>(() => AppearanceValidation.Validate(item));
             Assert.Throws<ArgumentNullException>(() => AppearanceValidation.Validate(null!));
             AppearanceValidation.Validate(new AppearanceSettings(Image: new string('0', 64) + ".png", Opacity: 0));
+            AppearanceValidation.Validate(new AppearanceSettings(PanelOpacity: 0));
+            AppearanceValidation.Validate(new AppearanceSettings(PanelOpacity: 1));
         }
         /// <summary>Palettes require exact keys and readable text; no external resource interpretation occurs.</summary>
         [Fact]

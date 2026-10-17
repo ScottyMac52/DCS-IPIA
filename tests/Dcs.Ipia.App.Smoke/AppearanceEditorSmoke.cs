@@ -22,11 +22,18 @@ namespace Dcs.Ipia.App.Smoke
             var settings = new FileAppSettingsService(Path.Combine(root, "defaults.json"), Path.Combine(root, "appsettings.json"), Path.Combine(root, "theme.txt"));
             var store = new FileAppearanceStore(root);
             var chooser = new SettingsWindow(settings);
+            MainWindow? main = null;
             var source = Path.Combine(root, "source.png");
             var original = AppearanceManager.Store;
             try
             {
                 AppearanceManager.Configure(store); chooser.Show();
+                var connection = "Data Source=" + Path.Combine(root, "preview.db") + ";Pooling=False";
+                new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
+                main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(),
+                    new global::Dcs.Ipia.Dcs.DcsFolderImporter(), settings,
+                    new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
+                main.Show();
                 var theme = (ComboBox)chooser.FindName("ThemeChoice")!;
                 foreach (var skin in new[] { 0, 1, 2, 3 })
                 {
@@ -37,12 +44,13 @@ namespace Dcs.Ipia.App.Smoke
                     ((Slider)editor.FindName("ImageTint")!).Value = 0.1;
                     ((Slider)editor.FindName("CropX")!).Value = 0.8;
                     ((Slider)editor.FindName("CropY")!).Value = 0.2;
-                    ((Slider)editor.FindName("PanelOpacity")!).Value = 0.9;
+                    ((Slider)editor.FindName("PanelOpacity")!).Value = 0.35;
                     ((ComboBox)editor.FindName("ImageFit")!).SelectedIndex = skin % 2;
                     ((TextBox)editor.FindName("AccentColor")!).Text = skin == 0 ? "#17263D" : "#F4F7FB";
                     ThemeControlSmoke.Pump(editor);
                     if (!AppearanceManager.Active.Enabled || AppearanceManager.Image is null || chooser.Background is not DrawingBrush)
                         throw new InvalidOperationException("Appearance preview did not reach another open window.");
+                    VerifySurfaces(main, skin);
                     var previous = store.Current;
                     ((TextBox)editor.FindName("AccentColor")!).Text = "not-a-color";
                     ((Button)editor.FindName("ApplyAppearance")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -99,11 +107,25 @@ namespace Dcs.Ipia.App.Smoke
             {
                 foreach (var window in System.Windows.Application.Current.Windows.OfType<AppearanceWindow>().ToArray()) window.Close();
                 ((ComboBox)chooser.FindName("ThemeChoice")!).SelectedIndex = 0;
-                chooser.Close(); AppearanceManager.Configure(original); Directory.Delete(root, true);
+                main?.Close(); chooser.Close(); AppearanceManager.Configure(original); Directory.Delete(root, true);
             }
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifySurfaces(MainWindow main, int skin)
+        {
+            ThemeControlSmoke.Pump(main);
+            var surfaces = ThemeControlSmoke.Children(main).OfType<Border>().Where(border =>
+                border.Background is SolidColorBrush brush && (ReferenceEquals(brush, main.FindResource("SurfaceBrush")) ||
+                    ReferenceEquals(brush, main.FindResource("StatusBackgroundBrush")))).ToArray();
+            if (surfaces.Length < 2 || surfaces.Any(border => ((SolidColorBrush)border.Background).Color.A >= 255) || main.Background is not DrawingBrush)
+                throw new InvalidOperationException("Main-window cards or status surfaces hide the continuous photograph.");
+            ThemeControlSmoke.SaveImage(main, "appearance-main-" + skin);
+            AppearanceManager.Preview(AppearanceManager.Active with { PanelOpacity = 1 }, AppearanceManager.Image);
+            if (surfaces.Any(border => ((SolidColorBrush)border.Background).Color.A != 255))
+                throw new InvalidOperationException("Opaque panel preference was not applied.");
+            AppearanceManager.Preview(AppearanceManager.Active with { PanelOpacity = 0.35 }, AppearanceManager.Image);
+        }
         private static void MakeImage(string path)
         {
             var visual = new DrawingVisual();

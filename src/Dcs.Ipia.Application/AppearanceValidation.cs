@@ -50,7 +50,7 @@ namespace Dcs.Ipia.Application
             if (value.Palette is not null) ValidatePalette(value.Palette);
             if (value.Image is not null && !ImageName().IsMatch(value.Image)) throw new ArgumentException("Invalid managed image reference.");
             if (!Range(value.Opacity, 0, 0.3) || !Range(value.Horizontal, 0, 1) || !Range(value.Vertical, 0, 1) ||
-                !Range(value.Tint, 0, 1) || !Range(value.PanelOpacity, 0.9, 1) || value.Fit is not ("Fill" or "Fit"))
+                !Range(value.Tint, 0, 1) || !Range(value.PanelOpacity, 0, 1) || value.Fit is not ("Fill" or "Fit"))
                 throw new ArgumentException("Appearance adjustments are outside the supported readability limits.");
         }
         /// <summary>Validates keys and 4.5:1 text/background pairs for an imported palette.</summary>

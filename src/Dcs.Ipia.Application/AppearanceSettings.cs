@@ -15,5 +15,5 @@ namespace Dcs.Ipia.Application
     public sealed record AppearanceSettings(int SchemaVersion = 1, string? Accent = null,
         IReadOnlyDictionary<string, string>? Palette = null, string? Image = null, bool Enabled = false,
         double Opacity = 0.15, double Horizontal = 0.5, double Vertical = 0.5, double Tint = 0.2,
-        double PanelOpacity = 1, string Fit = "Fill");
+        double PanelOpacity = 0.35, string Fit = "Fill");
 }

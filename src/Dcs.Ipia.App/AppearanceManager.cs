@@ -110,8 +110,8 @@ namespace DcsIpia.Presentation
             foreach (var (key, value) in colors)
             {
                 var color = (Color)ColorConverter.ConvertFromString(value);
-                if (key == "SurfaceBrush" && settings.Enabled && hasImage && !SystemParameters.HighContrast)
-                    color.A = (byte)Math.Round(255 * ProtectedPanelOpacity(colors, settings.PanelOpacity));
+                if (key is "SurfaceBrush" or "StatusBackgroundBrush" && settings.Enabled && hasImage && !SystemParameters.HighContrast)
+                    color.A = (byte)Math.Ceiling(255 * ProtectedPanelOpacity(colors, settings, key));
                 var brush = new SolidColorBrush(color); brush.Freeze(); dictionary[key] = brush;
             }
             var aliases = new Dictionary<object, string> {
@@ -127,13 +127,25 @@ namespace DcsIpia.Presentation
             foreach (var (key, value) in aliases) dictionary[key] = dictionary[value];
             return dictionary;
         }
-        private static double ProtectedPanelOpacity(Dictionary<string, string> colors, double requested)
+        private static double ProtectedPanelOpacity(Dictionary<string, string> colors, AppearanceSettings settings, string key)
         {
-            var panel = AppearanceColors.Parse(colors["SurfaceBrush"]);
-            var foregrounds = WindowTextKeys.Select(key => AppearanceColors.Parse(colors[key])).ToArray();
-            while (requested < 1 && PhotoExtremes.Any(background => foregrounds.Any(foreground => AppearanceColors.Contrast(foreground,
+            var panel = AppearanceColors.Parse(colors[key]);
+            var basis = AppearanceColors.Parse(colors["WindowBackgroundBrush"]);
+            var windowText = WindowTextKeys.Select(name => AppearanceColors.Parse(colors[name])).ToArray();
+            var imageOpacity = ProtectedImageOpacity(basis, windowText, settings.Opacity);
+            var backgrounds = PhotoExtremes.Select(photo => AppearanceColors.Blend(photo, basis, imageOpacity)).ToArray();
+            var foregrounds = key == "SurfaceBrush" ? windowText : [AppearanceColors.Parse(colors["StatusTextBrush"])];
+            var requested = settings.PanelOpacity;
+            // Protect against the actual softened window image, rather than an unattenuated photograph.
+            while (requested < 1 && backgrounds.Any(background => foregrounds.Any(foreground => AppearanceColors.Contrast(foreground,
                 AppearanceColors.Blend(panel, background, requested)) < 4.5))) requested = Math.Min(1, requested + 0.01);
             return requested;
+        }
+        private static double ProtectedImageOpacity(uint background, uint[] text, double opacity)
+        {
+            while (opacity > 0 && text.Any(color => PhotoExtremes.Any(photo =>
+                AppearanceColors.Contrast(color, AppearanceColors.Blend(photo, background, opacity)) < 4.5))) opacity = Math.Max(0, opacity - 0.01);
+            return opacity;
         }
         private static void ReplaceOverlay(ResourceDictionary dictionary)
         {
@@ -150,12 +162,10 @@ namespace DcsIpia.Presentation
             if (!_active.Enabled || _image is null || SystemParameters.HighContrast)
             { window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush"); return; }
             var width = Math.Max(1, window.ActualWidth); var height = Math.Max(1, window.ActualHeight);
-            var opacity = _active.Opacity;
             var baseColor = AppearanceColors.Parse("#" + background.Color.ToString(System.Globalization.CultureInfo.InvariantCulture)[3..]);
             var text = WindowTextKeys.Select(key =>
                 AppearanceColors.Parse("#" + ((SolidColorBrush)window.FindResource(key)).Color.ToString(System.Globalization.CultureInfo.InvariantCulture)[3..])).ToArray();
-            while (opacity > 0 && text.Any(color => PhotoExtremes.Any(photo =>
-                AppearanceColors.Contrast(color, AppearanceColors.Blend(photo, baseColor, opacity)) < 4.5))) opacity = Math.Max(0, opacity - 0.01);
+            var opacity = ProtectedImageOpacity(baseColor, text, _active.Opacity);
             var bounds = new Rect(0, 0, width, height); var group = new DrawingGroup();
             using (var context = group.Open())
             {

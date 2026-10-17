@@ -29,8 +29,8 @@
     <TextBlock Text="{Binding ElementName=ImageOpacity, Path=Value, StringFormat={}{0:P0}}"/>
     <TextBlock Text="Theme blending" Margin="0,8,0,0"/>
     <Slider x:Name="ImageTint" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.05" ValueChanged="SliderChanged" AutomationProperties.Name="Background theme blending"/>
-    <TextBlock Text="Panel opacity (90–100%)" Margin="0,8,0,0"/>
-    <Slider x:Name="PanelOpacity" Minimum="0.9" Maximum="1" TickFrequency="0.01" IsSnapToTickEnabled="True" SmallChange="0.01" LargeChange="0.05" ValueChanged="SliderChanged" AutomationProperties.Name="Panel opacity"/>
+    <TextBlock Text="Panel opacity (0–100%)" Margin="0,8,0,0"/>
+    <Slider x:Name="PanelOpacity" Minimum="0" Maximum="1" TickFrequency="0.01" IsSnapToTickEnabled="True" SmallChange="0.01" LargeChange="0.05" ValueChanged="SliderChanged" AutomationProperties.Name="Panel opacity"/>
     <TextBlock Text="{Binding ElementName=PanelOpacity, Path=Value, StringFormat={}{0:P0}}"/>
     <TextBlock Text="Image layout" Margin="0,8,0,4"/>
     <ComboBox x:Name="ImageFit" SelectionChanged="FitChanged" AutomationProperties.Name="Image layout">
