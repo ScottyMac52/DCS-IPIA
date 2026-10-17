@@ -46,7 +46,10 @@ namespace DcsIpia.Presentation
             var dictionary = BuildPalette(settings, image is not null);
             _active = settings; _image = image;
             ReplaceOverlay(dictionary);
-            foreach (var window in System.Windows.Application.Current.Windows.OfType<Window>()) Paint(window);
+            foreach (var window in System.Windows.Application.Current.Windows.OfType<Window>())
+            {
+                Paint(window); WindowThemeChrome.Apply(window);
+            }
             LastError = null;
         }
         /// <summary>Reloads the accepted appearance after Cancel, close or successful persistence.</summary>
