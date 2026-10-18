@@ -20,6 +20,7 @@ namespace Dcs.Ipia.App.Smoke
         /// <summary>Checks scenario completion, independent intermediate state, restart, failure recovery and cleanup.</summary>
         public static void Verify()
         {
+            var layoutBefore = File.Exists(WorkspaceLayoutStore.FilePath) ? File.ReadAllText(WorkspaceLayoutStore.FilePath) : null;
             var existingWindows = System.Windows.Application.Current.Windows.Cast<Window>().ToHashSet();
             var window = new TrainingWindow();
             window.Show();
@@ -112,6 +113,9 @@ namespace Dcs.Ipia.App.Smoke
             if (Directory.Exists(lastDirectory)) throw new InvalidOperationException("Training did not clean its data.");
             CheckRetainedWindows(existingWindows);
             VerifyAxisEditorExit(existingWindows);
+            var layoutAfter = File.Exists(WorkspaceLayoutStore.FilePath) ? File.ReadAllText(WorkspaceLayoutStore.FilePath) : null;
+            if (layoutAfter != layoutBefore)
+                throw new InvalidOperationException("Training changed the user's workspace layout preferences.");
         }
         #endregion END Public
         #region BEGIN private helpers

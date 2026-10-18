@@ -1,10 +1,10 @@
-﻿<UserControl x:Class="DcsIpia.Features.Documentation.DocumentationView"
+<UserControl x:Class="DcsIpia.Features.Documentation.DocumentationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
-    <DockPanel Margin="12">
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <TextBlock Text="Integration instructions" FontSize="22" FontWeight="SemiBold"/>
+    <DockPanel Margin="4">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,5">
+            <TextBlock Text="Integration instructions" FontSize="16" FontWeight="SemiBold"/>
             <TextBlock Text="Load explicit JSON instructions or a consumer Markdown guide for this module. Review before staging, then Save to database." TextWrapping="Wrap" Margin="0,6"/>
             <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" Margin="0,10,0,0">
                 <Button Content="Load integration instructions…" Click="LoadClicked" Style="{StaticResource ActionButton}"/>
@@ -14,13 +14,14 @@
             </pres:ActionBar>
             <TextBlock x:Name="StatusText" Margin="0,8,0,0"/>
         </StackPanel>
-        <Grid>
+        <Grid pres:WorkspaceLayout.Key="documentation.split">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width=".3*" MinWidth="160"/><ColumnDefinition Width="6"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <ListBox x:Name="Instructions" DisplayMemberPath="Name" SelectionChanged="InstructionSelected" Margin="0,0,12,0"/>
-            <TextBox x:Name="InstructionText" Grid.Column="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="{DynamicResource BorderBrush}"/>
+            <TextBox x:Name="InstructionText" Grid.Column="2" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
         </Grid>
     </DockPanel>
 </UserControl>

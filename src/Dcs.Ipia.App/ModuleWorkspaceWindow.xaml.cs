@@ -60,7 +60,7 @@ namespace DcsIpia.Presentation
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
                                      Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
-                                     ILogger<ModuleWorkspaceWindow>? logger = null)
+                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _logger = logger ?? NullLogger<ModuleWorkspaceWindow>.Instance;
@@ -84,6 +84,7 @@ namespace DcsIpia.Presentation
             foreach (var pair in viewModel.Labels)
                 _labels[pair.Key] = pair.Value;
             InitializeComponent();
+            WorkspaceLayout.SetPersistenceEnabled(WorkspaceRoot, persistLayout);
             DataContext = _viewModel;
             WorkspaceSettingsButton.IsEnabled = _settings is not null;
             RefreshManagement();
@@ -107,6 +108,16 @@ namespace DcsIpia.Presentation
         {
             if (FeatureNav.SelectedItem is ListBoxItem item)
                 _navigation.NavigateTo(item.Tag as string ?? "Devices");
+        }
+
+        private void OutputMenuOpened(object? sender, EventArgs e) => PackageVersion.Focus();
+
+        private void OutputMenuKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Escape) return;
+            OutputMenu.IsOpen = false;
+            OutputMenuButton.Focus();
+            e.Handled = true;
         }
 
         private void LoadCurrentView()
@@ -139,6 +150,7 @@ namespace DcsIpia.Presentation
             };
             if (FeatureContent.Content is UserControl view)
             {
+                WorkspaceLayout.SetPersistenceEnabled(view, WorkspaceLayout.GetPersistenceEnabled(WorkspaceRoot));
                 _views[key] = view;
                 FeatureActions.ShowActions(view);
             }

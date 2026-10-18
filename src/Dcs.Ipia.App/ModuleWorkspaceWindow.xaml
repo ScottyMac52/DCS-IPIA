@@ -2,35 +2,43 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:local="clr-namespace:DcsIpia.Presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Icon="{x:Static local:ApplicationBranding.Icon}" Title="{Binding WindowTitle}" Width="1380" Height="840"
-        MinWidth="1100" MinHeight="680" WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource WindowBackgroundBrush}"
-        Foreground="{DynamicResource PrimaryTextBrush}">
-
-  <Grid Margin="24">
+        Icon="{x:Static local:ApplicationBranding.Icon}" Title="{Binding WindowTitle}" Width="1180" Height="760"
+        MinWidth="900" MinHeight="540" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
+  <Grid x:Name="WorkspaceRoot" Margin="10">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <!-- Reserve the same toolbar space for every feature, even when there are no actions. -->
-      <RowDefinition Height="48"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <StackPanel Grid.Row="0" Margin="0,0,0,16">
-      <TextBlock Text="{Binding Summary}" FontSize="23" FontWeight="SemiBold"/>
+    <StackPanel>
+    <DockPanel Margin="0,0,0,5">
+      <Expander x:Name="ModuleDetails" Header="Module details" DockPanel.Dock="Right" MaxWidth="660"
+                local:WorkspaceLayout.Key="workspace.details">
+        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto"><StackPanel>
       <TextBlock Text="{Binding Commit}" Margin="0,6,0,0"
                  Foreground="{DynamicResource SecondaryTextBrush}"/>
       <TextBlock Text="{Binding SourceNote}" Margin="0,3,0,0"
                  Foreground="{DynamicResource SecondaryTextBrush}"/>
-      <ListBox x:Name="ImportDiagnostics" ItemsSource="{Binding Diagnostics}" MaxHeight="100"/>
       <Expander Header="Import details" Margin="0,8,0,0" AutomationProperties.Name="Imported profiles and bindings">
         <Grid Height="180"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
           <GroupBox Header="Profiles" Margin="0,0,8,0"><ListBox ItemsSource="{Binding Profiles}" AutomationProperties.Name="Imported device profiles"/></GroupBox>
           <GroupBox Header="Bindings" Grid.Column="1"><ListBox ItemsSource="{Binding Bindings}" AutomationProperties.Name="Imported aircraft bindings"/></GroupBox>
         </Grid>
       </Expander>
+        </StackPanel></ScrollViewer>
+      </Expander>
+      <TextBlock Text="{Binding Summary}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+    </DockPanel>
+    <ListBox x:Name="ImportDiagnostics" ItemsSource="{Binding Diagnostics}" MaxHeight="54">
+      <ListBox.Style><Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+        <Style.Triggers><DataTrigger Binding="{Binding Diagnostics[0]}" Value="No import diagnostics."><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+      </Style></ListBox.Style>
+    </ListBox>
     </StackPanel>
-    <ListBox x:Name="FeatureNav" Grid.Row="2" Width="160" HorizontalAlignment="Left"
-        SelectionChanged="FeatureNavChanged">
+    <ListBox x:Name="FeatureNav" Grid.Row="1" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+        SelectionChanged="FeatureNavChanged" AutomationProperties.Name="Module feature tabs">
+      <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="10,5"/></Style></ListBox.ItemContainerStyle>
         <ListBoxItem Content="Devices" Tag="Devices"/>
         <ListBoxItem Content="Modifiers" Tag="Modifiers"/>
         <ListBoxItem Content="Assignments" Tag="Assignments"/>
@@ -40,15 +48,27 @@
         <ListBoxItem Content="Kneeboards" Tag="Kneeboards"/>
         <ListBoxItem Content="Documentation" Tag="Documentation"/>
     </ListBox>
-
-        <local:FeatureActionBar x:Name="FeatureActions" Grid.Row="1" Margin="170,0,0,0"/>
-        <ContentControl x:Name="FeatureContent" Grid.Row="2" Margin="170,0,0,0"
-                        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-    <DockPanel Grid.Row="3" Margin="0,16,0,0">
-      <StackPanel DockPanel.Dock="Left" MaxWidth="800">
-        <TextBlock x:Name="PendingSummary" Text="No pending assignment changes"/>
-        <TextBlock x:Name="EditorMessage"/>
-        <TextBlock x:Name="OutputFailureDiagnostic"/>
+    <local:FeatureActionBar x:Name="FeatureActions" Grid.Row="2" Margin="0,4,0,0"/>
+    <ContentControl x:Name="FeatureContent" Grid.Row="3"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+    <Grid Grid.Row="4" Margin="0,5,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock x:Name="PendingSummary" Text="No pending assignment changes" TextWrapping="Wrap"/>
+        <TextBlock x:Name="EditorMessage" TextWrapping="Wrap"/>
+        <TextBlock x:Name="OutputFailureDiagnostic" TextWrapping="Wrap"/>
+      </StackPanel>
+      <WrapPanel Grid.Column="1" VerticalAlignment="Bottom">
+        <ToggleButton x:Name="OutputMenuButton" Content="Build &amp; export…" Padding="10,4"/>
+        <Button x:Name="WorkspaceSettingsButton" Content="Settings" Padding="10,4" Click="SettingsClicked"/>
+        <Button Content="Close" Padding="10,4" Click="Close_Click"/>
+      </WrapPanel>
+      <Popup x:Name="OutputMenu" PlacementTarget="{Binding ElementName=OutputMenuButton}" Placement="Top"
+             Opened="OutputMenuOpened"
+             IsOpen="{Binding IsChecked, ElementName=OutputMenuButton, Mode=TwoWay}" StaysOpen="False">
+        <Border Background="{DynamicResource ControlBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="12" MaxWidth="620"
+                KeyboardNavigation.TabNavigation="Cycle" PreviewKeyDown="OutputMenuKeyDown">
+          <StackPanel>
         <WrapPanel>
           <TextBlock Text="Package version:" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <TextBox x:Name="PackageVersion" Width="110" ToolTip="Version included in the ZIP filename"
@@ -60,14 +80,11 @@
           <Button x:Name="BuildButton" Content="Build OvGME package…" IsEnabled="False"
                   Margin="10,0,0,0" Padding="12,4" Click="BuildClicked"/>
         </WrapPanel>
-        <TextBlock x:Name="BuildStatus" Text="Build uses saved database state. Save pending edits first."
-                   Margin="0,5,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
-      </StackPanel>
-      <Button x:Name="WorkspaceSettingsButton" Content="Settings" DockPanel.Dock="Right" Margin="0,0,8,0" Padding="12,4" Click="SettingsClicked"/>
-      <Button Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Right" MinWidth="90"
-              Padding="12,4" Click="Close_Click"/>
-    </DockPanel>
+            <TextBlock x:Name="BuildStatus" Text="Build uses saved database state. Save pending edits first."
+                       TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+          </StackPanel>
+        </Border>
+      </Popup>
+    </Grid>
   </Grid>
 </Window>
-
-

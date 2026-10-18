@@ -194,7 +194,7 @@ namespace DcsIpia.Presentation
         }
         private void OpenWorkspace(EditorWorkspaceSnapshot saved)
         {
-            _workspace = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: _environment.Repository,
+            _workspace = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), persistLayout: false, repository: _environment.Repository,
                 deviceDiscovery: new TrainingDiscovery(), commandFilePicker: _ => [Path.Combine(_environment.Root, "commands.json")],
                 outputPathPicker: snapshot => snapshot ? Path.Combine(_environment.Outputs, "training.ipia-module.json") : _environment.Outputs,
                 documentationFolderPicker: () => _environment.Outputs, completeReleaseFolderPicker: () => _environment.Outputs,
@@ -256,7 +256,7 @@ namespace DcsIpia.Presentation
             Get<ComboBox>(view, "Layers").SelectedItem = layer;
             Require(Equals(Get<ComboBox>(view, "Layers").SelectedItem, layer), "Modifier layer is unavailable: " + layer);
             view.UpdateLayout();
-            Get<Slider>(view, "Zoom").Value = 0.7;
+            Click(Get<Button>(view, "FitDiagramButton"));
             view.UpdateLayout();
             var diagram = Get<Canvas>(view, "Diagram");
             var border = Descendants(diagram).OfType<Border>().FirstOrDefault(x => x.Tag is HardwareGraphicControl control &&
@@ -464,6 +464,8 @@ namespace DcsIpia.Presentation
                     x.Tag is HardwareGraphicControl control && control.InputKey == parts[1] &&
                     !control.Control.EndsWith("-shifted", StringComparison.Ordinal))
                     ?? throw new InvalidDataException("Missing training callout: " + parts[1]);
+            if (parts[0] == "Host" && parts[1] is "ValidateModuleButton" or "ExportModuleSnapshotButton" or "BuildButton")
+                return Get<FrameworkElement>(root, "OutputMenuButton");
             return Get<FrameworkElement>(root, parts[1]);
         }
         private static T Get<T>(FrameworkElement root, string name) where T : class => root.FindName(name) as T

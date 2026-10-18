@@ -100,25 +100,18 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("A released Hold modifier remained lit.");
             var panes = (Grid)view.FindName("InputTestPanes")!;
             var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
-            var upper = panes.RowDefinitions[1];
-            var lower = panes.RowDefinitions[3];
-            for (var attempt = 0; attempt < 5 &&
-                upper.ActualHeight + lower.ActualHeight - upper.MinHeight - lower.MinHeight < 40; attempt++)
-            {
-                window.Height += 160;
-                window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-                window.UpdateLayout();
-            }
-            var upperBefore = upper.ActualHeight;
-            var lowerBefore = lower.ActualHeight;
-            var direction = upperBefore - upper.MinHeight >= 10 ? Key.Up : Key.Down;
+            var left = panes.ColumnDefinitions[0];
+            var right = panes.ColumnDefinitions[2];
+            var leftBefore = left.ActualWidth;
+            var rightBefore = right.ActualWidth;
+            var direction = leftBefore - left.MinWidth >= 10 ? Key.Left : Key.Right;
             splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(splitter), 0, direction)
                 { RoutedEvent = Keyboard.KeyDownEvent });
             window.UpdateLayout();
-            if (splitter.ResizeDirection != GridResizeDirection.Rows || splitter.ResizeBehavior != GridResizeBehavior.PreviousAndNext ||
-                Math.Abs(upper.ActualHeight - upperBefore) < 1 || Math.Abs(lower.ActualHeight - lowerBefore) < 1 ||
-                Math.Abs(upper.ActualHeight + lower.ActualHeight - upperBefore - lowerBefore) > 1)
-                throw new InvalidOperationException($"Input-test divider did not redistribute pane height: {upperBefore}/{lowerBefore} -> {upper.ActualHeight}/{lower.ActualHeight}; window={window.ActualHeight}, view={view.ActualHeight}, panes={panes.ActualHeight}.");
+            if (splitter.ResizeDirection != GridResizeDirection.Columns || splitter.ResizeBehavior != GridResizeBehavior.PreviousAndNext ||
+                Math.Abs(left.ActualWidth - leftBefore) < 1 || Math.Abs(right.ActualWidth - rightBefore) < 1 ||
+                Math.Abs(left.ActualWidth + right.ActualWidth - leftBefore - rightBefore) > 1)
+                throw new InvalidOperationException($"Input-test divider did not redistribute pane width: {leftBefore}/{rightBefore} -> {left.ActualWidth}/{right.ActualWidth}.");
             InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>().Any(x => x.IsActive))

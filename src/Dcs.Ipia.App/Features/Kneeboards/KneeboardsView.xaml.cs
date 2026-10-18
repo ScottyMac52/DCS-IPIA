@@ -1,7 +1,8 @@
-﻿using Dcs.Ipia.Application;
+using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain;
 using Dcs.Ipia.Rendering;
+using DcsIpia.Presentation;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -17,9 +18,15 @@ namespace DcsIpia.Features.Kneeboards
     {
         private IModuleWorkspaceContext? _context;
         private bool _updating;
+        private readonly DiagramViewport _viewport;
 
         #region BEGIN Public
-        public KneeboardsView() => InitializeComponent();
+        public KneeboardsView()
+        {
+            InitializeComponent();
+            _viewport = new DiagramViewport(DiagramScroll, ZoomBox, Zoom, "kneeboards.zoom");
+        }
+
 
         /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
@@ -32,6 +39,8 @@ namespace DcsIpia.Features.Kneeboards
         #endregion END Public
 
         #region BEGIN private helpers
+        private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
+
         private void Refresh()
         {
             if (_context?.Working is null && _context?.Saved is null)
@@ -131,6 +140,8 @@ namespace DcsIpia.Features.Kneeboards
                 bitmap.EndInit();
                 bitmap.Freeze();
                 KneeboardPreview.Source = bitmap;
+                ZoomBox.Width = KneeboardPreview.Width = bitmap.Width;
+                ZoomBox.Height = KneeboardPreview.Height = bitmap.Height;
                 KneeboardCaption.Text = "Generated: " + path;
             }
             catch (Exception ex)
