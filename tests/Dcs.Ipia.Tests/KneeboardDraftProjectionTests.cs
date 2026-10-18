@@ -126,6 +126,37 @@ namespace Dcs.Ipia.Tests
                 x.Label.Contains("JOY_BTN7", StringComparison.Ordinal) && x.Label.Contains("Hold", StringComparison.Ordinal) && x.Color == "#dc2626");
             Assert.Contains(combined.Legend, x => x.Label == "UI Layer — Base" && x.Color == "#0891b2");
         }
+        /// <summary>All shared shift colors stay distinct from live blue Base and cyan UI Base, including palette overflow.</summary>
+        [Fact]
+        public void Combined_palette_matches_live_chords_and_reserves_blue_and_cyan_bases()
+        {
+            var module = new DcsModule(Guid.NewGuid(), "PALETTE", "Palette");
+            var profile = new DeviceProfile(Guid.NewGuid(), "device", null, "Device", "Device.diff.lua");
+            var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
+            {
+                ProfileId = profile.Id, SupportsUiLayer = true,
+                Controls = [new("button", "Base", "JOY_BTN1", 0, 0, 40, 20), new("button-shifted", "Shift", "JOY_BTN1", 0, 25, 40, 20)]
+            };
+            var snapshot = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "fixture"), [], [], [diagram], [], [], [],
+                new Dictionary<string, string>());
+            DraftAssignment Assign(AssignmentLayer layer, string chord) => new(
+                new(module.Id, profile.Id, layer, BindingSection.Key, "JOY_BTN1", chord), new(chord, chord, false, layer));
+            var assignments = new[] { Assign(AssignmentLayer.Module, ""), Assign(AssignmentLayer.UiLayer, "") }
+                .Concat(Enumerable.Range(1, 6).Select(i => Assign(AssignmentLayer.Module, "SHIFT" + i)))
+                .Concat(Enumerable.Range(1, 3).Select(i => Assign(AssignmentLayer.UiLayer, "UI" + i))).ToArray();
+            var page = KneeboardDraftProjection.CreateCombined(snapshot, diagram, assignments, snapshot.Labels);
+            Assert.Equal(["#dc2626", "#ea580c", "#c026d3", "#16a34a", "#9333ea", "#9333ea"],
+                page.Legend.Where(x => x.Layer == AssignmentLayer.Module && x.Chord.Length > 0).Select(x => x.Color));
+            Assert.Equal(["#0891b2", "#7c3aed", "#be185d", "#0f766e"],
+                page.Legend.Where(x => x.Layer == AssignmentLayer.UiLayer).Select(x => x.Color));
+            foreach (var entry in page.Legend)
+            {
+                var state = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "UNUSED", [entry.Layer] = entry.Chord };
+                var control = entry.Chord.Length == 0 ? "button" : "button-shifted";
+                var expected = entry.Layer == AssignmentLayer.Module && entry.Chord.Length == 0 ? "#007ACC" : entry.Color;
+                Assert.Equal(expected, KneeboardLiveProjection.ActiveColor(page, control, state));
+            }
+        }
         /// <summary>An unsupported UI Layer produces only module pages even when a stale UI assignment exists.</summary>
         [Fact]
         public void Unsupported_ui_layer_is_not_rendered()

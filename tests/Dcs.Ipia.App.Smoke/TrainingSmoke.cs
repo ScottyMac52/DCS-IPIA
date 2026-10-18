@@ -202,6 +202,19 @@ namespace Dcs.Ipia.App.Smoke
                 _ => true
             };
             if (!valid) throw new InvalidOperationException("Training input-test acceptance failed: " + action);
+            if (action is "test-base" or "test-hold" or "test-toggle-release")
+            {
+                var chord = action == "test-base" ? "" : action == "test-hold" ? "TRAIN_SHIFT" : "TRAIN_TOGGLE";
+                var expected = action == "test-base" ? "#007ACC" : action == "test-hold" ? "#dc2626" : "#ea580c";
+                var item = legend.Single(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == chord);
+                var outlines = ((Canvas)view.FindName("Diagram")).Children.OfType<ContrastOutlineBorder>();
+                if (item.Color != expected || !outlines.Any(x => x.Tag is string key && key.StartsWith("JOY_BTN1|", StringComparison.Ordinal) &&
+                    (x.BorderBrush as SolidColorBrush)?.Color == (Color)ColorConverter.ConvertFromString(expected)))
+                    throw new InvalidOperationException("Training outline and legend colors disagree: " + action);
+                var uiBase = legend.Single(x => x.Entry.Layer == AssignmentLayer.UiLayer && x.Entry.Chord.Length == 0);
+                if (uiBase.Color != "#0891b2") throw new InvalidOperationException("Training UI Base must retain cyan.");
+            }
+
         }
         private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
         {

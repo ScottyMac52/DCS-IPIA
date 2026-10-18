@@ -79,7 +79,7 @@ namespace Dcs.Ipia.App.Smoke
             var baseColor = (Color)ColorConverter.ConvertFromString(KneeboardLiveProjection.BaseHighlightColor);
             if ((activeOutline.BorderBrush as SolidColorBrush)?.Color != baseColor ||
                 shiftedOutline.BorderBrush != Brushes.Transparent)
-                throw new InvalidOperationException("Base input highlight was not yellow.");
+                throw new InvalidOperationException("Base input highlight was not blue.");
             var legend = (ItemsControl)view.FindName("ModifierLegend")!;
             var shift = legend.Items.Cast<DcsIpia.Features.InputTest.InputTestLegendItem>()
                 .Single(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == "S3");
@@ -98,6 +98,10 @@ namespace Dcs.Ipia.App.Smoke
                 shiftedOutline.BorderBrush == Brushes.Transparent);
             if (shift.IsActive)
                 throw new InvalidOperationException("A released Hold modifier remained lit.");
+            if (activeOutline is not ContrastOutlineBorder || shiftedOutline is not ContrastOutlineBorder)
+                throw new InvalidOperationException("Live highlights lost their contrasting edges.");
+            var uiBase = new DcsIpia.Features.InputTest.InputTestLegendItem(new("UI Base", "#0891b2", AssignmentLayer.UiLayer));
+            if (uiBase.Color != "#0891b2") throw new InvalidOperationException("UI Base swatch lost its cyan identity.");
             VerifyLegendLayout(window, legend);
             var panes = (Grid)view.FindName("InputTestPanes")!;
             var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
@@ -162,7 +166,7 @@ namespace Dcs.Ipia.App.Smoke
                         label.TranslatePoint(new Point(), row).X < swatch.TranslatePoint(new Point(), row).X + swatch.ActualWidth)
                         throw new InvalidOperationException($"Modifier legend text overlaps its color swatch or is squeezed at window width {width}.");
                     var entry = (DcsIpia.Features.InputTest.InputTestLegendItem)label.DataContext;
-                    if ((swatch.Background as SolidColorBrush)?.Color != (Color)ColorConverter.ConvertFromString(entry.Color))
+                    if (swatch is not ContrastOutlineBorder || (swatch.Background as SolidColorBrush)?.Color != (Color)ColorConverter.ConvertFromString(entry.Color))
                         throw new InvalidOperationException("Modifier legend lost its real color key.");
                 }
             }

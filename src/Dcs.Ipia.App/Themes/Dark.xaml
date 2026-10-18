@@ -39,4 +39,7 @@
   <SolidColorBrush x:Key="{x:Static SystemColors.ScrollBarBrushKey}" Color="#1B2B42"/>
   <SolidColorBrush x:Key="ControlSurfaceBrush" Color="#1B2B42"/>
   <SolidColorBrush x:Key="OpaqueControlBackgroundBrush" Color="#23334D"/>
+    <!-- Functional contrast edges stay black/white around every live input-state color. -->
+    <SolidColorBrush x:Key="InputOutlineDarkBrush" Color="#000000"/>
+    <SolidColorBrush x:Key="InputOutlineLightBrush" Color="#FFFFFF"/>
 </ResourceDictionary>

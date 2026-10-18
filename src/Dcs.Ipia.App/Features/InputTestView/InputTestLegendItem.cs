@@ -19,8 +19,8 @@ namespace DcsIpia.Features.InputTest
         /// <summary>Identical wording to the exported kneeboard legend.</summary>
         public string Label => Entry.Label;
 
-        /// <summary>Identical color to the exported kneeboard legend.</summary>
-        public string Color => Entry.Chord.Length == 0
+        /// <summary>Matches the live outline; aircraft Base uses blue while UI Base retains its cyan.</summary>
+        public string Color => Entry.Layer == AssignmentLayer.Module && Entry.Chord.Length == 0
             ? KneeboardLiveProjection.BaseHighlightColor : Entry.Color;
 
         /// <summary>True for every polling frame in which this layer/chord is applicable.</summary>

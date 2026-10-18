@@ -81,6 +81,7 @@ namespace Dcs.Ipia.App.Smoke
             Console.WriteLine("Smoke: interactive training.");
             TrainingSmoke.Verify();
             Console.WriteLine("Smoke: input testing.");
+            ContrastOutlineSmoke.Verify();
             InputTestSmoke.Verify();
             var defaultText = (TextBox)WorkspaceUi.Find(defaultsWindow, "SourceText")!;
             if (!defaultsWindow.IsVisible || !defaultText.IsReadOnly || defaultText.Text != "{}")
