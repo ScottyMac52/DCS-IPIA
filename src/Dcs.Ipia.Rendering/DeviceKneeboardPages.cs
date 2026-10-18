@@ -11,21 +11,21 @@ namespace Dcs.Ipia.Rendering
         /// <param name="page">Current combined labels and modifier legend.</param>
         /// <param name="footer">Optional draft attribution.</param>
         /// <returns>Artwork page followed by paginated unmapped inputs, or existing generic/bundled pages.</returns>
-        public static IReadOnlyList<byte[]> Render(UiLayerDiagram diagram, KneeboardComposite page, string footer = "")
+        public static IReadOnlyList<byte[]> Render(UiLayerDiagram diagram, KneeboardComposite page, string footer = "", bool transparent = false, double artworkOpacity = 1)
         {
             GenericHardwareLayout.Validate(diagram);
             if (diagram.CustomMapping is not { } revision)
-                return diagram.GenericCapabilities is null ? [CompositeKneeboardRenderer.Render(diagram, page, footer)]
-                    : GenericKneeboardRenderer.RenderPages(diagram, page, footer);
+                return diagram.GenericCapabilities is null ? [CompositeKneeboardRenderer.Render(diagram, page, footer, transparent, artworkOpacity)]
+                    : GenericKneeboardRenderer.RenderPages(diagram, page, footer, transparent: transparent);
             UserMappingImageVerifier.Validate(revision);
-            var result = new List<byte[]> { CompositeKneeboardRenderer.Render(diagram, page, footer) };
+            var result = new List<byte[]> { CompositeKneeboardRenderer.Render(diagram, page, footer, transparent, artworkOpacity) };
             var missing = revision.Definition.Capabilities.DcsKeys.Except(revision.MappedInputs, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
             if (missing.Count > 0)
             {
                 var labels = diagram.Controls.GroupBy(x => x.InputKey, StringComparer.Ordinal)
                     .ToDictionary(x => x.Key, x => x.OrderBy(y => y.Control.EndsWith("-shifted", StringComparison.Ordinal)).First().Label, StringComparer.Ordinal);
                 var generic = GenericHardwareLayout.Create(revision.Definition, labels).Diagram;
-                result.AddRange(GenericKneeboardRenderer.RenderPages(generic, page, footer, missing));
+                result.AddRange(GenericKneeboardRenderer.RenderPages(generic, page, footer, missing, transparent));
             }
             return result;
         }

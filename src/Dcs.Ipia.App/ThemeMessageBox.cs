@@ -32,7 +32,7 @@ namespace DcsIpia.Presentation
             };
             var result = buttons == MessageBoxButton.OK ? MessageBoxResult.OK :
                 buttons == MessageBoxButton.YesNo ? MessageBoxResult.No : MessageBoxResult.Cancel;
-            var dialog = new Window { Name = "ThemeMessageDialog", Title = caption, Width = 560, MinWidth = 380,
+            var dialog = new AppearanceDialog("MessageDialog") { Name = "ThemeMessageDialog", Title = caption, Width = 560, MinWidth = 380,
                 SizeToContent = SizeToContent.Height, MaxHeight = SystemParameters.WorkArea.Height * 0.8,
                 WindowStartupLocation = owner?.IsVisible == true ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
                 ShowInTaskbar = owner is null };

@@ -60,6 +60,7 @@ namespace DcsIpia.Features.Assignments
         #region BEGIN Public
         public AssignmentsView()
         {
+            AppearanceManager.ObserveArtwork(this, RefreshDiagram);
             InitializeComponent();
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "assignments.zoom");
         }
@@ -209,7 +210,7 @@ namespace DcsIpia.Features.Assignments
                     };
                     previewSvg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, categoryPage);
                 }
-                var png = CanonicalSvgRenderer.Render(previewSvg, diagram.Width, diagram.Height);
+                var png = CanonicalSvgRenderer.Render(PreviewArtwork.Prepare(previewSvg, AppearanceManager.ArtworkOpacityFor(this)), diagram.Width, diagram.Height);
                 using var stream = new MemoryStream(png);
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
@@ -750,7 +751,7 @@ namespace DcsIpia.Features.Assignments
             content.Children.Add(new TextBlock { Text = "Callout label (leave blank to restore the default):" });
             content.Children.Add(editor);
             content.Children.Add(buttons);
-            var dialog = new Window
+            var dialog = new AppearanceDialog("ChangeLabelDialog")
             {
                 Title = "Change label · " + control.Label,
                 Owner = Window.GetWindow(this),
@@ -914,7 +915,7 @@ namespace DcsIpia.Features.Assignments
             content.Children.Add(status);
             content.Children.Add(buttons);
 
-            var dialog = new Window
+            var dialog = new AppearanceDialog("SearchReplaceDialog")
             {
                 Title = "Search & replace labels",
                 Owner = Window.GetWindow(this),
@@ -1025,30 +1026,30 @@ namespace DcsIpia.Features.Assignments
             {
                 var page = KneeboardDraftProjection.CreateCombined(
                     _context.Working, diagram, _context.Draft.Snapshot, _context.Labels);
-                var images = DeviceKneeboardPages.Render(diagram, page, "DCS-IPIA · current draft preview");
-
                 var pages = new StackPanel();
-                foreach (var png in images)
-                {
-                    using var stream = new MemoryStream(png);
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.StreamSource = stream;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    pages.Children.Add(new Image { Source = bitmap, Width = 800, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 0, 12) });
-                }
-
-                var view = new Window
+                var view = new AppearanceDialog("CurrentKneeboardDialog")
                 {
                     Title = "Current kneeboard · " + diagram.Title,
-                    Owner = Window.GetWindow(this),
-                    Width = 900,
-                    Height = 900,
+                    Owner = Window.GetWindow(this), Width = 900, Height = 900,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     Content = new ScrollViewer { Content = pages }
                 };
+                void Redraw()
+                {
+                    pages.Children.Clear();
+                    var images = DeviceKneeboardPages.Render(diagram, page, "DCS-IPIA · current draft preview",
+                        AppearanceManager.HasBackground(view), AppearanceManager.ArtworkOpacityFor(view));
+                    foreach (var png in images)
+                    {
+                        using var stream = new MemoryStream(png);
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream;
+                        bitmap.EndInit(); bitmap.Freeze();
+                        pages.Children.Add(new Image { Source = bitmap, Width = 800, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 0, 12) });
+                    }
+                }
+                AppearanceManager.ObserveArtwork(view, Redraw);
+                Redraw();
                 view.ShowDialog();
             }
             catch (Exception ex)

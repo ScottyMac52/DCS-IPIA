@@ -194,7 +194,7 @@ namespace DcsIpia.Presentation
             actions.Children.Add(create);
             actions.Children.Add(new Button { Content = "_Cancel", IsCancel = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0) });
             panel.Children.Add(actions);
-            var dialog = new Window { Title = "New folder", Owner = this, Width = 380, SizeToContent = SizeToContent.Height,
+            var dialog = new AppearanceDialog("NewFolderDialog") { Title = "New folder", Owner = this, Width = 380, SizeToContent = SizeToContent.Height,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = panel, ShowInTaskbar = false };
             create.Click += async (_, _) =>
             {

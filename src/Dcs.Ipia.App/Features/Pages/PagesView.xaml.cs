@@ -419,44 +419,47 @@ namespace DcsIpia.Features.Pages
             {
                 var settings = ReadSettings();
                 var updated = ModuleKneeboardPageEditor.Set(_context.Working, _selected, settings);
-                byte[][] images;
-                if (settings.Kind == KneeboardPageKind.Summary)
-                {
-                    var prefix = $"KNEEBOARD/{updated.Configuration.Module.DcsId}/{settings.File}";
-                    images = SnapshotSummaryKneeboardRenderer.Generate(updated)
-                        .Where(x => x.Key == prefix + ".png" ||
-                            (x.Key.StartsWith(prefix + "-", StringComparison.Ordinal) &&
-                             x.Key.EndsWith(".png", StringComparison.Ordinal)))
-                        .OrderBy(x => x.Key == prefix + ".png" ? 0 : 1)
-                        .ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Value).ToArray();
-                }
-                else
-                {
-                    var diagram = updated.Diagrams.Single(x => x.ProfileId == settings.ProfileId);
-                    images = [CompositeKneeboardRenderer.Render(diagram,
-                        KneeboardDraftProjection.CreateCombined(updated, diagram, updated.Assignments, updated.Labels), "")];
-                }
                 var stack = new StackPanel();
-                foreach (var png in images)
+                var preview = new AppearanceDialog("PagePreviewDialog")
                 {
-                    using var stream = new MemoryStream(png);
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.StreamSource = stream;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    stack.Children.Add(new Image { Source = bitmap, Stretch = Stretch.Uniform, MaxWidth = 800, Margin = new Thickness(0, 0, 0, 12) });
-                }
-                new Window
-                {
-                    Title = "Preview · " + settings.Title,
-                    Owner = Window.GetWindow(this),
-                    Width = 850,
-                    Height = 900,
+                    Title = "Preview · " + settings.Title, Owner = Window.GetWindow(this), Width = 850, Height = 900,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     Content = new ScrollViewer { Content = stack }
-                }.ShowDialog();
+                };
+                void Redraw()
+                {
+                    stack.Children.Clear();
+                    byte[][] images;
+                    if (settings.Kind == KneeboardPageKind.Summary)
+                    {
+                        var prefix = $"KNEEBOARD/{updated.Configuration.Module.DcsId}/{settings.File}";
+                        images = SnapshotSummaryKneeboardRenderer.Generate(updated, AppearanceManager.HasBackground(preview))
+                            .Where(x => x.Key == prefix + ".png" ||
+                                (x.Key.StartsWith(prefix + "-", StringComparison.Ordinal) &&
+                                 x.Key.EndsWith(".png", StringComparison.Ordinal)))
+                            .OrderBy(x => x.Key == prefix + ".png" ? 0 : 1)
+                            .ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Value).ToArray();
+                    }
+                    else
+                    {
+                        var diagram = updated.Diagrams.Single(x => x.ProfileId == settings.ProfileId);
+                        images = [CompositeKneeboardRenderer.Render(diagram,
+                            KneeboardDraftProjection.CreateCombined(updated, diagram, updated.Assignments, updated.Labels), "", AppearanceManager.HasBackground(preview), AppearanceManager.ArtworkOpacityFor(preview))];
+                    }
+                    foreach (var png in images)
+                    {
+                        using var stream = new MemoryStream(png);
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.StreamSource = stream;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        stack.Children.Add(new Image { Source = bitmap, Stretch = Stretch.Uniform, MaxWidth = 800, Margin = new Thickness(0, 0, 0, 12) });
+                    }
+                }
+                AppearanceManager.ObserveArtwork(preview, Redraw);
+                Redraw(); preview.ShowDialog();
             }
             catch (Exception ex) { StatusText.Text = "Preview failed: " + ex.Message; }
         }

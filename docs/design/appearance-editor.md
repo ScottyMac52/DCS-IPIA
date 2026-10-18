@@ -12,7 +12,7 @@ Requested image opacity is 0–30%. Theme blending mixes the photograph toward t
 
 Readability protection may reduce effective image opacity or increase panel/control opacity. It conservatively tests both black/white photographic extrema against the primary/secondary/accent/error text colors and requires at least 4.5:1 for decoration compositing whenever the base colors support it. Imported palettes must independently meet 4.5:1 for documented text/background pairs. Windows high contrast suppresses image decoration and custom palette/accent overrides; it does not erase saved choices. The full real-Windows high-contrast/mixed-DPI matrix remains in #191.
 
-Flight Patch retains its identity colors. This customization paints app-owned window client areas and shared surfaces; authored drawings, input-test modifier/legend colors, module data, exports and kneeboards remain independent. Operating-system dialogs follow Windows appearance.
+Flight Patch retains its identity colors. This customization paints app-owned window client areas and shared surfaces; authored source drawings, input-test modifier/legend colors, module data and exported kneeboards remain independent. Operating-system dialogs follow Windows appearance.
 
 ## Accents and imported palettes
 
@@ -29,3 +29,27 @@ Text/background pairs: primary and secondary text on the window and panels; acce
 Full profile backup/restore already includes this tree; automated coverage now verifies settings and PNG bytes survive an actual verified SQLite profile backup/restore. Profiles remain isolated. Missing/tampered/oversized images fall back to the built-in background and surface a diagnostic. Malformed/unsupported preferences fall back without rewriting the original evidence. Reset or choosing the image again repairs the supported cases.
 
 Regression coverage: `AppearanceValidationTests`, `FileAppearanceStoreTests` and the full-backup test. Windows `AppearanceEditorSmoke` exercises all skins, cross-window live preview, malformed accent rejection, Apply/Cancel/window-close rollback, original-file deletion, persistence/reopen, palette import and failed-save rollback. Control-opacity smoke samples rendered text-field pixels at opaque/translucent settings, checks opaque text/borders, focus, selected/disabled states and popup bases, then verifies Apply/reopen and Cancel/close rollback in all four skins. Synthetic background screenshots are included in the standard CI visual artifact; user photos are not bundled in this PR.
+
+## Window and workspace backgrounds
+
+In **Apply background to**, choose **Application default**, a window/dialog, or a workspace view. Targets without an override inherit the default; workspace views first inherit their owning workspace window. Choose **Custom background** and a JPG/PNG for an override, **No background image** to suppress inheritance, or **Use inherited background** to remove the override. The sample preview shows the selected target, including targets that are not currently open. Image opacity, theme blending, fit, alignment and controller artwork opacity belong to the selected target. Panel/control opacity, accent and palette remain global. Apply saves every edited target together; Cancel restores all of them.
+
+**Controller artwork opacity** softens preview graphics independently of application backgrounds. It never applies whole-view opacity: callout text, legends and live highlight frames stay opaque. Assignments and Input Test retain transparent canvas space. Device and generic kneeboard previews can use transparent page space when a usable background is active; summary previews use a transparent outer page and a translucent reading panel. Embedded controller photographs may contain opaque pixels; use artwork opacity to see through those pixels. This does not remove their original backgrounds or edit the drawing. Exported/packaged kneeboards retain their original opaque page and full artwork.
+
+Windows high contrast suppresses decorative images and restores full artwork opacity. Free retains its fixed preset; per-target customization remains available only under the existing entitlement.
+
+| Targets | Windows and dialogs |
+| --- | --- |
+| Main workflow | Main/modules; module workspace; new module; shared UI layer workspace |
+| Preferences | Settings; appearance preview |
+| Hardware | Hardware inventory/setup; hardware drawings; drawing adoption/rollback review |
+| Imports and commands | Saved Games import; command import review; integration instructions review; command usage |
+| Axis | Axis tuning; axis defaults review |
+| Support and profiles | Profiles/reset; data/recovery; support report; help; training |
+| Browse | Open/save/folder browser; new folder |
+| Additional dialogs | Messages/confirmations; change label; search/replace labels; current kneeboard; page preview |
+| Workspace views | Devices; Modifiers; Commands; Assignments; Pages; Input Testing; Kneeboards; Documentation |
+
+Settings use stable target IDs rather than changing titles. All referenced SHA256-addressed images remain inside the profile appearance folder and travel with full-profile backups. A successful save removes only images no target references. A failed multi-image save removes newly staged files and retains the previously accepted JSON and image set. Existing settings without target overrides or artwork opacity retain their previous appearance. Missing/corrupt images fall back to the theme surface with a diagnostic.
+
+Regression coverage also includes `ScopedAppearanceTests`, `PreviewArtworkTests` and Windows `ScopedBackgroundSmoke`: target precedence, explicit suppression, strict override validation, multi-image retention, failed-batch rollback, preview/export separation, real target selector, Apply/reopen, Cancel and newly opened windows.
