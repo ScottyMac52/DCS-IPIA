@@ -58,7 +58,7 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static BitmapSource Render(FrameworkElement control)
+        private static CroppedBitmap Render(FrameworkElement control)
         {
             // Render the actual window, then crop the control. Rendering an attached child directly
             // retains its visual offset, so logical Canvas coordinates do not address the expected pixels.
@@ -70,7 +70,7 @@ namespace Dcs.Ipia.App.Smoke
             return new CroppedBitmap(image, new Int32Rect((int)Math.Round(bounds.X), (int)Math.Round(bounds.Y),
                 (int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height)));
         }
-        private static void Pixel(BitmapSource bitmap, int x, int y, Color expected)
+        private static void Pixel(CroppedBitmap bitmap, int x, int y, Color expected)
         {
             var pixel = new byte[4];
             bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
