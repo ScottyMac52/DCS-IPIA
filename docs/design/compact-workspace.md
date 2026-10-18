@@ -49,6 +49,9 @@ Both complete training scenarios must pass rendered smoke acceptance.
 - `DiagramViewport.cs`: viewport scale/Fit behavior shared by existing drawings.
 - `Training/TrainingActions.cs`: Fit and output-launcher targeting; no training
   scenario content or business operations are replaced.
+- `Training/TrainingWindow.xaml.cs`: fits the mounted compact workspace to the
+  training viewport so both drag endpoints remain visible; retains the creation
+  form's existing scroll extent.
 - Unit/smoke tests and test project source linkage: verify storage cross-platform
   and real WPF layout on Windows. Smoke runs use an isolated preference path.
 

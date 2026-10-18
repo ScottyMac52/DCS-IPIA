@@ -98,13 +98,16 @@ namespace DcsIpia.Presentation
             await _environment.InitializeAsync();
             _actions = new TrainingActions(_environment, Mount, Highlight, AnimateDragAsync);
         }
-        private void ViewportChanged(object sender, SizeChangedEventArgs e)
+        private void ViewportChanged(object sender, SizeChangedEventArgs e) => ResizeApplicationView();
+
+        private void ResizeApplicationView()
         {
             if (ApplicationView is null) return;
-            // The real workspace has fixed-height headers, palette and inspector rows. Below this
-            // native size the diagram overflows the content extent and cannot be reached by scrolling.
-            ApplicationView.Width = Math.Max(1100, ApplicationViewport.ViewportWidth);
-            ApplicationView.Height = Math.Max(1100, ApplicationViewport.ViewportHeight);
+            // The compact workspace must fit the training viewport so both drag endpoints are visible.
+            // Keep the creation form's established scroll extent for its larger authoring controls.
+            var compact = ApplicationView.Content is FrameworkElement { Name: "WorkspaceRoot" };
+            ApplicationView.Width = Math.Max(compact ? 640 : 1100, ApplicationViewport.ViewportWidth);
+            ApplicationView.Height = Math.Max(compact ? 540 : 1100, ApplicationViewport.ViewportHeight);
         }
         private readonly Dictionary<Window, FrameworkElement> _mountedContent = [];
         private void Mount(Window window)
@@ -122,6 +125,7 @@ namespace DcsIpia.Presentation
                 content.Resources.MergedDictionaries.Add(window.Resources);
             if (NameScope.GetNameScope(window) is { } scope) NameScope.SetNameScope(content, scope);
             ApplicationView.Content = content;
+            ResizeApplicationView();
             ApplicationViewport.ScrollToTop();
             ApplicationViewport.ScrollToLeftEnd();
             ApplicationView.UpdateLayout();

@@ -59,7 +59,25 @@
         <TextBlock x:Name="OutputFailureDiagnostic" TextWrapping="Wrap"/>
       </StackPanel>
       <WrapPanel Grid.Column="1" VerticalAlignment="Bottom">
-        <ToggleButton x:Name="OutputMenuButton" Content="Build &amp; export…" Padding="10,4"/>
+        <ToggleButton x:Name="OutputMenuButton" Content="Build &amp; export…" Padding="10,4">
+          <ToggleButton.Style>
+            <Style TargetType="ToggleButton">
+              <Setter Property="Background" Value="{DynamicResource ControlSurfaceBrush}"/>
+              <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+              <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+              <Setter Property="BorderThickness" Value="1"/>
+              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                  <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                </Border>
+              </ControlTemplate></Setter.Value></Setter>
+              <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+                <Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+              </Style.Triggers>
+            </Style>
+          </ToggleButton.Style>
+        </ToggleButton>
         <Button x:Name="WorkspaceSettingsButton" Content="Settings" Padding="10,4" Click="SettingsClicked"/>
         <Button Content="Close" Padding="10,4" Click="Close_Click"/>
       </WrapPanel>
