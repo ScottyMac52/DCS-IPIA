@@ -42,11 +42,13 @@ namespace DcsIpia.Features.InputTest
         private Guid? _inputFeedbackDevice;
         private Button? StartButton => ActionBar.FindButton(this, "Start test");
         private Button? StopButton => ActionBar.FindButton(this, "Stop test");
+        private readonly DiagramViewport _viewport;
 
         #region BEGIN Public
         public InputTestView()
         {
             InitializeComponent();
+            _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "input-test.zoom");
             _timer.Tick += Poll;
             Unloaded += (_, _) => Stop("Stopped.");
             Loaded += OnLoaded;
@@ -330,6 +332,8 @@ namespace DcsIpia.Features.InputTest
                 item.IsActive = _session is not null &&
                     KneeboardLegendActivity.IsActive(item.Entry, _session.ActiveModifiers);
         }
+
+        private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
 
         private void Zoom_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {

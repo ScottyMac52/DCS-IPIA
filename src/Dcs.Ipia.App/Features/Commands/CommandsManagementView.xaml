@@ -3,8 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
     <DockPanel>
-        <TextBlock x:Name="StatusText" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+        <TextBlock x:Name="StatusText" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4"/>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Expander x:Name="CatalogEditor" Header="Command editor" IsExpanded="True">
+              <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
             <Grid x:Name="CatalogFields" Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -27,6 +29,8 @@
                     <TextBlock Text="Axis" Style="{StaticResource AppLabel}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </StackPanel>
             </Grid>
+              </ScrollViewer>
+            </Expander>
             <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
                 <Button Content="Add" Click="AddClicked" Style="{StaticResource ActionButton}"/>
                 <Button Content="Update" Click="UpdateClicked" Style="{StaticResource ActionButton}"/>
@@ -38,11 +42,14 @@
                 <Button Content="Discard draft" Click="DiscardClicked" Style="{StaticResource ActionButton}"/>
             </pres:ActionBar>
         </StackPanel>
-        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
             <StackPanel Margin="0,0,8,0">
                 <TextBlock Text="Search" Style="{StaticResource AppLabel}"/>
-                <TextBox x:Name="CommandSearch" Width="160" Style="{StaticResource AppTextBox}" TextChanged="FiltersChanged"/>
+                <TextBox x:Name="CommandSearch" MinWidth="100" Style="{StaticResource AppTextBox}" TextChanged="FiltersChanged"/>
             </StackPanel>
+          <Expander Header="Command filters">
+        <WrapPanel Margin="0,0,0,4">
+
             <StackPanel Margin="0,0,8,0">
                 <TextBlock Text="Category" Style="{StaticResource AppLabel}"/>
                 <ComboBox x:Name="CommandCategoryFilter" Width="160" Style="{StaticResource AppComboBox}" SelectionChanged="FiltersChanged"/>
@@ -66,14 +73,16 @@
                 </ComboBox>
             </StackPanel>
         </WrapPanel>
+          </Expander>
+        </StackPanel>
         <DataGrid x:Name="Commands" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
               SelectionChanged="CommandSelected" MouseDoubleClick="CommandDoubleClicked"
               PreviewMouseLeftButtonDown="CommandDragStart" PreviewMouseMove="CommandDrag" GiveFeedback="CommandGiveFeedback">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Command" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="160"/>
-                <DataGridCheckBoxColumn Header="Axis" Binding="{Binding IsAxis, Mode=OneWay}" Width="60" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Bound" Binding="{Binding Bound}" Width="70"/>
+                <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="90"/>
+                <DataGridCheckBoxColumn Header="Axis" Binding="{Binding IsAxis, Mode=OneWay}" Width="45" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Bound" Binding="{Binding Bound}" Width="50"/>
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

@@ -24,6 +24,8 @@ namespace Dcs.Ipia.App.Smoke
         /// <returns>Zero when both windows render their expected content.</returns>
         public static int Main()
         {
+            WorkspaceLayoutStore.FilePath = Path.Combine(Path.GetTempPath(),
+                "ipia-layout-smoke-" + Guid.NewGuid().ToString("N"), "workspace-layout.json");
             Console.WriteLine("Smoke: JSON-configured physical logging.");
             LoggingSmoke.Verify();
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
@@ -65,6 +67,7 @@ namespace Dcs.Ipia.App.Smoke
             ModifierReservationSmoke.Verify();
             Console.WriteLine("Smoke: shared feature action bar.");
             FeatureActionBarSmoke.Verify();
+            CompactWorkspaceSmoke.Verify();
             Console.WriteLine("Smoke: draft notifications across cached features.");
             DraftNotificationsSmoke.Verify();
             Console.WriteLine("Smoke: device page deletion.");

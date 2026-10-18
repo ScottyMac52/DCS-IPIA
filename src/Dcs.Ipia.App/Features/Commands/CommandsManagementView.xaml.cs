@@ -58,6 +58,7 @@ namespace DcsIpia.Features.Commands
         {
             if (_assignmentScope == scope) return;
             _assignmentScope = scope;
+            CatalogEditor.IsExpanded = false;
             CatalogFields.IsEnabled = scope == AssignmentLayer.Module;
             foreach (var caption in CatalogActions)
                 if (ActionBar.FindButton(this, caption) is { } button) button.IsEnabled = scope == AssignmentLayer.Module;

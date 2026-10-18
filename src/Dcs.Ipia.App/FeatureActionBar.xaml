@@ -3,7 +3,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- A single horizontally scrollable row avoids resizing the feature content. -->
-    <ScrollViewer x:Name="ActionScroll"
+    <ScrollViewer x:Name="ActionScroll" Height="48"
                   HorizontalScrollBarVisibility="Auto"
                   VerticalScrollBarVisibility="Disabled"
                   CanContentScroll="False" Focusable="False">

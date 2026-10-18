@@ -57,8 +57,14 @@ namespace DcsIpia.Features.Assignments
         private const string SelectDeviceText = "Select a device";
         private const string UnableToRenderMessage = "Unable to render: ";
         private HardwareGraphicControl? _selected;
+        private readonly DiagramViewport _viewport;
         #region BEGIN Public
-        public AssignmentsView() => InitializeComponent();
+        public AssignmentsView()
+        {
+            InitializeComponent();
+            _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "assignments.zoom");
+        }
+
 
         /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IModuleWorkspaceContext context)
@@ -79,6 +85,8 @@ namespace DcsIpia.Features.Assignments
         #endregion END Public
 
         #region BEGIN private helpers
+        private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetCursorPos(out NativeScreenPoint point);
@@ -158,7 +166,7 @@ namespace DcsIpia.Features.Assignments
         {
             if (ZoomPercent is null) return;
             ZoomPercent.Text = ((int)(Zoom.Value * 100)).ToString(CultureInfo.InvariantCulture);
-            RefreshDiagram();
+            Diagram.LayoutTransform = new ScaleTransform(Zoom.Value, Zoom.Value);
         }
 
         private void ZoomPercentChanged(object sender, RoutedEventArgs e)

@@ -2,11 +2,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pres="clr-namespace:DcsIpia.Presentation">
-    <Grid Margin="12">
+    <Grid Margin="4" pres:WorkspaceLayout.Key="pages.split">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="250"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="400" MinWidth="300"/>
+            <ColumnDefinition Width=".4*" MinWidth="180"/>
+            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width=".6*" MinWidth="300"/>
         </Grid.ColumnDefinitions>
 
         <DataGrid x:Name="Pages" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False"
@@ -25,7 +25,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}"/>
+        <GridSplitter ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}"/>
 
         <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
             <StackPanel>
