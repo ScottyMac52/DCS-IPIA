@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Infrastructure;
 using DcsIpia.Presentation;
@@ -87,7 +88,13 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END Public
         #region BEGIN private helpers
         private static string Status(Window window) => ((TextBlock)window.FindName("HardwareInventoryStatus")).Text;
-        private static void Click(Window window, string name) => ((Button)window.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        private static void Click(Window window, string name)
+        {
+            var previous = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
+            try { ((Button)window.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        }
         private static void Ready(Window window) => Wait(window, () => ((Button)window.FindName("HardwareInventorySave")).IsEnabled &&
             ((DataGrid)window.FindName("HardwareInventoryGrid")).Items.Count > 0);
         private static void Wait(Window window, Func<bool> condition)
