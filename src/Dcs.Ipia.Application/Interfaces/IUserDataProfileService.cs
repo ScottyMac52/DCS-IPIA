@@ -4,6 +4,10 @@ namespace Dcs.Ipia.Application.Interfaces
     public interface IUserDataProfileService
     {
         #region BEGIN Public
+        /// <summary>Gets whether setup was already offered or completed in this profile.</summary>
+        bool SetupOffered { get; }
+        /// <summary>Remembers that setup was offered without completing setup or adopting devices.</summary>
+        void MarkSetupOffered();
         /// <summary>Gets whether this profile completed setup.</summary>
         bool SetupCompleted { get; }
         /// <summary>Records or clears setup completion without removing saved user data.</summary>

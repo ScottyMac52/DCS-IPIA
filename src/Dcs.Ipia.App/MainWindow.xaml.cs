@@ -110,7 +110,7 @@ namespace DcsIpia.Presentation
                 if (!_setupOffered && _setup is not null && _profileService is not null)
                 {
                     _setupOffered = true;
-                    try { if (!_profileService.SetupCompleted) OpenSetup(false); }
+                    try { if (!_profileService.SetupOffered) OpenSetup(); }
                     catch (Exception ex) { FlyNowStatus.Text = "Setup could not open. Resume from Settings: " + ex.Message; }
                 }
             };
@@ -134,7 +134,7 @@ namespace DcsIpia.Presentation
                 [MainWindowCommands.Backup] = OpenRecoveryClicked, [MainWindowCommands.RestoreData] = OpenRecoveryClicked,
                 [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
                 [MainWindowCommands.Profiles] = OpenProfilesClicked,
-                [MainWindowCommands.Setup] = (_, _) => OpenSetup(true),
+                [MainWindowCommands.Setup] = (_, _) => OpenSetup(),
                 [MainWindowCommands.UserMappings] = (_, _) => OpenUserMappings(),
                 [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
                 [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
@@ -190,16 +190,16 @@ namespace DcsIpia.Presentation
             var dialog = new UserDataProfileWindow(_profile, _profileService, _closeDatabase ?? (() => { })) { Owner = this };
             dialog.ShowDialog();
             if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
-            else if (dialog.ResumeSetupRequested) OpenSetup(false);
+            else if (dialog.ResumeSetupRequested) OpenSetup();
         }
-        private void OpenSetup(bool rerun)
+        private void OpenSetup()
         {
             if (_setup is null || _hardwareInventory is null || _profileService is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
             try
             {
-                if (rerun) _profileService.SetSetupCompleted(false);
                 using var dialog = new HardwareInventoryWindow(_hardwareInventory, true, setup: _setup,
                     destination: _settings.Current.SavedGamesDcsFolder) { Owner = this };
+                _profileService.MarkSetupOffered();
                 dialog.ShowDialog();
                 if (!dialog.SetupConfirmed) return;
                 if (_settings is SqliteAppSettingsService sqlite) sqlite.ReloadDestination();

@@ -17,6 +17,26 @@ namespace Dcs.Ipia.Infrastructure
             _version = version;
         }
         #region BEGIN Public
+        /// <summary>Gets whether this profile has already been offered setup, including legacy completion.</summary>
+        public bool SetupOffered
+        {
+            get
+            {
+                if (SetupCompleted) return true;
+                using var db = OpenDatabase();
+                using var command = db.CreateCommand();
+                command.CommandText = "SELECT offered FROM profile_setup WHERE id=1";
+                return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) == 1;
+            }
+        }
+        /// <summary>Persists the setup offer independently of completion and hardware adoption.</summary>
+        public void MarkSetupOffered()
+        {
+            using var db = OpenDatabase();
+            using var command = db.CreateCommand();
+            command.CommandText = "UPDATE profile_setup SET offered=1 WHERE id=1";
+            if (command.ExecuteNonQuery() != 1) throw new InvalidDataException("Missing profile setup state.");
+        }
         /// <summary>Gets whether setup was explicitly completed in this profile.</summary>
         public bool SetupCompleted
         {
@@ -36,7 +56,7 @@ namespace Dcs.Ipia.Infrastructure
             _profile.Validate();
             using var db = OpenDatabase();
             using var command = db.CreateCommand();
-            command.CommandText = "UPDATE profile_setup SET completed=$completed WHERE id=1";
+            command.CommandText = "UPDATE profile_setup SET completed=$completed,offered=CASE WHEN $completed=1 THEN 1 ELSE offered END WHERE id=1";
             command.Parameters.AddWithValue("$completed", completed ? 1 : 0);
             if (command.ExecuteNonQuery() != 1) throw new InvalidDataException("Missing profile setup state.");
             if (File.Exists(StatePath)) File.Delete(StatePath);

@@ -39,7 +39,7 @@ namespace DcsIpia.Presentation
             Add("Open Production", (_, _) => Launch(null));
             Add("Rerun setup (preserve saved data)", (_, _) =>
             {
-                try { _service.SetSetupCompleted(false); ResumeSetupRequested = true; Close(); }
+                try { ResumeSetupRequested = true; Close(); }
                 catch (Exception ex) { _status.Text = ex.Message; }
             });
             Add("Reset this profile's user data…", ResetClicked);
