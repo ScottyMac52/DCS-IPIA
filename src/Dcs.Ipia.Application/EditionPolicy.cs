@@ -32,6 +32,25 @@ namespace Dcs.Ipia.Application
             if (hardwareIds.Any(id => !AllowsHardware(id)))
                 throw new InvalidOperationException("Free Edition supports the reviewed Thrustmaster catalog only. This workspace contains reserved or unknown hardware. Your saved data is unchanged. Premium availability TBA.");
         }
+        /// <summary>Requires native manufacturer evidence for selected units, retaining previously verified saved units while offline.</summary>
+        public void RequireInventory(HardwareInventorySnapshot saved, IReadOnlyList<HardwareInventoryEdit> edits)
+        {
+            if (IsOwner) return;
+            var blocked = edits.Where(edit => edit.Selected).Where(edit =>
+            {
+                var candidate = edit.Candidate;
+                if (candidate.Observed is { } current)
+                    return current.Device.PhysicalGuid != candidate.PhysicalGuid || !current.Device.Connected || !AllowsDevice(current.Device);
+                // A saved selection is not itself manufacturer evidence. Use only the matching persisted native observation.
+                var previous = candidate.Saved is not null && saved.Instances.Any(unit => unit.PhysicalGuid == candidate.PhysicalGuid)
+                    ? saved.Observations.SingleOrDefault(observation => observation.Device.PhysicalGuid == candidate.PhysicalGuid) : null;
+                return previous is null || !AllowsDevice(previous.Device);
+            }).Select(edit => string.IsNullOrWhiteSpace(edit.Label) ? edit.Candidate.PhysicalGuid.ToString("D") : edit.Label).ToArray();
+            if (blocked.Length > 0)
+                throw new InvalidOperationException("Free Edition could not verify Thrustmaster support for: " + string.Join(", ", blocked) +
+                    ". Connect these controllers to Windows and choose Rescan, or deselect them to continue. " +
+                    "Previously verified Thrustmaster units can remain selected offline. Other manufacturers require the licensed edition; Premium availability TBA.");
+        }
         /// <summary>Rejects reserved appearance or live-input operations before side effects.</summary>
         public void RequireOwner()
         {

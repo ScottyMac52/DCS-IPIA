@@ -82,6 +82,7 @@ namespace Dcs.Ipia.App.Smoke
                 throw new InvalidOperationException("Shared defaults did not reopen in the read-only source preview.");
             Console.WriteLine("Smoke: hardware inventory.");
             HardwareInventorySmoke.Verify();
+            FreeInventorySetupSmoke.Verify();
             SetupSmoke.Verify();
             GenericHardwareSmoke.Verify();
             var detected = new WindowsConnectedDeviceDiscovery().Discover();

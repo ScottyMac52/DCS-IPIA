@@ -178,9 +178,8 @@ namespace DcsIpia.Presentation
             _cancel.IsEnabled = true;
             try
             {
-                if (!EditionAccess.Policy.IsOwner && _rows.Any(row => row.Selected &&
-                    (row.Candidate.Observed is not { } observed || !EditionAccess.Policy.AllowsDevice(observed.Device))))
-                    throw new InvalidOperationException("Free Edition can adopt connected, verified Thrustmaster controllers only. Reserved/offline saved records are retained; Premium availability TBA.");
+                if (!EditionAccess.Policy.IsOwner)
+                    EditionAccess.Policy.RequireInventory(await _manager.ReadSnapshotAsync(_scan.Token), _rows.Select(row => row.Edit()).ToArray());
                 if (_setup is not null)
                 {
                     if (_neutral.IsChecked != true) throw new InvalidOperationException("Review and confirm neutral defaults. Deliberate shared-revision choices remain available when creating modules.");
