@@ -65,6 +65,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifyModuleAuthoring();
             Console.WriteLine("Smoke: reserved modifier callouts.");
             ModifierReservationSmoke.Verify();
+            AssignmentsLabelSmoke.Verify();
             Console.WriteLine("Smoke: shared feature action bar.");
             FeatureActionBarSmoke.Verify();
             CompactWorkspaceSmoke.Verify();
@@ -216,16 +217,8 @@ namespace Dcs.Ipia.App.Smoke
                                                                            item.Control == control);
                 return ((TextBlock)target.Child).Text;
             }
-            string MaskCaption(string id)
-            {
-                var canvas = (Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!;
-                var surface = canvas.Children.OfType<Canvas>().Single();
-                var target = surface.Children.OfType<Border>().Single(x => x.Tag is string marker && marker == id);
-                return ((TextBlock)target.Child).Text;
-            }
             if (Caption("mfd-osb-t1") != "Base authored" || Caption("trim-up") != "Pilot" ||
-                Caption("mfd-osb-t2") != "Unassigned" || MaskCaption("mfd-osb-t1-shifted") != "Unassigned" ||
-                MaskCaption("unmapped") != "Unassigned" ||
+                Caption("mfd-osb-t2") != "Unassigned" ||
                 ((Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!)
                     .Children.OfType<Canvas>()
                     .Single()
@@ -239,14 +232,12 @@ namespace Dcs.Ipia.App.Smoke
             scope.SelectedIndex = 1;
             savedWindow.UpdateLayout();
             if ((string?)layers.SelectedItem != "MOZA_MODIFIER_BTN3" || Caption("mfd-osb-t1-shifted") != "VR Zoom" ||
-                Caption("mfd-osb-t2") != "Unassigned" || MaskCaption("mfd-osb-t1") != "Unassigned" ||
-                MaskCaption("unmapped") != "Unassigned")
+                Caption("mfd-osb-t2") != "Unassigned")
                 throw new InvalidOperationException(
                     "UI Layer displayed an assignment or authored label from another layer.");
             layers.SelectedIndex = 0;
             savedWindow.UpdateLayout();
-            if (Caption("mfd-osb-t1") != "Unassigned" || Caption("mfd-osb-t2") != "Unassigned" ||
-                MaskCaption("mfd-osb-t1-shifted") != "Unassigned")
+            if (Caption("mfd-osb-t1") != "Unassigned" || Caption("mfd-osb-t2") != "Unassigned")
                 throw new InvalidOperationException("Base UI Layer displayed a module assignment or stale label.");
             savedWindow.Close();
             var shiftedUiSlot = new DraftAssignmentSlot(module.Id, mfd.Id, AssignmentLayer.UiLayer, BindingSection.Key,
