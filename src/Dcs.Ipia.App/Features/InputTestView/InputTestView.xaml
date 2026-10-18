@@ -40,11 +40,8 @@
             <ListBox x:Name="InputTestLog" SelectionMode="Extended" DisplayMemberPath="Display"/>
         </DockPanel>
         <Expander Grid.Row="2" Header="SHIFT / MODIFIER legend" IsExpanded="True" pres:WorkspaceLayout.Key="input-test.legend">
-          <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
-            <GroupBox  Header="SHIFT / MODIFIER" Padding="6"
-                      AutomationProperties.Name="Live shift and modifier legend">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="ModifierLegend">
+          <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="ModifierLegend" AutomationProperties.Name="Live shift and modifier legend">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}"
@@ -70,7 +67,7 @@
                                                 </Style>
                                             </Border.Style>
                                         </Border>
-                                        <TextBlock  Text="{Binding Label}" TextWrapping="Wrap"
+                                        <TextBlock Grid.Column="1" Text="{Binding Label}" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource PrimaryTextBrush}" FontSize="11"/>
                                         <TextBlock Grid.Column="2" Text="●" Margin="5,0,0,0"
                                                    Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="Bold"
@@ -91,8 +88,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </ScrollViewer>
-            </GroupBox>
           </ScrollViewer>
         </Expander>
       </Grid>

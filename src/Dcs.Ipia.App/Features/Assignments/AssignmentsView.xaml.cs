@@ -1,6 +1,3 @@
-using System.Xml;
-using System.Xml.Linq;
-
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
@@ -174,40 +171,6 @@ namespace DcsIpia.Features.Assignments
             if (double.TryParse(ZoomPercent.Text, out var percent))
                 Zoom.Value = Math.Clamp(percent / 100.0, Zoom.Minimum, Zoom.Maximum);
         }
-        private static void CoverAuthoredLabels(Canvas surface, string svg)
-        {
-            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4_000_000
-            });
-            var root = XDocument.Load(reader, LoadOptions.PreserveWhitespace).Root;
-            if (root is null)
-                return;
-            foreach (var (control, box) in SvgCalloutLocator.Find(root))
-            {
-                var x = double.Parse(box.Attribute("x")?.Value ?? "0", CultureInfo.InvariantCulture);
-                var y = double.Parse(box.Attribute("y")?.Value ?? "0", CultureInfo.InvariantCulture);
-                var width = double.Parse(box.Attribute("width")?.Value ?? "0", CultureInfo.InvariantCulture);
-                var height = double.Parse(box.Attribute("height")?.Value ?? "0", CultureInfo.InvariantCulture);
-                if (width <= 0 || height <= 0)
-                    continue;
-                var mask =
-                    new Border { Width = width,
-                                 Height = height,
-                                 BorderThickness = new Thickness(1),
-                                 Tag = control,
-                                 Child = new TextBlock { Text = "Unassigned", TextAlignment = TextAlignment.Center,
-                                                         TextWrapping = TextWrapping.Wrap,
-                                                         VerticalAlignment = VerticalAlignment.Center, FontSize = 11,
-                                                         } };
-                mask.SetResourceReference(Border.BackgroundProperty, "ControlBackgroundBrush");
-                mask.SetResourceReference(Border.BorderBrushProperty, "ControlBorderBrush");
-                ((TextBlock)mask.Child).SetResourceReference(TextBlock.ForegroundProperty, "ControlForegroundBrush");
-                Canvas.SetLeft(mask, x);
-                Canvas.SetTop(mask, y);
-                surface.Children.Add(mask);
-            }
-        }
-
         private IReadOnlyList<WorkspaceModifier> Reserved(UiLayerDiagram diagram, string key) =>
             _context?.Working is { } workspace
                 ? ModifierAssignmentReservation.Find(WorkspaceStructureEditor.Describe(workspace), diagram.ProfileId, key)
@@ -259,7 +222,6 @@ namespace DcsIpia.Features.Assignments
                 Diagram.LayoutTransform = new ScaleTransform(Zoom.Value, Zoom.Value);
                 var surface = new Canvas { Width = diagram.Width, Height = diagram.Height };
                 surface.Children.Add(new Image { Source = bitmap, Width = diagram.Width, Height = diagram.Height });
-                CoverAuthoredLabels(surface, diagram.Svg);
                 Diagram.Children.Add(surface);
 
                 var layer = CurrentLayer;

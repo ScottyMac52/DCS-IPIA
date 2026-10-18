@@ -65,6 +65,7 @@ namespace Dcs.Ipia.App.Smoke
             VerifyModuleAuthoring();
             Console.WriteLine("Smoke: reserved modifier callouts.");
             ModifierReservationSmoke.Verify();
+            AssignmentsLabelSmoke.Verify();
             Console.WriteLine("Smoke: shared feature action bar.");
             FeatureActionBarSmoke.Verify();
             CompactWorkspaceSmoke.Verify();

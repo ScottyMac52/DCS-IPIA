@@ -98,6 +98,7 @@ namespace Dcs.Ipia.App.Smoke
                 shiftedOutline.BorderBrush == Brushes.Transparent);
             if (shift.IsActive)
                 throw new InvalidOperationException("A released Hold modifier remained lit.");
+            VerifyLegendLayout(window, legend);
             var panes = (Grid)view.FindName("InputTestPanes")!;
             var splitter = (GridSplitter)WorkspaceUi.Find(window, "InputTestSplitter")!;
             var left = panes.ColumnDefinitions[0];
@@ -141,6 +142,35 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyLegendLayout(Window window, ItemsControl legend)
+        {
+            var originalWidth = window.Width;
+            foreach (var width in new[] { 1180, 1024, 900 })
+            {
+                window.Width = width;
+                ThemeControlSmoke.Pump(window);
+                var labels = ThemeControlSmoke.Children(legend).OfType<TextBlock>()
+                    .Where(text => text.DataContext is DcsIpia.Features.InputTest.InputTestLegendItem item && text.Text == item.Label)
+                    .ToArray();
+                if (labels.Length != legend.Items.Count)
+                    throw new InvalidOperationException("The live modifier legend did not render its real entries.");
+                foreach (var label in labels)
+                {
+                    var row = (Grid)label.Parent;
+                    var swatch = row.Children.OfType<Border>().Single();
+                    if (label.ActualWidth < 120 ||
+                        label.TranslatePoint(new Point(), row).X < swatch.TranslatePoint(new Point(), row).X + swatch.ActualWidth)
+                        throw new InvalidOperationException($"Modifier legend text overlaps its color swatch or is squeezed at window width {width}.");
+                    var entry = (DcsIpia.Features.InputTest.InputTestLegendItem)label.DataContext;
+                    if ((swatch.Background as SolidColorBrush)?.Color != (Color)ColorConverter.ConvertFromString(entry.Color))
+                        throw new InvalidOperationException("Modifier legend lost its real color key.");
+                }
+            }
+            window.Width = originalWidth;
+            ThemeControlSmoke.Pump(window);
+            ThemeControlSmoke.SaveImage(window, "input-test-readable-modifier-legend");
+        }
+
         private static void Wait(Window window, Func<bool> ready)
         {
             var deadline = DateTime.UtcNow.AddSeconds(10);
