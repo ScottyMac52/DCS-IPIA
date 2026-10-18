@@ -818,8 +818,12 @@ namespace DcsIpia.Features.Assignments
             var previewList = new ListBox { MinHeight = 140, MaxHeight = 220, Margin = new Thickness(0, 4, 0, 8) };
             var status = new TextBlock { Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap };
 
+            var apply = new Button { Content = "Apply", IsDefault = true, IsEnabled = false, MinWidth = 80, Margin = new Thickness(0, 0, 8, 0) };
+
             void RefreshPreview()
             {
+                previewList.Tag = null;
+                apply.IsEnabled = false;
                 previewList.Items.Clear();
                 status.Text = "";
                 var find = findBox.Text ?? "";
@@ -833,40 +837,47 @@ namespace DcsIpia.Features.Assignments
                     ? candidates.Where(c => c.Control.InputKey == _selected.InputKey).ToList()
                     : candidates;
 
-                Regex? re = null;
-                if (regexCheck.IsChecked == true)
+                var matches = new List<(DraftAssignmentSlot Slot, string Old, string New)>();
+                try
                 {
-                    try { re = new Regex(find, RegexOptions.None, TimeSpan.FromSeconds(1)); }
-                    catch (Exception ex)
+                    var re = regexCheck.IsChecked == true
+                        ? new Regex(find, RegexOptions.None, TimeSpan.FromSeconds(1)) : null;
+                    foreach (var (control, slot, current) in scopeControls)
                     {
-                        status.Text = "Invalid regex: " + ex.Message;
-                        return;
+                        string next;
+                        if (re is not null)
+                        {
+                            if (!re.IsMatch(current)) continue;
+                            next = re.Replace(current, replaceBox.Text ?? "");
+                        }
+                        else
+                        {
+                            if (!current.Contains(find, StringComparison.OrdinalIgnoreCase)) continue;
+                            next = current.Replace(find, replaceBox.Text ?? "", StringComparison.OrdinalIgnoreCase);
+                        }
+                        if (next == current) continue;
+                        matches.Add((slot, current, next));
+                        previewList.Items.Add($"{control.Label}  →  {next}");
                     }
                 }
-
-                var matches = new List<(DraftAssignmentSlot Slot, string Old, string New)>();
-                foreach (var (control, slot, current) in scopeControls)
+                catch (RegexMatchTimeoutException)
                 {
-                    string next;
-                    if (re is not null)
-                    {
-                        if (!re.IsMatch(current)) continue;
-                        next = re.Replace(current, replaceBox.Text ?? "");
-                    }
-                    else
-                    {
-                        if (!current.Contains(find, StringComparison.OrdinalIgnoreCase)) continue;
-                        next = current.Replace(find, replaceBox.Text ?? "", StringComparison.OrdinalIgnoreCase);
-                    }
-                    if (next == current) continue;
-                    matches.Add((slot, current, next));
-                    previewList.Items.Add($"{control.Label}  →  {next}");
+                    previewList.Items.Clear();
+                    status.Text = "Search timed out. Simplify the regular expression and try again.";
+                    return;
+                }
+                catch (ArgumentException ex)
+                {
+                    previewList.Items.Clear();
+                    status.Text = "Invalid regex or replacement: " + ex.Message;
+                    return;
                 }
 
                 status.Text = matches.Count == 0
                     ? "No matches."
                     : $"{matches.Count} label{(matches.Count == 1 ? "" : "s")} will change.";
                 previewList.Tag = matches;
+                apply.IsEnabled = matches.Count > 0;
             }
 
             findBox.TextChanged += (_, _) => RefreshPreview();
@@ -876,7 +887,6 @@ namespace DcsIpia.Features.Assignments
             scopeCurrent.Checked += (_, _) => RefreshPreview();
             scopeAll.Checked += (_, _) => RefreshPreview();
 
-            var apply = new Button { Content = "Apply", IsDefault = true, MinWidth = 80, Margin = new Thickness(0, 0, 8, 0) };
             var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 80 };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             buttons.Children.Add(apply);
@@ -909,9 +919,9 @@ namespace DcsIpia.Features.Assignments
 
             apply.Click += (_, _) =>
             {
+                RefreshPreview();
                 if (previewList.Tag is not List<(DraftAssignmentSlot Slot, string Old, string New)> matches || matches.Count == 0)
                 {
-                    status.Text = "Nothing to apply.";
                     return;
                 }
                 foreach (var (slot, _, next) in matches)
