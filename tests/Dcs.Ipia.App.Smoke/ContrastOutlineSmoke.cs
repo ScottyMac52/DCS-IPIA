@@ -34,8 +34,8 @@ namespace Dcs.Ipia.App.Smoke
                         var color = (Color)ColorConverter.ConvertFromString(hex);
                         outline.BorderBrush = swatch.BorderBrush = swatch.Background = new SolidColorBrush(color);
                         ThemeControlSmoke.Pump(window);
-                        var bitmap = new RenderTargetBitmap(80, 60, 96, 96, PixelFormats.Pbgra32);
-                        bitmap.Render(canvas);
+                        ThemeControlSmoke.SaveImage(window, "input-outline-" + hex + "-" + background);
+                        var bitmap = Render(canvas);
                         Pixel(bitmap, 30, 10, System.Windows.Media.Colors.Black);
                         Pixel(bitmap, 30, 11, System.Windows.Media.Colors.White);
                         Pixel(bitmap, 30, 13, color);
@@ -49,8 +49,7 @@ namespace Dcs.Ipia.App.Smoke
                     ThemeControlSmoke.SaveImage(window, "input-outline-contrast-" + background);
                     outline.BorderBrush = Brushes.Transparent;
                     ThemeControlSmoke.Pump(window);
-                    var inactive = new RenderTargetBitmap(80, 60, 96, 96, PixelFormats.Pbgra32);
-                    inactive.Render(canvas);
+                    var inactive = Render(canvas);
                     for (var y = 10; y < 34; y++)
                         for (var x = 10; x < 50; x++) Pixel(inactive, x, y, background);
                 }
@@ -59,12 +58,33 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void Pixel(RenderTargetBitmap bitmap, int x, int y, Color expected)
+        private static BitmapSource Render(FrameworkElement control)
+        {
+            // Render the actual window, then crop the control. Rendering an attached child directly
+            // retains its visual offset, so logical Canvas coordinates do not address the expected pixels.
+            var root = (FrameworkElement)PresentationSource.FromVisual(control)!.RootVisual;
+            var image = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight),
+                96, 96, PixelFormats.Pbgra32);
+            image.Render(root);
+            var bounds = control.TransformToAncestor(root).TransformBounds(new Rect(control.RenderSize));
+            return new CroppedBitmap(image, new Int32Rect((int)Math.Round(bounds.X), (int)Math.Round(bounds.Y),
+                (int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height)));
+        }
+        private static void Pixel(BitmapSource bitmap, int x, int y, Color expected)
         {
             var pixel = new byte[4];
             bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
             if (Math.Abs(pixel[0] - expected.B) > 2 || Math.Abs(pixel[1] - expected.G) > 2 || Math.Abs(pixel[2] - expected.R) > 2 || pixel[3] != 255)
-                throw new InvalidOperationException($"Contrast outline pixel ({x},{y}) was {pixel[2]:X2}{pixel[1]:X2}{pixel[0]:X2}, expected {expected}.");
+            {
+                var column = new List<string>();
+                for (var row = 8; row < 35; row++)
+                {
+                    var sample = new byte[4];
+                    bitmap.CopyPixels(new Int32Rect(x, row, 1, 1), sample, 4, 0);
+                    column.Add($"{row}:{sample[2]:X2}{sample[1]:X2}{sample[0]:X2}");
+                }
+                throw new InvalidOperationException($"Contrast outline pixel ({x},{y}) was {pixel[2]:X2}{pixel[1]:X2}{pixel[0]:X2}, expected {expected}. Column: " + string.Join(" ", column));
+            }
         }
         #endregion END private helpers
     }
