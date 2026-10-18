@@ -38,7 +38,7 @@ namespace Dcs.Ipia.Infrastructure
             await SqliteHardwareInventoryRepository.WriteAsync(db, transaction, reviewed, ct);
             await using var command = db.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = "UPDATE profile_setup SET completed=1,destination=$destination WHERE id=1";
+            command.CommandText = "UPDATE profile_setup SET completed=1,offered=1,destination=$destination WHERE id=1";
             command.Parameters.AddWithValue("$destination", destination);
             if (await command.ExecuteNonQueryAsync(ct) != 1) throw new InvalidDataException("Missing profile setup state.");
             ct.ThrowIfCancellationRequested();

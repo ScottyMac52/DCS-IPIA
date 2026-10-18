@@ -170,18 +170,80 @@ namespace Dcs.Ipia.Tests
         public async Task Upgrade_and_legacy_completion_are_compatible()
         {
             var connection = await Create();
-            Execute(connection, "INSERT INTO modules(id,dcs_id,display_name) VALUES('keep','OLD','Old module'); DROP TABLE profile_setup; DELETE FROM schema_migrations WHERE version=9");
+            Execute(connection, "INSERT INTO modules(id,dcs_id,display_name) VALUES('keep','OLD','Old module'); DROP TABLE profile_setup; DELETE FROM schema_migrations WHERE version>=9");
             await new SqliteMigrationRunner(connection).MigrateAsync();
             Assert.Equal(new SetupState(true, null), await new SqliteSetupRepository(connection).ReadAsync());
             var profile = UserDataProfile.Select(_root, "fresh");
             File.WriteAllText(Path.Combine(profile.DataDirectory, "onboarding-state.json"), "{\"version\":1,\"completed\":true}");
             var lifecycle = new UserDataProfileService(profile, "1");
             Assert.True(lifecycle.SetupCompleted);
+            Assert.True(lifecycle.SetupOffered);
             lifecycle.SetSetupCompleted(false);
             Assert.False(lifecycle.SetupCompleted);
             Assert.False(File.Exists(Path.Combine(profile.DataDirectory, "onboarding-state.json")));
             await new SqliteMigrationRunner(connection).MigrateAsync();
             Assert.False(lifecycle.SetupCompleted);
+        }
+
+        /// <summary>An offered but unfinished setup persists independently, follows full recovery, and resets with its profile.</summary>
+        [Fact]
+        public async Task Setup_offer_survives_restart_and_recovery_without_adopting_hardware()
+        {
+            var connection = await Create();
+            var profile = UserDataProfile.Select(_root, "fresh");
+            var lifecycle = new UserDataProfileService(profile, "1");
+            Assert.False(lifecycle.SetupOffered);
+            lifecycle.MarkSetupOffered();
+            lifecycle.MarkSetupOffered();
+            Assert.True(new UserDataProfileService(UserDataProfile.Select(_root, "fresh"), "1").SetupOffered);
+            Assert.False(lifecycle.SetupCompleted);
+            Assert.Equal(new SetupState(false, null), await new SqliteSetupRepository(connection).ReadAsync());
+            Assert.Empty((await new SqliteHardwareInventoryRepository(connection).ReadAsync()).Instances);
+            await Create("other");
+            Assert.False(new UserDataProfileService(UserDataProfile.Select(_root, "other"), "1").SetupOffered);
+            var recovery = new UserDataRecoveryService(profile.DataDirectory, "1");
+            var archive = Path.Combine(_root, "offered.zip");
+            recovery.Backup(archive);
+            Execute(connection, "UPDATE profile_setup SET offered=0 WHERE id=1");
+            Assert.False(lifecycle.SetupOffered);
+            recovery.Restore(archive);
+            Assert.True(lifecycle.SetupOffered);
+            Assert.False(lifecycle.SetupCompleted);
+            lifecycle.Reset(true, Path.Combine(_root, "before-offer-reset.zip"));
+            Assert.False(lifecycle.SetupOffered);
+            Assert.False(lifecycle.SetupCompleted);
+        }
+
+        /// <summary>Schema 9 upgrades preserve completion and are safe to repeat without offering setup to established profiles.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Schema_9_upgrade_separates_offered_and_completed(bool completed)
+        {
+            var connection = await Create();
+            Execute(connection, "ALTER TABLE profile_setup DROP COLUMN offered; DELETE FROM schema_migrations WHERE version=10; " +
+                "UPDATE profile_setup SET completed=" + (completed ? "1" : "0"));
+            await new SqliteMigrationRunner(connection).MigrateAsync();
+            await new SqliteMigrationRunner(connection).MigrateAsync();
+            var lifecycle = new UserDataProfileService(UserDataProfile.Select(_root, "fresh"), "1");
+            Assert.Equal(completed, lifecycle.SetupCompleted);
+            Assert.Equal(completed, lifecycle.SetupOffered);
+            lifecycle.MarkSetupOffered();
+            Assert.True(lifecycle.SetupOffered);
+            Assert.Equal(completed, lifecycle.SetupCompleted);
+        }
+
+        /// <summary>A failed offer write is visible to callers and leaves a fresh profile eligible on its next start.</summary>
+        [Fact]
+        public async Task Failed_offer_write_does_not_suppress_setup()
+        {
+            var connection = await Create();
+            var lifecycle = new UserDataProfileService(UserDataProfile.Select(_root, "fresh"), "1");
+            Execute(connection, "CREATE TRIGGER fail_offer BEFORE UPDATE ON profile_setup BEGIN SELECT RAISE(ABORT,'injected offer failure'); END");
+            Assert.Throws<SqliteException>(() => lifecycle.MarkSetupOffered());
+            Assert.False(lifecycle.SetupOffered);
+            Execute(connection, "DROP TRIGGER fail_offer; DELETE FROM profile_setup");
+            Assert.Throws<InvalidDataException>(() => lifecycle.MarkSetupOffered());
         }
 
         /// <summary>Releases temporary profile data and SQLite pools.</summary>

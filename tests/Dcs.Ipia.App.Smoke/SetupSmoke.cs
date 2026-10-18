@@ -39,14 +39,15 @@ namespace Dcs.Ipia.App.Smoke
                 var first = Main();
                 Console.WriteLine("Setup smoke: automatic first-run skip.");
                 DriveWizard(first, () => first.Show(), window => Click((Button)window.FindName("SetupSkip")!));
-                if (lifecycle.SetupCompleted || inventory.ReadAsync().GetAwaiter().GetResult().Instances.Count != 0)
+                if (!lifecycle.SetupOffered || lifecycle.SetupCompleted || inventory.ReadAsync().GetAwaiter().GetResult().Instances.Count != 0)
                     throw new InvalidOperationException("Skipping first-run setup adopted devices or marked completion.");
                 first.Close();
 
                 var second = Main();
-                Console.WriteLine("Setup smoke: automatic first-run confirmation.");
+                Console.WriteLine("Setup smoke: skipped setup stays dismissed after restart; explicit resume still works.");
+                ShowWithoutSetup(second);
                 var destination = Path.Combine(root, "Saved Games", "DCS");
-                DriveWizard(second, () => second.Show(), window =>
+                DriveWizard(second, () => MainWindowCommands.Setup.Execute(null, second), window =>
                 {
                     var row = ((DataGrid)window.FindName("HardwareInventoryGrid")!).Items.Cast<HardwareInventoryRow>().Single();
                     row.Selected = true; row.Label = "My generic panel";
@@ -61,8 +62,7 @@ namespace Dcs.Ipia.App.Smoke
 
                 var completed = Main();
                 Console.WriteLine("Setup smoke: completed startup and menu rerun.");
-                completed.Show();
-                completed.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                ShowWithoutSetup(completed);
                 if (completed.OwnedWindows.Count != 0 || !MainWindowCommands.Setup.CanExecute(null, completed))
                     throw new InvalidOperationException("Completed startup reopened setup or disabled menu rerun.");
                 DriveWizard(completed, () => MainWindowCommands.Setup.Execute(null, completed), window =>
@@ -71,9 +71,19 @@ namespace Dcs.Ipia.App.Smoke
                     if (!row.Selected || row.Label != "My generic panel") throw new InvalidOperationException("Rerun discarded confirmed hardware.");
                     Click((Button)window.FindName("SetupSkip")!);
                 });
-                if (lifecycle.SetupCompleted || inventory.ReadAsync().GetAwaiter().GetResult().Instances.Count != 1)
-                    throw new InvalidOperationException("Deferred rerun lost inventory or retained completion.");
+                if (!lifecycle.SetupCompleted || inventory.ReadAsync().GetAwaiter().GetResult().Instances.Count != 1)
+                    throw new InvalidOperationException("Deferred rerun changed inventory or cleared completion.");
                 completed.Close();
+                var restarted = Main();
+                ShowWithoutSetup(restarted);
+                var profiles = new UserDataProfileWindow(profile, lifecycle, () => { }) { Owner = restarted };
+                profiles.Show();
+                Click(ActionBar.FindButton(profiles, "Rerun setup (preserve saved data)")!);
+                if (!profiles.ResumeSetupRequested || !lifecycle.SetupCompleted)
+                    throw new InvalidOperationException("Profiles/reset rerun cleared completion before setup opened.");
+                DriveWizard(restarted, () => MainWindowCommands.Setup.Execute(null, restarted), window => window.Close());
+                if (!lifecycle.SetupCompleted) throw new InvalidOperationException("Closing a rerun cleared completion.");
+                restarted.Close();
                 discovery.Observations = [];
                 Console.WriteLine("Setup smoke: explicit offline confirmation.");
                 using var offline = new HardwareInventoryWindow(manager, true,
@@ -90,6 +100,28 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ShowWithoutSetup(MainWindow main)
+        {
+            var unexpected = false;
+            var guard = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+            guard.Tick += (_, _) =>
+            {
+                foreach (var wizard in main.OwnedWindows.OfType<HardwareInventoryWindow>().ToArray())
+                {
+                    unexpected = true;
+                    wizard.Close();
+                }
+            };
+            guard.Start();
+            try
+            {
+                main.Show();
+                main.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                if (unexpected || main.OwnedWindows.Count != 0)
+                    throw new InvalidOperationException("Previously offered setup reopened automatically.");
+            }
+            finally { guard.Stop(); }
+        }
         private static void DriveWizard(MainWindow main, Action open, Action<HardwareInventoryWindow> review)
         {
             var handled = false;
