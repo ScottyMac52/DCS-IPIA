@@ -10,7 +10,8 @@ The module shell retains its existing ListBox navigation, feature keys, cached
 views, action commands and context. Navigation is arranged as horizontal tabs.
 Import diagnostics remain visible when present. Source/import details are
 available on demand. The compact Build & export popup retains the original
-buttons and handlers. Save/Discard and feature-specific actions remain in the
+buttons and handlers; output progress/results remain visible in the footer.
+Save/Discard and feature-specific actions remain in the
 shared horizontally scrollable action strip.
 
 Assignments places the existing command manager left of the controller. Search
@@ -36,8 +37,8 @@ Existing theme/background/control-opacity settings and edition restrictions are
 unchanged. Absolute window coordinates are not restored from another monitor.
 
 Training disables reading/writing these preferences for its mounted workspace.
-It uses Fit instead of a fixed assignment scale and highlights the compact export
-launcher for output steps. It still invokes the real original output actions.
+It uses Fit instead of a fixed assignment scale, reveals disclosed training
+targets, and highlights visible output status. It still invokes the real original output actions.
 Both complete training scenarios must pass rendered smoke acceptance.
 
 ## Changes outside view files
@@ -47,7 +48,7 @@ Both complete training scenarios must pass rendered smoke acceptance.
 - `WorkspaceLayout.cs`: presentation-only attached behavior for persisted
   splitters/disclosures and training preference isolation.
 - `DiagramViewport.cs`: viewport scale/Fit behavior shared by existing drawings.
-- `Training/TrainingActions.cs`: Fit and output-launcher targeting; no training
+- `Training/TrainingActions.cs`: Fit and disclosed-target visibility; no training
   scenario content or business operations are replaced.
 - `Training/TrainingWindow.xaml.cs`: fits the mounted compact workspace to the
   training viewport so both drag endpoints remain visible; retains the creation

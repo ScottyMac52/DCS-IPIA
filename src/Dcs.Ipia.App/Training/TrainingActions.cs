@@ -464,9 +464,12 @@ namespace DcsIpia.Presentation
                     x.Tag is HardwareGraphicControl control && control.InputKey == parts[1] &&
                     !control.Control.EndsWith("-shifted", StringComparison.Ordinal))
                     ?? throw new InvalidDataException("Missing training callout: " + parts[1]);
-            if (parts[0] == "Host" && parts[1] is "ValidateModuleButton" or "ExportModuleSnapshotButton" or "BuildButton")
-                return Get<FrameworkElement>(root, "OutputMenuButton");
-            return Get<FrameworkElement>(root, parts[1]);
+            var element = Get<FrameworkElement>(root, parts[1]);
+            // Disclosed editors remain real training targets; reveal them before visual transforms/highlighting.
+            for (DependencyObject? ancestor = element; ancestor is not null; ancestor = LogicalTreeHelper.GetParent(ancestor))
+                if (ancestor is Expander expander) expander.IsExpanded = true;
+            root.UpdateLayout();
+            return element;
         }
         private static T Get<T>(FrameworkElement root, string name) where T : class => root.FindName(name) as T
             ?? throw new InvalidDataException("Missing training control: " + name);

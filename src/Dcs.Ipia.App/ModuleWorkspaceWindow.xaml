@@ -57,6 +57,12 @@
         <TextBlock x:Name="PendingSummary" Text="No pending assignment changes" TextWrapping="Wrap"/>
         <TextBlock x:Name="EditorMessage" TextWrapping="Wrap"/>
         <TextBlock x:Name="OutputFailureDiagnostic" TextWrapping="Wrap"/>
+        <TextBlock x:Name="BuildStatus" Text="Build uses saved database state. Save pending edits first."
+                   TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}">
+          <TextBlock.Style><Style TargetType="TextBlock">
+            <Style.Triggers><Trigger Property="Text" Value="Build uses saved database state. Save pending edits first."><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers>
+          </Style></TextBlock.Style>
+        </TextBlock>
       </StackPanel>
       <WrapPanel Grid.Column="1" VerticalAlignment="Bottom">
         <ToggleButton x:Name="OutputMenuButton" Content="Build &amp; export…" Padding="10,4">
@@ -98,8 +104,7 @@
           <Button x:Name="BuildButton" Content="Build OvGME package…" IsEnabled="False"
                   Margin="10,0,0,0" Padding="12,4" Click="BuildClicked"/>
         </WrapPanel>
-            <TextBlock x:Name="BuildStatus" Text="Build uses saved database state. Save pending edits first."
-                       TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+
           </StackPanel>
         </Border>
       </Popup>
