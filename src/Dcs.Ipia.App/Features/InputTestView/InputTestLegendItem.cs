@@ -20,8 +20,7 @@ namespace DcsIpia.Features.InputTest
         public string Label => Entry.Label;
 
         /// <summary>Matches the live outline; aircraft Base uses blue while UI Base retains its cyan.</summary>
-        public string Color => Entry.Layer == AssignmentLayer.Module && Entry.Chord.Length == 0
-            ? KneeboardLiveProjection.BaseHighlightColor : Entry.Color;
+        public string Color => KneeboardStateColors.Resolve(Entry.Layer, Entry.Chord, Entry.Color);
 
         /// <summary>True for every polling frame in which this layer/chord is applicable.</summary>
         public bool IsActive

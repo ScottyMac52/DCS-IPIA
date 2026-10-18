@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 
 namespace DcsIpia.Features.Assignments
@@ -196,14 +197,13 @@ namespace DcsIpia.Features.Assignments
             DeviceTitle.Text = diagram.Title;
             try
             {
+                var snapshot = _context.Draft?.Snapshot ?? _context.Working.Assignments;
+                var colorPage = KneeboardDraftProjection.CreateCombined(_context.Working, diagram, snapshot, _context.Labels);
                 var previewSvg = diagram.Svg;
                 if (diagram.Svg.Contains("meta-mfd-category-", StringComparison.Ordinal))
                 {
                     // Apply saved MFD side headings; interactive controls supply assignment text below.
-                    var page = KneeboardDraftProjection.CreateCombined(
-                        _context.Working, diagram, _context.Draft?.Snapshot ?? _context.Working.Assignments,
-                        _context.Labels);
-                    var categoryPage = page with
+                    var categoryPage = colorPage with
                     {
                         Labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>()
                     };
@@ -227,7 +227,6 @@ namespace DcsIpia.Features.Assignments
 
                 var layer = CurrentLayer;
                 var chord = Layers.SelectedItem as string == BaseLayerName ? "" : (Layers.SelectedItem as string ?? "").Replace(LayerSeparator, LayerSeparatorTrim, StringComparison.Ordinal);
-                var snapshot = _context.Draft?.Snapshot ?? _context.Working.Assignments;
                 var management = WorkspaceStructureEditor.Describe(_context.Working);
 
                 foreach (var control in diagram.Controls)
@@ -244,8 +243,19 @@ namespace DcsIpia.Features.Assignments
                         : assignment is null ? UnAssignedText
                         : _context.Labels.GetValueOrDefault(slot.Key) ?? assignment.Command.Name;
 
+                    var variantColor = colorPage.Labels.GetValueOrDefault(control.Control)?.FirstOrDefault(x =>
+                        x.Scope == layer && x.ModifierChord == slot.ModifierChord)?.Color
+                        ?? colorPage.Legend.FirstOrDefault(x => x.Layer == layer && x.Chord == slot.ModifierChord)?.Color
+                        ?? (layer == AssignmentLayer.UiLayer && slot.ModifierChord.Length == 0
+                            ? KneeboardStateColors.UiBase : KneeboardStateColors.UnusedModifier);
+                    var ink = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
+                        KneeboardStateColors.Resolve(layer, slot.ModifierChord, variantColor)));
                     var text = new TextBlock
                     {
+                        Foreground = ink,
+                        // White glyph edges preserve the functional ink over opaque controls as well as artwork.
+                        Effect = new DropShadowEffect { Color = ((SolidColorBrush)FindResource("InputOutlineLightBrush")).Color,
+                            BlurRadius = 2, ShadowDepth = 0, Opacity = 1 },
                         Text = caption,
                         TextAlignment = TextAlignment.Center,
                         TextWrapping = TextWrapping.Wrap,
@@ -253,8 +263,9 @@ namespace DcsIpia.Features.Assignments
                         FontSize = 11,
                         FontWeight = protectedInput ? FontWeights.Bold : FontWeights.Normal
                     };
-                    var border = new Border
+                    var border = new ContrastOutlineBorder
                     {
+                        BorderBrush = ink,
                         Width = control.Width,
                         Height = control.Height,
                         BorderThickness = new Thickness(protectedInput ? 2 : 1),
@@ -263,9 +274,7 @@ namespace DcsIpia.Features.Assignments
                         Child = text,
                         Tag = control
                     };
-                    text.SetResourceReference(TextBlock.ForegroundProperty, "ControlForegroundBrush");
                     border.SetResourceReference(Border.BackgroundProperty, protectedInput ? "BadgeBackgroundBrush" : "ControlBackgroundBrush");
-                    border.SetResourceReference(Border.BorderBrushProperty, protectedInput || assignment is not null ? "AccentTextBrush" : "ControlBorderBrush");
                     Canvas.SetLeft(border, control.X);
                     Canvas.SetTop(border, control.Y);
                     surface.Children.Add(border);

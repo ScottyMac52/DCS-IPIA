@@ -6,7 +6,7 @@ Select the device you want to test, then operate that controller. Feedback is fi
 
 The event log shows native instance GUID, DCS input key, press/release or normalized axis position, active scope modifiers, and every matching command name/ID. Multiple results expose Module/UI overlap and duplicate bindings. Colored callout outlines show physical activity on the current diagram; testing does not select controls or change scope/layer. Unassigned means absent from the generated diff profiles; DCS's built-in defaults may still apply.
 
-Live outlines and legend swatches share this palette. Each outline and swatch has white and black contrast edges, including over photographic artwork. Only the applicable physical callout lights; its center stays transparent. Inactive swatches are dimmed and active entries also show a dot, so the modifier name and activity marker accompany the color.
+Assignments callouts (borders and captions), live input outlines, and live legend swatches share this functional palette independently of the selected skin. Assigned callouts do not inherit the Navy Amber gold accent. Each outline and swatch has white and black contrast edges, including over photographic artwork. Only the applicable physical callout lights; its center stays transparent. Inactive swatches are dimmed and active entries also show a dot, so the modifier name and activity marker accompany the color.
 
 | Live assignment | Color |
 | --- | --- |
@@ -15,7 +15,7 @@ Live outlines and legend swatches share this palette. Each outline and swatch ha
 | UI Layer Base | Cyan `#0891b2` |
 | UI Layer modifier/chord slots 1–3 | Purple `#7c3aed`, rose `#be185d`, teal `#0f766e` |
 
-Chord slots follow the current assignment chords in ordinal name order within each scope. Additional aircraft/UI chords reuse violet/teal; always read the actual chord name. The shared shift colors also appear on exported kneeboards. Printed aircraft Base lettering retains its authored/native appearance; blue identifies live Base activity. A UI assignment keeps cyan or its own shift color when it is the applicable highlight; it is not recolored as aircraft Base.
+Chord slots follow the current assignment chords in ordinal name order within each scope. Additional aircraft/UI chords reuse violet/teal; always read the actual chord name. The shared shift colors also appear on exported kneeboards. Printed aircraft Base lettering retains its authored/native appearance; blue identifies editable Base callouts and live Base activity. Unused modifier chords without an established assignment color use neutral gray until they acquire a palette slot. A UI assignment keeps cyan or its own shift color when it is the applicable highlight; it is not recolored as aircraft Base.
 
 Hold and Toggle modifiers are resolved separately per scope and may live on another controller. Supported foreground keyboard modifier keys are also sampled. Keyboard activity is identified as modifier input; keyboard command profiles are outside v1. Toggles change only on a new press, including after release; an initially held toggle does not latch. Modifier state clears at Stop, focus loss or device loss. Release results retain the command matched at press.
 
