@@ -10,6 +10,23 @@ The initial release supports the reviewed Thrustmaster catalog with a fixed Flig
 
 See the [Free Edition and owner activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
 
+## Compact workspace interactive mockup
+
+Explore the proposed top feature tabs and space-efficient workspace in the
+[whole-workspace interactive mockup](docs/design/workspace-layout-concepts/workspace-interactive.html).
+[Download the mockup](https://github.com/ScottyMac52/DCS-IPIA/raw/refs/heads/main/docs/design/workspace-layout-concepts/workspace-interactive.html)
+and open the downloaded HTML file in Edge, Chrome, or Firefox; GitHub's source
+viewer does not run it. No installation or server is required.
+
+All eight feature tabs are interactive. Try sample assignments and drag-and-drop,
+modifier editing, simulated input testing, page and documentation editing, Undo,
+and simulated Save. Palette, panel width, selected tab, and zoom preferences are
+retained when browser storage is available. Sample content is held in memory.
+The prototype uses schematic artwork and illustrative behavior; it does not
+connect to controllers, DCS, or the application database, and is not a feature
+specification. See [enhancement #264](https://github.com/ScottyMac52/DCS-IPIA/issues/264)
+and the [concept images and design notes](docs/design/workspace-layout-concepts/README.md).
+
 ## Test and coverage reports
 
 See [the local test guide](tests/README.md) for prerequisites, each PowerShell
