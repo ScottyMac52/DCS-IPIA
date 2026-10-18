@@ -23,6 +23,7 @@ namespace Dcs.Ipia.App.Smoke
             var host = new AppearanceDialog("ModuleWorkspaceWindow") { Width = 700, Height = 500 };
             var view = new UserControl { Width = 400, Height = 300 };
             AppearanceManager.SetTarget(view, "AssignmentsView"); host.Content = view;
+            var redraws = 0; AppearanceManager.ObserveArtwork(view, () => redraws++);
             var other = new AppearanceDialog("MainWindow") { Width = 300, Height = 220 };
             try
             {
@@ -38,6 +39,10 @@ namespace Dcs.Ipia.App.Smoke
                     view.Background != Brushes.Transparent || AppearanceManager.ArtworkOpacityFor(view) != 0.4 ||
                     AppearanceManager.SettingsFor(host).Image == AppearanceManager.SettingsFor(other).Image)
                     throw new InvalidOperationException("Window override did not coexist with the default or inherit into its view.");
+                var beforePositionChange = redraws;
+                ((Slider)editor.FindName("CropX")!).Value = 0.6;
+                if (redraws != beforePositionChange || ((CheckBox)editor.FindName("BackgroundEnabled")!).Visibility != Visibility.Collapsed)
+                    throw new InvalidOperationException("Position-only preview unnecessarily rebuilt artwork or exposed conflicting scoped enable controls.");
                 var inheritedPixel = ThemeControlSmoke.ReadPixel(view, 2, 2);
                 target.SelectedValue = "AssignmentsView";
                 ((ComboBox)editor.FindName("TargetMode")!).SelectedIndex = 2;

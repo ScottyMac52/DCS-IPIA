@@ -137,8 +137,16 @@ namespace DcsIpia.Presentation
         /// <summary>Redraws preview artwork only while a view is loaded, avoiding static event retention.</summary>
         public static void ObserveArtwork(FrameworkElement surface, Action redraw)
         {
-            EventHandler handler = (_, _) => redraw();
-            surface.Loaded += (_, _) => { Changed -= handler; Changed += handler; redraw(); };
+            double? previousOpacity = null;
+            bool? previousBackground = null;
+            void Refresh()
+            {
+                var opacity = ArtworkOpacityFor(surface); var background = HasBackground(surface);
+                if (previousOpacity == opacity && previousBackground == background) return;
+                previousOpacity = opacity; previousBackground = background; redraw();
+            }
+            EventHandler handler = (_, _) => Refresh();
+            surface.Loaded += (_, _) => { Changed -= handler; Changed += handler; previousOpacity = null; Refresh(); };
             surface.Unloaded += (_, _) => Changed -= handler;
         }
         /// <summary>Releases fixture preview state before palette-only smoke; never changes the edition entitlement.</summary>

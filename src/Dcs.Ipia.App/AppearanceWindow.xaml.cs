@@ -98,6 +98,7 @@ namespace DcsIpia.Presentation
             TargetMode.IsEnabled = _target.Length > 0;
             TargetMode.SelectedIndex = _target.Length == 0 || _draft.Backgrounds?.ContainsKey(_target) == true ? background.Enabled ? 1 : 2 : 0;
             BackgroundAdjustments.IsEnabled = _target.Length == 0 || TargetMode.SelectedIndex != 0;
+            BackgroundEnabled.Visibility = _target.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             BackgroundEnabled.IsChecked = background.Enabled; ImageOpacity.Value = background.Opacity; ImageTint.Value = background.Tint;
             ArtworkOpacity.Value = background.ArtworkOpacity;
             PanelOpacity.Value = _draft.PanelOpacity; ControlOpacity.Value = _draft.ControlOpacity;
