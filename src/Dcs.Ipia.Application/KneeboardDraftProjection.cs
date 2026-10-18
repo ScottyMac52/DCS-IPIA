@@ -83,7 +83,7 @@ namespace Dcs.Ipia.Application
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal)
                     .ToArray();
-            var moduleColors = new[] { "#dc2626", "#ea580c", "#2563eb", "#16a34a", "#0891b2" };
+            var moduleColors = new[] { "#dc2626", "#ea580c", "#c026d3", "#16a34a", "#9333ea" };
             var uiColors = new[] { "#0891b2", "#7c3aed", "#be185d", "#0f766e" };
             var modifiers = ModifierDefinitions(snapshot);
             var used = new HashSet<string>(StringComparer.Ordinal);

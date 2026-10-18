@@ -7,7 +7,7 @@ namespace Dcs.Ipia.Tests
     public sealed class KneeboardLiveProjectionTests
     {
         #region BEGIN Public
-        /// <summary>Base input is yellow; shifted input uses its corresponding red legend swatch.</summary>
+        /// <summary>Base input is blue; shifted input uses its corresponding red legend swatch.</summary>
         [Fact]
         public void BaseAndShiftUseExclusiveLiveColors()
         {
@@ -109,9 +109,9 @@ namespace Dcs.Ipia.Tests
                 KneeboardLiveProjection.ActiveColor(page, "base", controls, state));
         }
 
-        /// <summary>UI Layer Base also receives the visible yellow Base outline.</summary>
+        /// <summary>UI Layer Base keeps its cyan identity and exact scope matching.</summary>
         [Fact]
-        public void UiBaseHasYellowOutlineAndExactScopeMatching()
+        public void UiBaseKeepsCyanAndExactScopeMatching()
         {
             var page = new KneeboardComposite("MFD", "UI", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
             {
@@ -119,7 +119,7 @@ namespace Dcs.Ipia.Tests
             }, new Dictionary<string, string>(), []);
             HardwareGraphicControl[] controls = [new("ui", "UI", "JOY_BTN2", 0, 0, 20, 20)];
             var state = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
+            Assert.Equal("#0891b2",
                 KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
             state[AssignmentLayer.UiLayer] = "UI_SHIFT";
             Assert.Null(KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));

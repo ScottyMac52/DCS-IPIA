@@ -52,21 +52,20 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0" Width="13" Height="13" VerticalAlignment="Top" Margin="0,3,0,0"
-                                                Background="{Binding Color}" BorderBrush="{DynamicResource PrimaryTextBrush}"
-                                                BorderThickness="1" CornerRadius="2">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
+                                        <pres:ContrastOutlineBorder Grid.Column="0" Width="15" Height="15" VerticalAlignment="Top" Margin="0,3,0,0"
+                                                Background="{Binding Color}" BorderBrush="{Binding Color}"
+                                                BorderThickness="1">
+                                            <pres:ContrastOutlineBorder.Style>
+                                                <Style TargetType="pres:ContrastOutlineBorder">
                                                     <Setter Property="Opacity" Value="0.35"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsActive}" Value="True">
                                                             <Setter Property="Opacity" Value="1"/>
-                                                            <Setter Property="BorderThickness" Value="2"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Border.Style>
-                                        </Border>
+                                            </pres:ContrastOutlineBorder.Style>
+                                        </pres:ContrastOutlineBorder>
                                         <TextBlock Grid.Column="1" Text="{Binding Label}" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource PrimaryTextBrush}" FontSize="11"/>
                                         <TextBlock Grid.Column="2" Text="●" Margin="5,0,0,0"

@@ -9,7 +9,7 @@ Select either **Starting from scratch** or **Starting with a preconfigured modul
 in DCS**. Choose **Play / Resume** to demonstrate actions, or **Next step** to
 perform one action and pause. Reading checkpoints pause automatically. **Pause**
 lets the active operation finish before stopping; it never interrupts a database
-save halfway through. The explanation and yellow/black target outline remain
+save halfway through. The explanation and navigation target outline remain
 visible while paused. The application viewport scrolls to the demonstrated control
 and keeps native text sizes on smaller displays; its scrollbars remain available
 for inspection. Kneeboard previews fit the available preview area. Playback speed changes the interval between automatic
@@ -122,3 +122,9 @@ The sequence demonstrates the assignment button and an animated palette-to-callo
 The sample has two axes, base buttons, separate Hold and Toggle modifiers, a two-position switch, and a three-position switch. Each fictional switch position reports a distinct button; the narration explains that real hardware can instead have a silent center. Do not assume the example's key numbering matches your equipment.
 
 After saving and reopening, the actual input tester consumes a deterministic simulated source for that same physical identity. Reading checkpoints demonstrate base presses, Hold activation/release, Toggle latching after release and reset on a second press, switch transitions, both axes, the event log, stored tuning, and Stop. Simulated values stay fixed while paused. No real controller is acquired during training. With your own configuration, perform those inputs yourself; stop and restart the tester after editing its frozen profile.
+
+### Live input colors in both lessons
+
+Both shipped scenarios explain and display blue aircraft Base (`#007ACC`), red `TRAIN_SHIFT`, orange `TRAIN_TOGGLE`, and the separate cyan UI Layer Base swatch. The tester uses the production palette and the same contrasting white/black edges on outlines and swatches. Further aircraft chords use magenta, green and violet; UI modifiers use purple, rose and teal. Read the modifier names and active dots alongside the colors. The lesson navigation target marker is separate from live controller activity.
+
+Windows training acceptance checks the actual Base/Hold/Toggle outlines against their legend colors in both scenarios, including the cyan UI Base swatch. See [live input testing](live-input-testing.md) for exact colors, chord ordering, and palette reuse.

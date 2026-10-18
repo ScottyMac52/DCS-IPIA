@@ -4,8 +4,8 @@ namespace Dcs.Ipia.Application
     public static class KneeboardLiveProjection
     {
         #region BEGIN Public
-        /// <summary>Yellow active-Base outline, visible against dark and light hardware.</summary>
-        public const string BaseHighlightColor = "#facc15";
+        /// <summary>Medium blue live aircraft-Base outline; the presentation supplies contrasting edges.</summary>
+        public const string BaseHighlightColor = "#007ACC";
 
         /// <summary>Muted lettering for inapplicable variants in the live Input Test image.</summary>
         public const string InactiveLabelColor = "#78818e";
@@ -97,7 +97,7 @@ namespace Dcs.Ipia.Application
             : variant.Scope == AssignmentLayer.Module ? 2 : 1;
 
         private static string Color(KneeboardLabelVariant variant) =>
-            variant.ModifierChord.Length == 0 ? BaseHighlightColor : variant.Color;
+            variant.Scope == AssignmentLayer.Module && variant.ModifierChord.Length == 0 ? BaseHighlightColor : variant.Color;
         #endregion END private helpers
     }
 }

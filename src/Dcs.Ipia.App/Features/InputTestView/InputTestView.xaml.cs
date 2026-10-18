@@ -11,7 +11,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 namespace DcsIpia.Features.InputTest
@@ -284,7 +283,7 @@ namespace DcsIpia.Features.InputTest
             foreach (var region in model.Callouts)
             {
                 // Only the outline lights up; the finished kneeboard text remains unobscured.
-                var border = new Border
+                var border = new ContrastOutlineBorder
                 {
                     Width = region.Width,
                     Height = region.Height,
@@ -412,10 +411,6 @@ namespace DcsIpia.Features.InputTest
                 if (!_highlightColors.TryGetValue(border, out var old) || old != color)
                 {
                     border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-                    // Dark halo maintains visibility against both black and white hardware.
-                    border.Effect = new DropShadowEffect {
-                        Color = Colors.Black, BlurRadius = 3, ShadowDepth = 0, Opacity = 0.95
-                    };
                 }
             _highlightColors.Clear();
             foreach (var (border, color) in desired) _highlightColors.Add(border, color);
