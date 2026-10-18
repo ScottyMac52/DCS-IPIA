@@ -36,7 +36,8 @@ namespace Dcs.Ipia.App.Smoke
             {
                 window.Show();
                 var view = WorkspaceUi.Navigate(window, "Assignments");
-                view.Resources["ControlForegroundBrush"] = Brushes.White;
+                view.Resources["ControlForegroundBrush"] = Brushes.Gold;
+                view.Resources["AccentTextBrush"] = Brushes.Gold;
                 ThemeControlSmoke.Pump(window);
                 var diagram = (Canvas)view.FindName("Diagram")!;
                 var surface = diagram.Children.OfType<Canvas>().Single();
@@ -44,6 +45,11 @@ namespace Dcs.Ipia.App.Smoke
                 if (captions.Length != 1 || captions[0].Tag is not HardwareGraphicControl ||
                     captions[0].Child is not TextBlock { Text: "X" })
                     throw new InvalidOperationException("Assignments rendered an extra placeholder caption or lost its current assignment.");
+
+                var blue = (Color)ColorConverter.ConvertFromString(KneeboardStateColors.Base);
+                if (captions[0] is not ContrastOutlineBorder || (captions[0].BorderBrush as SolidColorBrush)?.Color != blue ||
+                    (((TextBlock)captions[0].Child).Foreground as SolidColorBrush)?.Color != blue)
+                    throw new InvalidOperationException("Assignments Base retained theme gold instead of shared blue state ink.");
 
                 foreach (var opacity in new[] { 1.0, .35, 0.0 })
                 {

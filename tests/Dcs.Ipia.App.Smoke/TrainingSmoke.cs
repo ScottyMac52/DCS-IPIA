@@ -156,6 +156,17 @@ namespace Dcs.Ipia.App.Smoke
         private static void CheckTrainingState(TrainingWindow window, string action)
         {
             var root = (FrameworkElement)((ContentControl)window.FindName("ApplicationView")).Content;
+            if (action == "base")
+            {
+                var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
+                var callout = Descendants((Canvas)feature.FindName("Diagram")).OfType<ContrastOutlineBorder>()
+                    .Single(x => x.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1" &&
+                        !control.Control.EndsWith("-shifted", StringComparison.Ordinal));
+                var blue = (Color)ColorConverter.ConvertFromString(KneeboardStateColors.Base);
+                if ((callout.BorderBrush as SolidColorBrush)?.Color != blue ||
+                    (((TextBlock)callout.Child).Foreground as SolidColorBrush)?.Color != blue)
+                    throw new InvalidOperationException("Training Assignments Base retained skin accent colors.");
+            }
             if (action.StartsWith("context-", StringComparison.Ordinal))
             {
                 var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;

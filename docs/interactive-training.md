@@ -125,6 +125,6 @@ After saving and reopening, the actual input tester consumes a deterministic sim
 
 ### Live input colors in both lessons
 
-Both shipped scenarios explain and display blue aircraft Base (`#007ACC`), red `TRAIN_SHIFT`, orange `TRAIN_TOGGLE`, and the separate cyan UI Layer Base swatch. The tester uses the production palette and the same contrasting white/black edges on outlines and swatches. Further aircraft chords use magenta, green and violet; UI modifiers use purple, rose and teal. Read the modifier names and active dots alongside the colors. The lesson navigation target marker is separate from live controller activity.
+Both shipped scenarios explain and display blue aircraft Base (`#007ACC`), red `TRAIN_SHIFT`, orange `TRAIN_TOGGLE`, and the separate cyan UI Layer Base swatch. Assignments callouts and the tester use the same production state palette; callout captions and borders no longer inherit a skin’s gold accent. Contrasting white/black edges surround outlines and swatches, and editable captions have light edges for readability over controller artwork. Further aircraft chords use magenta, green and violet; UI modifiers use purple, rose and teal. Read the modifier names and active dots alongside the colors. The lesson navigation target marker is separate from live controller activity.
 
 Windows training acceptance checks the actual Base/Hold/Toggle outlines against their legend colors in both scenarios, including the cyan UI Base swatch. See [live input testing](live-input-testing.md) for exact colors, chord ordering, and palette reuse.

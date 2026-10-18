@@ -49,7 +49,9 @@ namespace Dcs.Ipia.App.Smoke
                 BindingSection.Key, "JOY_BTN7");
             var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram],
                 [new CommandPaletteEntry("CMD", "Legacy", "General", false)], [],
-                [new DraftAssignment(slot, new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
+                [new DraftAssignment(slot, new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module)),
+                 new DraftAssignment(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" },
+                    new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> {
                     ["config/kneeboard.json"] = "{}",
                     ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] =
@@ -83,6 +85,17 @@ namespace Dcs.Ipia.App.Smoke
                 if (!((TextBlock)Callout("reserved-shifted").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
                     Callout("reserved-shifted").AllowDrop)
                     throw new InvalidOperationException("The shifted drawing bypassed the modifier reservation.");
+                if ((Callout("free").BorderBrush as System.Windows.Media.SolidColorBrush)?.Color !=
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#dc2626"))
+                    throw new InvalidOperationException("Assignments shift outline disagrees with the shared red legend.");
+                var scope = (ComboBox)view.FindName("Scope")!;
+                scope.SelectedIndex = 1;
+                layers.SelectedIndex = 0;
+                window.UpdateLayout();
+                if ((Callout("free").BorderBrush as System.Windows.Media.SolidColorBrush)?.Color !=
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(KneeboardStateColors.UiBase))
+                    throw new InvalidOperationException("Assignments UI Base retained theme gold instead of cyan.");
+                scope.SelectedIndex = 0;
                 layers.SelectedIndex = 0;
                 window.UpdateLayout();
 
@@ -99,6 +112,8 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("Legacy assignment could not be cleared independently.");
 
                 var context = new WindowContext(window);
+                // The color fixture uses S3; release that binding before testing modifier removal.
+                context.Draft!.Remove(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" });
                 context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
                     WorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.Module)));
                 if (Callout("reserved").AllowDrop)

@@ -84,7 +84,7 @@ namespace Dcs.Ipia.Application
                     .Order(StringComparer.Ordinal)
                     .ToArray();
             var moduleColors = new[] { "#dc2626", "#ea580c", "#c026d3", "#16a34a", "#9333ea" };
-            var uiColors = new[] { "#0891b2", "#7c3aed", "#be185d", "#0f766e" };
+            var uiColors = new[] { KneeboardStateColors.UiBase, "#7c3aed", "#be185d", "#0f766e" };
             var modifiers = ModifierDefinitions(snapshot);
             var used = new HashSet<string>(StringComparer.Ordinal);
             var variants = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(StringComparer.Ordinal);
@@ -181,7 +181,7 @@ namespace Dcs.Ipia.Application
                     DcsInputKey.SamePhysicalInput(x.InputKey, modifier.Key)).ToArray();
                 var chords = modifier.Layer == AssignmentLayer.Module ? moduleChords : uiChords;
                 var index = Array.FindIndex(chords, chord => chord.Split('+').Contains(modifier.Name, StringComparer.Ordinal));
-                var color = index < 0 ? "#94a3b8" : modifier.Layer == AssignmentLayer.Module
+                var color = index < 0 ? KneeboardStateColors.UnusedModifier : modifier.Layer == AssignmentLayer.Module
                     ? moduleColors[Math.Min(index, moduleColors.Length - 1)]
                     : uiColors[Math.Min(index + 1, uiColors.Length - 1)];
                 foreach (var control in matching)
