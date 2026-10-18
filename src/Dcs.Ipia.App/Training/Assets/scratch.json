@@ -55,7 +55,7 @@
       "Id": "base",
       "Action": "base",
       "Title": "Map a base button",
-      "Explanation": "Select the trigger callout (JOY_BTN1), choose Sample landing light, and use Assign selected command. This is the button-based assignment workflow; next we demonstrate drag-and-drop. The editable aircraft Base callout is blue, matching live Base feedback. The state colors stay consistent even when the application skin uses a gold accent.",
+      "Explanation": "Select the trigger callout (JOY_BTN1), choose Sample landing light, and use Assign selected command. This is the button-based assignment workflow; next we demonstrate drag-and-drop. The editable aircraft Base callout is blue, matching live Base feedback. The state colors stay consistent even when the application skin uses a gold accent. Appearance customization can give each window or workspace view its own background and soften controller artwork independently. Callout labels and live highlights stay visible; exported kneeboards keep their original appearance.",
       "Target": "Assignments:JOY_BTN1",
       "Checkpoint": true
     },

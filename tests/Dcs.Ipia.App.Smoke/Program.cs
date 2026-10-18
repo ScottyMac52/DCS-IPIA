@@ -49,6 +49,7 @@ namespace Dcs.Ipia.App.Smoke
             MainWindowThemeSmoke.Verify();
             ApplicationThemeSmoke.Verify();
             AppearanceEditorSmoke.Verify();
+            ScopedBackgroundSmoke.Verify();
             BrowseDialogSmoke.Verify();
             VerifySharedDefaultBindingEditor();
             Console.WriteLine("Smoke: module deletion.");

@@ -25,6 +25,7 @@ namespace DcsIpia.Features.Kneeboards
         {
             InitializeComponent();
             _viewport = new DiagramViewport(DiagramScroll, ZoomBox, Zoom, "kneeboards.zoom");
+            AppearanceManager.ObserveArtwork(this, RefreshPreview);
         }
 
 
@@ -93,10 +94,10 @@ namespace DcsIpia.Features.Kneeboards
                         KneeboardPageLocator.PageKeyForProfile(workspace, x.ProfileId) == page.StableKey);
                     var combined = KneeboardDraftProjection.CreateCombined(workspace, diagram, workspace.Assignments, workspace.Labels);
                     if (diagram.GenericCapabilities is null && diagram.CustomMapping is null)
-                        bytes = CompositeKneeboardRenderer.Render(diagram, combined, "");
+                        bytes = CompositeKneeboardRenderer.Render(diagram, combined, "", AppearanceManager.HasBackground(this), AppearanceManager.ArtworkOpacityFor(this));
                     else
                     {
-                        var generated = DeviceKneeboardPages.Render(diagram, combined);
+                        var generated = DeviceKneeboardPages.Render(diagram, combined, transparent: AppearanceManager.HasBackground(this), artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
                         var choices = Enumerable.Range(1, generated.Count).Select(x => "Page " + x).ToArray();
                         if (!(GenericPageChoice.ItemsSource as string[] ?? []).SequenceEqual(choices, StringComparer.Ordinal))
                         {
@@ -113,7 +114,7 @@ namespace DcsIpia.Features.Kneeboards
                 }
                 else if (page.Kind == KneeboardPageKind.Summary)
                 {
-                    var rendered = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+                    var rendered = SnapshotSummaryKneeboardRenderer.Generate(workspace, AppearanceManager.HasBackground(this));
                     var pages = rendered.Where(x => x.Key == path ||
                         (x.Key.StartsWith(path[..^4] + "-", StringComparison.Ordinal) &&
                          x.Key.EndsWith(".png", StringComparison.Ordinal)))

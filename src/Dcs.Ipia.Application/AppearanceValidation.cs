@@ -24,7 +24,7 @@ namespace Dcs.Ipia.Application
             CheckJson(json);
             var value = JsonSerializer.Deserialize<AppearanceSettings>(json, JsonOptions) ?? throw new ArgumentException("Appearance settings are empty.");
             Validate(value);
-            return value with { Palette = value.Palette?.ToFrozenDictionary(StringComparer.Ordinal) };
+            return value with { Palette = value.Palette?.ToFrozenDictionary(StringComparer.Ordinal), Backgrounds = value.Backgrounds?.ToFrozenDictionary(StringComparer.Ordinal) };
         }
         /// <summary>Reads the versioned palette format: SchemaVersion plus a complete Colors object.</summary>
         public static IReadOnlyDictionary<string, string> ParsePalette(string json)
@@ -46,11 +46,19 @@ namespace Dcs.Ipia.Application
         {
             ArgumentNullException.ThrowIfNull(value);
             if (value.SchemaVersion != 1) throw new ArgumentException("Unsupported appearance schema version.");
+            if (value.Backgrounds is not null)
+            {
+                foreach (var (target, background) in value.Backgrounds)
+                {
+                    if (!AppearanceTargets.All.ContainsKey(target) || background is null) throw new ArgumentException("Unknown appearance target or empty background override.");
+                    Validate(background.Apply(value with { Backgrounds = null }));
+                }
+            }
             if (value.Accent is not null) _ = AppearanceColors.Parse(value.Accent);
             if (value.Palette is not null) ValidatePalette(value.Palette);
             if (value.Image is not null && !ImageName().IsMatch(value.Image)) throw new ArgumentException("Invalid managed image reference.");
             if (!Range(value.Opacity, 0, 0.3) || !Range(value.Horizontal, 0, 1) || !Range(value.Vertical, 0, 1) ||
-                !Range(value.Tint, 0, 1) || !Range(value.PanelOpacity, 0, 1) || !Range(value.ControlOpacity, 0, 1) || value.Fit is not ("Fill" or "Fit"))
+                !Range(value.ArtworkOpacity, 0, 1) || !Range(value.Tint, 0, 1) || !Range(value.PanelOpacity, 0, 1) || !Range(value.ControlOpacity, 0, 1) || value.Fit is not ("Fill" or "Fit"))
                 throw new ArgumentException("Appearance adjustments are outside the supported readability limits.");
         }
         /// <summary>Validates keys and 4.5:1 text/background pairs for an imported palette.</summary>

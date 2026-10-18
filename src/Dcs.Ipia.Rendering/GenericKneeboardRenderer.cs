@@ -74,14 +74,14 @@ namespace Dcs.Ipia.Rendering
         /// <param name="footer">Optional preview attribution.</param>
         /// <param name="inputKeys">Optional subset for custom-mapping continuation pages.</param>
         /// <returns>All ordered PNG pages without any filesystem reads.</returns>
-        public static IReadOnlyList<byte[]> RenderPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "", IReadOnlySet<string>? inputKeys = null)
+        public static IReadOnlyList<byte[]> RenderPages(UiLayerDiagram diagram, KneeboardComposite page, string footer = "", IReadOnlySet<string>? inputKeys = null, bool transparent = false)
         {
             using var typeface = Typeface();
             var result = new List<byte[]>();
             foreach (var source in BuildPages(diagram, page, footer, inputKeys))
             {
                 using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ?? throw new InvalidDataException("Could not allocate generic kneeboard.");
-                surface.Canvas.Clear(SKColor.Parse("#06101d"));
+                surface.Canvas.Clear(transparent ? SKColors.Transparent : SKColor.Parse("#06101d"));
                 foreach (var text in XDocument.Parse(source).Descendants().Where(x => x.Name.LocalName == "text"))
                 {
                     using var font = new SKFont(typeface, float.Parse(text.Attribute("font-size")!.Value, CultureInfo.InvariantCulture));

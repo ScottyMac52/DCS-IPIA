@@ -30,7 +30,12 @@ namespace DcsIpia.Presentation
                     WindowThemeChrome.Apply(window);
                     AppearanceManager.Attach(window);
                 }));
-
+            EventManager.RegisterClassHandler(typeof(UserControl), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler((sender, args) =>
+                {
+                    if (sender is UserControl view && ReferenceEquals(args.OriginalSource, view) &&
+                        Dcs.Ipia.Application.AppearanceTargets.All.ContainsKey(view.GetType().Name)) AppearanceManager.Attach(view);
+                }));
         }
         #endregion END Public
         #region BEGIN private helpers

@@ -32,26 +32,28 @@ namespace Dcs.Ipia.Infrastructure
         /// <inheritdoc/>
         public string? LastError { get; private set; }
         /// <inheritdoc/>
-        public byte[]? ReadImage()
+        public byte[]? ReadImage(string? name = null)
         {
-            if (Current.Image is null) return null;
+            name ??= Current.Image;
+            if (name is null) return null;
             try
             {
-                var path = ImagePath(Current.Image);
+                AppearanceValidation.Validate(new AppearanceSettings(Image: name));
+                var path = ImagePath(name);
                 if (new FileInfo(path).Length > MaximumImageBytes) throw new ArgumentException("Background image exceeds 20 MiB.");
                 var bytes = File.ReadAllBytes(path);
                 CheckImage(bytes);
-                if (Convert.ToHexStringLower(SHA256.HashData(bytes)) + ".png" != Current.Image)
+                if (Convert.ToHexStringLower(SHA256.HashData(bytes)) + ".png" != name)
                     throw new ArgumentException("Background image checksum differs from its saved reference.");
                 return bytes;
             }
             catch (Exception ex) when (IsRecoverable(ex)) { LastError = "Background image is unavailable; choose it again in Appearance. " + ex.Message; return null; }
         }
         /// <inheritdoc/>
-        public bool TrySave(AppearanceSettings settings, byte[]? image = null)
+        public bool TrySave(AppearanceSettings settings, byte[]? image = null, IReadOnlyDictionary<string, byte[]>? images = null)
         {
             var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            string? newImage = null;
+            var newImages = new List<string>();
             try
             {
                 AppearanceValidation.Validate(settings);
@@ -61,25 +63,33 @@ namespace Dcs.Ipia.Infrastructure
                     settings = settings with { Image = Convert.ToHexStringLower(SHA256.HashData(image)) + ".png" };
                 }
                 Directory.CreateDirectory(_directory);
-                if (image is not null)
+                var pending = images is null ? new Dictionary<string, byte[]>(StringComparer.Ordinal) : new Dictionary<string, byte[]>(images, StringComparer.Ordinal);
+                if (image is not null) pending[settings.Image!] = image;
+                foreach (var name in AppearanceTargets.Images(settings))
                 {
-                    var path = ImagePath(settings.Image!);
-                    if (!File.Exists(path)) { File.WriteAllBytes(path, image); newImage = path; }
-                    else if (!File.ReadAllBytes(path).SequenceEqual(image)) throw new ArgumentException("Existing managed image is corrupt; choose another image or restore your backup.");
+                    AppearanceValidation.Validate(new AppearanceSettings(Image: name));
+                    var path = ImagePath(name);
+                    if (pending.TryGetValue(name, out var bytes))
+                    {
+                        CheckImage(bytes);
+                        if (Convert.ToHexStringLower(SHA256.HashData(bytes)) + ".png" != name) throw new ArgumentException("Background image checksum differs from its reference.");
+                        if (!File.Exists(path)) { File.WriteAllBytes(path, bytes); newImages.Add(path); }
+                        else if (!File.ReadAllBytes(path).SequenceEqual(bytes)) throw new ArgumentException("Existing managed image is corrupt; choose another image or restore your backup.");
+                    }
+                    if (ReadImage(name) is null) throw new ArgumentException("The selected managed image is missing or corrupt; choose it again.");
                 }
-                if (settings.Image is not null && !File.Exists(ImagePath(settings.Image))) throw new ArgumentException("The selected managed image is missing; choose it again.");
                 var json = JsonSerializer.Serialize(settings, JsonOptions);
                 _ = AppearanceValidation.ParseSettings(json);
                 File.WriteAllText(temporary, json);
                 File.Move(temporary, _path, true);
                 Current = AppearanceValidation.ParseSettings(json);
                 LastError = null;
-                newImage = null;
+                newImages.Clear();
                 RemoveUnusedImages();
                 return true;
             }
             catch (Exception ex) when (IsRecoverable(ex)) { LastError = "Appearance was not saved; the previous settings are intact. " + ex.Message; return false; }
-            finally { DeleteTemporary(temporary); if (newImage is not null) DeleteTemporary(newImage); }
+            finally { DeleteTemporary(temporary); foreach (var path in newImages) DeleteTemporary(path); }
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -96,7 +106,7 @@ namespace Dcs.Ipia.Infrastructure
                 foreach (var path in Directory.EnumerateFiles(_directory, "*.png"))
                 {
                     var name = Path.GetFileName(path);
-                    if (name != Current.Image && name.Length == 68 && name.AsSpan(0, 64).ToString().All(Uri.IsHexDigit)) DeleteTemporary(path);
+                    if (!AppearanceTargets.Images(Current).Contains(name, StringComparer.Ordinal) && name.Length == 68 && name.AsSpan(0, 64).ToString().All(Uri.IsHexDigit)) DeleteTemporary(path);
                 }
             }
             catch (IOException) { /* A later successful save can remove unused content. */ }

@@ -9,9 +9,9 @@ namespace Dcs.Ipia.Application.Interfaces
         /// <summary>Gets the latest non-fatal load/save diagnostic.</summary>
         string? LastError { get; }
         /// <summary>Reads the current managed image or reports missing/invalid content.</summary>
-        byte[]? ReadImage();
+        byte[]? ReadImage(string? name = null);
         /// <summary>Atomically commits settings with optional normalized PNG content; failure preserves Current.</summary>
-        bool TrySave(AppearanceSettings settings, byte[]? image = null);
+        bool TrySave(AppearanceSettings settings, byte[]? image = null, IReadOnlyDictionary<string, byte[]>? images = null);
         #endregion END Public
     }
 }

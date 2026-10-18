@@ -25,7 +25,7 @@
                 </WrapPanel>
             </StackPanel>
             <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}"
-        Background="{DynamicResource CanvasBackgroundBrush}" BorderThickness="1">
+        Background="Transparent" BorderThickness="1">
                 <ScrollViewer x:Name="DiagramScroll" HorizontalContentAlignment="Left" VerticalContentAlignment="Top" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <Viewbox x:Name="ZoomBox" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top">
                         <Image x:Name="KneeboardPreview"/>

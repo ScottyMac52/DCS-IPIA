@@ -11,11 +11,11 @@ namespace DcsIpia.Features.InputTest
         public static InputTestDiagramModel Compose(
             UiLayerDiagram diagram, EditorWorkspaceSnapshot workspace,
             IReadOnlyList<DraftAssignment> assignments, IReadOnlyDictionary<string, string> labels,
-            IReadOnlyDictionary<AssignmentLayer, string>? activeModifiers = null)
+            IReadOnlyDictionary<AssignmentLayer, string>? activeModifiers = null, double artworkOpacity = 1)
         {
             ArgumentNullException.ThrowIfNull(diagram);
             var page = KneeboardDraftProjection.CreateCombined(workspace, diagram, assignments, labels);
-            var png = RenderLive(diagram, page, activeModifiers ?? new Dictionary<AssignmentLayer, string>());
+            var png = RenderLive(diagram, page, activeModifiers ?? new Dictionary<AssignmentLayer, string>(), artworkOpacity);
             var regions = diagram.Controls.Select(control =>
                 new InputTestCallout(control.InputKey, control.Control, control.X, control.Y,
                     control.Width, control.Height)).ToArray();
@@ -24,9 +24,9 @@ namespace DcsIpia.Features.InputTest
 
         /// <summary>Redraws the SVG for a changed modifier chord without recomputing its authored labels.</summary>
         public static byte[] RenderLive(UiLayerDiagram diagram, KneeboardComposite page,
-            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers) =>
-            CanonicalSvgRenderer.RenderComplete(CompositeKneeboardRenderer.BuildDeviceSvg(
-                diagram, KneeboardLiveProjection.Focus(page, diagram.Controls, activeModifiers)), diagram.Width, diagram.Height);
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers, double artworkOpacity = 1) =>
+            CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(
+                diagram, KneeboardLiveProjection.Focus(page, diagram.Controls, activeModifiers)), artworkOpacity), diagram.Width, diagram.Height);
         #endregion END Public
     }
 }

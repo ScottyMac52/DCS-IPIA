@@ -18,22 +18,22 @@ namespace Dcs.Ipia.Rendering
         /// <param name="footer">Preview footer, or empty when exporting an authored page.</param>
         /// <returns>The complete rendered PNG.</returns>
         public static byte[] Render(UiLayerDiagram diagram, KneeboardComposite page,
-                                    string footer = "DCS-IPIA • current draft preview")
+                                    string footer = "DCS-IPIA • current draft preview", bool transparent = false, double artworkOpacity = 1)
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
             if (diagram.GenericCapabilities is not null && diagram.CustomMapping is null)
-                return GenericKneeboardRenderer.RenderPages(diagram, page, footer)[0];
+                return GenericKneeboardRenderer.RenderPages(diagram, page, footer, transparent: transparent)[0];
             ValidateGlyphs(page, footer);
             var device = CanonicalSvgRenderer.RenderCompleteScaled(
-                GraphicWithoutDynamicText(diagram.Svg), diagram.Width, diagram.Height,
+                PreviewArtwork.Prepare(GraphicWithoutDynamicText(diagram.Svg), artworkOpacity), diagram.Width, diagram.Height,
                 Math.Min(2, (int)Math.Floor(4096 / Math.Max(diagram.Width, diagram.Height))));
             using var deviceImage = SKImage.FromEncodedData(device) ??
                                     throw new InvalidDataException("Could not decode the authored device image.");
             using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
                                 throw new InvalidDataException("Could not allocate kneeboard surface.");
             var canvas = surface.Canvas;
-            canvas.Clear(SKColor.Parse("#06101d"));
+            canvas.Clear(transparent ? SKColors.Transparent : SKColor.Parse("#06101d"));
             using (var stripe = new SKPaint { Color = SKColor.Parse("#46d8ff") })
                 canvas.DrawRect(0, 0, 1200, 16, stripe);
             var height = page.Legend.Count > 0 ? 1170 : 1350;

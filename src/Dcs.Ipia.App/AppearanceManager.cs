@@ -12,7 +12,10 @@ namespace DcsIpia.Presentation
     /// <summary>Composes palette overrides and decorative window backgrounds without changing document artwork.</summary>
     public static class AppearanceManager
     {
-        private static readonly ConditionalWeakTable<Window, object> Attached = new();
+        private static readonly ConditionalWeakTable<FrameworkElement, object> Attached = new();
+        private static readonly List<WeakReference<FrameworkElement>> Surfaces = [];
+        private static Dictionary<string, BitmapSource> _images = new(StringComparer.Ordinal);
+        private static readonly DependencyProperty LocalPaletteProperty = DependencyProperty.RegisterAttached("LocalPalette", typeof(ResourceDictionary), typeof(AppearanceManager));
         private static readonly uint[] PhotoExtremes = [0, 0xFFFFFF];
         private static readonly string[] WindowTextKeys = ["PrimaryTextBrush", "SecondaryTextBrush", "AccentTextBrush", "ErrorTextBrush"];
         private static ResourceDictionary? _overlay;
@@ -40,17 +43,21 @@ namespace DcsIpia.Presentation
             Restore();
         }
         /// <summary>Applies a validated draft to all open windows without writing settings or files.</summary>
-        public static void Preview(AppearanceSettings settings, BitmapSource? image)
+        public static void Preview(AppearanceSettings settings, BitmapSource? image, IReadOnlyDictionary<string, BitmapSource>? images = null)
         {
             if (!EditionAccess.Policy.IsOwner) { settings = FreeEditionAppearance.Settings; image = FreeEditionAppearance.Image; }
             AppearanceValidation.Validate(settings);
             var dictionary = BuildPalette(settings, image is not null);
             _active = settings; _image = image;
+            if (images is not null) _images = new Dictionary<string, BitmapSource>(images, StringComparer.Ordinal);
             ReplaceOverlay(dictionary);
-            foreach (var window in System.Windows.Application.Current.Windows.OfType<Window>())
+            foreach (var reference in Surfaces.ToArray())
             {
-                Paint(window); WindowThemeChrome.Apply(window);
+                if (reference.TryGetTarget(out var surface)) Paint(surface);
+                else Surfaces.Remove(reference);
             }
+            foreach (var window in System.Windows.Application.Current.Windows.OfType<Window>()) WindowThemeChrome.Apply(window);
+            Changed?.Invoke(null, EventArgs.Empty);
             LastError = null;
         }
         /// <summary>Reloads the accepted appearance after Cancel, close or successful persistence.</summary>
@@ -58,16 +65,27 @@ namespace DcsIpia.Presentation
         {
             if (!EditionAccess.Policy.IsOwner) { Preview(FreeEditionAppearance.Settings, FreeEditionAppearance.Image); return; }
             var settings = Store?.Current ?? new(); BitmapSource? image = null;
+            var images = new Dictionary<string, BitmapSource>(StringComparer.Ordinal);
             string? diagnostic = Store?.LastError;
             try
             {
-                var bytes = Store?.ReadImage();
-                if (bytes is not null) image = BackgroundImageLoader.Decode(bytes);
+                foreach (var name in AppearanceTargets.Images(settings))
+                {
+                    try
+                    {
+                        var bytes = Store?.ReadImage(name);
+                        if (bytes is not null) images[name] = BackgroundImageLoader.Decode(bytes);
+                        else diagnostic = Store?.LastError;
+                    }
+                    catch (Exception ex) when (ex is IOException or ArgumentException or NotSupportedException or System.IO.FileFormatException)
+                    { diagnostic = "Background image could not be decoded; choose it again in Appearance. " + ex.Message; }
+                }
+                if (settings.Image is not null) images.TryGetValue(settings.Image, out image);
             }
             catch (Exception ex) when (ex is IOException or ArgumentException or NotSupportedException or System.IO.FileFormatException)
             { diagnostic = "Background image could not be decoded; choose it again in Appearance. " + ex.Message; }
-            try { Preview(settings, image); }
-            catch (ArgumentException ex) { Preview(settings with { Accent = null }, image); _active = settings; diagnostic = ex.Message; }
+            try { Preview(settings, image, images); }
+            catch (ArgumentException ex) { Preview(settings with { Accent = null }, image, images); _active = settings; diagnostic = ex.Message; }
             LastError = diagnostic ?? Store?.LastError;
         }
         /// <summary>Recomposes active overrides after the selected built-in skin or Windows contrast mode changes.</summary>
@@ -79,20 +97,55 @@ namespace DcsIpia.Presentation
             catch (ArgumentException ex) { Preview(requested with { Accent = null }, _image); _active = requested; LastError = ex.Message; }
         }
         /// <summary>Applies the current window background and updates it on resize.</summary>
-        public static void Attach(Window window)
+        public static void Attach(FrameworkElement window)
         {
             if (!Attached.TryGetValue(window, out _))
             {
                 Attached.Add(window, new object());
+                Surfaces.Add(new WeakReference<FrameworkElement>(window));
                 window.SizeChanged += (_, _) => Paint(window);
             }
             Paint(window);
+        }
+        /// <summary>Identifies an anonymous dialog or a sample preview using a stable catalog key.</summary>
+        public static readonly DependencyProperty TargetProperty = DependencyProperty.RegisterAttached("Target", typeof(string), typeof(AppearanceManager), new PropertyMetadata(null, (target, _) => { if (target is FrameworkElement element) Attach(element); }));
+        /// <summary>Reads an explicit appearance identity.</summary>
+        public static string? GetTarget(DependencyObject target) => (string?)target.GetValue(TargetProperty);
+        /// <summary>Sets an explicit appearance identity.</summary>
+        public static void SetTarget(DependencyObject target, string value) => target.SetValue(TargetProperty, value);
+        /// <summary>Raised after a live preview or restore; views redraw artwork without changing their data.</summary>
+        public static event EventHandler? Changed;
+        /// <summary>Gets decoded managed images for the transactional editor.</summary>
+        public static IReadOnlyDictionary<string, BitmapSource> Images => _images;
+        /// <summary>Gets the effective background for a window or view.</summary>
+        public static AppearanceSettings SettingsFor(FrameworkElement surface)
+        {
+            if (!EditionAccess.Policy.IsOwner) return FreeEditionAppearance.Settings;
+            var key = GetTarget(surface) ?? surface.GetType().Name;
+            var parent = surface is Window ? null : Window.GetWindow(surface) is { } owner ? GetTarget(owner) ?? owner.GetType().Name : null;
+            if (surface.Name == "TargetPreview") parent = key.EndsWith("View", StringComparison.Ordinal) ? "ModuleWorkspaceWindow" : null;
+            return AppearanceTargets.Resolve(_active, key, parent);
+        }
+        /// <summary>Reports whether a usable decorative image is active, respecting Windows high contrast.</summary>
+        public static bool HasBackground(FrameworkElement surface)
+        {
+            var settings = SettingsFor(surface);
+            return !SystemParameters.HighContrast && settings.Enabled && (settings.Image is not null ? _images.ContainsKey(settings.Image) : _image is not null);
+        }
+        /// <summary>Gets artwork opacity, suppressing customization in Windows high contrast.</summary>
+        public static double ArtworkOpacityFor(FrameworkElement surface) => SystemParameters.HighContrast ? 1 : SettingsFor(surface).ArtworkOpacity;
+        /// <summary>Redraws preview artwork only while a view is loaded, avoiding static event retention.</summary>
+        public static void ObserveArtwork(FrameworkElement surface, Action redraw)
+        {
+            EventHandler handler = (_, _) => redraw();
+            surface.Loaded += (_, _) => { Changed -= handler; Changed += handler; redraw(); };
+            surface.Unloaded += (_, _) => Changed -= handler;
         }
         /// <summary>Releases fixture preview state before palette-only smoke; never changes the edition entitlement.</summary>
         internal static void ResetForTests()
         {
             if (_overlay is not null) System.Windows.Application.Current.Resources.MergedDictionaries.Remove(_overlay);
-            _overlay = null; Store = null; _active = new(); _image = null;
+            _overlay = null; Store = null; _active = new(); _image = null; _images.Clear();
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -189,33 +242,51 @@ namespace DcsIpia.Presentation
             if (_overlay is not null) dictionaries.Remove(_overlay);
             dictionaries.Add(dictionary); _overlay = dictionary;
         }
-        private static void Paint(Window window)
+        private static void Paint(FrameworkElement window)
         {
             if (Store is null && !_active.Enabled && _overlay is null) return;
-            if (window.Content is Panel panel && ReferenceEquals(panel.Background, window.TryFindResource("WindowBackgroundBrush")))
+            if (window is Window host && host.Content is Panel panel && ReferenceEquals(panel.Background, window.TryFindResource("WindowBackgroundBrush")))
                 panel.Background = Brushes.Transparent;
+            var settings = SettingsFor(window);
+            var key = GetTarget(window) ?? window.GetType().Name;
+            var scoped = EditionAccess.Policy.IsOwner && (window.Name == "TargetPreview" || _active.Backgrounds?.ContainsKey(key) == true);
+            var image = settings.Image is not null ? _images.GetValueOrDefault(settings.Image) : _image;
+            if (settings.Image is not null && settings.Image == _active.Image) image ??= _image;
+            if (window.GetValue(LocalPaletteProperty) is ResourceDictionary previous) window.Resources.MergedDictionaries.Remove(previous);
+            window.ClearValue(LocalPaletteProperty);
+            if (scoped)
+            {
+                ResourceDictionary local;
+                try { local = BuildPalette(settings, image is not null); }
+                catch (ArgumentException) when (settings.Accent is not null) { local = BuildPalette(settings with { Accent = null }, image is not null); }
+                window.Resources.MergedDictionaries.Add(local); window.SetValue(LocalPaletteProperty, local);
+            }
             var background = (SolidColorBrush)window.FindResource("WindowBackgroundBrush");
-            if (!_active.Enabled || _image is null || SystemParameters.HighContrast)
-            { window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush"); return; }
+            if (!settings.Enabled || image is null || SystemParameters.HighContrast || window is not Window && !scoped)
+            {
+                if (window is Window) window.SetResourceReference(Window.BackgroundProperty, "WindowBackgroundBrush");
+                else if (window is Control control) control.Background = scoped ? background : Brushes.Transparent;
+                return;
+            }
             var width = Math.Max(1, window.ActualWidth); var height = Math.Max(1, window.ActualHeight);
             var baseColor = AppearanceColors.Parse("#" + background.Color.ToString(System.Globalization.CultureInfo.InvariantCulture)[3..]);
             var text = WindowTextKeys.Select(key =>
                 AppearanceColors.Parse("#" + ((SolidColorBrush)window.FindResource(key)).Color.ToString(System.Globalization.CultureInfo.InvariantCulture)[3..])).ToArray();
-            var opacity = ProtectedImageOpacity(baseColor, text, _active.Opacity);
+            var opacity = ProtectedImageOpacity(baseColor, text, settings.Opacity);
             var bounds = new Rect(0, 0, width, height); var group = new DrawingGroup();
             using (var context = group.Open())
             {
                 context.DrawRectangle(background, null, bounds);
                 context.PushClip(new RectangleGeometry(bounds)); context.PushOpacity(opacity);
-                var scale = _active.Fit == "Fill" ? Math.Max(width / _image.PixelWidth, height / _image.PixelHeight)
-                    : Math.Min(width / _image.PixelWidth, height / _image.PixelHeight);
-                var w = _image.PixelWidth * scale; var h = _image.PixelHeight * scale;
-                context.DrawImage(_image, new Rect((width - w) * _active.Horizontal, (height - h) * _active.Vertical, w, h));
-                context.PushOpacity(_active.Tint);
+                var scale = settings.Fit == "Fill" ? Math.Max(width / image.PixelWidth, height / image.PixelHeight)
+                    : Math.Min(width / image.PixelWidth, height / image.PixelHeight);
+                var w = image.PixelWidth * scale; var h = image.PixelHeight * scale;
+                context.DrawImage(image, new Rect((width - w) * settings.Horizontal, (height - h) * settings.Vertical, w, h));
+                context.PushOpacity(settings.Tint);
                 context.DrawRectangle((Brush)window.FindResource("SurfaceBrush"), null, bounds);
                 context.Pop(); context.Pop(); context.Pop();
             }
-            group.Freeze(); var brush = new DrawingBrush(group) { Stretch = Stretch.Fill }; brush.Freeze(); window.Background = brush;
+            group.Freeze(); var brush = new DrawingBrush(group) { Stretch = Stretch.Fill }; brush.Freeze(); if (window is Control controlSurface) controlSurface.Background = brush;
         }
         #endregion END private helpers
     }

@@ -46,6 +46,7 @@ namespace DcsIpia.Features.InputTest
         #region BEGIN Public
         public InputTestView()
         {
+            AppearanceManager.ObserveArtwork(this, () => { _lastModifierSignature = null; RefreshLiveArtwork(); });
             InitializeComponent();
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "input-test.zoom");
             _timer.Tick += Poll;
@@ -259,7 +260,7 @@ namespace DcsIpia.Features.InputTest
                 snapshot,
                 _testSnapshot is not null ? snapshot.Assignments : _context?.Draft?.Snapshot ?? snapshot.Assignments,
                 _testSnapshot is not null ? snapshot.Labels : _context?.Labels ?? snapshot.Labels,
-                _session?.ActiveModifiers);
+                _session?.ActiveModifiers, AppearanceManager.ArtworkOpacityFor(this));
             _legendItems = model.Legend.Select(item => new InputTestLegendItem(item)).ToArray();
             ModifierLegend.ItemsSource = _legendItems;
             UpdateModifierLegend();
@@ -313,7 +314,7 @@ namespace DcsIpia.Features.InputTest
             var signature = ModifierSignature();
             if (signature == _lastModifierSignature) return;
             var active = _session?.ActiveModifiers ?? new Dictionary<AssignmentLayer, string>();
-            var png = InputTestDiagramComposer.RenderLive(_currentDiagram, _currentDiagramModel.Page, active);
+            var png = InputTestDiagramComposer.RenderLive(_currentDiagram, _currentDiagramModel.Page, active, AppearanceManager.ArtworkOpacityFor(this));
             using var stream = new MemoryStream(png);
             var bitmap = new BitmapImage();
             bitmap.BeginInit();

@@ -10,7 +10,7 @@ namespace Dcs.Ipia.Rendering
     {
         #region BEGIN Public
         /// <summary>Generates every overview PNG from the pinned workspace rather than imported images.</summary>
-        public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace)
+        public static IReadOnlyDictionary<string, byte[]> Generate(EditorWorkspaceSnapshot workspace, bool transparent = false)
         {
             ArgumentNullException.ThrowIfNull(workspace);
             if (workspace.Sources?.TryGetValue("config/kneeboard.json", out var source) != true || source is null)
@@ -34,7 +34,7 @@ namespace Dcs.Ipia.Rendering
                     items.GetArrayLength() is < 1 or > 14)
                     throw new InvalidDataException("The summary requires one to fourteen authored device cards.");
                 var index = Array.FindIndex(ordered, x => x.Kind == KneeboardPageKind.Summary && x.StableKey == key);
-                var rendered = Render(summary, items, index + 1, ordered.Length);
+                var rendered = Render(summary, items, index + 1, ordered.Length, transparent);
                 for (var part = 0; part < rendered.Count; part++)
                 {
                     var suffix = part == 0 ? "" : $"-{part + 1:D3}";
@@ -52,7 +52,7 @@ namespace Dcs.Ipia.Rendering
         // kneeboard pages, so even a single very long description cannot be clipped.
 
 
-        private static List<byte[]> Render(JsonElement summary, JsonElement items, int page, int total)
+        private static List<byte[]> Render(JsonElement summary, JsonElement items, int page, int total, bool transparent)
         {
             using var stream = typeof(CompositeKneeboardRenderer).Assembly
                 .GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.ttf") ??
@@ -66,7 +66,7 @@ namespace Dcs.Ipia.Rendering
                 Lines: Wrap(item.GetProperty("text").GetString() ?? "", typeface))).ToArray();
             var pages = LayoutCards(cards);
             return pages.Select((slices, part) =>
-                RenderPage(summary, typeface, slices, page, total, part, pages.Count)).ToList();
+                RenderPage(summary, typeface, slices, page, total, part, pages.Count, transparent)).ToList();
         }
 
         private static List<List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)>> LayoutCards(
@@ -121,13 +121,13 @@ namespace Dcs.Ipia.Rendering
         private static byte[] RenderPage(
             JsonElement summary, SKTypeface typeface,
             List<(string Key, string Accent, string[] Lines, int X, int Y, int Height)> slices,
-            int page, int total, int part, int pageCount)
+            int page, int total, int part, int pageCount, bool transparent)
         {
             using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
                                 throw new InvalidDataException("Could not allocate kneeboard surface.");
             var canvas = surface.Canvas;
-            canvas.Clear(SKColor.Parse("#07111d"));
-            DrawBox(canvas, new SKRect(48, 48, 1152, 1552), 28, "#0a1629", "#2c4566", 3);
+            canvas.Clear(transparent ? SKColors.Transparent : SKColor.Parse("#07111d"));
+            DrawBox(canvas, new SKRect(48, 48, 1152, 1552), 28, transparent ? "#990a1629" : "#0a1629", "#2c4566", 3);
             DrawBox(canvas, new SKRect(48, 48, 1152, 168), 28, "#12253d");
             Write(canvas, typeface, summary.GetProperty("title").GetString() ?? "", 96, 118, 38, "#f4f8fb");
             Write(canvas, typeface, summary.GetProperty("kicker").GetString() ?? "", 96, 154, 18, "#63d7ff");
