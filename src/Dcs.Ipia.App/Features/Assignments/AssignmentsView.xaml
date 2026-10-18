@@ -58,6 +58,7 @@
                     <Button Content="Tune axis…" Click="TuneAxisClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Render kneeboard" Click="RenderClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Load authored labels…" Click="LoadAuthoredLabelsClicked" Style="{StaticResource ActionButton}"/>
+                    <Button Content="Search & replace labels…" Click="SearchReplaceLabelsClicked" Style="{StaticResource ActionButton}"/>
                 </pres:ActionBar>
 
     </StackPanel>

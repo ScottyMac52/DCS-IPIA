@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -771,6 +772,158 @@ namespace DcsIpia.Features.Assignments
             }
             RefreshDiagram();
             SelectedCallout.Text = "Callout label changed and staged.";
+        }
+
+
+        private void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context?.Working is null || DeviceChoice.SelectedItem is not UiLayerDiagram diagram)
+            {
+                SelectedCallout.Text = "Select a device first.";
+                return;
+            }
+
+            var chord = Layers.SelectedItem as string == BaseLayerName ? ""
+                : (Layers.SelectedItem as string ?? "").Replace(LayerSeparator, LayerSeparatorTrim, StringComparison.Ordinal);
+            var layer = CurrentLayer;
+            var snapshot = _context.Draft?.Snapshot ?? _context.Working.Assignments;
+
+            var candidates = new List<(HardwareGraphicControl Control, DraftAssignmentSlot Slot, string Current)>();
+            foreach (var control in diagram.Controls)
+            {
+                var slot = KneeboardDraftProjection.SlotForControl(_context.Working, diagram, control, layer, chord);
+                if (slot is null) continue;
+                var assignment = snapshot.FirstOrDefault(x =>
+                    DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
+                var current = _context.Labels.GetValueOrDefault(slot.Key) ?? assignment?.Command.Name ?? control.Label ?? "";
+                if (string.IsNullOrWhiteSpace(current)) continue;
+                candidates.Add((control, slot, current));
+            }
+
+            if (candidates.Count == 0)
+            {
+                SelectedCallout.Text = "No labels available to search on this device.";
+                return;
+            }
+
+            var findBox = new TextBox { MinWidth = 280, Margin = new Thickness(0, 4, 0, 8) };
+            var replaceBox = new TextBox { MinWidth = 280, Margin = new Thickness(0, 4, 0, 8) };
+            var regexCheck = new CheckBox { Content = "Use regular expressions", Margin = new Thickness(0, 0, 0, 8) };
+            var scopeCurrent = new RadioButton { Content = "Current control only", IsChecked = _selected is not null, Margin = new Thickness(0, 0, 12, 0) };
+            var scopeAll = new RadioButton { Content = "All controls on this device", IsChecked = _selected is null };
+            var scopePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            scopePanel.Children.Add(scopeCurrent);
+            scopePanel.Children.Add(scopeAll);
+
+            var previewList = new ListBox { MinHeight = 140, MaxHeight = 220, Margin = new Thickness(0, 4, 0, 8) };
+            var status = new TextBlock { Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap };
+
+            void RefreshPreview()
+            {
+                previewList.Items.Clear();
+                status.Text = "";
+                var find = findBox.Text ?? "";
+                if (string.IsNullOrEmpty(find))
+                {
+                    status.Text = "Enter a search term.";
+                    return;
+                }
+
+                var scopeControls = scopeCurrent.IsChecked == true && _selected is not null
+                    ? candidates.Where(c => c.Control.InputKey == _selected.InputKey).ToList()
+                    : candidates;
+
+                Regex? re = null;
+                if (regexCheck.IsChecked == true)
+                {
+                    try { re = new Regex(find, RegexOptions.None, TimeSpan.FromSeconds(1)); }
+                    catch (Exception ex)
+                    {
+                        status.Text = "Invalid regex: " + ex.Message;
+                        return;
+                    }
+                }
+
+                var matches = new List<(DraftAssignmentSlot Slot, string Old, string New)>();
+                foreach (var (control, slot, current) in scopeControls)
+                {
+                    string next;
+                    if (re is not null)
+                    {
+                        if (!re.IsMatch(current)) continue;
+                        next = re.Replace(current, replaceBox.Text ?? "");
+                    }
+                    else
+                    {
+                        if (!current.Contains(find, StringComparison.OrdinalIgnoreCase)) continue;
+                        next = current.Replace(find, replaceBox.Text ?? "", StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (next == current) continue;
+                    matches.Add((slot, current, next));
+                    previewList.Items.Add($"{control.Label}  →  {next}");
+                }
+
+                status.Text = matches.Count == 0
+                    ? "No matches."
+                    : $"{matches.Count} label{(matches.Count == 1 ? "" : "s")} will change.";
+                previewList.Tag = matches;
+            }
+
+            findBox.TextChanged += (_, _) => RefreshPreview();
+            replaceBox.TextChanged += (_, _) => RefreshPreview();
+            regexCheck.Checked += (_, _) => RefreshPreview();
+            regexCheck.Unchecked += (_, _) => RefreshPreview();
+            scopeCurrent.Checked += (_, _) => RefreshPreview();
+            scopeAll.Checked += (_, _) => RefreshPreview();
+
+            var apply = new Button { Content = "Apply", IsDefault = true, MinWidth = 80, Margin = new Thickness(0, 0, 8, 0) };
+            var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 80 };
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            buttons.Children.Add(apply);
+            buttons.Children.Add(cancel);
+
+            var content = new StackPanel { Margin = new Thickness(16) };
+            content.Children.Add(new TextBlock { Text = "Search for:" });
+            content.Children.Add(findBox);
+            content.Children.Add(new TextBlock { Text = "Replace with:" });
+            content.Children.Add(replaceBox);
+            content.Children.Add(regexCheck);
+            content.Children.Add(new TextBlock { Text = "Scope:" });
+            content.Children.Add(scopePanel);
+            content.Children.Add(new TextBlock { Text = "Preview:" });
+            content.Children.Add(previewList);
+            content.Children.Add(status);
+            content.Children.Add(buttons);
+
+            var dialog = new Window
+            {
+                Title = "Search & replace labels",
+                Owner = Window.GetWindow(this),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                ResizeMode = ResizeMode.NoResize,
+                ShowInTaskbar = false,
+                Content = content,
+                MinWidth = 420
+            };
+
+            apply.Click += (_, _) =>
+            {
+                if (previewList.Tag is not List<(DraftAssignmentSlot Slot, string Old, string New)> matches || matches.Count == 0)
+                {
+                    status.Text = "Nothing to apply.";
+                    return;
+                }
+                foreach (var (slot, _, next) in matches)
+                    _context.SetLabel(slot.Key, string.IsNullOrWhiteSpace(next) ? null : next);
+                dialog.DialogResult = true;
+            };
+
+            dialog.Loaded += (_, _) => { findBox.Focus(); RefreshPreview(); };
+            if (dialog.ShowDialog() != true) return;
+
+            RefreshDiagram();
+            SelectedCallout.Text = "Labels updated.";
         }
 
         private void LabelChanged(object sender, TextChangedEventArgs e)
