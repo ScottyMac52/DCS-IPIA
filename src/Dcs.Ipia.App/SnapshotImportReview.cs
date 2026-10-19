@@ -29,7 +29,7 @@ namespace DcsIpia.Presentation
                 Margin = new Thickness(0, 12, 0, 12), MaxHeight = 240 });
             content.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Text = hasSupported
                 ? "Import only the supported devices? Unsupported devices and their assignments, modifiers and device kneeboards will be removed from the imported copy. Assignments on supported devices that depend on removed modifiers will also be removed; they will not become Base assignments. Other supported assignments and command catalogs are retained."
-                : "No supported controllers would remain, so this snapshot cannot be imported into Free Edition. Cancel and choose a snapshot containing supported Thrustmaster controllers." });
+                : "No supported device profiles would remain, so this snapshot cannot be imported into Free Edition. Cancel and choose a snapshot containing supported Thrustmaster controllers." });
             content.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0),
                 Text = "The original snapshot file, existing modules and shared defaults remain unchanged. Cancel import saves nothing." });
             panel.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });

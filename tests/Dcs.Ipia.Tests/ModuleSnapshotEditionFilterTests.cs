@@ -141,6 +141,19 @@ namespace Dcs.Ipia.Tests
             Assert.All(saved.Assignments, assignment => Assert.Equal(MixedSnapshotFixture.Supported, assignment.Slot.ProfileId));
             Assert.DoesNotContain(UiLayerLuaProfileRenderer.Render(saved, MixedSnapshotFixture.Supported), "UI_SHIFT", StringComparison.Ordinal);
         }
+        /// <summary>The existing keyboard exception remains available even when no supported controller profile survives.</summary>
+        [Fact]
+        public void Keyboard_profiles_count_as_retained_supported_data()
+        {
+            var workspace = MixedSnapshotFixture.Create();
+            var unsupported = workspace.Configuration.Profiles.Single(p => p.Id == MixedSnapshotFixture.Unsupported);
+            var keyboard = new DeviceProfile(Guid.NewGuid(), "keyboard", null, "Keyboard", "Keyboard.diff.lua");
+            workspace = workspace with { Configuration = new(workspace.Configuration.Module, [unsupported, keyboard], [], [], workspace.Configuration.Provenance) };
+            var blocked = ModuleSnapshotEditionFilter.Unsupported(workspace, new());
+            Assert.Equal(unsupported, Assert.Single(blocked));
+            Assert.True(ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, blocked));
+            Assert.False(ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, workspace.Configuration.Profiles));
+        }
         /// <summary>Offline profiles follow the allowlist; connected conflicting native vendor evidence also requires review.</summary>
         [Fact]
         public void Review_matches_native_evidence_without_requiring_connected_hardware()

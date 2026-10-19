@@ -12,9 +12,9 @@ namespace Dcs.Ipia.Dcs
             IReadOnlyList<DetectedDcsDevice>? observed = null) => workspace.Configuration.Profiles.Where(profile =>
                 !IsKeyboard(profile) && (!policy.AllowsHardware(profile.DeviceId) || !policy.IsOwner && observed is not null &&
                     observed.Any(device => device.Connected && device.PhysicalGuid == DcsPhysicalIdentity.FromFileName(profile.SourceName) && !policy.AllowsDevice(device)))).ToArray();
-        /// <summary>Reports whether a supported controller survives removal; keyboard-only remnants cannot be imported by this conversion.</summary>
-        public static bool HasSupportedController(EditorWorkspaceSnapshot workspace, IReadOnlyList<DeviceProfile> unsupported) =>
-            workspace.Configuration.Profiles.Any(p => !IsKeyboard(p) && unsupported.All(x => x.Id != p.Id));
+        /// <summary>Reports whether any allowed profile survives removal, including the existing Free keyboard exception.</summary>
+        public static bool HasSupportedProfiles(EditorWorkspaceSnapshot workspace, IReadOnlyList<DeviceProfile> unsupported) =>
+            workspace.Configuration.Profiles.Any(p => unsupported.All(x => x.Id != p.Id));
         /// <summary>Validates the original, prunes only incompatible controllers, and verifies the resulting package before any write.</summary>
         public static ModuleBuildSnapshot KeepSupported(ModuleBuildSnapshot snapshot, EditionPolicy policy,
             IReadOnlyList<DetectedDcsDevice>? observed = null)
@@ -23,7 +23,7 @@ namespace Dcs.Ipia.Dcs
             var workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
             var unsupported = Unsupported(workspace, policy, observed);
             if (unsupported.Count == 0) return snapshot;
-            if (!HasSupportedController(workspace, unsupported)) throw new InvalidOperationException("No supported controllers would remain. The module snapshot was not imported.");
+            if (!HasSupportedProfiles(workspace, unsupported)) throw new InvalidOperationException("No supported device profiles would remain. The module snapshot was not imported.");
             var filtered = WorkspaceStructureEditor.RemoveDevicesForSnapshotImport(workspace, unsupported.Select(p => p.Id).ToHashSet());
             return ModuleSnapshotWorkflow.Freeze(filtered, snapshot.Version);
         }

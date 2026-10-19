@@ -433,7 +433,7 @@ namespace DcsIpia.Presentation
                 var unsupported = ModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
                 if (unsupported.Count > 0)
                 {
-                    if (!SnapshotImportReview.Show(this, unsupported, ModuleSnapshotEditionFilter.HasSupportedController(workspace, unsupported)))
+                    if (!SnapshotImportReview.Show(this, unsupported, ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, unsupported)))
                     { ImportStatus.Text = "Module snapshot import cancelled. No module data was saved."; return; }
                     ImportStatus.Text = "Verifying the supported-device-only snapshot…";
                     snapshot = await Task.Run(() => ModuleSnapshotEditionFilter.KeepSupported(snapshot, EditionAccess.Policy, observed));
