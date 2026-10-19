@@ -1,5 +1,8 @@
 # User hardware inventory (Feature 3)
 
+For the bundled right/left Sol-R grip layouts and AVA configuration, see
+[Sol-R grip on AVA](sol-r-ava.md).
+
 **Edition availability:** Free adoption requires verified Thrustmaster HID evidence and a reviewed catalog template for authoring. Previously verified units can remain selected offline. Other brands and generic definitions require licensed access; see [the edition guide](design/free-edition.md).
 
 Use **Hardware → Discover devices… / Rescan** from the main window, without opening a module. Review each unit's native name, physical instance GUID, product GUID, connection status, enumerated controls, unsupported-object explanations and artwork candidates. Select the units you want to adopt, give identical units distinct labels/roles, then choose **Save reviewed inventory**. Newly scanned units are never preselected. **Manage devices…** reopens saved units offline until a successful rescan.

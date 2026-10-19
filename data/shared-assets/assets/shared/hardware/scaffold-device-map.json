@@ -3,6 +3,22 @@
   "description": "Ordered pattern list: first case-insensitive substring match on the DCS profile filename (GUID stripped) wins. Base/grip combinations must use a specific pattern or an explicit override; a bare MOZA AB9 name resolves to the standalone base because its filename does not identify an attached grip. Never invent deviceIds outside the shared hardware manifest or its aliases.",
   "mappings": [
     {
+      "deviceId": "tm-sol-r-ava-r-pov",
+      "patterns": ["AVA [R] Sol-R"]
+    },
+    {
+      "deviceId": "tm-sol-r-ava-r-buttons",
+      "patterns": ["AVA [R] Sol-R"]
+    },
+    {
+      "deviceId": "tm-sol-r-ava-l-pov",
+      "patterns": ["AVA [L] Sol-R"]
+    },
+    {
+      "deviceId": "tm-sol-r-ava-l-buttons",
+      "patterns": ["AVA [L] Sol-R"]
+    },
+    {
       "deviceId": "winctrl-pto2",
       "patterns": ["WINCTRL CarrierAce PTO", "CarrierAce PTO", "WINCTRL PTO"]
     },

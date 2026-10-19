@@ -7,6 +7,7 @@ The current documented release baseline is **v1.1.1.0**. Read the [release notes
 | Task | Guide |
 | --- | --- |
 | Understand Free, Owner and planned Premium access | [Edition availability and activation](design/free-edition.md) |
+| Sol-R grip on AVA: right/left and POV/button layouts | [Bundled Sol-R hardware](sol-r-ava.md) |
 | Set up controllers and a Saved Games destination | [Hardware setup](hardware-onboarding.md), [inventory](hardware-inventory.md), [settings](ux/settings.md) |
 | Create or import a module | [New module](new-module-creation.md), [authoring and Saved Games import](module-authoring.md) |
 | Navigate the eight feature views | [Workspace navigation](design/module-workspace.md), [compact layout, Fit and preferences](design/compact-workspace.md) |

@@ -86,7 +86,7 @@ The app validates and generates native aircraft/UI Layer Lua, device and summary
 
 The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.md) is historical evidence against its named implementation baseline, not a current backlog. Migration issues #83 and #9 are closed. The [application completion record](docs/migration/application-completion.md) describes the delivered scope; legacy repository scaffolding/cutover is separate operational work. Current real-controller/DCS, upgrade/recovery, usability and distribution acceptance is tracked in [#245](https://github.com/ScottyMac52/DCS-IPIA/issues/245) and [distribution readiness](docs/distribution-readiness.md). Passing automated builds does not establish every controller’s in-game behavior.
 
-[Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses IPIA-owned draw.io tooling to verify all twelve published hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
+[Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses IPIA-owned draw.io tooling to verify all bundled hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
 
 ## Build
 

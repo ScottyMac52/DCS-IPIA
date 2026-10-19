@@ -119,6 +119,34 @@
       "drawio": "drawio/viper-tqs-mission-pack.drawio",
       "svg": "svg/viper-tqs-mission-pack.svg",
       "lua": "lua/viper-tqs-mission-pack.lua"
+    },
+    {
+      "id": "tm-sol-r-ava-r-pov",
+      "label": "TM Sol-R Grip on AVA [R] - POV enabled",
+      "drawio": "drawio/tm-sol-r-ava-r-pov.drawio",
+      "svg": "svg/tm-sol-r-ava-r-pov.svg",
+      "lua": "lua/tm-sol-r-ava-r-pov.lua"
+    },
+    {
+      "id": "tm-sol-r-ava-r-buttons",
+      "label": "TM Sol-R Grip on AVA [R] - POV disabled",
+      "drawio": "drawio/tm-sol-r-ava-r-buttons.drawio",
+      "svg": "svg/tm-sol-r-ava-r-buttons.svg",
+      "lua": "lua/tm-sol-r-ava-r-buttons.lua"
+    },
+    {
+      "id": "tm-sol-r-ava-l-pov",
+      "label": "TM Sol-R Grip on AVA [L] - POV enabled",
+      "drawio": "drawio/tm-sol-r-ava-l-pov.drawio",
+      "svg": "svg/tm-sol-r-ava-l-pov.svg",
+      "lua": "lua/tm-sol-r-ava-l-pov.lua"
+    },
+    {
+      "id": "tm-sol-r-ava-l-buttons",
+      "label": "TM Sol-R Grip on AVA [L] - POV disabled",
+      "drawio": "drawio/tm-sol-r-ava-l-buttons.drawio",
+      "svg": "svg/tm-sol-r-ava-l-buttons.svg",
+      "lua": "lua/tm-sol-r-ava-l-buttons.lua"
     }
   ]
 }

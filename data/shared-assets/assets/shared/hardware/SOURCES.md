@@ -17,3 +17,7 @@ Manufacturer product images are included for product identification and diagram 
 The TM Warthog Joystick, TM Warthog Throttle, and Cougar MFD draw.io artwork was redefined from the user-supplied Inkscape SVG templates documented in issue #103. The MFD source contains left and right examples; the shared definition uses one MFD because physical instances reuse the same canonical device ID.
 
 The F/A-18C Hornet Grip and AVA Base + F/A-18C Hornet Grip templates embed the 1290 × 1631 user-supplied annotated JPEG provided after issue #103. Its numbered button layout, eight-direction POV, axes, and blank function fields are the authoritative hardware reference for these two catalogs.
+
+## Sol-R grip on AVA
+
+The `tm-sol-r-ava-{r,l}-{buttons,pov}` diagrams are IPIA-authored schematic facsimiles, created on 2026-10-19 from the owner-supplied grip reference. They depict only the grip and are scoped to AVA. Original vector artwork is retained as `source/sol-r-grip-{front,side}-{r,l}.svg`; the draw.io files embed transparent PNG renders and editable callouts. Input numbering follows the official [Sol-R 3 AVA Add-On Grip manual](https://ts.thrustmaster.com/download/accessories/Manuals/SOL-R/Sol-R_3_AVA_Add-On_Grip_User_Manual.pdf), printed pages 15–16 and 23. No game-specific assignments or manufacturer photos are embedded.
