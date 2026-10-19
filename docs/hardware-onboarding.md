@@ -1,6 +1,8 @@
 # Hardware setup
 
-A fresh profile opens hardware setup after the main window is ready. Setup automatically scans attached controllers using the same capability discovery and inventory review used by **Hardware → Discover controllers**. No module is required. New units are unselected until you choose them.
+**Edition availability:** Free setup accepts verified Thrustmaster units; previously verified units remain usable offline. The generic/unbundled-controller exercises below require Owner access. See [the edition guide](design/free-edition.md).
+
+A fresh profile opens hardware setup after the main window is ready. Setup automatically scans attached controllers using the same capability discovery and inventory review used by **Hardware → Discover devices… / Rescan**. No module is required. New units are unselected until you choose them.
 
 1. Review the Saved Games DCS destination. Browse to an existing folder, or leave it empty and explicitly choose offline setup. The wizard never creates destination folders or deploys DCS files.
 2. Select controllers and edit distinct instance labels and roles. Inspect actual buttons, axes and POV controls and any enumeration errors. Unbundled units default to generic support. Compatible bundled mappings are optional preferences; adding a unit to a module still requires an explicit artwork choice and uses its own physical GUID.
@@ -10,7 +12,7 @@ A fresh profile opens hardware setup after the main window is ready. Setup autom
 
 Setup is offered automatically once per profile. The offer is remembered independently of completion, so **Skip for now** or closing the wizard suppresses later automatic popups; setup remains available on demand. Skipping, closing, cancelling a scan or a discovery failure does not adopt devices or mark setup complete. The main window remains usable. Finish without controllers or a destination only by explicitly selecting offline setup. Per-device enumeration failures are shown; units without supported control evidence cannot be newly adopted.
 
-Use **Settings → Resume / rerun hardware setup** to review the current profile again. **Data → Test profiles and reset → Rerun setup** opens the same wizard. Rerun preserves completion and saved data and begins a fresh scan. Disconnected selected units retain their labels and definitions. Changed capabilities remain pinned unless **Adopt changed controls** is explicitly checked. Rescanning prompts before discarding edited inventory rows. Cancelling or closing a rerun preserves the previous confirmed setup and does not make it reopen automatically.
+Use **Settings → Resume / rerun hardware setup** to review the current profile again. **Data & recovery → Test profiles and reset… → Rerun setup** opens the same wizard. Rerun preserves completion and saved data and begins a fresh scan. Disconnected selected units retain their labels and definitions. Changed capabilities remain pinned unless **Adopt changed controls** is explicitly checked. Rescanning prompts before discarding edited inventory rows. Cancelling or closing a rerun preserves the previous confirmed setup and does not make it reopen automatically.
 
 ## Persistence and compatibility
 

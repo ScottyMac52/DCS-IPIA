@@ -1,6 +1,6 @@
 # Phase 1 Workstream 1: repository inventory and ownership map
 
-This is the historical 2026-09-22 repository audit. The [Step 4 capability inventory](dcs-common-capabilities.md) records the later pinned Common tree, current IPIA evidence, bundled asset drift and remaining migration gates; it does not replace these historical repository/release pins.
+This is the historical 2026-09-22 repository audit. The [Step 4 capability inventory](dcs-common-capabilities.md) records the later pinned Common tree, IPIA evidence at its named implementation baseline, bundled asset drift and remaining migration gates; it does not replace these historical repository/release pins.
 
 Audit date: 2026-09-22  
 Roadmap issue: [#10](https://github.com/ScottyMac52/DCS-IPIA/issues/10)  

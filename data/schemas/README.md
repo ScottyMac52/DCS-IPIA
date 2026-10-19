@@ -1,2 +1,3 @@
 # Schemas
-Versioned canonical snapshot schemas will live here. Schema v1 is a Phase 2 deliverable.
+
+Version contracts are implemented by the domain models and serializers, rather than standalone JSON Schema files in this directory. Configuration snapshots, editor payloads, portable module snapshots, backup manifests and appearance settings have independent versions. SQLite currently uses migration version 10. See [architecture](../../docs/architecture/README.md), [snapshot serialization](../../src/Dcs.Ipia.Dcs/CanonicalSnapshotSerializer.cs), [portable modules](../../src/Dcs.Ipia.Dcs/ModuleSnapshotWorkflow.cs) and [database operations](../../docs/operations/database.md). Historical schema-v1 design records are retained under `docs/architecture`.

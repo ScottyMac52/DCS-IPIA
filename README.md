@@ -12,7 +12,7 @@ See the [Free Edition and owner activation guide](docs/design/free-edition.md), 
 
 ## Compact workspace interactive mockup
 
-Explore the proposed top feature tabs and space-efficient workspace in the
+The shipped workspace uses top feature tabs, a split Assignments editor and persistent Fit/zoom/layout preferences. See [workspace behavior and display acceptance](docs/design/compact-workspace.md). Explore the original design direction in the
 [whole-workspace interactive mockup](docs/design/workspace-layout-concepts/workspace-interactive.html).
 [Download the mockup](https://github.com/ScottyMac52/DCS-IPIA/raw/refs/heads/main/docs/design/workspace-layout-concepts/workspace-interactive.html)
 and open the downloaded HTML file in Edge, Chrome, or Firefox; GitHub's source
@@ -53,7 +53,9 @@ diagnostics. A build failure may leave no test or coverage files; the reporting
 summary then explicitly identifies unavailable data. Cancelled runs cannot
 guarantee publication. Reports are attached to Actions runs, not GitHub Pages.
 
-DCS Input Profile Importer Application is the future data-driven authoring and build boundary for DCS profiles, hardware, UI Layer assignments, documentation, kneeboards, and OvGME packages. Existing DCS-Common and consumer pipelines remain authoritative until each module passes equivalence and receives explicit approval. The current published installer predates the database-backed assignment editor and simplified navigation; use current `main` to review those changes.
+DCS Input Profile Importer Application authors and builds DCS profiles, hardware layouts, UI Layer assignments, documentation, kneeboards and OvGME packages from local SQLite state and portable snapshots. The published installer includes the database-backed editor and compact workspace. Existing consumer repositories and historical releases remain preserved; replacing a particular consumer workflow requires its own measured review.
+
+Start with the [documentation index](docs/README.md), [edition availability](docs/design/free-edition.md), [release notes](release/RELEASE-NOTES.md) and [tested-release process](docs/application-release.md). The current documented release baseline is **v1.1.1.0**; [GitHub Releases](https://github.com/ScottyMac52/DCS-IPIA/releases) lists published versions. `main` can include later unreleased changes.
 
 ## Visual Studio
 
@@ -65,24 +67,24 @@ On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Re
 
 - Choose **New module** to author a module using internal hardware and a pinned shared-default revision, or **Import module sources** to read a committed consumer checkout or Saved Games profiles. Shared assets ship with IPIA; the normal workflow does not require a DCS-Common checkout. Imported repositories remain read-only.
 - Select a saved module and **Open module** to reopen SQLite state. Devices, Modifiers, Assignments, Commands and Pages edit one module, including its isolated UI Layer scope. Shared defaults have their own versioned workspace.
-- Load command catalogs from IPI JSON or DCS HTML, edit assignments, labels, axis tuning and summary cards, then **Save to database** or **Discard draft**. The Kneeboard tab generates pages from saved state; draft preview shows current staged edits.
+- Load command catalogs from IPI JSON or DCS HTML, edit assignments, labels, axis tuning and summary cards, then **Save to database** or **Discard draft**. The Kneeboards tab generates pages from saved state; draft preview shows current staged edits.
 - Choose a **Saved Games DCS Folder** with **Browse…**, select a saved module and use **Fly Now!** to install its aircraft/UI Layer profiles and kneeboards directly. One module remains active until **Clear**, beside **Restore module snapshot…**, removes its exact copied files. See [Fly Now and Clear](docs/fly-now.md).
 - Enter a package version and **Validate saved module**, **Export module snapshot…** or **Build OvGME package…**. **Restore module snapshot…** inserts verified exported state without replacing an existing module identity. See [module authoring](docs/module-authoring.md) and [new-module creation](docs/new-module-creation.md).
 - Diagnostics, Sources and read-only Import details expose errors and source evidence.
 
 ## Interactive training
 
-Choose **Help → Training / Guided workflows…** to watch the real application
+With an authenticated Owner license, choose **Help → Training / Guided workflows…** to watch the real application
 create a module from scratch or import a supplied DCS Saved Games configuration.
 Pause to read, advance one step, restart, or adjust playback speed. Sample data
 and outputs use an isolated temporary database; your configuration stays unchanged.
-See [interactive training](docs/interactive-training.md).
+Free currently shows a Premium/TBA explanation instead of running the lessons. Making training free is proposed, not implemented. See [interactive training](docs/interactive-training.md).
 
 ## Migration and OvGME status
 
 The app validates and generates native aircraft/UI Layer Lua, device and summary PNGs, and a deterministic consumer-layout OvGME ZIP from frozen saved inputs. Portable snapshots preserve editor state and pinned assets across empty-database restore. Every package is independently verified before writing its ZIP and separate checksum.
 
-The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.md) records all remaining Common authored tooling, documentation, consumer scaffolding and Complete-release gaps. Snapshot rebuild success does not establish full published-consumer parity or manual DCS success. [#83](https://github.com/ScottyMac52/DCS-IPIA/issues/83) and [roadmap #9](https://github.com/ScottyMac52/DCS-IPIA/issues/9) retain those acceptance gates. Existing consumers remain authoritative until their measured parity and rollback decisions are approved.
+The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.md) is historical evidence against its named implementation baseline, not a current backlog. Migration issues #83 and #9 are closed. The [application completion record](docs/migration/application-completion.md) describes the delivered scope; legacy repository scaffolding/cutover is separate operational work. Current real-controller/DCS, upgrade/recovery, usability and distribution acceptance is tracked in [#245](https://github.com/ScottyMac52/DCS-IPIA/issues/245) and [distribution readiness](docs/distribution-readiness.md). Passing automated builds does not establish every controller’s in-game behavior.
 
 [Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses IPIA-owned draw.io tooling to verify all twelve published hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
 

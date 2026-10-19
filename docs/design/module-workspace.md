@@ -1,22 +1,22 @@
 # DCS-IPIA module workspace navigation
 
-Navigation simplification: [#48](https://github.com/ScottyMac52/DCS-IPIA/issues/48). The module chooser opens one module workspace directly, with Assignments as its default destination.
+Select a saved module in the Modules window and choose **Open module**. The workspace opens directly on Assignments. The implemented compact shell uses horizontal feature navigation, cached views and shared Save/Discard and feature actions. See [compact layout and display acceptance](compact-workspace.md).
 
-## Navigation
-
-| Location | User action |
+| Feature | User action |
 | --- | --- |
-| Module chooser | Select a saved module and **Open module**, or **Import module sources**. Settings and theme are available here. |
-| Assignments | Select device, modifier layer, and scope (**Module controls** or **Module UI Layer**), then edit a physical control with the command catalog and inspector. |
-| Kneeboard | Inspect existing rendered device pages. The editor also provides a contextual rendered kneeboard action. |
-| Diagnostics | Review import and graphic issues; opens automatically when an import has errors. |
-| Sources | Inspect committed source provenance. |
-| Import details | Expand the read-only Profiles and Bindings lists in the workspace header when needed. |
+| Devices | Add/remove or rebind physical units, edit device labels/headings, review axis defaults and apply a drawing. |
+| Modifiers | Maintain aircraft and module UI Layer Hold/Toggle activators. |
+| Assignments | Select device, scope and modifier layer; search commands on the left; assign by button or drag/drop to the right-hand drawing. Right-click callouts to change labels, clear assignments or tune axes. Modifier activators are reserved. |
+| Input Test | Freeze current edits or saved state and test the selected device; inspect events and the modifier legend. Licensed access is required. |
+| Commands | Load JSON/DCS HTML or maintain the aircraft command catalog. |
+| Pages | Author device and summary pages, reorder cards and preview staged page values. Summary/card fields appear only when applicable. |
+| Kneeboards | Select and fit a generated saved-state device or summary page. |
+| Documentation | Review/import/remove module integration instructions. |
 
-The module chooser does not repeat the workspace destinations. Import opens the workspace immediately; saved modules reopen from SQLite. Only a scope change resets the command Category filter to All. Other selection and draft changes preserve Category.
+Use **Build & export** for Validate, snapshot, documentation, Complete release and OvGME actions. Save or discard pending edits first; output status remains visible in the footer. Sources and read-only import details remain available on demand; import diagnostics remain visible when supplied. They are not additional feature tabs.
 
-The controller canvas uses shared hardware geometry. Repeated MFD instances remain distinct. Assignment drafts are saved explicitly to the local database; source repositories are read-only.
+Fit includes the complete drawing and callouts. Manual zoom keeps its scale when resizing; return to Fit for automatic fitting. Splitter/disclosure and zoom/Fit preferences are stored in the Windows-user-wide layout file. Training does not read or write that file. See the compact layout guide for reset instructions and the pending VM/DPI matrix.
 
-## Remaining work
+Module controls and module-owned UI Layer assignments remain separate. Repeated physical devices retain distinct identities. Only a scope change resets the command Category filter to All; other valid selections and draft changes preserve it. **Save to database** commits the draft and **Discard draft** restores saved state. Source repositories remain read-only.
 
-The detailed plan and acceptance criteria for further navigation polish, including direct links from diagnostics to controls and richer empty states, are in #48. Validation and package building remain unavailable until their application contracts are connected. Do not expose inactive destinations as a substitute for those workflows.
+Free limits edits and outputs to supported workspaces; existing reserved/mixed modules remain read-only. [Edition policy](free-edition.md) applies regardless of navigation layout. Historical navigation issue #48 is closed; remaining keyboard/high-contrast/display acceptance is tracked in #191, with compact-workspace acceptance also recorded in #264.

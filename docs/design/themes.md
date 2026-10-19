@@ -2,7 +2,7 @@
 
 The workspace loads one of four built-in palettes: `Themes/Light.xaml` (Modern Light), `Themes/Dark.xaml` (Modern Dark), `Themes/NavyAmber.xaml` (Navy/Amber), or `Themes/CockpitGreen.xaml` (Cockpit Green) through the application resource dictionary. All palettes define the same semantic brush keys (`WindowBackgroundBrush`, `PrimaryTextBrush`, `SurfaceBrush`, `AccentTextBrush`, etc.). Shared reusable component styles (`Card`, `Hint`, `NavigationItem`, `SampleControl`) live in `Themes/Styles.xaml`. `MainWindow.xaml` refers to them through `DynamicResource` and contains no color literals.
 
-Both the main-window picker and Settings apply a selected skin immediately and persists the appearance preference for the selected user-data profile. Appearance preferences do not enter the module database or immutable snapshots.
+With Owner access, the main-window picker and Settings apply a selected skin immediately and persist its identity in the profile SQLite preferences. Custom appearance values/images live in the profile appearance folder. Neither becomes part of a per-module portable snapshot. Free uses a fixed Navy/Amber preset and retains saved preferences without applying customization.
 
 To add a built-in theme, append its identity to `AppearanceTheme`, create a palette dictionary with the same name, keys and appropriate contrast, then expose it in both pickers and the resource-contract check. Retain the existing enum order/Light and Dark names for preference compatibility. Replacing the merged palette dictionary at runtime updates the view because the brush and style references are dynamic. The page layout and application services do not change.
 
@@ -20,7 +20,7 @@ The Light/Dark persisted identities and colors remain compatible; their UI names
 
 Run `python3 scripts/check_theme_resources.py` for palette parity and unresolved dynamic resources throughout application XAML; the checker also rejects fixed brush references in shared theme dictionaries. Existing Windows smoke captures each skin in the custom-mapping-preview CI artifact. Manual keyboard/high-contrast/scaling acceptance remains in #191. Generated kneeboards, assignment/modifier legend colors and immutable snapshots are independent of the application palette.
 
-Branding/icon assets, custom accents and imported palettes remain follow-up work in #246. No arbitrary XAML skin loading is introduced.
+Flight Patch branding/icons, custom accents and imported palettes are implemented; see [branding provenance](../../src/Dcs.Ipia.App/Branding/PROVENANCE.md) and [appearance customization](appearance-editor.md). No arbitrary XAML skin loading is introduced.
 
 ## Main window and menus
 
@@ -36,7 +36,7 @@ Primitives.xaml and Collections.xaml provide the shared styles for all controls 
 
 ApplicationTheme registers window-loaded handling before any UI is shown, applying live root brushes and Windows 11 caption settings to every app-owned window, including temporary label/preview/confirmation windows. Explicit per-column styles are preserved; default generated table checkboxes remain display-only until editing. Dynamic assignment callouts and drag labels use palette brushes; authored graphics, exported kneeboards and live modifier/legend colors retain their independent meaning.
 
-ThemeMessageBox preserves explicit confirmation defaults and return results with app-owned modal dialogs. Closing a Yes/No prompt returns No; Cancel remains Cancel. An OS message box is retained only for bootstrap/logging failures before WPF resources exist. Windows file/folder/save pickers remain operating-system dialogs and follow Windows appearance.
+ThemeMessageBox preserves explicit confirmation defaults and return results with app-owned modal dialogs. Closing a Yes/No prompt returns No; Cancel remains Cancel. An OS message box is retained only for bootstrap/logging failures before WPF resources exist. Open/save/folder browsing uses the app-owned themed browser. Bootstrap dialogs and other operating-system surfaces follow Windows appearance.
 
 ApplicationThemeSmoke keeps real axis tuning, command usage, support report, help and settings windows open while switching all skins. It checks shared rendered collections, committing a table edit, generated checkbox styling, keyboard slider changes, scrolling, validation colors and four confirmation button/result combinations. Existing hardware/drawing/recovery/training smoke continues to cover their real workflows. Resource checks reject new fixed XAML colors, direct unthemed message boxes and missing shared control styles.
 

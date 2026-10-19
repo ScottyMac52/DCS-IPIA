@@ -1,5 +1,7 @@
 # Live input testing (first version)
 
+**Edition availability:** live input testing requires authenticated Owner access in the current release. Free blocks Start and native acquisition; customer Premium availability/pricing is TBA. See [the edition guide](design/free-edition.md).
+
 Open a saved module's **Input tester** workspace view. Select **Current edits** or **Saved profile**, then click **Start test**. IPIA generates the same Lua payload used by export and freezes it for the session. Pending assignments are included only in Current edits. Stop/Start after editing to capture a fresh payload. Testing never saves edits or installs a package.
 
 Select the device you want to test, then operate that controller. Feedback is filtered by its exact physical GUID; inputs and idle axis noise from other controllers are hidden. Other controllers and keyboard modifiers remain sampled for cross-device Hold/Toggle chords. Changing the selected device clears the prior device's log and axis highlights. An unresolved device selection produces no input feedback.

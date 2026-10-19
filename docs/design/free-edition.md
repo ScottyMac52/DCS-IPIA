@@ -1,6 +1,6 @@
 # Free Edition and private owner activation
 
-The initial release is Free. Premium availability and pricing are **TBA**. No payment is accepted and there is no customer subscription/activation service in this change. The commercial roadmap is #252; the launch issue is #253. Ownership, commercial terms and distribution review remain release prerequisites. This change does not replace MIT notices or change repository visibility; previously published MIT copies retain their permissions.
+The initial release is Free. Premium availability and pricing are **TBA**. No payment is accepted and there is no customer subscription/activation service in this change. The commercial roadmap is #252; launch issue #253 is closed following merged PR #254. Ownership, commercial terms and distribution review remain release prerequisites. This change does not replace MIT notices or change repository visibility; previously published MIT copies retain their permissions.
 
 ## Free release
 
@@ -8,9 +8,9 @@ Free provides the reviewed Thrustmaster catalog: Cougar MFD, TPR, Warthog thrott
 
 The fixed Flight Patch/Navy-Amber preset uses Scott's supplied Tomcat photograph at 20% requested image opacity, 10% theme blending, 35% panel opacity and 65% control opacity. Contrast protection may soften it further; Windows high contrast suppresses the photograph and decorative overrides. The photo is embedded and works without the original file. A second bundled background can be added through a future reviewed preset change; Free users cannot import/change the image or preset.
 
-Theme selection, customization and reset are disabled and direct appearance-editor construction is rejected. Previously saved appearance files are retained untouched for Owner. Live input testing is blocked both at the start handler and native acquisition boundary. Interactive training currently uses generic hardware and input testing, so Free shows an explicit Premium/TBA explanation instead of running that scenario.
+Theme selection, customization and reset are disabled and direct appearance-editor construction is rejected. Previously saved appearance files are retained untouched for Owner. Live input testing is blocked both at the start handler and native acquisition boundary. Interactive training currently uses generic hardware and input testing, so Free shows an explicit Premium/TBA explanation instead of running either lesson. Making the isolated training demonstrations free is proposed, not implemented.
 
-Normal authoring, save, build, export and deployment remain available for supported workspaces. Unsupported/mixed workspaces are retained and displayed read-only; authoring/output operations reject reserved profiles. Hardware selectors filter reserved templates, and connected vendor checks reject incompatible physical units. Shared-default output resolves all profiles against the allowed catalog. Backup/recovery and clearing an existing deployment remain available. Free Saved Games imports start with an empty UI Layer baseline, avoiding inherited personal/non-Thrustmaster profiles.
+Normal authoring, save, build, export and deployment remain available for supported workspaces. Unsupported/mixed workspaces are retained and displayed read-only; authoring/output operations reject reserved profiles. Imported custom drawings do not independently unlock reserved hardware: a compatible drawing on an allowed catalog identity retains that hardware’s edition rules. Hardware selectors filter reserved templates, and connected vendor checks reject incompatible physical units. Shared-default output resolves all profiles against the allowed catalog. Backup/recovery and clearing an existing deployment remain available. Free Saved Games imports start with an empty UI Layer baseline, avoiding inherited personal/non-Thrustmaster profiles.
 
 ## Owner entitlement
 

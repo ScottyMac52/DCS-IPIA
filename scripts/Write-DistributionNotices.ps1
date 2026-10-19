@@ -16,6 +16,7 @@ $copies = @{
     'src/Dcs.Ipia.Rendering/Fonts/DejaVuSans-IPIA.LICENSE.txt' = 'DejaVuSans-IPIA.LICENSE.txt'
     'src/Dcs.Ipia.Rendering/Fonts/PROVENANCE.md' = 'font-PROVENANCE.md'
     'docs/distribution-readiness.md' = 'distribution-readiness.md'
+    'docs/release-acceptance.md' = 'release-acceptance.md'
     'docs/logging.md' = 'logging.md'
     'docs/distribution-review.md' = 'distribution-review.md'
     'docs/distribution-artwork-review.json' = 'distribution-artwork-review.json'

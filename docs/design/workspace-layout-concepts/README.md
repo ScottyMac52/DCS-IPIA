@@ -1,5 +1,7 @@
 # Compact module workspace — concept references
 
+The compact shell, split Assignments editor and layout persistence were delivered by merged PR #265. Read [current behavior and acceptance](../compact-workspace.md); these prototypes retain the original design exploration.
+
 ## Whole-workspace interactive mockup
 
 [Open the mockup source](workspace-interactive.html) or
