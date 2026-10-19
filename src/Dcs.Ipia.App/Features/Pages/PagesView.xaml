@@ -53,7 +53,7 @@
                 <TextBlock Text="Order" Style="{StaticResource AppLabel}"/>
                 <TextBox x:Name="PageOrder" Style="{StaticResource AppTextBox}" Margin="0,0,0,8"/>
 
-                <GroupBox x:Name="SummaryGroup" Header="Summary cards — two columns, up to 14 cards" Padding="8" Margin="0,8,0,0" IsEnabled="False">
+                <GroupBox x:Name="SummaryGroup" Header="Summary cards — two columns, up to 14 cards" Padding="8" Margin="0,8,0,0" IsEnabled="False" Visibility="Collapsed">
                     <StackPanel>
                         <AdornerDecorator>
                             <ListBox x:Name="SummaryCards" DisplayMemberPath="Key" Height="140" MinHeight="120" MaxHeight="560"
