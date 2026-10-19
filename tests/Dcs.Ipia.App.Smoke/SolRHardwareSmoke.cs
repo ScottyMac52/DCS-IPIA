@@ -18,6 +18,7 @@ namespace Dcs.Ipia.App.Smoke
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!
                 .Where(x => x.DeviceId.StartsWith("tm-sol-r-ava-", StringComparison.Ordinal)).ToArray();
             if (hardware.Length != 4) throw new InvalidOperationException("The installed catalog must ship four Sol-R on AVA layouts.");
+            new EditionPolicy().RequireHardware(hardware.Select(x => x.DeviceId));
             foreach (var layout in hardware)
             {
                 if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != 32 ||
