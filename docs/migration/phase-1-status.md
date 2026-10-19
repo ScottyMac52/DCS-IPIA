@@ -1,5 +1,7 @@
 # Phase 1 status and go/no-go record
 
+**Historical contract/baseline:** this document records the original versioned slice, not the current implementation backlog. Later editor, persistence and output features are summarized in [the documentation index](../README.md). Original schema names, pins and evidence below are retained.
+
 The first implementation slice establishes the executable contracts required to measure the Huey migration:
 
 - normalized SQLite migration v2 and transactional aggregate replacement;

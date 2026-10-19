@@ -1,5 +1,7 @@
 # Personal appearance and background previews
 
+**Edition availability:** customization requires authenticated Owner access. Free uses its fixed photographic Navy/Amber preset and preserves saved customization for later licensed use. See [the edition guide](free-edition.md).
+
 Open **Settings → Customize appearance**. Choose a local JPG/PNG and adjust image opacity, fill/fit, horizontal/vertical alignment, theme blending, panel opacity and independent control opacity. The open application windows preview changes immediately. **Apply** commits the accepted appearance. **Cancel**, Escape or closing the editor restores the last saved appearance. A failed Apply restores the accepted appearance and leaves the editor open with an actionable status so you can retry.
 
 Skin choice in Settings/the main menu retains its existing immediate-save behavior. The advanced editor works with that selected skin. **Clear customization** previews removal of the image, accent and palette while keeping the chosen built-in skin; Apply confirms it. Settings' **Restore default appearance** clears custom appearance and returns to Modern Light. Assignment/drop and Saved Games preferences are independent.
@@ -12,7 +14,7 @@ Requested image opacity is 0–30%. Theme blending mixes the photograph toward t
 
 Readability protection may reduce effective image opacity or increase panel/control opacity. It conservatively tests both black/white photographic extrema against the primary/secondary/accent/error text colors and requires at least 4.5:1 for decoration compositing whenever the base colors support it. Imported palettes must independently meet 4.5:1 for documented text/background pairs. Windows high contrast suppresses image decoration and custom palette/accent overrides; it does not erase saved choices. The full real-Windows high-contrast/mixed-DPI matrix remains in #191.
 
-Flight Patch retains its identity colors. This customization paints app-owned window client areas and shared surfaces; authored source drawings, input-test modifier/legend colors, module data and exported kneeboards remain independent. Operating-system dialogs follow Windows appearance.
+Flight Patch retains its identity colors. This customization paints app-owned window client areas and shared surfaces; authored source drawings, input-test modifier/legend colors, module data and exported kneeboards remain independent. App-owned open/save/folder browsers follow the application theme; operating-system surfaces follow Windows appearance.
 
 ## Accents and imported palettes
 
@@ -28,7 +30,7 @@ Text/background pairs: primary and secondary text on the window and panels; acce
 
 Full profile backup/restore already includes this tree; automated coverage now verifies settings and PNG bytes survive an actual verified SQLite profile backup/restore. Profiles remain isolated. Missing/tampered/oversized images fall back to the built-in background and surface a diagnostic. Malformed/unsupported preferences fall back without rewriting the original evidence. Reset or choosing the image again repairs the supported cases.
 
-Regression coverage: `AppearanceValidationTests`, `FileAppearanceStoreTests` and the full-backup test. Windows `AppearanceEditorSmoke` exercises all skins, cross-window live preview, malformed accent rejection, Apply/Cancel/window-close rollback, original-file deletion, persistence/reopen, palette import and failed-save rollback. Control-opacity smoke samples rendered text-field pixels at opaque/translucent settings, checks opaque text/borders, focus, selected/disabled states and popup bases, then verifies Apply/reopen and Cancel/close rollback in all four skins. Synthetic background screenshots are included in the standard CI visual artifact; user photos are not bundled in this PR.
+Regression coverage: `AppearanceValidationTests`, `FileAppearanceStoreTests` and the full-backup test. Windows `AppearanceEditorSmoke` exercises all skins, cross-window live preview, malformed accent rejection, Apply/Cancel/window-close rollback, original-file deletion, persistence/reopen, palette import and failed-save rollback. Control-opacity smoke samples rendered text-field pixels at opaque/translucent settings, checks opaque text/borders, focus, selected/disabled states and popup bases, then verifies Apply/reopen and Cancel/close rollback in all four skins. Synthetic background screenshots are included in the standard CI visual artifact. The shipped Free preset separately includes the credited Tomcat photograph; private customization images are not added to the repository.
 
 ## Window and workspace backgrounds
 

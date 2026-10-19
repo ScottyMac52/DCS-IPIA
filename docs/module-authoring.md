@@ -1,12 +1,14 @@
 # Author commands and pages
 
+**Edition availability:** Free supports authoring/output for reviewed Thrustmaster workspaces. Reserved/mixed existing modules stay read-only; mixed snapshots offer reviewed removal before import. The examples involving MOZA/generic/custom hardware or live testing describe licensed behavior. See [the edition guide](design/free-edition.md).
+
 Open a saved module and choose **Commands** to add aircraft commands. Enter the exact DCS command code, a display name, category and key/button or axis type. **Stage command** updates the current draft and assignment palette. Command codes stay fixed after creation. Assigned commands cannot be removed or switched between key and axis until their assignments are cleared; unmapped imported bindings also protect their command.
 
 Name and category edits retain labels, axis tuning, modifier chords, removed history and the module-owned UI Layer. The shared default catalog is edited separately.
 
 Choose **Pages** to author kneeboards. **Add missing device pages** supplies one combined page for every pinned device, including inherited UI Layer devices. Select a device page to change its output name (without .png), heading, subtitle and order. Its hardware geometry remains pinned; MFD category captions remain editable in Devices. **Remove page** deletes any selected page, including device pages and old orphans, without deleting the device or its assignments. Use **Add missing device pages** to recreate a missing device page when needed.
 
-For an overview, choose **Summary**, enter a safe output name, heading, subtitle and order, then add one to fourteen cards. Each card has a heading, description and palette accent. Cards render in listed order, in the existing two-column layout. Drag a card row onto the upper or lower half of another row to insert before or after it, or drop below the rows to move it to the end. A successful move renumbers card headings `01`, `02`, … in list order, keeps the moved card selected, and preserves descriptions, accents and per-card metadata. A normal click still selects for editing; a cancelled, same-position or foreign-list drag makes no change. Reordering changes the form: use **Preview draft**, then **Stage page** and **Save to database** to keep the result. Edit or remove summary pages as needed.
+For an overview, choose **Summary**, enter a safe output name, heading, subtitle and order, then add one to fourteen cards. The summary editor appears only for summary pages; card fields appear after selecting a card. Long descriptions expand vertically and overflow paginates instead of truncating. Automatic overview generation groups up to fourteen device cards per authored summary page; rendered output can span additional pages. Each card has a heading, description and palette accent. Cards render in listed order, in the existing two-column layout. Drag a card row onto the upper or lower half of another row to insert before or after it, or drop below the rows to move it to the end. A successful move renumbers card headings `01`, `02`, … in list order, keeps the moved card selected, and preserves descriptions, accents and per-card metadata. A normal click still selects for editing; a cancelled, same-position or foreign-list drag makes no change. Reordering changes the form: use **Preview draft**, then **Stage page** and **Save to database** to keep the result. Edit or remove summary pages as needed.
 
 Choose **Generate Summary** beside **Add missing device pages** to append a new overview of all current device pages, including pages without a device mapping. Each card shows the device page's title and its current page number. Existing pages and summaries remain unchanged; output names are chosen without collisions. More than fourteen device pages produce additional summary pages so every device page is included. Generated summaries can be edited, saved or discarded like any other page; generate another summary after changing the device pages to refresh the overview.
 
@@ -16,8 +18,14 @@ Removing a device's final Module/UI Layer membership removes its combined pages,
 
 Use **Save to database** to persist all staged command, page, device, modifier, assignment and label changes together. **Discard draft** restores the last saved workspace. Reopen a module to load these definitions from SQLite; source repositories are not required.
 
-This is the second Step 3 slice under #83. The final creation-to-validation/preview/immutable-snapshot/restore/OvGME workflow and user acceptance remain separate requirements.
+The creation-to-validation, preview, snapshot/restore and OvGME workflows below are implemented. Historical migration issues #83 and #9 are closed; real-controller/DCS and release acceptance is tracked in [#245](https://github.com/ScottyMac52/DCS-IPIA/issues/245).
 
+
+## Assignment labels and search/replace
+
+In Assignments, choose the device, aircraft/UI Layer scope and modifier layer. Use **Search & replace labels…** for the current control or all controls on that device in the selected scope/chord. Literal searches are case-insensitive and do not interpret wildcard characters. **Use regular expressions** enables .NET regex syntax; it is case-sensitive unless the expression requests otherwise (for example `(?i)`). Standard regex replacement groups are available.
+
+Review the live preview, then **Apply** to stage changed labels. Apply rebuilds the preview before using it. Invalid expressions/replacements or a one-second regex timeout disable application until corrected; no partial preview is applied. Cancel leaves labels unchanged. **Save to database** commits staged labels and **Discard draft** restores saved values. This changes displayed labels, not command codes or physical input identities. Right-click an individual callout for **Change label**, **Clear assignment**, or **Tune axis** when applicable. Modifier activators cannot receive ordinary assignments until changed or removed.
 
 ## Load aircraft commands from IPI JSON or DCS HTML
 
@@ -32,7 +40,7 @@ The module snapshot retains selected file basenames and SHA-256 addressed origin
 
 ## Validate, export, restore and build
 
-Save pending changes, enter a package version, and use **Validate saved module**. Validation checks the frozen editor data, physical binding review, aircraft/UI command and modifier references for newly created modules, pinned assets, complete device and summary pages, and the generated OvGME archive. Failures appear beside the output actions. The Kneeboard tab previews the saved device/summary pages; Commands and Pages also retain their draft authoring previews.
+Save pending changes, enter a package version, and use **Validate saved module**. Validation checks the frozen editor data, physical binding review, aircraft/UI command and modifier references for newly created modules, pinned assets, complete device and summary pages, and the generated OvGME archive. Failures appear beside the output actions. The Kneeboards tab previews the saved device/summary pages; Commands and Pages also retain their draft authoring previews.
 
 **Export module snapshot…** writes a new `*.ipia-module.json` file containing the package version, canonical complete editor state and SHA-256 digest. Assignments, sparse axis tuning, modifier chords, custom labels, source evidence, graphics, pages and the pinned shared default are retained. No existing snapshot file is overwritten. Keep this file to reproduce that exact output even after subsequent edits.
 
@@ -42,7 +50,7 @@ In Free Edition, a snapshot containing unsupported controllers is reviewed **bef
 
 **Build OvGME package…** freezes the saved state, generates and independently verifies the archive from that snapshot, then writes the ZIP and separate checksum into the selected folder. Output actions are disabled while another output operation runs or edits are pending. Save or Discard first. Package and snapshot files are separate: the snapshot is portable authoring/build input; the ZIP contains only the deployable DCS files and package metadata. To recover an earlier output, build from the earlier snapshot after restoring it in an empty database; it is not an in-place rollback of the current module.
 
-Automated acceptance uses a newly authored module with real bundled MFD/MOZA hardware, JSON command import, base/shift aircraft bindings, a module-owned UI assignment, a toggle modifier, tuned axis, custom label and device/summary pages. Real SQLite save/reopen and empty-database restore retain canonical snapshot bytes, and repeated snapshot-only builds reproduce identical ZIP/checksum bytes. Corruption, incomplete state and duplicate identities fail before writes. Windows smoke exercises validation, snapshot export, package build, pending-edit guards, restore into the selector and duplicate restore rejection. Manual Windows/DCS acceptance remains tracked in #83 and #111.
+Automated acceptance uses a newly authored module with real bundled MFD/MOZA hardware, JSON command import, base/shift aircraft bindings, a module-owned UI assignment, a toggle modifier, tuned axis, custom label and device/summary pages. Real SQLite save/reopen and empty-database restore retain canonical snapshot bytes, and repeated snapshot-only builds reproduce identical ZIP/checksum bytes. Corruption, incomplete state and duplicate identities fail before writes. Windows smoke exercises validation, snapshot export, package build, pending-edit guards, restore into the selector and duplicate restore rejection. Manual controller/DCS acceptance remains tracked in [#189](https://github.com/ScottyMac52/DCS-IPIA/issues/189); upgrade/recovery acceptance is [#190](https://github.com/ScottyMac52/DCS-IPIA/issues/190).
 
 ## Export module documentation
 
@@ -52,7 +60,7 @@ Mappings are parsed from the actual generated Lua, including aircraft and effect
 
 Optional integrations appear only when the snapshot explicitly contains `config/integrations.json`, with `schemaVersion: 1` and an `integrations` array of objects containing nonempty `name` and `instructions` strings. The guide preserves these instructions as captured text; it does not enable or package an integration. The Documentation tab now supports reviewed JSON and legacy Markdown imports; legacy per-device document parity and integration asset/configuration adapters remain review gates. No VAICOM/OpenKneeboard/AutoHotkey configuration is invented for an aircraft.
 
-Documentation remains separate from the deployable OvGME archive. Complete release distribution is available below. Automated checks cover source-free restore/reproduction, version/digest and mapping semantics, escaping, explicit integrations, existing-destination protection and the Windows export button/pending-edit guard. Consumer golden comparisons and manual in-game acceptance remain open under #83/#9/#111.
+Documentation remains separate from the deployable OvGME archive. Complete release distribution is available below. Automated checks cover source-free restore/reproduction, version/digest and mapping semantics, escaping, explicit integrations, existing-destination protection and the Windows export button/pending-edit guard. The [Huey reference acceptance](migration/huey-release-acceptance.md) records the pinned comparison and intentional output differences. Current manual in-game acceptance remains in #189; closed #83/#9/#111 are historical context.
 
 ## Export a Complete module release
 
@@ -70,7 +78,7 @@ To start with inherited axes suppressed, back up your existing controls, reset t
 
 Explicit mapped key and axis assignments become editable bindings, including modifiers and axis tuning. Unmapped imported keys remain in native exports; select the hardware that represents those keys to edit them. An active imported axis missing from the chosen hardware blocks import so it cannot be silently removed. The command palette initially contains only commands found in the profiles; load the module command JSON or DCS Controls HTML for its complete catalog.
 
-Module keyboard profiles are captured with the folder and included unchanged in package exports and portable snapshots. They are not joystick device rows. The saved shared UI Layer revision is copied independently, using the existing module creation behavior; review/rebind its copied physical units before packaging. Reopening, rendering and exporting use SQLite and the frozen sources, without rereading Saved Games.
+Module keyboard profiles are captured with the folder and included unchanged in package exports and portable snapshots. They are not joystick device rows. Free imports use an empty UI Layer baseline. Licensed imports can copy the saved shared UI Layer revision; review/rebind any copied physical units before packaging. Reopening, rendering and exporting use SQLite and the frozen sources, without rereading Saved Games.
 
 ## Suppress inherited DCS axis defaults
 

@@ -1,5 +1,7 @@
 # Create a module locally
 
+**Edition availability:** Free authoring is limited to the reviewed Thrustmaster catalog. Reserved/mixed saved workspaces remain read-only. Generic/custom hardware and live input testing require licensed access; see [the edition guide](design/free-edition.md).
+
 Choose **New module** in the Modules window. Enter the exact aircraft input-folder name used by DCS and a display name. Reserved Windows names, unsafe paths and an identity already stored in the database are rejected.
 
 For each initial aircraft device, select a **Physical unit**, verify its **Shared hardware template**, and review the native GUID-qualified DCS filename. Connected controllers and captured Saved Games profiles are merged by physical GUID. **Saved Games folder…** supports disconnected units and alternate DCS folders. Manual entry also supports an offline unit when its actual native filename is known; the app never creates a physical GUID from a template or database ID.
@@ -8,7 +10,7 @@ Enter an optional instance label and role, then **Add selected unit**. Repeat fo
 
 To retain a copied UI Layer profile's assignments, explicitly select it under **Copied UI Layer profile to rebind** before adding the unit. The app changes that profile's physical identity and modifier device references together; it retains stable profile and page IDs, assignments, labels, filters and history. Leaving that choice empty creates a new independent unit. A copied baseline cannot be attached twice. The standalone MOZA base and a separate grip remain separate hardware choices; hardware recognition does not guess an attached grip.
 
-Creation saves and reopens a complete workspace in SQLite. No consumer repository or Saved Games configuration is required. The saved shared-default revision is copied and pinned: later default changes require reviewed adoption. Each newly created module receives its own database profile identities, separate from DirectInput identities. Canonical Lua, keyboard sources, modifier definitions, unmapped inputs and removal history remain in the snapshot.
+Creation saves and reopens a complete workspace in SQLite. No consumer repository or Saved Games configuration is required. With **Start with empty defaults** selected, creation uses neutral empty defaults. If you explicitly choose a shared-default baseline, that revision is copied and pinned; later changes require reviewed adoption. Free Saved Games imports start with an empty UI Layer baseline, avoiding inherited unsupported personal hardware. Each newly created module receives its own database profile identities, separate from DirectInput identities. Canonical Lua, keyboard sources, modifier definitions, unmapped inputs and removal history remain in the snapshot.
 
 Copied baseline filenames do not establish which units you own. Before building a newly created module, review every retained physical profile in **Devices**. Select its actual unit or enter its captured filename, then use **Rebind physical unit…**. The confirmation shows the old and proposed native identities and applies to both aircraft and module UI Layer scopes. Keeping the current filename is appropriate only when it identifies your unit. Review evidence is saved with the module and survives reopen and immutable export. Unreviewed or unqualified identities produce an actionable build error rather than an archive targeting another person's hardware. Unneeded baseline profiles can be cleared and removed through the existing guarded editor.
 
@@ -16,4 +18,4 @@ Ordinary **Update** still protects an existing physical GUID. Use explicit rebin
 
 If an independently authored shared joystick has no unambiguous hardware mapping, creation reports the profile requiring a choice. Open **Shared default UI Layer**, choose its hardware in Devices, save that revision, then retry.
 
-Commands and Pages authoring are available following #110. The complete validation/preview/immutable-restore/package acceptance workflow remains a Step 3 gate in #83 and #9. #111 additionally requires user verification of the reported physical hardware and resulting DCS output.
+Commands, Pages, validation, snapshot restore and package exports are implemented; see [module authoring](module-authoring.md). Migration issues #83/#9 and authoring issue #111 are closed. Real-controller and in-DCS acceptance remains in [#189](https://github.com/ScottyMac52/DCS-IPIA/issues/189), separate from automated workflow coverage.

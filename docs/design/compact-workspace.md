@@ -30,7 +30,10 @@ composition, generated kneeboards or output formats.
 
 `%LOCALAPPDATA%\DCS-IPIA\workspace-layout.json` stores splitter proportions,
 disclosure state, and zoom/Fit mode. It contains presentation numbers, not module
-content. Missing/corrupt/unwritable preferences fall back without blocking edits.
+content. This file is currently Windows-user-wide: Production and named test
+profiles share it. A Production full-profile backup includes it because it is
+inside that data directory; a named-profile backup does not capture this
+external file. Missing/corrupt/unwritable preferences fall back without blocking edits.
 Restored split proportions are clamped and constrained by minimum pane sizes.
 To reset the workspace layout, close the application and delete this file.
 Existing theme/background/control-opacity settings and edition restrictions are

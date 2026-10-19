@@ -1,5 +1,7 @@
 # Workstream 3: pinned shared catalog import
 
+**Historical contract/baseline:** this document records the original versioned slice, not the current implementation backlog. Later editor, persistence and output features are summarized in [the documentation index](../README.md). Original schema names, pins and evidence below are retained.
+
 The first read-only Workstream 3 adapter accepts the four authored DCS-Common texts at an exact commit: `assets/shared/hardware/manifest.json`, `assets/shared/ui-layer/functions.json`, `assets/shared/ui-layer/hardware-overlays.json`, and `assets/shared/hardware/scaffold-device-map.json`. Callers supply the source paths, commit SHA, and unmodified JSON to `ISharedCatalogImporter`. No repository checkout, path traversal, database write, or network access occurs inside this importer.
 
 The result contains stable physical device IDs and aliases, the canonical UI Layer command catalog, overlay templates with instance selectors and function-to-control assignments, source-ordered device mapping rules, input-key aliases, and instance recognition patterns, and per-source SHA-256 over the supplied UTF-8 text. Parsing rejects missing and ambiguous device identities, unknown referenced functions or devices, unsupported UI Layer schema versions, malformed documents, and invalid provenance. Failed imports return diagnostics and no partial result. Repeating an import yields the same ordered values and hashes.

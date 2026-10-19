@@ -47,9 +47,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: python3 scripts/check_csharp_layout.py
+      - run: python3 scripts/check_documentation.py
       - run: python3 scripts/check_theme_resources.py
       - run: python3 scripts/check_common_migration.py --check
       - run: python3 -m unittest discover -s tests/migration -p 'test_*.py'
+      - run: python3 -m unittest discover -s tests/ci -p 'test_*.py'
 
   release:
     needs: [quality, windows, inventory]
@@ -61,6 +63,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
       - name: Resolve version and protect existing releases
         id: version
         shell: pwsh
@@ -76,6 +81,10 @@ jobs:
             $tag = "v$version"
           }
           if ($tag -notmatch '^v\d+\.\d+\.\d+\.\d+$') { throw 'Invalid four-component release tag.' }
+          python scripts/check_documentation.py --version $tag.Substring(1)
+          if ($LASTEXITCODE -ne 0) { throw 'Update release/version.json and release notes for this exact tag before publishing.' }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "value=$($tag.Substring(1))" >> $env:GITHUB_OUTPUT
           $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
           $url = '${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/' + $tag
           try {
@@ -83,24 +92,33 @@ jobs:
           } catch {
             if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
           }
-          if ($existing) { throw 'This release already exists; historical assets will not be replaced.' }
+          if ($existing) {
+            if ('${{ github.ref }}' -eq 'refs/heads/main') {
+              "publish=false" >> $env:GITHUB_OUTPUT
+              Write-Output 'This documented version is already published. No release or historical asset will be changed. Bump the version and notes together to publish another release.'
+              exit 0
+            }
+            throw 'This release already exists; historical assets will not be replaced.'
+          }
           if ('${{ github.ref }}' -eq 'refs/heads/main') {
             $tagUrl = '${{ github.api_url }}/repos/${{ github.repository }}/git/ref/tags/' + $tag
             try { $existingTag = Invoke-RestMethod -Uri $tagUrl -Headers $headers }
             catch { if ([int]$_.Exception.Response.StatusCode -ne 404) { throw } }
             if ($existingTag) { throw 'This tag already exists; choose a new release version.' }
           }
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "value=$($tag.Substring(1))" >> $env:GITHUB_OUTPUT
+          "publish=true" >> $env:GITHUB_OUTPUT
       - name: Build and verify exact release artifacts
+        if: steps.version.outputs.publish == 'true'
         shell: pwsh
         run: ./scripts/Test-ApplicationRelease.ps1 -Version '${{ steps.version.outputs.value }}'
       - uses: actions/upload-artifact@v7
+        if: steps.version.outputs.publish == 'true'
         with:
           name: DCS-IPIA-${{ steps.version.outputs.tag }}-tested
           path: release-assets/*
           if-no-files-found: error
       - name: Publish tested artifacts
+        if: steps.version.outputs.publish == 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}

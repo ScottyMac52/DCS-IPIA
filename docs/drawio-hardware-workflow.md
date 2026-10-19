@@ -21,7 +21,7 @@ node scripts/asset-authoring/export-hardware.mjs --hardware-root /path/to/hardwa
 
 The tool validates and renders all devices before writing. Existing output folders are rejected; the source folder and published bundled SVGs are never overwritten. Manifest paths must stay relative and cannot contain traversal, Windows separators/drive prefixes or duplicate output names. Invalid visible geometry, ambiguous diagrams, duplicate cells and incomplete raster image payloads are rejected with source context. Image signature/end-marker and base64 checks detect incomplete payloads; they are not a general image decoder.
 
-Review staged SVGs visually before promoting any edited assets. Commit the approved source and derived SVG together with updated bundle provenance. New source creation/bootstrap and hardware-authoring UI are separate migration work; do not recreate an edited source from its SVG.
+Review staged SVGs visually before promoting any edited assets. Commit the approved source and derived SVG together with updated bundle provenance. The installed app also provides [starter draw.io export and reviewed custom imports](custom-mappings.md); those use the versioned .NET importer, whose supported artwork subset differs from this pinned Node parity exporter. Desktop draw.io remains the source editor. Do not reconstruct an editable source from its SVG.
 
 Watermarks remain optional: add `buttonNumber=N;` to a label style and pass `--watermarks` with `--output`, or set `includeButtonNumberWatermarks` in the copied `export-config.json`. Default published graphics remain clean. Preserve image copyrights and source attribution in `SOURCES.md`.
 

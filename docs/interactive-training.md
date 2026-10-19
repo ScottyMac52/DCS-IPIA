@@ -1,9 +1,11 @@
 # Interactive training
 
+**Current availability:** training requires an authenticated Owner license. Free displays a Premium/TBA explanation because the lessons use generic hardware and the input tester. Free access to training is a proposed enhancement; the following instructions describe the implemented licensed walkthroughs. See [edition availability](design/free-edition.md).
+
 Choose **Help → Training / Guided workflows…** from the Modules window. Training
 shows the actual New module/import forms and module feature views in a separate
 window with a narration panel. The sample aircraft is called **TRAINING**, and
-its Logitech quadrant has an intentionally fictional physical GUID.
+its brand-neutral sample joystick has an intentionally fictional physical GUID.
 
 Select either **Starting from scratch** or **Starting with a preconfigured module
 in DCS**. Choose **Play / Resume** to demonstrate actions, or **Next step** to
@@ -28,7 +30,7 @@ real kneeboard preview, validation, snapshot export, and OvGME packaging.
 ## Sample data and normal use
 
 Training creates a temporary directory under `DCS-IPIA-Training`, with separate
-SQLite storage, input fixtures, and outputs. It uses shipped hardware graphics,
+SQLite storage, input fixtures, and outputs. It uses original bundled vector artwork,
 a supplied UI default revision and a fictional disconnected controller; it needs
 neither a DCS installation nor connected hardware, a repository checkout, network
 access or a test SDK. Application controls in the demonstration area are operated

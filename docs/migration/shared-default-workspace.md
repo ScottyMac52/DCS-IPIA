@@ -1,5 +1,7 @@
 # Shared default UI Layer workspace foundation
 
+**Current status:** this guide retains the delivery sequence, but baseline references, reviewed source/assignment/catalog adoption, rollback and independent output are all implemented. #83/#9 are closed. Free shared saves/output must resolve to its reviewed hardware catalog; see [edition availability](../design/free-edition.md).
+
 First Step 2 slice of #83, related to #9.
 
 The Modules screen opens **Shared default UI Layer**. On first use, IPIA validates its built-in catalogs/Lua and saves a separate shared default revision. Subsequent opens read the saved revision from SQLite without reseeding from the bundle. The window displays its revision, a key-binding editor for existing device profiles, a command catalog editor, a modifier editor, and a read-only source view.
@@ -8,7 +10,7 @@ Schema migration 5 adds an independent append-only revision table. It does not c
 
 Key-binding editing is available for existing shared profiles. Select a profile and binding, choose a command, enter a DCS input key and optional declared modifier chord, then Add, Update, or Remove. These actions stage changes. Save new default revision validates modifier references and occupied input chords, and appends through the existing revision concurrency check. Discard restores the baseline. Only the edited profile is rewritten; untouched sources retain exact bytes. Unmapped bindings, axis filters, and removal history are retained. Axis rows and removal history remain read-only in this slice.
 
-Commands are offered from the shared function catalog plus existing imported key bindings. Module revision references, affected-module reporting and controlled adoption/propagation remain open. Existing module import continues using its pinned built-in sources until controlled adoption is implemented. Editing shared defaults does not update any module implicitly.
+Commands are offered from the shared function catalog plus existing imported key bindings. Portable module baseline references, impact reporting and reviewed adoption were added in the sections below. Existing module sources remain pinned until explicitly reviewed. Editing shared defaults does not update any module implicitly.
 
 Tests use real SQLite to cover initialization, reopen, immutable history, stale-save rejection, source-content integrity, migration idempotence, invalid input and isolation from saved module overrides. Windows smoke checks the read-only source view and the binding editor: update, discard, save, reopen, and preserved revision history. Regression tests cover key conflicts, modifier references, invalid/stale selection, axis/filter/removal preservation, untouched source bytes, and module isolation.
 
@@ -45,7 +47,7 @@ A module requires review when any changed source differs from the proposal or la
 
 Refresh before saving; draft edits, discard and save invalidate the report. Editing is temporarily disabled while module snapshots load. A read failure clears the report and shows the error rather than presenting partial results. The report compares the opened revision and each module snapshot read during refresh; it is not a transactional cross-module snapshot. Refresh again after concurrent module changes. Shared default saves continue to leave saved module state untouched.
 
-This slice introduces no adoption or propagation action. Persisted module references to default revision IDs and controlled adoption remain pending under #83 Step 2. Tests cover exact source classifications, additions/removals, missing evidence, stable ordering, invalid baseline comparisons and real SQLite isolation. Windows smoke verifies refresh, module selection, draft/discard/save invalidation and preserved module source versions.
+This slice introduces no adoption or propagation action. The later baseline-reference and reviewed-adoption sections supersede this original impact-only slice. Tests cover exact source classifications, additions/removals, missing evidence, stable ordering, invalid baseline comparisons and real SQLite isolation. Windows smoke verifies refresh, module selection, draft/discard/save invalidation and preserved module source versions.
 
 
 ## Portable default revision references
@@ -62,7 +64,7 @@ The prospective Lua payload must validate before adoption is saved. Reviewed wri
 
 **Restore prior module state** restores the latest verified prior state through the same stale-review check. That operation also records its pre-restore state, allowing the last change to be reversed again. This is exact module rollback, so review after subsequent module edits before choosing it. Shared revision history and other modules remain unchanged. Deleting a module cascades its update history while preserving shared defaults.
 
-Tests cover conflict decisions, explicit replacement, removals, kept source differences, invalid choices, missing baselines, backwards/same-identity revision checks, real SQLite atomicity, configuration-only and editor-payload races, verified rollback, module deletion and corrupt history rejection. Windows smoke records a baseline, adopts saved source changes, reopens them, restores prior sources/reference, and verifies cross-module isolation. Default binding/catalog propagation, independent shared-default kneeboard output and broader Steps 3–4 remain open under #83.
+Tests cover conflict decisions, explicit replacement, removals, kept source differences, invalid choices, missing baselines, backwards/same-identity revision checks, real SQLite atomicity, configuration-only and editor-payload races, verified rollback, module deletion and corrupt history rejection. Windows smoke records a baseline, adopts saved source changes, reopens them, restores prior sources/reference, and verifies cross-module isolation. The following sections describe the subsequently delivered assignment/catalog propagation and independent output workflows.
 
 
 

@@ -2,7 +2,7 @@
 
 Modules capture the native filenames of connected controllers and existing Saved Games profiles during creation. The list includes units that were not selected as authored devices. No artwork, kneeboard page or assignment is added for those units.
 
-Opening an module, or refreshing Devices, stages newly observed filenames for cleanup. **Save to database** retains them; Discard leaves saved state unchanged. Offline identities are retained on later scans. Generate the package after saving. Controllers first connected after that scan need a refresh and a new package.
+Opening a module, or refreshing Devices, stages newly observed filenames for cleanup. **Save to database** retains them; Discard leaves saved state unchanged. Offline identities are retained on later scans. Generate the package after saving. Controllers first connected after that scan need a refresh and a new package.
 
 **Fly Now!** also captures connected controllers, existing Saved Games profiles and authored native units before deploying any created or imported module. It saves these identities to the database first, including when an imported module is deployed directly from the Modules screen without opening its editor. The generated files and deployment journal include cleanup-only profiles, so Clear also removes those deployed files.
 

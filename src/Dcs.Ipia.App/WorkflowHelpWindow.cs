@@ -30,13 +30,13 @@ namespace DcsIpia.Presentation
                 DCS-IPIA
                 VERSION
 
-                Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Generic hardware and interactive input-test walkthroughs below require the licensed edition.
+                Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Current signed Owner activation unlocks implemented features; customer Premium licensing/payment is not yet available. Generic hardware and interactive training/input-test walkthroughs below require Owner access. Free training is proposed, not yet implemented.
 
                 Hardware → Discover devices / Rescan reads controllers. Review capabilities, select each physical unit and give repeated units distinct labels/roles before saving. Saved devices may be disconnected: saved selection is not proof of current connectivity. Review unsupported objects and changed capabilities explicitly.
 
                 Generic controls work without a bundled photo: select the reviewed capability definition when creating a module, assign the device, and use the generated button/hat/axis layout. Test live inputs before building; ambiguous or unsupported controls need review.
 
-                Open the module and edit Devices, Modifiers, Assignments, Commands and Pages. Save to database, Validate, preview and Build. Hardware drawings → Import draw.io creates a verified user revision with captured local images. Applying or updating it is explicit; saved modules retain their pinned revisions. Keep editable source and images in a full backup.
+                Open the module’s top feature tabs: Devices, Modifiers, Assignments, Input Test, Commands, Pages, Kneeboards and Documentation. Assign using the command button or drag/drop; right-click callouts for labels, clear and axis tuning. Modifier activators are reserved. Fit shows the complete drawing. Save to database, then use Build & export to Validate, snapshot or package saved inputs. Hardware drawings → Import draw.io creates a verified user revision with captured local images. Applying or updating it is explicit; saved modules retain their pinned revisions. Keep editable source and images in a full backup.
 
                 Fly Now! deploys a saved module to the chosen Saved Games DCS folder. Review assignments and validation first. It automatically removes default axis assignments for unused controllers; verify the result in DCS. Clear removes recorded deployment files. Back up DCS inputs separately before real-game testing.
                 """));
@@ -47,10 +47,12 @@ namespace DcsIpia.Presentation
 
                 If startup cannot open the database, use the recovery window or retain the original files and restore a known-good backup. Interrupted directory replacement is recovered on restart. Do not delete the retained original or recovery journal to bypass an error.
 
-                Data & recovery → Test profiles and reset creates isolated clean profiles. You can also start IPIA with --test-profile NAME (letters, digits, hyphen or underscore). Test profiles disable DCS deployment and isolate setup, modules, drawings and preferences. Reset requires a verified backup. Use Production only for a reviewed real-DCS acceptance run.
+                Data & recovery → Test profiles and reset creates isolated clean profiles. You can also start IPIA with --test-profile NAME (letters, digits, hyphen or underscore). Test profiles disable DCS deployment and isolate setup, modules, drawings and app/appearance preferences. Splitter/disclosure/zoom preferences currently share the Windows-user-wide workspace-layout.json; training does not read or write it. Owner activation is account-wide and outside profile backups. Reset requires a verified backup. Use Production only for a reviewed real-DCS acceptance run.
                 """));
             tabs.Items.Add(Topic("_Diagnostics and keys", """
                 Help → Export support report (Ctrl+Shift+D) shows the entire report before saving it locally. It reads saved state, excludes personal names/paths/GUIDs, raw logs and artwork, and does not upload anything. Unreadable scopes remain null with a failure category and next step; they are not silently counted as empty. Numbered devices/modules are local to that report.
+
+                Setup is offered once per profile; skipping leaves it available under Settings without repeated automatic popups. Rerun preserves completion and saved data.
 
                 Error logs provide exception detail. Logging levels are configured by assembly in appsettings.json; see the shipped logging guide before changing them. Raw logs can contain personal paths and device names. Review them separately before sharing. A support report is evidence of saved state, not proof of live inputs or a successful in-DCS run.
 

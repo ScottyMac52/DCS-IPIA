@@ -1,5 +1,7 @@
 # Immutable configuration snapshot v1
 
+**Historical contract/baseline:** this document records the original versioned slice, not the current implementation backlog. Later editor, persistence and output features are summarized in [the documentation index](../README.md). Original schema names, pins and evidence below are retained.
+
 Snapshot v1 is the review, CI, rollback, and interoperability boundary for Option B. SQLite remains authoritative only for local interactive work.
 
 Canonical rules:

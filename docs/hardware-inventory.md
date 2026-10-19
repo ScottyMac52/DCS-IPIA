@@ -1,8 +1,10 @@
 # User hardware inventory (Feature 3)
 
+**Edition availability:** Free adoption requires verified Thrustmaster HID evidence and a reviewed catalog template for authoring. Previously verified units can remain selected offline. Other brands and generic definitions require licensed access; see [the edition guide](design/free-edition.md).
+
 Use **Hardware → Discover devices… / Rescan** from the main window, without opening a module. Review each unit's native name, physical instance GUID, product GUID, connection status, enumerated controls, unsupported-object explanations and artwork candidates. Select the units you want to adopt, give identical units distinct labels/roles, then choose **Save reviewed inventory**. Newly scanned units are never preselected. **Manage devices…** reopens saved units offline until a successful rescan.
 
-Scanning creates observations only. Cancellation/global failure retains the previous review rows and saved inventory. A device that disconnects during its own enumeration appears with an error and cannot be newly adopted until supported controls are verified. Previously saved units retain their pinned definition and selection. No device is silently removed, renamed by role, rebound to another physical GUID or added to a module. Module device selections and assignments remain independent; adopting inventory into new modules and generic assignment/output are Feature 4.
+Scanning creates observations only. Cancellation/global failure retains the previous review rows and saved inventory. A device that disconnects during its own enumeration appears with an error and cannot be newly adopted until supported controls are verified. Previously saved units retain their pinned definition and selection. No device is silently removed, renamed by role, rebound to another physical GUID or added to a module. Module device selections and assignments remain independent; adopting inventory into modules and generic assignment/output are implemented in the [generic hardware workflow](generic-hardware.md).
 
 A changed control fingerprint displays **controls changed (review required)**. Saving labels/selections keeps the old definition unless you explicitly check **Adopt changed controls**. Old definitions remain available. A reconnect with unchanged evidence restores the connection observation; identical names never merge physical units. A replacement PC/device with a different DirectInput GUID requires explicit adoption/rebinding in the existing module workflow.
 
@@ -19,7 +21,7 @@ The same `ControllerCapabilityMapper` supplies inventory and live testing:
 
 DirectInput game controllers are the backend scope. DirectInput cannot reliably attest physical versus virtual provenance, so supported virtual controllers use the same explicit-adoption and control-validation policy. Other USB/HID device classes are not scanned by this feature. Existing keyboard authoring/testing support remains available in module editing; controllers are not inferred from keyboard sources.
 
-Bundled artwork recognition combines native-name recognition rules with an exact match against enumerated DCS controls and no unsupported objects. All compatible candidates remain visible; ambiguous candidates do not select artwork. These are hints for later reviewed artwork adoption, not evidence of an attached grip. Personal template GUIDs, modifier buttons and assignments are never imported into inventory. Unknown supported units can be inventoried now; image-free authoring/rendering is Feature 4.
+Bundled artwork recognition combines native-name recognition rules with an exact match against enumerated DCS controls and no unsupported objects. All compatible candidates remain visible; ambiguous candidates do not select artwork. These are hints for later reviewed artwork adoption, not evidence of an attached grip. Personal template GUIDs, modifier buttons and assignments are never imported into inventory. Licensed users can inventory supported unbundled units and use [image-free authoring/rendering](generic-hardware.md).
 
 ## Persistence, migration and recovery
 

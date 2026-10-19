@@ -2,6 +2,8 @@
 
 Related: [#183](https://github.com/ScottyMac52/DCS-IPIA/issues/183), artwork [#192](https://github.com/ScottyMac52/DCS-IPIA/issues/192), dependencies [#193](https://github.com/ScottyMac52/DCS-IPIA/issues/193).
 
+The source findings below are a dated audit, not the current release version or dependency graph. Review the exact candidate identified in [release acceptance](release-acceptance.md), including Flight Patch branding and the Free background added after this audit. Original source hashes and package versions below are retained as evidence.
+
 ## Recorded source review — 2026-10-09
 
 Codex inspected IPIA source commit `077965fdb2743adcdcbe89bfcfa9ed95539b06b6` and the pinned DCS-Common commit `0e9ed14a9189b712477f2c647a348da0d8af321b`. This is a source audit, not approval of an existing release artifact. The reviewed source has candidate version 0.0.0.5; an exact release decision must identify the actual candidate version, commit, artifact hashes and reviewer.
