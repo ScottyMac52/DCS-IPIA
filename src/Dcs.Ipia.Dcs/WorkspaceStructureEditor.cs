@@ -199,6 +199,64 @@ namespace Dcs.Ipia.Dcs
                 Images = []
             };
         }
+        /// <summary>Prunes explicitly approved snapshot devices and dependent chords in both scopes, without changing the source snapshot.</summary>
+        public static EditorWorkspaceSnapshot RemoveDevicesForSnapshotImport(EditorWorkspaceSnapshot workspace, IReadOnlySet<Guid> removedProfiles)
+        {
+            ArgumentNullException.ThrowIfNull(workspace);
+            ArgumentNullException.ThrowIfNull(removedProfiles);
+            if (removedProfiles.Count == 0) return workspace;
+            if (removedProfiles.Any(id => workspace.Configuration.Profiles.All(p => p.Id != id)))
+                throw new ArgumentException("Select only devices belonging to the snapshot.", nameof(removedProfiles));
+            workspace = Prepare(workspace);
+            var state = Describe(workspace);
+            var retainedModifiers = state.Modifiers.Where(m => !removedProfiles.Contains(m.ProfileId)).ToArray();
+            var removedNames = Enum.GetValues<AssignmentLayer>().ToDictionary(layer => layer, layer =>
+                state.Modifiers.Where(m => m.Layer == layer && removedProfiles.Contains(m.ProfileId))
+                    .Select(m => m.Name).Concat(state.Modifiers.Where(m => m.Layer == layer && removedProfiles.Contains(m.ProfileId))
+                        .Select(m => m.SemanticLayer).Except(retainedModifiers.Where(m => m.Layer == layer).Select(m => m.SemanticLayer), StringComparer.Ordinal))
+                    .ToHashSet(StringComparer.Ordinal));
+            bool KeepChord(AssignmentLayer layer, string chord) => !chord.Split('+', StringSplitOptions.RemoveEmptyEntries).Any(removedNames[layer].Contains);
+            bool KeepBinding(AssignmentLayer layer, DcsBinding binding) => !removedProfiles.Contains(binding.ProfileId) && !binding.Reformers.Any(removedNames[layer].Contains);
+            var profiles = workspace.Configuration.Profiles.Where(p => !removedProfiles.Contains(p.Id)).ToArray();
+            foreach (var profile in workspace.Configuration.Profiles.Where(p => removedProfiles.Contains(p.Id)).ToArray())
+                workspace = Manifest(workspace, profile, profile.SourceName, true);
+            var sources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
+            foreach (var profile in workspace.Configuration.Profiles)
+            {
+                var ui = UiSource(profile.Id);
+                if (removedProfiles.Contains(profile.Id)) sources.Remove(ui);
+                else if (sources.TryGetValue(ui, out var lua)) sources[ui] = ModuleLuaProfileRenderer.Write(
+                    DcsLuaParser.ParseProfile(lua, profile.Id).Where(b => KeepBinding(AssignmentLayer.UiLayer, b)).ToArray());
+                foreach (var layer in Enum.GetValues<AssignmentLayer>())
+                {
+                    var path = "config/ipia-axis-defaults/" + layer + "/" + profile.Id.ToString("N") + ".diff.lua";
+                    if (removedProfiles.Contains(profile.Id)) sources.Remove(path);
+                    else if (sources.TryGetValue(path, out var defaults))
+                    {
+                        var bindings = DcsLuaParser.ParseProfile(defaults, profile.Id).Where(b => KeepBinding(layer, b)).ToArray();
+                        if (bindings.Length == 0) sources.Remove(path);
+                        else sources[path] = ModuleLuaProfileRenderer.Write(bindings);
+                    }
+                }
+            }
+            var labels = workspace.Labels.Where(pair =>
+            {
+                var parts = pair.Key.Split('\u001f');
+                return parts.Length != 6 || !Guid.TryParse(parts[1], out var profile) ||
+                    !Enum.TryParse<AssignmentLayer>(parts[2], out var layer) ||
+                    !removedProfiles.Contains(profile) && KeepChord(layer, parts[5]);
+            }).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
+            workspace = workspace with
+            {
+                Configuration = Configuration(workspace, profiles,
+                    retainedModifiers.Where(m => m.Layer == AssignmentLayer.Module).Select(m => new DcsModifier(m.Name, m.NativeDevice, m.Key, m.Mode)),
+                    workspace.Configuration.Bindings.Where(b => KeepBinding(AssignmentLayer.Module, b))),
+                Diagrams = workspace.Diagrams.Where(d => !removedProfiles.Contains(d.ProfileId)).ToArray(),
+                Assignments = workspace.Assignments.Where(a => !removedProfiles.Contains(a.Slot.ProfileId) && KeepChord(a.Slot.Layer, a.Slot.ModifierChord)).ToArray(),
+                Labels = labels, Sources = sources
+            };
+            return Store(workspace, new(state.Devices.Where(d => !removedProfiles.Contains(d.ProfileId)).ToArray(), retainedModifiers));
+        }
         /// <summary>Removes an unused membership after checking both scopes.</summary>
         /// <param name="workspace">Current staged workspace.</param>
         /// <param name="device">Membership requested for removal.</param>

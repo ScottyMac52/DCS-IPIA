@@ -8,4 +8,5 @@
     <ProjectReference Include="../../src/Dcs.Ipia.App/Dcs.Ipia.App.csproj"/>
   </ItemGroup>
   <ItemGroup><Compile Include="../Shared/OwnerLicenseTestIssuer.cs" Link="OwnerLicenseTestIssuer.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/MixedSnapshotFixture.cs" Link="MixedSnapshotFixture.cs" /></ItemGroup>
 </Project>
