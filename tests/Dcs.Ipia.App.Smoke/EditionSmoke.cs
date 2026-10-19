@@ -48,6 +48,7 @@ namespace Dcs.Ipia.App.Smoke
                 }
                 finally { chooser.Close(); }
                 VerifyHardware(root, settings);
+                VerifyFreeTraining(root);
                 EditionAccess.SetForTests(issuer.Policy); ThemeManager.Apply(settings.Current.Theme.ToString()); AppearanceManager.Restore();
                 if (AppearanceManager.Active != saved) throw new InvalidOperationException("Owner activation did not restore saved appearance.");
                 var unlocked = new SettingsWindow(settings); unlocked.Show(); ThemeControlSmoke.Pump(unlocked);
@@ -64,6 +65,22 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyFreeTraining(string root)
+        {
+            var policy = EditionAccess.Policy;
+            var before = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .ToDictionary(path => path, File.ReadAllBytes, StringComparer.Ordinal);
+            Console.WriteLine("Smoke: both full training lessons in Free, with isolation and failure/restart/exit.");
+            TrainingSmoke.Verify();
+            FreeTrainingScopeSmoke.Verify();
+            if (!ReferenceEquals(policy, EditionAccess.Policy) || EditionAccess.Policy.IsOwner)
+                throw new InvalidOperationException("Training changed the process edition.");
+            if (!before.Keys.Order(StringComparer.Ordinal).SequenceEqual(Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal)) ||
+                before.Any(pair => !pair.Value.SequenceEqual(File.ReadAllBytes(pair.Key))))
+                throw new InvalidOperationException("Free training changed the normal module/settings files.");
+            try { using var unexpected = new WindowsDeviceInputSource(0, []); throw new InvalidOperationException("Training unlocked native input."); }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("reserved", StringComparison.Ordinal)) { }
+        }
         private static void VerifyHardware(string root, FileAppSettingsService settings)
         {
             var connection = "Data Source=" + Path.Combine(root, "edition.db") + ";Pooling=False";

@@ -21,8 +21,9 @@ namespace DcsIpia.Presentation
         /// <summary>Permits test fixtures to use their own issuer without a production command-line bypass.</summary>
         internal static void SetForTests(EditionPolicy policy) => Policy = policy;
         /// <summary>Rejects reserved/unknown hardware in all effective module and UI Layer profiles.</summary>
-        internal static void RequireWorkspace(EditorWorkspaceSnapshot workspace, IConnectedDeviceDiscovery? discovery = null)
+        internal static void RequireWorkspace(EditorWorkspaceSnapshot workspace, IConnectedDeviceDiscovery? discovery = null, TrainingEnvironment? training = null)
         {
+            if (training is not null) { training.RequireWorkspace(workspace); return; }
             Policy.RequireHardware(workspace.Configuration.Profiles.Where(profile => !profile.SourceName.Equals("Keyboard.diff.lua", StringComparison.OrdinalIgnoreCase))
                 .Select(profile => profile.DeviceId));
             if (Policy.IsOwner || discovery is null) return;
@@ -31,15 +32,26 @@ namespace DcsIpia.Presentation
                 throw new InvalidOperationException("The connected controller is not a verified Thrustmaster HID device. Premium availability TBA.");
         }
         /// <summary>Returns whether a saved workspace can be edited or emitted in this edition.</summary>
-        internal static bool AllowsWorkspace(EditorWorkspaceSnapshot? workspace)
+        internal static bool AllowsWorkspace(EditorWorkspaceSnapshot? workspace, TrainingEnvironment? training = null)
         {
             if (workspace is null) return true;
-            try { RequireWorkspace(workspace); return true; }
+            try { RequireWorkspace(workspace, training: training); return true; }
             catch (InvalidOperationException) { return false; }
         }
         /// <summary>Gets reviewed hardware choices without generic/other-brand authoring in Free.</summary>
-        internal static IEnumerable<WorkspaceHardware> Hardware(IEnumerable<WorkspaceHardware> hardware) =>
-            hardware.Where(item => Policy.AllowsHardware(item.DeviceId));
+        internal static IEnumerable<WorkspaceHardware> Hardware(IEnumerable<WorkspaceHardware> hardware, TrainingEnvironment? training = null) =>
+            hardware.Where(item => training is null ? Policy.AllowsHardware(item.DeviceId) : item.DeviceId == "training-joystick");
+        /// <summary>Gets the explicit training scope of a mounted workspace, never a process-wide entitlement.</summary>
+        internal static TrainingEnvironment? Training(IModuleWorkspaceContext? context) => (context as WindowContext)?.Training;
+        /// <summary>Gets whether this specific view can run the real or isolated simulated tester.</summary>
+        internal static bool AllowsInputTest(IModuleWorkspaceContext? context) => Policy.IsOwner || Training(context) is { IsActive: true };
+        /// <summary>Requires Owner for ordinary views, or validates the owned sample for training views.</summary>
+        internal static void RequireInputTest(IModuleWorkspaceContext? context)
+        {
+            if (Training(context) is not { } training) { Policy.RequireOwner(); return; }
+            training.RequireRepository(context!.Repository);
+            training.RequireWorkspace(context.Working ?? throw new InvalidOperationException("No training workspace."));
+        }
         /// <summary>Checks shared profiles against reviewed hardware choices, including explicit base aliases.</summary>
         internal static void RequireSharedDiagrams(SharedUiLayerOutputSnapshot snapshot, IEnumerable<WorkspaceHardware> hardware)
         {

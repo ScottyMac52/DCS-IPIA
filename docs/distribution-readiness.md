@@ -39,7 +39,7 @@ User draw.io sources/images are user-provided content. Import only content you m
 
 ## Manual acceptance record — pending
 
-Use the authoritative [candidate record, reusable template and pass/fail/blocker rules](release-acceptance.md). It links #188–#194 and records the v1.1.1.0 candidate identity without claiming hands-on results. Run Free reviewed-hardware coverage separately from Owner generic/custom/training coverage; an unavailable feature needs an explicit scope disposition, not an invented pass.
+Use the authoritative [candidate record, reusable template and pass/fail/blocker rules](release-acceptance.md). It links #188–#194 and records the v1.1.1.0 candidate identity without claiming hands-on results. Run Free reviewed-hardware and free-training coverage separately from Owner generic/custom/native-testing coverage; an unavailable feature needs an explicit scope disposition, not an invented pass.
 
 Copy this matrix into the release evidence, complete each row with actual observations and attachments, and record tester/date, Windows/DCS versions, app version/source commit, controller model/firmware, baseline app version (for upgrades) and intended scope. Do not put private paths/GUIDs into public evidence unless explicitly reviewed.
 

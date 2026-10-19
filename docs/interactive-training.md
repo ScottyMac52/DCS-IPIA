@@ -1,6 +1,6 @@
 # Interactive training
 
-**Current availability:** training requires an authenticated Owner license. Free displays a Premium/TBA explanation because the lessons use generic hardware and the input tester. Free access to training is a proposed enhancement; the following instructions describe the implemented licensed walkthroughs. See [edition availability](design/free-edition.md).
+**Availability on current main (unreleased after v1.1.1.0):** both lessons are free, offline and require no activation. Training demonstrates Premium capabilities inside its own sample session; normal Free hardware, native input-testing and appearance restrictions remain in force. Published v1.1.1.0 still requires Owner activation for training. See [edition availability](design/free-edition.md).
 
 Choose **Help → Training / Guided workflows…** from the Modules window. Training
 shows the actual New module/import forms and module feature views in a separate
@@ -130,3 +130,11 @@ After saving and reopening, the actual input tester consumes a deterministic sim
 Both shipped scenarios explain and display blue aircraft Base (`#007ACC`), red `TRAIN_SHIFT`, orange `TRAIN_TOGGLE`, and the separate cyan UI Layer Base swatch. Assignments callouts and the tester use the same production state palette; callout captions and borders no longer inherit a skin’s gold accent. Contrasting white/black edges surround outlines and swatches, and editable captions have light edges for readability over controller artwork. Further aircraft chords use magenta, green and violet; UI modifiers use purple, rose and teal. Read the modifier names and active dots alongside the colors. The lesson navigation target marker is separate from live controller activity.
 
 Windows training acceptance checks the actual Base/Hold/Toggle outlines against their legend colors in both scenarios, including the cyan UI Base swatch. See [live input testing](live-input-testing.md) for exact colors, chord ordering, and palette reuse.
+
+## Free training and Premium demonstrations
+
+The persistent training banner and both lessons distinguish free instruction from licensed everyday use. The input-test checkpoint is labeled **Premium preview**: it runs the actual tester using deterministic fictional joystick values, never acquiring physical controllers. Generic sample hardware is available only to the session's own creation/import/editor windows. Output pickers are confined to its temporary Outputs directory; the sample is instructional and is never deployed to Saved Games.
+
+Training does not install a license or change the process-wide edition, even temporarily. Session access is bound to the environment's SQLite repository and fixture sources, the TRAINING aircraft and exact fictional device identity. Another repository, aircraft, native controller or expired session is rejected. Ordinary Free windows retain their normal guards while a lesson is running and after failure, restart, cancellation or exit. Training ignores user layout persistence and has no settings, inventory or custom-drawing service from the user's profile.
+
+Windows smoke completes both scenarios under Free and Owner, including snapshot/package outputs, pause/restart, missing-fixture failure and exit from the axis editor. It checks normal Free module/settings bytes and layout preferences are unchanged, the global edition is stable throughout playback, normal input handlers/native acquisition remain blocked and expired/foreign scopes are rejected. Existing 80/80/50 gates remain enabled.

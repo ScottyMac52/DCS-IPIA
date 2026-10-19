@@ -30,7 +30,7 @@ namespace DcsIpia.Presentation
                 DCS-IPIA
                 VERSION
 
-                Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Current signed Owner activation unlocks implemented features; customer Premium licensing/payment is not yet available. Generic hardware and interactive training/input-test walkthroughs below require Owner access. Free training is proposed, not yet implemented.
+                Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Current signed Owner activation unlocks implemented features; customer Premium licensing/payment is not yet available. Both training lessons are free under Help → Training / Guided workflows. They demonstrate Premium capabilities with fictional hardware and simulated input in a temporary session. Your edition stays unchanged; ordinary generic hardware, physical input testing and customization still require licensed access.
 
                 Hardware → Discover devices / Rescan reads controllers. Review capabilities, select each physical unit and give repeated units distinct labels/roles before saving. Saved devices may be disconnected: saved selection is not proof of current connectivity. Review unsupported objects and changed capabilities explicitly.
 

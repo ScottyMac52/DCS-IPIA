@@ -70,7 +70,7 @@ namespace DcsIpia.Features.InputTest
             StatusText.Text = context.Working is null
                 ? "No working snapshot"
                 : $"Input test · {context.Working.Configuration.Module.DisplayName}";
-            StartButton?.IsEnabled = context.Working is not null && EditionAccess.Policy.IsOwner;
+            StartButton?.IsEnabled = context.Working is not null && EditionAccess.AllowsInputTest(context);
 
             if (context.Working is not null)
             {
@@ -106,7 +106,7 @@ namespace DcsIpia.Features.InputTest
             Stop("Preparing generated Lua…");
             try
             {
-                EditionAccess.Policy.RequireOwner();
+                EditionAccess.RequireInputTest(_context);
                 var snapshot = InputTestSnapshotChoice.SelectedIndex == 1 ? _context!.Saved ?? throw new InvalidOperationException("No saved profile.") : (_context!.Working! with { Assignments = _context.Draft?.Snapshot ?? _context.Working!.Assignments, Labels = _context.Labels });
                 var plan = GeneratedInputTestPlan.Create(snapshot);
                 var required = plan.Bindings.Select(x => x.PhysicalGuid).Concat(plan.Modifiers.Select(x => x.PhysicalGuid))
@@ -161,7 +161,7 @@ namespace DcsIpia.Features.InputTest
             _testKeyboard.Clear(); _liveAxisUntil.Clear(); _livePressedInputs.Clear();
             ClearInputHighlights();
             if (StartInputTestButton is null) return;
-            StartInputTestButton.IsEnabled = EditionAccess.Policy.IsOwner && _context?.Saved is not null;
+            StartInputTestButton.IsEnabled = EditionAccess.AllowsInputTest(_context) && _context?.Saved is not null;
             StopInputTestButton.IsEnabled = false;
             InputTestSnapshotChoice.IsEnabled = true;
             InputTestStatus.Text = status;

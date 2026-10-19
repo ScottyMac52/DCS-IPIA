@@ -73,8 +73,6 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private async void ScenarioChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!EditionAccess.Policy.IsOwner)
-            { ExplanationText.Text = "The interactive training uses generic hardware and live input testing reserved for Premium. Availability and pricing TBA."; return; }
             if (_changing || ScenarioChoice.SelectedItem is not TrainingScenario scenario) return;
             _changing = true;
             UpdateControls();
@@ -86,7 +84,7 @@ namespace DcsIpia.Presentation
                 _runner.Changed += RunnerChanged;
                 SpeedChanged(this, null!);
                 StepTitle.Text = scenario.Title;
-                ExplanationText.Text = "Choose Play to watch the actual application, or Next step to advance at your own pace. All sample files and outputs are isolated and removed when you exit.";
+                ExplanationText.Text = "Choose Play to watch the actual application, or Next step to advance at your own pace. Training is free, including demonstrations of Premium capabilities with a fictional controller and simulated input. Your normal edition is unchanged. All sample files and outputs are isolated and removed when you exit.";
                 ErrorText.Text = "";
             }
             catch (Exception ex) { ErrorText.Text = "Unable to prepare training: " + ex.Message + " Choose another scenario or exit."; }

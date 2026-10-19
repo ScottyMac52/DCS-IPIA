@@ -13,6 +13,7 @@ namespace DcsIpia.Presentation
     public partial class NewModuleWindow : Window
     {
         private readonly IEditorWorkspaceRepository _repository;
+        private readonly TrainingEnvironment? _training;
         private readonly Action? _completed;
         private readonly SharedUiLayerWorkspace _defaults;
         private readonly IReadOnlyDictionary<string, string> _hardwareSources;
@@ -31,24 +32,28 @@ namespace DcsIpia.Presentation
         /// <param name="logger">Optional DI-configured diagnostic logger.</param>
         /// <param name="completed">Optional completion callback for an embedded form.</param>
         /// <param name="savedGamesRoot">Optional isolated discovery root.</param>
+        /// <param name="training">Optional session-owned sample access; never changes the active edition.</param>
         public NewModuleWindow(IEditorWorkspaceRepository repository, SharedUiLayerWorkspace defaults,
             IReadOnlyDictionary<string, string> hardwareSources, IConnectedDeviceDiscovery? discovery = null, HardwareInventoryManager? inventory = null,
-            ILogger<NewModuleWindow>? logger = null, Action? completed = null, string? savedGamesRoot = null)
+            ILogger<NewModuleWindow>? logger = null, Action? completed = null, string? savedGamesRoot = null, TrainingEnvironment? training = null)
         {
+            training?.RequireSources(repository, defaults, hardwareSources);
+            _training = training;
             _completed = completed;
             if (savedGamesRoot is not null) _savedGamesRoot = savedGamesRoot;
+            if (training is not null) _savedGamesRoot = training.ImportFolder;
             _logger = logger ?? NullLogger<NewModuleWindow>.Instance;
-            _inventory = inventory;
+            _inventory = training is null ? inventory : null;
             _repository = repository;
             _defaults = defaults;
             _hardwareSources = hardwareSources;
-            _discovery = discovery ?? new WindowsConnectedDeviceDiscovery();
+            _discovery = training is null ? discovery ?? new WindowsConnectedDeviceDiscovery() : new TrainingDiscovery();
             _hardware = WorkspaceStructureEditor.Hardware(new(
                 new(new(Guid.NewGuid(), "catalog", "Hardware"), [], [], [], "internal catalog"),
                 [], [], [], [], [], [], new Dictionary<string, string>(), hardwareSources));
             InitializeComponent();
             BaselineText.Text = $"Shared default UI Layer revision {defaults.Revision} will be copied into this module. Its filenames are baseline identities; select a copied profile below to explicitly bind it to your unit.";
-            _hardware = EditionAccess.Hardware(_hardware).ToArray();
+            _hardware = EditionAccess.Hardware(_hardware, _training).ToArray();
             HardwareChoices.ItemsSource = _hardware;
             SelectedUnits.ItemsSource = _selections;
             DefaultChoiceChanged(this, new RoutedEventArgs());
@@ -68,7 +73,7 @@ namespace DcsIpia.Presentation
                 InventoryChoices.ItemsSource = EditionAccess.Policy.IsOwner ? choices : [];
                 _hardware = _hardware.Concat(choices.Select(x => GenericHardwareLayout.Create(x.Definition)))
                     .DistinctBy(x => x.DeviceId).ToArray();
-                _hardware = EditionAccess.Hardware(_hardware).ToArray();
+                _hardware = EditionAccess.Hardware(_hardware, _training).ToArray();
                 HardwareChoices.ItemsSource = _hardware;
             }
             catch (Exception ex)
@@ -121,7 +126,7 @@ namespace DcsIpia.Presentation
                 });
                 if (_logger.IsEnabled(LogLevel.Debug))
                     ApplicationLog.DevicesDiscovered(_logger, choices.Count, _savedGamesRoot, null);
-                PhysicalChoices.ItemsSource = EditionAccess.Policy.IsOwner ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
+                PhysicalChoices.ItemsSource = _training is not null || EditionAccess.Policy.IsOwner ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
                     DcsPhysicalIdentity.NameFromFileName(item.DefaultFileName).Equals(device.Name, StringComparison.OrdinalIgnoreCase))).ToArray();
                 CreationError.Text = choices.Count + " physical unit(s). " + string.Join(" ", errors);
             }
@@ -227,7 +232,7 @@ namespace DcsIpia.Presentation
                 workspace = ModuleAxisCleanup.CaptureDevices(workspace,
                     (PhysicalChoices.ItemsSource as IEnumerable<DetectedDcsDevice> ?? []).Select(x => x.FileName)
                         .Concat(_selections.Select(x => x.FileName)));
-                EditionAccess.RequireWorkspace(workspace, _discovery);
+                EditionAccess.RequireWorkspace(workspace, _discovery, _training);
                 await _repository.SaveAsync(workspace);
                 CreatedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
                     ?? throw new System.IO.InvalidDataException("The new module could not be reopened from SQLite.");
