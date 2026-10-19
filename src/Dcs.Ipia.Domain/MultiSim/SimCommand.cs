@@ -18,7 +18,7 @@ namespace Dcs.Ipia.Domain.MultiSim
         public CommandType Type { get; set; }
 
         /// <summary>Gets or sets a value indicating whether the command is aircraft-specific.</summary>
-        public bool IsAircraftSpecific { get; set; }
+        public bool IsModuleSpecific { get; set; }
 
         /// <summary>Gets or sets an optional context.</summary>
         public string? Context { get; set; }

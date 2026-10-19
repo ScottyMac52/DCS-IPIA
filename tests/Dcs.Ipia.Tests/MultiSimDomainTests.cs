@@ -102,7 +102,7 @@ namespace Dcs.Ipia.Tests
                 DisplayName = "Roll",
                 Category = "Flight",
                 Type = type,
-                IsAircraftSpecific = true,
+                IsModuleSpecific = true,
                 Context = "vehicle:example",
                 Metadata = { ["nativeCommand"] = "ROLL_NATIVE" }
             };
@@ -111,7 +111,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(command.DisplayName, restored.DisplayName);
             Assert.Equal(command.Category, restored.Category);
             Assert.Equal(type, restored.Type);
-            Assert.True(restored.IsAircraftSpecific);
+            Assert.True(restored.IsModuleSpecific);
             Assert.Equal(command.Context, restored.Context);
             Assert.Equal("ROLL_NATIVE", restored.Metadata["nativeCommand"]);
         }
