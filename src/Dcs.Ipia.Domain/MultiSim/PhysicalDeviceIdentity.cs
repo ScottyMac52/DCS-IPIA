@@ -14,8 +14,8 @@ namespace Dcs.Ipia.Domain.MultiSim
         /// <summary>Gets or sets the USB product ID.</summary>
         public ushort ProductId { get; set; }
 
-        /// <summary>Gets or sets the Windows or DirectInput GUID.</summary>
-        public string? Guid { get; set; }
+        /// <summary>Gets or sets the native Windows or DirectInput instance identifier, distinct from a product or catalog identity.</summary>
+        public string? InstanceId { get; set; }
 
         /// <summary>Gets or sets the composite ID.</summary>
         public int CompositeId { get; set; }
@@ -27,3 +27,4 @@ namespace Dcs.Ipia.Domain.MultiSim
         #endregion END Public
     }
 }
+
