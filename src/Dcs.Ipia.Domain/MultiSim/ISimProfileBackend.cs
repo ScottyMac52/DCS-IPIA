@@ -18,7 +18,7 @@ public interface ISimProfileBackend
     void Save(ProfileDocument profile, string destination);
 
     /// <summary>Resolves a physical device into the identity expected by this sim.</summary>
-    PhysicalDeviceIdentity ResolveDevice(PhysicalDevice device);
+    PhysicalDeviceIdentity ResolveDevice(Domain.PhysicalDevice device);
 
     /// <summary>Gets known default profile search paths for this sim.</summary>
     IEnumerable<string> GetDefaultProfilePaths();
