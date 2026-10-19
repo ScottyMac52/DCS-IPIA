@@ -19,8 +19,8 @@ const render = source => renderDrawioSvg(device, source);
 const cli = (...args) => spawnSync(process.execPath, ['scripts/asset-authoring/export-hardware.mjs', ...args], { encoding: 'utf8' });
 
 // Real pinned graphics prove all layout/image bytes, not just selected labels.
-test('all twelve outputs are exact and repeatable through compressed and native inputs', () => {
-  assert.equal(devices.length, 12);
+test('all bundled outputs are exact and repeatable through compressed and native inputs', () => {
+  assert.equal(devices.length, 16);
   const report = readFileSync('docs/migration/drawio-export-parity.md', 'utf8');
   for (const d of devices) {
     const source = readFileSync(join(hardwareRoot, d.drawio), 'utf8');
@@ -62,8 +62,8 @@ test('rejects invalid geometry, duplicate identities, incomplete images and mult
 test('staging is deterministic, check-only is read-only and existing output is protected', () => {
   const root = mkdtempSync(join(tmpdir(), 'ipia-svg-'));
   try {
-    assert.equal(exportHardware({ hardwareRoot }).length, 12);
-    for (const name of ['first', 'second']) assert.equal(exportHardware({ hardwareRoot, outputRoot: join(root, name) }).length, 12);
+    assert.equal(exportHardware({ hardwareRoot }).length, 16);
+    for (const name of ['first', 'second']) assert.equal(exportHardware({ hardwareRoot, outputRoot: join(root, name) }).length, 16);
     for (const d of devices) assert.deepEqual(readFileSync(join(root, 'first', d.svg)), readFileSync(join(root, 'second', d.svg)));
     assert.throws(() => exportHardware({ hardwareRoot, outputRoot: join(root, 'first') }), /already exists/);
     assert.equal(cli('--check').status, 0);

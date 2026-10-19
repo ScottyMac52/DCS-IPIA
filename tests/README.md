@@ -46,7 +46,7 @@ Reporting depends on coverage collection; the full installer cycle is last.
 | Order | Script | Purpose and dependencies | Outputs |
 | --- | --- | --- | --- |
 | 1 | [csharp-test.ps1](csharp-test.ps1) | C# type layout, guide links/release-note version, WPF theme keys, pinned Common inventory, migration tests and CI Python helper tests. Requires Python 3.12. | Console diagnostics. |
-| 2 | [asset-export-tests.ps1](asset-export-tests.ps1) | Node exporter tests and exact parity for all twelve pinned SVGs, followed by independent exporter-module 80/80 gates. Requires Node 24 and Python 3.12. | `asset-authoring-coverage.info`. |
+| 2 | [asset-export-tests.ps1](asset-export-tests.ps1) | Node exporter tests and exact parity for all bundled SVGs, followed by independent exporter-module 80/80 gates. Requires Node 24 and Python 3.12. | `asset-authoring-coverage.info`. |
 | 3 | [coverage-test-gates.ps1](coverage-test-gates.ps1) | Restore, verify formatting, build and run .NET tests with independent 80/80 gates for every included production assembly. Requires .NET 10. | TRX, Cobertura and OpenCover under `TestResults/raw/dotnet`. |
 | 4 | [installer-helper-tests.ps1](installer-helper-tests.ps1) | Uninstaller completion/file-lock cleanup, runtime-pack notices and Saved Games settings compatibility tests. Requires Windows. | Console diagnostics; helper fixtures use temporary directories. |
 | 5 | [smoke-tests.ps1](smoke-tests.ps1) | Build the Windows solution, run the WPF UI smoke application and run .NET tests on Windows. Requires an interactive Windows desktop. This repeats the unit tests, as CI does. | TRX under `TestResults/raw/windows`, pictures under `TestResults/custom-mapping-preview`, parity evidence under `TestResults/huey-parity`. |

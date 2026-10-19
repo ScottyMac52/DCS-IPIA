@@ -2,7 +2,7 @@
 
 Migration Step 1 of #83; broader roadmap #9.
 
-The application distributes 73 shared hardware, component and canonical UI Layer asset files plus the DCS-Common MIT license (74 manifest entries total). `data/shared-assets/provenance.json` records the source repository/commit, original paths, sizes, and Git blob IDs. Original bytes, draw.io format/footer, SVG geometry, binary images, and GUID-qualified Lua filenames are preserved.
+The application distributes shared hardware, component and canonical UI Layer assets plus the DCS-Common MIT license. The provenance manifest is the authoritative current file inventory. `data/shared-assets/provenance.json` records the source repository/commit, original paths, sizes, and Git blob IDs. Original upstream assets retain their provenance; IPIA-authored additions identify their repository explicitly. Upstream Git blob IDs remain recorded when an inherited manifest is extended.
 
 MSBuild copies the bundle to `SharedAssets/` in build and publish output, including project-reference consumers. Desktop module import uses this bundle automatically. **Load built-in hardware** stages its catalog without a Common folder picker; Save persists the update. Existing module UI Layer source texts and assignments remain pinned during catalog refresh. Imported snapshots carry the bundle provenance manifest.
 

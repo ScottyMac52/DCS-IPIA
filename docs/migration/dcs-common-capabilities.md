@@ -18,11 +18,29 @@ Production generation uses the IPIA bundle and frozen workspace; this audit adds
 
 ## Shared asset drift
 
-**74 of 74 bundled files** match the current pinned Common blobs exactly, including the renamed MIT license. The bundle's earlier commit is retained; matching asset bytes do not mean the remaining Common authored code has migrated.
+**71 of 90 bundled files** match the current pinned Common blobs exactly, including the renamed MIT license. The bundle's earlier commit is retained; matching asset bytes do not mean the remaining Common authored code has migrated.
 
 | Source path | State |
 | --- | --- |
-| All bundled paths | unchanged |
+| `assets/shared/hardware/SOURCES.md` | changed |
+| `assets/shared/hardware/drawio/tm-sol-r-ava-l-buttons.drawio` | missing |
+| `assets/shared/hardware/drawio/tm-sol-r-ava-l-pov.drawio` | missing |
+| `assets/shared/hardware/drawio/tm-sol-r-ava-r-buttons.drawio` | missing |
+| `assets/shared/hardware/drawio/tm-sol-r-ava-r-pov.drawio` | missing |
+| `assets/shared/hardware/lua/tm-sol-r-ava-l-buttons.lua` | missing |
+| `assets/shared/hardware/lua/tm-sol-r-ava-l-pov.lua` | missing |
+| `assets/shared/hardware/lua/tm-sol-r-ava-r-buttons.lua` | missing |
+| `assets/shared/hardware/lua/tm-sol-r-ava-r-pov.lua` | missing |
+| `assets/shared/hardware/manifest.json` | changed |
+| `assets/shared/hardware/scaffold-device-map.json` | changed |
+| `assets/shared/hardware/source/sol-r-grip-front-l.svg` | missing |
+| `assets/shared/hardware/source/sol-r-grip-front-r.svg` | missing |
+| `assets/shared/hardware/source/sol-r-grip-side-l.svg` | missing |
+| `assets/shared/hardware/source/sol-r-grip-side-r.svg` | missing |
+| `assets/shared/hardware/svg/tm-sol-r-ava-l-buttons.svg` | missing |
+| `assets/shared/hardware/svg/tm-sol-r-ava-l-pov.svg` | missing |
+| `assets/shared/hardware/svg/tm-sol-r-ava-r-buttons.svg` | missing |
+| `assets/shared/hardware/svg/tm-sol-r-ava-r-pov.svg` | missing |
 
 ## Capability ownership and gates
 

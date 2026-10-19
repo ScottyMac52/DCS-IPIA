@@ -2,7 +2,7 @@
 
 Source behavior: DCS-Common `f1c968e606414225db837e75426c0c930cc815c9`; source file identities and license are in [PROVENANCE.json](../../scripts/asset-authoring/PROVENANCE.json). Assets retain the existing bundled source pin `0e9ed14a9189b712477f2c647a348da0d8af321b`.
 
-All 12 outputs reproduce the existing published SVG bytes (LF newlines) exactly, twice, and when their graphs are compressed. This retains embedded raster bytes, dimensions, callout IDs, label text/anchors, connectors, masks, MFD category fields and footers. Identical SVG bytes establish no exporter-induced visual change; this does not establish whole consumer PNG/package parity or acceptance of newly edited artwork.
+The original 12 outputs retain their published SVG bytes. Four IPIA-authored Sol-R layouts extend the catalog. All 16 published outputs reproduce their deterministic generated SVG bytes (LF newlines) exactly, twice, and when their graphs are compressed. This retains embedded raster bytes, dimensions, callout IDs, label text/anchors, connectors, masks, MFD category fields and footers. Identical SVG bytes establish no exporter-induced visual change; this does not establish whole consumer PNG/package parity or acceptance of newly edited artwork.
 
 | Device | Source draw.io SHA-256 | Published/generated SVG SHA-256 | Comparison |
 | --- | --- | --- | --- |
@@ -18,6 +18,11 @@ All 12 outputs reproduce the existing published SVG bytes (LF newlines) exactly,
 | tm-warthog-throttle | `068258b329ade81b72595c0d95d33b52977fde1bbcf571aa81d1638ed0715e39` | `38e64e6be0a091e97fe93683c5ecc369cd190d9685ab5fed05c0c2db85b082ce` | Exact |
 | logitech-throttle-quadrant | `ced31703347f0b8d7710635f1d5dda493d262e6543ab67ca8e80a9287c8b21f5` | `83cdd3656d4e0b0ad53fb9859471bc7e136df282a2a68c29fd6f23ae916f814c` | Exact |
 | viper-tqs-mission-pack | `a0ade4270443ded143df8aa5f8dc1c4da3e6c00c9ec3cfdc49d27f54830b03fd` | `a2373b29b21a85abcf94fb55992295740b1f6ebe29272d86fb939f256d07f1b8` | Exact |
+
+| tm-sol-r-ava-r-pov | `258d21c4c234feed67dbd09cce4a59950affb9dda13db0b3483870c411d05990` | `0b83de20f9df5b372b2f425bb3f9651aaefd4b4b13678364758610cb000b8521` | Exact (IPIA-authored) |
+| tm-sol-r-ava-r-buttons | `441fd71e2eb9e7b152b93e26a0902dc58a67712f9f4a48fe50d7dee5aca7930b` | `de55b6cbce6c8ed18d8abbafd0000b5f4a9d75d8ccdee13da6b2bf6db9ec3858` | Exact (IPIA-authored) |
+| tm-sol-r-ava-l-pov | `b456ff338bb6ffe2d98a5f2cd6cac4f18a1e1d251cc2918467428207c4aed86a` | `953761faed2de48c01a64d04a06c821046ab33efb4d21882a45b5310293df967` | Exact (IPIA-authored) |
+| tm-sol-r-ava-l-buttons | `a78a9774a5cc3bd2813a90b01d1d593f74cfd6de4df63472667666526c86a142` | `6b51f49f5bdc3e6cb5462c356396d1524bd3daca6915dd322fd1972039f551a2` | Exact (IPIA-authored) |
 
 ## Intentional behavior changes
 

@@ -16,10 +16,10 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(BundledSharedCatalog.SourceCommit(), BundledSharedCatalog.Validate(BundledSharedCatalog.Root));
             Assert.True(BundledSharedCatalog.IsRoot(BundledSharedCatalog.Root));
             Assert.False(BundledSharedCatalog.IsRoot(Path.GetTempPath()));
-            Assert.Equal(12, BundledSharedCatalog.Paths("assets/shared/hardware/drawio").Length);
+            Assert.Equal(16, BundledSharedCatalog.Paths("assets/shared/hardware/drawio").Length);
             var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
-            Assert.Equal(12, hardware.Select(x => x.Diagram.Path).Distinct().Count());
+            Assert.Equal(16, hardware.Select(x => x.Diagram.Path).Distinct().Count());
             Assert.Contains(hardware, x => x.DeviceId == "ava-base-f16c" && x.Diagram.Controls.Count > 0);
             Assert.Contains("assets/shared/ui-layer/input/UiLayer/modifiers.lua", sources.Keys);
             Assert.Contains("config/ipia-shared-assets-provenance.json", sources.Keys);
