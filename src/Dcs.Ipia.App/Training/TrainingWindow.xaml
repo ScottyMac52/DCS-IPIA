@@ -21,6 +21,8 @@
       <StackPanel DockPanel.Dock="Top">
         <TextBlock Text="TRAINING" FontSize="24" FontWeight="Bold"/>
         <TextBlock Text="Sample data · your configuration stays unchanged" TextWrapping="Wrap" Margin="0,6,0,12"/>
+        <TextBlock x:Name="EditionExplanation" Text="Free training · Premium feature demonstrations use sample hardware and simulated input. Your edition stays unchanged. Premium availability/pricing TBA."
+                   TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{DynamicResource SecondaryTextBrush}"/>
         <TextBlock Text="Scenario"/>
         <ComboBox x:Name="ScenarioChoice" DisplayMemberPath="Title" SelectionChanged="ScenarioChanged"
                   AutomationProperties.Name="Training scenario" Margin="0,4,0,12"/>

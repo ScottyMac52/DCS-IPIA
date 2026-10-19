@@ -20,11 +20,14 @@ namespace Dcs.Ipia.App.Smoke
         /// <summary>Checks scenario completion, independent intermediate state, restart, failure recovery and cleanup.</summary>
         public static void Verify()
         {
+            var editionBefore = EditionAccess.Policy;
             var layoutBefore = File.Exists(WorkspaceLayoutStore.FilePath) ? File.ReadAllText(WorkspaceLayoutStore.FilePath) : null;
             var existingWindows = System.Windows.Application.Current.Windows.Cast<Window>().ToHashSet();
             var window = new TrainingWindow();
             window.Show();
             PumpUntil(() => window.Runner is not null, "Training did not initialize.");
+            if (!((TextBlock)window.FindName("EditionExplanation")).Text.Contains("Premium", StringComparison.Ordinal))
+                throw new InvalidOperationException("Training did not explain Premium demonstration access.");
             var scenarios = (ComboBox)window.FindName("ScenarioChoice");
             var next = (Button)window.FindName("NextButton");
             var restart = (Button)window.FindName("RestartButton");
@@ -81,6 +84,8 @@ namespace Dcs.Ipia.App.Smoke
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
                     CheckTrainingState(window, step.Action);
+                    if (!ReferenceEquals(editionBefore, EditionAccess.Policy))
+                        throw new InvalidOperationException("Training temporarily changed the process-wide edition.");
                     if (step.Action == "drag" && !window.AreDragEndpointsVisible)
                         throw new InvalidOperationException("Training drag endpoints were clipped: " + step.Id + "; " + window.HighlightedTargetVisibilityDetails);
                     if (step.Action is "base" or "kneeboard" or "drag-ready" or "drag" or "axis-options" or

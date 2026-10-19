@@ -1,6 +1,6 @@
 # Live input testing (first version)
 
-**Edition availability:** live input testing requires authenticated Owner access in the current release. Free blocks Start and native acquisition; customer Premium availability/pricing is TBA. See [the edition guide](design/free-edition.md).
+**Edition availability:** live input testing requires authenticated Owner access in the current release. Free blocks Start and native acquisition; customer Premium availability/pricing is TBA. The [free training lessons](interactive-training.md) demonstrate the tester with simulated input; that session-only access does not unlock physical controller testing. See [the edition guide](design/free-edition.md).
 
 Open a saved module's **Input tester** workspace view. Select **Current edits** or **Saved profile**, then click **Start test**. IPIA generates the same Lua payload used by export and freezes it for the session. Pending assignments are included only in Current edits. Stop/Start after editing to capture a fresh payload. Testing never saves edits or installs a package.
 

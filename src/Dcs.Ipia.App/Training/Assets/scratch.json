@@ -7,7 +7,7 @@
       "Id": "new",
       "Action": "new",
       "Title": "Open New module",
-      "Explanation": "Start with the real New module form. The supplied Generic training joystick represents your own equipment; no brand or connected device is required for this demonstration. All sample data stays isolated.",
+      "Explanation": "Start with the real New module form. The supplied Generic training joystick represents your own equipment; no brand or connected device is required for this demonstration. All sample data stays isolated. Training is free in every edition. Premium capabilities are demonstrated only with this isolated sample; your normal edition and device restrictions remain unchanged. Premium availability and pricing are TBA.",
       "Target": "Form:DcsIdInput",
       "Checkpoint": true
     },
@@ -214,8 +214,8 @@
     {
       "Id": "test-start",
       "Action": "test-start",
-      "Title": "Start the input tester on this controller",
-      "Explanation": "Choose the same Generic training joystick and Saved profile, enable Show axis values, then Start test. The real tester reads a simulated source during training. Startup establishes a neutral baseline. With your own equipment, IPIA acquires the selected physical controllers and you perform these movements yourself. Testing resolves generated mappings; it does not execute DCS. Live input colors are separate from the lesson navigation marker: blue is aircraft Base and cyan is UI Layer Base. Highlights and legend swatches share the same colors and white/black contrast edges.",
+      "Title": "Premium preview: simulated input testing",
+      "Explanation": "Premium preview: this is the real tester with simulated sample input, available here for free. Testing your own physical controllers outside training remains a licensed capability; Premium availability/pricing is TBA. Choose the same Generic training joystick and Saved profile, enable Show axis values, then Start test. The real tester reads a simulated source during training. Startup establishes a neutral baseline. With your own equipment, IPIA acquires the selected physical controllers and you perform these movements yourself. Testing resolves generated mappings; it does not execute DCS. Live input colors are separate from the lesson navigation marker: blue is aircraft Base and cyan is UI Layer Base. Highlights and legend swatches share the same colors and white/black contrast edges.",
       "Target": "InputTest:InputTestStatus",
       "Checkpoint": true
     },

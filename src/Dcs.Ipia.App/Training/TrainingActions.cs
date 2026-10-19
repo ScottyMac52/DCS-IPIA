@@ -18,7 +18,6 @@ namespace DcsIpia.Presentation
         private readonly Action<FrameworkElement> _highlight;
         private readonly Func<FrameworkElement, FrameworkElement, Task> _animateDrag;
         private ContextMenu? _menu;
-        private TrainingInputSource? _input;
         private Window? _form;
         private ModuleWorkspaceWindow? _workspace;
         private TaskCompletionSource? _formCompletion;
@@ -121,8 +120,6 @@ namespace DcsIpia.Presentation
                 _workspace.Close();
                 _workspace = null;
             }
-            _input?.Dispose();
-            _input = null;
             _form?.Close();
             _form = null;
         }
@@ -132,7 +129,7 @@ namespace DcsIpia.Presentation
         {
             _formCompletion = new TaskCompletionSource();
             var form = new NewModuleWindow(_environment.Repository, _environment.Defaults, _environment.Hardware,
-                new TrainingDiscovery(), completed: () => _formCompletion.SetResult(), savedGamesRoot: _environment.ImportFolder);
+                new TrainingDiscovery(), completed: () => _formCompletion.SetResult(), savedGamesRoot: _environment.ImportFolder, training: _environment);
             _form = form;
             _mount(form);
             Get<CheckBox>(form, "EmptyDefaults").IsChecked = false;
@@ -167,7 +164,7 @@ namespace DcsIpia.Presentation
             Require(folder.Succeeded, string.Join("; ", folder.Diagnostics.Select(x => x.Message)));
             _formCompletion = new TaskCompletionSource();
             _form = new SavedGamesImportWindow(folder, _environment.Defaults, _environment.Hardware, _environment.Repository,
-                () => _formCompletion.SetResult());
+                () => _formCompletion.SetResult(), training: _environment);
             _mount(_form);
             foreach (var choice in Get<ItemsControl>(_form, "ProfileChoices").Items.Cast<SavedGamesProfileChoice>())
                 choice.Hardware = choice.HardwareChoices.Single(x => x.DeviceId == "training-joystick");
@@ -199,8 +196,7 @@ namespace DcsIpia.Presentation
                 outputPathPicker: snapshot => snapshot ? Path.Combine(_environment.Outputs, "training.ipia-module.json") : _environment.Outputs,
                 documentationFolderPicker: () => _environment.Outputs, completeReleaseFolderPicker: () => _environment.Outputs,
                 integrationFilePicker: () => null, axisDefaultsFilePicker: () => null,
-                inputSourceFactory: (_, devices) => devices.Contains(TrainingDiscovery.Unit.PhysicalGuid)
-                    ? _input = new TrainingInputSource() : throw new InvalidDataException("Sample controller was not acquired."));
+                training: _environment);
             _workspace._savedGamesRoot = _environment.ImportFolder;
             _mount(_workspace);
         }
@@ -378,7 +374,7 @@ namespace DcsIpia.Presentation
         }
         private async Task SampleAsync(params (string Key, double Value)[] values)
         {
-            foreach (var (key, value) in values) _input!.Set(key, value);
+            foreach (var (key, value) in values) _environment.Input!.Set(key, value);
             // The actual input-test timer consumes the sample, resolves generated Lua and updates the legend/log.
             var log = Get<ListBox>(Navigate("InputTest"), "InputTestLog");
             var count = log.Items.Count;

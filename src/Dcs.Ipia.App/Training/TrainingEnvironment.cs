@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Dcs.Ipia.Application;
+using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Microsoft.Data.Sqlite;
@@ -11,6 +12,7 @@ namespace DcsIpia.Presentation
     public sealed class TrainingEnvironment : IDisposable
     {
         private readonly string _connection;
+        private bool _disposed;
         /// <summary>Allocates a fresh unpredictable training directory; never accepts a user database or DCS path.</summary>
         public TrainingEnvironment()
         {
@@ -31,6 +33,40 @@ namespace DcsIpia.Presentation
         public SharedUiLayerWorkspace Defaults { get; private set; } = null!;
         /// <summary>Gets pinned shipped hardware sources.</summary>
         public IReadOnlyDictionary<string, string> Hardware { get; private set; } = null!;
+        /// <summary>Gets whether this initialized session still owns its temporary resources.</summary>
+        internal bool IsActive => !_disposed && Hardware is not null;
+        /// <summary>Gets the scripted source used by this environment's input-test demonstration.</summary>
+        internal TrainingInputSource? Input { get; private set; }
+        /// <summary>Rejects attaching training access to another repository or an expired session.</summary>
+        internal void RequireRepository(IEditorWorkspaceRepository? repository)
+        {
+            if (_disposed || Hardware is null || !ReferenceEquals(repository, Repository))
+                throw new InvalidOperationException("Training access requires this active session's isolated repository.");
+        }
+        /// <summary>Requires this environment's own fixture catalog and default revision for creation/import.</summary>
+        internal void RequireSources(IEditorWorkspaceRepository repository, SharedUiLayerWorkspace defaults, IReadOnlyDictionary<string, string> hardware)
+        {
+            RequireRepository(repository);
+            if (!ReferenceEquals(defaults, Defaults) || !ReferenceEquals(hardware, Hardware))
+                throw new InvalidOperationException("Training forms require the session's own sample sources.");
+        }
+        /// <summary>Permits only the fictional aircraft and physical profiles inside this session.</summary>
+        internal void RequireWorkspace(EditorWorkspaceSnapshot workspace)
+        {
+            RequireRepository(Repository);
+            if (workspace.Configuration.Module.DcsId != "TRAINING" || workspace.Configuration.Profiles.Any(profile =>
+                profile.DeviceId != "training-joystick" || profile.SourceName != TrainingDiscovery.Unit.FileName))
+                throw new InvalidOperationException("Training access is limited to the fictional sample aircraft and controller.");
+        }
+        /// <summary>Creates simulated input only for the fictional identity, never a native device.</summary>
+        internal IDeviceInputSource CreateInputSource(nint window, IReadOnlyList<Guid> devices)
+        {
+            RequireRepository(Repository);
+            if (devices.Count != 1 || devices[0] != TrainingDiscovery.Unit.PhysicalGuid)
+                throw new InvalidOperationException("Training cannot acquire physical controllers.");
+            Input?.Dispose();
+            return Input = new TrainingInputSource();
+        }
         /// <summary>Creates SQLite and sample sources without reading any user configuration.</summary>
         public async Task InitializeAsync()
         {
@@ -58,6 +94,9 @@ namespace DcsIpia.Presentation
         /// <summary>Deletes only this environment after its runner and views have settled.</summary>
         public void Dispose()
         {
+            _disposed = true;
+            Input?.Dispose();
+            Input = null;
             if (Directory.Exists(Root)) Directory.Delete(Root, true);
         }
         #endregion END Public

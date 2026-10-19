@@ -74,11 +74,11 @@ On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Re
 
 ## Interactive training
 
-With an authenticated Owner license, choose **Help → Training / Guided workflows…** to watch the real application
+Choose **Help → Training / Guided workflows…** to watch the real application
 create a module from scratch or import a supplied DCS Saved Games configuration.
 Pause to read, advance one step, restart, or adjust playback speed. Sample data
 and outputs use an isolated temporary database; your configuration stays unchanged.
-Free currently shows a Premium/TBA explanation instead of running the lessons. Making training free is proposed, not implemented. See [interactive training](docs/interactive-training.md).
+Training is free on current `main` (unreleased after v1.1.1.0). Both lessons demonstrate Premium capabilities with fictional hardware and simulated input without changing your normal edition. The published v1.1.1.0 lessons still require Owner activation. See [interactive training](docs/interactive-training.md).
 
 ## Migration and OvGME status
 

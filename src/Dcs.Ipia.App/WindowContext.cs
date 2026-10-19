@@ -13,6 +13,9 @@ namespace DcsIpia.Presentation
         /// <summary>Connects feature views to the supplied module workspace host.</summary>
         public WindowContext(ModuleWorkspaceWindow window) => _window = window;
 
+        /// <summary>Gets only this mounted workspace’s isolated training scope.</summary>
+        internal TrainingEnvironment? Training => _window._training;
+
         /// <inheritdoc/>
         public EditorWorkspaceSnapshot? Working => _window._working;
         /// <inheritdoc/>

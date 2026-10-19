@@ -65,7 +65,7 @@ namespace DcsIpia.Features.Devices
             ManagedDevices.ItemsSource = devices;
             ManagedDevices.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId);
             StatusText.Text = $"{devices.Length} devices in {_layer}";
-            ManagedHardware.ItemsSource = _context.Working is null ? null : EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working)).ToArray();
+            ManagedHardware.ItemsSource = _context.Working is null ? null : EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working), EditionAccess.Training(_context)).ToArray();
         }
 
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)

@@ -29,6 +29,7 @@ namespace DcsIpia.Presentation
         private readonly string[] _knownKeys = { "Devices", "Modifiers", "Assignments", "InputTest", "Commands", "Pages", "Kneeboards", "Documentation" };
 
         internal readonly ModuleWorkspaceViewModel _viewModel;
+        internal readonly TrainingEnvironment? _training;
         private readonly ILogger<ModuleWorkspaceWindow> _logger;
         private readonly IAppSettingsService? _settings;
         internal readonly IEditorWorkspaceRepository? _repository;
@@ -60,23 +61,27 @@ namespace DcsIpia.Presentation
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
                                      Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
-                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true)
+                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            training?.RequireRepository(repository);
+            training?.RequireWorkspace(viewModel.Workspace ?? throw new InvalidOperationException("No training workspace."));
+            _training = training;
             _logger = logger ?? NullLogger<ModuleWorkspaceWindow>.Instance;
-            _inventory = inventory;
-            _userMappings = userMappings;
+            _inventory = training is null ? inventory : null;
+            _userMappings = training is null ? userMappings : null;
             _mappingReviewConfirmation = mappingReviewConfirmation;
-            _settings = settings;
+            _settings = training is null ? settings : null;
             _repository = repository;
-            _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
-            _commandFilePicker = commandFilePicker;
-            _outputPathPicker = outputPathPicker;
-            _documentationFolderPicker = documentationFolderPicker;
-            _completeReleaseFolderPicker = completeReleaseFolderPicker;
-            _integrationFilePicker = integrationFilePicker;
-            _axisDefaultsFilePicker = axisDefaultsFilePicker;
-            _inputSourceFactory = inputSourceFactory;
+            _deviceDiscovery = training is null ? deviceDiscovery ?? new WindowsConnectedDeviceDiscovery() : new TrainingDiscovery();
+            _commandFilePicker = training is null ? commandFilePicker : _ => [Path.Combine(training.Root, "commands.json")];
+            _outputPathPicker = training is null ? outputPathPicker : snapshot => snapshot
+                ? Path.Combine(training.Outputs, "training.ipia-module.json") : training.Outputs;
+            _documentationFolderPicker = training is null ? documentationFolderPicker : () => training.Outputs;
+            _completeReleaseFolderPicker = training is null ? completeReleaseFolderPicker : () => training.Outputs;
+            _integrationFilePicker = training is null ? integrationFilePicker : () => null;
+            _axisDefaultsFilePicker = training is null ? axisDefaultsFilePicker : () => null;
+            _inputSourceFactory = training is null ? inputSourceFactory : training.CreateInputSource;
             _inputLogClipboardWriter = inputLogClipboardWriter;
             _saved = viewModel.Workspace;
             _working = _saved;
@@ -84,7 +89,7 @@ namespace DcsIpia.Presentation
             foreach (var pair in viewModel.Labels)
                 _labels[pair.Key] = pair.Value;
             InitializeComponent();
-            WorkspaceLayout.SetPersistenceEnabled(WorkspaceRoot, persistLayout);
+            WorkspaceLayout.SetPersistenceEnabled(WorkspaceRoot, training is null && persistLayout);
             DataContext = _viewModel;
             WorkspaceSettingsButton.IsEnabled = _settings is not null;
             RefreshManagement();
@@ -123,9 +128,9 @@ namespace DcsIpia.Presentation
         private void LoadCurrentView()
         {
             var key = _navigation.CurrentFeatureKey ?? "Devices";
-            FeatureContent.IsEnabled = FeatureActions.IsEnabled = EditionAccess.AllowsWorkspace(_working);
+            FeatureContent.IsEnabled = FeatureActions.IsEnabled = EditionAccess.AllowsWorkspace(_working, _training);
             if (!FeatureContent.IsEnabled) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
-            if (key == "InputTest" && !EditionAccess.Policy.IsOwner)
+            if (key == "InputTest" && !EditionAccess.AllowsInputTest(_context))
             {
                 FeatureContent.Content = new TextBlock { Text = "Live input testing is reserved for Premium. Availability and pricing TBA.", TextWrapping = TextWrapping.Wrap };
                 FeatureActions.ClearActions(); return;
@@ -261,7 +266,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var updated = edit(EditSnapshot());
-                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery, _training);
                 RebuildDraft(updated);
                 _working = updated;
                 _structureDirty = true;
@@ -298,9 +303,9 @@ namespace DcsIpia.Presentation
                     Assignments = _draft.Snapshot,
                     Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal)
                 };
-                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery, _training);
                 updated = PinnedUiLayerProfileRecovery.Restore(updated);
-                EditionAccess.RequireWorkspace(updated, _deviceDiscovery);
+                EditionAccess.RequireWorkspace(updated, _deviceDiscovery, _training);
                 SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 ModuleIntegrationImport.Instructions(updated);
                 await _repository.SaveAsync(updated);
@@ -349,7 +354,7 @@ namespace DcsIpia.Presentation
             if (BuildButton is null || PackageVersion is null) return;
             PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
-                                    EditionAccess.AllowsWorkspace(_saved) && !_viewModel.HasErrors && !HasPendingChanges() &&
+                                    EditionAccess.AllowsWorkspace(_saved, _training) && !_viewModel.HasErrors && !HasPendingChanges() &&
                                     !string.IsNullOrWhiteSpace(PackageVersion.Text);
             ValidateModuleButton.IsEnabled = BuildButton.IsEnabled;
             ExportModuleSnapshotButton.IsEnabled = BuildButton.IsEnabled;
@@ -372,7 +377,7 @@ namespace DcsIpia.Presentation
             try
             {
                 var saved = _saved;
-                EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
+                EditionAccess.RequireWorkspace(saved, _deviceDiscovery, _training);
                 var version = PackageVersion.Text.Trim();
                 var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Freeze(saved, version));
                 if (snapshotExport is null)
