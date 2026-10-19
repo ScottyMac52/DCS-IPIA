@@ -1,6 +1,10 @@
 # Sol-R grip on AVA
 
 IPIA ships four shared Sol-R grip layouts in its source-controlled asset bundle.
+All four layouts are available in Free Edition, subject to verified native
+Thrustmaster identity and the existing capability checks. Other licensed
+features keep their edition requirements.
+
 They are reusable built-in hardware references, not imported user drawing
 revisions. No personal database or draw.io import is required to distribute them.
 

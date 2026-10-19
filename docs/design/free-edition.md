@@ -31,3 +31,11 @@ Unit tests exercise exact catalog/vendor rules, owner feature access, invalid cl
 Mixed-hardware snapshots offer **Remove unsupported devices and import** or **Cancel import** before database insertion. The review lists excluded device instances. Confirming removes unsupported device memberships, their assignments/modifiers/device kneeboards, and supported-device assignments that need those removed modifiers, independently in Aircraft and UI Layer. It preserves other supported assignments/tuning/labels, catalogs and the original snapshot file. Nothing is written on Cancel, Escape or close; when no supported device profile would remain, conversion cannot be accepted. The filtered snapshot must build and verify successfully before insert-only restore. Already compatible snapshots and Owner snapshots retain the original lossless path. Existing saved mixed-hardware modules keep their existing edition restrictions; this change does not silently prune previously saved data.
 
 The existing Free keyboard-profile exception is retained: a compatible keyboard profile can survive removal even when all controller profiles are unsupported.
+
+### Sol-R grip on AVA
+
+The four bundled `tm-sol-r-ava-{r,l}-{buttons,pov}` hardware identities are
+available in Free Edition. See [Sol-R on AVA](../sol-r-ava.md) for setup and
+shared layout selection. Native Thrustmaster verification still applies; this
+does not unlock other bases, unknown layouts, appearance customization or
+live input testing.

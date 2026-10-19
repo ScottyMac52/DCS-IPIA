@@ -5,7 +5,8 @@ namespace Dcs.Ipia.Application
     {
         private static readonly HashSet<string> FreeHardware = new(StringComparer.Ordinal) {
             "tm-warthog-grip", "ava-base-f16c", "ava-base-warthog-grip", "warthog-base-warthog-grip",
-            "tm-mfd", "tm-tpr", "tm-warthog-throttle", "viper-tqs-mission-pack" };
+            "tm-mfd", "tm-tpr", "tm-warthog-throttle", "viper-tqs-mission-pack",
+            "tm-sol-r-ava-r-buttons", "tm-sol-r-ava-r-pov", "tm-sol-r-ava-l-buttons", "tm-sol-r-ava-l-pov" };
         private readonly OwnerLicenseClaims? _owner;
         /// <summary>Constructs Free unless the supplied document authenticates against the issuer key.</summary>
         public EditionPolicy(string? license = null, OwnerLicenseVerifier? verifier = null) =>

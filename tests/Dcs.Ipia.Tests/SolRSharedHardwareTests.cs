@@ -29,6 +29,7 @@ namespace Dcs.Ipia.Tests
             var candidates = BundledHardwareCapabilityMatcher.Candidates(sources, new(native, definition.Capabilities));
             Assert.Equal(2, candidates.Count);
             Assert.Contains(id, candidates);
+            new EditionPolicy().RequireHardware(candidates);
             Assert.All(candidates, x => Assert.StartsWith("tm-sol-r-ava-" + hand + "-", x, StringComparison.Ordinal));
             Assert.True(definition.Capabilities.DcsKeys.ToHashSet(StringComparer.Ordinal)
                 .SetEquals(hardware.Diagram.Controls.Select(x => x.InputKey)));
