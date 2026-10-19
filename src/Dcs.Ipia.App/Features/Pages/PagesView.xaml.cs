@@ -93,7 +93,9 @@ namespace DcsIpia.Features.Pages
                 SummaryCards.SelectedItem = null;
                 CardEditor.Visibility = Visibility.Collapsed;
                 _creatingCard = false;
-                SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
+                var isSummary = settings.Kind == KneeboardPageKind.Summary;
+                SummaryGroup.IsEnabled = isSummary;
+                SummaryGroup.Visibility = isSummary ? Visibility.Visible : Visibility.Collapsed;
             }
             catch (Exception ex)
             {
@@ -164,7 +166,8 @@ namespace DcsIpia.Features.Pages
             _cards.Clear();
             SummaryCards.ItemsSource = _cards.ToArray();
             CardEditor.Visibility = Visibility.Collapsed;
-                _creatingCard = false;
+            _creatingCard = false;
+            SummaryGroup.Visibility = Visibility.Collapsed;
         }
 
         private async void SaveClicked(object sender, RoutedEventArgs e)
@@ -218,6 +221,7 @@ namespace DcsIpia.Features.Pages
             if (_refreshing || PageDevice is null || SummaryGroup is null) return;
             var summary = PageKind.SelectedItem is KneeboardPageKind.Summary;
             SummaryGroup.IsEnabled = summary;
+            SummaryGroup.Visibility = summary ? Visibility.Visible : Visibility.Collapsed;
             PageDevice.IsEnabled = !summary && _selected is null;
         }
 
