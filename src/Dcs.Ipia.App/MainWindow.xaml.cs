@@ -428,10 +428,23 @@ namespace DcsIpia.Presentation
                 ImportStatus.Text = "Verifying module snapshot, pinned assets and generated package…";
                 var json = await File.ReadAllTextAsync(path);
                 var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Read(json));
+                var workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                var observed = EditionAccess.Policy.IsOwner ? null : _deviceDiscovery.Discover();
+                var unsupported = ModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
+                if (unsupported.Count > 0)
+                {
+                    if (!SnapshotImportReview.Show(this, unsupported, ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, unsupported)))
+                    { ImportStatus.Text = "Module snapshot import cancelled. No module data was saved."; return; }
+                    ImportStatus.Text = "Verifying the supported-device-only snapshot…";
+                    snapshot = await Task.Run(() => ModuleSnapshotEditionFilter.KeepSupported(snapshot, EditionAccess.Policy, observed));
+                    workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                }
+                EditionAccess.RequireWorkspace(workspace);
                 var restored = await ModuleSnapshotWorkflow.RestoreAsync(snapshot, repository);
                 _lastViewModel = new ModuleWorkspaceViewModel(restored);
                 await RefreshSavedModulesAsync(restored.Configuration.Module.Id);
-                ImportStatus.Text = $"Restored {restored.Configuration.Module.DisplayName} from verified snapshot. Open module to edit or build with package version {snapshot.Version}. Shared defaults and other modules were preserved.";
+                ImportStatus.Text = $"Restored {restored.Configuration.Module.DisplayName} from verified snapshot. Open module to edit or build with package version {snapshot.Version}. Shared defaults and other modules were preserved." +
+                    (unsupported.Count > 0 ? $" Removed {unsupported.Count} unsupported device(s) and assignments depending on their modifiers from the imported copy." : "");
             }
             catch (Exception ex) { ImportStatus.Text = "Module snapshot was not restored: " + ex.Message; }
             finally { SetModuleOperationBusy(false); }
