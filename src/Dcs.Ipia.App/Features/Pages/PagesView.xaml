@@ -76,16 +76,18 @@
                                 </ControlTemplate>
                             </Thumb.Template>
                         </Thumb>
-                        <TextBlock Text="Card heading" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
-                        <TextBox x:Name="CardTitle" Style="{StaticResource AppTextBox}"/>
-                        <TextBlock Text="Description" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
-                        <TextBox x:Name="CardBody" Style="{StaticResource AppTextBox}"/>
-                        <TextBlock Text="Accent" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
-                        <ComboBox x:Name="CardAccent" Style="{StaticResource AppComboBox}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Button Content="New card" Click="NewCardClicked" Style="{StaticResource ActionButton}"/>
-                            <Button Content="Set card" Click="SetCardClicked" Style="{StaticResource ActionButton}"/>
-                            <Button Content="Remove card" Click="RemoveCardClicked" Style="{StaticResource ActionButton}"/>
+                        <Button Content="New card" Click="NewCardClicked" Style="{StaticResource ActionButton}" Margin="0,8,0,0" HorizontalAlignment="Left"/>
+                        <StackPanel x:Name="CardEditor" Visibility="Collapsed" Margin="0,8,0,0">
+                            <TextBlock Text="Card heading" Style="{StaticResource AppLabel}" Margin="0,0,0,2"/>
+                            <TextBox x:Name="CardTitle" Style="{StaticResource AppTextBox}"/>
+                            <TextBlock Text="Description" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
+                            <TextBox x:Name="CardBody" Style="{StaticResource AppTextBox}"/>
+                            <TextBlock Text="Accent" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
+                            <ComboBox x:Name="CardAccent" Style="{StaticResource AppComboBox}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="Set card" Click="SetCardClicked" Style="{StaticResource ActionButton}"/>
+                                <Button Content="Remove card" Click="RemoveCardClicked" Style="{StaticResource ActionButton}" Margin="8,0,0,0"/>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>

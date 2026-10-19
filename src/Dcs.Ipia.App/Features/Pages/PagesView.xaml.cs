@@ -28,6 +28,7 @@ namespace DcsIpia.Features.Pages
         private KneeboardPage? _dragPage;
         private Point? _cardDragStart;
         private ModuleSummaryCard? _cardDrag;
+        private bool _creatingCard;
         private TitleAdorner? _adorner;
         private AdornerLayer? _layer;
 
@@ -89,6 +90,9 @@ namespace DcsIpia.Features.Pages
                 _cards.Clear();
                 _cards.AddRange(settings.Cards);
                 SummaryCards.ItemsSource = _cards.ToArray();
+                SummaryCards.SelectedItem = null;
+                CardEditor.Visibility = Visibility.Collapsed;
+                _creatingCard = false;
                 SummaryGroup.IsEnabled = settings.Kind == KneeboardPageKind.Summary;
             }
             catch (Exception ex)
@@ -159,6 +163,8 @@ namespace DcsIpia.Features.Pages
             PageDevice.IsEnabled = true;
             _cards.Clear();
             SummaryCards.ItemsSource = _cards.ToArray();
+            CardEditor.Visibility = Visibility.Collapsed;
+                _creatingCard = false;
         }
 
         private async void SaveClicked(object sender, RoutedEventArgs e)
@@ -217,9 +223,12 @@ namespace DcsIpia.Features.Pages
 
         private void NewCardClicked(object sender, RoutedEventArgs e)
         {
+            _creatingCard = true;
             SummaryCards.SelectedItem = null;
             CardTitle.Text = "";
             CardBody.Text = "";
+            CardEditor.Visibility = Visibility.Visible;
+            CardTitle.Focus();
         }
 
         private void SetCardClicked(object sender, RoutedEventArgs e)
@@ -230,8 +239,11 @@ namespace DcsIpia.Features.Pages
             if (index < 0) _cards.Add(card);
             else _cards[index] = card;
             SummaryCards.ItemsSource = _cards.ToArray();
+            _creatingCard = false;
+            SummaryCards.SelectedItem = null;
             CardTitle.Text = "";
             CardBody.Text = "";
+            CardEditor.Visibility = Visibility.Collapsed;
         }
 
         private void RemoveCardClicked(object sender, RoutedEventArgs e)
@@ -239,14 +251,24 @@ namespace DcsIpia.Features.Pages
             if (SummaryCards.SelectedItem is not ModuleSummaryCard card) return;
             _cards.Remove(card);
             SummaryCards.ItemsSource = _cards.ToArray();
+            _creatingCard = false;
+            SummaryCards.SelectedItem = null;
+            CardEditor.Visibility = Visibility.Collapsed;
         }
 
         private void CardSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (SummaryCards.SelectedItem is not ModuleSummaryCard card) return;
+            if (SummaryCards.SelectedItem is not ModuleSummaryCard card)
+            {
+                if (!_creatingCard)
+                    CardEditor.Visibility = Visibility.Collapsed;
+                return;
+            }
+            _creatingCard = false;
             CardTitle.Text = card.Key;
             CardBody.Text = card.Text;
             CardAccent.SelectedItem = card.Accent;
+            CardEditor.Visibility = Visibility.Visible;
         }
 
         private void CardDragStart(object sender, MouseButtonEventArgs e)
