@@ -98,7 +98,7 @@ namespace DcsIpia.Presentation.Games
         }
         #endregion END Public
         #region BEGIN private helpers
-        private string Section => (SectionPicker.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "All";
+        private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
         private GameDeviceChoice? Device => DevicePicker.SelectedItem as GameDeviceChoice;
         private SimCommand? Command => CommandsList.SelectedItem as SimCommand;
         private string Slot => Command?.Type == CommandType.Axis ? "Binding" : SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
@@ -108,7 +108,7 @@ namespace DcsIpia.Presentation.Games
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
             _input.Stop();
-            var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover);
+            var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
             _session = opened; _revision = revision; _session.Changed += SessionChanged;
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
@@ -146,8 +146,8 @@ namespace DcsIpia.Presentation.Games
             _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
             _refreshing = true;
             var devices = document.Profile.Devices.Select(x => new GameDeviceChoice(x.LogicalId,
-                document.Hardware.TryGetValue(x.LogicalId, out var pin) ? pin.Device.Name :
-                x.Identity!.SimSpecificIds["ed.device"] + (x.Identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " [" + index + "]" : ""))).ToArray();
+                x.Identity!.SimSpecificIds["ed.device"] + (x.Identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " [" + index + "]" : "") +
+                (document.Hardware.TryGetValue(x.LogicalId, out var pin) ? " · " + pin.Device.Name : ""))).ToArray();
             DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
             ModifierDevicePicker.ItemsSource = devices; ModifierDevicePicker.SelectedIndex = 0;
             _refreshing = false;

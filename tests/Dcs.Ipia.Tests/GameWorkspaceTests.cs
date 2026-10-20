@@ -84,12 +84,12 @@ namespace Dcs.Ipia.Tests
         [Fact]
         public void Free_edition_cannot_be_unlocked_by_game_names_or_product_tokens()
         {
-            var workspace = Workspace();
+            var workspace = Workspace(numeric: true);
             var physical = workspace.Profile.Devices.Where(x => !GameWorkspaceAccess.IsSystemDevice(x.Identity!.SimSpecificIds["ed.device"])).ToArray();
             var devices = physical.Select((x, i) => new DetectedDcsDevice(Guid.NewGuid(), "User-editable name " + i, true,
-                ProductGuid: Guid.Parse("0402044f-0000-0000-0000-504944564944"))).ToArray();
+                ProductGuid: Guid.Parse((0x1001 + i).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) + "044f-0000-0000-0000-504944564944"))).ToArray();
             var catalog = new[] { "tm-mfd", "tm-warthog-throttle" };
-            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), catalog, () => devices);
+            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), catalog, () => devices, new EliteDeviceReferenceMatcher());
             Assert.NotEmpty(session.AccessMessage); Assert.Throws<InvalidOperationException>(() => session.Export());
             var command = session.Catalog.Commands.First(x => x.Type == CommandType.Button).Id;
             Assert.Throws<InvalidOperationException>(() => session.AssignButton(physical[0].LogicalId, command, "Primary", "Joy_8", BindingMode.Press, []));
@@ -98,14 +98,34 @@ namespace Dcs.Ipia.Tests
             Assert.Throws<InvalidOperationException>(() => session.Associate(physical[0].LogicalId, "tm-mfd", Guid.NewGuid()));
             for (var i = 0; i < physical.Length; i++) session.Associate(physical[i].LogicalId, catalog[i], devices[i].PhysicalGuid);
             Assert.Empty(session.AccessMessage); Assert.True(session.Export().Succeeded);
-            var offline = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => []);
+            var offline = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [], new EliteDeviceReferenceMatcher());
             Assert.Empty(offline.AccessMessage);
             var otherBrand = devices[0] with { ProductGuid = Guid.Parse("0001046d-0000-0000-0000-504944564944") };
-            var blocked = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [otherBrand]);
+            var blocked = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [otherBrand], new EliteDeviceReferenceMatcher());
             Assert.NotEmpty(blocked.AccessMessage); Assert.Throws<InvalidOperationException>(() => blocked.Export());
             Assert.Throws<InvalidOperationException>(() => blocked.Associate(physical[0].LogicalId, "tm-mfd", otherBrand.PhysicalGuid));
-            var ambiguous = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [devices[0], devices[0]]);
+            var ambiguous = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [devices[0], devices[0]], new EliteDeviceReferenceMatcher());
             Assert.NotEmpty(ambiguous.AccessMessage);
+        }
+
+        /// <summary>Another native vendor cannot gain eligibility through an unrelated Thrustmaster drawing association.</summary>
+        [Fact]
+        public void Association_cannot_retarget_a_native_controller_or_grant_eligibility()
+        {
+            var backend = new EliteDangerousProfileBackend();
+            var profile = backend.Import("controls", new Dictionary<string, string>
+            { ["Synthetic.4.2.binds"] = "<Root PresetName='Synthetic' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='06A30BAC' Key='Joy_1'/><Secondary Device='{NoDevice}' Key=''/></PrimaryFire></Root>" });
+            var observed = new DetectedDcsDevice(Guid.NewGuid(), "Thrustmaster-looking name", true,
+                ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
+            var session = new GameProfileSession(backend, new(1, Guid.NewGuid(), "Other native target", profile, new()), new(), ["tm-mfd"], () => [observed], new EliteDeviceReferenceMatcher());
+            Assert.Throws<InvalidOperationException>(() => session.Associate(profile.Devices[0].LogicalId, "tm-mfd", observed.PhysicalGuid));
+            Assert.Empty(session.Snapshot.Hardware);
+            Assert.Throws<InvalidOperationException>(() => session.Export());
+            var forged = session.Snapshot;
+            forged.Hardware[profile.Devices[0].LogicalId] = new("tm-mfd", observed);
+            var reopened = new GameProfileSession(backend, forged, new(), ["tm-mfd"], () => [observed], new EliteDeviceReferenceMatcher());
+            Assert.NotEmpty(reopened.AccessMessage);
+            Assert.Throws<InvalidOperationException>(() => reopened.Export());
         }
 
         /// <summary>Store copies survive serialization and stale saves fail before replacing bytes.</summary>
@@ -221,10 +241,12 @@ namespace Dcs.Ipia.Tests
         #endregion END Public
         #region BEGIN private helpers
         private static string Connection(string root) => new SqliteConnectionStringBuilder { DataSource = Path.Combine(root, "ipia.db"), Pooling = false }.ToString();
-        private static GameWorkspace Workspace()
+        private static GameWorkspace Workspace(bool numeric = false)
         {
             var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds");
-            var profile = new EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { ["Synthetic.4.2.binds"] = File.ReadAllText(path) });
+            var text = File.ReadAllText(path);
+            if (numeric) text = text.Replace("ExampleStick", "044F1001", StringComparison.Ordinal).Replace("ExampleThrottle", "044F1002", StringComparison.Ordinal);
+            var profile = new EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { ["Synthetic.4.2.binds"] = text });
             return new(1, Guid.NewGuid(), "My Controls", profile, new());
         }
         #endregion END private helpers

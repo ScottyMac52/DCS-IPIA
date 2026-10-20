@@ -15,9 +15,12 @@
   </WrapPanel>
   <StackPanel Grid.Row="1" Margin="0,0,0,8">
    <WrapPanel><TextBlock Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="200"/>
-    <ComboBox x:Name="SectionPicker" Width="130" Margin="16,0,0,0" SelectionChanged="SectionChanged" AutomationProperties.Name="Elite controls section">
-     <ComboBoxItem Content="All"/><ComboBoxItem Content="Ship"/><ComboBoxItem Content="SRV"/><ComboBoxItem Content="On Foot"/><ComboBoxItem Content="General"/>
-    </ComboBox>
+    <ListBox x:Name="SectionPicker" Margin="16,0,0,0" SelectionChanged="SectionChanged" AutomationProperties.Name="Elite controls section"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+     <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+     <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="10,4"/></Style></ListBox.ItemContainerStyle>
+     <ListBoxItem Content="All"/><ListBoxItem Content="Ship"/><ListBoxItem Content="SRV"/><ListBoxItem Content="On Foot"/><ListBoxItem Content="General"/>
+    </ListBox>
    </WrapPanel>
    <TextBlock x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
   </StackPanel>
@@ -28,7 +31,9 @@
      <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments"/><ListBoxItem Content="Input Testing"/><ListBoxItem Content="Reference Sheets"/>
     </ListBox>
     <TextBlock Text="Hardware" FontWeight="SemiBold" Margin="0,20,0,6"/>
-    <ListBox x:Name="DevicePicker" DisplayMemberPath="Name" SelectionChanged="DeviceChanged" MinHeight="120" MaxHeight="350" AutomationProperties.Name="Elite native device references"/>
+    <ListBox x:Name="DevicePicker" SelectionChanged="DeviceChanged" MinHeight="120" MaxHeight="350" AutomationProperties.Name="Elite native device references">
+     <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
    </StackPanel>
    <Grid Grid.Column="1">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>

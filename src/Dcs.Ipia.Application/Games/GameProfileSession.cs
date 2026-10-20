@@ -9,15 +9,16 @@ namespace Dcs.Ipia.Application.Games
     {
         private readonly ISimProfileBackend _backend;
         private readonly EditionPolicy _policy;
+        private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
         private readonly IReadOnlyCollection<string> _catalogIds;
         private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;
         private GameWorkspace _current;
         private GameWorkspace _saved;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
-            IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed)
+            IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null)
         {
-            _backend = backend; _policy = policy; _catalogIds = catalogIds; _observed = observed;
+            _backend = backend; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
             GameWorkspaceContract.Validate(workspace);
             ValidateProfile(workspace.Profile);
             _current = GameWorkspaceContract.Clone(workspace);
@@ -54,6 +55,8 @@ namespace Dcs.Ipia.Application.Games
             var matches = _observed().Where(x => x.Connected && x.PhysicalGuid == physicalGuid).ToArray();
             if (physicalGuid == Guid.Empty || matches.Length != 1 || !_policy.AllowsDevice(matches[0]))
                 throw new InvalidOperationException("Choose one connected, eligible physical controller. A native game token is not manufacturer evidence.");
+            if (_referenceMatcher?.Matches(_current.Profile.Devices.Single(x => x.LogicalId == logicalId).Identity!, matches[0]) != true)
+                throw new InvalidOperationException("The observed product does not match this native game reference. Choose its actual controller, or rebind the device in Elite first. A drawing association does not change native targets.");
             _current.Hardware[logicalId] = new(hardwareId, matches[0]);
             Changed?.Invoke(this, EventArgs.Empty);
         }
@@ -95,7 +98,7 @@ namespace Dcs.Ipia.Application.Games
         #region BEGIN private helpers
         private void RequireAccess()
         {
-            if (!_policy.IsOwner) GameWorkspaceAccess.Require(_current, _policy, _catalogIds, _observed());
+            if (!_policy.IsOwner) GameWorkspaceAccess.Require(_current, _policy, _catalogIds, _observed(), _referenceMatcher);
         }
         private SimProfileExportPlan ValidateProfile(ProfileDocument profile)
         {

@@ -27,7 +27,7 @@ namespace Dcs.Ipia.App.Smoke
             {
                 EditionAccess.SetForTests(issuer.Policy);
                 var physical = new DetectedDcsDevice(Guid.NewGuid(), "Smoke SOL-R controller", true,
-                    ProductGuid: Guid.Parse("0402044f-0000-0000-0000-504944564944"));
+                    ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical));
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
@@ -39,9 +39,12 @@ namespace Dcs.Ipia.App.Smoke
                     exportPicker: () => Path.Combine(root, "Review"), pendingChoice: () => choice,
                     inputFactory: (_, _) => input = new(physical.PhysicalGuid));
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
-                window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds"));
+                var captured = Path.Combine(root, "Synthetic.4.2.binds");
+                File.WriteAllText(captured, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds"))
+                    .Replace("ExampleStick", "044F1001", StringComparison.Ordinal).Replace("ExampleThrottle", "044F1002", StringComparison.Ordinal));
+                window.ImportFile(captured);
                 var session = window.Session!;
-                var stick = session.Snapshot.Profile.Devices.First(x => x.Identity!.SimSpecificIds["ed.device"] == "ExampleStick");
+                var stick = session.Snapshot.Profile.Devices.First(x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001");
                 Box<ListBox>(window, "DevicePicker").SelectedItem = Box<ListBox>(window, "DevicePicker").Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 Click(window, "AssociateButton");
@@ -59,6 +62,12 @@ namespace Dcs.Ipia.App.Smoke
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
+                var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot);
+                Box<ListBox>(window, "SectionPicker").SelectedIndex = 3;
+                if (Box<ListBox>(window, "CommandsList").Items.Count != 0) throw new InvalidOperationException("Section filtering included commands from another context.");
+                Box<ListBox>(window, "SectionPicker").SelectedIndex = 0;
+                if (System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot) != frozen) throw new InvalidOperationException("Section filtering changed native assignments.");
+                SelectCommand(window, "Pitch Axis Raw");
                 var reference = Path.Combine(root, "Elite-reference.png"); window.ExportReference(reference);
                 if (new FileInfo(reference).Length < 1000) throw new InvalidOperationException("ED reference PNG did not render shared artwork and labels.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-workspace");

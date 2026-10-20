@@ -20,6 +20,8 @@ namespace DcsIpia.Presentation.Games
         public IGameWorkspaceStore Store { get; }
         /// <summary>Gets the implemented game adapter.</summary>
         public EliteDangerousProfileBackend Backend { get; } = new();
+        /// <summary>Gets native product-reference validation, separate from physical instance resolution.</summary>
+        public EliteDeviceReferenceMatcher DeviceReferences { get; } = new();
         /// <summary>Gets the last preference error without blocking profile access.</summary>
         public string? SelectionError { get; private set; }
         /// <summary>Reads a best-effort recent choice; malformed preferences never prevent importing a profile.</summary>

@@ -23,7 +23,11 @@ failure or cancellation retains the current workspace.
 2. On **Devices**, select a native reference, a shared hardware drawing and the
    exact connected controller, then choose **Associate**. This explicitly links
    native reference, catalog drawing and physical instance without replacing any
-   of those identities. The same bundled drawings used in DCS are reusable here.
+   of those identities. The adapter must verify native product compatibility
+   against the Windows HID product GUID before association. Numeric VID/PID
+   references and the reviewed built-in Warthog joystick/throttle aliases are
+   supported; unknown aliases remain unresolved. A different native target must
+   be rebound in Elite first. The original reference stays visible in IPIA. The same bundled drawings used in DCS are reusable here.
 3. Use **Assignments** to choose a command and click an illustrated control, or
    drag the command onto a compatible callout. Primary and secondary slots are
    separate. The editor supports native input keys, press/hold, cross-device
@@ -62,7 +66,9 @@ reference or numeric Device/DeviceIndex token is not evidence of a connected uni
 Free Edition retains its reviewed hardware allowlist and native manufacturer
 checks. An imported ED preset cannot grant hardware eligibility, Owner access,
 training scope or live-input permission. Until every physical reference has a
-reviewed eligible association, the imported data is retained read-only in Free.
+reviewed eligible association matching its native product target, the imported
+data is retained read-only in Free. An unrelated eligible controller or a forged
+association cannot authorize exporting references to another product.
 Keyboard/mouse tokens are system inputs. Previously verified associations remain
 usable offline; conflicting current native observations block authoring/export.
 
