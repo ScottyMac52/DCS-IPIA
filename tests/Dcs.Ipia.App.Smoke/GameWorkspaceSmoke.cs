@@ -34,6 +34,7 @@ namespace Dcs.Ipia.App.Smoke
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
+                EliteControllerIdentificationSmoke.Verify(root, hardware);
                 VerifyControllerAddition(root, hardware);
                 VerifyIdenticalControllers(root, hardware);
                 var choice = MessageBoxResult.Cancel;
@@ -102,6 +103,8 @@ namespace Dcs.Ipia.App.Smoke
                 free.Show(); ThemeControlSmoke.Pump(free);
                 if (Box<StackPanel>(free, "AssignmentEditor").IsEnabled || Box<Button>(free, "StartInputButton").IsEnabled)
                     throw new InvalidOperationException("Free game import bypassed hardware or live-input eligibility.");
+                if (Box<Button>(free, "IdentifyControllerButton").IsEnabled) throw new InvalidOperationException("Free edition enabled live identification.");
+                Click(free, "IdentifyControllerButton"); Click(free, "ConfirmIdentificationButton");
                 Click(free, "StartInputButton");
                 if (acquisitions != 0) throw new InvalidOperationException("A direct Free game command acquired input handles.");
                 free.Close();

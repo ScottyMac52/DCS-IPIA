@@ -38,6 +38,14 @@
    <Grid Grid.Column="1">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
+     <TextBlock Text="Identify a controller reference" FontSize="18" FontWeight="SemiBold"/>
+     <TextBlock Text="Select an unknown ID in Controllers in profile, then identify it by operating your hardware. No existing link or drawing is required." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <WrapPanel>
+      <Button x:Name="IdentifyControllerButton" Content="Identify Controller" Click="IdentifyControllerClicked"/>
+      <Button x:Name="CancelIdentificationButton" Content="Stop identifying" Click="CancelIdentificationClicked" Margin="8,0"/>
+      <Button x:Name="ConfirmIdentificationButton" Content="Confirm controller link" Click="ConfirmIdentificationClicked" IsEnabled="False"/>
+     </WrapPanel>
+     <TextBlock x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Text="Choose your connected controller. IPIA links a matching ED reference or adds a new one. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
