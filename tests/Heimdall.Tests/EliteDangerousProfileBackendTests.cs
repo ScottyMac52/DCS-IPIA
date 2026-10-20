@@ -319,7 +319,7 @@ namespace Heimdall.Tests
                   <Fire><Primary Device="ExampleStick" DeviceIndex="0" Key="Joy_1"><Hold Value="1" /></Primary><Secondary Device="Keyboard" Key="Key_Space" /><ToggleOn Value="1" /></Fire>
                   <Empty><Primary Device="{NoDevice}" Key="" /><Secondary Device="{NoDevice}" Key="" /></Empty>
                   <Pitch><Binding Device="ExampleStick" DeviceIndex="0" Key="Joy_YAxis" /><Inverted Value="1" /><Deadzone Value="0.123456789123" /></Pitch>
-                  <FutureSetting Value="keep"><Nested/></FutureSetting><MouseGUI Value="0"/><MouseGUI Value="1"/>
+                  <FutureSetting Value="keep"><Nested/></FutureSetting><MouseGUI Value="0"/><MouseGUI Value="0"/>
                 </Root>
                 """
         };

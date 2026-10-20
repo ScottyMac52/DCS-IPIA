@@ -6,7 +6,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.EliteDangerous
 {
     /// <summary>Translates captured Elite bindings without reading or deploying active game files.</summary>
-    public sealed class EliteDangerousProfileBackend : ISimProfileBackend, ISimDeviceEditor
+    public sealed class EliteDangerousProfileBackend : ISimProfileBackend, ISimDeviceEditor, ISimGameExport
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new()
         {
@@ -52,6 +52,23 @@ namespace Heimdall.EliteDangerous
             {
                 return new(new Dictionary<string, string>(), [new ImportDiagnostic("ed.export.blocked", error.Message, true)]);
             }
+        }
+
+        /// <summary>Creates a correctly named ED preset while retaining captured evidence unchanged.</summary>
+        public SimProfileExportPlan ExportNamed(ProfileDocument profile, string presetName) => ElitePresetExport.Prepare(Export(profile), presetName);
+        /// <summary>Scans every native Device field, including unknown settings and modifier-only dependencies.</summary>
+        public IReadOnlyList<SimDeviceUsage> DeviceUsages(ProfileDocument profile)
+        {
+            var plan = Export(profile);
+            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
+            var native = EliteNativeDocument.Read(plan.Files);
+            return native.Root.Descendants().Where(x => x.Attribute("Device") is not null)
+                .GroupBy(x => EliteProfileProjection.DeviceId(EliteProfileProjection.Identity(x)), StringComparer.Ordinal)
+                .Select(group => new SimDeviceUsage(group.Key, EliteProfileProjection.Identity(group.First()), group.Select(node =>
+                {
+                    var command = node.AncestorsAndSelf().First(x => x.Parent == native.Root);
+                    return EliteCommandNames.Display(command.Name.LocalName) + " · " + node.Name.LocalName + " · " + (string?)node.Attribute("Key");
+                }).ToArray())).ToArray();
         }
 
         /// <summary>Returns an independent catalog derived from the captured preset, including unassigned commands.</summary>

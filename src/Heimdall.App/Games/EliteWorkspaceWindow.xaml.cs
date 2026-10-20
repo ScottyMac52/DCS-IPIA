@@ -36,6 +36,7 @@ namespace Heimdall.App.Games
         private string? _revision;
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs;
         private readonly Func<GameControllerChange, bool> _reviewControllerChange;
+        internal Func<IReadOnlyList<GameExportIssue>, GameExportResolution?>? ExportReview { get; set; }
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -101,6 +102,7 @@ namespace Heimdall.App.Games
                 GameWorkspaceContract.Validate(workspace);
                 _revision = _services.Store.Save(workspace, _revision);
                 OpenSession(workspace, _revision); ReloadChoices(workspace.Id); Remember(workspace);
+                ExportState.Text = "Saved in HEIMDALL. Export for review to create an ED preset; installation into ED is manual.";
                 Status("Saved in your HEIMDALL data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : "")); return true;
             }
             catch (Exception error) { Status("Save failed; pending edits are retained: " + error.Message); return false; }
@@ -195,6 +197,7 @@ namespace Heimdall.App.Games
             ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
+            ExportState.Text = "Workspace open in HEIMDALL. Export for review creates a named ED preset; installation into ED is manual.";
             _session = opened; _revision = revision; _session.Changed += SessionChanged;
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
             Refresh();
@@ -492,13 +495,39 @@ namespace Heimdall.App.Games
         private void ExportClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (_session is null || Pending) return;
-            var plan = _session.Export();
+            StopLiveInput();
+            var issues = _session.ReviewGameExport();
+            if (issues.Count > 0) { ResolveExportIssue(issues); return; }
+            _session.ExportForGame();
             var parent = _exportPicker is null ? PickExportFolder() : _exportPicker();
             if (parent is null) return;
+            // Discovery and validation run again after the folder dialog, before any output directory is created.
+            var plan = _session.ExportForGame();
             var active = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
             var output = GameReviewExport.Write(parent, plan.Files, [active]);
-            Status("Exported for review: " + output + ". Verify in Elite after backing up your Bindings folder.");
+            ExportState.Text = "Exported for review: " + output + "\nInstallation into ED is manual. With ED closed, back up Bindings, copy the reviewed preset there, restart ED and select " + _session.Snapshot.Name + ".";
+            Status("Exported for review; active ED bindings unchanged. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
+
         });
+        private void ResolveExportIssue(IReadOnlyList<GameExportIssue> issues)
+        {
+            GameExportResolution? resolution;
+            if (ExportReview is not null) resolution = ExportReview(issues);
+            else
+            {
+                var connected = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
+                var dialog = new EliteExportReviewWindow(this, issues, connected, guid => _session!.ControllerReferences(guid)
+                    .Select(id => new GameDeviceChoice(id, ControllerName(_session.Snapshot, id))).ToArray(), EditionAccess.Policy.IsOwner);
+                resolution = dialog.ShowDialog() == true ? dialog.Resolution : null;
+            }
+            if (resolution is null) { Status("Export cancelled; no files written."); return; }
+            if (!issues.Any(x => x.DeviceId == resolution.DeviceId && x.CanRepair)) throw new InvalidOperationException("Choose an editable unresolved controller reference.");
+            var change = resolution.Clear ? _session!.PreviewRemoveController(resolution.DeviceId)
+                : _session!.PreviewReplaceController(resolution.DeviceId, resolution.PhysicalGuid,
+                    () => ReadReplacementInputs(resolution.PhysicalGuid), resolution.TargetReference);
+            ReviewControllerChange(change);
+            if (_session!.HasChanges) Status("Reviewed repair staged; no files exported. Save, then export again to check remaining references.");
+        }
         private string? PickExportFolder()
         {
             var picker = new OpenFolderDialog { Title = "Choose a parent folder for a new review export" };
