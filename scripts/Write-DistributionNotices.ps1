@@ -1,20 +1,20 @@
 param(
     [Parameter(Mandatory=$true)][string]$Publish,
-    [string]$Assets = 'src/Dcs.Ipia.App/obj/project.assets.json'
+    [string]$Assets = 'src/Heimdall.App/obj/project.assets.json'
 )
 $ErrorActionPreference = 'Stop'
 $notices = Join-Path $Publish 'notices'
 New-Item -ItemType Directory -Path $notices -Force | Out-Null
 $copies = @{
-    'LICENSE' = 'IPIA-LICENSE.txt'
-    'src/Dcs.Ipia.App/Branding/PROVENANCE.md' = 'heimdall-PROVENANCE.md'
-    'src/Dcs.Ipia.App/Branding/FreeEdition/PROVENANCE.md' = 'free-edition-background-PROVENANCE.md'
+    'LICENSE' = 'HEIMDALL-LICENSE.txt'
+    'src/Heimdall.App/Branding/PROVENANCE.md' = 'heimdall-PROVENANCE.md'
+    'src/Heimdall.App/Branding/FreeEdition/PROVENANCE.md' = 'free-edition-background-PROVENANCE.md'
     'data/shared-assets/DCS-Common-LICENSE.txt' = 'DCS-Common-LICENSE.txt'
     'data/shared-assets/provenance.json' = 'shared-assets-provenance.json'
     'data/shared-assets/assets/shared/hardware/SOURCES.md' = 'hardware-SOURCES.md'
     'scripts/asset-authoring/PROVENANCE.json' = 'asset-authoring-provenance.json'
-    'src/Dcs.Ipia.Rendering/Fonts/DejaVuSans-IPIA.LICENSE.txt' = 'DejaVuSans-IPIA.LICENSE.txt'
-    'src/Dcs.Ipia.Rendering/Fonts/PROVENANCE.md' = 'font-PROVENANCE.md'
+    'src/Heimdall.Rendering/Fonts/DejaVuSans-HEIMDALL.LICENSE.txt' = 'DejaVuSans-HEIMDALL.LICENSE.txt'
+    'src/Heimdall.Rendering/Fonts/PROVENANCE.md' = 'font-PROVENANCE.md'
     'docs/distribution-readiness.md' = 'distribution-readiness.md'
     'docs/release-acceptance.md' = 'release-acceptance.md'
     'docs/logging.md' = 'logging.md'

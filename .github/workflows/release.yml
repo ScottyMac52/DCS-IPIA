@@ -16,9 +16,9 @@ jobs:
     uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@main
     with:
       dotnet_version: 10.0.x
-      test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
-      presentation_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
-      coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
+      test_project: tests/Heimdall.Tests/Heimdall.Tests.csproj
+      presentation_project: src/Heimdall.App/Heimdall.App.csproj
+      coverage_include: '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
       line_threshold: 80
       branch_threshold: 80
 
@@ -35,11 +35,11 @@ jobs:
       - name: Build solution and run Windows tests
         shell: pwsh
         run: |
-          dotnet build DCS-IPIA.sln -c Release
+          dotnet build HEIMDALL.sln -c Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj -c Release --no-build
+          dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj -c Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj -c Release --no-build
+          dotnet run --project tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj -c Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   inventory:

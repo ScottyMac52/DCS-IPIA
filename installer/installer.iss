@@ -25,10 +25,10 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
-SetupIconFile=..\src\Dcs.Ipia.App\Branding\heimdall.ico
+SetupIconFile=..\src\Heimdall.App\Branding\heimdall.ico
 UninstallDisplayIcon={app}\{#AppExeName}
-WizardImageFile=..\src\Dcs.Ipia.App\Branding\setup-sidebar.bmp
-WizardSmallImageFile=..\src\Dcs.Ipia.App\Branding\setup-small.bmp
+WizardImageFile=..\src\Heimdall.App\Branding\setup-sidebar.bmp
+WizardSmallImageFile=..\src\Heimdall.App\Branding\setup-small.bmp
 
 [Files]
 Source: "Configure-SavedGames.ps1"; Flags: dontcopy

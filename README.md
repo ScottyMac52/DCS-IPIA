@@ -1,9 +1,9 @@
 # HEIMDALL
 
-![HEIMDALL — Simulation Control Manager](src/Dcs.Ipia.App/Branding/heimdall-banner.png)
+![HEIMDALL — Simulation Control Manager](src/Heimdall.App/Branding/heimdall-banner.png)
 
 HEIMDALL — Simulation Control Manager replaces DCS-IPIA. See the [branding and upgrade guide](docs/heimdall-branding.md) and [unreleased changes](release/UNRELEASED.md).
-[HEIMDALL artwork and asset guide](src/Dcs.Ipia.App/Branding/PROVENANCE.md).
+[HEIMDALL artwork and asset guide](src/Heimdall.App/Branding/PROVENANCE.md).
 
 ## Initial Free Edition
 
@@ -69,11 +69,11 @@ Start with the [documentation index](docs/README.md), [edition availability](doc
 
 ## Visual Studio
 
-Open `DCS-IPIA.sln` in Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK. The solution includes the WPF application, supporting libraries, and tests. Build the solution and run tests from Test Explorer.
+Open `HEIMDALL.sln` in Visual Studio 2026 with the .NET desktop development workload and .NET 10 SDK. The solution includes the WPF application, supporting libraries, and tests. Build the solution and run tests from Test Explorer.
 
 ## Module workspace
 
-On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release`.
+On Windows, run `dotnet run --project src/Heimdall.App/Heimdall.App.csproj -c Release`.
 
 - Choose **New module** to author a module using internal hardware and a pinned shared-default revision, or **Import module sources** to read a committed consumer checkout or Saved Games profiles. Shared assets ship with HEIMDALL; the normal workflow does not require a DCS-Common checkout. Imported repositories remain read-only.
 - Select a saved module and **Open module** to reopen SQLite state. Devices, Modifiers, Assignments, Commands and Pages edit one module, including its isolated UI Layer scope. Shared defaults have their own versioned workspace.
@@ -101,9 +101,9 @@ The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.
 ## Build
 
 ```powershell
-dotnet restore DCS-IPIA.sln
-dotnet build DCS-IPIA.sln --configuration Release --no-restore
-dotnet test DCS-IPIA.sln --configuration Release --no-build
+dotnet restore HEIMDALL.sln
+dotnet build HEIMDALL.sln --configuration Release --no-restore
+dotnet test HEIMDALL.sln --configuration Release --no-build
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md), [the architecture](docs/architecture/README.md), [the glossary](docs/architecture/terminology.md), and [ADR-001](docs/adr/0001-local-sqlite-and-immutable-snapshots.md).

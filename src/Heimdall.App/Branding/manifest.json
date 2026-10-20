@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "sha256": {
+    "scripts/generate_heimdall.py": "7ef6a132ff9c49d7b42f5b5a92abd6c6d12f06d0806ff7ddf3f2f6ef45ef8336",
+    "src/Heimdall.App/Branding/Masters/heimdall-banner.png": "496b78cbeaf9023cf3cd394b5995b45d249157e38e1ef654b13d6d4bb6de1ec5",
+    "src/Heimdall.App/Branding/Masters/heimdall-icon.png": "da3e6471287fbd07b449cf25636695a4b2d4c426f3d7561eaade86efba7eb9f5",
+    "src/Heimdall.App/Branding/Masters/heimdall-logo.png": "ffaf2e609277e49a77b7ae859cd931a2c54c9488a4e758048bf68c50c595d7de",
+    "src/Heimdall.App/Branding/Masters/heimdall-monochrome.png": "1496fadb91261ed3fcf8d59cd4d4c7e68c0cd661a2b561c93b8a4407d4c50d50",
+    "src/Heimdall.App/Branding/heimdall-banner.png": "13da52cd82f0e44f6cc7b2505852af1e9a0c53cbcae9ff210dba285c179d5cbb",
+    "src/Heimdall.App/Branding/heimdall-logo.png": "ffaf2e609277e49a77b7ae859cd931a2c54c9488a4e758048bf68c50c595d7de",
+    "src/Heimdall.App/Branding/heimdall-monochrome.png": "a6a44dd0e1640e6bbf06e6a753cbc1a2a8c4db4ff32f1ba1e4b3bbb0bf0f3518",
+    "src/Heimdall.App/Branding/heimdall.png": "ab29d5423a1c16291e77b7a5b52ca3c8400a20626dd262608f61e0b4e0f55222",
+    "src/Heimdall.App/Branding/heimdall-monochrome.ico": "f58f53301b65d4682bfad17f2583b8f8b56d1cb6e7dfdd2ba1b354cf0fe8fe04",
+    "src/Heimdall.App/Branding/heimdall.ico": "0ae7e7edd92593c72b79a66c71010919e791fe8aa57fc7c91c9cd803f4f68109",
+    "src/Heimdall.App/Branding/setup-sidebar.bmp": "449a0de3162d6ac5e89b0c4791c9ed67280ea4bd72fbb164beb45e97983ec5e5",
+    "src/Heimdall.App/Branding/setup-small.bmp": "418f8951625ca9ce0c3c4ad3838b25288745d729ee110f5167ea46188b091d3b"
+  }
+}

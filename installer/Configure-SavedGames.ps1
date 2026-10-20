@@ -1,11 +1,17 @@
 param(
     [Parameter(Mandatory=$true)][ValidateSet('Read', 'Write')][string]$Mode,
-    [string]$SettingsDirectory = (Join-Path $env:LOCALAPPDATA 'DCS-IPIA'),
+    [string]$SettingsDirectory,
     [string]$DefaultsPath,
     [string]$OutputPath,
     [string]$Folder
 )
 $ErrorActionPreference = 'Stop'
+if (-not $SettingsDirectory) {
+    $current = Join-Path $env:LOCALAPPDATA 'HEIMDALL'
+    $legacy = Join-Path $env:LOCALAPPDATA 'DCS-IPIA'
+    # Match ProductDataPaths: a log directory alone cannot hide existing data.
+    $SettingsDirectory = if ((Test-Path (Join-Path $current 'ipia.db')) -or -not (Test-Path $legacy)) { $current } else { $legacy }
+}
 $settingsPath = Join-Path $SettingsDirectory 'appsettings.json'
 $legacyPath = Join-Path $SettingsDirectory 'user-settings.json'
 function Read-Settings([string]$Path) {

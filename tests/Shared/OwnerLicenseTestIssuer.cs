@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Dcs.Ipia.Application;
+using Heimdall.Application;
 
-namespace Dcs.Ipia.TestSupport
+namespace Heimdall.TestSupport
 {
     /// <summary>Creates ephemeral test-only issuances; its key never authenticates against the production app.</summary>
     internal sealed class OwnerLicenseTestIssuer : IDisposable

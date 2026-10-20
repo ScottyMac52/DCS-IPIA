@@ -1,8 +1,8 @@
-using Dcs.Ipia.Application;
-using Dcs.Ipia.Dcs;
-using Dcs.Ipia.Domain;
+using Heimdall.Application;
+using Heimdall.Dcs;
+using Heimdall.Domain;
 
-namespace Dcs.Ipia.TestSupport
+namespace Heimdall.TestSupport
 {
     /// <summary>Creates a portable mixed-brand module with cross-device modifier dependencies in both scopes.</summary>
     public static class MixedSnapshotFixture

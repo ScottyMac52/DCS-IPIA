@@ -29,7 +29,7 @@ real kneeboard preview, validation, snapshot export, and OvGME packaging.
 
 ## Sample data and normal use
 
-Training creates a temporary directory under `DCS-IPIA-Training`, with separate
+Training creates a temporary directory under `HEIMDALL-Training`, with separate
 SQLite storage, input fixtures, and outputs. It uses original bundled vector artwork,
 a supplied UI default revision and a fictional disconnected controller; it needs
 neither a DCS installation nor connected hardware, a repository checkout, network
@@ -58,7 +58,7 @@ verification, is not automated by training.
 From the repository root on Windows, with the .NET 10 SDK installed, run:
 
 ```powershell
-dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj -c Release
+dotnet run --project tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj -c Release
 ```
 
 This builds and runs the full WPF smoke executable, which includes
@@ -73,12 +73,12 @@ its test windows.
 To save preview screenshots as well (PowerShell):
 
 ```powershell
-$env:IPIA_MAPPING_PREVIEW = Join-Path $env:TEMP "DCS-IPIA-smoke-previews"
+$env:HEIMDALL_MAPPING_PREVIEW = Join-Path $env:TEMP "DCS-IPIA-smoke-previews"
 try {
-    dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj -c Release
+    dotnet run --project tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj -c Release
 }
 finally {
-    Remove-Item Env:IPIA_MAPPING_PREVIEW
+    Remove-Item Env:HEIMDALL_MAPPING_PREVIEW
 }
 ```
 
@@ -89,7 +89,7 @@ smoke executable.
 ## Maintenance and validation
 
 Scenario narration/targets/checkpoints live in versioned JSON under
-`src/Dcs.Ipia.App/Training/Assets`. Assets are embedded in the application assembly,
+`src/Heimdall.App/Training/Assets`. Assets are embedded in the application assembly,
 so installed and portable distributions do not depend on source-tree paths.
 Only actions registered in `TrainingActions` can execute. Schema and metadata
 validation run before playback; each action verifies completion, and asynchronous
@@ -108,7 +108,7 @@ restart, and verifies actual snapshot/package output and cleanup. Published
 application smoke validates that both embedded scenarios can load. Existing
 coverage and CRAP gates remain unchanged. Manual review on Windows is still
 needed for narration pacing, theme contrast, resizing/scaling and keyboard focus.
-When `IPIA_MAPPING_PREVIEW` is set (as in CI), the smoke suite saves training PNGs
+When `HEIMDALL_MAPPING_PREVIEW` is set (as in CI), the smoke suite saves training PNGs
 for the creation form, assignments, and kneeboard previews in the
 `custom-mapping-preview` artifact for visual review.
 

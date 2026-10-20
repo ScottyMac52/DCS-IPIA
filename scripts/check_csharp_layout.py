@@ -27,8 +27,8 @@ for path in files:
     if name != expected:
         errors.append(f"{relative}: type {name} does not match filename {expected}")
     if name.startswith("I") and "interface " in matches[0].group(0):
-        if "/Interfaces/" not in f"/{relative.as_posix()}/" or not re.search(r"namespace\s+Dcs\.Ipia\.Application\.Interfaces\s*(?:;|\{)", text):
-            errors.append(f"{relative}: interface must be in Dcs.Ipia.Application.Interfaces")
+        if "/Interfaces/" not in f"/{relative.as_posix()}/" or not re.search(r"namespace\s+Heimdall\.Application\.Interfaces\s*(?:;|\{)", text):
+            errors.append(f"{relative}: interface must be in Heimdall.Application.Interfaces")
     prefix = text[:matches[0].start()].rstrip().splitlines()
     if not prefix or not any(line.lstrip().startswith("/// <summary>") for line in prefix[-30:]):
         errors.append(f"{relative}: type needs an XML summary")

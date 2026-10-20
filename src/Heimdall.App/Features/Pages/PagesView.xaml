@@ -1,0 +1,116 @@
+<UserControl x:Class="Heimdall.App.Features.Pages.PagesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pres="clr-namespace:Heimdall.App">
+    <Grid Margin="4" pres:WorkspaceLayout.Key="pages.split">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width=".4*" MinWidth="180"/>
+            <ColumnDefinition Width="6"/>
+            <ColumnDefinition Width=".6*" MinWidth="300"/>
+        </Grid.ColumnDefinitions>
+
+        <DataGrid x:Name="Pages" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False"
+                  SelectionChanged="PageSelected"
+                  PreviewMouseLeftButtonDown="PageDragStart"
+                  PreviewMouseMove="PageDrag"
+                  AllowDrop="True"
+                  PreviewDragOver="PageDragOver"
+                  PreviewDrop="PageDrop"
+                  GiveFeedback="PageGiveFeedback">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Page" Binding="{Binding Title}" Width="*"/>
+                <DataGridTextColumn Header="File" Binding="{Binding StableKey}" Width="160"/>
+                <DataGridTextColumn Header="Layout" Binding="{Binding Kind}" Width="80"/>
+                <DataGridTextColumn Header="Order" Binding="{Binding Order}" Width="50"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <GridSplitter ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}"/>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+                    <Button Content="New page" Click="NewClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Add missing device pages" Click="AddMissingClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Generate Summary" Click="GenerateSummaryClicked" Padding="10,4"/>
+                </pres:ActionBar>
+
+                <TextBlock Text="Kind" Style="{StaticResource AppLabel}"/>
+                <ComboBox x:Name="PageKind" Style="{StaticResource AppComboBox}" SelectionChanged="KindChanged" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Device" Style="{StaticResource AppLabel}"/>
+                <ComboBox x:Name="PageDevice" Style="{StaticResource AppComboBox}" DisplayMemberPath="SourceName" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Output page name (without .png)" Style="{StaticResource AppLabel}"/>
+                <TextBox x:Name="PageFile" Style="{StaticResource AppTextBox}" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Heading" Style="{StaticResource AppLabel}"/>
+                <TextBox x:Name="PageTitle" Style="{StaticResource AppTextBox}" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Subtitle" Style="{StaticResource AppLabel}"/>
+                <TextBox x:Name="PageSubtitle" Style="{StaticResource AppTextBox}" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Order" Style="{StaticResource AppLabel}"/>
+                <TextBox x:Name="PageOrder" Style="{StaticResource AppTextBox}" Margin="0,0,0,8"/>
+
+                <GroupBox x:Name="SummaryGroup" Header="Summary cards — two columns, up to 14 cards" Padding="8" Margin="0,8,0,0" IsEnabled="False" Visibility="Collapsed">
+                    <StackPanel>
+                        <AdornerDecorator>
+                            <ListBox x:Name="SummaryCards" DisplayMemberPath="Key" Height="140" MinHeight="120" MaxHeight="560"
+                                 AllowDrop="True"
+                                 SelectionChanged="CardSelected"
+                                 PreviewMouseLeftButtonDown="CardDragStart"
+                                 PreviewMouseMove="CardDrag"
+                                 PreviewDragOver="CardDragOver"
+                                 PreviewDrop="CardDrop"/>
+                        </AdornerDecorator>
+                            <Thumb x:Name="SummaryCardsResize" Height="12" Margin="0,2,0,0" Cursor="SizeNS" Focusable="True"
+       Background="{DynamicResource BorderBrush}" DragDelta="SummaryCardsResizeDragged" KeyDown="SummaryCardsResizeKeyDown"
+       ToolTip="Drag to resize the card list">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Border Background="{TemplateBinding Background}">
+                                        <Border Width="40" Height="2" Background="{DynamicResource SecondaryTextBrush}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                        <Button Content="New card" Click="NewCardClicked" Style="{StaticResource ActionButton}" Margin="0,8,0,0" HorizontalAlignment="Left"/>
+                        <StackPanel x:Name="CardEditor" Visibility="Collapsed" Margin="0,8,0,0">
+                            <TextBlock Text="Card heading" Style="{StaticResource AppLabel}" Margin="0,0,0,2"/>
+                            <TextBox x:Name="CardTitle" Style="{StaticResource AppTextBox}"/>
+                            <TextBlock Text="Description" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
+                            <TextBox x:Name="CardBody" Style="{StaticResource AppTextBox}"/>
+                            <TextBlock Text="Accent" Style="{StaticResource AppLabel}" Margin="0,8,0,2"/>
+                            <ComboBox x:Name="CardAccent" Style="{StaticResource AppComboBox}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="Set card" Click="SetCardClicked" Style="{StaticResource ActionButton}"/>
+                                <Button Content="Remove card" Click="RemoveCardClicked" Style="{StaticResource ActionButton}" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+                    <Button Content="Stage page" Click="UpdateClicked" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="Preview draft" Click="PreviewClicked" Padding="10,4"/>
+                </pres:ActionBar>
+                <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+                    <Button Content="Remove page" Click="RemoveClicked" Padding="10,4" Margin="0,8,0,0"/>
+                </pres:ActionBar>
+
+                <TextBlock Text="Each device uses one combined page with its pinned hardware layout. Device headings and output names can be edited; summary cards follow their listed order."
+                           TextWrapping="Wrap" Margin="0,12,0,0" Opacity="0.7"/>
+
+                <DockPanel Margin="0,12,0,0">
+                    <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Right">
+                        <Button Content="Save to database" Click="SaveClicked" Padding="12,4"/>
+                        <Button Content="Discard draft" Click="DiscardClicked" Padding="12,4" Margin="8,0,0,0"/>
+                    </pres:ActionBar>
+                    <TextBlock x:Name="StatusText" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -5,8 +5,8 @@ Install the .NET 10 SDK selected by `global.json` and Git. WPF development and U
 SQLite integration tests use temporary real databases; SQL behavior is not mocked. Never commit local databases, profiles, credentials, or generated consumer output.
 
 ```powershell
-dotnet restore tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
-dotnet format style tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --verify-no-changes --no-restore --severity warn
-dotnet build tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj -c Release --no-restore
-dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj -c Release --no-build
+dotnet restore tests/Heimdall.Tests/Heimdall.Tests.csproj
+dotnet format style tests/Heimdall.Tests/Heimdall.Tests.csproj --verify-no-changes --no-restore --severity warn
+dotnet build tests/Heimdall.Tests/Heimdall.Tests.csproj -c Release --no-restore
+dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj -c Release --no-build
 ```

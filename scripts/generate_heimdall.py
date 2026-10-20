@@ -1,11 +1,12 @@
 """Package approved raster masters. Requires Pillow; normal builds use committed assets."""
 import hashlib
 import json
+import struct
 from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / 'src/Dcs.Ipia.App/Branding'
+ASSETS = ROOT / 'src/Heimdall.App/Branding'
 SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256]
 
 
@@ -16,11 +17,31 @@ def fitted(source, size):
     return canvas
 
 
+def write_windows_icon(source, destination):
+    """Write explicit 32-bit BGRA DIBs and aligned AND masks for Windows/WPF."""
+    frames = []
+    for size in SIZES:
+        art = fitted(source, (size, size)).convert('RGBA')
+        pixels = art.tobytes('raw', 'BGRA', 0, -1)
+        mask = bytes(((size + 31) // 32) * 4 * size)
+        # BI_RGB permits a zero image-size field; ICO directory entries bound each payload.
+        header = struct.pack('<IiiHHIIiiII', 40, size, size * 2, 1, 32, 0,
+                             0, 0, 0, 0, 0)
+        frames.append((size, header + pixels + mask))
+    directory = bytearray(struct.pack('<HHH', 0, 1, len(frames)))
+    offset = 6 + 16 * len(frames)
+    for size, payload in frames:
+        directory.extend(struct.pack('<BBBBHHII', size % 256, size % 256,
+                                     0, 0, 1, 32, len(payload), offset))
+        offset += len(payload)
+    destination.write_bytes(directory + b''.join(payload for _, payload in frames))
+
+
 def main():
     for stem, master in [('heimdall', 'heimdall-icon'), ('heimdall-monochrome', 'heimdall-monochrome')]:
         source = Image.open(ASSETS / 'Masters' / f'{master}.png')
         fitted(source, (512, 512)).save(ASSETS / f'{stem}.png')
-        fitted(source, (256, 256)).save(ASSETS / f'{stem}.ico', sizes=[(n, n) for n in SIZES])
+        write_windows_icon(source, ASSETS / f'{stem}.ico')
     logo = Image.open(ASSETS / 'Masters/heimdall-logo.png')
     logo.save(ASSETS / 'heimdall-logo.png')
     fitted(Image.open(ASSETS / 'Masters/heimdall-banner.png'), (1200, 300)).save(ASSETS / 'heimdall-banner.png')

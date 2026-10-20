@@ -1,0 +1,33 @@
+using System.Text.Json;
+using Heimdall.Application;
+using Heimdall.Domain;
+using Microsoft.Data.Sqlite;
+
+namespace Heimdall.Infrastructure
+{
+    /// <summary>Creates and verifies SQLite backups.</summary>
+    /// <param name="connectionString">The connection string.</param>
+    public sealed class SqliteBackupService(string connectionString)
+    {
+        #region BEGIN Public
+        /// <summary>Copies the database and verifies its integrity.</summary>
+        /// <param name="path">The path.</param>
+        public void Backup(string path)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path);
+            using var source = new SqliteConnection(connectionString);
+            using var target = new SqliteConnection(
+                new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+            source.Open();
+            target.Open();
+            source.BackupDatabase(target);
+            using var cmd = target.CreateCommand();
+            cmd.CommandText = "PRAGMA journal_mode=DELETE";
+            cmd.ExecuteScalar();
+            cmd.CommandText = "PRAGMA integrity_check";
+            if (!string.Equals((string?)cmd.ExecuteScalar(), "ok", StringComparison.Ordinal))
+                throw new InvalidDataException("SQLite backup integrity verification failed.");
+        }
+        #endregion END Public
+    }
+}

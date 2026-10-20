@@ -12,10 +12,10 @@ $issuer = [System.Security.Cryptography.RSA]::Create()
 $verifier = [System.Security.Cryptography.RSA]::Create()
 try {
     $issuer.ImportFromPem([System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $SigningKeyPath)))
-    $source = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot '../src/Dcs.Ipia.Application/OwnerLicensePublicKey.cs'))
+    $source = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot '../src/Heimdall.Application/OwnerLicensePublicKey.cs'))
     $publicPem = [regex]::Match($source, '(?s)-----BEGIN PUBLIC KEY-----.*?-----END PUBLIC KEY-----').Value
     $verifier.ImportFromPem($publicPem)
-    $claims = [ordered]@{ SchemaVersion = 1; Product = 'DCS-IPIA'; Edition = 'Owner'; LicenseId = [guid]::NewGuid().ToString(); Owner = $OwnerName }
+    $claims = [ordered]@{ SchemaVersion = 1; Product = 'HEIMDALL'; Edition = 'Owner'; LicenseId = [guid]::NewGuid().ToString(); Owner = $OwnerName }
     $bytes = [System.Text.Encoding]::UTF8.GetBytes(($claims | ConvertTo-Json -Compress))
     $signature = $issuer.SignData($bytes, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pss)
     if (-not $verifier.VerifyData($bytes, $signature, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pss)) {

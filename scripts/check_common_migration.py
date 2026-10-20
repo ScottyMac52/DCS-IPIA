@@ -37,6 +37,11 @@ def digest(data):
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def current_target(path):
+    """Keep the pinned inventory intact while following local project moves."""
+    return safe_path(path).replace('Dcs.Ipia.', 'Heimdall.')
+
+
 def validate(data, root, source_root=None):
     """Require exhaustive ownership, explicit pending gates and existing target/bundle evidence."""
     require(set(data) == {"schemaVersion", "sourceRepository", "sourceCommit", "ipiaBaseline",
@@ -81,7 +86,7 @@ def validate(data, root, source_root=None):
             assigned[path] = identity
         require(isinstance(capability["targetEvidence"], list) and capability["targetEvidence"], f"No target evidence: {identity}")
         for path in capability["targetEvidence"]:
-            require((root / safe_path(path)).is_file(), f"Target evidence is missing: {path}")
+            require((root / current_target(path)).is_file(), f"Target evidence is missing: {path}")
     require(set(assigned) == set(files), "Unclassified sources: " + ", ".join(sorted(set(files) - set(assigned))))
     require(isinstance(data["knownGaps"], list), "Invalid known gaps")
     gap_ids = set()
@@ -144,7 +149,7 @@ def render(data, assigned, drift):
         lines.append(f"| {md(c['title'])} | {len(c['sourcePaths'])} | {c['status']} | {md(c['owner'])} |")
     for c in data["capabilities"]:
         lines += ["", f"### {c['title']}", "", c["current"], "", "Exit criteria: " + c["exitCriteria"], "", "IPIA evidence:", ""]
-        lines += [f"- [{p}](../../{quote(p, safe='/')})" for p in c["targetEvidence"]]
+        lines += [f"- [{p}](../../{quote(current_target(p), safe='/')})" for p in c["targetEvidence"]]
     lines += ["", "## Source gaps found", ""]
     for gap in data["knownGaps"]:
         lines += [f"- **{gap['id']}**: {gap['description']} Evidence: [{gap['evidence']}]({source_url}{quote(gap['evidence'], safe='/')}); absent path `{gap['missingPath']}`."]

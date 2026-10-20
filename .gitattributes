@@ -1,7 +1,7 @@
 # Preserve imported shared source bytes on every checkout, including Windows.
 /data/shared-assets/** -text
 # Pinned legacy guide and its original license are byte-preservation fixtures.
-/tests/Dcs.Ipia.Tests/Fixtures/Integrations/** -text
+/tests/Heimdall.Tests/Fixtures/Integrations/** -text
 
 # Pinned consumer release/source acceptance evidence retains original bytes.
-/tests/Dcs.Ipia.Tests/Fixtures/HueyParity/** -text
+/tests/Heimdall.Tests/Fixtures/HueyParity/** -text

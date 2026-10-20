@@ -28,7 +28,7 @@ composition, generated kneeboards or output formats.
 
 ## Preferences and training
 
-`%LOCALAPPDATA%\DCS-IPIA\workspace-layout.json` stores splitter proportions,
+`%LOCALAPPDATA%\HEIMDALL\workspace-layout.json` stores splitter proportions,
 disclosure state, and zoom/Fit mode. It contains presentation numbers, not module
 content. This file is currently Windows-user-wide: Production and named test
 profiles share it. A Production full-profile backup includes it because it is
