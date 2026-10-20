@@ -43,7 +43,7 @@ namespace Dcs.Ipia.App.Smoke
                     inputFactory: (_, ids) =>
                     {
                         if (ids.Count != 1 || ids[0] != physical.PhysicalGuid) throw new InvalidOperationException("Input acquisition selected a different physical unit.");
-                        return input = new(physical.PhysicalGuid);
+                        return input = new(physical.PhysicalGuid, Guid.NewGuid());
                     });
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 var captured = Path.Combine(root, "Synthetic.4.2.binds");
@@ -85,9 +85,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (new FileInfo(reference).Length < 1000) throw new InvalidOperationException("ED reference PNG did not render shared artwork and labels.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-workspace");
                 EliteReferenceSheetsSmoke.Verify(window, root, artwork: true);
-                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
-                Click(window, "StartInputButton"); ThemeControlSmoke.Pump(window); Click(window, "StopInputButton");
-                if (input is null || !input.Disposed) throw new InvalidOperationException("Game input test did not acquire and release the exact controller.");
+                EliteInputActivitySmoke.Verify(window, physical, () => input);
                 var command = window.Session.Catalog.Commands.First(x => x.DisplayName == "Primary Fire").Id;
                 window.Session.AssignButton(stick.LogicalId, command, "Primary", "Joy_22", BindingMode.Press, []);
                 window.Close();
@@ -136,6 +134,8 @@ namespace Dcs.Ipia.App.Smoke
                 if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
                     throw new InvalidOperationException("Changing artwork changed native controller identity or assignments.");
                 if (!window.SaveProfile() || Box<Button>(window, "ExportSheetButton").IsEnabled) throw new InvalidOperationException("Hiding artwork did not save or still offered an illustrated export.");
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
+                if (!Box<TextBox>(window, "InputActivity").IsVisible) throw new InvalidOperationException("Unillustrated input testing has no text fallback.");
                 EliteReferenceSheetsSmoke.Verify(window, root, artwork: false);
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-add-controller"); window.Close();
             }

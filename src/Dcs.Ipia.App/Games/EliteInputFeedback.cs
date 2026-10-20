@@ -15,15 +15,17 @@ namespace DcsIpia.Presentation.Games
         private readonly EliteDiagramPresenter _diagram;
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
         private readonly Action<string> _status;
+        private readonly Action<string> _activity;
+        private InputActivityText? _activityText;
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _factory;
         private IDeviceInputSource? _source;
         private Dictionary<string, double> _previous = new(StringComparer.Ordinal);
         private readonly Dictionary<string, DateTime> _axisUntil = new(StringComparer.Ordinal);
         private Guid _physical;
-        internal EliteInputFeedback(Window owner, EliteDiagramPresenter diagram, Action<string> status,
+        internal EliteInputFeedback(Window owner, EliteDiagramPresenter diagram, Action<string> status, Action<string> activity,
             Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
         {
-            _owner = owner; _diagram = diagram; _status = status;
+            _owner = owner; _diagram = diagram; _status = status; _activity = activity;
             _factory = factory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _timer.Tick += Poll; owner.Deactivated += Deactivated;
         }
@@ -36,13 +38,15 @@ namespace DcsIpia.Presentation.Games
                 throw new InvalidOperationException("Connect the explicitly associated controller and rescan before testing.");
             _physical = pin.Device.PhysicalGuid;
             _source = _factory(new WindowInteropHelper(_owner).EnsureHandle(), [_physical]);
-            _timer.Start(); _status("Live hardware feedback · " + pin.Device.Name + ". Axis changes and held buttons are highlighted.");
+            _activityText = new(pin.Device.Name, _physical); _activity(_activityText.Text);
+            _timer.Start(); _status("Live hardware feedback · " + pin.Device.Name + ". Move an axis or press a button; feedback appears on the drawing or in the activity text.");
         }
         /// <summary>Stops sampling and clears feedback before view, device, profile or focus changes.</summary>
         internal void Stop()
         {
             var wasRunning = _source is not null;
             _timer.Stop(); _source?.Dispose(); _source = null; _previous.Clear(); _axisUntil.Clear();
+            _activityText = null; _activity("");
             foreach (var region in _diagram.Regions) region.Outline.BorderBrush = Brushes.Transparent;
             if (wasRunning) _status("Input test stopped.");
         }
@@ -55,6 +59,7 @@ namespace DcsIpia.Presentation.Games
             var frames = _source.Read().Where(x => x.PhysicalGuid == _physical).ToArray();
             if (frames.Length != 1) throw new InvalidOperationException("The associated controller disconnected or returned ambiguous samples.");
             var values = frames[0].Inputs;
+            _activityText!.Sample(values); _activity(_activityText.Text);
             foreach (var (control, border) in _diagram.Regions)
             {
                 var pair = values.FirstOrDefault(x => DcsInputKey.SamePhysicalInput(x.Key, control.InputKey));
