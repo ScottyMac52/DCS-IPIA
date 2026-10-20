@@ -130,3 +130,85 @@ is still required before claiming new simulator support; automated DCS fixture
 and package parity is the compatibility evidence here. The first additional
 game must validate its own native semantics and may require another reviewed
 backend version.
+
+## Elite Dangerous adapter (contract version 1)
+
+`Dcs.Ipia.EliteDangerous.EliteDangerousProfileBackend` is the first non-DCS
+implementation of `ISimProfileBackend`. It is a separate project in the solution,
+with no dependency on the DCS parser, renderer or database. The existing shared
+interface and portable domain types did not need changes for this pilot.
+
+Import accepts one captured Elite 4.x `.binds` file, with optional `.start`
+selector evidence, as a dictionary of filenames and original text. The owner's `Custom.4.2.binds` was characterized locally and is not
+distributed in this repository. Public tests use an independently authored
+`Synthetic.4.2.binds` fixture with invented device references; other 4.x minor
+versions use the same structural reader but have not been characterized with
+real fixtures. Other major versions are rejected. There are at most eight files,
+each limited to 4 MiB; paths must be basenames directly inside `Bindings`, with
+no traversal or case-equivalent duplicates. XML external entities and DTDs are
+prohibited. The adapter never scans active folders or deploys files.
+
+| Concern | Elite version-one behavior |
+| --- | --- |
+| Document | Portable schema 1, backend `elite-dangerous`, backend contract 1, native evidence `ed.v1`; original source text is pinned and revalidated on export |
+| Context | Caller-selected preset context such as `controls`; a native preset includes ship, SRV, on-foot and UI commands rather than one DCS aircraft |
+| Catalog | Commands come from native XML element names, including unbound slots; IDs contain backend, context and native command name; no guessed localization, missing-command inventory or cross-game equivalence |
+| Slots | Each button has explicit `SimSpecific["ed.slot"]` equal to `Primary` or `Secondary`; axes use `Binding`; slot identity survives JSON save/reopen |
+| Devices | Exact `Device` token and optional `DeviceIndex` are preserved in `Identity.SimSpecificIds["ed.device"]` and `["ed.deviceIndex"]`; named and numeric product references are not Windows instance IDs |
+| Resolution | Imported devices remain unresolved without explicit instance evidence; repeated matching instances are ambiguous; product names, numeric tokens and ordinals never silently select hardware or grant entitlement |
+| Buttons | Per-binding press/hold modes; button modifier chords reference a captured logical device and native key; unverified axis chording is blocked |
+| Command toggles | Native `ToggleOn` is independent of per-binding `Hold`; editable through `profile.Metadata["ed.toggle:" + commandId]` as `"0"` or `"1"`; catalog metadata describes the captured value |
+| Axes | Native deadzone fraction maps to portable percentage points (0..100); inversion supported; untouched native double precision retained; generic curve/sensitivity conversion rejected |
+| Preservation | No edits returns every original string exactly; edits change selected slots/flags, retaining unrelated settings, unknown root data, duplicate scalar settings and selector text |
+| Unsupported edits | Unknown data inside a rewritten slot blocks that edit; duplicate slots, changed device membership/identity, malformed values, unsupported modes/extensions and unknown command targets return blocking diagnostics with no output files |
+
+This phase permits assignment moves between captured devices and additions to
+existing unbound slots. Keep the captured logical device entries even after
+clearing their bindings. Adding controllers, renaming presets, discovering a full
+localized command catalog and selecting different presets for each game section
+need explicit future authoring flows. The coarse `ModifierChords` capability advertises
+button chords; axis chords remain blocked by backend validation until verified. Selector files are archival evidence and
+remain unchanged; they are not interpreted as a license or an active preset
+selection. This PR does not add a backend selector to WPF, save Elite workspaces
+in SQLite, integrate kneeboards or introduce automatic game deployment. Those
+remain separate steps in issue #286.
+
+### API usage and manual acceptance
+
+```csharp
+ISimProfileBackend backend = new EliteDangerousProfileBackend();
+var profile = backend.Import("controls", capturedFiles);
+var saved = JsonSerializer.Serialize(profile);
+var reopened = JsonSerializer.Deserialize<ProfileDocument>(saved)!;
+var catalog = backend.GetCatalog(reopened);
+// Edit a captured device's button/axis while retaining ed.slot identity.
+var plan = backend.Export(reopened);
+// Review plan.Diagnostics and plan.Files; only a successful complete plan may be written.
+```
+
+`EliteDangerousProfileBackendTests` verifies the synthetic 4.2 fixture through the
+shared interface, JSON persistence and exact unchanged export. Focused tests
+exercise primary/secondary isolation, clear/move/new assignments, holds,
+command toggles, modifiers, exact axis precision, malformed XML, bounded sources,
+unknown-field preservation/blocking, unsupported portable edits, cancellation,
+null collections and conservative device resolution. The separate assembly is
+included in both local and CI independent 80/80 coverage and method CRAP <= 50
+gates; existing Windows solution/training smoke and release checks remain active.
+
+In-game verification is still manual and must be recorded before announcing
+end-user Elite support:
+
+1. Close Elite and back up the entire original `Bindings` folder, including all
+   `.binds` and `.start` files.
+2. Import the captured file and persist/reopen the portable profile. Verify an
+   unchanged export matches the original bytes before making edits.
+3. Change one primary button, a modifier chord, a hold, a command toggle and an
+   axis inversion/deadzone. Export into a separate review folder; inspect the
+   changed native elements and confirm unrelated settings/selectors are retained.
+4. With the game closed, manually copy the reviewed `.binds` file into the backed-up
+   configuration's original filename. Open Elite, select the intended Custom
+   preset in the relevant controls section, and verify each edited behavior and
+   an unchanged secondary assignment with the actual connected hardware.
+5. Close Elite, inspect its saved XML and restore the complete backup if needed.
+   Do not interpret inherited Warthog references as evidence those devices are
+   currently connected. No in-game result is claimed by automated fixture tests.
