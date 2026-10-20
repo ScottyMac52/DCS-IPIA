@@ -35,6 +35,7 @@ namespace Heimdall.App.Smoke
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
                 EliteControllerIdentificationSmoke.Verify(root, hardware);
+                EliteControllerLifecycleSmoke.Verify(root, hardware);
                 VerifyControllerAddition(root, hardware);
                 VerifyIdenticalControllers(root, hardware);
                 var choice = MessageBoxResult.Cancel;

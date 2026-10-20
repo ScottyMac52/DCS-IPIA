@@ -6,15 +6,17 @@ namespace Heimdall.EliteDangerous
     internal static class EliteProfileValidation
     {
         #region BEGIN Public
-        /// <summary>Validates envelope and captured device membership before preparing output.</summary>
+        /// <summary>Validates the envelope and immutable identities of remaining captured devices.</summary>
         public static void Validate(ProfileDocument profile, ProfileDocument baseline)
         {
             if (profile.ProfileId != baseline.ProfileId || profile.Name != baseline.Name || profile.Devices is null
-                || profile.Metadata is null || profile.Devices.Any(x => x is null)
-                || baseline.Devices.Any(x => !profile.Devices.Any(d => d.LogicalId == x.LogicalId)))
+                || profile.Metadata is null || profile.Devices.Any(x => x is null))
             {
-                throw new InvalidOperationException("Preset identity and captured device membership must remain unchanged.");
+                throw new InvalidOperationException("Preset identity must remain unchanged.");
             }
+            if (baseline.Devices.Where(x => x.Identity!.SimSpecificIds["ed.device"] is "Keyboard" or "Mouse")
+                .Any(x => !profile.Devices.Any(d => d.LogicalId == x.LogicalId)))
+                throw new InvalidOperationException("System keyboard and mouse references must remain unchanged.");
             ValidateDevices(profile, baseline);
             if (!profile.Metadata.Keys.Order(StringComparer.Ordinal).SequenceEqual(baseline.Metadata.Keys.Order(StringComparer.Ordinal))
                 || profile.Metadata.Values.Any(x => x is not "0" and not "1"))

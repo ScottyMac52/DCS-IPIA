@@ -46,6 +46,14 @@ failure or cancellation retains the current workspace.
    HEIMDALL reuses an unambiguous compatible ED reference, or adds a new numeric
    reference for a supported HID product not already represented in the preset.
    You do not need to create a binding in Elite first for a single unique product.
+   **Remove selected…** previews every affected button/axis and cross-device chord before staging deletion. A chord requiring a removed controller is cleared in full; its modifier is never silently dropped. Keyboard and mouse system references are protected. Cancel leaves the workspace unchanged.
+
+   **Replace selected…** uses the controller selected on the left as the source and the connected controller as the replacement. The review lists every retained/transferred and cleared binding. Native capability probing checks the replacement's available buttons, hats and axes; unsupported required keys clear the entire binding. Native key names are retained, not guessed equivalents. Compatible cross-device modifier references move too. Replacement probing uses the existing Owner live-input boundary. Drawings are optional and do not establish compatibility.
+
+   If identical products have several captured references, explicitly choose **Replacement ED reference and index**. Windows connection order is never used as an ED index. A reference already linked to another connected unit cannot be taken over. No new index is invented.
+
+   Preview releases native handles before opening the review. Applying rechecks the workspace revision, physical identity, connection, capabilities, edition access and native output; a stale review, failed probe, invalid extension or disconnect leaves authoring unchanged. Save/Discard and workspace reopen retain the usual transactional behavior.
+
    Newly added empty controllers remain in the HEIMDALL workspace; they appear in a
    native `.binds` export once a command or modifier actually references them.
    Re-adding the same physical unit selects its existing entry.
@@ -121,7 +129,15 @@ failure or cancellation retains the current workspace.
    raw controller feedback; native Elite command execution, hold timing and
    in-game behavior still require manual verification.
 
-### Viewing ED references while playing
+#### Native ED compatibility when changing controllers
+
+ED device references are carried by binding slots and modifier nodes, not a separately exported controller table. A stored reference need not belong to a currently connected device. Changing hardware is valid when the exported slots use real device identities, captured indices where required, supported native keys and consistent modifier references. Empty added controllers appear in a `.binds` file only once they own or modify a binding. XML validation/export-reimport tests do not replace testing the result in ED.
+
+HEIMDALL retains the preset name/version, selector bytes, unknown settings and unrelated bindings. An unmodeled native reference to a removed controller blocks export rather than leaving an obsolete reference behind. The adapter's original native evidence is retained for reproducibility; the editable profile and exported XML carry the reviewed change.
+
+Export to a review folder, close ED before installing the reviewed preset, back up the existing Bindings directory, then load and test the preset in ED. Check `BindingLoadingErrors.log` if ED refuses it. Frontier documents [backing up game settings and keybinds](https://customersupport.frontier.co.uk/hc/en-us/articles/25580471182620-Back-up-your-game-settings-and-keybinds); community-maintained [EDCD input documentation](https://github.com/EDCD/EliteCustomButtonNames) describes native device naming. Save in HEIMDALL does not modify the live ED preset.
+
+## Viewing ED references while playing
 
 These are portable documents, not deployment into a native Elite kneeboard
 folder. Print a PDF, use another screen, or load exported pages into a compatible

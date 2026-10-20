@@ -47,11 +47,17 @@
      </WrapPanel>
      <TextBlock x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
-     <TextBlock Text="Choose your connected controller. HEIMDALL links a matching ED reference or adds a new one. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <TextBlock Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
-      <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" SelectionChanged="ConnectedChanged" AutomationProperties.Name="Controller to add"/>
+      <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" SelectionChanged="ConnectedChanged" AutomationProperties.Name="Controller to add or use as replacement"/>
       <Button Content="Rescan" Click="RescanClicked" Margin="8,0"/><Button x:Name="AddControllerButton" Content="Add controller…" Click="AddControllerClicked"/>
+      <Button x:Name="ReplaceControllerButton" Content="Replace selected…" Click="ReplaceControllerClicked" Margin="8,0,0,0"/>
+      <Button x:Name="RemoveControllerButton" Content="Remove selected…" Click="RemoveControllerClicked" Margin="8,0,0,0"/>
      </WrapPanel>
+     <StackPanel x:Name="ReplacementReferenceTools" Visibility="Collapsed" Margin="0,6,0,0">
+      <TextBlock Text="For an unlinked replacement with identical products, choose its captured ED reference/index explicitly. Connection order is not an ED index." TextWrapping="Wrap"/>
+      <ComboBox x:Name="ReplacementReferencePicker" DisplayMemberPath="Name" Width="430" HorizontalAlignment="Left" AutomationProperties.Name="Replacement ED reference and index"/>
+     </StackPanel>
      <StackPanel x:Name="ReferenceChoiceTools" Visibility="Collapsed" Margin="0,8,0,0">
       <TextBlock Text="Choose the matching reference from your imported ED preset. ED indices identify game references, not Windows connection order." TextWrapping="Wrap"/>
       <WrapPanel Margin="0,4,0,0"><ComboBox x:Name="ReferencePicker" DisplayMemberPath="Name" Width="430" AutomationProperties.Name="Matching ED reference"/>
