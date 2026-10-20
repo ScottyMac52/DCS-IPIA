@@ -102,7 +102,7 @@ namespace DcsIpia.Presentation
             GameSelection.ContinueRequested += (_, _) => ContinueGame();
             if (_games is not null) ShowGameSelection();
             Activated += (_, _) => ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
-            Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
+            Title = "HEIMDALL — Modules · " + ApplicationVersion.Label;
             if (profile is not null)
                 ProfileIndicator.Text = (profile.IsTest ? "TEST PROFILE: " : "Profile: ") + profile.Name + " · " + profile.DataDirectory +
                     (profile.IsTest ? " · DCS deployment disabled" : "");
@@ -254,7 +254,7 @@ namespace DcsIpia.Presentation
         }
         private void ShowDataLocationClicked(object sender, RoutedEventArgs e)
         {
-            if (_recovery is not null) ThemeMessageBox.Show(this, _recovery.DataDirectory, "IPIA user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (_recovery is not null) ThemeMessageBox.Show(this, _recovery.DataDirectory, "HEIMDALL user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         private void OpenProfilesClicked(object sender, RoutedEventArgs e)
         {
@@ -523,7 +523,7 @@ namespace DcsIpia.Presentation
         }
         private string? ChooseSnapshotFile()
         {
-            var picker = new ThemeBrowseDialog { Title = "Restore a verified IPIA module snapshot", Filter = "IPIA module snapshot|*.ipia-module.json" };
+            var picker = new ThemeBrowseDialog { Title = "Restore a verified HEIMDALL module snapshot", Filter = "HEIMDALL module snapshot|*.ipia-module.json" };
             return picker.ShowDialog(this) == true ? picker.FileName : null;
         }
         private async void ImportModule_Click(object sender, RoutedEventArgs e)

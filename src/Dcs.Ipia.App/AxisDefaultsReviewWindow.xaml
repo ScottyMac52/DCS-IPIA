@@ -8,7 +8,7 @@
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
       <TextBlock x:Name="AxisDefaultsHeading" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
       <TextBlock Text="Verify this file was captured from this aircraft, device and scope. DCS diff.lua does not identify the aircraft. Back up your current controls. Reset the device's axes to defaults in DCS, clear all axes, then Save Profile. Restore your backed-up controls afterward." TextWrapping="Wrap" Margin="0,8"/>
-      <TextBlock Text="This replaces the selected device's captured axis baseline. Export removes these defaults except exact command, axis and modifier combinations you assigned in IPIA. Keys and other devices are unchanged. Save keeps the draft; Discard undoes it." TextWrapping="Wrap"/>
+      <TextBlock Text="This replaces the selected device's captured axis baseline. Export removes these defaults except exact command, axis and modifier combinations you assigned in HEIMDALL. Keys and other devices are unchanged. Save keeps the draft; Discard undoes it." TextWrapping="Wrap"/>
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
       <Button Content="Cancel" IsCancel="True" Padding="16,4" Margin="0,0,8,0"/>

@@ -1,4 +1,4 @@
-# DCS-IPIA module workspace navigation
+# HEIMDALL module workspace navigation
 
 Select a saved module in the Modules window and choose **Open module**. The workspace opens directly on Assignments. The implemented compact shell uses horizontal feature navigation, cached views and shared Save/Discard and feature actions. See [compact layout and display acceptance](compact-workspace.md).
 

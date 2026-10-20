@@ -10,24 +10,24 @@ namespace DcsIpia.Presentation
         /// <summary>Shows version, workflow guidance and attribution locations without network access.</summary>
         public WorkflowHelpWindow()
         {
-            Title = "DCS-IPIA — Help · " + ApplicationVersion.Label;
+            Title = "HEIMDALL — Help · " + ApplicationVersion.Label;
             Width = 760; Height = 600; MinWidth = 500; MinHeight = 360;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
             var tabs = new TabControl { Margin = new Thickness(20) };
             var about = new StackPanel { Margin = new Thickness(20) };
-            var badge = new Image { Source = ApplicationBranding.Badge, Width = 144, Height = 144, Margin = new Thickness(0, 0, 0, 12) };
-            System.Windows.Automation.AutomationProperties.SetName(badge, "DCS-IPIA Flight Patch");
+            var badge = new Image { Source = ApplicationBranding.Logo, Width = 300, Height = 300, Margin = new Thickness(0, 0, 0, 12) };
+            System.Windows.Automation.AutomationProperties.SetName(badge, "HEIMDALL product logo");
             about.Children.Add(badge);
-            about.Children.Add(new TextBlock { Text = "DCS-IPIA", FontSize = 26, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center });
+            about.Children.Add(new TextBlock { Text = "HEIMDALL", FontSize = 26, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center });
             about.Children.Add(new TextBlock { Text = ApplicationVersion.Label, Margin = new Thickness(0, 8, 0, 12), HorizontalAlignment = HorizontalAlignment.Center });
-            about.Children.Add(new TextBlock { Text = "Organize your flight controls, assign aircraft commands and build DCS input profiles and kneeboards.",
+            about.Children.Add(new TextBlock { Text = "Simulation Control Manager — organize your hardware, manage controls across simulators, and build profiles and reference material.",
                 TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
             about.Children.Add(new TextBlock { Text = EditionAccess.Policy.Label, Margin = new Thickness(0, 12, 0, 0), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
             tabs.Items.Add(new TabItem { Header = "_About", Content = new ScrollViewer { Content = about, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
             tabs.Items.Add(Topic("_Getting started", """
-                DCS-IPIA
+                HEIMDALL
                 VERSION
 
                 Edition availability: Free supports the reviewed Thrustmaster catalog with a fixed appearance. Additional hardware, live input testing and customization are reserved for Premium; availability and pricing TBA. Current signed Owner activation unlocks implemented features; customer Premium licensing/payment is not yet available. Both training lessons are free under Help → Training / Guided workflows. They demonstrate Premium capabilities with fictional hardware and simulated input in a temporary session. Your edition stays unchanged; ordinary generic hardware, physical input testing and customization still require licensed access.
@@ -43,11 +43,11 @@ namespace DcsIpia.Presentation
             tabs.Items.Add(Topic("_Recovery and profiles", """
                 Full user-data backups include saved modules, inventory, drawing sources/images and preferences. Save or discard drafts and close editor windows first. Data & recovery → Back up user data creates and verifies an archive outside the data directory.
 
-                Restore verifies the archive, retains the previous data and replaces the selected profile. Close and restart IPIA afterwards. Review restored deployment records before deploying. DCS files are not restored. A module snapshot instead restores one module without replacing other saved modules.
+                Restore verifies the archive, retains the previous data and replaces the selected profile. Close and restart HEIMDALL afterwards. Review restored deployment records before deploying. DCS files are not restored. A module snapshot instead restores one module without replacing other saved modules.
 
                 If startup cannot open the database, use the recovery window or retain the original files and restore a known-good backup. Interrupted directory replacement is recovered on restart. Do not delete the retained original or recovery journal to bypass an error.
 
-                Data & recovery → Test profiles and reset creates isolated clean profiles. You can also start IPIA with --test-profile NAME (letters, digits, hyphen or underscore). Test profiles disable DCS deployment and isolate setup, modules, drawings and app/appearance preferences. Splitter/disclosure/zoom preferences currently share the Windows-user-wide workspace-layout.json; training does not read or write it. Owner activation is account-wide and outside profile backups. Reset requires a verified backup. Use Production only for a reviewed real-DCS acceptance run.
+                Data & recovery → Test profiles and reset creates isolated clean profiles. You can also start HEIMDALL with --test-profile NAME (letters, digits, hyphen or underscore). Test profiles disable DCS deployment and isolate setup, modules, drawings and app/appearance preferences. Splitter/disclosure/zoom preferences currently share the Windows-user-wide workspace-layout.json; training does not read or write it. Owner activation is account-wide and outside profile backups. Reset requires a verified backup. Use Production only for a reviewed real-DCS acceptance run.
                 """));
             tabs.Items.Add(Topic("_Diagnostics and keys", """
                 Help → Export support report (Ctrl+Shift+D) shows the entire report before saving it locally. It reads saved state, excludes personal names/paths/GUIDs, raw logs and artwork, and does not upload anything. Unreadable scopes remain null with a failure category and next step; they are not silently counted as empty. Numbered devices/modules are local to that report.
@@ -70,7 +70,7 @@ namespace DcsIpia.Presentation
             var layout = new DockPanel();
             var banner = new Image { Source = ApplicationBranding.Banner, Height = 120, Stretch = System.Windows.Media.Stretch.Uniform,
                 Margin = new Thickness(20, 16, 20, 0) };
-            System.Windows.Automation.AutomationProperties.SetName(banner, "DCS-IPIA — Inputs, Profiles, Aircraft");
+            System.Windows.Automation.AutomationProperties.SetName(banner, "HEIMDALL — Simulation Control Manager");
             DockPanel.SetDock(banner, Dock.Top);
             layout.Children.Add(banner);
             layout.Children.Add(tabs);

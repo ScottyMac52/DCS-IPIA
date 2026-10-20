@@ -11,7 +11,7 @@ namespace DcsIpia.Presentation
     public static class Program
     {
         #region BEGIN Public
-        /// <summary>Starts IPIA with JSON-configured logging before opening local data.</summary>
+        /// <summary>Starts HEIMDALL with JSON-configured logging before opening local data.</summary>
         /// <param name="args">Production, isolated profile or release-smoke arguments.</param>
         /// <returns>The WPF exit code, or one when startup fails.</returns>
         [STAThread]
@@ -35,8 +35,8 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 if (logger is not null) ApplicationLog.Terminated(logger, ex);
-                ThemeMessageBox.Show("Unable to start IPIA: " + ex.Message +
-                    "\nCheck appsettings.json and the configured log folder.", "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Error);
+                ThemeMessageBox.Show("Unable to start HEIMDALL: " + ex.Message +
+                    "\nCheck appsettings.json and the configured log folder.", "HEIMDALL", MessageBoxButton.OK, MessageBoxImage.Error);
                 return 1;
             }
             finally

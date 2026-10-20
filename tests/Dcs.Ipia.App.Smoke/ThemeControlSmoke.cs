@@ -64,7 +64,7 @@ namespace Dcs.Ipia.App.Smoke
                 foreach (var theme in new[] { "Dark", "NavyAmber", "CockpitGreen", "Light", "Dark" })
                 {
                     dictionaries[index] = new ResourceDictionary { Source = new Uri(
-                        "pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
+                        "pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
                     tabs.SelectedIndex = 0; choices.SelectedIndex = 0;
                     Pump(window);
                     foreach (var button in new[] { compact, compactAction })

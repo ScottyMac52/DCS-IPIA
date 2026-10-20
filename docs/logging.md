@@ -1,12 +1,12 @@
 # Physical application logs
 
-IPIA starts Serilog in `src/Dcs.Ipia.App/Program.cs` before selecting a user-data profile or opening SQLite. The executable's `appsettings.json` is loaded from `AppContext.BaseDirectory`, independently of the working directory, and is copied into build and publish output.
+HEIMDALL starts Serilog in `src/Dcs.Ipia.App/Program.cs` before selecting a user-data profile or opening SQLite. The executable's `appsettings.json` is loaded from `AppContext.BaseDirectory`, independently of the working directory, and is copied into build and publish output.
 
 The `Serilog` section controls levels, enrichment and file output. Initially the default, every production assembly, Microsoft and System are set to `Error`. Errors and fatal failures are retained; warnings and routine activity are suppressed.
 
-Default log files are `%LOCALAPPDATA%/DCS-IPIA/Logs/ipia-YYYYMMDD.log`. The directory is created by the file sink. Logs roll daily and at 10 MiB, with a maximum of 14 files retained. Concurrent instances share the sink safely. Change `Serilog:WriteTo:0:Args:path` to choose another writable location, such as `D:/IPIA-Logs/ipia-.log`. Sink/path/retention changes require restarting IPIA.
+Default log files are `%LOCALAPPDATA%/DCS-IPIA/Logs/ipia-YYYYMMDD.log`. The directory is created by the file sink. Logs roll daily and at 10 MiB, with a maximum of 14 files retained. Concurrent instances share the sink safely. Change `Serilog:WriteTo:0:Args:path` to choose another writable location, such as `D:/IPIA-Logs/ipia-.log`. Sink/path/retention changes require restarting HEIMDALL.
 
-For troubleshooting module creation, change `Serilog:MinimumLevel:Override:Dcs.Ipia.App` from `Error` to `Debug`, reproduce the failure, then restore `Error`. Existing level overrides reload while IPIA is running. New override keys require restarting. Keep the JSON valid when editing; logging settings are independent of the UI preference settings in SQLite and the user-data folder.
+For troubleshooting module creation, change `Serilog:MinimumLevel:Override:Dcs.Ipia.App` from `Error` to `Debug`, reproduce the failure, then restore `Error`. Existing level overrides reload while HEIMDALL is running. New override keys require restarting. Keep the JSON valid when editing; logging settings are independent of the UI preference settings in SQLite and the user-data folder.
 
 | Override key | Assembly |
 | --- | --- |

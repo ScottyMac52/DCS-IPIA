@@ -66,7 +66,7 @@ namespace DcsIpia.Presentation
             try
             {
                 UserDataProfile.Select(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), name);
-                var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "Dcs.Ipia.App.exe")) { UseShellExecute = false };
+                var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "Heimdall.exe")) { UseShellExecute = false };
                 if (name is not null) { start.ArgumentList.Add("--test-profile"); start.ArgumentList.Add(name); }
                 using var process = Process.Start(start);
                 _status.Text = "Profile launched. Close this instance when ready.";
@@ -75,12 +75,12 @@ namespace DcsIpia.Presentation
         }
         private async void ResetClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new ThemeBrowseDialog { Save = true, Title = "Choose mandatory full backup", Filter = "IPIA backup|*.ipia-backup.zip",
-                FileName = "IPIA-before-reset-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip",
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Choose mandatory full backup", Filter = "HEIMDALL backup|*.ipia-backup.zip",
+                FileName = "HEIMDALL-before-reset-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip",
                 OverwritePrompt = false };
             if (picker.ShowDialog(this) != true) return;
             if (ThemeMessageBox.Show(this, "Reset " + _profile.Name + " at\n" + _profile.DataDirectory +
-                "?\n\nThis removes saved modules, settings, artwork and setup completion from this profile. A full verified backup is mandatory and the original directory is retained. DCS files stay untouched; existing deployments must be inspected manually before deploying again. IPIA will close; restart using the same profile arguments.",
+                "?\n\nThis removes saved modules, settings, artwork and setup completion from this profile. A full verified backup is mandatory and the original directory is retained. DCS files stay untouched; existing deployments must be inspected manually before deploying again. HEIMDALL will close; restart using the same profile arguments.",
                 "Confirm destructive profile reset", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
             _busy = true;
             _actions.IsEnabled = false;

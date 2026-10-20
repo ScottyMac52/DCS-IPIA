@@ -24,11 +24,11 @@ The notices folder is copied to portable and installed payloads and checked by e
 
 | Evidence | Scope and source |
 | --- | --- |
-| IPIA-LICENSE.txt | Repository license |
+| HEIMDALL-LICENSE.txt | Repository license |
 | DCS-Common-LICENSE.txt, shared-assets-provenance.json | Pinned shared asset commit and per-file Git blobs |
 | hardware-SOURCES.md | Manufacturer/user-provided image sources; expressly does not relicense manufacturer images |
 | asset-authoring-provenance.json | Pinned DCS-Common authoring scripts and local changes; developer tooling, not a runtime prerequisite |
-| DejaVuSans-IPIA.LICENSE.txt | Bundled bold and regular DejaVu font notices |
+| DejaVuSans-HEIMDALL.LICENSE.txt | Bundled bold and regular DejaVu font notices |
 | dependencies.json, packages/ | Resolved application NuGet metadata and available notices |
 | runtime-packs/, runtime-packs.json, build-notices.json | Exact resolved Core/Desktop runtime-pack notices, SHA256 hashes, and SDK/source evidence |
 | distribution-review.md, distribution-artwork-review.json | Recorded artwork/source review and unresolved distribution decisions |

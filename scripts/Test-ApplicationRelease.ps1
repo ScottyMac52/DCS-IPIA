@@ -48,7 +48,7 @@ try {
     Assert-Exit 'Application publish'
     & (Join-Path $PSScriptRoot 'Write-DistributionNotices.ps1') -Publish $publish
     if (-not (Test-Path (Join-Path $publish 'notices/dependencies.json'))) { throw 'Release dependency inventory missing.' }
-    Test-App (Join-Path $publish 'Dcs.Ipia.App.exe') 'portable-smoke'
+    Test-App (Join-Path $publish 'Heimdall.exe') 'portable-smoke'
     # Seed real SQLite and user files outside the install directory before testing upgrade/uninstall.
     $profileHashes = @{}
     foreach ($profile in @('DCS-IPIA', 'DCS-IPIA-TestProfiles/fresh-install', 'DCS-IPIA-TestProfiles/second')) {
@@ -91,9 +91,9 @@ try {
     if ($rerun.ExitCode -ne 0 -or (Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Setup rerun reset the assigned DCS folder.'
     }
-    Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'installed-smoke'
+    Test-App (Join-Path $installed 'Heimdall.exe') 'installed-smoke'
     Assert-ProfilePreservation
-    Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'upgrade-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Test-App (Join-Path $installed 'Heimdall.exe') 'upgrade-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
     Assert-ProfilePreservation
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
@@ -107,7 +107,7 @@ try {
     if ($uninstall.ExitCode -ne 0) { throw 'Uninstall verification failed.' }
     # The original process exits before Inno's temporary clone finishes deleting its files.
     Wait-ReleaseUninstall $installed
-    if (Test-Path (Join-Path $installed 'Dcs.Ipia.App.exe')) { throw 'Uninstall verification failed.' }
+    if (Test-Path (Join-Path $installed 'Heimdall.exe')) { throw 'Uninstall verification failed.' }
     Assert-ProfilePreservation
     if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Uninstall did not preserve user settings.'
@@ -119,7 +119,7 @@ try {
     if (-not $reinstall.WaitForExit(90000)) { $reinstall.Kill(); throw 'Reinstall timed out.' }
     if ($reinstall.ExitCode -ne 0) { throw 'Reinstall failed.' }
     Assert-ProfilePreservation
-    Test-App (Join-Path $installed 'Dcs.Ipia.App.exe') 'reinstall-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Test-App (Join-Path $installed 'Heimdall.exe') 'reinstall-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
     Assert-ProfilePreservation
     if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Reinstall reset user settings.'
@@ -132,7 +132,7 @@ try {
     if (Test-Path $Output) { throw 'Release output already exists.' }
     New-Item -ItemType Directory -Path $Output | Out-Null
     Copy-Item $setup (Join-Path $Output 'setup.exe')
-    $archiveName = "DCS-IPIA_v${Version}_win-x64.zip"
+    $archiveName = "HEIMDALL_v${Version}_win-x64.zip"
     Compress-Archive -Path "$publish/*" -DestinationPath (Join-Path $Output $archiveName)
     # Publish readable review evidence for the exact candidate, alongside artifact checksums.
     @{
@@ -144,7 +144,7 @@ try {
     } | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $Output 'DISTRIBUTION-EVIDENCE.json') -Encoding utf8NoBOM
     $extracted = Join-Path $taskRoot 'extracted'
     Expand-Archive (Join-Path $Output $archiveName) $extracted
-    Test-App (Join-Path $extracted 'Dcs.Ipia.App.exe') 'archive-smoke'
+    Test-App (Join-Path $extracted 'Heimdall.exe') 'archive-smoke'
     @{
         version=$Version; sourceCommit=$env:GITHUB_SHA; runtime='win-x64'; selfContained=$true
         checks=@('portable startup','installed startup','archive startup','isolated SQLite','bundled hardware integrity',

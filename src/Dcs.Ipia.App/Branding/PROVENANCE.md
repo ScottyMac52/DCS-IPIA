@@ -1,16 +1,7 @@
-# Flight Patch artwork
+# HEIMDALL artwork provenance
 
-Created for DCS-IPIA on 2026-10-16 at Scott McIntosh's direction. This is a new vector interpretation of the Flight Patch concept in the earlier DCS-IPIA visual-direction board: a navy/gold circular aviation badge, winged joystick, generic aircraft, star and DCS-IPIA lettering. The concept-board raster is not cropped, traced or redistributed. Shapes and scenery are authored in `scripts/generate_flight_patch.py`; no manufacturer photos, service insignia or third-party logos are included.
+The raster artwork in `Masters/` was generated with OpenAI image generation at Scott McIntosh's direction for HEIMDALL, Simulation Control Manager. It includes the approved square tactical display, bridge H, product lockup, color icon, and monochrome icon. These are branding illustrations, not operational AEGIS displays or a claim of verified military symbology.
 
-The vector geometry and generated application artwork are part of this repository under its MIT license. Lettering is outlined from the existing bundled `DejaVuSans-IPIA.ttf` bold font; retain the DejaVu notice already shipped in `notices/DejaVuSans-IPIA.LICENSE.txt`. This note is shipped as `notices/flight-patch-PROVENANCE.md`.
+The approved artwork is resized without redrawing into production masters: 768-pixel product logo, 1200 × 400 banner, and 512-pixel icons. Full-resolution originals remain in the original generated-image collection. These production sizes keep repository transfers small. `python scripts/generate_heimdall.py` uses Pillow to resize, letterbox, and package committed PNG, Windows ICO, and installer BMP derivatives. There is no vector master. The banner is contained without distortion; installer images are 24-bit RGB. Both icons contain 16, 20, 24, 32, 40, 48, 64, 128, and 256 pixel frames.
 
-`flight-patch.svg`, `flight-patch-compact.svg`, `flight-patch-banner.svg` and `setup-sidebar.svg` are scalable, standalone masters. Text is outlined, so rendering does not depend on installed fonts. The compact variant removes the aircraft, lettering and star for 16–48 px icons. The ICO contains 16, 20, 24, 32, 40, 48, 64, 128 and 256 px images with transparency. Larger frames use the complete badge. PNGs are embedded WPF resources; BMPs are 24-bit Inno Setup artwork. No palette changes recolor these identity assets.
-
-Regenerate from the repository root using Python 3 with Pillow and fontTools, plus Inkscape on PATH:
-
-```sh
-python scripts/generate_flight_patch.py
-python scripts/check_branding_assets.py
-```
-
-The generator uses the bundled font, writes all vector/raster derivatives and records input/output SHA256 values in `manifest.json`. App builds consume the committed assets and do not require these authoring tools. Review full-size, 16/32 px and 150–200% title-bar/taskbar results when revising the design. Manual Windows display acceptance remains in #191; the brand decision and later enhancements remain tracked in #246.
+`manifest.json` records SHA-256 hashes for the generator, masters, and packaged artwork. `python scripts/check_branding_assets.py` validates committed assets without Pillow. Normal builds do not require image generation or Pillow. Distribution notices include this provenance. Free-edition artwork has separate provenance in `FreeEdition/PROVENANCE.md`.

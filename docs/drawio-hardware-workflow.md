@@ -1,6 +1,6 @@
 # Hardware SVG authoring
 
-IPIA owns the deterministic draw.io exporter under `scripts/asset-authoring/`. Node 24 is required for this developer tool; the installed .NET application does not require Node or a Common checkout. There are no npm dependencies. Original source identities and MIT attribution are retained in [PROVENANCE.json](../scripts/asset-authoring/PROVENANCE.json).
+HEIMDALL owns the deterministic draw.io exporter under `scripts/asset-authoring/`. Node 24 is required for this developer tool; the installed .NET application does not require Node or a Common checkout. There are no npm dependencies. Original source identities and MIT attribution are retained in [PROVENANCE.json](../scripts/asset-authoring/PROVENANCE.json).
 
 From the repository root, verify all published bundled hardware SVGs without changing files:
 

@@ -16,7 +16,7 @@ namespace DcsIpia.Presentation
         /// <summary>Allocates a fresh unpredictable training directory; never accepts a user database or DCS path.</summary>
         public TrainingEnvironment()
         {
-            Root = Path.Combine(Path.GetTempPath(), "DCS-IPIA-Training", Guid.NewGuid().ToString("N"));
+            Root = Path.Combine(Path.GetTempPath(), "HEIMDALL-Training", Guid.NewGuid().ToString("N"));
             _connection = new SqliteConnectionStringBuilder { DataSource = Path.Combine(Root, "ipia.db"), ForeignKeys = true, Pooling = false }.ToString();
             Repository = new SqliteEditorWorkspaceRepository(_connection);
         }

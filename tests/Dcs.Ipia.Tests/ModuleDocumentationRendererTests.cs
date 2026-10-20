@@ -40,7 +40,7 @@ namespace Dcs.Ipia.Tests
             Assert.Contains("Pause", controls, StringComparison.Ordinal);
             Assert.Contains("No separately captured", controls, StringComparison.Ordinal);
             Assert.Contains("Captured license", guides["THIRD-PARTY-ASSETS.md"], StringComparison.Ordinal);
-            Assert.Contains("IPIA rendering font license", guides["THIRD-PARTY-ASSETS.md"], StringComparison.Ordinal);
+            Assert.Contains("HEIMDALL rendering font license", guides["THIRD-PARTY-ASSETS.md"], StringComparison.Ordinal);
             Assert.DoesNotContain("VAICOM", string.Concat(guides.Values), StringComparison.Ordinal);
             Assert.DoesNotContain("\r", string.Concat(guides.Values), StringComparison.Ordinal);
             Assert.Equal(guides.OrderBy(x => x.Key), ModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]).OrderBy(x => x.Key));

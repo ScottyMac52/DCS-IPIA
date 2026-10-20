@@ -149,7 +149,7 @@ namespace Dcs.Ipia.Dcs
             foreach (var path in await TrackedPathsAsync(common, cancellationToken, "assets/shared/hardware/svg"))
                 if (path.EndsWith(".svg", StringComparison.Ordinal))
                     graphics[path] = await SourceTextAsync(common, path, cancellationToken);
-            var module = new DcsModule(Guid.NewGuid(), "IPIA", "Shared hardware");
+            var module = new DcsModule(Guid.NewGuid(), "HEIMDALL", "Shared hardware");
             var choices = new List<WorkspaceHardware>();
             var errors = new List<string>();
             foreach (var device in catalog.Devices)

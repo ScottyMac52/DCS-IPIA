@@ -37,7 +37,17 @@ class DocumentationTests(unittest.TestCase):
 
     def test_new_version_cannot_keep_old_release_heading(self):
         (self.root / "release/version.json").write_text('{"version":"1.1.2.0"}', encoding="utf-8")
-        self.assertTrue(any("heading must be '# DCS-IPIA v1.1.2.0'" in error for error in documentation.check(self.root)))
+        self.assertTrue(any("heading must be '# HEIMDALL v1.1.2.0'" in error for error in documentation.check(self.root)))
+
+    def test_future_release_uses_heimdall_heading(self):
+        (self.root / "release/version.json").write_text('{"version":"1.1.2.0"}', encoding="utf-8")
+        (self.root / "release/RELEASE-NOTES.md").write_text("# HEIMDALL v1.1.2.0\n", encoding="utf-8")
+        self.assertEqual([], documentation.check(self.root))
+
+    def test_future_release_rejects_legacy_brand(self):
+        (self.root / "release/version.json").write_text('{"version":"1.1.2.0"}', encoding="utf-8")
+        (self.root / "release/RELEASE-NOTES.md").write_text("# DCS-IPIA v1.1.2.0\n", encoding="utf-8")
+        self.assertTrue(any("heading must be '# HEIMDALL" in error for error in documentation.check(self.root)))
 
     def test_invalid_version_fails(self):
         (self.root / "release/version.json").write_text('{"version":"1.1.1"}', encoding="utf-8")

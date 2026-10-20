@@ -1,12 +1,13 @@
-# DCS-IPIA
+# HEIMDALL
 
-![DCS-IPIA Flight Patch — Inputs, Profiles, Aircraft](src/Dcs.Ipia.App/Branding/flight-patch-banner.png)
+![HEIMDALL — Simulation Control Manager](src/Dcs.Ipia.App/Branding/heimdall-banner.png)
 
-[Flight Patch artwork and asset guide](src/Dcs.Ipia.App/Branding/PROVENANCE.md).
+HEIMDALL — Simulation Control Manager replaces DCS-IPIA. See the [branding and upgrade guide](docs/heimdall-branding.md) and [unreleased changes](release/UNRELEASED.md).
+[HEIMDALL artwork and asset guide](src/Dcs.Ipia.App/Branding/PROVENANCE.md).
 
 ## Initial Free Edition
 
-The initial release supports the reviewed Thrustmaster catalog with a fixed Flight Patch/Navy-Amber photographic appearance. Premium is planned for additional supported hardware, live input testing and appearance customization; **availability and pricing TBA**. There is no checkout or subscription in this release. Existing data and saved appearance preferences are retained.
+The initial release supports the reviewed Thrustmaster catalog with a fixed Navy-Amber photographic appearance. Premium is planned for additional supported hardware, live input testing and appearance customization; **availability and pricing TBA**. There is no checkout or subscription in this release. Existing data and saved appearance preferences are retained.
 
 See the [Free Edition and owner activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
 
@@ -74,7 +75,7 @@ Open `DCS-IPIA.sln` in Visual Studio 2026 with the .NET desktop development work
 
 On Windows, run `dotnet run --project src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release`.
 
-- Choose **New module** to author a module using internal hardware and a pinned shared-default revision, or **Import module sources** to read a committed consumer checkout or Saved Games profiles. Shared assets ship with IPIA; the normal workflow does not require a DCS-Common checkout. Imported repositories remain read-only.
+- Choose **New module** to author a module using internal hardware and a pinned shared-default revision, or **Import module sources** to read a committed consumer checkout or Saved Games profiles. Shared assets ship with HEIMDALL; the normal workflow does not require a DCS-Common checkout. Imported repositories remain read-only.
 - Select a saved module and **Open module** to reopen SQLite state. Devices, Modifiers, Assignments, Commands and Pages edit one module, including its isolated UI Layer scope. Shared defaults have their own versioned workspace.
 - Load command catalogs from IPI JSON or DCS HTML, edit assignments, labels, axis tuning and summary cards, then **Save to database** or **Discard draft**. The Kneeboards tab generates pages from saved state; draft preview shows current staged edits.
 - Choose a **Saved Games DCS Folder** with **Browse…**, select a saved module and use **Fly Now!** to install its aircraft/UI Layer profiles and kneeboards directly. One module remains active until **Clear**, beside **Restore module snapshot…**, removes its exact copied files. See [Fly Now and Clear](docs/fly-now.md).
@@ -95,7 +96,7 @@ The app validates and generates native aircraft/UI Layer Lua, device and summary
 
 The [pinned Step 4 capability inventory](docs/migration/dcs-common-capabilities.md) is historical evidence against its named implementation baseline, not a current backlog. Migration issues #83 and #9 are closed. The [application completion record](docs/migration/application-completion.md) describes the delivered scope; legacy repository scaffolding/cutover is separate operational work. Current real-controller/DCS, upgrade/recovery, usability and distribution acceptance is tracked in [#245](https://github.com/ScottyMac52/DCS-IPIA/issues/245) and [distribution readiness](docs/distribution-readiness.md). Passing automated builds does not establish every controller’s in-game behavior.
 
-[Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses IPIA-owned draw.io tooling to verify all bundled hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
+[Hardware SVG authoring](docs/drawio-hardware-workflow.md) uses HEIMDALL-owned draw.io tooling to verify all bundled hardware graphics or export edits into a new staging folder. No Common checkout is required; the installed application does not require Node.
 
 ## Build
 

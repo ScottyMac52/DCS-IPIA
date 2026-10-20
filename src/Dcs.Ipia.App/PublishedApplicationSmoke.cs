@@ -21,7 +21,7 @@ namespace DcsIpia.Presentation
             BundledSharedCatalog.Validate(BundledSharedCatalog.Root);
             if (TrainingAssets.Scenarios().Count != 2) throw new InvalidDataException("Published training scenarios are unavailable.");
             var version = typeof(App).Assembly.GetName().Version!.ToString(4);
-            if (window.Title != "DCS-IPIA — Modules · version " + version)
+            if (window.Title != "HEIMDALL — Modules · version " + version)
                 throw new InvalidDataException("Published application title differs from its four-part release version.");
             var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             if (hardware.Count == 0 || !window.IsVisible) throw new InvalidDataException("Published app did not load its window and hardware.");

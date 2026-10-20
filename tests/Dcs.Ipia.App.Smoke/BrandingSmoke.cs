@@ -10,16 +10,20 @@ namespace Dcs.Ipia.App.Smoke
         /// <summary>Verifies full artwork dimensions and every Windows icon size, including high-DPI variants.</summary>
         public static void Verify()
         {
-            var decoder = new IconBitmapDecoder(new Uri("pack://application:,,,/Dcs.Ipia.App;component/Branding/flight-patch.ico"),
-                BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-            var sizes = decoder.Frames.Select(frame => frame.PixelWidth).Order().ToArray();
-            if (!sizes.SequenceEqual(new[] { 16, 20, 24, 32, 40, 48, 64, 128, 256 }) ||
-                decoder.Frames.Any(frame => frame.PixelWidth != frame.PixelHeight))
-                throw new InvalidOperationException("Flight Patch icon lacks required Windows sizes.");
+            foreach (var filename in new[] { "heimdall.ico", "heimdall-monochrome.ico" })
+            {
+                var decoder = new IconBitmapDecoder(new Uri("pack://application:,,,/Heimdall;component/Branding/" + filename),
+                    BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                var sizes = decoder.Frames.Select(frame => frame.PixelWidth).Order().ToArray();
+                if (!sizes.SequenceEqual(new[] { 16, 20, 24, 32, 40, 48, 64, 128, 256 }) ||
+                    decoder.Frames.Any(frame => frame.PixelWidth != frame.PixelHeight))
+                    throw new InvalidOperationException("HEIMDALL icon lacks required Windows sizes.");
+            }
             if (ApplicationBranding.Badge.PixelWidth != 512 || ApplicationBranding.Badge.PixelHeight != 512 ||
                 ApplicationBranding.Banner.PixelWidth != 1200 || ApplicationBranding.Banner.PixelHeight != 300 ||
+                !ApplicationBranding.Logo.IsFrozen || !ApplicationBranding.Monochrome.IsFrozen ||
                 !ApplicationBranding.Icon.IsFrozen || !ApplicationBranding.Badge.IsFrozen || !ApplicationBranding.Banner.IsFrozen)
-                throw new InvalidOperationException("Embedded Flight Patch artwork is invalid.");
+                throw new InvalidOperationException("Embedded HEIMDALL artwork is invalid.");
         }
         #endregion END Public
     }

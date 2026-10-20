@@ -20,7 +20,7 @@ namespace DcsIpia.Presentation
             _preview = preview;
             _picker = picker;
             NameScope.SetNameScope(this, new NameScope());
-            Title = "DCS-IPIA — Review support report · " + ApplicationVersion.Label;
+            Title = "HEIMDALL — Review support report · " + ApplicationVersion.Label;
             Width = 780; Height = 620; MinWidth = 500; MinHeight = 380;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
@@ -51,7 +51,7 @@ namespace DcsIpia.Presentation
         #region BEGIN private helpers
         private void SaveClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new ThemeBrowseDialog { Save = true, Title = "Save reviewed support report locally", Filter = "Support report|*.json", FileName = "IPIA-support.json", OverwritePrompt = false };
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Save reviewed support report locally", Filter = "Support report|*.json", FileName = "HEIMDALL-support.json", OverwritePrompt = false };
             var path = _picker is not null ? _picker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) { _status.Text = "Export cancelled."; return; }
             try { SupportReportFile.WriteNew(path, _preview); _status.Text = "Report saved locally. Nothing was uploaded."; }

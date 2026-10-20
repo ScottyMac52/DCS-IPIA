@@ -128,7 +128,7 @@ namespace Dcs.Ipia.Rendering
                     canvas.DrawText(rows[line].Right, right, top + 10 + line * 14, SKTextAlign.Left, font, ink);
                 }
             }
-            canvas.DrawText("IPIA reference sheet" + (artwork is not null ? " · full assignments follow" : ""), 36, height - 18, SKTextAlign.Left, font, ink);
+            canvas.DrawText("HEIMDALL reference sheet" + (artwork is not null ? " · full assignments follow" : ""), 36, height - 18, SKTextAlign.Left, font, ink);
             canvas.DrawText((page + 1) + " / " + total, width - 36, height - 18, SKTextAlign.Right, font, ink);
         }
         #endregion END private helpers

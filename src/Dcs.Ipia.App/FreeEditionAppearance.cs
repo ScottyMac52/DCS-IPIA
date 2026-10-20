@@ -9,7 +9,7 @@ namespace DcsIpia.Presentation
     {
         private static readonly Lazy<BitmapSource> Background = new(() =>
         {
-            var image = new BitmapImage(new Uri("pack://application:,,,/Dcs.Ipia.App;component/Branding/FreeEdition/carrier-tomcat.jpg", UriKind.Absolute));
+            var image = new BitmapImage(new Uri("pack://application:,,,/Heimdall;component/Branding/FreeEdition/carrier-tomcat.jpg", UriKind.Absolute));
             image.Freeze(); return image;
         });
         #region BEGIN Public

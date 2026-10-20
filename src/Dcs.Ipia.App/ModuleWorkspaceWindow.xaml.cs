@@ -472,7 +472,7 @@ namespace DcsIpia.Presentation
             {
                 var picker = new ThemeBrowseDialog { Save = true,
                     Title = "Export module snapshot to a new file",
-                    Filter = "IPIA module snapshot|*.ipia-module.json",
+                    Filter = "HEIMDALL module snapshot|*.ipia-module.json",
                     FileName = _saved!.Configuration.Module.DcsId + ".ipia-module.json",
                     OverwritePrompt = false
                 };

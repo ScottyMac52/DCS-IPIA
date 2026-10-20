@@ -56,7 +56,7 @@ namespace Dcs.Ipia.Infrastructure
                 var root = Path.Combine(_localData, name);
                 if (destination.Equals(root, StringComparison.OrdinalIgnoreCase) ||
                     destination.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException("Save reset backups outside all IPIA profile folders.", nameof(archive));
+                    throw new ArgumentException("Save reset backups outside all HEIMDALL profile folders.", nameof(archive));
             }
         }
         #endregion END Public

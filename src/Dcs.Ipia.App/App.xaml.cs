@@ -47,7 +47,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 ApplicationLog.InvalidProfile(_logger, ex);
-                ThemeMessageBox.Show(ex.Message, "Invalid IPIA profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ThemeMessageBox.Show(ex.Message, "Invalid HEIMDALL profile", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;
             }
@@ -72,8 +72,8 @@ namespace DcsIpia.Presentation
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 ApplicationLog.DataLockFailure(_logger, userFolder, ex);
-                ThemeMessageBox.Show("Unable to acquire the user-data lock. Close other IPIA instances before retrying: " + ex.Message,
-                    "DCS-IPIA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ThemeMessageBox.Show("Unable to acquire the user-data lock. Close other HEIMDALL instances before retrying: " + ex.Message,
+                    "HEIMDALL", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Shutdown(1);
                 return;
             }
@@ -91,7 +91,7 @@ namespace DcsIpia.Presentation
             catch (Exception ex)
             {
                 ApplicationLog.DataRecoveryFailure(_logger, userFolder, ex);
-                var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close IPIA and inspect the retained data.", supportReports: supportReports);
+                var window = new UserDataRecoveryWindow(recovery, CloseDatabase, "Unable to open local data: " + ex.Message + " Restore a verified backup, or close HEIMDALL and inspect the retained data.", supportReports: supportReports);
                 MainWindow = window;
                 window.ShowDialog();
                 Shutdown(window.RequiresRestart ? 0 : 1);

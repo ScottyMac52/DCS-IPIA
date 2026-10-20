@@ -36,7 +36,7 @@ namespace Dcs.Ipia.Rendering
                 "Generated from the same frozen inputs as the OvGME package. No live repository or database is consulted.\n\n" +
                 string.Join('\n', documents.Keys.Select(x => $"- [{x}]({x})")) +
                 "\n\n## Reproduce or return to a previous version\n\nKeep the exported .ipia-module.json snapshot alongside these guides and the ZIP/checksum. " +
-                "Restore it into an IPIA database where that module identity does not already exist. Set the recorded version, then export documentation and build OvGME. " +
+                "Restore it into an HEIMDALL database where that module identity does not already exist. Set the recorded version, then export documentation and build OvGME. " +
                 "Restore preserves module identity and pinned UI defaults. Disable the installed OvGME version before enabling an earlier package.\n";
             foreach (var name in documents.Keys.Where(x => x != "README.md").ToArray())
                 documents[name] = identity + documents[name];
@@ -55,7 +55,7 @@ namespace Dcs.Ipia.Rendering
                 $"| Destination under Saved Games | Purpose |\n| --- | --- |\n| Config/Input/{id} | Aircraft profiles and modifiers |\n" +
                 $"| Config/Input/UiLayer | Module-owned effective UI profiles and modifiers |\n| KNEEBOARD/{id} | Generated reference pages |\n\n" +
                 "## Device GUIDs and shared UI files\n\nExact native filenames appear in CONTROL-MAPPINGS.md. If your device GUID differs, load the matching profile into the correct device column in DCS, " +
-                "or bind the physical device in IPIA and save a new snapshot. Do not copy one device's GUID to another. " +
+                "or bind the physical device in HEIMDALL and save a new snapshot. Do not copy one device's GUID to another. " +
                 "DCS has one UI Layer directory: enabling another aircraft package can replace overlapping UI files. Verify the effective UI bindings after switching packages.\n\n" +
                 "## Remove or restore\n\nClose DCS and disable this package in OvGME before enabling another version. Restore your backed-up folders to return to the pre-package state. " +
                 "Documentation export creates no files in Saved Games.\n\n## Kneeboard pages\n\n" +
@@ -142,7 +142,7 @@ namespace Dcs.Ipia.Rendering
                 text.Append("\n## ").Append(Escape(statement.Key)).Append("\n\n").Append(Quoted(statement.Value));
             using var stream = typeof(ModuleDocumentationRenderer).Assembly.GetManifestResourceStream("Dcs.Ipia.Rendering.Fonts.DejaVuSans-IPIA.LICENSE.txt")!;
             using var reader = new StreamReader(stream);
-            text.Append("\n## IPIA rendering font license\n\n").Append(Quoted(reader.ReadToEnd()));
+            text.Append("\n## HEIMDALL rendering font license\n\n").Append(Quoted(reader.ReadToEnd()));
             return text.ToString();
         }
         private static string Integrations(string source, string moduleDcsId)

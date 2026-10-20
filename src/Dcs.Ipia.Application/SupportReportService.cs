@@ -47,7 +47,7 @@ namespace Dcs.Ipia.Application
             {
                 database = await _database.InspectAsync(ct);
                 if (!database.IntegrityPassed)
-                    failures.Add(new("database", "integrity-failed", "Close IPIA and use Data & recovery to restore a verified backup."));
+                    failures.Add(new("database", "integrity-failed", "Close HEIMDALL and use Data & recovery to restore a verified backup."));
                 if (database.SchemaVersion is null || database.SchemaVersion < 1 || database.SchemaVersion > _schema)
                     failures.Add(new("database", "unsupported-schema", "Use the matching application version or restore a compatible verified backup."));
             }
@@ -95,7 +95,7 @@ namespace Dcs.Ipia.Application
         {
             UnauthorizedAccessException => new(stage, "access-denied", "Check permission to the selected user-data folder, then retry."),
             InvalidDataException or JsonException => new(stage, "invalid-data", "Retain the original data; use Data & recovery or reimport a verified module/drawing."),
-            IOException => new(stage, "file-unavailable", "Close other IPIA instances and check available disk space, then retry."),
+            IOException => new(stage, "file-unavailable", "Close other HEIMDALL instances and check available disk space, then retry."),
             _ => new(stage, "read-failed", "Inspect the local Error log for this stage; retain data and restore a verified backup if needed.")
         };
         #endregion END private helpers

@@ -9,13 +9,13 @@ namespace DcsIpia.Presentation
             LoggerMessage.Define<string, Guid, string, string>(LogLevel.Error, new EventId(1015, nameof(ModuleOutputFailure)),
                 "Module operation {Operation} failed for {ModuleId} {DcsId}; package version {PackageVersion}");
         internal static readonly Action<ILogger, string, Exception?> Starting = LoggerMessage.Define<string>(
-            LogLevel.Information, new EventId(1000, nameof(Starting)), "Starting IPIA {Version}");
+            LogLevel.Information, new EventId(1000, nameof(Starting)), "Starting HEIMDALL {Version}");
         internal static readonly Action<ILogger, Exception?> Terminated = LoggerMessage.Define(
-            LogLevel.Critical, new EventId(1001, nameof(Terminated)), "IPIA terminated unexpectedly");
+            LogLevel.Critical, new EventId(1001, nameof(Terminated)), "HEIMDALL terminated unexpectedly");
         internal static readonly Action<ILogger, Exception?> DispatcherFailure = LoggerMessage.Define(
             LogLevel.Critical, new EventId(1002, nameof(DispatcherFailure)), "Unhandled WPF dispatcher exception");
         internal static readonly Action<ILogger, Exception?> InvalidProfile = LoggerMessage.Define(
-            LogLevel.Error, new EventId(1003, nameof(InvalidProfile)), "Invalid IPIA profile arguments");
+            LogLevel.Error, new EventId(1003, nameof(InvalidProfile)), "Invalid HEIMDALL profile arguments");
         internal static readonly Action<ILogger, string, Exception?> DataLockFailure = LoggerMessage.Define<string>(
             LogLevel.Error, new EventId(1004, nameof(DataLockFailure)), "Unable to acquire user-data lock {UserFolder}");
         internal static readonly Action<ILogger, string, Exception?> DataRecoveryFailure = LoggerMessage.Define<string>(

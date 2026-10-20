@@ -19,8 +19,9 @@ def check(root, requested_version=None):
         errors.append("release/version.json: expected a four-component version")
     notes = (root / "release/RELEASE-NOTES.md").read_text(encoding="utf-8")
     heading = notes.splitlines()[0] if notes else ""
-    if heading != f"# DCS-IPIA v{version}":
-        errors.append(f"release/RELEASE-NOTES.md: heading must be '# DCS-IPIA v{version}'")
+    product = "DCS-IPIA" if version == "1.1.1.0" else "HEIMDALL"
+    if heading != f"# {product} v{version}":
+        errors.append(f"release/RELEASE-NOTES.md: heading must be '# {product} v{version}'")
     if requested_version is not None and requested_version != version:
         errors.append(f"Requested release {requested_version} differs from documented version {version}; update version.json and notes together")
     files = [root / name for name in ("README.md", "CONTRIBUTING.md", "SECURITY.md", "tests/README.md", "release/RELEASE-NOTES.md")]

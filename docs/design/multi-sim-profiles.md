@@ -166,7 +166,7 @@ Assignments can move between captured devices and newly added canonical numeric
 HID references through `ISimDeviceEditor`. Captured logical identities remain
 immutable and present even after clearing their bindings. New devices do not
 rewrite original evidence, aliases or selector files; empty added controllers
-persist in IPIA JSON and enter native output only when referenced by a binding.
+persist in HEIMDALL JSON and enter native output only when referenced by a binding.
 Duplicate products and invented device indices are rejected. Repeated identical
 controllers must use captured indexed references with explicit unit choices.
 Renaming presets, discovering a full localized command catalog and selecting
