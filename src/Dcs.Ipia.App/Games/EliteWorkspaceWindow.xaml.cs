@@ -94,7 +94,7 @@ namespace DcsIpia.Presentation.Games
             if (_session is null || Device is null) throw new InvalidOperationException("Select a profile and associated device first.");
             _session.Export();
             var document = _session.Snapshot;
-            if (!document.Hardware.TryGetValue(Device.Id, out var pin)) throw new InvalidOperationException("Associate a shared drawing first.");
+            if (!document.Hardware.TryGetValue(Device.Id, out var pin) || pin.HardwareId is null || pin.DrawingHidden) throw new InvalidOperationException("Choose an optional drawing before exporting an illustrated reference sheet.");
             var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
             File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this)));
@@ -113,6 +113,7 @@ namespace DcsIpia.Presentation.Games
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
             _input.Stop();
+            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
             _session = opened; _revision = revision; _session.Changed += SessionChanged;
@@ -150,9 +151,7 @@ namespace DcsIpia.Presentation.Games
             _commands = _session.Catalog.Commands;
             _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
             _refreshing = true;
-            var devices = document.Profile.Devices.Select(x => new GameDeviceChoice(x.LogicalId,
-                x.Identity!.SimSpecificIds["ed.device"] + (x.Identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " [" + index + "]" : "") +
-                (document.Hardware.TryGetValue(x.LogicalId, out var pin) ? " · " + pin.Device.Name : ""))).ToArray();
+            var devices = document.Profile.Devices.Select(x => new GameDeviceChoice(x.LogicalId, ControllerName(document, x.LogicalId))).ToArray();
             DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
             ModifierDevicePicker.ItemsSource = devices; ModifierDevicePicker.SelectedIndex = 0;
             _refreshing = false;
@@ -181,8 +180,8 @@ namespace DcsIpia.Presentation.Games
             _input.Stop(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
-            var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
-            if (hardware is null) { DiagramHint.Text = "Choose this device's shared hardware drawing on Devices. You can review its native assignments below."; return; }
+            var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+            if (hardware is null) { DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
             _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this));
@@ -237,13 +236,18 @@ namespace DcsIpia.Presentation.Games
             SaveProfileButton.IsEnabled = opened && Pending; DiscardProfileButton.IsEnabled = opened && Pending;
             ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
-            ProfileName.IsEnabled = opened; AssociateButton.IsEnabled = opened;
+            ProfileName.IsEnabled = opened; AddControllerButton.IsEnabled = opened && ConnectedPicker.SelectedItem is DetectedDcsDevice;
+            var document = _session?.Snapshot;
+            var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
+            var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+            ChangeDrawingButton.IsEnabled = pin is not null;
+            DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
             var feature = FeaturePicker.SelectedIndex;
             DeviceTools.Visibility = feature == 0 ? Visibility.Visible : Visibility.Collapsed;
             StartInputButton.Visibility = StopInputButton.Visibility = feature == 2 ? Visibility.Visible : Visibility.Collapsed;
             StartInputButton.IsEnabled = opened && EditionAccess.Policy.IsOwner;
             ExportSheetButton.Visibility = feature == 3 ? Visibility.Visible : Visibility.Collapsed;
-            ExportSheetButton.IsEnabled = opened && AccessStatus.Text.Length == 0;
+            ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
         }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -273,15 +277,64 @@ namespace DcsIpia.Presentation.Games
         { if (ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); ModifiersList.Items.Refresh(); } }
         private void Rescan() => Run(() => { ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = -1; });
         private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
-        private void AssociateClicked(object sender, RoutedEventArgs e) => Run(() =>
+        private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            var device = Device;
-            var hardware = HardwarePicker.SelectedItem as WorkspaceHardware;
-            var connected = ConnectedPicker.SelectedItem as DetectedDcsDevice;
-            if (_session is null || device is null || hardware is null || connected is null)
-                throw new InvalidOperationException("Select a captured reference, a shared drawing and the exact connected controller before associating.");
-            _session.Associate(device.Id, hardware.DeviceId, connected.PhysicalGuid);
+            if (_session is null || ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
+                throw new InvalidOperationException("Choose the connected controller you want to add.");
+            var document = _session.Snapshot;
+            var already = document.Hardware.FirstOrDefault(x => x.Value.Device.PhysicalGuid == connected.PhysicalGuid).Key;
+            if (already is not null)
+            {
+                ReferenceChoiceTools.Visibility = Visibility.Collapsed;
+                DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == already);
+                Status("This controller is already in the profile. Its existing link and drawing choice are retained."); return;
+            }
+            var references = _session.ControllerReferences(connected.PhysicalGuid);
+            var available = references.Where(x => !document.Hardware.ContainsKey(x)).ToArray();
+            if (references.Count == 0 || available.Length == 1) { ConnectController(connected, available.SingleOrDefault()); return; }
+            ReferencePicker.ItemsSource = references.Select(id => new GameDeviceChoice(id, ControllerName(document, id))).ToArray();
+            ReferencePicker.SelectedIndex = -1; ReferenceChoiceTools.Visibility = Visibility.Visible;
+            Status("Choose which captured ED reference belongs to this controller. Existing links are retained until an explicit choice succeeds.");
         });
+        private void ConnectController(DetectedDcsDevice connected, string? logicalId)
+        {
+            if (_session is null) return;
+            var current = logicalId is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(logicalId);
+            var drawing = current is null ? GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
+            var id = _session.ConnectController(connected.PhysicalGuid, drawing, logicalId);
+            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
+            DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
+            Status("Controller connected. Assign commands now; Change drawing is optional." + (_session.AccessMessage.Length > 0 ? " " + _session.AccessMessage : ""));
+        }
+        private static string ControllerName(GameWorkspace workspace, string id)
+        {
+            var identity = workspace.Profile.Devices.Single(x => x.LogicalId == id).Identity!;
+            var token = identity.SimSpecificIds["ed.device"];
+            var suffix = identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " · ED index " + index : "";
+            return workspace.Hardware.TryGetValue(id, out var pin) ? pin.Device.Name + " · " + token + suffix : token + suffix;
+        }
+        private void ConnectedChanged(object sender, SelectionChangedEventArgs e)
+        { if (!_refreshing && ReferenceChoiceTools is not null) { ReferenceChoiceTools.Visibility = Visibility.Collapsed; UpdateAvailability(); } }
+        private void LinkReferenceClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || ReferencePicker.SelectedItem is not GameDeviceChoice reference)
+                throw new InvalidOperationException("Choose the connected controller and its captured ED reference.");
+            ConnectController(connected, reference.Id);
+        });
+        private void ChangeDrawingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin)) return;
+            HardwarePicker.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
+            DrawingTools.Visibility = Visibility.Visible;
+        }
+        private void UseDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (_session is null || Device is null || HardwarePicker.SelectedItem is not WorkspaceHardware drawing)
+                throw new InvalidOperationException("Choose an optional drawing first.");
+            _session.ChangeDrawing(Device.Id, drawing.DeviceId); DrawingTools.Visibility = Visibility.Collapsed;
+        });
+        private void NoDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
+        { if (_session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); DrawingTools.Visibility = Visibility.Collapsed; } });
         private void ImportClicked(object sender, RoutedEventArgs e)
         {
             if (!ConfirmLeave()) return;
@@ -348,7 +401,7 @@ namespace DcsIpia.Presentation.Games
         }
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) UpdateAvailability(); }
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { FilterCommands(); RenderDevice(); }); }
-        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { FilterCommands(Command?.Id); RenderDevice(); }); }
+        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
         private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null) return; _input.Stop(); UpdateAvailability(); }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }

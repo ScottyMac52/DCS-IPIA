@@ -20,14 +20,29 @@ failure or cancellation retains the current workspace.
 1. Choose **Select controls profile**, then select a saved profile or **Import
    bindings**. Select an existing `.binds` file from your Windows Bindings folder.
    Import reads that file only and retains the native preset/version/source text.
-2. On **Devices**, select a native reference, a shared hardware drawing and the
-   exact connected controller, then choose **Associate**. This explicitly links
-   native reference, catalog drawing and physical instance without replacing any
-   of those identities. The adapter must verify native product compatibility
-   against the Windows HID product GUID before association. Numeric VID/PID
-   references and the reviewed built-in Warthog joystick/throttle aliases are
-   supported; unknown aliases remain unresolved. A different native target must
-   be rebound in Elite first. The original reference stays visible in IPIA. The same bundled drawings used in DCS are reusable here.
+2. On **Devices**, choose the connected Windows controller and **Add controller…**.
+   IPIA reuses an unambiguous compatible ED reference, or adds a new numeric
+   reference for a supported HID product not already represented in the preset.
+   You do not need to create a binding in Elite first for a single unique product.
+   Newly added empty controllers remain in the IPIA workspace; they appear in a
+   native `.binds` export once a command or modifier actually references them.
+   Re-adding the same physical unit selects its existing entry.
+
+   An exact unique catalog drawing is selected automatically. Unknown devices or
+   alternate drawings remain without artwork; **Change drawing…** lets you choose
+   a shared illustration or **No drawing** independently. Owner authoring and
+   native export work without artwork, using native input keys and the assignment
+   table. Illustrated callouts/reference PNGs require a selected drawing. Artwork
+   names never prove manufacturer eligibility or an attached grip.
+
+   If multiple ED references match, choose the captured reference explicitly.
+   Native `DeviceIndex` values are preserved; Windows discovery order is never
+   converted into an ED index. For identical products without captured indices,
+   bind an input on each in Elite and reimport the indexed preset first. IPIA
+   cannot safely invent that ordering. A reference already linked to another
+   connected unit cannot be overwritten. Offline replacement requires an explicit
+   reference choice. Existing native aliases and targets are never renamed by
+   linking a controller or changing its artwork.
 3. Use **Assignments** to choose a command and click an illustrated control, or
    drag the command onto a compatible callout. Primary and secondary slots are
    separate. The editor supports native input keys, press/hold, cross-device
@@ -68,7 +83,7 @@ failure or cancellation retains the current workspace.
 Unknown data inside an edited native assignment, unsupported curves/modes,
 unverified axis chords or malformed values block the operation. Failed edits
 are staged on an independent copy and never replace the current or saved state.
-Imported devices remain unresolved until explicitly associated; a named Warthog
+Imported devices remain unresolved until explicitly linked; a named Warthog
 reference or numeric Device/DeviceIndex token is not evidence of a connected unit.
 
 ## Edition and persistence boundaries
@@ -79,7 +94,12 @@ training scope or live-input permission. Until every physical reference has a
 reviewed eligible association matching its native product target, the imported
 data is retained read-only in Free. An unrelated eligible controller or a forged
 association cannot authorize exporting references to another product.
-Keyboard/mouse tokens are system inputs. Previously verified associations remain
+A controller with no reviewed catalog choice remains read-only in Free; omitting
+artwork does not expand the Free hardware allowlist. Once reviewed, **No drawing**
+hides the illustration while retaining the catalog identity and eligibility.
+Owner can author supported
+HID controllers without a drawing. Keyboard/mouse tokens are system inputs.
+Previously verified associations remain
 usable offline; conflicting current native observations block authoring/export.
 
 Game workspaces are stored under `GameWorkspaces/<workspace-id>.ipia-game.json`
@@ -105,8 +125,13 @@ The adapter's format/capability limits are documented in
 snapshots, rejected edits, stale saves, manufacturer/edition checks, isolated
 review output and full-profile backup/restore. `EliteWorkspaceProjectionTests`
 covers physical input translation, section hints and reference labels.
+`EliteControllerAdditionTests` covers optional artwork, unique reference creation,
+new button/axis/chord native round trips, persisted empty-capable references,
+immutable captured identities, explicit indexed units, rejected ambiguous or
+unsupported additions, atomic failures and Free eligibility.
 `GameWorkspaceSmoke` operates the actual WPF cards and ED window on Windows:
-import, explicit association, button/axis edits, save, reopen, export,
+import, single-choice controller addition, optional/automatic drawings, indexed
+reference choices, button/axis edits, save, reopen, export,
 combined category/type/search filtering, empty results, filtered assignment
 selection, save/discard/cancel transitions, input acquisition/release and blocked Free
 commands. CI attaches game-selection and ED-workspace screenshots to the

@@ -19,16 +19,26 @@ namespace Dcs.Ipia.EliteDangerous
         {
             ArgumentNullException.ThrowIfNull(reference);
             ArgumentNullException.ThrowIfNull(observed);
-            if (!observed.ProductGuid.ToString("D").EndsWith("504944564944", StringComparison.OrdinalIgnoreCase)
-                || reference.SimSpecificIds is null || !reference.SimSpecificIds.TryGetValue("ed.device", out var token)
-                || string.IsNullOrWhiteSpace(token)) return false;
+            if (reference.SimSpecificIds is null || !reference.SimSpecificIds.TryGetValue("ed.device", out var token)) return false;
+            return Normalize(token) is { } normalized && normalized == ProductToken(observed);
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        internal static string? Normalize(string? token)
+        {
+            if (string.IsNullOrWhiteSpace(token)) return null;
             if (Aliases.TryGetValue(token, out var alias)) token = alias;
-            if (token.Length != 8 || !token.All(Uri.IsHexDigit)) return false;
+            return token.Length == 8 && token.All(Uri.IsHexDigit) ? token.ToUpperInvariant() : null;
+        }
+        internal static string? ProductToken(DetectedDcsDevice observed)
+        {
+            if (!observed.ProductGuid.ToString("D").EndsWith("504944564944", StringComparison.OrdinalIgnoreCase)) return null;
             var bytes = observed.ProductGuid.ToByteArray();
             var vendor = bytes[0] | bytes[1] << 8;
             var product = bytes[2] | bytes[3] << 8;
-            return token.Equals(vendor.ToString("X4", CultureInfo.InvariantCulture) + product.ToString("X4", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase);
+            return vendor == 0 || product == 0 ? null : vendor.ToString("X4", CultureInfo.InvariantCulture) + product.ToString("X4", CultureInfo.InvariantCulture);
         }
-        #endregion END Public
+        #endregion END private helpers
     }
 }
+

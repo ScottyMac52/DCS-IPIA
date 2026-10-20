@@ -10,8 +10,8 @@ namespace Dcs.Ipia.EliteDangerous
         public static void Validate(ProfileDocument profile, ProfileDocument baseline)
         {
             if (profile.ProfileId != baseline.ProfileId || profile.Name != baseline.Name || profile.Devices is null
-                || profile.Metadata is null || profile.Devices.Count != baseline.Devices.Count
-                || profile.Devices.Any(x => x is null))
+                || profile.Metadata is null || profile.Devices.Any(x => x is null)
+                || baseline.Devices.Any(x => !profile.Devices.Any(d => d.LogicalId == x.LogicalId)))
             {
                 throw new InvalidOperationException("Preset identity and captured device membership must remain unchanged.");
             }
@@ -60,13 +60,24 @@ namespace Dcs.Ipia.EliteDangerous
             foreach (var device in profile.Devices)
             {
                 var original = baseline.Devices.Find(x => x.LogicalId == device.LogicalId);
-                if (!seen.Add(device.LogicalId) || original is null || device.ContextId != baseline.ContextId
-                    || !EliteProfileProjection.Equal(device.Identity, original.Identity) || device.Buttons is null || device.Axes is null
+                if (!seen.Add(device.LogicalId) || device.ContextId != baseline.ContextId
+                    || (original is null ? !ValidAddition(device, baseline) : !EliteProfileProjection.Equal(device.Identity, original.Identity)) || device.Buttons is null || device.Axes is null
                     || device.Buttons.Any(x => x is null) || device.Axes.Any(x => x is null))
                 {
                     throw new InvalidOperationException("Elite device identity or context was changed.");
                 }
             }
+        }
+        private static bool ValidAddition(LogicalDevice device, ProfileDocument baseline)
+        {
+            var identity = device.Identity;
+            if (identity is null || identity.SimSpecificIds is null || identity.SimSpecificIds.Count != 1
+                || !identity.SimSpecificIds.TryGetValue("ed.device", out var token)
+                || string.IsNullOrEmpty(token) || token.Length != 8 || token != EliteDeviceReferenceMatcher.Normalize(token)
+                || token.StartsWith("0000", StringComparison.Ordinal) || token.EndsWith("0000", StringComparison.Ordinal)) return false;
+            return identity.InstanceId is null && identity.WindowsName is null && identity.VendorId == 0 && identity.ProductId == 0
+                && identity.CompositeId == 0 && device.LogicalId == EliteProfileProjection.DeviceId(identity)
+                && !baseline.Devices.Any(x => EliteDeviceReferenceMatcher.Normalize(x.Identity?.SimSpecificIds.GetValueOrDefault("ed.device")) == token);
         }
         #endregion END private helpers
     }

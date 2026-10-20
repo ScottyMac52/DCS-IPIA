@@ -6,7 +6,7 @@ using Dcs.Ipia.Domain.MultiSim;
 namespace Dcs.Ipia.EliteDangerous
 {
     /// <summary>Translates captured Elite bindings without reading or deploying active game files.</summary>
-    public sealed class EliteDangerousProfileBackend : ISimProfileBackend
+    public sealed class EliteDangerousProfileBackend : ISimProfileBackend, ISimDeviceEditor
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new()
         {
@@ -72,6 +72,21 @@ namespace Dcs.Ipia.EliteDangerous
             }
             var matches = connected.Where(x => string.Equals(x.InstanceId, identity.InstanceId, StringComparison.OrdinalIgnoreCase)).ToArray();
             return new(matches.Length switch { 0 => "disconnected", 1 => "resolved", _ => "ambiguous" }, matches);
+        }
+        /// <summary>Adds one canonical unindexed HID product reference without changing captured devices or native source evidence.</summary>
+        public ProfileDocument AddDevice(ProfileDocument profile, DetectedDcsDevice observed)
+        {
+            ArgumentNullException.ThrowIfNull(observed);
+            var token = EliteDeviceReferenceMatcher.ProductToken(observed)
+                ?? throw new InvalidOperationException("This controller has no supported native HID product identity.");
+            if (!Export(profile).Succeeded) throw new InvalidOperationException("Resolve the existing profile diagnostics before adding a controller.");
+            if (profile.Devices.Any(x => EliteDeviceReferenceMatcher.Normalize(x.Identity?.SimSpecificIds.GetValueOrDefault("ed.device")) == token))
+                throw new InvalidOperationException("This product already has an ED reference. Link an existing reference; identical controllers require captured ED indices.");
+            var candidate = JsonSerializer.Deserialize<ProfileDocument>(JsonSerializer.Serialize(profile))!;
+            var identity = new PhysicalDeviceIdentity { SimSpecificIds = new() { ["ed.device"] = token } };
+            candidate.Devices.Add(new() { LogicalId = EliteProfileProjection.DeviceId(identity), ContextId = profile.ContextId, Identity = identity });
+            if (!Export(candidate).Succeeded) throw new InvalidOperationException("The new native controller reference could not be validated.");
+            return candidate;
         }
         #endregion END Public
 

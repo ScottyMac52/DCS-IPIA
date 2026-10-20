@@ -34,6 +34,8 @@ namespace Dcs.Ipia.App.Smoke
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
+                VerifyControllerAddition(root, hardware);
+                VerifyIdenticalControllers(root, hardware);
                 var choice = MessageBoxResult.Cancel;
                 FakeDeviceInputSource? input = null;
                 using var window = new EliteWorkspaceWindow(services, hardware,
@@ -46,17 +48,19 @@ namespace Dcs.Ipia.App.Smoke
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 var captured = Path.Combine(root, "Synthetic.4.2.binds");
                 File.WriteAllText(captured, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds"))
-                    .Replace("ExampleStick", "044F1001", StringComparison.Ordinal).Replace("ExampleThrottle", "044F1002", StringComparison.Ordinal));
+                    .Replace("Device=\"ExampleStick\"", "Device=\"044F1001\" DeviceIndex=\"0\"", StringComparison.Ordinal).Replace("ExampleThrottle", "044F1002", StringComparison.Ordinal));
                 window.ImportFile(captured);
                 var session = window.Session!;
                 var stick = session.Snapshot.Profile.Devices.First(x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001");
                 Box<ListBox>(window, "DevicePicker").SelectedItem = Box<ListBox>(window, "DevicePicker").Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
-                Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 var connected = Box<ComboBox>(window, "ConnectedPicker");
                 if (connected.SelectedItem is not null) throw new InvalidOperationException("Discovery silently selected the first physical controller.");
                 connected.SelectedItem = connected.Items.Cast<DetectedDcsDevice>().Single(x => x.PhysicalGuid == physical.PhysicalGuid);
-                Click(window, "AssociateButton");
-                if (!session.Snapshot.Hardware.ContainsKey(stick.LogicalId)) throw new InvalidOperationException("Explicit shared drawing/native instance association failed.");
+                Click(window, "AddControllerButton");
+                if (!session.Snapshot.Hardware.ContainsKey(stick.LogicalId)) throw new InvalidOperationException("Adding a controller did not reuse its matching captured reference.");
+                Click(window, "ChangeDrawingButton");
+                Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
+                Click(window, "UseDrawingButton");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 SelectCommand(window, "Primary Fire"); Box<TextBox>(window, "InputKey").Text = "Joy_9";
                 Box<ComboBox>(window, "ModePicker").SelectedIndex = 1; Click(window, "ApplyAssignmentButton");
@@ -107,6 +111,68 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyControllerAddition(string root, WorkspaceHardware[] hardware)
+        {
+            var physical = new DetectedDcsDevice(Guid.NewGuid(), "Unillustrated controller", true, ProductGuid: Guid.Parse("0bac06a3-0000-0000-0000-504944564944"));
+            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "AddController")), new GameSmokeDiscovery(physical));
+            var source = Path.Combine(root, "Add.4.2.binds");
+            File.WriteAllText(source, "<Root PresetName='Add' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='Keyboard' Key='Key_Space'/><Secondary Device='{NoDevice}' Key=''/></PrimaryFire></Root>");
+            Guid savedId;
+            using (var window = new EliteWorkspaceWindow(services, hardware, pendingChoice: () => MessageBoxResult.No))
+            {
+                window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
+                Box<ComboBox>(window, "ConnectedPicker").SelectedIndex = 0; Click(window, "AddControllerButton");
+                var document = window.Session!.Snapshot; var pin = document.Hardware.Single(); savedId = document.Id;
+                if (document.Profile.Devices.Count != 2 || pin.Value.HardwareId is not null || !Box<StackPanel>(window, "AssignmentEditor").IsEnabled
+                    || Box<WrapPanel>(window, "DrawingTools").IsVisible || Box<StackPanel>(window, "ReferenceChoiceTools").IsVisible)
+                    throw new InvalidOperationException("A new controller still required ED reference or drawing choices.");
+                SelectCommand(window, "Primary Fire"); Box<TextBox>(window, "InputKey").Text = "Joy_4"; Click(window, "ApplyAssignmentButton");
+                if (!window.SaveProfile() || !services.Backend.Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
+                    throw new InvalidOperationException("A new unillustrated controller did not save and export.");
+                var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);
+                Click(window, "ChangeDrawingButton"); Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware[0]; Click(window, "UseDrawingButton");
+                Click(window, "ChangeDrawingButton"); Click(window, "NoDrawingButton");
+                if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
+                    throw new InvalidOperationException("Changing artwork changed native controller identity or assignments.");
+                if (!window.SaveProfile() || Box<Button>(window, "ExportSheetButton").IsEnabled) throw new InvalidOperationException("Hiding artwork did not save or still offered an illustrated export.");
+                ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-add-controller"); window.Close();
+            }
+            using (var reopened = new EliteWorkspaceWindow(services, hardware, savedId, pendingChoice: () => MessageBoxResult.No))
+            {
+                reopened.Show(); ThemeControlSmoke.Pump(reopened);
+                if (!reopened.Session!.Snapshot.Hardware.Single().Value.DrawingHidden) throw new InvalidOperationException("Reopening lost the explicit No drawing choice.");
+                reopened.Close();
+            }
+            var unique = hardware.Where(x => DcsPhysicalIdentity.FromFileName(x.DefaultFileName) is not null)
+                .GroupBy(x => DcsPhysicalIdentity.NameFromFileName(x.DefaultFileName), StringComparer.OrdinalIgnoreCase).First(x => x.Count() == 1).Single();
+            var recognized = physical with { Name = DcsPhysicalIdentity.NameFromFileName(unique.DefaultFileName) };
+            services = new(new FileGameWorkspaceStore(Path.Combine(root, "SuggestedDrawing")), new GameSmokeDiscovery(recognized));
+            using var automatic = new EliteWorkspaceWindow(services, hardware, pendingChoice: () => MessageBoxResult.No);
+            automatic.Show(); ThemeControlSmoke.Pump(automatic); automatic.ImportFile(source);
+            Box<ComboBox>(automatic, "ConnectedPicker").SelectedIndex = 0; Click(automatic, "AddControllerButton");
+            if (automatic.Session!.Snapshot.Hardware.Single().Value.HardwareId != unique.DeviceId) throw new InvalidOperationException("An exact unique drawing was not selected automatically.");
+            automatic.Close();
+        }
+        private static void VerifyIdenticalControllers(string root, WorkspaceHardware[] hardware)
+        {
+            var a = new DetectedDcsDevice(Guid.NewGuid(), "Identical A", true, ProductGuid: Guid.Parse("0bac06a3-0000-0000-0000-504944564944"));
+            var b = a with { PhysicalGuid = Guid.NewGuid(), Name = "Identical B" };
+            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "Identical")), new GameSmokeDiscovery(a, b));
+            var source = Path.Combine(root, "Indexed.4.2.binds");
+            File.WriteAllText(source, "<Root PresetName='Indexed' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='06A30BAC' DeviceIndex='0' Key='Joy_1'/><Secondary Device='06A30BAC' DeviceIndex='1' Key='Joy_2'/></PrimaryFire></Root>");
+            using var window = new EliteWorkspaceWindow(services, hardware, pendingChoice: () => MessageBoxResult.No);
+            window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
+            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = b; Click(window, "AddControllerButton");
+            var picker = Box<ComboBox>(window, "ReferencePicker");
+            if (!Box<StackPanel>(window, "ReferenceChoiceTools").IsVisible || picker.SelectedItem is not null || window.Session!.Snapshot.Hardware.Count != 0)
+                throw new InvalidOperationException("Identical controllers were assigned an inferred ED ordinal.");
+            picker.SelectedIndex = 1; var id = ((GameDeviceChoice)picker.SelectedItem!).Id; Click(window, "LinkReferenceButton");
+            if (window.Session!.Snapshot.Hardware[id].Device.PhysicalGuid != b.PhysicalGuid) throw new InvalidOperationException("The explicit indexed ED reference linked to a different unit.");
+            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = a; Click(window, "AddControllerButton");
+            if (window.Session.Snapshot.Hardware.Count != 2 || window.Session.Snapshot.Profile.Devices.Count != 2)
+                throw new InvalidOperationException("Adding the second identical controller duplicated or replaced a native reference.");
+            window.Close();
+        }
         private static void VerifyCommandFilters(EliteWorkspaceWindow window)
         {
             var types = Box<ComboBox>(window, "CommandTypePicker");
