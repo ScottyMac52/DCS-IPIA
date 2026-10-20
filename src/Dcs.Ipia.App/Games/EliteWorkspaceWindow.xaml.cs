@@ -258,12 +258,16 @@ namespace DcsIpia.Presentation.Games
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
         { if (ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); ModifiersList.Items.Refresh(); } }
-        private void Rescan() => Run(() => { ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = 0; });
+        private void Rescan() => Run(() => { ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = -1; });
         private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
         private void AssociateClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is not null && Device is { } device && HardwarePicker.SelectedItem is WorkspaceHardware hardware && ConnectedPicker.SelectedItem is DetectedDcsDevice connected)
-                _session.Associate(device.Id, hardware.DeviceId, connected.PhysicalGuid);
+            var device = Device;
+            var hardware = HardwarePicker.SelectedItem as WorkspaceHardware;
+            var connected = ConnectedPicker.SelectedItem as DetectedDcsDevice;
+            if (_session is null || device is null || hardware is null || connected is null)
+                throw new InvalidOperationException("Select a captured reference, a shared drawing and the exact connected controller before associating.");
+            _session.Associate(device.Id, hardware.DeviceId, connected.PhysicalGuid);
         });
         private void ImportClicked(object sender, RoutedEventArgs e)
         {

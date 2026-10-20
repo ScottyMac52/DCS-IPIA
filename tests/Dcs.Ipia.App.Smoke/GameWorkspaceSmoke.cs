@@ -28,7 +28,7 @@ namespace Dcs.Ipia.App.Smoke
                 EditionAccess.SetForTests(issuer.Policy);
                 var physical = new DetectedDcsDevice(Guid.NewGuid(), "Smoke SOL-R controller", true,
                     ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
-                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical));
+                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" }));
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
@@ -37,7 +37,11 @@ namespace Dcs.Ipia.App.Smoke
                 FakeDeviceInputSource? input = null;
                 using var window = new EliteWorkspaceWindow(services, hardware,
                     exportPicker: () => Path.Combine(root, "Review"), pendingChoice: () => choice,
-                    inputFactory: (_, _) => input = new(physical.PhysicalGuid));
+                    inputFactory: (_, ids) =>
+                    {
+                        if (ids.Count != 1 || ids[0] != physical.PhysicalGuid) throw new InvalidOperationException("Input acquisition selected a different physical unit.");
+                        return input = new(physical.PhysicalGuid);
+                    });
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 var captured = Path.Combine(root, "Synthetic.4.2.binds");
                 File.WriteAllText(captured, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds"))
@@ -47,6 +51,9 @@ namespace Dcs.Ipia.App.Smoke
                 var stick = session.Snapshot.Profile.Devices.First(x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001");
                 Box<ListBox>(window, "DevicePicker").SelectedItem = Box<ListBox>(window, "DevicePicker").Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
+                var connected = Box<ComboBox>(window, "ConnectedPicker");
+                if (connected.SelectedItem is not null) throw new InvalidOperationException("Discovery silently selected the first physical controller.");
+                connected.SelectedItem = connected.Items.Cast<DetectedDcsDevice>().Single(x => x.PhysicalGuid == physical.PhysicalGuid);
                 Click(window, "AssociateButton");
                 if (!session.Snapshot.Hardware.ContainsKey(stick.LogicalId)) throw new InvalidOperationException("Explicit shared drawing/native instance association failed.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
