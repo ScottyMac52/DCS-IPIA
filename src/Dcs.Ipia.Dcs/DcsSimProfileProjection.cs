@@ -65,39 +65,16 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidDataException(device.LogicalId + ": binding collections must not be null.");
             var result = new List<DcsBinding>();
             foreach (var button in device.Buttons)
-            {
-                if (button is null || button.Mode != BindingMode.Press || button.SimSpecific is null || button.SimSpecific.Count != 0)
-                    throw new InvalidDataException(device.LogicalId + ": only native Press bindings without unknown extensions are supported.");
-                result.Add(Create(button.SourceButton, button.CommandId, button.Modifiers, BindingSection.Key, null));
-            }
+                result.Add(ReadButton(button, device, catalog, modifiers, profileId));
             foreach (var axis in device.Axes)
             {
-                if (axis is null || !float.IsFinite(axis.Deadzone) || axis.Deadzone is < 0 or > 100 || axis.Sensitivity != 1 ||
-                    axis.SimSpecific is null || axis.SimSpecific.Keys.Any(x => x != "dcs.filter"))
-                    throw new InvalidDataException(device.LogicalId + ": axis deadzone must be finite, 0..100; sensitivity must be 1; unknown extensions are unsupported.");
-                AxisFilter? filter = axis.SimSpecific.TryGetValue("dcs.filter", out var extension)
-                    ? JsonSerializer.SerializeToElement(extension).Deserialize<AxisFilter>(NativeOptions) : null;
-                if (axis.Curve != (filter?.Curvature?.Count > 0 ? CurveType.Custom : CurveType.Linear))
-                    throw new InvalidDataException(device.LogicalId + ": portable curve conversion is unsupported; edit the exact DCS native filter instead.");
-                if (axis.Deadzone != (float)(filter?.Deadzone ?? 0)) filter = (filter ?? new()) with { Deadzone = axis.Deadzone };
-                if (axis.Invert != (filter?.Invert ?? false)) filter = (filter ?? new()) with { Invert = axis.Invert };
-                ValidateFilter(filter);
-                result.Add(Create(axis.SourceAxis, axis.CommandId, axis.Modifiers, BindingSection.Axis, filter));
+                var filter = ReadAxisFilter(axis, device.LogicalId);
+                result.Add(Create(device, catalog, modifiers, profileId, axis.SourceAxis, axis.CommandId, axis.Modifiers, BindingSection.Axis, filter));
             }
             if (result.GroupBy(x => x.Section + "\0" + x.InputKey + "\0" + string.Join("+", x.Reformers)).Any(x => x.Count() > 1))
                 throw new InvalidDataException(device.LogicalId + ": multiple commands occupy the same physical input/chord.");
             return result;
 
-            DcsBinding Create(string input, string commandId, List<PortableModifier> chord, BindingSection section, AxisFilter? filter)
-            {
-                var command = catalog.SingleOrDefault(x => x.Id == commandId && x.Context == device.ContextId &&
-                    (x.Type == CommandType.Axis) == (section == BindingSection.Axis))
-                    ?? throw new InvalidDataException(device.LogicalId + ": command is absent from the pinned context/section catalog: " + commandId);
-                if (chord is null || chord.Any(x => x is null || x.Value is not null || !modifiers.Any(m => m.Name == x.Source)))
-                    throw new InvalidDataException(device.LogicalId + ": modifier chord has an unknown name or unsupported threshold.");
-                return new(profileId, section, command.Metadata["nativeId"], command.DisplayName,
-                    BindingDisposition.Added, input, chord.Select(x => x.Source), filter);
-            }
         }
         /// <summary>Rejects non-finite or out-of-range native percentage tuning without normalizing sparse values.</summary>
         public static void ValidateFilter(AxisFilter? filter)
@@ -110,5 +87,40 @@ namespace Dcs.Ipia.Dcs
                 throw new InvalidDataException("DCS deadzone and saturation use percentage points, 0..100.");
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static DcsBinding ReadButton(ButtonBinding button, LogicalDevice device, IReadOnlyList<SimCommand> catalog,
+            IReadOnlyList<DcsModifier> modifiers, Guid profileId)
+        {
+            if (button is null || button.Mode != BindingMode.Press || button.SimSpecific is null || button.SimSpecific.Count != 0)
+                throw new InvalidDataException(device.LogicalId + ": only native Press bindings without unknown extensions are supported.");
+            return Create(device, catalog, modifiers, profileId, button.SourceButton, button.CommandId, button.Modifiers, BindingSection.Key, null);
+        }
+        private static AxisFilter? ReadAxisFilter(AxisBinding axis, string path)
+        {
+            if (axis is null || !float.IsFinite(axis.Deadzone) || axis.Deadzone is < 0 or > 100 || axis.Sensitivity != 1 ||
+                axis.SimSpecific is null || axis.SimSpecific.Keys.Any(x => x != "dcs.filter"))
+                throw new InvalidDataException(path + ": axis deadzone must be finite, 0..100; sensitivity must be 1; unknown extensions are unsupported.");
+            AxisFilter? filter = axis.SimSpecific.TryGetValue("dcs.filter", out var extension)
+                ? JsonSerializer.SerializeToElement(extension).Deserialize<AxisFilter>(NativeOptions) : null;
+            if (axis.Curve != (filter?.Curvature?.Count > 0 ? CurveType.Custom : CurveType.Linear))
+                throw new InvalidDataException(path + ": portable curve conversion is unsupported; edit the exact DCS native filter instead.");
+            if (axis.Deadzone != (float)(filter?.Deadzone ?? 0)) filter = (filter ?? new()) with { Deadzone = axis.Deadzone };
+            if (axis.Invert != (filter?.Invert ?? false)) filter = (filter ?? new()) with { Invert = axis.Invert };
+            ValidateFilter(filter);
+            return filter;
+        }
+        private static DcsBinding Create(LogicalDevice device, IReadOnlyList<SimCommand> catalog,
+            IReadOnlyList<DcsModifier> modifiers, Guid profileId, string input, string commandId,
+            List<PortableModifier> chord, BindingSection section, AxisFilter? filter)
+        {
+            var command = catalog.SingleOrDefault(x => x.Id == commandId && x.Context == device.ContextId &&
+                (x.Type == CommandType.Axis) == (section == BindingSection.Axis))
+                ?? throw new InvalidDataException(device.LogicalId + ": command is absent from the pinned context/section catalog: " + commandId);
+            if (chord is null || chord.Any(x => x is null || x.Value is not null || !modifiers.Any(m => m.Name == x.Source)))
+                throw new InvalidDataException(device.LogicalId + ": modifier chord has an unknown name or unsupported threshold.");
+            return new(profileId, section, command.Metadata["nativeId"], command.DisplayName,
+                BindingDisposition.Added, input, chord.Select(x => x.Source), filter);
+        }
+        #endregion END private helpers
     }
 }

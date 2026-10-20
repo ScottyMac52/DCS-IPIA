@@ -231,9 +231,19 @@ namespace Dcs.Ipia.Dcs
             if (profile.NativeData is null || profile.NativeData.Count != 1 || !profile.NativeData.TryGetValue(NativeKey, out var extension) || extension.GetRawText().Length > 128 * 1024 * 1024)
                 throw new InvalidDataException("A bounded dcs.v1 JSON source envelope is required.");
             var state = extension.Deserialize<DcsNativeProfileState>(NativeOptions) ?? throw new InvalidDataException("DCS source evidence is empty.");
+            ValidateMembership(profile, state);
+            ValidateSourceEvidence(profile, state);
+            ValidateDeviceIdentities(profile, state);
+            return state;
+        }
+        private static void ValidateMembership(ProfileDocument profile, DcsNativeProfileState state)
+        {
             if (state.ContextId != profile.ContextId || state.ProfileId != profile.ProfileId || state.Sources is null || state.Commands is null || state.Baseline is null || profile.Devices is null ||
                 profile.Devices.Count != state.Baseline.Count || profile.Devices.Any(x => x is null) || profile.Devices.Select(x => x.LogicalId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != profile.Devices.Count)
                 throw new InvalidDataException("DCS context, profile identity or device membership differs from its captured source evidence; explicitly re-import instead of rebinding.");
+        }
+        private static void ValidateSourceEvidence(ProfileDocument profile, DcsNativeProfileState state)
+        {
             foreach (var source in state.Sources)
             {
                 SafePath(source.Key, profile.ContextId);
@@ -241,6 +251,9 @@ namespace Dcs.Ipia.Dcs
             }
             if (state.Commands.Any(x => x is null || x.Metadata is null || !x.Metadata.ContainsKey("nativeId")) || state.Baseline.Any(x => x is null))
                 throw new InvalidDataException("Malformed pinned catalog or device evidence.");
+        }
+        private static void ValidateDeviceIdentities(ProfileDocument profile, DcsNativeProfileState state)
+        {
             foreach (var device in profile.Devices)
             {
                 SafePath(device.LogicalId, profile.ContextId);
@@ -248,7 +261,6 @@ namespace Dcs.Ipia.Dcs
                 if (original is null || device.ContextId != original.ContextId || JsonSerializer.Serialize(device.Identity) != JsonSerializer.Serialize(original.Identity))
                     throw new InvalidDataException(device.LogicalId + ": physical instance or scope changed; explicitly resolve and re-import the device.");
             }
-            return state;
         }
         private static void SafePath(string path, string context)
         {
