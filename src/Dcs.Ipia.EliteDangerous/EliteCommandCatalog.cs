@@ -1,5 +1,6 @@
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain.MultiSim;
+using System.Xml.Linq;
 
 namespace Dcs.Ipia.EliteDangerous
 {
@@ -15,11 +16,18 @@ namespace Dcs.Ipia.EliteDangerous
             Id = EliteProfileProjection.CommandId(context, x.Name.LocalName), DisplayName = EliteCommandNames.Display(x.Name.LocalName),
             Category = EliteCommandSections.ForCommand(x.Name.LocalName), Context = context,
             Type = x.Element("Binding") is null ? CommandType.Button : CommandType.Axis,
-            Metadata = x.Element("ToggleOn") is { } toggle
-                ? new() { ["ed.toggleOn"] = EliteNativeDocument.Attribute(toggle, "Value") } : new()
+            Metadata = CommandMetadata(x)
         }).ToArray();
         /// <summary>Finds an exact scoped command.</summary>
         public SimCommand? Find(string id) => Commands.FirstOrDefault(x => x.Id == id);
         #endregion END Public
+        #region BEGIN private helpers
+        private static Dictionary<string, string> CommandMetadata(XElement command)
+        {
+            var metadata = new Dictionary<string, string> { ["ed.category"] = EliteCommandCategories.ForCommand(command.Name.LocalName) };
+            if (command.Element("ToggleOn") is { } toggle) metadata["ed.toggleOn"] = EliteNativeDocument.Attribute(toggle, "Value");
+            return metadata;
+        }
+        #endregion END private helpers
     }
 }
