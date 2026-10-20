@@ -25,6 +25,8 @@ namespace DcsIpia.Presentation.Games
         private readonly EliteDiagramPresenter _diagram;
         private readonly DiagramViewport _viewport;
         private readonly EliteInputFeedback _input;
+        private readonly EliteControllerIdentification _identification;
+        private DetectedDcsDevice? _identifiedController;
         private readonly Func<string?>? _importPicker;
         private readonly Func<string?>? _exportPicker;
         private readonly Func<MessageBoxResult>? _pendingChoice;
@@ -49,6 +51,7 @@ namespace DcsIpia.Presentation.Games
             _diagram = new(DiagramCanvas);
             _viewport = new(DiagramScroll, DiagramCanvas, DiagramZoom, "elite.diagram");
             _input = new(this, _diagram, Status, ShowInputActivity, inputFactory);
+            _identification = new(this, ShowIdentification, ClearIdentification, Status, inputFactory);
             _refreshing = true;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
             CommandCategoryPicker.ItemsSource = new[] { "All categories" }; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0;
@@ -66,7 +69,7 @@ namespace DcsIpia.Presentation.Games
         /// <summary>Releases native input handles and draft event subscriptions.</summary>
         public void Dispose()
         {
-            _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
@@ -74,6 +77,8 @@ namespace DcsIpia.Presentation.Games
         internal GameProfileSession? Session => _session;
         /// <summary>Processes a deterministic sample through the same input path as the foreground timer.</summary>
         internal void SampleInput() => _input.Sample();
+        /// <summary>Processes discovery samples through the same path as the foreground identification timer.</summary>
+        internal void SampleIdentification() => _identification.Sample();
         /// <summary>Imports an explicitly chosen captured file; no active game configuration is changed.</summary>
         internal void ImportFile(string path)
         {
@@ -128,10 +133,60 @@ namespace DcsIpia.Presentation.Games
         private string Slot => Command?.Type == CommandType.Axis ? "Binding" : SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
         private bool Pending => _session is not null && (_revision is null || _session.HasChanges || ProfileName.Text.Trim() != _session.Snapshot.Name);
         private void Status(string message) => WorkspaceStatus.Text = message;
+        private void StopLiveInput() { _input.Stop(); _identification.Stop(); }
+        private void ClearIdentification()
+        {
+            _identifiedController = null;
+            ConfirmIdentificationButton.IsEnabled = false;
+            IdentificationStatus.Text = "";
+        }
+        private void IdentifyControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            StopLiveInput();
+            EditionAccess.Policy.RequireOwner();
+            if (_session is null || Device is null || FeaturePicker.SelectedIndex != 0)
+                throw new InvalidOperationException("Select a controller reference on Devices before identifying it.");
+            _identification.Start(_services.Discover());
+            IdentificationStatus.Text = "Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.";
+            Status("Identify " + Device.Name + ": operate the physical controller you want to check.");
+        });
+        private void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)
+        {
+            ClearIdentification();
+            if (activity.Count != 1)
+            {
+                IdentificationStatus.Text = "Several controllers moved together. Operate just one controller to identify it.";
+                return;
+            }
+            if (_session is null || Device is null) return;
+            var detected = activity.Single();
+            var identity = _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!;
+            var matches = _services.DeviceReferences.Matches(identity, detected.Key);
+            IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + Environment.NewLine + detected.Key.PhysicalGuid +
+                Environment.NewLine + (matches ? "Matches selected ED reference: " : "Does not match selected ED reference: ") + Device.Name;
+            if (!matches) return;
+            _identifiedController = detected.Key;
+            ConfirmIdentificationButton.IsEnabled = true;
+            if (_session.ControllerReferences(detected.Key.PhysicalGuid).Count > 1)
+                IdentificationStatus.Text += Environment.NewLine + "Identical products share this ID. Input identifies this physical unit, but cannot prove its ED index. Verify the selected indexed reference in Elite before confirming.";
+        }
+        private void ConfirmIdentificationClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            EditionAccess.Policy.RequireOwner();
+            if (_session is null || Device is null || _identifiedController is null || FeaturePicker.SelectedIndex != 0)
+                throw new InvalidOperationException("Identify a matching controller before confirming its link.");
+            var physical = _identifiedController.PhysicalGuid;
+            var id = Device.Id;
+            StopLiveInput();
+            var connected = _services.Discover().Single(x => x.Connected && x.PhysicalGuid == physical);
+            ConnectController(connected, id);
+        });
+        private void CancelIdentificationClicked(object sender, RoutedEventArgs e)
+        { _identification.Stop(); Status("Controller identification stopped."); }
         private void Run(Action action) { try { action(); } catch (Exception error) { Status(error.Message); } }
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
-            _input.Stop(); _referenceDirty = true;
+            StopLiveInput(); _referenceDirty = true;
             ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
@@ -139,7 +194,7 @@ namespace DcsIpia.Presentation.Games
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
             Refresh();
         }
-        private void SessionChanged(object? sender, EventArgs e) { _input.Stop(); _referenceDirty = true; Refresh(); }
+        private void SessionChanged(object? sender, EventArgs e) { StopLiveInput(); _referenceDirty = true; Refresh(); }
         private void ReloadChoices(Guid? selected)
         {
             _refreshing = true;
@@ -196,7 +251,7 @@ namespace DcsIpia.Presentation.Games
         }
         private void RenderDevice()
         {
-            _input.Stop(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
+            StopLiveInput(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
             UpdateInputActivityVisibility();
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
@@ -262,6 +317,7 @@ namespace DcsIpia.Presentation.Games
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
             var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
             ChangeDrawingButton.IsEnabled = pin is not null;
+            IdentifyControllerButton.IsEnabled = opened && Device is not null && EditionAccess.Policy.IsOwner;
             DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
             var feature = FeaturePicker.SelectedIndex;
             DeviceTools.Visibility = feature == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -300,10 +356,11 @@ namespace DcsIpia.Presentation.Games
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
         { if (ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); ModifiersList.Items.Refresh(); } }
-        private void Rescan() => Run(() => { ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = -1; });
+        private void Rescan() => Run(() => { StopLiveInput(); ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = -1; });
         private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            StopLiveInput();
             if (_session is null || ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
                 throw new InvalidOperationException("Choose the connected controller you want to add.");
             var document = _session.Snapshot;
@@ -323,6 +380,7 @@ namespace DcsIpia.Presentation.Games
         });
         private void ConnectController(DetectedDcsDevice connected, string? logicalId)
         {
+            StopLiveInput();
             if (_session is null) return;
             var current = logicalId is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(logicalId);
             var drawing = current is null ? GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
@@ -401,7 +459,7 @@ namespace DcsIpia.Presentation.Games
 
         private bool ConfirmLeave()
         {
-            _input.Stop(); if (!Pending) return true;
+            StopLiveInput(); if (!Pending) return true;
             var choice = _pendingChoice?.Invoke() ?? ThemeMessageBox.Show(this, "Save this profile before leaving? Yes saves, No discards pending edits, Cancel stays here.", "Unsaved game profile", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
             if (choice == MessageBoxResult.Yes) return SaveProfile();
             if (choice != MessageBoxResult.No) return false;
@@ -427,7 +485,7 @@ namespace DcsIpia.Presentation.Games
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _referenceDirty = true; UpdateAvailability(); } }
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; FilterCommands(); RenderDevice(); }); }
         private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
-        private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null) return; _input.Stop(); UpdateAvailability(); }
+        private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null || _identification is null) return; StopLiveInput(); UpdateAvailability(); }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);
@@ -462,8 +520,9 @@ namespace DcsIpia.Presentation.Games
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            _identification.Stop();
             if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin))
-                throw new InvalidOperationException("Associate this native reference with an exact connected controller first.");
+                throw new InvalidOperationException("On Devices, select this reference and use Identify Controller to discover and confirm its physical controller first.");
             _input.Start(pin, _services.Discover());
         });
         private void InvalidateReferenceSheets()
@@ -531,7 +590,7 @@ namespace DcsIpia.Presentation.Games
             if (dialog.ShowDialog(this) == true) { File.WriteAllBytes(dialog.FileName, data); Status("Current reference page exported."); }
         });
         private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
-        private void StopInputClicked(object sender, RoutedEventArgs e) { _input.Stop(); Status("Input test stopped."); }
+        private void StopInputClicked(object sender, RoutedEventArgs e) { StopLiveInput(); Status("Input test stopped."); }
         #endregion END private helpers
     }
 }

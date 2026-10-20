@@ -20,7 +20,29 @@ failure or cancellation retains the current workspace.
 1. Choose **Select controls profile**, then select a saved profile or **Import
    bindings**. Select an existing `.binds` file from your Windows Bindings folder.
    Import reads that file only and retains the native preset/version/source text.
-2. On **Devices**, choose the connected Windows controller and **Add controller…**.
+2. To identify an unknown controller ID such as `06A30BAC`, open **Devices**,
+   select that reference under **Controllers in profile**, and click
+   **Identify Controller**. Press a button, move a hat, or move an axis noticeably
+   on your hardware. No prior association, controller selection or drawing is
+   required. IPIA listens to all eligible connected controllers and shows the
+   device name, exact instance GUID, input key and whether the native product
+   matches the selected ED reference. A mismatching product cannot be confirmed.
+   **Confirm controller link** stages the explicit association; identification
+   alone never changes the profile or assignments. **Save** persists the link.
+
+   Identification is an Owner live-input feature. Initial held switches and
+   neutral axis positions establish baselines; new presses and axis changes
+   exceeding ten percent count as deliberate activity. Simultaneous activity
+   asks you to operate only one controller. Stop, focus loss, device/profile/view
+   changes, rescan, disconnect and window close invalidate the pending result
+   and release input handles. Start identification again to confirm afterward.
+
+   Identical products can share an ED token. Input proves which physical unit
+   you operated, but does not prove its native `DeviceIndex`; verify the
+   explicitly selected indexed reference in Elite before confirming. Existing
+   exact-instance and occupied-reference checks still apply.
+
+   To add hardware directly, choose the connected Windows controller and **Add controller…**.
    IPIA reuses an unambiguous compatible ED reference, or adds a new numeric
    reference for a supported HID product not already represented in the preset.
    You do not need to create a binding in Elite first for a single unique product.
