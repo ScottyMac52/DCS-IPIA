@@ -13,7 +13,6 @@ namespace Dcs.Ipia.Dcs
     {
         private const string NativeKey = "dcs.v1";
         private static readonly JsonSerializerOptions NativeOptions = new() { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
-        private static readonly string[] KnownFields = ["keyDiffs", "axisDiffs", "name", "added", "changed", "removed", "key", "reformers", "filter", "deadzone", "saturationX", "saturationY", "curvature", "invert", "slider", "hardwareDetent", "hardwareDetentAB", "hardwareDetentMax"];
         #region BEGIN Public
         /// <summary>Gets the DCS backend identifier.</summary>
         public string SimId => "dcs";
@@ -155,8 +154,16 @@ namespace Dcs.Ipia.Dcs
                 if (state.Workspace is not null)
                 {
                     var restored = Restore(profile, cancellationToken);
-                    foreach (var source in (restored.Sources ?? new Dictionary<string, string>()).Where(x => x.Key.EndsWith(".diff.lua", StringComparison.Ordinal)))
-                        RejectUnknownFields(source.Value, DcsLuaParser.ParseProfile(source.Value, Guid.NewGuid()));
+                    foreach (var source in restored.Sources ?? new Dictionary<string, string>())
+                    {
+                        if (source.Key.EndsWith(".diff.lua", StringComparison.Ordinal))
+                            RejectUnknownFields(source.Value, DcsLuaParser.ParseProfile(source.Value, Guid.NewGuid()));
+                        else if (source.Key.EndsWith("/modifiers.lua", StringComparison.Ordinal))
+                        {
+                            DcsLuaParser.ValidateModifiersRewrite(source.Value);
+                            RejectNonstandardSyntax(source.Value);
+                        }
+                    }
                     files = SnapshotLuaPayloadRenderer.Generate(restored).ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.Value));
                 }
                 else
@@ -187,7 +194,7 @@ namespace Dcs.Ipia.Dcs
                 cancellationToken.ThrowIfCancellationRequested();
                 return new(files, []);
             }
-            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or JsonException or FormatException or InvalidOperationException or KeyNotFoundException or NotSupportedException)
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or JsonException or FormatException or InvalidOperationException or KeyNotFoundException or NotSupportedException or RegexMatchTimeoutException)
             {
                 return new(new Dictionary<string, string>(), [new("dcs-conversion-blocked", ex.Message, true)]);
             }
@@ -253,21 +260,20 @@ namespace Dcs.Ipia.Dcs
         }
         private static void RejectUnknownFields(string text, IReadOnlyList<DcsBinding> bindings)
         {
-            var known = KnownFields.Concat(bindings.Select(x => x.CommandId)).ToHashSet(StringComparer.Ordinal);
-#pragma warning disable SYSLIB1045 // Keep generated implementation outside the compatibility adapter coverage surface.
-            var keys = Regex.Matches(text, "\\[\\\"([^\\\"]+)\\\"\\]\\s*=", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-#pragma warning restore SYSLIB1045
+            DcsLuaParser.ValidateProfileRewrite(text, bindings);
+            RejectNonstandardSyntax(text);
+        }
+        private static void RejectNonstandardSyntax(string text)
+        {
 #pragma warning disable SYSLIB1045 // Conservative lexical guard complements the existing DCS parser; it never evaluates Lua.
             var unquoted = Regex.Replace(text, """
                 "(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|--[^\r\n]*
                 """, " ", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
             var words = Regex.Matches(unquoted, @"\b[A-Za-z_]\w*\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 #pragma warning restore SYSLIB1045
-            if (words.Any(x => x.Value is not ("local" or "diff" or "return" or "true" or "false")))
+            if (words.Any(x => x.Value is not ("local" or "diff" or "modifiers" or "return" or "true" or "false")))
                 throw new InvalidDataException("Editing nonstandard Lua syntax is unsupported; unedited source can be exported losslessly.");
-            var unknown = keys.Select(x => x.Groups[1].Value).Where(x => !known.Contains(x)).Distinct().ToArray();
-            if (unknown.Length > 0)
-                throw new InvalidDataException("Editing would discard unsupported native fields: " + string.Join(", ", unknown) + ". Unedited source can be exported losslessly.");
+
         }
         #endregion END private helpers
     }

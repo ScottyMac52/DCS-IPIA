@@ -80,7 +80,7 @@ it is deliberately decoded through JSON, including after save/reopen.
 | Axis tuning | Deadzone in percentage points (0..100), invert, and exact sparse native filter JSON; no float conversion of untouched native doubles |
 | Curves | Preserve native points, saturation, slider and detents; reject generic sensitivity/curve approximations and non-finite values |
 | Native data | Untouched native files remain byte-for-byte identical, including unknown fields and ambiguous imported bindings |
-| Native edits | Retain removals and changed history; retire cleared/replaced axes explicitly; block edited ambiguous inputs or unknown fields/nonstandard Lua syntax |
+| Native edits | Retain removals and changed history; retire cleared/replaced axes explicitly; block edited ambiguous inputs or unknown fields, mistyped native values, sparse array indices or nonstandard Lua syntax |
 | Paths | Context-owned `Config/Input/...` paths; traversal, cross-context paths, duplicate case-equivalent names and invalid portable filename characters are rejected |
 
 Native import needs the module's joystick/keyboard profiles and adjacent

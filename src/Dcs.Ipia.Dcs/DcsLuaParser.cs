@@ -67,6 +67,105 @@ namespace Dcs.Ipia.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
+        /// <summary>Requires a known serialized DCS table shape before rewriting; unknown evidence stays source-only.</summary>
+        internal static void ValidateProfileRewrite(string source, IReadOnlyList<DcsBinding> bindings)
+        {
+            source = RemoveRewriteComments(source);
+            var root = RootTableBody(source, "diff");
+            CheckRewriteFields(root, key => key is "keyDiffs" or "axisDiffs" ? "table" : null);
+            foreach (var section in new[] { "keyDiffs", "axisDiffs" })
+            {
+                var table = TableBody(root, section);
+                var commands = bindings.Where(x => (x.Section == BindingSection.Key) == (section == "keyDiffs"))
+                    .Select(x => x.CommandId).ToHashSet(StringComparer.Ordinal);
+                CheckRewriteFields(table, key => commands.Contains(key) ? "table" : null);
+                foreach (var command in NamedTables(table)) ValidateRewriteCommand(command.Body, section == "axisDiffs");
+            }
+        }
+        /// <summary>Requires known modifier fields before existing workspace output can rewrite a captured modifiers table.</summary>
+        internal static void ValidateModifiersRewrite(string source)
+        {
+            source = RemoveRewriteComments(source);
+            var root = RootTableBody(source, "modifiers");
+            var names = ParseModifiers(source).Select(x => x.Name).ToHashSet(StringComparer.Ordinal);
+            CheckRewriteFields(root, key => names.Contains(key) ? "table" : null);
+            foreach (var definition in NamedTables(root))
+                CheckRewriteFields(definition.Body, key => key switch { "device" or "key" => "string", "switch" => "bool", _ => null });
+        }
+        private static string RemoveRewriteComments(string source)
+        {
+#pragma warning disable SYSLIB1045 // Validation shares the existing non-evaluating parser rather than generated implementation types.
+            return Regex.Replace(source, """
+                "(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|--[^\r\n]*
+                """, match => match.Value.StartsWith("--", StringComparison.Ordinal) ? " " : match.Value,
+                RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+#pragma warning restore SYSLIB1045
+        }
+        private static void ValidateRewriteCommand(string body, bool isAxis)
+        {
+            CheckRewriteFields(body, key => key switch { "name" => "string", "added" or "changed" or "removed" => "table", _ => null });
+            foreach (var disposition in new[] { "added", "changed", "removed" })
+            {
+                var list = TableBody(body, disposition);
+                CheckRewriteFields(list, _ => null, "table");
+                foreach (var input in IndexedTables(list))
+                {
+                    CheckRewriteFields(input, key => key switch { "key" => "string", "reformers" => "table", "filter" when isAxis => "table", _ => null });
+                    CheckRewriteFields(TableBody(input, "reformers"), _ => null, "string");
+                    var filter = TableBody(input, "filter");
+                    CheckRewriteFields(filter, key => key switch
+                    {
+                        "curvature" => "table",
+                        "invert" or "slider" or "hardwareDetent" => "bool",
+                        "deadzone" or "saturationX" or "saturationY" or "hardwareDetentAB" or "hardwareDetentMax" => "number",
+                        _ => null
+                    });
+                    CheckRewriteFields(TableBody(filter, "curvature"), _ => null, "number");
+                }
+            }
+        }
+        private static void CheckRewriteFields(string body, Func<string, string?> expected, string? indexedType = null)
+        {
+#pragma warning disable SYSLIB1045 // Shares brace/string handling with the existing DCS parser.
+            var fields = Regex.Matches(body, """
+                \[("(?:\\.|[^"\\])*"|[^\]]+)\]\s*=
+                """, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+#pragma warning restore SYSLIB1045
+            var cursor = 0;
+            var index = 1;
+            foreach (Match field in fields)
+            {
+                if (Depth(body, field.Index) != 0) continue;
+                RequireSeparators(body[cursor..field.Index]);
+                var raw = field.Groups[1].Value;
+                string? type;
+                if (indexedType is null)
+                    type = raw.StartsWith('"') ? expected(Unescape(raw[1..^1])) : null;
+                else
+                    type = int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var ordinal) && ordinal == index++ ? indexedType : null;
+                if (type is null) throw new InvalidDataException("Editing would discard unsupported native field or sparse index: " + raw);
+                var start = SkipWhite(body, field.Index + field.Length);
+                if (start >= body.Length) throw new InvalidDataException("Native field has no value: " + raw);
+                cursor = RewriteValueEnd(body, start, type);
+            }
+            RequireSeparators(body[cursor..]);
+        }
+        private static int RewriteValueEnd(string body, int start, string type)
+        {
+            if (type == "table" && body[start] == '{') return MatchingBrace(body, start) + 1;
+            if (type == "string" && body[start] == '"') return FindStringEnd(body, start + 1) + 1;
+            var end = start;
+            while (end < body.Length && !char.IsWhiteSpace(body[end]) && body[end] != ',') end++;
+            var scalar = body[start..end];
+            if (type == "bool" && scalar is "true" or "false") return end;
+            if (type == "number" && double.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value)) return end;
+            throw new InvalidDataException("Native field has an unsupported value type; expected " + type + ". Unedited source can be exported losslessly.");
+        }
+        private static void RequireSeparators(string text)
+        {
+            if (text.Any(x => !char.IsWhiteSpace(x) && x != ','))
+                throw new InvalidDataException("Editing nonstandard native table content is unsupported; unedited source can be exported losslessly.");
+        }
         private static void AddInputs(List<DcsBinding> result, Guid profileId, BindingSection section, string command,
                                       string name, string body, string list, BindingDisposition disposition)
         {
@@ -194,8 +293,12 @@ namespace Dcs.Ipia.Dcs
         private static bool? BoolField(string body, string name)
         {
             var raw = ScalarField(body, name);
-            return raw switch { "true" => true, "false" => false,
-                                _ => null };
+            return raw switch
+            {
+                "true" => true,
+                "false" => false,
+                _ => null
+            };
         }
         private static double? NumberField(string body, string name)
         {
@@ -306,8 +409,15 @@ namespace Dcs.Ipia.Dcs
         }
         private static string Unescape(string value) => LuaEscapePattern.Replace(
             value,
-            match => match.Groups[1].Value switch { "\\" => "\\", "\"" => "\"", "n" => "\n", "r" => "\r", "t" => "\t",
-                                                    _ => match.Value });
+            match => match.Groups[1].Value switch
+            {
+                "\\" => "\\",
+                "\"" => "\"",
+                "n" => "\n",
+                "r" => "\r",
+                "t" => "\t",
+                _ => match.Value
+            });
 #pragma warning disable SYSLIB1045 // Runtime regex keeps generated implementation details out of per-layer coverage.
         private static readonly Regex ReturnDiffPattern =
             new(@"\breturn\s+diff\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));

@@ -117,6 +117,33 @@ namespace Dcs.Ipia.Tests
             if (nonstandard) Assert.Empty(plan.Files);
         }
 
+        /// <summary>Unknown nested fields, numeric root data and mistyped native tuning cannot be discarded on edit.</summary>
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public void Native_rewrite_requires_a_recognized_field_shape(int scenario)
+        {
+            var sources = Sources();
+            sources[ModulePath] = scenario switch
+            {
+                0 => Native.Replace("local diff = {", "local diff = { [1] = 17,", StringComparison.Ordinal),
+                1 => Native.Replace("[\"deadzone\"] = 1", "[\"deadzone\"] = \"future\"", StringComparison.Ordinal),
+                2 => Native.Replace("[\"deadzone\"] = 1", "[\"deadzone\"] = 1, [\"key\"] = \"future\"", StringComparison.Ordinal),
+                4 => Native.Replace("[1] = 20", "[3] = 20", StringComparison.Ordinal),
+                _ => Native.Replace("[\"deadzone\"] = 1", "[\"deadzone\"] = 1, [1] = 17", StringComparison.Ordinal)
+            };
+            var backend = new DcsSimProfileBackend();
+            var profile = backend.Import("Test", sources);
+            Assert.Equal(sources[ModulePath], backend.Export(profile).Files[ModulePath]);
+            profile.Devices.Single(x => x.ContextId == "Test").Buttons[0].SourceButton = "JOY_BTN3";
+            var plan = backend.Export(profile);
+            Assert.False(plan.Succeeded);
+            Assert.Empty(plan.Files);
+        }
+
         /// <summary>Invalid documents and unsupported edits return diagnostics without publishing partial native files.</summary>
         [Theory]
         [InlineData(0)]
@@ -143,6 +170,11 @@ namespace Dcs.Ipia.Tests
         [InlineData(21)]
         [InlineData(22)]
         [InlineData(23)]
+        [InlineData(24)]
+        [InlineData(25)]
+        [InlineData(26)]
+        [InlineData(27)]
+        [InlineData(28)]
         public void Invalid_conversion_is_atomic(int scenario)
         {
             var backend = new DcsSimProfileBackend();

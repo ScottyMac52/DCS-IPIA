@@ -45,6 +45,13 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
             Assert.NotEqual(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(editedWorkspace, "3.1.1")).Bytes);
             Assert.True(adapter.Export(editedPortable).Succeeded);
+            var unknownSources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
+            var modifierSource = unknownSources.Keys.First(x => x.EndsWith("/modifiers.lua", StringComparison.Ordinal));
+            unknownSources[modifierSource] = unknownSources[modifierSource].Replace("local modifiers = {", "local modifiers = { [\"futureFlag\"] = true,", StringComparison.Ordinal);
+            var unsafePlan = adapter.Export(adapter.Capture(workspace with { Sources = unknownSources }));
+            Assert.False(unsafePlan.Succeeded);
+            Assert.Empty(unsafePlan.Files);
+            Assert.Contains("futureFlag", Assert.Single(unsafePlan.Diagnostics).Message);
             var export = adapter.Export(portable);
             Assert.True(export.Succeeded, string.Join("; ", export.Diagnostics.Select(x => x.Message)));
             Assert.Equal(SnapshotLuaPayloadRenderer.Generate(workspace).OrderBy(x => x.Key).Select(x => (x.Key, Encoding.UTF8.GetString(x.Value))),
