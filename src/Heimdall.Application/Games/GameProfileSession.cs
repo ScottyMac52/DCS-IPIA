@@ -84,6 +84,73 @@ namespace Heimdall.Application.Games
             Changed?.Invoke(this, EventArgs.Empty);
             return reference.LogicalId;
         }
+        /// <summary>Previews clearing a controller and every binding using it as a modifier, without changing state.</summary>
+        public GameControllerChange PreviewRemoveController(string logicalId)
+        {
+            var baseline = JsonSerializer.Serialize(_current);
+            var candidate = GameWorkspaceContract.Clone(_current);
+            candidate = candidate with { Profile = DeviceEditor().RemoveDevice(candidate.Profile, logicalId) };
+            candidate.Hardware.Remove(logicalId);
+            ValidateControllerCandidate(candidate);
+            return new(this, baseline, candidate,
+                DescribeControllerChange("Remove controller", logicalId, candidate.Profile), null);
+        }
+        /// <summary>Previews replacement using fresh native capability evidence and an explicit target index when needed.</summary>
+        public GameControllerChange PreviewReplaceController(string logicalId, Guid physicalGuid,
+            Func<IReadOnlyCollection<string>> nativeInputs, string? targetLogicalId = null, string? hardwareId = null)
+        {
+            _policy.RequireOwner();
+            var baseline = JsonSerializer.Serialize(_current);
+            ArgumentNullException.ThrowIfNull(nativeInputs);
+            var observations = _observed(); var observed = Observed(physicalGuid, observations);
+            RequireDrawing(hardwareId);
+            var candidate = GameWorkspaceContract.Clone(_current);
+            var pinned = candidate.Hardware.Where(x => x.Value.Device.PhysicalGuid == physicalGuid).Select(x => x.Key).ToArray();
+            if (pinned.Length > 1) throw new InvalidOperationException("The replacement has ambiguous existing links.");
+            var matches = candidate.Profile.Devices.Where(x => _referenceMatcher?.Matches(x.Identity!, observed) == true).ToArray();
+            var selected = targetLogicalId ?? pinned.SingleOrDefault();
+            var target = selected is not null ? ChooseReference(candidate, matches, selected)
+                : matches.Length == 1 ? matches[0] : ChooseReference(candidate, matches, null);
+            if (target is null)
+            {
+                if (observations.Count(x => x.Connected && x.ProductGuid == observed.ProductGuid) > 1)
+                    throw new InvalidOperationException("Identical replacements require captured ED DeviceIndex references. Bind each in Elite and reimport first.");
+                candidate = candidate with { Profile = DeviceEditor().AddDevice(candidate.Profile, observed) };
+                target = candidate.Profile.Devices.Single(x => !_current.Profile.Devices.Any(old => old.LogicalId == x.LogicalId));
+            }
+            ValidateLink(candidate, target, observed, observations);
+            var keys = nativeInputs().ToArray();
+            candidate = candidate with { Profile = DeviceEditor().ReplaceDevice(candidate.Profile, logicalId, target.LogicalId, keys) };
+            var previous = candidate.Hardware.GetValueOrDefault(target.LogicalId);
+            if (logicalId != target.LogicalId) candidate.Hardware.Remove(logicalId);
+            candidate.Hardware[target.LogicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid
+                ? previous with { Device = observed } : new(hardwareId, observed);
+            ValidateControllerCandidate(candidate);
+            return new(this, baseline, candidate,
+                DescribeControllerChange("Replace with " + observed.Name + " · " + target.Identity!.SimSpecificIds["ed.device"] +
+                    (target.Identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " · ED index " + index : ""), logicalId, candidate.Profile),
+                target.LogicalId, observed, nativeInputs, keys);
+        }
+        /// <summary>Stages a reviewed plan only if its session, profile revision, physical target and capabilities still match.</summary>
+        public void ApplyControllerChange(GameControllerChange change)
+        {
+            ArgumentNullException.ThrowIfNull(change);
+            if (!ReferenceEquals(change.Owner, this) || change.Baseline != JsonSerializer.Serialize(_current))
+                throw new InvalidOperationException("The profile changed after this preview. Review the controller change again.");
+            if (change.Target is { } target)
+            {
+                _policy.RequireOwner();
+                var observed = Observed(target.PhysicalGuid, _observed());
+                if (observed.ProductGuid != target.ProductGuid || !change.Keys.SetEquals(change.Inputs!()))
+                    throw new InvalidOperationException("Replacement identity or inputs changed. Review the replacement again.");
+            }
+            var candidate = GameWorkspaceContract.Clone(change.Candidate);
+            ValidateControllerCandidate(candidate);
+            if (change.Baseline != JsonSerializer.Serialize(_current))
+                throw new InvalidOperationException("The profile changed during validation. Review the change again.");
+            _current = candidate;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Changes or removes the shared illustration without changing the physical or native target.</summary>
         public void ChangeDrawing(string logicalId, string? hardwareId)
         {
@@ -129,6 +196,41 @@ namespace Heimdall.Application.Games
         public SimProfileExportPlan Export() { RequireAccess(); return ValidateProfile(_current.Profile); }
         #endregion END Public
         #region BEGIN private helpers
+        private ISimDeviceEditor DeviceEditor() => _backend as ISimDeviceEditor
+            ?? throw new InvalidOperationException("This game adapter cannot edit controllers.");
+        private void ValidateControllerCandidate(GameWorkspace candidate)
+        {
+            GameWorkspaceContract.Validate(candidate);
+            GameWorkspaceAccess.Require(candidate, _policy, _catalogIds, _observed(), _referenceMatcher);
+            ValidateProfile(candidate.Profile);
+        }
+        private string DescribeControllerChange(string action, string logicalId, ProfileDocument after)
+        {
+            var source = _current.Profile.Devices.Single(x => x.LogicalId == logicalId);
+            var affected = new List<(string Command, string Slot, string Key)>();
+            foreach (var device in _current.Profile.Devices)
+            {
+                affected.AddRange(device.Buttons.Where(x => device.LogicalId == logicalId || x.Modifiers.Any(m => m.Source == logicalId))
+                    .Select(x => (x.CommandId, x.SimSpecific["ed.slot"].ToString()!, x.SourceButton)));
+                affected.AddRange(device.Axes.Where(x => device.LogicalId == logicalId || x.Modifiers.Any(m => m.Source == logicalId))
+                    .Select(x => (x.CommandId, "Binding", x.SourceAxis)));
+            }
+            var commands = Catalog.Commands.ToDictionary(x => x.Id, x => x.DisplayName, StringComparer.Ordinal);
+            var lines = new List<string>(); var cleared = 0;
+            foreach (var row in affected)
+            {
+                var survives = after.Devices.Any(d => d.Buttons.Any(x => x.CommandId == row.Command && x.SimSpecific["ed.slot"].ToString() == row.Slot)
+                    || (row.Slot == "Binding" && d.Axes.Any(x => x.CommandId == row.Command)));
+                if (!survives) cleared++;
+                lines.Add((survives ? "KEEP / TRANSFER: " : "CLEAR: ") + commands[row.Command] + " · " + row.Slot + " · " + row.Key);
+            }
+            return action + "\nFrom: " + source.Identity!.SimSpecificIds["ed.device"] +
+                (source.Identity.SimSpecificIds.TryGetValue("ed.deviceIndex", out var index) ? " · ED index " + index : "") +
+                "\nAffected bindings: " + affected.Count + "; cleared: " + cleared + "; retained/transferred: " + (affected.Count - cleared) +
+                "\nA missing modifier clears the entire chord; it never becomes an unmodified command.\n" +
+                "Replacement preserves native key names; it does not guess equivalent button locations.\n" +
+                string.Join("\n", lines) + "\n\nThis stages workspace edits only. Save persists them; Preview / Export writes a separate reviewed .binds file.";
+        }
         private DetectedDcsDevice Observed(Guid physicalGuid, IReadOnlyList<DetectedDcsDevice> observations)
         {
             var matches = observations.Where(x => x.Connected && x.PhysicalGuid == physicalGuid).ToArray();

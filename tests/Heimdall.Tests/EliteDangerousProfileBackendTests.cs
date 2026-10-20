@@ -140,7 +140,7 @@ namespace Heimdall.Tests
         [InlineData("device")]
         [InlineData("identity")]
         [InlineData("deviceContext")]
-        [InlineData("deviceCount")]
+        [InlineData("systemRemoval")]
         [InlineData("duplicateDevice")]
         [InlineData("buttonsNull")]
         [InlineData("axesNull")]
@@ -344,7 +344,7 @@ namespace Heimdall.Tests
                 case "device": stick.LogicalId = "unknown"; break;
                 case "identity": stick.Identity!.SimSpecificIds["ed.device"] = "Other"; break;
                 case "deviceContext": stick.ContextId = "srv"; break;
-                case "deviceCount": profile.Devices.RemoveAt(0); break;
+                case "systemRemoval": profile.Devices.RemoveAll(x => x.Identity!.SimSpecificIds["ed.device"] == "Keyboard"); break;
                 case "duplicateDevice": profile.Devices[1] = stick; break;
                 case "buttonsNull": stick.Buttons = null!; break;
                 case "axesNull": stick.Axes = null!; break;

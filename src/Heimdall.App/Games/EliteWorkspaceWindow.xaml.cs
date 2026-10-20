@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Data;
 using BindingMode = Heimdall.Domain.MultiSim.BindingMode;
 using Heimdall.Application;
@@ -33,6 +34,8 @@ namespace Heimdall.App.Games
         private readonly List<EliteModifierChoice> _modifiers = [];
         private GameProfileSession? _session;
         private string? _revision;
+        private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs;
+        private readonly Func<GameControllerChange, bool> _reviewControllerChange;
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -44,9 +47,11 @@ namespace Heimdall.App.Games
         /// <summary>Creates an isolated editor over the existing adapter and profile-owned services.</summary>
         public EliteWorkspaceWindow(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
             Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null,
-            Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null)
+            Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null)
         {
             _services = services; _hardware = hardware; _importPicker = importPicker; _exportPicker = exportPicker; _pendingChoice = pendingChoice;
+            _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
+            _reviewControllerChange = controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true);
             InitializeComponent();
             _diagram = new(DiagramCanvas);
             _viewport = new(DiagramScroll, DiagramCanvas, DiagramZoom, "elite.diagram");
@@ -229,7 +234,7 @@ namespace Heimdall.App.Games
             DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
             ModifierDevicePicker.ItemsSource = devices; ModifierDevicePicker.SelectedIndex = 0;
             _refreshing = false;
-            FilterCommands(previousCommand); RenderDevice(); UpdateAvailability();
+            FilterCommands(previousCommand); RenderDevice(); UpdateReplacementReferences(); UpdateAvailability();
         }
         private void FilterCommands(string? selected = null)
         {
@@ -312,6 +317,10 @@ namespace Heimdall.App.Games
             SaveProfileButton.IsEnabled = opened && Pending; DiscardProfileButton.IsEnabled = opened && Pending;
             ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
+            var controller = Device is not null && _session is not null && !GameWorkspaceAccess.IsSystemDevice(
+                _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!.SimSpecificIds["ed.device"]);
+            RemoveControllerButton.IsEnabled = opened && controller;
+            ReplaceControllerButton.IsEnabled = opened && controller && EditionAccess.Policy.IsOwner && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             ProfileName.IsEnabled = opened; AddControllerButton.IsEnabled = opened && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
@@ -397,7 +406,52 @@ namespace Heimdall.App.Games
             return workspace.Hardware.TryGetValue(id, out var pin) ? pin.Device.Name + " · " + token + suffix : token + suffix;
         }
         private void ConnectedChanged(object sender, SelectionChangedEventArgs e)
-        { if (!_refreshing && ReferenceChoiceTools is not null) { ReferenceChoiceTools.Visibility = Visibility.Collapsed; UpdateAvailability(); } }
+        { if (!_refreshing && ReferenceChoiceTools is not null) { ReferenceChoiceTools.Visibility = Visibility.Collapsed; Run(UpdateReplacementReferences); UpdateAvailability(); } }
+        private void UpdateReplacementReferences()
+        {
+            if (ReplacementReferencePicker is null) return;
+            var selected = (ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
+            var ids = _session is not null && ConnectedPicker.SelectedItem is DetectedDcsDevice connected
+                ? _session.ControllerReferences(connected.PhysicalGuid) : [];
+            var document = _session?.Snapshot;
+            var choices = ids.Select(id => new GameDeviceChoice(id, ControllerName(document!, id))).ToArray();
+            ReplacementReferencePicker.ItemsSource = choices;
+            ReplacementReferencePicker.SelectedItem = choices.FirstOrDefault(x => x.Id == selected);
+            ReplacementReferenceTools.Visibility = choices.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        private void RemoveControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            StopLiveInput();
+            if (_session is null || Device is null) throw new InvalidOperationException("Select the profile controller to remove.");
+            ReviewControllerChange(_session.PreviewRemoveController(Device.Id));
+        });
+        private void ReplaceControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            StopLiveInput();
+            if (_session is null || Device is null || ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
+                throw new InvalidOperationException("Select the old profile controller and its connected replacement.");
+            var target = (ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
+            var drawing = GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected);
+            var change = _session.PreviewReplaceController(Device.Id, connected.PhysicalGuid,
+                () => ReadReplacementInputs(connected.PhysicalGuid), target, drawing);
+            ReviewControllerChange(change);
+        });
+        private string[] ReadReplacementInputs(Guid physicalGuid)
+        {
+            EditionAccess.Policy.RequireOwner();
+            using var source = _controllerInputs(new WindowInteropHelper(this).EnsureHandle(), [physicalGuid]);
+            if (!source.SupportedInputs.TryGetValue(physicalGuid, out var inputs))
+                throw new InvalidOperationException("Replacement inputs are unavailable. Rescan and review again.");
+            return inputs.Select(EliteInputKeys.FromShared).Where(x => x is not null).Select(x => x!).Distinct(StringComparer.Ordinal).ToArray();
+        }
+        private void ReviewControllerChange(GameControllerChange change)
+        {
+            if (!_reviewControllerChange(change)) { Status("Controller change cancelled; profile unchanged."); return; }
+            _session!.ApplyControllerChange(change);
+            if (change.ResultDeviceId is { } id) DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
+            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
+            Status("Reviewed controller change staged. Save to persist; Preview / Export to review the native ED bindings.");
+        }
         private void LinkReferenceClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || ReferencePicker.SelectedItem is not GameDeviceChoice reference)

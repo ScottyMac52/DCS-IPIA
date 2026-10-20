@@ -37,6 +37,11 @@ namespace Heimdall.EliteDangerous
             {
                 throw new InvalidOperationException("Assignment targets an unknown command or native slot.");
             }
+            var removed = baseline.Devices.Where(x => !profile.Devices.Any(d => d.LogicalId == x.LogicalId)).Select(x => x.LogicalId).ToHashSet(StringComparer.Ordinal);
+            var removedTokens = baseline.Devices.Where(x => removed.Contains(x.LogicalId)).Select(x => x.Identity!.SimSpecificIds["ed.device"]).ToHashSet(StringComparer.Ordinal);
+            foreach (var node in native.Root.Descendants().Where(x => removedTokens.Contains((string?)x.Attribute("Device") ?? "")))
+                if (removed.Contains(EliteProfileProjection.DeviceId(EliteProfileProjection.Identity(node))))
+                    throw new InvalidOperationException("An unmodeled native device reference prevents removal or replacement. No files were produced.");
             var files = new Dictionary<string, string>(native.Sources, StringComparer.Ordinal);
             if (changed)
             {

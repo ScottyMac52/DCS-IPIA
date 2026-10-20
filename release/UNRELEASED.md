@@ -11,3 +11,7 @@ This does not change Free/Premium game availability. Published v1.1.1.0 release 
 Fixes the Windows image-decoder failure while opening the main window. WPF window icons now load PNG directly; executable/installer ICOs use validated 32-bit bitmap frames and transparency masks.
 
 The solution is now `HEIMDALL.sln`; all projects and namespaces use `Heimdall.*`. Training text, log filenames/categories, distribution notices, new exports, scripts and documentation follow the new name. Existing profiles, signed licenses, backups and workspace formats remain accessible through explicit compatibility paths. See the branding guide for the identifiers retained for data compatibility.
+
+## ED controller lifecycle
+
+Adds reviewed controller removal and replacement alongside Add controller. Removal clears dependent modifier chords in full. Replacement transfers supported native inputs and modifiers, reports cleared bindings, preserves captured device indices and rechecks live capabilities before staging. Existing keyboard/mouse references, unrelated XML, selector files and live ED presets are preserved.

@@ -88,9 +88,21 @@ namespace Heimdall.EliteDangerous
             if (!Export(candidate).Succeeded) throw new InvalidOperationException("The new native controller reference could not be validated.");
             return candidate;
         }
+        /// <summary>Returns a validated copy with owned and modifier-dependent assignments cleared.</summary>
+        public ProfileDocument RemoveDevice(ProfileDocument profile, string logicalId) =>
+            ValidateChange(EliteControllerEditor.Remove(profile, logicalId));
+        /// <summary>Returns a validated copy with compatible bindings moved to an explicit native target.</summary>
+        public ProfileDocument ReplaceDevice(ProfileDocument profile, string logicalId, string targetId, IReadOnlyCollection<string> nativeInputs) =>
+            ValidateChange(EliteControllerEditor.Replace(profile, logicalId, targetId, nativeInputs));
         #endregion END Public
 
         #region BEGIN private helpers
+        private ProfileDocument ValidateChange(ProfileDocument candidate)
+        {
+            var plan = Export(candidate);
+            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
+            return candidate;
+        }
         private static EliteNativeEvidence ReadEvidence(ProfileDocument profile)
         {
             ArgumentNullException.ThrowIfNull(profile);
