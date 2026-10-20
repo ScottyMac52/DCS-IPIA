@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Games;
 using Dcs.Ipia.Domain.MultiSim;
+using Dcs.Ipia.EliteDangerous;
 using Dcs.Ipia.Dcs;
 using Dcs.Ipia.Infrastructure;
 using Dcs.Ipia.TestSupport;
@@ -70,6 +71,7 @@ namespace Dcs.Ipia.App.Smoke
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
                 var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot);
+                VerifyCommandFilters(window);
                 Box<ListBox>(window, "SectionPicker").SelectedIndex = 3;
                 if (Box<ListBox>(window, "CommandsList").Items.Count != 0) throw new InvalidOperationException("Section filtering included commands from another context.");
                 Box<ListBox>(window, "SectionPicker").SelectedIndex = 0;
@@ -105,6 +107,40 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyCommandFilters(EliteWorkspaceWindow window)
+        {
+            var types = Box<ComboBox>(window, "CommandTypePicker");
+            var categories = Box<ComboBox>(window, "CommandCategoryPicker");
+            var commands = Box<ListBox>(window, "CommandsList");
+            types.SelectedIndex = 2;
+            if (commands.Items.Count != 2 || commands.Items.Cast<SimCommand>().Any(x => x.Type != CommandType.Axis))
+                throw new InvalidOperationException("Axes filtering did not use the native command type.");
+            categories.SelectedItem = "Weapons";
+            if (commands.Items.Count != 0 || !Box<TextBlock>(window, "CommandEmptyHint").IsVisible || Box<StackPanel>(window, "AssignmentEditor").IsEnabled)
+                throw new InvalidOperationException("An empty category/type intersection left a stale command editable.");
+            types.SelectedIndex = 1;
+            if (commands.Items.Count != 2 || commands.Items.Cast<SimCommand>().Any(x => x.Type != CommandType.Button))
+                throw new InvalidOperationException("Buttons filtering did not intersect the Weapons category.");
+            Box<TextBox>(window, "CommandSearch").Text = "secondaryfire";
+            if (commands.Items.Count != 1 || commands.Items.Cast<SimCommand>().Single().DisplayName != "Secondary Fire")
+                throw new InvalidOperationException("Command search did not match the native identifier within active filters.");
+            var assignments = Box<DataGrid>(window, "AssignmentsGrid");
+            assignments.SelectedItem = assignments.Items.Cast<EliteAssignmentRow>().First(x => x.IsAxis);
+            if (types.SelectedIndex != 0 || categories.SelectedIndex != 0 || Box<TextBox>(window, "CommandSearch").Text.Length != 0
+                || commands.SelectedItem is not SimCommand { Type: CommandType.Axis })
+                throw new InvalidOperationException("Selecting a filtered-out assignment did not reveal its command.");
+            categories.SelectedItem = "Weapons";
+            Box<ListBox>(window, "SectionPicker").SelectedIndex = 2;
+            if (categories.SelectedIndex != 0 || commands.Items.Count != 0)
+                throw new InvalidOperationException("Changing activity retained an unavailable category.");
+            Box<ListBox>(window, "SectionPicker").SelectedIndex = 0;
+            types.SelectedIndex = 2; Box<TextBox>(window, "CommandSearch").Text = "absent";
+            Click(window, "ClearCommandFiltersButton");
+            if (commands.Items.Count != 5 || types.SelectedIndex != 0 || Box<TextBlock>(window, "CommandCount").Text != "5 of 5 commands")
+                throw new InvalidOperationException("Clearing command filters did not restore the imported catalog.");
+            if (commands.ItemsSource is not System.Windows.Data.ListCollectionView view || view.Groups?.Count != 4)
+                throw new InvalidOperationException("The command palette did not group commands by display category.");
+        }
         private static void VerifyDcsSelectors()
         {
             var previewProfile = new global::Dcs.Ipia.Domain.DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
@@ -185,3 +221,4 @@ namespace Dcs.Ipia.App.Smoke
         #endregion END private helpers
     }
 }
+

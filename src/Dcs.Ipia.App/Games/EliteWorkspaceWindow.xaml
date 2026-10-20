@@ -73,8 +73,23 @@
      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
       <StackPanel>
        <TextBlock Text="Commands" FontSize="20" FontWeight="SemiBold"/>
-       <TextBox x:Name="CommandSearch" TextChanged="SearchChanged" ToolTip="Search command names" Margin="0,8,0,4" AutomationProperties.Name="Search Elite commands"/>
-       <ListBox x:Name="CommandsList" DisplayMemberPath="DisplayName" Height="190" SelectionChanged="CommandChanged" AutomationProperties.Name="Elite command catalog"/>
+       <TextBlock Text="Category" Margin="0,8,0,3"/>
+       <ComboBox x:Name="CommandCategoryPicker" SelectionChanged="CommandFilterChanged" AutomationProperties.Name="Elite command category"/>
+       <WrapPanel Margin="0,6,0,0"><TextBlock Text="Input type" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <ComboBox x:Name="CommandTypePicker" Width="150" SelectionChanged="CommandFilterChanged" AutomationProperties.Name="Elite command input type">
+         <ComboBoxItem Content="All types"/><ComboBoxItem Content="Buttons"/><ComboBoxItem Content="Axes"/>
+        </ComboBox>
+        <Button x:Name="ClearCommandFiltersButton" Content="Clear filters" Click="ClearCommandFiltersClicked" Margin="8,0,0,0"/>
+       </WrapPanel>
+       <TextBox x:Name="CommandSearch" TextChanged="SearchChanged" ToolTip="Search names, native IDs or categories" Margin="0,8,0,4" AutomationProperties.Name="Search Elite commands"/>
+       <TextBlock x:Name="CommandCount" Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite"/>
+       <TextBlock x:Name="CommandEmptyHint" Text="No matching commands. Clear filters or choose another section." TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,4"/>
+       <ListBox x:Name="CommandsList" Height="230" SelectionChanged="CommandChanged" AutomationProperties.Name="Elite command catalog">
+        <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" ToolTip="{Binding Id}"/></DataTemplate></ListBox.ItemTemplate>
+        <ListBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate>
+         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="2,8,0,4"/>
+        </DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ListBox.GroupStyle>
+       </ListBox>
        <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0">
         <TextBlock Text="Assignment" FontSize="18" FontWeight="SemiBold"/>
         <TextBlock Text="Native input key" Margin="0,8,0,3"/><TextBox x:Name="InputKey" AutomationProperties.Name="Elite input key"/>
@@ -100,3 +115,4 @@
   <TextBlock x:Name="WorkspaceStatus" Grid.Row="3" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
  </Grid>
 </Window>
+

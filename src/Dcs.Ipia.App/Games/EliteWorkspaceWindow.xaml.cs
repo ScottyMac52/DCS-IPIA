@@ -4,6 +4,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Data;
+using BindingMode = Dcs.Ipia.Domain.MultiSim.BindingMode;
 using Dcs.Ipia.Application;
 using Dcs.Ipia.Application.Games;
 using Dcs.Ipia.Application.Interfaces;
@@ -45,6 +47,7 @@ namespace DcsIpia.Presentation.Games
             _input = new(this, _diagram, Status, inputFactory);
             _refreshing = true;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
+            CommandCategoryPicker.ItemsSource = new[] { "All categories" }; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0;
             HardwarePicker.ItemsSource = hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)).ToArray();
             _refreshing = false;
             ReloadChoices(initial);
@@ -99,6 +102,8 @@ namespace DcsIpia.Presentation.Games
         #endregion END Public
         #region BEGIN private helpers
         private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
+        private string? CommandCategory => CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
+        private CommandType? InputType => CommandTypePicker.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null };
         private GameDeviceChoice? Device => DevicePicker.SelectedItem as GameDeviceChoice;
         private SimCommand? Command => CommandsList.SelectedItem as SimCommand;
         private string Slot => Command?.Type == CommandType.Axis ? "Binding" : SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
@@ -156,12 +161,20 @@ namespace DcsIpia.Presentation.Games
         private void FilterCommands(string? selected = null)
         {
             if (_session is null) return;
-            var commands = _commands.Where(x => (Section == "All" || x.Category == Section)
-                && x.DisplayName.Contains(CommandSearch.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
-            _refreshing = true; CommandsList.ItemsSource = commands;
-            CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == selected) ?? commands.FirstOrDefault(); _refreshing = false;
+            var previousCategory = CommandCategory;
+            var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();
+            _refreshing = true;
+            CommandCategoryPicker.ItemsSource = categories;
+            CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
+            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, CommandSearch.Text);
+            var view = new ListCollectionView(commands.ToList());
+            view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
+            CommandsList.ItemsSource = view;
+            CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == selected) ?? (commands.Count > 0 ? commands[0] : null); _refreshing = false;
+            CommandCount.Text = commands.Count + " of " + _commands.Count + " commands";
+            CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
-            LoadAssignment();
+            LoadAssignment(); UpdateAvailability();
         }
         private void RenderDevice()
         {
@@ -220,7 +233,7 @@ namespace DcsIpia.Presentation.Games
         {
             var opened = _session is not null;
             AccessStatus.Text = _session?.AccessMessage ?? "Import or select a saved Elite controls profile.";
-            AssignmentEditor.IsEnabled = opened && AccessStatus.Text.Length == 0;
+            AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0;
             SaveProfileButton.IsEnabled = opened && Pending; DiscardProfileButton.IsEnabled = opened && Pending;
             ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
@@ -338,11 +351,23 @@ namespace DcsIpia.Presentation.Games
         private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { FilterCommands(Command?.Id); RenderDevice(); }); }
         private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null) return; _input.Stop(); UpdateAvailability(); }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
+        private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
+        private void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);
+        private void ClearCommandFilters(string? selected)
+        {
+            _refreshing = true; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0; CommandSearch.Clear(); _refreshing = false;
+            FilterCommands(selected);
+        }
         private void CommandChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
         private void SlotChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
         private void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }
         private void SelectRow(EliteAssignmentRow row)
         {
+            if (!CommandsList.Items.Cast<SimCommand>().Any(x => x.Id == row.CommandId))
+            {
+                ClearCommandFilters(row.CommandId);
+                Status("Command filters cleared to show the selected assignment.");
+            }
             _refreshing = true; CommandsList.SelectedItem = CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
             LoadAssignment();
         }
@@ -357,3 +382,4 @@ namespace DcsIpia.Presentation.Games
         #endregion END private helpers
     }
 }
+

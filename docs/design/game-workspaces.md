@@ -38,9 +38,19 @@ failure or cancellation retains the current workspace.
    the shared Zoom control to read dense or multi-view drawings; manual zoom and
    scroll do not change assignment geometry.
 4. Choose **All**, **Ship**, **SRV**, **On Foot** or **General** to filter commands.
-   These are conservative display hints, not new native files or cross-context
-   reassignment. **All** always exposes every captured command; unfamiliar names
-   remain under General. Command identities and source values remain unchanged.
+   Within a section, use **Category** for groups such as Flight Rotation,
+   Targeting, Weapons, Power Management, Driving or On Foot Movement, and
+   **Input type** for **All types**, **Buttons** or **Axes**. Categories, type and
+   search intersect. Search matches display names, native IDs and categories;
+   the list shows category headings and a matching-command count. Categories are
+   display hints based on known native command families. Unfamiliar commands
+   remain under **Other**, with unknown activities under General. Input type
+   comes from native assignment structure, including unbound commands.
+   **Clear filters** resets category, type and search within the current section.
+   Changing section resets a category only if it is unavailable there. Palette
+   filters do not hide the section's existing assignment rows or diagram labels;
+   selecting an assignment reveals its command and clears conflicting palette
+   filters. No filter changes command identities, assignments or native files.
 5. **Save** stores an IPIA game workspace. **Discard** restores the last saved
    document. Changing game/profile or closing prompts save/discard/cancel, and a
    failed save retains the pending draft. Native preset names are retained;
@@ -97,7 +107,8 @@ review output and full-profile backup/restore. `EliteWorkspaceProjectionTests`
 covers physical input translation, section hints and reference labels.
 `GameWorkspaceSmoke` operates the actual WPF cards and ED window on Windows:
 import, explicit association, button/axis edits, save, reopen, export,
-save/discard/cancel transitions, input acquisition/release and blocked Free
+combined category/type/search filtering, empty results, filtered assignment
+selection, save/discard/cancel transitions, input acquisition/release and blocked Free
 commands. CI attaches game-selection and ED-workspace screenshots to the
 `custom-mapping-preview` artifact. Existing DCS/training and release smoke remain
 active, with independent production 80% line / 80% branch / CRAP <= 50 gates.
@@ -107,3 +118,4 @@ folder, import a personal preset, export into a review folder and manually verif
 primary/secondary assignments, a chord, hold/toggle behavior and axis tuning in
 Elite. Record the game version and results; restore the backup if needed. CI does
 not launch Elite or claim that manual acceptance has been completed.
+
