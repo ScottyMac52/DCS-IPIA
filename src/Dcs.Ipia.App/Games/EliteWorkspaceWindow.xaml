@@ -145,7 +145,7 @@
       </WrapPanel>
       <TextBlock x:Name="ReferenceStatus" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Polite"/>
      </StackPanel>
-     <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="#d8dce1" Padding="12">
+     <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource BorderBrush}" Padding="12">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
        <Image x:Name="ReferencePreview" Width="700" Stretch="Uniform" VerticalAlignment="Top" AutomationProperties.Name="Reference sheet page preview"/>
       </ScrollViewer>
