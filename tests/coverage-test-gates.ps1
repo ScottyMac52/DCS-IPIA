@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'LocalTestSupport.ps1')
 Invoke-LocalTestSuite {
     $project = 'tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj'
-    $include = '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
+    $include = '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.EliteDangerous]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
     $coverage = Join-Path $PWD 'TestResults/raw/dotnet/coverage'
     Invoke-LocalTestCommand 'Restore' { dotnet restore $project }
     Invoke-LocalTestCommand 'Formatting' { dotnet format style $project --verify-no-changes --no-restore --severity warn }

@@ -18,7 +18,7 @@ jobs:
       dotnet_version: 10.0.x
       test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
       presentation_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
-      coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
+      coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.EliteDangerous]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
       line_threshold: 80
       branch_threshold: 80
 
@@ -235,4 +235,3 @@ jobs:
           name: DCS-IPIA-tested-release-candidate
           path: release-assets/*
           if-no-files-found: error
-
