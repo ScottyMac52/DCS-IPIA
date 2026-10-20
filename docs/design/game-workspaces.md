@@ -154,6 +154,22 @@ follow-up work in [issue #286](https://github.com/ScottyMac52/DCS-IPIA/issues/28
 The adapter's format/capability limits are documented in
 [multi-sim profiles](multi-sim-profiles.md).
 
+## Input testing without a drawing
+
+In Elite **Input Testing**, a controller without a displayed drawing (including
+an explicit **No drawing** choice) shows a read-only text area in the drawing
+space. **Start input test** shows the linked controller's Windows name and exact
+instance GUID, followed by the latest twenty raw button/hat presses and releases
+and axis movements. Axis values range from zero to one; changes of 1.5 percent
+or less are filtered against the last reported value, so slow movement still
+accumulates. Neutral axes establish their baseline without flooding the display.
+
+This uses the same Owner-only, exact-controller input acquisition as illustrated
+testing. Stop, focus loss, controller/profile/view changes and disconnect errors
+release the source and clear its text. The area is hidden outside Input Testing
+and whenever a drawing is displayed. No additional association is required;
+activity does not assign controls or emulate Elite command execution.
+
 ## Acceptance
 
 `GameWorkspaceTests` covers JSON save/reopen, exact native evidence, immutable
@@ -168,7 +184,8 @@ unsupported additions, atomic failures and Free eligibility.
 import, single-choice controller addition, optional/automatic drawings, indexed
 reference choices, button/axis edits, save, reopen, export,
 dedicated PDF/PNG reference previews, table fallback, page navigation and paper\norientation, combined category/type/search filtering, empty results, filtered assignment
-selection, save/discard/cancel transitions, input acquisition/release and blocked Free
+selection, save/discard/cancel transitions, drawing-independent input activity, exact-device filtering, focus/stop cleanup,
+input acquisition/release and blocked Free
 commands. CI attaches game-selection and ED-workspace screenshots to the
 `custom-mapping-preview` artifact. Existing DCS/training and release smoke remain
 active, with independent production 80% line / 80% branch / CRAP <= 50 gates.

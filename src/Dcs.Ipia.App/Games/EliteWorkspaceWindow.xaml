@@ -71,11 +71,16 @@
        <Slider x:Name="DiagramZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Elite drawing zoom"/>
       </WrapPanel>
       <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+       <Grid>
+       <TextBox x:Name="InputActivity" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="12"
+                AutomationProperties.Name="Live controller input activity" ToolTip="Start input test to see raw button, hat and axis activity for the selected controller."/>
        <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
         <Grid><TextBlock x:Name="DiagramHint" Text="Import a bindings preset, then associate a hardware drawing to show its controls." TextWrapping="Wrap" Margin="20"/>
          <Canvas x:Name="DiagramCanvas" Width="600" Height="600" Background="Transparent"/>
         </Grid>
        </ScrollViewer>
+       </Grid>
       </Border>
       <DataGrid x:Name="AssignmentsGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" SelectionChanged="AssignmentSelected" Margin="0,8,0,0" AutomationProperties.Name="Elite assignments">
        <DataGrid.Columns><DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="*"/>

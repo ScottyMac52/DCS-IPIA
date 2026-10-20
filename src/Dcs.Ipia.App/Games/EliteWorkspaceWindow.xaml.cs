@@ -48,7 +48,7 @@ namespace DcsIpia.Presentation.Games
             InitializeComponent();
             _diagram = new(DiagramCanvas);
             _viewport = new(DiagramScroll, DiagramCanvas, DiagramZoom, "elite.diagram");
-            _input = new(this, _diagram, Status, inputFactory);
+            _input = new(this, _diagram, Status, ShowInputActivity, inputFactory);
             _refreshing = true;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
             CommandCategoryPicker.ItemsSource = new[] { "All categories" }; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0;
@@ -72,6 +72,8 @@ namespace DcsIpia.Presentation.Games
         public bool DcsRequested { get; private set; }
         /// <summary>Gets the current staged session for deterministic Windows interaction checks.</summary>
         internal GameProfileSession? Session => _session;
+        /// <summary>Processes a deterministic sample through the same input path as the foreground timer.</summary>
+        internal void SampleInput() => _input.Sample();
         /// <summary>Imports an explicitly chosen captured file; no active game configuration is changed.</summary>
         internal void ImportFile(string path)
         {
@@ -195,6 +197,7 @@ namespace DcsIpia.Presentation.Games
         private void RenderDevice()
         {
             _input.Stop(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
+            UpdateInputActivityVisibility();
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
             var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
@@ -203,6 +206,7 @@ namespace DcsIpia.Presentation.Games
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
             _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this));
             DiagramHint.Visibility = Visibility.Collapsed;
+            UpdateInputActivityVisibility();
         }
         private void SelectControl(HardwareGraphicControl control)
         {
@@ -267,6 +271,7 @@ namespace DcsIpia.Presentation.Games
             AuthoringPanel.Visibility = feature == 3 ? Visibility.Collapsed : Visibility.Visible;
             ReferenceSheetsPanel.Visibility = feature == 3 ? Visibility.Visible : Visibility.Collapsed;
             ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
+            UpdateInputActivityVisibility();
             if (feature == 3) RefreshReferenceSheets();
         }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
@@ -443,6 +448,17 @@ namespace DcsIpia.Presentation.Games
             }
             _refreshing = true; CommandsList.SelectedItem = CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
             LoadAssignment();
+        }
+        private void UpdateInputActivityVisibility()
+        {
+            var fallback = FeaturePicker.SelectedIndex == 2 && DiagramHint.Visibility == Visibility.Visible;
+            InputActivity.Visibility = fallback ? Visibility.Visible : Visibility.Collapsed;
+            DiagramScroll.Visibility = fallback ? Visibility.Collapsed : Visibility.Visible;
+        }
+        private void ShowInputActivity(string text)
+        {
+            if (InputActivity.Text == text) return;
+            InputActivity.Text = text; InputActivity.ScrollToEnd();
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
