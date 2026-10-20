@@ -33,8 +33,14 @@ namespace Heimdall.App.Smoke
             Click(window, "ExportPresetButton");
             if (reviewed.Count != 1 || !reviewed[0].Assignments.Any(x => x.Contains("Yaw Axis Raw", StringComparison.Ordinal)) || Directory.Exists(output)
                 || before != JsonSerializer.Serialize(window.Session.Snapshot)) throw new InvalidOperationException("Cancelled preflight lost affected commands, changed state or wrote files.");
-            var dialog = new EliteExportReviewWindow(window, reviewed, [physical], _ => [], true);
-            try { dialog.Show(); ThemeControlSmoke.Pump(dialog); ThemeControlSmoke.SaveImage(dialog, "elite-export-preflight"); }
+            var dialog = new EliteExportReviewWindow(window, reviewed, [physical], _ => throw new InvalidOperationException("Injected disconnect"), true);
+            try
+            {
+                dialog.Show(); ThemeControlSmoke.Pump(dialog); ThemeControlSmoke.SaveImage(dialog, "elite-export-preflight");
+                var selectors = ((DockPanel)dialog.Content).Children.OfType<StackPanel>().Single(x => x.Children.OfType<ComboBox>().Any());
+                var target = selectors.Children.OfType<ComboBox>().ElementAt(1); target.SelectedIndex = 0;
+                if (target.SelectedItem is not null) throw new InvalidOperationException("Disconnected replacement remained selected in the review dialog.");
+            }
             finally { dialog.Close(); }
             window.Activate(); ThemeControlSmoke.Pump(window);
             window.ExportReview = issues => new(issues[0].DeviceId, true);

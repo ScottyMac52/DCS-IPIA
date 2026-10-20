@@ -48,8 +48,17 @@ namespace Heimdall.App.Games
             };
             target.SelectionChanged += (_, _) =>
             {
-                reference.ItemsSource = target.SelectedItem is DetectedDcsDevice device ? references(device.PhysicalGuid) : [];
-                reference.SelectedIndex = reference.Items.Count == 1 ? 0 : -1; Availability();
+                try
+                {
+                    reference.ItemsSource = target.SelectedItem is DetectedDcsDevice device ? references(device.PhysicalGuid) : [];
+                    reference.SelectedIndex = reference.Items.Count == 1 ? 0 : -1;
+                }
+                catch (InvalidOperationException error)
+                {
+                    reference.ItemsSource = null; target.SelectedIndex = -1;
+                    details.Text = error.Message + "\nRescan connected hardware and review export again.";
+                }
+                Availability();
             };
             reference.SelectionChanged += (_, _) => Availability();
             clear.Click += (_, _) => { Resolution = new(((GameExportIssue)source.SelectedItem).DeviceId, true); DialogResult = true; };
