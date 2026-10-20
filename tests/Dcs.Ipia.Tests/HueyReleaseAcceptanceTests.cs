@@ -25,6 +25,30 @@ namespace Dcs.Ipia.Tests
         public async Task Released_huey_roundtrips_and_reports_complete_output_differences()
         {
             var workspace = Workspace();
+            var adapter = new DcsSimProfileBackend();
+            var originalWorkspace = EditorSnapshotSerializer.Serialize(workspace);
+            var originalPackage = ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1"));
+            var portable = adapter.Capture(workspace);
+            portable = JsonSerializer.Deserialize<global::Dcs.Ipia.Domain.MultiSim.ProfileDocument>(JsonSerializer.Serialize(portable))!;
+            workspace = DcsSimProfileBackend.Restore(portable);
+            Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
+            Assert.Equal(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1")).Bytes);
+            var editedPortable = JsonSerializer.Deserialize<global::Dcs.Ipia.Domain.MultiSim.ProfileDocument>(JsonSerializer.Serialize(portable))!;
+            var axisDevice = editedPortable.Devices.First(x => x.ContextId != "UiLayer" && x.Axes.Count > 0);
+            axisDevice.Axes[0].Deadzone = 2.5f;
+            var uiDevice = editedPortable.Devices.First(x => x.ContextId == "UiLayer" && x.Buttons.Count > 0);
+            uiDevice.Buttons.RemoveAt(0);
+            var editedWorkspace = DcsSimProfileBackend.Restore(editedPortable);
+            Assert.Equal(workspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.Module), editedWorkspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.Module));
+            Assert.Equal(workspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.UiLayer) - 1, editedWorkspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.UiLayer));
+            Assert.Contains(editedWorkspace.Assignments, x => x.Slot.Layer == AssignmentLayer.Module && x.Filter?.Deadzone == 2.5);
+            Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
+            Assert.NotEqual(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(editedWorkspace, "3.1.1")).Bytes);
+            Assert.True(adapter.Export(editedPortable).Succeeded);
+            var export = adapter.Export(portable);
+            Assert.True(export.Succeeded, string.Join("; ", export.Diagnostics.Select(x => x.Message)));
+            Assert.Equal(SnapshotLuaPayloadRenderer.Generate(workspace).OrderBy(x => x.Key).Select(x => (x.Key, Encoding.UTF8.GetString(x.Value))),
+                export.Files.OrderBy(x => x.Key).Select(x => (x.Key, x.Value)));
             Assert.Equal(5, workspace.Configuration.Profiles.Count);
             Assert.Equal(6, workspace.Pages.Count);
             Assert.Equal(3, workspace.Configuration.Profiles.Count(x => x.DeviceId == "tm-mfd"));
@@ -223,3 +247,4 @@ namespace Dcs.Ipia.Tests
         #endregion END private helpers
     }
 }
+
