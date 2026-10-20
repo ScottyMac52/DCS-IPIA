@@ -156,7 +156,7 @@ prohibited. The adapter never scans active folders or deploys files.
 | Slots | Each button has explicit `SimSpecific["ed.slot"]` equal to `Primary` or `Secondary`; axes use `Binding`; slot identity survives JSON save/reopen |
 | Devices | Exact `Device` token and optional `DeviceIndex` are preserved in `Identity.SimSpecificIds["ed.device"]` and `["ed.deviceIndex"]`; named and numeric product references are not Windows instance IDs |
 | Resolution | Imported devices remain unresolved without explicit instance evidence; repeated matching instances are ambiguous; product names, numeric tokens and ordinals never silently select hardware or grant entitlement |
-| Buttons | Per-binding press/hold modes; cross-device modifier chords reference a captured logical device and native key |
+| Buttons | Per-binding press/hold modes; button modifier chords reference a captured logical device and native key; unverified axis chording is blocked |
 | Command toggles | Native `ToggleOn` is independent of per-binding `Hold`; editable through `profile.Metadata["ed.toggle:" + commandId]` as `"0"` or `"1"`; catalog metadata describes the captured value |
 | Axes | Native deadzone fraction maps to portable percentage points (0..100); inversion supported; untouched native double precision retained; generic curve/sensitivity conversion rejected |
 | Preservation | No edits returns every original string exactly; edits change selected slots/flags, retaining unrelated settings, unknown root data, duplicate scalar settings and selector text |
@@ -166,7 +166,8 @@ This phase permits assignment moves between captured devices and additions to
 existing unbound slots. Keep the captured logical device entries even after
 clearing their bindings. Adding controllers, renaming presets, discovering a full
 localized command catalog and selecting different presets for each game section
-need explicit future authoring flows. Selector files are archival evidence and
+need explicit future authoring flows. The coarse `ModifierChords` capability advertises
+button chords; axis chords remain blocked by backend validation until verified. Selector files are archival evidence and
 remain unchanged; they are not interpreted as a license or an active preset
 selection. This PR does not add a backend selector to WPF, save Elite workspaces
 in SQLite, integrate kneeboards or introduce automatic game deployment. Those

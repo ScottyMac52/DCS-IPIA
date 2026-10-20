@@ -102,6 +102,10 @@ namespace Dcs.Ipia.EliteDangerous
             EliteAssignment? original, ProfileDocument profile)
         {
             ValidateEditableSlot(slot);
+            if (binding?.Axis is not null && binding.Modifiers.Count != 0)
+            {
+                throw new InvalidOperationException("Elite axis modifier chording has not been verified; this edit is unsupported.");
+            }
             slot.Elements().Remove();
             slot.Attributes().Remove();
             if (binding is null)
@@ -161,7 +165,7 @@ namespace Dcs.Ipia.EliteDangerous
 
         private static void ValidateEditableSlot(XElement slot)
         {
-            if (slot.Attributes().Any(x => x.Name.LocalName is not "Device" and not "DeviceIndex" and not "Key")
+            if (slot.Attributes().Any(x => x.Name.Namespace != XNamespace.None || x.Name.LocalName is not "Device" and not "DeviceIndex" and not "Key")
                 || slot.Nodes().Any(x => x is not XElement && (x is not XText text || !string.IsNullOrWhiteSpace(text.Value)))
                 || slot.Elements("Hold").Count() > 1)
             {
@@ -171,8 +175,8 @@ namespace Dcs.Ipia.EliteDangerous
             {
                 var allowed = child.Name == "Modifier" ? new[] { "Device", "DeviceIndex", "Key" } : new[] { "Value" };
                 if (child.Name != "Modifier" && child.Name != "Hold" || child.Nodes().Any(x => x is not XText text || !string.IsNullOrWhiteSpace(text.Value))
-                    || slot.Name == "Binding" && child.Name == "Hold"
-                    || child.Attributes().Any(x => !allowed.Contains(x.Name.LocalName, StringComparer.Ordinal)))
+                    || slot.Name == "Binding"
+                    || child.Attributes().Any(x => x.Name.Namespace != XNamespace.None || !allowed.Contains(x.Name.LocalName, StringComparer.Ordinal)))
                 {
                     throw new InvalidOperationException("Unknown native binding extensions prevent rewriting this assignment.");
                 }

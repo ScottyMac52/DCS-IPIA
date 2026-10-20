@@ -170,6 +170,7 @@ namespace Dcs.Ipia.Tests
         [InlineData("deadzoneLow")]
         [InlineData("deadzoneHigh")]
         [InlineData("axisSlot")]
+        [InlineData("axisModifier")]
         public void Unsupported_edits_are_blocked(string change)
         {
             var backend = new EliteDangerousProfileBackend();
@@ -220,6 +221,8 @@ namespace Dcs.Ipia.Tests
         /// <summary>Unknown binding fields remain exact until an edit would discard them.</summary>
         [Theory]
         [InlineData(" Future='keep'", "")]
+        [InlineData(" x:Key='keep'", "")]
+        [InlineData("", "<Modifier Device='Keyboard' Key='Key_Shift' x:Key='keep'/>")]
         [InlineData("", "<Future Value='keep'/>")]
         [InlineData("", "<!--keep-->")]
         [InlineData("", "unknown text")]
@@ -229,6 +232,7 @@ namespace Dcs.Ipia.Tests
         {
             var sources = Sources();
             sources["Synthetic.4.2.binds"] = sources["Synthetic.4.2.binds"].Replace("Key=\"Joy_1\">", "Key=\"Joy_1\"" + attributes + ">" + children, StringComparison.Ordinal);
+            sources["Synthetic.4.2.binds"] = sources["Synthetic.4.2.binds"].Replace("<Root ", "<Root xmlns:x='urn:future' ", StringComparison.Ordinal);
             var backend = new EliteDangerousProfileBackend();
             var profile = backend.Import("controls", sources);
             Assert.Equal(sources["Synthetic.4.2.binds"], backend.Export(Persist(profile)).Files["Synthetic.4.2.binds"]);
@@ -369,6 +373,7 @@ namespace Dcs.Ipia.Tests
                 case "deadzoneNaN": axis.Deadzone = float.NaN; break;
                 case "deadzoneLow": axis.Deadzone = -1; break;
                 case "deadzoneHigh": axis.Deadzone = 101; break;
+                case "axisModifier": axis.Modifiers.Add(new() { Source = stick.LogicalId, Value = "Joy_2" }); break;
                 case "axisSlot": axis.SimSpecific["ed.slot"] = "Primary"; break;
                 default: throw new InvalidOperationException(change);
             }
