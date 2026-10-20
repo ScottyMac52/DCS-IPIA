@@ -1,6 +1,6 @@
 <Window x:Class="DcsIpia.Presentation.Games.EliteWorkspaceWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:pres="clr-namespace:DcsIpia.Presentation" Title="IPIA — Elite Dangerous" Icon="{x:Static pres:ApplicationBranding.Icon}"
+ xmlns:pres="clr-namespace:DcsIpia.Presentation" Title="HEIMDALL — Elite Dangerous" Icon="{x:Static pres:ApplicationBranding.Icon}"
  Width="1340" Height="860" MinWidth="1050" MinHeight="650" WindowStartupLocation="CenterOwner">
  <Grid Margin="12">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -47,7 +47,7 @@
      </WrapPanel>
      <TextBlock x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
-     <TextBlock Text="Choose your connected controller. IPIA links a matching ED reference or adds a new one. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <TextBlock Text="Choose your connected controller. HEIMDALL links a matching ED reference or adds a new one. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
       <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" SelectionChanged="ConnectedChanged" AutomationProperties.Name="Controller to add"/>
       <Button Content="Rescan" Click="RescanClicked" Margin="8,0"/><Button x:Name="AddControllerButton" Content="Add controller…" Click="AddControllerClicked"/>

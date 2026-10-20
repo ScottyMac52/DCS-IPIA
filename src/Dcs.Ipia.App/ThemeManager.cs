@@ -23,7 +23,7 @@ namespace DcsIpia.Presentation
                     continue;
                 palettes[i] = new ResourceDictionary {
                     Source =
-                        new Uri($"pack://application:,,,/Dcs.Ipia.App;component/Themes/{selected}.xaml", UriKind.Absolute)
+                        new Uri($"pack://application:,,,/Heimdall;component/Themes/{selected}.xaml", UriKind.Absolute)
                 };
                 AppearanceManager.Reapply();
                 foreach (var window in Application.Current.Windows.OfType<Window>())

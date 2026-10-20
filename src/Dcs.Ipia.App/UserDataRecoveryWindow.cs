@@ -42,13 +42,13 @@ namespace DcsIpia.Presentation
             NameScope.SetNameScope(this, new NameScope());
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
-            Title = "DCS-IPIA — Data & recovery";
+            Title = "HEIMDALL — Data & recovery";
             Width = 680; Height = 480; MinWidth = 500; MinHeight = 380;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             var panel = new StackPanel { Margin = new Thickness(24) };
             panel.Children.Add(new TextBlock { Text = "Saved user data", FontSize = 24, FontWeight = FontWeights.SemiBold });
             panel.Children.Add(new TextBlock { Text = recovery.DataDirectory, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) });
-            panel.Children.Add(new TextBlock { Text = "Full backups include saved modules, shared defaults, preferences and user files. Save or discard editor drafts and close their windows first. Module snapshots are separate. Restore replaces user data and requires restarting IPIA; DCS files are never restored or removed.", TextWrapping = TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { Text = "Full backups include saved modules, shared defaults, preferences and user files. Save or discard editor drafts and close their windows first. Module snapshots are separate. Restore replaces user data and requires restarting HEIMDALL; DCS files are never restored or removed.", TextWrapping = TextWrapping.Wrap });
             _backup = Button("Back up user data…", "BackupUserDataButton", BackupClicked);
             _restore = Button("Restore backup…", "RestoreUserDataButton", RestoreClicked);
             _review = Button("Review restored deployment…", "ReviewDeploymentButton", ReviewClicked);
@@ -78,7 +78,7 @@ namespace DcsIpia.Presentation
         private async void BackupClicked(object sender, RoutedEventArgs e)
         {
             if (_busy || RequiresRestart) return;
-            var picker = new ThemeBrowseDialog { Save = true, Title = "Back up saved IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip", FileName = "IPIA-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip", OverwritePrompt = false };
+            var picker = new ThemeBrowseDialog { Save = true, Title = "Back up saved HEIMDALL user data", Filter = "HEIMDALL user-data backup|*.ipia-backup.zip", FileName = "HEIMDALL-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".ipia-backup.zip", OverwritePrompt = false };
             var path = _backupPicker is not null ? _backupPicker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) return;
             Busy(true);
@@ -94,7 +94,7 @@ namespace DcsIpia.Presentation
         private async void RestoreClicked(object sender, RoutedEventArgs e)
         {
             if (_busy) return;
-            var picker = new ThemeBrowseDialog { Title = "Restore IPIA user data", Filter = "IPIA user-data backup|*.ipia-backup.zip" };
+            var picker = new ThemeBrowseDialog { Title = "Restore HEIMDALL user data", Filter = "HEIMDALL user-data backup|*.ipia-backup.zip" };
             var path = _restorePicker is not null ? _restorePicker() : picker.ShowDialog(this) == true ? picker.FileName : null;
             if (path is null) return;
             Busy(true);
@@ -103,15 +103,15 @@ namespace DcsIpia.Presentation
                 _status.Text = "Verifying archive checksums, database integrity and schema compatibility…";
                 var info = await Task.Run(() => _recovery.Inspect(path));
                 var confirmed = _restoreConfirmation?.Invoke() ?? ThemeMessageBox.Show(this,
-                    $"Replace saved user data with this verified backup ({info.FileCount} files; app {info.ApplicationVersion}; database schema {info.DatabaseSchemaVersion})?\n\nThe previous directory will be retained beside the active data. A verified safety archive is also created when the current database is readable. IPIA must close and restart. DCS files remain untouched. Restored deployment records require review.",
+                    $"Replace saved user data with this verified backup ({info.FileCount} files; app {info.ApplicationVersion}; database schema {info.DatabaseSchemaVersion})?\n\nThe previous directory will be retained beside the active data. A verified safety archive is also created when the current database is readable. HEIMDALL must close and restart. DCS files remain untouched. Restored deployment records require review.",
                     "Confirm user-data restore", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
                 if (!confirmed) { _status.Text = "Restore cancelled; current data is unchanged."; return; }
                 RequiresRestart = true;
                 _closeDatabase();
                 var previous = await Task.Run(() => _recovery.Restore(path));
-                _status.Text = "Restore verified. Previous data retained at: " + previous + ". Close this window and restart IPIA.";
+                _status.Text = "Restore verified. Previous data retained at: " + previous + ". Close this window and restart HEIMDALL.";
             }
-            catch (Exception ex) { _status.Text = "Restore did not complete: " + ex.Message + (RequiresRestart ? " Close this window and restart IPIA to reopen recovered data." : " Current data was not replaced."); }
+            catch (Exception ex) { _status.Text = "Restore did not complete: " + ex.Message + (RequiresRestart ? " Close this window and restart HEIMDALL to reopen recovered data." : " Current data was not replaced."); }
             finally { Busy(false); }
         }
         private void ReviewClicked(object sender, RoutedEventArgs e)

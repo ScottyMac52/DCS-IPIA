@@ -33,7 +33,7 @@ namespace Dcs.Ipia.App.Smoke
             foreach (var theme in new[] { "Light", "Styles", "Primitives", "Collections", "Controls", "Menus" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
-                    Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute)
+                    Source = new Uri("pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute)
                 });
             ApplicationTheme.Initialize();
             Console.WriteLine("Smoke: Free Edition and signed Owner entitlement.");
@@ -695,7 +695,7 @@ namespace Dcs.Ipia.App.Smoke
                 var main = new MainWindow(new global::Dcs.Ipia.Dcs.ModuleWorkspaceLoader(), new global::Dcs.Ipia.Dcs.DcsFolderImporter(),
                     settings, restored, snapshotFilePicker: () => snapshotPath);
                 main.Show();
-                if (main.Title != "DCS-IPIA — Modules · " + ApplicationVersion.Label)
+                if (main.Title != "HEIMDALL — Modules · " + ApplicationVersion.Label)
                     throw new InvalidOperationException("Main window title did not include the application version.");
                 var restore = (Button)WorkspaceUi.Find(main, "RestoreModuleSnapshotButton")!;
                 ClickWithDispatcherContext(restore);

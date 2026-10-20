@@ -36,7 +36,7 @@ namespace DcsIpia.Presentation
             var picker = new ThemeBrowseDialog { Title = "Install signed owner license", Filter = "Owner license JSON|*.json", CheckFileExists = true };
             if (picker.ShowDialog(this) != true) return;
             SaveStatus.Text = EditionAccess.Store.Import(picker.FileName)
-                ? "Owner license installed. Restart DCS-IPIA to unlock all features and restore your saved appearance."
+                ? "Owner license installed. Restart HEIMDALL to unlock all features and restore your saved appearance."
                 : EditionAccess.Store.LastError;
         }
 

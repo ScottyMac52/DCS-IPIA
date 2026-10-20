@@ -5,16 +5,17 @@
   #define PublishDir "..\publish"
 #endif
 
-#define AppName "DCS Input Profile Importer"
-#define AppPublisher "ScottyMac52"
-#define AppExeName "Dcs.Ipia.App.exe"
+#define AppName "HEIMDALL"
+#define AppPublisher "Vyper Industries"
+#define AppExeName "Heimdall.exe"
 
 [Setup]
 AppId={{A5F785B7-C3D8-44D5-9E40-5ED48113F9E4}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={autopf}\DCS-IPIA
+DefaultDirName={autopf}\HEIMDALL
+UsePreviousAppDir=yes
 DefaultGroupName={#AppName}
 OutputDir=output
 OutputBaseFilename=setup
@@ -24,7 +25,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
-SetupIconFile=..\src\Dcs.Ipia.App\Branding\flight-patch.ico
+SetupIconFile=..\src\Dcs.Ipia.App\Branding\heimdall.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 WizardImageFile=..\src\Dcs.Ipia.App\Branding\setup-sidebar.bmp
 WizardSmallImageFile=..\src\Dcs.Ipia.App\Branding\setup-small.bmp
@@ -32,6 +33,13 @@ WizardSmallImageFile=..\src\Dcs.Ipia.App\Branding\setup-small.bmp
 [Files]
 Source: "Configure-SavedGames.ps1"; Flags: dontcopy
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Retain upgrade identity and previous directory; remove only known obsolete files.
+[InstallDelete]
+Type: files; Name: "{app}\Dcs.Ipia.App.exe"
+Type: files; Name: "{autodesktop}\DCS Input Profile Importer.lnk"
+Type: files; Name: "{autoprograms}\DCS Input Profile Importer\DCS Input Profile Importer.lnk"
+Type: dirifempty; Name: "{autoprograms}\DCS Input Profile Importer"
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"

@@ -232,6 +232,6 @@ jobs:
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
         with:
-          name: DCS-IPIA-tested-release-candidate
+          name: HEIMDALL-tested-release-candidate
           path: release-assets/*
           if-no-files-found: error

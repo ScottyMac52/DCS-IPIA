@@ -26,7 +26,7 @@ namespace Dcs.Ipia.Infrastructure
                 {
                     existing.CommandText = "SELECT max(version) FROM schema_migrations";
                     if (Convert.ToInt32(await existing.ExecuteScalarAsync(ct), System.Globalization.CultureInfo.InvariantCulture) > CurrentVersion)
-                        throw new InvalidDataException("The database was created by a newer IPIA version. Use that version or restore a compatible backup.");
+                        throw new InvalidDataException("The database was created by a newer HEIMDALL version. Use that version or restore a compatible backup.");
                 }
             }
             await using var tx = await c.BeginTransactionAsync(ct);

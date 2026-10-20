@@ -10,7 +10,7 @@ The executable initializes isolated data, checks shipped hardware and native PNG
 
 Before publishing a new version:
 
-1. Update the four-component version and write accurate notes headed `# DCS-IPIA vX.X.X.X` in a reviewed PR. Describe Free/Owner availability, user-visible changes and known limitations. Do not copy a historical release description unchanged.
+1. Update the four-component version and write accurate notes headed `# HEIMDALL vX.X.X.X` in a reviewed PR. Describe Free/Owner availability, user-visible changes and known limitations. Do not copy a historical release description unchanged.
 2. Run `python scripts/check_documentation.py` and the appropriate [local checks](../tests/README.md). CI also checks local guide links and the matching notes/version. Keep the independent 80/80/50 and Windows/package checks enabled.
 3. Merge the release request to main. A version-file change triggers the Release workflow. It revalidates notes against the actual requested version and runs its quality, Windows and inventory gates before building/verifying and publishing the exact assets.
 4. Explicit `vX.X.X.X` tag pushes remain supported, but the tag must match both the source version file and release-note heading. A mismatched tag fails before packaging/publication.

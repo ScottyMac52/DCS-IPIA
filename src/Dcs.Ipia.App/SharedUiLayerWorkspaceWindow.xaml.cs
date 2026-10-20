@@ -320,7 +320,7 @@ namespace DcsIpia.Presentation
                 var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
                 EditionAccess.RequireSharedDiagrams(snapshot, catalog);
             }
-            var dialog = new ThemeBrowseDialog { Save = true, Filter = "Shared defaults ZIP|*.zip", FileName = "IPIA-Shared-Defaults.zip" };
+            var dialog = new ThemeBrowseDialog { Save = true, Filter = "Shared defaults ZIP|*.zip", FileName = "HEIMDALL-Shared-Defaults.zip" };
             if (dialog.ShowDialog(this) != true) return;
             var bytes = SharedUiLayerOutputArchive.Build(snapshot,
                 SharedUiLayerKneeboardRenderer.Generate(SharedUiLayerOutputSerializer.CreatePreview(snapshot)));

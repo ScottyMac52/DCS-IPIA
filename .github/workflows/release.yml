@@ -114,7 +114,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: steps.version.outputs.publish == 'true'
         with:
-          name: DCS-IPIA-${{ steps.version.outputs.tag }}-tested
+          name: HEIMDALL-${{ steps.version.outputs.tag }}-tested
           path: release-assets/*
           if-no-files-found: error
       - name: Publish tested artifacts
@@ -123,7 +123,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: DCS-IPIA ${{ steps.version.outputs.tag }}
+          name: HEIMDALL ${{ steps.version.outputs.tag }}
           body_path: release/RELEASE-NOTES.md
           files: release-assets/*
           fail_on_unmatched_files: true

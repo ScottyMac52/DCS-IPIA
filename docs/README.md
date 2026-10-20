@@ -1,4 +1,4 @@
-# DCS-IPIA documentation
+# HEIMDALL documentation
 
 The current documented release baseline is **v1.1.1.0**. Read the [release notes](../release/RELEASE-NOTES.md) for that baseline and [GitHub Releases](https://github.com/ScottyMac52/DCS-IPIA/releases) for published downloads. `main` may contain newer unreleased changes. Guides describe implemented behavior unless explicitly marked historical, proposed or pending acceptance.
 

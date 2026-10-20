@@ -28,7 +28,7 @@ namespace Dcs.Ipia.Application
                 cell.SetAttributeValue("inputKey", control.InputKey);
                 root.Add(cell);
             }
-            root.Add(Cell("footer", "IPIA controller starter — " + controls.Count + " inputs",
+            root.Add(Cell("footer", "HEIMDALL controller starter — " + controls.Count + " inputs",
                 "text;fontColor=#475569;fontSize=12;", 0, height - 24, width, 24));
             var source = new XElement("mxfile", new XElement("diagram", new XAttribute("name", "Controller"),
                 new XElement("mxGraphModel", new XAttribute("pageWidth", width), new XAttribute("pageHeight", height), root)))

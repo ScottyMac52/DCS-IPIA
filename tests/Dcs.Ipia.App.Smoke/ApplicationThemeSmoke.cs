@@ -110,8 +110,8 @@ namespace Dcs.Ipia.App.Smoke
                     ThemeControlSmoke.SaveImage(axis, "axis-dialog-" + skin);
                     if (!ReferenceEquals(help.Icon, ApplicationBranding.Icon) ||
                         !ThemeControlSmoke.Children(help).OfType<Image>().Any(x => ReferenceEquals(x.Source, ApplicationBranding.Banner)))
-                        throw new InvalidOperationException("Help window lost its Flight Patch branding.");
-                    ThemeControlSmoke.SaveImage(help, "flight-patch-about-" + skin);
+                        throw new InvalidOperationException("Help window lost its HEIMDALL branding.");
+                    ThemeControlSmoke.SaveImage(help, "heimdall-about-" + skin);
                     VerifyMessage(fixture, MessageBoxButton.OK, MessageBoxResult.OK, MessageBoxResult.OK);
                     VerifyMessage(fixture, MessageBoxButton.YesNo, MessageBoxResult.No, MessageBoxResult.No);
                     VerifyMessage(fixture, MessageBoxButton.YesNoCancel, MessageBoxResult.Cancel, MessageBoxResult.Cancel);

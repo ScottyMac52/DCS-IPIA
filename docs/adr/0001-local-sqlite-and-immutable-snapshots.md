@@ -5,7 +5,7 @@
 
 ## Context
 
-DCS-IPIA needs transactional offline authoring without weakening Git review, deterministic releases, or recovery. A hosted database adds authentication, availability, cost, and operations before a confirmed multi-user requirement exists.
+HEIMDALL needs transactional offline authoring without weakening Git review, deterministic releases, or recovery. A hosted database adds authentication, availability, cost, and operations before a confirmed multi-user requirement exists.
 
 ## Decision
 

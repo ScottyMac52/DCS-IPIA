@@ -68,7 +68,7 @@ namespace Dcs.Ipia.Rendering
             return result;
         }
 
-        /// <summary>Rasterizes every page with the pinned IPIA font and fixed readable text size.</summary>
+        /// <summary>Rasterizes every page with the pinned HEIMDALL font and fixed readable text size.</summary>
         /// <param name="diagram">Generic layout.</param>
         /// <param name="page">Projected current labels.</param>
         /// <param name="footer">Optional preview attribution.</param>

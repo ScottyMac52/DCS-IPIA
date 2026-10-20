@@ -1,6 +1,6 @@
 # Sol-R grip on AVA
 
-IPIA ships four shared Sol-R grip layouts in its source-controlled asset bundle.
+HEIMDALL ships four shared Sol-R grip layouts in its source-controlled asset bundle.
 All four layouts are available in Free Edition, subject to verified native
 Thrustmaster identity and the existing capability checks. Other licensed
 features keep their edition requirements.
@@ -27,8 +27,8 @@ and the full remaining acceptance checklist are tracked separately in #282.
    **RIGHT-HANDED** or **LEFT-HANDED**, and configure **Point of View hat-switch**
    as desired. Confirm the native name and test buttons, hats and axes. See the
    [official manual](https://ts.thrustmaster.com/download/accessories/Manuals/SOL-R/Sol-R_3_AVA_Add-On_Grip_User_Manual.pdf),
-   printed pages 15–16, 21–23 and 28. IPIA does not change these driver settings.
-3. In IPIA, use **Hardware → Discover devices… / Rescan**. Review and adopt the
+   printed pages 15–16, 21–23 and 28. HEIMDALL does not change these driver settings.
+3. In HEIMDALL, use **Hardware → Discover devices… / Rescan**. Review and adopt the
    actual AVA instance. Both layouts for the recognized handedness are offered
    when its enumerated controls match the catalog.
 4. Refresh an existing workspace's catalog using **Load built-in hardware**, then
@@ -43,7 +43,7 @@ The layouts retain all 21 numbered buttons, X/Y/RZ, and eight POV directions
 in an **Alternate mode inputs** area. They are retained as alternative native
 inputs, not a claim that the driver emits both representations simultaneously.
 The Windows name distinguishes handedness but does not identify the POV setting;
-IPIA therefore offers both compatible layouts for explicit selection.
+HEIMDALL therefore offers both compatible layouts for explicit selection.
 
 Inventory matching still requires an exact native key set and no unsupported
 objects. If the driver exposes a different capability set, record its inventory

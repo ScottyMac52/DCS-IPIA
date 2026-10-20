@@ -53,7 +53,7 @@ namespace Dcs.Ipia.Infrastructure
             var count = reader.ReadBlock(buffer, 0, buffer.Length);
             if (count > OwnerLicenseVerifier.MaximumBytes) throw new InvalidDataException("License exceeds the supported size.");
             var json = new string(buffer, 0, count);
-            if (_verifier.Verify(json) is null) throw new InvalidDataException("Choose an authentic signed DCS-IPIA owner license.");
+            if (_verifier.Verify(json) is null) throw new InvalidDataException("Choose an authentic signed HEIMDALL owner license.");
             return json;
         }
         #endregion END private helpers

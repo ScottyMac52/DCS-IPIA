@@ -68,7 +68,7 @@ namespace Dcs.Ipia.Dcs
             sources["config/kneeboard.json"] = """{"includeUiLayer":true,"profiles":{},"pages":[],"summaryPages":[],"labels":{}}""";
             sources["config/ipia-default-choice.json"] = JsonSerializer.Serialize(new { schemaVersion = 1, choice = emptyDefaults ? "empty" : "shared-revision" });
             sources["config/ipia-created-module.json"] = JsonSerializer.Serialize(new { schemaVersion = 1, moduleId = module.Id, dcsId = module.DcsId });
-            var result = new EditorWorkspaceSnapshot(new(module, profiles, [], [], "Created in IPIA"), [], [], diagrams, [],
+            var result = new EditorWorkspaceSnapshot(new(module, profiles, [], [], "Created in HEIMDALL"), [], [], diagrams, [],
                 commands, assignments, new Dictionary<string, string>(), sources) { SharedDefault = emptyDefaults ? null : defaults };
             SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(result);
             return result;

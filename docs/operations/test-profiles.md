@@ -1,16 +1,16 @@
 # Isolated profiles and clean-slate testing
 
-Start IPIA normally to use **Production** at `%LOCALAPPDATA%\DCS-IPIA`. Existing production data and migrations keep their original paths. Normal upgrade, uninstall and reinstall preserve this directory; uninstall removes program files, not user data. Setup preserves the selected Saved Games folder unless you explicitly choose another one.
+Start HEIMDALL normally to use **Production** at `%LOCALAPPDATA%\DCS-IPIA`. Existing production data and migrations keep their original paths. Normal upgrade, uninstall and reinstall preserve this directory; uninstall removes program files, not user data. Setup preserves the selected Saved Games folder unless you explicitly choose another one.
 
 Use **Data & recovery → Test profiles and reset… → Open named test profile**, or:
 
 ```powershell
-.\Dcs.Ipia.App.exe --test-profile fresh-install
+.\Heimdall.exe --test-profile fresh-install
 # Development:
 dotnet run --project src/Dcs.Ipia.App -- --test-profile fresh-install
 ```
 
-Names contain 1–40 ASCII letters, digits, underscores or hyphens, starting with a letter/digit; Windows device names are reserved. Names are normalized to lowercase. Arbitrary directories, roots and traversal are rejected. Named data lives at `%LOCALAPPDATA%\DCS-IPIA-TestProfiles\fresh-install`. A new name creates a fresh database. Reusing a name reopens that profile. The main window displays the name, data location and test indicator. Return with **Open Production**, or close IPIA and launch without arguments. Close other instances of the same profile first; each profile has an exclusive session lease.
+Names contain 1–40 ASCII letters, digits, underscores or hyphens, starting with a letter/digit; Windows device names are reserved. Names are normalized to lowercase. Arbitrary directories, roots and traversal are rejected. Named data lives at `%LOCALAPPDATA%\DCS-IPIA-TestProfiles\fresh-install`. A new name creates a fresh database. Reusing a name reopens that profile. The main window displays the name, data location and test indicator. Return with **Open Production**, or close HEIMDALL and launch without arguments. Close other instances of the same profile first; each profile has an exclusive session lease.
 
 Each profile owns its SQLite database, app/appearance settings and legacy settings import, user hardware/assets, setup offer/completion state, temporary directory, Fly Now bookkeeping and backup working directories. The presentation-only `workspace-layout.json` is currently Windows-user-wide at `%LOCALAPPDATA%\DCS-IPIA\workspace-layout.json`; named profiles share splitter/disclosure/zoom preferences. It is not module state. Owner licensing is also Windows-user-wide and is stored separately from profile backups. Immutable packaged defaults/assets can be read by all profiles; production user files are never imported into a new test profile. Process-local TMP/TEMP/TMPDIR point into the selected profile. No database schema change is required.
 

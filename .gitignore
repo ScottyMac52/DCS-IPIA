@@ -435,3 +435,9 @@ owner-license.json
 owner-signing-key.pem
 *.owner-key.pem
 *Owner-Recovery*.zip
+
+# Keep repository release plans tracked while ignoring generated release output.
+!/release/
+/release/*
+!/release/*.md
+!/release/version.json

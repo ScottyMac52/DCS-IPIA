@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Dcs.Ipia.Dcs
 {
-    /// <summary>Reads the versioned shared assets distributed with IPIA, preserving original source identities.</summary>
+    /// <summary>Reads the versioned shared assets distributed with HEIMDALL, preserving original source identities.</summary>
     public static class BundledSharedCatalog
     {
         #region BEGIN Public

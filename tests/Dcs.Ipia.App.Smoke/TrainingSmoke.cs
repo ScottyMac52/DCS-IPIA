@@ -43,7 +43,7 @@ namespace Dcs.Ipia.App.Smoke
             foreach (var theme in new[] { "Dark", "Light" })
             {
                 System.Windows.Application.Current.Resources.MergedDictionaries[0] = new ResourceDictionary
-                { Source = new Uri("pack://application:,,,/Dcs.Ipia.App;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
+                { Source = new Uri("pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute) };
                 window.UpdateLayout();
                 Capture(window, "training-new-module-" + theme);
                 if (((AdornerDecorator)((Border)((Grid)window.Content).Children[0]).Child).AdornerLayer is null)

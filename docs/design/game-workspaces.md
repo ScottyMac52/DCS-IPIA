@@ -24,7 +24,7 @@ failure or cancellation retains the current workspace.
    select that reference under **Controllers in profile**, and click
    **Identify Controller**. Press a button, move a hat, or move an axis noticeably
    on your hardware. No prior association, controller selection or drawing is
-   required. IPIA listens to all eligible connected controllers and shows the
+   required. HEIMDALL listens to all eligible connected controllers and shows the
    device name, exact instance GUID, input key and whether the native product
    matches the selected ED reference. A mismatching product cannot be confirmed.
    **Confirm controller link** stages the explicit association; identification
@@ -43,10 +43,10 @@ failure or cancellation retains the current workspace.
    exact-instance and occupied-reference checks still apply.
 
    To add hardware directly, choose the connected Windows controller and **Add controller…**.
-   IPIA reuses an unambiguous compatible ED reference, or adds a new numeric
+   HEIMDALL reuses an unambiguous compatible ED reference, or adds a new numeric
    reference for a supported HID product not already represented in the preset.
    You do not need to create a binding in Elite first for a single unique product.
-   Newly added empty controllers remain in the IPIA workspace; they appear in a
+   Newly added empty controllers remain in the HEIMDALL workspace; they appear in a
    native `.binds` export once a command or modifier actually references them.
    Re-adding the same physical unit selects its existing entry.
 
@@ -60,7 +60,7 @@ failure or cancellation retains the current workspace.
    If multiple ED references match, choose the captured reference explicitly.
    Native `DeviceIndex` values are preserved; Windows discovery order is never
    converted into an ED index. For identical products without captured indices,
-   bind an input on each in Elite and reimport the indexed preset first. IPIA
+   bind an input on each in Elite and reimport the indexed preset first. HEIMDALL
    cannot safely invent that ordering. A reference already linked to another
    connected unit cannot be overwritten. Offline replacement requires an explicit
    reference choice. Existing native aliases and targets are never renamed by
@@ -88,10 +88,10 @@ failure or cancellation retains the current workspace.
    filters do not hide the section's existing assignment rows or diagram labels;
    selecting an assignment reveals its command and clears conflicting palette
    filters. No filter changes command identities, assignments or native files.
-5. **Save** stores an IPIA game workspace. **Discard** restores the last saved
+5. **Save** stores an HEIMDALL game workspace. **Discard** restores the last saved
    document. Changing game/profile or closing prompts save/discard/cancel, and a
    failed save retains the pending draft. Native preset names are retained;
-   changing the IPIA profile name does not rename the game's preset.
+   changing the HEIMDALL profile name does not rename the game's preset.
 6. **Export for review** requires saved state and creates a new child folder in
    the selected destination. Previous exports are not overwritten. The known
    active Bindings folder and symbolic-link destinations are rejected. There is
@@ -133,7 +133,7 @@ mode. OpenComposite is reported to work, but OpenKneeboard does not provide
 support for that combination. Check those runtime requirements before choosing a
 VR viewer. The [OpenKneeboard FAQ](https://openkneeboard.com/faq/) recommends PDF
 for document text and keeping existing images in their original image format.
-IPIA does not install a viewer, alter the VR runtime or claim a non-VR ED overlay.
+HEIMDALL does not install a viewer, alter the VR runtime or claim a non-VR ED overlay.
 Multiple-controller reference packs remain follow-up work.
 
 
@@ -160,7 +160,7 @@ Previously verified associations remain
 usable offline; conflicting current native observations block authoring/export.
 
 Game workspaces are stored under `GameWorkspaces/<workspace-id>.ipia-game.json`
-in the selected IPIA user-data profile; `selection.json` remembers the latest
+in the selected HEIMDALL user-data profile; `selection.json` remembers the latest
 explicit game/profile. The envelope is versioned and bounded, writes are atomic,
 and a stale revision fails before replacement. Game state does not enter the DCS
 module tables. Existing full-user-data backup/restore includes this directory;

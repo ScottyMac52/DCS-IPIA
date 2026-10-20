@@ -138,7 +138,7 @@ namespace DcsIpia.Presentation
         private void Identify()
         {
             Get<TextBox>(_form!, "DcsIdInput").Text = "TRAINING";
-            Get<TextBox>(_form!, "DisplayNameInput").Text = "IPIA Training Aircraft";
+            Get<TextBox>(_form!, "DisplayNameInput").Text = "HEIMDALL Training Aircraft";
         }
         private void AddDevice()
         {

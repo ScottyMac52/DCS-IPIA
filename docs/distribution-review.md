@@ -2,7 +2,7 @@
 
 Related: [#183](https://github.com/ScottyMac52/DCS-IPIA/issues/183), artwork [#192](https://github.com/ScottyMac52/DCS-IPIA/issues/192), dependencies [#193](https://github.com/ScottyMac52/DCS-IPIA/issues/193).
 
-The source findings below are a dated audit, not the current release version or dependency graph. Review the exact candidate identified in [release acceptance](release-acceptance.md), including Flight Patch branding and the Free background added after this audit. Original source hashes and package versions below are retained as evidence.
+The source findings below are a dated audit, not the current release version or dependency graph. Review the exact candidate identified in [release acceptance](release-acceptance.md), including [HEIMDALL branding](heimdall-branding.md) and the Free background added after this audit. Original source hashes and package versions below are retained as evidence.
 
 ## Recorded source review — 2026-10-09
 

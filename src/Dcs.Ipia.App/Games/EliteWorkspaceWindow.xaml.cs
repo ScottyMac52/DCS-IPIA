@@ -96,7 +96,7 @@ namespace DcsIpia.Presentation.Games
                 GameWorkspaceContract.Validate(workspace);
                 _revision = _services.Store.Save(workspace, _revision);
                 OpenSession(workspace, _revision); ReloadChoices(workspace.Id); Remember(workspace);
-                Status("Saved in your IPIA data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : "")); return true;
+                Status("Saved in your HEIMDALL data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : "")); return true;
             }
             catch (Exception error) { Status("Save failed; pending edits are retained: " + error.Message); return false; }
         }

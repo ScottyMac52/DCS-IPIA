@@ -1037,7 +1037,7 @@ namespace DcsIpia.Features.Assignments
                 void Redraw()
                 {
                     pages.Children.Clear();
-                    var images = DeviceKneeboardPages.Render(diagram, page, "DCS-IPIA · current draft preview",
+                    var images = DeviceKneeboardPages.Render(diagram, page, "HEIMDALL · current draft preview",
                         AppearanceManager.HasBackground(view), AppearanceManager.ArtworkOpacityFor(view));
                     foreach (var png in images)
                     {

@@ -18,7 +18,7 @@ namespace Dcs.Ipia.Rendering
         /// <param name="footer">Preview footer, or empty when exporting an authored page.</param>
         /// <returns>The complete rendered PNG.</returns>
         public static byte[] Render(UiLayerDiagram diagram, KneeboardComposite page,
-                                    string footer = "DCS-IPIA • current draft preview", bool transparent = false, double artworkOpacity = 1)
+                                    string footer = "HEIMDALL • current draft preview", bool transparent = false, double artworkOpacity = 1)
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
@@ -60,7 +60,7 @@ namespace Dcs.Ipia.Rendering
         /// <param name="footer">Preview footer, or empty to retain only the authored SVG footer.</param>
         /// <returns>One complete SVG page with device image and modifier legend.</returns>
         public static string BuildPageSvg(UiLayerDiagram diagram, KneeboardComposite page,
-                                          string footer = "DCS-IPIA • current draft preview")
+                                          string footer = "HEIMDALL • current draft preview")
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
@@ -75,7 +75,7 @@ namespace Dcs.Ipia.Rendering
             var hardwareHeight = page.Legend.Count > 0 ? 1170 : 1350;
             return $"""
              <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
-               <desc>Current DCS-IPIA device kneeboard: {Escape(diagram.Title)}</desc>
+               <desc>Current HEIMDALL device kneeboard: {Escape(diagram.Title)}</desc>
                <rect width="1200" height="1600" fill="#06101d"/>
                <rect width="1200" height="16" fill="#46d8ff"/>
                <text x="54" y="80" font-family="Arial,sans-serif" font-size="44" font-weight="700" fill="#f5f9ff">{Escape(page.Title)}</text>
