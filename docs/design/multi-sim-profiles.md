@@ -160,13 +160,17 @@ prohibited. The adapter never scans active folders or deploys files.
 | Command toggles | Native `ToggleOn` is independent of per-binding `Hold`; editable through `profile.Metadata["ed.toggle:" + commandId]` as `"0"` or `"1"`; catalog metadata describes the captured value |
 | Axes | Native deadzone fraction maps to portable percentage points (0..100); inversion supported; untouched native double precision retained; generic curve/sensitivity conversion rejected |
 | Preservation | No edits returns every original string exactly; edits change selected slots/flags, retaining unrelated settings, unknown root data, duplicate scalar settings and selector text |
-| Unsupported edits | Unknown data inside a rewritten slot blocks that edit; duplicate slots, changed device membership/identity, malformed values, unsupported modes/extensions and unknown command targets return blocking diagnostics with no output files |
+| Unsupported edits | Unknown data inside a rewritten slot blocks that edit; duplicate slots, removed/changed captured devices, unsafe new identities/indices, malformed values, unsupported modes/extensions and unknown command targets return blocking diagnostics with no output files |
 
-This phase permits assignment moves between captured devices and additions to
-existing unbound slots. Keep the captured logical device entries even after
-clearing their bindings. Adding controllers, renaming presets, discovering a full
-localized command catalog and selecting different presets for each game section
-need explicit future authoring flows. The coarse `ModifierChords` capability advertises
+Assignments can move between captured devices and newly added canonical numeric
+HID references through `ISimDeviceEditor`. Captured logical identities remain
+immutable and present even after clearing their bindings. New devices do not
+rewrite original evidence, aliases or selector files; empty added controllers
+persist in IPIA JSON and enter native output only when referenced by a binding.
+Duplicate products and invented device indices are rejected. Repeated identical
+controllers must use captured indexed references with explicit unit choices.
+Renaming presets, discovering a full localized command catalog and selecting
+different presets for each game section remain follow-up flows. The coarse `ModifierChords` capability advertises
 button chords; axis chords remain blocked by backend validation until verified. Selector files are archival evidence and
 remain unchanged; they are not interpreted as a license or an active preset
 selection. The adapter phase itself did not add WPF authoring. The

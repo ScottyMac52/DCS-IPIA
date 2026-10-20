@@ -13,12 +13,12 @@ namespace Dcs.Ipia.Application.Games
             if (policy.IsOwner) return;
             foreach (var device in workspace.Profile.Devices.Where(x => !IsSystemDevice(x.Identity?.SimSpecificIds.GetValueOrDefault("ed.device"))))
             {
-                if (!workspace.Hardware.TryGetValue(device.LogicalId, out var pin) || !catalogIds.Contains(pin.HardwareId)
+                if (!workspace.Hardware.TryGetValue(device.LogicalId, out var pin) || pin.HardwareId is null || !catalogIds.Contains(pin.HardwareId)
                     || !policy.AllowsHardware(pin.HardwareId) || !policy.AllowsDevice(pin.Device)
                     || referenceMatcher?.Matches(device.Identity!, pin.Device) != true)
                     throw new InvalidOperationException("Associate every controller with reviewed Thrustmaster hardware before editing or exporting in Free Edition. Imported data is retained read-only; Premium availability TBA.");
                 var current = observed.Where(x => x.Connected && x.PhysicalGuid == pin.Device.PhysicalGuid).ToArray();
-                if (current.Length > 1 || current.Any(x => !policy.AllowsDevice(x)))
+                if (current.Length > 1 || current.Any(x => !policy.AllowsDevice(x) || referenceMatcher.Matches(device.Identity!, x) != true))
                     throw new InvalidOperationException("Controller manufacturer evidence is ambiguous or is not eligible in Free Edition.");
             }
         }
@@ -27,3 +27,4 @@ namespace Dcs.Ipia.Application.Games
         #endregion END Public
     }
 }
+

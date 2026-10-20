@@ -19,7 +19,7 @@ namespace Dcs.Ipia.Application.Games
             foreach (var (id, pin) in workspace.Hardware)
             {
                 if (!workspace.Profile.Devices.Any(x => x.LogicalId == id) || pin?.Device is null
-                    || pin.Device.PhysicalGuid == Guid.Empty || string.IsNullOrWhiteSpace(pin.HardwareId))
+                    || pin.Device.PhysicalGuid == Guid.Empty || (pin.HardwareId is not null && string.IsNullOrWhiteSpace(pin.HardwareId)))
                     throw new InvalidDataException("Invalid game hardware association.");
             }
         }

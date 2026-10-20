@@ -30,7 +30,7 @@
     <ListBox x:Name="FeaturePicker" SelectionChanged="FeatureChanged" AutomationProperties.Name="Game feature navigation">
      <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments"/><ListBoxItem Content="Input Testing"/><ListBoxItem Content="Reference Sheets"/>
     </ListBox>
-    <TextBlock Text="Hardware" FontWeight="SemiBold" Margin="0,20,0,6"/>
+    <TextBlock Text="Controllers in profile" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,20,0,6"/>
     <ListBox x:Name="DevicePicker" SelectionChanged="DeviceChanged" MinHeight="120" MaxHeight="350" AutomationProperties.Name="Elite native device references">
      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
     </ListBox>
@@ -38,11 +38,25 @@
    <Grid Grid.Column="1">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
-     <TextBlock Text="Associate a native reference with your hardware" FontSize="18" FontWeight="SemiBold"/>
-     <TextBlock Text="Choose the drawing and the exact connected controller. Names in a preset do not identify a Windows device." TextWrapping="Wrap" Margin="0,4,0,8"/>
-     <WrapPanel><ComboBox x:Name="HardwarePicker" DisplayMemberPath="Title" Width="300" AutomationProperties.Name="Shared hardware drawing"/>
-      <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="330" Margin="8,0" AutomationProperties.Name="Exact connected controller"/>
-      <Button Content="Rescan" Click="RescanClicked"/><Button x:Name="AssociateButton" Content="Associate" Click="AssociateClicked" Margin="8,0"/>
+     <TextBlock Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
+     <TextBlock Text="Choose your connected controller. IPIA links a matching ED reference or adds a new one. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <WrapPanel>
+      <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" SelectionChanged="ConnectedChanged" AutomationProperties.Name="Controller to add"/>
+      <Button Content="Rescan" Click="RescanClicked" Margin="8,0"/><Button x:Name="AddControllerButton" Content="Add controller…" Click="AddControllerClicked"/>
+     </WrapPanel>
+     <StackPanel x:Name="ReferenceChoiceTools" Visibility="Collapsed" Margin="0,8,0,0">
+      <TextBlock Text="Choose the matching reference from your imported ED preset. ED indices identify game references, not Windows connection order." TextWrapping="Wrap"/>
+      <WrapPanel Margin="0,4,0,0"><ComboBox x:Name="ReferencePicker" DisplayMemberPath="Name" Width="430" AutomationProperties.Name="Matching ED reference"/>
+       <Button x:Name="LinkReferenceButton" Content="Link selected reference" Click="LinkReferenceClicked" Margin="8,0"/>
+      </WrapPanel>
+     </StackPanel>
+     <WrapPanel Margin="0,8,0,0"><TextBlock x:Name="DrawingStatus" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="550"/>
+      <Button x:Name="ChangeDrawingButton" Content="Change drawing…" Click="ChangeDrawingClicked" Margin="8,0"/>
+     </WrapPanel>
+     <WrapPanel x:Name="DrawingTools" Visibility="Collapsed" Margin="0,6,0,0">
+      <ComboBox x:Name="HardwarePicker" DisplayMemberPath="Title" Width="360" AutomationProperties.Name="Optional shared hardware drawing"/>
+      <Button x:Name="UseDrawingButton" Content="Use drawing" Click="UseDrawingClicked" Margin="8,0"/>
+      <Button x:Name="NoDrawingButton" Content="No drawing" Click="NoDrawingClicked"/>
      </WrapPanel>
     </StackPanel>
     <Grid Grid.Row="1">
