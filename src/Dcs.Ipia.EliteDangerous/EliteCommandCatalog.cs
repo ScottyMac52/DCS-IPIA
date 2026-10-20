@@ -12,8 +12,8 @@ namespace Dcs.Ipia.EliteDangerous
         /// <summary>Gets all native commands, including commands with no assignments.</summary>
         public IReadOnlyList<SimCommand> Commands => native.Commands.Select(x => new SimCommand
         {
-            Id = EliteProfileProjection.CommandId(context, x.Name.LocalName), DisplayName = x.Name.LocalName,
-            Category = "Elite Dangerous", Context = context,
+            Id = EliteProfileProjection.CommandId(context, x.Name.LocalName), DisplayName = EliteCommandNames.Display(x.Name.LocalName),
+            Category = EliteCommandSections.ForCommand(x.Name.LocalName), Context = context,
             Type = x.Element("Binding") is null ? CommandType.Button : CommandType.Axis,
             Metadata = x.Element("ToggleOn") is { } toggle
                 ? new() { ["ed.toggleOn"] = EliteNativeDocument.Attribute(toggle, "Value") } : new()

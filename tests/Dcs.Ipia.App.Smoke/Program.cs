@@ -42,6 +42,8 @@ namespace Dcs.Ipia.App.Smoke
             BrandingSmoke.Verify();
             global::Dcs.Ipia.Dcs.BundledSharedCatalog.Validate(global::Dcs.Ipia.Dcs.BundledSharedCatalog.Root);
             SolRHardwareSmoke.Verify();
+            Console.WriteLine("Smoke: game selection and Elite profile authoring.");
+            GameWorkspaceSmoke.Verify();
             var defaultsWindow = new SharedUiLayerWorkspaceWindow(new SharedUiLayerWorkspace(1, new string('a', 40),
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();

@@ -21,6 +21,7 @@ namespace DcsIpia.Presentation
     /// <summary>Hosts the module feature views and coordinates shared draft, save and build operations.</summary>
     public partial class ModuleWorkspaceWindow : Window
     {
+        private bool _changingSelection;
         private readonly WindowContext _context;
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private readonly INavigationService _navigation;
@@ -61,7 +62,7 @@ namespace DcsIpia.Presentation
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
                                      Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
-                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null)
+                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<SavedModuleChoice>? moduleChoices = null)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             training?.RequireRepository(repository);
@@ -89,6 +90,12 @@ namespace DcsIpia.Presentation
             foreach (var pair in viewModel.Labels)
                 _labels[pair.Key] = pair.Value;
             InitializeComponent();
+            _changingSelection = true;
+            WorkspaceGamePicker.SelectedIndex = 0;
+            WorkspaceProfilePicker.ItemsSource = moduleChoices ?? [];
+            WorkspaceProfilePicker.SelectedItem = moduleChoices?.FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id);
+            GameWorkspaceSelectors.Visibility = allowGameSwitch && training is null ? Visibility.Visible : Visibility.Collapsed;
+            _changingSelection = false;
             WorkspaceLayout.SetPersistenceEnabled(WorkspaceRoot, training is null && persistLayout);
             DataContext = _viewModel;
             WorkspaceSettingsButton.IsEnabled = _settings is not null;
@@ -109,6 +116,35 @@ namespace DcsIpia.Presentation
             FeatureNav.SelectedIndex = 0;
         }
 
+        #region BEGIN Public
+        /// <summary>Gets the explicit requested game after a guarded close.</summary>
+        public string? RequestedGame { get; private set; }
+        /// <summary>Gets an explicit requested saved DCS profile after a guarded close.</summary>
+        public Guid? RequestedModule { get; private set; }
+        #endregion END Public
+
+        private async void WorkspaceGameChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_changingSelection || WorkspaceGamePicker.SelectedIndex != 1) return;
+            if (await ConfirmWorkspaceSwitch()) { RequestedGame = "elite-dangerous"; Close(); }
+            else { _changingSelection = true; WorkspaceGamePicker.SelectedIndex = 0; _changingSelection = false; }
+        }
+        private async void WorkspaceProfileChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_changingSelection || WorkspaceProfilePicker.SelectedItem is not SavedModuleChoice choice || choice.Id == _saved?.Configuration.Module.Id) return;
+            if (await ConfirmWorkspaceSwitch()) { RequestedModule = choice.Id; Close(); }
+            else { _changingSelection = true; WorkspaceProfilePicker.SelectedItem = WorkspaceProfilePicker.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id); _changingSelection = false; }
+        }
+        private async Task<bool> ConfirmWorkspaceSwitch()
+        {
+            if (!HasPendingChanges()) return true;
+            var choice = ThemeMessageBox.Show(this, "Save pending edits before switching? Yes saves, No discards, Cancel stays here.", "Switch workspace", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
+            if (choice == MessageBoxResult.Cancel) return false;
+            if (choice == MessageBoxResult.No) { DiscardClicked(this, new()); return true; }
+            if (_repository is null) return false;
+            try { await SaveWorkspaceAsync(); return !HasPendingChanges(); }
+            catch (Exception error) { EditorMessage.Text = "Unable to save before switching: " + error.Message; return false; }
+        }
         private void FeatureNavChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FeatureNav.SelectedItem is ListBoxItem item)

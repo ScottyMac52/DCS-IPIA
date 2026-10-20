@@ -1,4 +1,6 @@
 using System.Text.Json;
+using DcsIpia.Presentation.Games;
+using Dcs.Ipia.Application.Games;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,6 +17,8 @@ namespace DcsIpia.Presentation
     /// <summary>Displays the themed module workspace and opens read-only repository or Saved Games previews.</summary>
     public partial class MainWindow : Window
     {
+        private readonly GameWorkspaceServices? _games;
+        private bool _changingGame;
         private readonly IModuleWorkspaceLoader _loader;
         private readonly IDcsFolderImporter _folderImporter;
         private readonly IAppSettingsService _settings;
@@ -60,6 +64,7 @@ namespace DcsIpia.Presentation
         /// <param name="logger">Optional module operation logger.</param>
         /// <param name="deviceDiscovery">Native controller discovery for deployment cleanup.</param>
         /// <param name="supportReports">Read-only selected-profile support evidence.</param>
+        /// <param name="games">Optional profile-owned game selection and ED editing services.</param>
         public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
                           IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
                           ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
@@ -68,7 +73,7 @@ namespace DcsIpia.Presentation
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
                           HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
                           ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null,
-                          IConnectedDeviceDiscovery? deviceDiscovery = null, SupportReportService? supportReports = null)
+                          IConnectedDeviceDiscovery? deviceDiscovery = null, SupportReportService? supportReports = null, GameWorkspaceServices? games = null)
         {
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = logger ?? NullLogger<MainWindow>.Instance;
@@ -89,8 +94,13 @@ namespace DcsIpia.Presentation
             _setup = setup;
             _userMappings = userMappings;
             _supportReports = supportReports;
+            _games = games;
             InitializeComponent();
             BindMainCommands();
+            _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
+            GameSelection.GameRequested += (_, game) => SelectGame(game);
+            GameSelection.ContinueRequested += (_, _) => ContinueGame();
+            if (_games is not null) ShowGameSelection();
             Activated += (_, _) => ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
             Title = "DCS-IPIA — Modules · " + ApplicationVersion.Label;
             if (profile is not null)
@@ -107,17 +117,79 @@ namespace DcsIpia.Presentation
             Loaded += async (_, _) =>
             {
                 await RefreshSavedModulesAsync(); await RefreshFlyNowAsync();
+                if (_games is null) OfferHardwareSetup();
+            };
+        }
+        #region BEGIN Public
+        #endregion END Public
+        #region BEGIN private helpers
+        private void OfferHardwareSetup()
+        {
+            if (_moduleOperationBusy || OwnedWindows.Count > 0) return;
                 if (!_setupOffered && _setup is not null && _profileService is not null)
                 {
                     _setupOffered = true;
                     try { if (!_profileService.SetupOffered) OpenSetup(); }
                     catch (Exception ex) { FlyNowStatus.Text = "Setup could not open. Resume from Settings: " + ex.Message; }
                 }
-            };
         }
-        #region BEGIN Public
-        #endregion END Public
-        #region BEGIN private helpers
+        private void ShowGameSelection()
+        {
+            if (_games is null) return;
+            try { GameSelection.SetRecent(_games.Recent()); }
+            catch (Exception error) { GameSelection.SetRecent(new()); ImportStatus.Text = "Recent game selection could not be read: " + error.Message; }
+            GameSelection.Visibility = Visibility.Visible; DcsLandingPanel.Visibility = Visibility.Collapsed;
+        }
+        private void ShowGamesClicked(object sender, RoutedEventArgs e) => ShowGameSelection();
+        private void LandingGameChanged(object sender, SelectionChangedEventArgs e)
+        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); }
+        private void SelectGame(string game)
+        {
+            if (game == "elite-dangerous") { OpenElite(); return; }
+            GameSelection.Visibility = Visibility.Collapsed; DcsLandingPanel.Visibility = Visibility.Visible;
+            _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
+            if (_games is not null)
+            {
+                var recent = _games.Recent();
+                if (recent.DcsModuleId is { } id) SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id) ?? SavedModules.SelectedItem;
+                var choice = SavedModules.SelectedItem as SavedModuleChoice;
+                RememberDcs(choice?.Id, choice?.DisplayName ?? "");
+                OfferHardwareSetup();
+            }
+        }
+        private void ContinueGame()
+        {
+            if (_games is null) return;
+            try
+            {
+                var selection = _games.Recent();
+                if (selection.BackendId == "elite-dangerous") OpenElite();
+                else { SelectGame("dcs"); if (selection.DcsModuleId is not null) OpenSaved_Click(this, new RoutedEventArgs()); }
+            }
+            catch (Exception error) { ShowImportError("Unable to reopen recent workspace: " + error.Message); }
+        }
+        private async void OpenElite()
+        {
+            if (_games is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var hardware = await GameWorkspaceServices.HardwareAsync();
+                var selection = _games.Recent();
+                _games.Remember(selection with { BackendId = "elite-dangerous", DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
+                var window = new EliteWorkspaceWindow(_games, hardware, selection.WorkspaceId) { Owner = this };
+                window.ShowDialog();
+                if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
+            }
+            catch (Exception error) { ShowImportError("Unable to open Elite workspace: " + error.Message); }
+            finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); if (DcsLandingPanel.Visibility == Visibility.Visible) OfferHardwareSetup(); }
+        }
+        private void RememberDcs(Guid? id, string name)
+        {
+            if (_games is null) return;
+            try { _games.Remember(_games.Recent() with { BackendId = "dcs", DcsModuleId = id, DisplayName = name.Length > 200 ? name[..200] : name }); }
+            catch (Exception error) { ImportStatus.Text = "Recent selection could not be saved: " + error.Message; }
+        }
         private void ExecuteMainQuickAction(object sender, RoutedEventArgs e)
         {
             if (sender is Button { Tag: RoutedUICommand command } && command.CanExecute(null, this)) command.Execute(null, this);
@@ -694,8 +766,17 @@ namespace DcsIpia.Presentation
             if (_lastViewModel is null)
                 return;
             var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
-                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory)) { Owner = this };
+                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
+                moduleChoices: SavedModules.Items.Cast<SavedModuleChoice>().ToArray()) { Owner = this };
+            if (_games is not null && _lastViewModel.Workspace is { } workspace)
+                RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);
             window.ShowDialog();
+            if (window.RequestedGame == "elite-dangerous") OpenElite();
+            else if (window.RequestedModule is { } id)
+            {
+                SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id);
+                OpenSaved_Click(this, new RoutedEventArgs());
+            }
         }
         private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
