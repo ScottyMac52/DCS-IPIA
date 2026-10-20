@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Heimdall.Application/Heimdall.Application.csproj"/><ProjectReference Include="../Heimdall.Domain/Heimdall.Domain.csproj"/><PackageReference Include="Microsoft.Data.Sqlite"/></ItemGroup></Project>

@@ -1,0 +1,343 @@
+{
+  "SchemaVersion": 1,
+  "Id": "scratch",
+  "Title": "Starting from scratch",
+  "Steps": [
+    {
+      "Id": "new",
+      "Action": "new",
+      "Title": "Open New module",
+      "Explanation": "Start with the real New module form. The supplied Generic training joystick represents your own equipment; no brand or connected device is required for this demonstration. All sample data stays isolated. Training is free in every edition. Premium capabilities are demonstrated only with this isolated sample; your normal edition and device restrictions remain unchanged. Premium availability and pricing are TBA.",
+      "Target": "Form:DcsIdInput",
+      "Checkpoint": true
+    },
+    {
+      "Id": "identify",
+      "Action": "identify",
+      "Title": "Enter module identity",
+      "Explanation": "TRAINING is a sample aircraft folder identity. In real use, enter the exact DCS aircraft input-folder name and a readable display name.",
+      "Target": "Form:DisplayNameInput",
+      "Checkpoint": false
+    },
+    {
+      "Id": "add-device",
+      "Action": "add-device",
+      "Title": "Add the supplied physical unit",
+      "Explanation": "Select your physical controller, choose its matching hardware drawing, and explicitly bind the copied UI baseline to it. This example supplies a neutral joystick drawing and a fictional device identity. With your own equipment, use your real discovered device; if no built-in drawing matches, use hardware inventory and a generic layout or author a custom mapping. Repeat for each unit.",
+      "Target": "Form:SelectedUnits",
+      "Checkpoint": true
+    },
+    {
+      "Id": "create",
+      "Action": "create",
+      "Title": "Create and open the module",
+      "Explanation": "The form saves a new module into the isolated database and opens its actual feature workspace. Its shared-default revision is pinned.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "devices",
+      "Action": "devices",
+      "Title": "Review physical devices",
+      "Explanation": "The same fictional joystick is used throughout mapping and testing. Real device filenames contain physical GUIDs: select or rebind your own unit explicitly. A model name alone does not distinguish two identical controllers. The aircraft and module UI Layer are separate scopes.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "catalog",
+      "Action": "catalog",
+      "Title": "Load a complete command catalog",
+      "Explanation": "Review the bundled JSON catalog and stage its definitions. Loading commands expands the palette; it does not assign those commands to hardware.",
+      "Target": "Commands:Manager",
+      "Checkpoint": true
+    },
+    {
+      "Id": "base",
+      "Action": "base",
+      "Title": "Map a base button",
+      "Explanation": "Select the trigger callout (JOY_BTN1), choose Sample landing light, and use Assign selected command. This is the button-based assignment workflow; next we demonstrate drag-and-drop. The editable aircraft Base callout is blue, matching live Base feedback. The state colors stay consistent even when the application skin uses a gold accent. Appearance customization can give each window or workspace view its own background and soften controller artwork independently. Callout labels and live highlights stay visible; exported kneeboards keep their original appearance.",
+      "Target": "Assignments:JOY_BTN1",
+      "Checkpoint": true
+    },
+    {
+      "Id": "drag-ready",
+      "Action": "drag-ready",
+      "Title": "Choose a command to drag",
+      "Explanation": "Select Sample landing light in the embedded command palette. You can drag a command directly from this list onto the matching button or axis callout. The illustrated gesture on the next step follows the same assignment path as a real palette drop.",
+      "Target": "Assignments:CommandManager",
+      "Checkpoint": true
+    },
+    {
+      "Id": "drag",
+      "Action": "drag",
+      "Title": "Drag the command onto a callout",
+      "Explanation": "The moving marker shows the command travelling from the palette to JOY_BTN5. Dropping applies the assignment to that input on the selected scope and modifier layer. Choose a button command for a button, or an axis command for an axis.",
+      "Target": "Assignments:JOY_BTN5",
+      "Checkpoint": true
+    },
+    {
+      "Id": "context-clear",
+      "Action": "context-clear",
+      "Title": "Right-click to clear an assignment",
+      "Explanation": "Right-click a callout to open this menu. Clear assignment removes the selected scope/layer binding. We will clear the practice drop on JOY_BTN5 while keeping the trigger assignment. Callouts can also be dragged to move an assignment; hold Ctrl to copy.",
+      "Target": "Assignments:JOY_BTN5",
+      "Checkpoint": true
+    },
+    {
+      "Id": "clear",
+      "Action": "clear",
+      "Title": "Clear the practice assignment",
+      "Explanation": "Clear assignment was invoked from the callout context menu. JOY_BTN5 is now unassigned in this aircraft Base layer. The trigger and other layers remain available.",
+      "Target": "Assignments:JOY_BTN5",
+      "Checkpoint": true
+    },
+    {
+      "Id": "modifier",
+      "Action": "modifier",
+      "Title": "Create a modifier you hold",
+      "Explanation": "TRAIN_SHIFT reserves JOY_BTN3 in Hold mode. Its layer is active only while you hold that control. Supply a semantic layer name and select the correct physical device and input. Reserved modifier inputs cannot also receive ordinary assignments.",
+      "Target": "Modifiers:ManagedModifiers",
+      "Checkpoint": true
+    },
+    {
+      "Id": "shifted",
+      "Action": "shifted",
+      "Title": "Assign on the shifted layer",
+      "Explanation": "The same physical button can perform a different action with TRAIN_SHIFT held. Only the selected modifier layer is being edited.",
+      "Target": "Assignments:JOY_BTN1",
+      "Checkpoint": true
+    },
+    {
+      "Id": "toggle",
+      "Action": "toggle",
+      "Title": "Create a modifier that toggles",
+      "Explanation": "TRAIN_TOGGLE uses JOY_BTN4 in Toggle mode. Press and release once to latch its layer on; press again to turn it off. This differs from TRAIN_SHIFT, which must be held. Use a momentary button for this example.",
+      "Target": "Modifiers:ManagedModifiers",
+      "Checkpoint": true
+    },
+    {
+      "Id": "toggled",
+      "Action": "toggled",
+      "Title": "Map the toggled layer",
+      "Explanation": "The trigger now has a base action, a held-modifier action, and a toggled-modifier action. We selected TRAIN_TOGGLE before assigning its action. Each chord is a separate binding; combining both modifiers is a separate chord too.",
+      "Target": "Assignments:JOY_BTN1",
+      "Checkpoint": true
+    },
+    {
+      "Id": "context-label",
+      "Action": "context-label",
+      "Title": "Right-click to change a label",
+      "Explanation": "The callout context menu offers Change label and Clear assignment. We opened it on the base trigger. The next step chooses Change label and enters LIGHTS through the real label dialog.",
+      "Target": "Assignments:JOY_BTN1",
+      "Checkpoint": true
+    },
+    {
+      "Id": "label",
+      "Action": "label",
+      "Title": "Change a label from the context menu",
+      "Explanation": "The real Change label dialog sets this caption to LIGHTS. A label helps you read the diagram without changing the DCS command. Leave a label blank to restore its default. Labels remain draft changes until saved.",
+      "Target": "Assignments:JOY_BTN1",
+      "Checkpoint": true
+    },
+    {
+      "Id": "axis",
+      "Action": "axis",
+      "Title": "Map both stick axes",
+      "Explanation": "Assign pitch to JOY_Y and roll to JOY_X. Match axes by moving your own equipment and checking its reported input keys. Each axis keeps its own tuning; the next steps tune only pitch.",
+      "Target": "Assignments:JOY_Y",
+      "Checkpoint": true
+    },
+    {
+      "Id": "context-axis",
+      "Action": "context-axis",
+      "Title": "Right-click an assigned axis",
+      "Explanation": "The axis context menu includes Tune axis in addition to Change label and Clear assignment. Select Tune axis to edit this axis without searching for the toolbar action.",
+      "Target": "Assignments:JOY_Y",
+      "Checkpoint": true
+    },
+    {
+      "Id": "axis-options",
+      "Action": "axis-options",
+      "Title": "Read the axis tuning options",
+      "Explanation": "This is the real axis editor. Deadzone ignores small center movement. Saturation X/Y adjusts the response range; curvature shapes response. Invert reverses direction; Slider changes the axis mode. Hardware-detent fields describe compatible detent behavior. Blank values and unset checkboxes omit that setting. This example sets deadzone 3, curvature 15, and saturation 100/100; choose values suitable for your own hardware. Read or pause here, then advance to Apply to draft.",
+      "Target": "Form:Deadzone",
+      "Checkpoint": true
+    },
+    {
+      "Id": "axis-apply",
+      "Action": "axis-apply",
+      "Title": "Apply pitch tuning to the draft",
+      "Explanation": "Apply to draft stores the pitch filter without changing roll. Save to database will persist it. Tuning is per assignment; test each axis and verify the resulting behavior in DCS.",
+      "Target": "Assignments:JOY_Y",
+      "Checkpoint": true
+    },
+    {
+      "Id": "switches",
+      "Action": "switches",
+      "Title": "Map two- and three-position switches",
+      "Explanation": "This fictional device reports each switch position as a button: two-position UP/DOWN = JOY_BTN6/7; three-position UP/CENTER/DOWN = JOY_BTN8/9/10. We map each position separately. Real controllers may report only the end positions, with a silent center; inspect your device first and use commands appropriate to its press/release behavior.",
+      "Target": "Assignments:JOY_BTN9",
+      "Checkpoint": true
+    },
+    {
+      "Id": "ui",
+      "Action": "ui",
+      "Title": "Assign a UI Layer command",
+      "Explanation": "Switch to Module UI Layer and assign Pause to JOY_BTN2 on Base. This module owns its copied UI state; the saved shared-default revision remains unchanged. During input testing, UI Layer Base uses cyan; aircraft Base uses blue. The UI modifier colors remain purple, rose and teal.",
+      "Target": "Assignments:JOY_BTN2",
+      "Checkpoint": true
+    },
+    {
+      "Id": "save",
+      "Action": "save",
+      "Title": "Save the module",
+      "Explanation": "Save to database persists staged assignments, modifiers, labels and tuning together in the training SQLite database.",
+      "Target": "Host:PendingSummary",
+      "Checkpoint": true
+    },
+    {
+      "Id": "discard",
+      "Action": "discard",
+      "Title": "Discard a temporary change",
+      "Explanation": "A temporary label is staged and then discarded. Discard restores the saved workspace; it does not remove the saved assignments.",
+      "Target": "Assignments:LabelEditor",
+      "Checkpoint": true
+    },
+    {
+      "Id": "reopen",
+      "Action": "reopen",
+      "Title": "Reopen saved state",
+      "Explanation": "The workspace has been reloaded from SQLite. These assignments and labels survive closing and reopening HEIMDALL.",
+      "Target": "Devices:ManagedDevices",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-start",
+      "Action": "test-start",
+      "Title": "Premium preview: simulated input testing",
+      "Explanation": "Premium preview: this is the real tester with simulated sample input, available here for free. Testing your own physical controllers outside training remains a licensed capability; Premium availability/pricing is TBA. Choose the same Generic training joystick and Saved profile, enable Show axis values, then Start test. The real tester reads a simulated source during training. Startup establishes a neutral baseline. With your own equipment, HEIMDALL acquires the selected physical controllers and you perform these movements yourself. Testing resolves generated mappings; it does not execute DCS. Live input colors are separate from the lesson navigation marker: blue is aircraft Base and cyan is UI Layer Base. Highlights and legend swatches share the same colors and white/black contrast edges.",
+      "Target": "InputTest:InputTestStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-base",
+      "Action": "test-base",
+      "Title": "Press the base trigger",
+      "Explanation": "A simulated JOY_BTN1 press resolves to the saved landing-light command. Read the event log for the physical key, transition, layer, chord and command. The controller callout lights up for the active base assignment. Aircraft Base now lights blue; compare the blue outline with the Base legend swatch. Its white and black edges remain visible over light or dark artwork.",
+      "Target": "InputTest:InputTestLog",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-hold",
+      "Action": "test-hold",
+      "Title": "Hold the shift modifier",
+      "Explanation": "JOY_BTN3 is held while the trigger remains pressed. The Hold legend activates and the controller shows its shifted assignment. The modifier input is reserved; it is not an ordinary command button. In this sample TRAIN_SHIFT uses red in both the highlight and legend. Other aircraft shift chords use orange, magenta, green, then violet as needed.",
+      "Target": "InputTest:ModifierLegend",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-release",
+      "Action": "test-release",
+      "Title": "Release the held modifier",
+      "Explanation": "Releasing JOY_BTN3 turns its layer off immediately; we also release the trigger. Compare this behavior with the latched toggle in the next steps. The Base legend returns to blue when no aircraft modifier is active.",
+      "Target": "InputTest:ModifierLegend",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-toggle",
+      "Action": "test-toggle",
+      "Title": "Press the toggle modifier once",
+      "Explanation": "A press of JOY_BTN4 latches TRAIN_TOGGLE on. Watch its modifier legend and the controller captions.",
+      "Target": "InputTest:ModifierLegend",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-toggle-release",
+      "Action": "test-toggle-release",
+      "Title": "Release toggle, then press trigger",
+      "Explanation": "JOY_BTN4 is released but TRAIN_TOGGLE remains active. The trigger now resolves to Sample toggle-layer action. A Toggle modifier does not require you to keep holding its button. TRAIN_TOGGLE uses orange in this sample. The highlighted callout and its active legend swatch must agree even after the toggle button is released.",
+      "Target": "InputTest:InputTestLog",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-toggle-off",
+      "Action": "test-toggle-off",
+      "Title": "Press toggle again to return to Base",
+      "Explanation": "A second JOY_BTN4 press turns the latched layer off. The example releases both buttons afterward. This reset avoids accidentally combining modifiers during the next test. The aircraft Base swatch returns to blue; UI Layer Base retains its separate cyan color.",
+      "Target": "InputTest:ModifierLegend",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-switches",
+      "Action": "test-switches",
+      "Title": "Move both switches through their positions",
+      "Explanation": "The simulated two-position switch moves UP to DOWN; the three-position switch moves UP through CENTER to DOWN. The log shows releases and presses for each reported position and its saved command. For your controller, confirm whether CENTER emits a key or only releases the endpoints.",
+      "Target": "InputTest:InputTestLog",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-axes",
+      "Action": "test-axes",
+      "Title": "Move the stick on both axes",
+      "Explanation": "JOY_X moves to 0.75 and JOY_Y to 0.25. Show axis values exposes Position events, the mapped roll/pitch commands and stored tuning. The tester reports normalized physical input and the generated filter; use DCS to assess the final response. Stationary inputs do not keep producing events.",
+      "Target": "InputTest:InputTestLog",
+      "Checkpoint": true
+    },
+    {
+      "Id": "test-stop",
+      "Action": "test-stop",
+      "Title": "Stop and release the test session",
+      "Explanation": "Stop test releases the input source and clears active highlights and modifier state. The event history remains readable. The tester freezes the chosen profile at Start; after changing mappings or tuning, Stop and Start again.",
+      "Target": "InputTest:InputTestStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "pages",
+      "Action": "pages",
+      "Title": "Create device pages and summary",
+      "Explanation": "Add missing device pages, then Generate Summary. The summary lists the actual device pages and their order.",
+      "Target": "Pages:Pages",
+      "Checkpoint": true
+    },
+    {
+      "Id": "kneeboard",
+      "Action": "kneeboard",
+      "Title": "Preview generated kneeboards",
+      "Explanation": "This is a real generated kneeboard preview from the saved configuration. Device pages and summary pages are part of the module.",
+      "Target": "Kneeboards:KneeboardPreview",
+      "Checkpoint": true
+    },
+    {
+      "Id": "validate",
+      "Action": "validate",
+      "Title": "Validate saved output",
+      "Explanation": "Validation checks saved state, pinned assets and generated Lua/package layout. It does not prove that controls work inside DCS.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "snapshot",
+      "Action": "snapshot",
+      "Title": "Export a portable snapshot",
+      "Explanation": "A snapshot preserves editable configuration and its pinned assets. This example is written inside the temporary training directory.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": false
+    },
+    {
+      "Id": "package",
+      "Action": "package",
+      "Title": "Build an OvGME package",
+      "Explanation": "The generated ZIP and checksum contain deployable files. A package differs from the editable snapshot. All output here stays in the training directory.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    },
+    {
+      "Id": "finish",
+      "Action": "finish",
+      "Title": "Continue with your own configuration",
+      "Explanation": "Training is complete. Outside training, back up DCS controls, select the real Saved Games destination, then use Fly Now! or install the OvGME package and verify in DCS. Diff files do not reconstruct unchanged defaults: capture cleared default axes when needed. DCS itself is not operated by this demonstration.",
+      "Target": "Host:BuildStatus",
+      "Checkpoint": true
+    }
+  ]
+}

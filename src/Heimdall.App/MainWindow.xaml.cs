@@ -1,0 +1,809 @@
+using System.Text.Json;
+using Heimdall.App.Games;
+using Heimdall.Application.Games;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using Heimdall.Application;
+using Heimdall.Application.Interfaces;
+using Heimdall.Dcs;
+using Heimdall.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Heimdall.App
+{
+    /// <summary>Displays the themed module workspace and opens read-only repository or Saved Games previews.</summary>
+    public partial class MainWindow : Window
+    {
+        private readonly GameWorkspaceServices? _games;
+        private bool _changingGame;
+        private readonly IModuleWorkspaceLoader _loader;
+        private readonly IDcsFolderImporter _folderImporter;
+        private readonly IAppSettingsService _settings;
+        private readonly IEditorWorkspaceRepository _workspaces;
+        private readonly ISharedUiLayerWorkspaceRepository? _sharedDefaults;
+        private readonly Func<string?>? _snapshotFilePicker;
+        private ModuleWorkspaceViewModel? _lastViewModel;
+        private bool _moduleOperationBusy;
+        private readonly IFlyNowService? _flyNow;
+        private readonly Func<string?>? _savedGamesFolderPicker;
+        private FlyNowDeployment? _activeDeployment;
+        private bool _flyNowReadFailed;
+        private bool _flyNowLoading = true;
+        private readonly IUserDataRecoveryService? _recovery;
+        private readonly Action? _closeDatabase;
+        private readonly UserDataProfile? _profile;
+        private readonly IUserDataProfileService? _profileService;
+        private readonly HardwareInventoryManager? _hardwareInventory;
+        private readonly IUserMappingLibrary? _userMappings;
+        private readonly SetupManager? _setup;
+        private readonly SupportReportService? _supportReports;
+        private bool _setupOffered;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<MainWindow> _logger;
+        private readonly IConnectedDeviceDiscovery _deviceDiscovery;
+        /// <summary>Initializes the workspace with injected import and settings boundaries.</summary>
+        /// <param name="loader">The committed module workspace loader.</param>
+        /// <param name="folderImporter">The live Saved Games profile reader.</param>
+        /// <param name="settings">The validated user preference service.</param>
+        /// <param name="workspaces">Persisted graphics, catalogs and assignments.</param>
+        /// <param name="sharedDefaults">Independent shared default revision storage.</param>
+        /// <param name="snapshotFilePicker">Optional snapshot file selection adapter.</param>
+        /// <param name="flyNow">Persistent native deployment service.</param>
+        /// <param name="savedGamesFolderPicker">Optional destination browser adapter.</param>
+        /// <param name="recovery">Verified full-user-data backup and restore operations.</param>
+        /// <param name="closeDatabase">Quiesces services before replacing data.</param>
+        /// <param name="profile">Selected production or isolated test profile.</param>
+        /// <param name="profileService">Setup state and confirmed reset operations.</param>
+        /// <param name="hardwareInventory">Profile-scoped independent hardware inventory.</param>
+        /// <param name="setup">Transactional first-run and resumable setup.</param>
+        /// <param name="userMappings">Profile-scoped immutable custom mapping library.</param>
+        /// <param name="loggerFactory">Optional DI logging factory.</param>
+        /// <param name="logger">Optional module operation logger.</param>
+        /// <param name="deviceDiscovery">Native controller discovery for deployment cleanup.</param>
+        /// <param name="supportReports">Read-only selected-profile support evidence.</param>
+        /// <param name="games">Optional profile-owned game selection and ED editing services.</param>
+        public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
+                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
+                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
+                          IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
+                          IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
+                          UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
+                          HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
+                          ILoggerFactory? loggerFactory = null, ILogger<MainWindow>? logger = null,
+                          IConnectedDeviceDiscovery? deviceDiscovery = null, SupportReportService? supportReports = null, GameWorkspaceServices? games = null)
+        {
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            _logger = logger ?? NullLogger<MainWindow>.Instance;
+            _deviceDiscovery = deviceDiscovery ?? new WindowsConnectedDeviceDiscovery();
+            _loader = loader ?? throw new ArgumentNullException(nameof(loader));
+            _folderImporter = folderImporter ?? throw new ArgumentNullException(nameof(folderImporter));
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _workspaces = workspaces ?? throw new ArgumentNullException(nameof(workspaces));
+            _sharedDefaults = sharedDefaults;
+            _snapshotFilePicker = snapshotFilePicker;
+            _flyNow = flyNow;
+            _savedGamesFolderPicker = savedGamesFolderPicker;
+            _recovery = recovery;
+            _closeDatabase = closeDatabase;
+            _profile = profile;
+            _profileService = profileService;
+            _hardwareInventory = hardwareInventory;
+            _setup = setup;
+            _userMappings = userMappings;
+            _supportReports = supportReports;
+            _games = games;
+            InitializeComponent();
+            BindMainCommands();
+            _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
+            GameSelection.GameRequested += (_, game) => SelectGame(game);
+            GameSelection.ContinueRequested += (_, _) => ContinueGame();
+            if (_games is not null) ShowGameSelection();
+            Activated += (_, _) => ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            Title = "HEIMDALL — Modules · " + ApplicationVersion.Label;
+            if (profile is not null)
+                ProfileIndicator.Text = (profile.IsTest ? "TEST PROFILE: " : "Profile: ") + profile.Name + " · " + profile.DataDirectory +
+                    (profile.IsTest ? " · DCS deployment disabled" : "");
+            RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
+            SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
+            NewModuleButton.IsEnabled = _sharedDefaults is not null;
+            ThemeManager.Apply(_settings.Current.Theme.ToString());
+            ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            EditionStatus.Text = EditionAccess.Policy.Label;
+            ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
+            Loaded += async (_, _) =>
+            {
+                await RefreshSavedModulesAsync(); await RefreshFlyNowAsync();
+                if (_games is null) OfferHardwareSetup();
+            };
+        }
+        #region BEGIN Public
+        #endregion END Public
+        #region BEGIN private helpers
+        private void OfferHardwareSetup()
+        {
+            if (_moduleOperationBusy || OwnedWindows.Count > 0) return;
+                if (!_setupOffered && _setup is not null && _profileService is not null)
+                {
+                    _setupOffered = true;
+                    try { if (!_profileService.SetupOffered) OpenSetup(); }
+                    catch (Exception ex) { FlyNowStatus.Text = "Setup could not open. Resume from Settings: " + ex.Message; }
+                }
+        }
+        private void ShowGameSelection()
+        {
+            if (_games is null) return;
+            try { GameSelection.SetRecent(_games.Recent()); }
+            catch (Exception error) { GameSelection.SetRecent(new()); ImportStatus.Text = "Recent game selection could not be read: " + error.Message; }
+            GameSelection.Visibility = Visibility.Visible; DcsLandingPanel.Visibility = Visibility.Collapsed;
+        }
+        private void ShowGamesClicked(object sender, RoutedEventArgs e) => ShowGameSelection();
+        private void LandingGameChanged(object sender, SelectionChangedEventArgs e)
+        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); }
+        private void SelectGame(string game)
+        {
+            if (game == "elite-dangerous") { OpenElite(); return; }
+            GameSelection.Visibility = Visibility.Collapsed; DcsLandingPanel.Visibility = Visibility.Visible;
+            _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
+            if (_games is not null)
+            {
+                var recent = _games.Recent();
+                if (recent.DcsModuleId is { } id) SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id) ?? SavedModules.SelectedItem;
+                var choice = SavedModules.SelectedItem as SavedModuleChoice;
+                RememberDcs(choice?.Id, choice?.DisplayName ?? "");
+                OfferHardwareSetup();
+            }
+        }
+        private void ContinueGame()
+        {
+            if (_games is null) return;
+            try
+            {
+                var selection = _games.Recent();
+                if (selection.BackendId == "elite-dangerous") OpenElite();
+                else { SelectGame("dcs"); if (selection.DcsModuleId is not null) OpenSaved_Click(this, new RoutedEventArgs()); }
+            }
+            catch (Exception error) { ShowImportError("Unable to reopen recent workspace: " + error.Message); }
+        }
+        private async void OpenElite()
+        {
+            if (_games is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var hardware = await GameWorkspaceServices.HardwareAsync();
+                var selection = _games.Recent();
+                _games.Remember(selection with { BackendId = "elite-dangerous", DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
+                var window = new EliteWorkspaceWindow(_games, hardware, selection.WorkspaceId) { Owner = this };
+                window.ShowDialog();
+                if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
+            }
+            catch (Exception error) { ShowImportError("Unable to open Elite workspace: " + error.Message); }
+            finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); if (DcsLandingPanel.Visibility == Visibility.Visible) OfferHardwareSetup(); }
+        }
+        private void RememberDcs(Guid? id, string name)
+        {
+            if (_games is null) return;
+            try { _games.Remember(_games.Recent() with { BackendId = "dcs", DcsModuleId = id, DisplayName = name.Length > 200 ? name[..200] : name }); }
+            catch (Exception error) { ImportStatus.Text = "Recent selection could not be saved: " + error.Message; }
+        }
+        private void ExecuteMainQuickAction(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: RoutedUICommand command } && command.CanExecute(null, this)) command.Execute(null, this);
+        }
+        private void BindMainCommands()
+        {
+            var actions = new Dictionary<RoutedUICommand, RoutedEventHandler>
+            {
+                [MainWindowCommands.NewModule] = NewModule_Click, [MainWindowCommands.OpenModule] = OpenSaved_Click,
+                [MainWindowCommands.ImportModule] = ImportModule_Click, [MainWindowCommands.RestoreModule] = RestoreModuleSnapshotClicked,
+                [MainWindowCommands.DeleteModule] = DeleteModule_Click, [MainWindowCommands.SharedDefaults] = SharedDefaults_Click,
+                [MainWindowCommands.Settings] = Settings_Click, [MainWindowCommands.Destination] = BrowseSavedGamesClicked,
+                [MainWindowCommands.FlyNow] = FlyNowClicked, [MainWindowCommands.ClearDeployment] = ClearFlyNowClicked,
+                [MainWindowCommands.Backup] = OpenRecoveryClicked, [MainWindowCommands.RestoreData] = OpenRecoveryClicked,
+                [MainWindowCommands.Recovery] = OpenRecoveryClicked, [MainWindowCommands.DataLocation] = ShowDataLocationClicked,
+                [MainWindowCommands.Profiles] = OpenProfilesClicked,
+                [MainWindowCommands.Setup] = (_, _) => OpenSetup(),
+                [MainWindowCommands.UserMappings] = (_, _) => OpenUserMappings(),
+                [MainWindowCommands.DiscoverHardware] = (_, _) => OpenHardware(true),
+                [MainWindowCommands.ManageHardware] = (_, _) => OpenHardware(false),
+                [MainWindowCommands.SupportReport] = SupportReportClicked,
+                [MainWindowCommands.About] = AboutClicked, [MainWindowCommands.Exit] = (_, _) => Close()
+            };
+            foreach (var (command, action) in actions)
+                CommandBindings.Add(new CommandBinding(command, (sender, e) => action(sender, e),
+                    (_, e) => { e.CanExecute = CanExecuteMainCommand(command); e.Handled = true; }));
+        }
+        private bool CanExecuteMainCommand(RoutedUICommand command)
+        {
+            if (_moduleOperationBusy) return false;
+            if (command == MainWindowCommands.SupportReport) return _supportReports is not null && OwnedWindows.Count == 0;
+            if (command == MainWindowCommands.UserMappings) return _userMappings is not null && _hardwareInventory is not null && OwnedWindows.Count == 0;
+            if (command == MainWindowCommands.DiscoverHardware || command == MainWindowCommands.ManageHardware)
+                return _hardwareInventory is not null && OwnedWindows.Count == 0;
+            if ((command == MainWindowCommands.FlyNow || command == MainWindowCommands.ClearDeployment) && _profile?.IsTest == true) return false;
+            if (command == MainWindowCommands.Setup) return _setup is not null && _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
+            if (command == MainWindowCommands.Profiles) return _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
+            if (command == MainWindowCommands.NewModule || command == MainWindowCommands.SharedDefaults) return _sharedDefaults is not null;
+            if (command == MainWindowCommands.RestoreModule) return _workspaces is IEditorWorkspaceCreationRepository;
+            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            if (command == MainWindowCommands.OpenModule) return selected is not null;
+            if (command == MainWindowCommands.DeleteModule) return selected is not null && !_flyNowReadFailed && _activeDeployment?.ModuleId != selected;
+            if (command == MainWindowCommands.FlyNow) return !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
+                _settings.Current.SavedGamesDcsFolder.Length > 0 && (_activeDeployment is null || (!_activeDeployment.Clearing && _activeDeployment.ModuleId == selected &&
+                string.Equals(_activeDeployment.Destination, _settings.Current.SavedGamesDcsFolder, StringComparison.OrdinalIgnoreCase)));
+            if (command == MainWindowCommands.ClearDeployment) return !_flyNowLoading && _flyNow is not null && (_activeDeployment is not null || _flyNowReadFailed);
+            if (command == MainWindowCommands.Backup || command == MainWindowCommands.RestoreData || command == MainWindowCommands.Recovery || command == MainWindowCommands.DataLocation)
+                return _recovery is not null && !_flyNowLoading && OwnedWindows.Count == 0;
+            return true;
+        }
+        private void OpenRecoveryClicked(object sender, RoutedEventArgs e)
+        {
+            if (_recovery is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            var dialog = new UserDataRecoveryWindow(_recovery, _closeDatabase, supportReports: _supportReports) { Owner = this };
+            try { dialog.ShowDialog(); }
+            finally
+            {
+                if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
+                else { _ = RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+            }
+        }
+        private void ShowDataLocationClicked(object sender, RoutedEventArgs e)
+        {
+            if (_recovery is not null) ThemeMessageBox.Show(this, _recovery.DataDirectory, "HEIMDALL user-data location", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        private void OpenProfilesClicked(object sender, RoutedEventArgs e)
+        {
+            if (_profile is null || _profileService is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            var dialog = new UserDataProfileWindow(_profile, _profileService, _closeDatabase ?? (() => { })) { Owner = this };
+            dialog.ShowDialog();
+            if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
+            else if (dialog.ResumeSetupRequested) OpenSetup();
+        }
+        private void OpenSetup()
+        {
+            if (_setup is null || _hardwareInventory is null || _profileService is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            try
+            {
+                using var dialog = new HardwareInventoryWindow(_hardwareInventory, true, setup: _setup,
+                    destination: _settings.Current.SavedGamesDcsFolder) { Owner = this };
+                _profileService.MarkSetupOffered();
+                dialog.ShowDialog();
+                if (!dialog.SetupConfirmed) return;
+                if (_settings is SqliteAppSettingsService sqlite) sqlite.ReloadDestination();
+                UpdateFlyNowControls();
+                if (_recovery is not null && ThemeMessageBox.Show(this,
+                    "Setup is saved. Create a verified full-profile backup now? You can then create, import or open a module.",
+                    "Setup complete", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    OpenRecoveryClicked(this, new RoutedEventArgs());
+            }
+            catch (Exception ex) { FlyNowStatus.Text = "Setup remains available from Settings: " + ex.Message; }
+        }
+        private async void OpenUserMappings()
+        {
+            if (_userMappings is null || _hardwareInventory is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var bundledHardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
+                var bundledInputs = bundledHardware.GroupBy(x => Path.GetFileNameWithoutExtension(x.Diagram.Path) + ".drawio", StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(x => x.Key, x => (IReadOnlyDictionary<string, string>)x.First().Diagram.Controls
+                        .ToDictionary(control => control.Control, control => control.InputKey, StringComparer.Ordinal), StringComparer.OrdinalIgnoreCase);
+                while (true)
+                {
+                    var inventory = await _hardwareInventory.ReadSnapshotAsync();
+                    var revisions = await _userMappings.ListAsync();
+                    var modulePins = new List<UserMappingRevision>();
+                    var moduleDefinitions = new List<HardwareDefinition>();
+                    var names = inventory.Instances.GroupBy(x => x.DefinitionId).ToDictionary(x => x.Key, x => string.Join(" / ", x.Select(y => string.IsNullOrWhiteSpace(y.Label) ? y.NativeName : y.Label).Distinct(StringComparer.Ordinal)), StringComparer.Ordinal);
+                    foreach (var id in await _workspaces.ListAsync())
+                    {
+                        var module = await _workspaces.GetAsync(id);
+                        foreach (var diagram in module?.Diagrams ?? [])
+                        {
+                            modulePins.AddRange(diagram.MappingHistory ?? []);
+                            var definition = diagram.CustomMapping?.Definition ?? (diagram.GenericCapabilities is { } capabilities
+                                ? new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities) : null);
+                            if (definition is null) continue;
+                            moduleDefinitions.Add(definition);
+                            names.TryAdd(definition.Id, module!.Configuration.Module.DisplayName + " / " + diagram.Title);
+                            if (diagram.CustomMapping is { } pin) modulePins.Add(pin);
+                        }
+                    }
+                    var definitions = inventory.Definitions.Concat(revisions.Concat(modulePins).Select(x => x.Definition)).Concat(moduleDefinitions).DistinctBy(x => x.Id).ToArray();
+                    var dialog = new UserMappingsWindow(_userMappings, definitions, targetNames: names, modulePins: modulePins,
+                        bundledDrawingsDirectory: Path.Combine(BundledSharedCatalog.Root, "assets", "shared", "hardware", "drawio"),
+                        canDiscoverHardware: true, bundledInputs: bundledInputs, workspaces: _workspaces) { Owner = this };
+                    dialog.ShowDialog();
+                    if (!dialog.DiscoverHardwareRequested) break;
+                    using var hardware = new HardwareInventoryWindow(_hardwareInventory, true) { Owner = this };
+                    hardware.ShowDialog();
+                }
+            }
+            catch (Exception ex) { ImportStatus.Text = "Unable to open user mappings: " + ex.Message; }
+            finally { SetModuleOperationBusy(false); }
+        }
+        private void OpenHardware(bool discover)
+        {
+            if (_hardwareInventory is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
+            using var dialog = new HardwareInventoryWindow(_hardwareInventory, discover) { Owner = this };
+            dialog.ShowDialog();
+        }
+        private void AboutClicked(object sender, RoutedEventArgs e) => new WorkflowHelpWindow { Owner = this }.ShowDialog();
+        private async void SupportReportClicked(object sender, RoutedEventArgs e)
+        {
+            if (_supportReports is null || _moduleOperationBusy || OwnedWindows.Count > 0) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var report = await _supportReports.CaptureAsync();
+                new SupportReportWindow(report) { Owner = this }.ShowDialog();
+            }
+            finally { SetModuleOperationBusy(false); }
+        }
+        private async Task RefreshFlyNowAsync()
+        {
+            _flyNowLoading = true;
+            UpdateFlyNowControls();
+            try
+            {
+                _activeDeployment = _flyNow is null ? null : await _flyNow.GetActiveAsync();
+                _flyNowReadFailed = false;
+                FlyNowStatus.Text = _activeDeployment is null ? "No module is active in Fly Now!."
+                    : $"Active: {_activeDeployment.DisplayName} → {_activeDeployment.Destination}. " +
+                      (_activeDeployment.Clearing ? "Cleanup is incomplete; retry Clear." : "Clear before deploying another module. The active UI Layer belongs to this module.");
+            }
+            catch (Exception ex)
+            {
+                _flyNowReadFailed = true;
+                FlyNowStatus.Text = "Fly Now! recovery needs attention: " + ex.Message;
+            }
+            _flyNowLoading = false;
+            UpdateFlyNowControls();
+        }
+
+        private void UpdateFlyNowControls()
+        {
+            if (FlyNowButton is null) return;
+            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            var destination = _settings.Current.SavedGamesDcsFolder;
+            SavedGamesDestination.Text = destination.Length == 0 ? "Setup: browse for your DCS Saved Games instance folder." : destination;
+            FlyNowButton.IsEnabled = _profile?.IsTest != true && !_moduleOperationBusy && !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
+                destination.Length > 0 && (_activeDeployment is null || (!_activeDeployment.Clearing && _activeDeployment.ModuleId == selected &&
+                    string.Equals(_activeDeployment.Destination, destination, StringComparison.OrdinalIgnoreCase)));
+            ClearFlyNowButton.IsEnabled = _profile?.IsTest != true && !_moduleOperationBusy && !_flyNowLoading && _flyNow is not null && (_activeDeployment is not null || _flyNowReadFailed);
+            BrowseSavedGamesButton.IsEnabled = !_moduleOperationBusy;
+            if (_activeDeployment?.ModuleId == selected || _flyNowReadFailed) DeleteModuleButton.IsEnabled = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        private async void FlyNowClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || !FlyNowButton.IsEnabled || _flyNow is null || SavedModules.SelectedItem is not SavedModuleChoice selected) return;
+            SetModuleOperationBusy(true);
+            var dcsId = selected.DisplayName;
+            try
+            {
+                FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
+                var destination = _settings.Current.SavedGamesDcsFolder;
+                var saved = await _workspaces.GetAsync(selected.Id)
+                    ?? throw new InvalidOperationException("The selected module is no longer in the database.");
+                dcsId = saved.Configuration.Module.DcsId;
+                FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
+                var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
+                    SavedGamesDeviceDiscovery.Discover(destination)));
+                EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
+                var captured = ModuleAxisCleanup.CaptureDevices(saved,
+                    devices.Where(x => EditionAccess.Policy.IsOwner || EditionAccess.Policy.AllowsDevice(x) ||
+                        saved.Configuration.Profiles.Any(profile => DcsPhysicalIdentity.FromFileName(profile.SourceName) == x.PhysicalGuid)).Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
+                        .Where(x => DcsPhysicalIdentity.FromFileName(x) is not null)));
+                if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
+                FlyNowStatus.Text = "Validating and deploying the saved module and its UI Layer…";
+                var active = await Task.Run(() => _flyNow.DeployAsync(selected.Id, destination));
+                ImportStatus.Text = $"Fly Now! deployed {active.DisplayName} and its UI Layer ({active.Files.Count} files) to {active.Destination}.";
+            }
+            catch (Exception ex)
+            {
+                ApplicationLog.ModuleOutputFailure(_logger, "Fly Now!", selected.Id, dcsId, "saved", ex);
+                ImportStatus.Text = "Fly Now! did not complete: " + ex.Message;
+            }
+            finally { await RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+        }
+
+        private async void ClearFlyNowClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || !ClearFlyNowButton.IsEnabled || _flyNow is null) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                FlyNowStatus.Text = "Clearing the recorded Fly Now! files…";
+                await _flyNow.ClearAsync();
+                ImportStatus.Text = "Fly Now! cleared. Choose a module to deploy; saved authoring data is preserved.";
+            }
+            catch (Exception ex) { ImportStatus.Text = "Clear did not complete: " + ex.Message; }
+            finally { await RefreshFlyNowAsync(); SetModuleOperationBusy(false); }
+        }
+
+        private void BrowseSavedGamesClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy) return;
+            var picker = new ThemeBrowseDialog { SelectFolder = true, Title = "Select Saved Games DCS Folder", InitialDirectory = _settings.Current.SavedGamesDcsFolder };
+            var folder = _savedGamesFolderPicker is not null ? _savedGamesFolderPicker() : picker.ShowDialog(this) == true ? picker.FolderName : null;
+            if (folder is null) return;
+            ThemeSaveStatus.Text = _settings.TryUpdateSavedGamesDcsFolder(folder) ? "Saved Games DCS Folder saved." : _settings.LastError;
+            UpdateFlyNowControls();
+        }
+
+        private async void SharedDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            if (_sharedDefaults is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var saved = await _sharedDefaults.GetAsync();
+                if (saved is null)
+                {
+                    var seed = await SharedUiLayerWorkspaceFactory.CreateAsync();
+                    saved = await _sharedDefaults.SaveAsync(seed);
+                }
+                new SharedUiLayerWorkspaceWindow(saved, _sharedDefaults, _workspaces) { Owner = this }.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to open shared default UI Layer: " + ex.Message);
+            }
+            finally { SetModuleOperationBusy(false); }
+        }
+        private async void NewModule_Click(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || _sharedDefaults is null)
+                return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                ImportStatus.Text = "Loading internal hardware and shared defaults…";
+                var defaults = await _sharedDefaults.GetAsync() ??
+                    await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var dialog = new NewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory,
+                    logger: new AssemblyLogger<NewModuleWindow>(_loggerFactory)) { Owner = this };
+                if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
+                    return;
+                _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                await RefreshSavedModulesAsync(saved.Configuration.Module.Id);
+                ImportStatus.Text = $"Created {saved.Configuration.Module.DisplayName}; shared default revision {defaults.Revision} is pinned.";
+                ShowImported();
+            }
+            catch (Exception ex)
+            {
+                ApplicationLog.NewModuleFailure(_logger, ex);
+                ShowImportError("Unable to create module: " + ex.Message);
+            }
+            finally
+            {
+                SetModuleOperationBusy(false);
+            }
+        }
+        private async void RestoreModuleSnapshotClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || _workspaces is not IEditorWorkspaceCreationRepository repository) return;
+            var path = _snapshotFilePicker is null ? ChooseSnapshotFile() : _snapshotFilePicker();
+            if (path is null) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                ImportStatus.Text = "Verifying module snapshot, pinned assets and generated package…";
+                var json = await File.ReadAllTextAsync(path);
+                var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Read(json));
+                var workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                var observed = EditionAccess.Policy.IsOwner ? null : _deviceDiscovery.Discover();
+                var unsupported = ModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
+                if (unsupported.Count > 0)
+                {
+                    if (!SnapshotImportReview.Show(this, unsupported, ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, unsupported)))
+                    { ImportStatus.Text = "Module snapshot import cancelled. No module data was saved."; return; }
+                    ImportStatus.Text = "Verifying the supported-device-only snapshot…";
+                    snapshot = await Task.Run(() => ModuleSnapshotEditionFilter.KeepSupported(snapshot, EditionAccess.Policy, observed));
+                    workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                }
+                EditionAccess.RequireWorkspace(workspace);
+                var restored = await ModuleSnapshotWorkflow.RestoreAsync(snapshot, repository);
+                _lastViewModel = new ModuleWorkspaceViewModel(restored);
+                await RefreshSavedModulesAsync(restored.Configuration.Module.Id);
+                ImportStatus.Text = $"Restored {restored.Configuration.Module.DisplayName} from verified snapshot. Open module to edit or build with package version {snapshot.Version}. Shared defaults and other modules were preserved." +
+                    (unsupported.Count > 0 ? $" Removed {unsupported.Count} unsupported device(s) and assignments depending on their modifiers from the imported copy." : "");
+            }
+            catch (Exception ex) { ImportStatus.Text = "Module snapshot was not restored: " + ex.Message; }
+            finally { SetModuleOperationBusy(false); }
+        }
+        private string? ChooseSnapshotFile()
+        {
+            var picker = new ThemeBrowseDialog { Title = "Restore a verified HEIMDALL module snapshot", Filter = "HEIMDALL module snapshot|*.heimdall-module.json;*.ipia-module.json" };
+            return picker.ShowDialog(this) == true ? picker.FileName : null;
+        }
+        private async void ImportModule_Click(object sender, RoutedEventArgs e)
+        {
+            SetModuleOperationBusy(true);
+            try
+            {
+                var selected =
+                    new ThemeBrowseDialog { SelectFolder = true,
+                        Title =
+                                               "Select module repository root or Saved Games module/joystick folder"
+                    };
+                if (selected.ShowDialog(this) != true)
+                    return;
+                var folder = selected.FolderName;
+                if (_folderImporter.HasProfiles(folder) ||
+                    string.Equals(Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)), "joystick",
+                                  StringComparison.OrdinalIgnoreCase) ||
+                    Directory.Exists(Path.Combine(folder, "joystick")))
+                {
+                    ImportStatus.Text = "Reading local Saved Games joystick profiles…";
+                    var result = await _folderImporter.ImportAsync(folder);
+                    if (result.Profiles.Count == 0)
+                    {
+                        ShowImportError(
+                            "No readable joystick profiles were found. " +
+                            string.Join("; ", result.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
+                        return;
+                    }
+                    if (!result.Succeeded)
+                    {
+                        ShowImportError("Saved Games profiles need attention: " + string.Join("; ", result.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
+                        return;
+                    }
+                    if (_sharedDefaults is null)
+                        throw new InvalidOperationException("Shared UI Layer storage is required to create an editable module.");
+                    var defaults = await _sharedDefaults.GetAsync() ??
+                        await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
+                    var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                    var review = new SavedGamesImportWindow(result, defaults, hardware, _workspaces) { Owner = this };
+                    if (review.ShowDialog() != true || review.ImportedWorkspace is not { } persisted)
+                        return;
+                    _lastViewModel = new ModuleWorkspaceViewModel(persisted);
+                    await RefreshSavedModulesAsync(persisted.Configuration.Module.Id);
+                    ImportStatus.Text = $"Imported {result.Profiles.Count} Saved Games devices and {result.Bindings.Count} bindings into an editable module. Axis removals and captured keyboard profiles are retained. Load a command JSON or Controls HTML for the complete command palette.";
+                }
+                else
+                {
+                    ImportStatus.Text = "Reading module sources, built-in shared hardware, and kneeboard PNGs…";
+                    var preview = await _loader.LoadAsync(BundledSharedCatalog.Root, folder);
+                    if (!preview.Import.Succeeded)
+                    {
+                        ShowImportError(
+                            "Module source import needs attention: " +
+                            string.Join("; ", preview.Import.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
+                        return;
+                    }
+                    var importedView = new ModuleWorkspaceViewModel(preview);
+                    if (preview.Diagrams.Any(x => x.Controls.Count > 0) && importedView.Draft is null)
+                    {
+                        ShowImportError("Assignments were not saved: " + importedView.DraftNote);
+                        return;
+                    }
+                    var module = preview.Import.Configuration!;
+                    var authored =
+                        preview.Import.Metadata["config/kneeboard.json"].GetProperty("pages").EnumerateArray().Sum(
+                            page =>
+                                (page.TryGetProperty("controls", out var controls) ? controls.EnumerateObject().Count()
+                                                                                   : 0) +
+                                (page.TryGetProperty("layers", out var layers)
+                                     ? layers.EnumerateArray().Sum(layer =>
+                                                                       layer.TryGetProperty("controls", out var nested)
+                                                                           ? nested.EnumerateObject().Count()
+                                                                           : 0)
+                                     : 0));
+                    if (authored > 0 && importedView.Labels.Count == 0)
+                        throw new InvalidDataException(
+                            "No authored kneeboard labels matched the imported module bindings.");
+                    var saved = new EditorWorkspaceSnapshot(
+                        module, preview.Import.Pages, preview.Images, preview.Diagrams, importedView.ModuleCommands,
+                        preview.UiCommands, importedView.Draft?.Snapshot ?? [], importedView.Labels,
+                        preview.Import.Sources.Concat(preview.SharedLuaSources)
+                            .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
+                    saved = PinnedUiLayerProfileRecovery.Restore(saved);
+                    SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
+                    EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
+                    await _workspaces.SaveAsync(saved);
+                    var persisted =
+                        await _workspaces.GetAsync(module.Module.Id) ??
+                        throw new InvalidDataException("The imported workspace could not be reopened from SQLite.");
+                    if (persisted.Labels.Count != importedView.Labels.Count ||
+                        importedView.Labels.Any(pair => !persisted.Labels.TryGetValue(pair.Key, out var value) ||
+                                                        value != pair.Value))
+                        throw new InvalidDataException(
+                            "The authored kneeboard labels did not survive the SQLite save.");
+                    _lastViewModel = new ModuleWorkspaceViewModel(persisted);
+                    await RefreshSavedModulesAsync(module.Module.Id);
+                    ImportStatus.Text =
+                        $"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues. Imported committed revision {preview.ModuleCommit}. Commit local changes and import again to refresh.";
+                    if (preview.UncommittedSourcePaths.Count > 0)
+                        ImportStatus.Text += Environment.NewLine + "WARNING: Local changes were excluded: " +
+                            string.Join(", ", preview.UncommittedSourcePaths) + ". Commit these files, then use Import Module again.";
+                }
+                ShowImported();
+            }
+            catch (Exception ex)
+            {
+                ShowImportError($"Unable to open this source: {ex.Message}");
+            }
+            finally
+            {
+                SetModuleOperationBusy(false);
+            }
+        }
+        private async void DeleteModule_Click(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy || !DeleteModuleButton.IsEnabled || SavedModules.SelectedItem is not SavedModuleChoice choice)
+                return;
+            if (ThemeMessageBox.Show(this,
+                $"Delete {choice.DisplayName} and all of its saved profiles, assignments, labels, and kneeboards from the local database? You can import it again from scratch.",
+                "Delete module", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+                return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                var deleted = await _workspaces.DeleteAsync(choice.Id);
+                _lastViewModel = null;
+                await RefreshSavedModulesAsync();
+                ImportStatus.Text = deleted
+                    ? $"Deleted {choice.DisplayName} from the local database. Use Import module sources to start from scratch."
+                    : "The selected module is no longer in the database.";
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to delete module: " + ex.Message);
+            }
+            finally
+            {
+                SetModuleOperationBusy(false);
+            }
+        }
+        private void SetModuleOperationBusy(bool busy)
+        {
+            _moduleOperationBusy = busy;
+            SavedModules.IsEnabled = !busy;
+            ImportButton.IsEnabled = !busy;
+            NewModuleButton.IsEnabled = !busy && _sharedDefaults is not null;
+            OpenModuleButton.IsEnabled = !busy;
+            RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
+            DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
+            SharedDefaultsButton.IsEnabled = !busy && _sharedDefaults is not null;
+            ThemePicker.IsEnabled = !busy && EditionAccess.Policy.IsOwner;
+            CommandManager.InvalidateRequerySuggested();
+            UpdateFlyNowControls();
+        }
+        private async void OpenSaved_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (SavedModules.SelectedItem is not SavedModuleChoice choice)
+                {
+                    await RefreshSavedModulesAsync();
+                    if (SavedModules.SelectedItem is not SavedModuleChoice)
+                    {
+                        ImportStatus.Text = "No local editor workspace has been saved yet.";
+                        return;
+                    }
+                    choice = (SavedModuleChoice)SavedModules.SelectedItem;
+                }
+                var saved = await _workspaces.GetAsync(choice.Id);
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                    return;
+                if (saved is null)
+                {
+                    ImportStatus.Text = "The selected module is no longer in the database.";
+                    await RefreshSavedModulesAsync();
+                    return;
+                }
+                _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                ImportStatus.Text = SavedWorkspaceStatus(saved);
+                ShowImported();
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to open saved workspace: " + ex.Message);
+            }
+        }
+        private async void SavedModuleChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DeleteModuleButton is not null)
+                DeleteModuleButton.IsEnabled = !_moduleOperationBusy && SavedModules?.SelectedItem is SavedModuleChoice;
+            UpdateFlyNowControls();
+            if (_moduleOperationBusy)
+                return;
+            if (SavedModules?.SelectedItem is not SavedModuleChoice choice)
+            {
+                _lastViewModel = null;
+                return;
+            }
+            try
+            {
+                var saved = await _workspaces.GetAsync(choice.Id);
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                    return;
+                _lastViewModel = saved is null ? null : new ModuleWorkspaceViewModel(saved);
+                ImportStatus.Text =
+                    saved is null
+                        ? "The selected module is no longer in the database."
+                        : SavedWorkspaceStatus(saved);
+            }
+            catch (Exception ex)
+            {
+                ShowImportError("Unable to select saved module: " + ex.Message);
+            }
+        }
+        private static string SavedWorkspaceStatus(EditorWorkspaceSnapshot saved) =>
+            $"Opened saved workspace for {saved.Configuration.Module.DisplayName} ({saved.Configuration.Provenance}). This workspace loads from SQLite. Use Import Module only to refresh an imported repository.";
+        private async Task RefreshSavedModulesAsync(Guid? selected = null)
+        {
+            var previous = selected ?? (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            var choices = new List<SavedModuleChoice>();
+            foreach (var id in await _workspaces.ListAsync())
+            {
+                var snapshot = await _workspaces.GetAsync(id);
+                if (snapshot is null)
+                    continue;
+                var module = snapshot.Configuration.Module;
+                choices.Add(new(id, $"{module.DisplayName} ({module.DcsId})"));
+            }
+            SavedModules.ItemsSource = choices;
+            SavedModules.SelectedItem = choices.FirstOrDefault(x => x.Id == previous) ?? choices.FirstOrDefault();
+        }
+        private void ShowImportError(string message)
+        {
+            ImportStatus.Text = message;
+            ThemeMessageBox.Show(this, message, "Import needs attention", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        private void ShowImported()
+        {
+            if (_lastViewModel is null)
+                return;
+            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
+                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
+                moduleChoices: SavedModules.Items.Cast<SavedModuleChoice>().ToArray()) { Owner = this };
+            if (_games is not null && _lastViewModel.Workspace is { } workspace)
+                RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);
+            window.ShowDialog();
+            if (window.RequestedGame == "elite-dangerous") OpenElite();
+            else if (window.RequestedModule is { } id)
+            {
+                SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id);
+                OpenSaved_Click(this, new RoutedEventArgs());
+            }
+        }
+        private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ThemePicker.SelectedItem is not ComboBoxItem { Tag: string theme })
+                return;
+            if (!EditionAccess.Policy.IsOwner) return;
+            ThemeManager.Apply(theme);
+            var saved = _settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
+            ThemeSaveStatus.Text =
+                saved ? AppearanceManager.LastError ?? string.Empty : _settings.LastError ?? "Theme changed for this session but was not saved.";
+        }
+        private void TrainingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy) return;
+            new TrainingWindow { Owner = this }.ShowDialog();
+        }
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            if (_moduleOperationBusy) return;
+            var dialog = new SettingsWindow(_settings) { Owner = this };
+            dialog.ShowDialog();
+            ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
+            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            EditionStatus.Text = EditionAccess.Policy.Label;
+            ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
+            UpdateFlyNowControls();
+        }
+        #endregion END private helpers
+    }
+}

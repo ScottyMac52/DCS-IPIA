@@ -20,7 +20,7 @@ The Light/Dark persisted identities and colors remain compatible; their UI names
 
 Run `python3 scripts/check_theme_resources.py` for palette parity and unresolved dynamic resources throughout application XAML; the checker also rejects fixed brush references in shared theme dictionaries. Existing Windows smoke captures each skin in the custom-mapping-preview CI artifact. Manual keyboard/high-contrast/scaling acceptance remains in #191. Generated kneeboards, assignment/modifier legend colors and immutable snapshots are independent of the application palette.
 
-Flight Patch branding/icons, custom accents and imported palettes are implemented; see [branding provenance](../../src/Dcs.Ipia.App/Branding/PROVENANCE.md) and [appearance customization](appearance-editor.md). No arbitrary XAML skin loading is introduced.
+Flight Patch branding/icons, custom accents and imported palettes are implemented; see [branding provenance](../../src/Heimdall.App/Branding/PROVENANCE.md) and [appearance customization](appearance-editor.md). No arbitrary XAML skin loading is introduced.
 
 ## Main window and menus
 

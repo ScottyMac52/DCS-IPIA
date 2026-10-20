@@ -1,6 +1,6 @@
 # Cougar MFD labels with colored layers
 
-Import `tests/Dcs.Ipia.Tests/Fixtures/CustomMappings/Cougar-MFD-Stacked.drawio` using Hardware → Import drawio mapping, select the verified 28-button Cougar definition, then review and apply the revision to the desired module profile. Repeat explicitly for other MFD instances. Existing bindings, modifiers and tuning remain in the module. This PR does not replace the bundled hardware catalog.
+Import `tests/Heimdall.Tests/Fixtures/CustomMappings/Cougar-MFD-Stacked.drawio` using Hardware → Import drawio mapping, select the verified 28-button Cougar definition, then review and apply the revision to the desired module profile. Repeat explicitly for other MFD instances. Existing bindings, modifiers and tuning remain in the module. This PR does not replace the bundled hardware catalog.
 
 Left and right callouts contain horizontal lines, read left to right. Top and bottom callouts contain upright stacked letters, read top to bottom. Each assigned layer/modifier adds an adjacent column. Spaces remain blank rows. The supplied layout preserves Scott’s repositioned callout boxes and omits pointer lines. The center Cougar graphic is covered by an editable white panel. LEFT/RIGHT headings use stacked letters; TOP/BOTTOM headings remain horizontal. All 28 physical inputs retain explicit `JOY_BTN1`–`JOY_BTN28` mappings.
 

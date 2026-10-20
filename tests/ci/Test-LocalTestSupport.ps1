@@ -87,11 +87,11 @@ try {
         Assert-Fails { & (Join-Path $tests 'generate-test-reports.ps1') -NoOpen } 'No OpenCover data found'
 
         if ($IsWindows) {
-            $oldPreview = $env:IPIA_MAPPING_PREVIEW; $oldParity = $env:IPIA_PARITY_OUTPUT
+            $oldPreview = $env:HEIMDALL_MAPPING_PREVIEW; $oldParity = $env:HEIMDALL_PARITY_OUTPUT
             $global:LocalTestCalls.Clear(); $global:LocalTestFailure = 'build'
             Assert-Fails { & (Join-Path $tests 'smoke-tests.ps1') } 'Windows solution build failed with exit code 17'
             Assert-True ($global:LocalTestCalls.Count -eq 1) 'Smoke tests ran after a failed build.'
-            Assert-True ($env:IPIA_MAPPING_PREVIEW -eq $oldPreview -and $env:IPIA_PARITY_OUTPUT -eq $oldParity) 'Smoke variables leaked.'
+            Assert-True ($env:HEIMDALL_MAPPING_PREVIEW -eq $oldPreview -and $env:HEIMDALL_PARITY_OUTPUT -eq $oldParity) 'Smoke variables leaked.'
             $oldTemp = $env:RUNNER_TEMP; $oldCommit = $env:GITHUB_SHA
             Assert-Fails { & (Join-Path $tests 'release-candidate-tests.ps1') } 'Source commit failed with exit code 22'
             Assert-True ($env:RUNNER_TEMP -eq $oldTemp -and $env:GITHUB_SHA -eq $oldCommit) 'Release variables leaked.'

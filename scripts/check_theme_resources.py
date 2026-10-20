@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import sys
 
-ROOT = Path(__file__).resolve().parents[1] / "src" / "Dcs.Ipia.App"
+ROOT = Path(__file__).resolve().parents[1] / "src" / "Heimdall.App"
 KEY = re.compile(r'x:Key="([^"]+)"')
 DYNAMIC = re.compile(r"\{DynamicResource ([^}]+)\}")
 

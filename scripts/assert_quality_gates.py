@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from publish_test_results import cell, read_metrics
 
-ASSEMBLIES = tuple("Dcs.Ipia." + name for name in
+ASSEMBLIES = tuple("Heimdall." + name for name in
                    ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Rendering", "Packaging"))
 
 

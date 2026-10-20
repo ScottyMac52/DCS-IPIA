@@ -2,13 +2,13 @@
 param([Parameter(Mandatory=$true)][string]$Version, [string]$Output = 'release-assets')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw 'Version must contain four numeric components.' }
-$taskRoot = Join-Path $env:RUNNER_TEMP ('ipia-release-' + [guid]::NewGuid().ToString('N'))
+$taskRoot = Join-Path $env:RUNNER_TEMP ('heimdall-release-' + [guid]::NewGuid().ToString('N'))
 $publish = Join-Path $taskRoot 'publish'
 $installed = Join-Path $taskRoot 'installed'
 New-Item -ItemType Directory -Path $taskRoot | Out-Null
 $previousLocalAppData = $env:LOCALAPPDATA
 $env:LOCALAPPDATA = Join-Path $taskRoot 'setup-preferences'
-$setupSettings = Join-Path $env:LOCALAPPDATA 'DCS-IPIA/appsettings.json'
+$setupSettings = Join-Path $env:LOCALAPPDATA 'HEIMDALL/appsettings.json'
 $setupLogs = @()
 $releaseFailure = $null
 . (Join-Path $PSScriptRoot 'ReleaseTestCleanup.ps1')
@@ -42,7 +42,7 @@ function Assert-ProfilePreservation {
     }
 }
 try {
-    dotnet publish src/Dcs.Ipia.App/Dcs.Ipia.App.csproj -c Release -r win-x64 --self-contained true `
+    dotnet publish src/Heimdall.App/Heimdall.App.csproj -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
         "-p:Version=$Version" "-p:FileVersion=$Version" "-p:AssemblyVersion=$Version" -o $publish
     Assert-Exit 'Application publish'
@@ -51,7 +51,7 @@ try {
     Test-App (Join-Path $publish 'Heimdall.exe') 'portable-smoke'
     # Seed real SQLite and user files outside the install directory before testing upgrade/uninstall.
     $profileHashes = @{}
-    foreach ($profile in @('DCS-IPIA', 'DCS-IPIA-TestProfiles/fresh-install', 'DCS-IPIA-TestProfiles/second')) {
+    foreach ($profile in @('HEIMDALL', 'HEIMDALL-TestProfiles/fresh-install', 'HEIMDALL-TestProfiles/second', 'DCS-IPIA', 'DCS-IPIA-TestProfiles/fresh-install', 'DCS-IPIA-TestProfiles/second')) {
         $profileRoot = Join-Path $env:LOCALAPPDATA $profile
         New-Item -ItemType Directory -Path $profileRoot -Force | Out-Null
         Copy-Item (Join-Path $taskRoot 'portable-smoke/*') $profileRoot -Recurse
@@ -93,7 +93,7 @@ try {
     }
     Test-App (Join-Path $installed 'Heimdall.exe') 'installed-smoke'
     Assert-ProfilePreservation
-    Test-App (Join-Path $installed 'Heimdall.exe') 'upgrade-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Test-App (Join-Path $installed 'Heimdall.exe') 'upgrade-reopen' (Join-Path $env:LOCALAPPDATA 'HEIMDALL')
     Assert-ProfilePreservation
     Get-ChildItem $publish -File -Recurse | ForEach-Object {
         $relative = [IO.Path]::GetRelativePath($publish, $_.FullName)
@@ -119,7 +119,7 @@ try {
     if (-not $reinstall.WaitForExit(90000)) { $reinstall.Kill(); throw 'Reinstall timed out.' }
     if ($reinstall.ExitCode -ne 0) { throw 'Reinstall failed.' }
     Assert-ProfilePreservation
-    Test-App (Join-Path $installed 'Heimdall.exe') 'reinstall-reopen' (Join-Path $env:LOCALAPPDATA 'DCS-IPIA')
+    Test-App (Join-Path $installed 'Heimdall.exe') 'reinstall-reopen' (Join-Path $env:LOCALAPPDATA 'HEIMDALL')
     Assert-ProfilePreservation
     if ((Get-Content $setupSettings -Raw | ConvertFrom-Json).SavedGamesDcsFolder -ne $customFolder) {
         throw 'Reinstall reset user settings.'

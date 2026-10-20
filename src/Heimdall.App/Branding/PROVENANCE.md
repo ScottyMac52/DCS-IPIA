@@ -1,0 +1,9 @@
+# HEIMDALL artwork provenance
+
+The raster artwork in `Masters/` was generated with OpenAI image generation at Scott McIntosh's direction for HEIMDALL, Simulation Control Manager. It includes the approved square tactical display, bridge H, product lockup, color icon, and monochrome icon. These are branding illustrations, not operational AEGIS displays or a claim of verified military symbology.
+
+The approved artwork is resized without redrawing into production masters: 768-pixel product logo, 1200 × 400 banner, and 512-pixel icons. Full-resolution originals remain in the original generated-image collection. These production sizes keep repository transfers small. `python scripts/generate_heimdall.py` uses Pillow to resize, letterbox, and package committed PNG, Windows ICO, and installer BMP derivatives. There is no vector master. The banner is contained without distortion; installer images are 24-bit RGB. ICO frames use explicit 32-bit BGRA DIB payloads, one color plane, and DWORD-aligned AND masks. WPF window icons use PNG directly. Both icons contain 16, 20, 24, 32, 40, 48, 64, 128, and 256 pixel frames.
+
+`manifest.json` records SHA-256 hashes for the generator, masters, and packaged artwork. `python scripts/check_branding_assets.py` validates committed assets without Pillow. Normal builds do not require image generation or Pillow. Distribution notices include this provenance. Free-edition artwork has separate provenance in `FreeEdition/PROVENANCE.md`.
+
+Encoding references: [Microsoft icon guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-icons) and [BITMAPINFOHEADER](https://learn.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)). The uncompressed BI_RGB image-size field is zero; directory payload lengths and the frame regression test enforce complete bitmap/mask bounds.

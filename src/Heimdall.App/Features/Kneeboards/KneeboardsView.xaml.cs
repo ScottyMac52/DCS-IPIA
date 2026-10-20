@@ -1,0 +1,170 @@
+using Heimdall.Application;
+using Heimdall.Application.Interfaces;
+using Heimdall.Domain;
+using Heimdall.Rendering;
+using Heimdall.App;
+using System.Globalization;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+
+namespace Heimdall.App.Features.Kneeboards
+{
+    /// <summary>Previews the module kneeboard pages.</summary>
+    public partial class KneeboardsView : UserControl
+    {
+        private IModuleWorkspaceContext? _context;
+        private bool _updating;
+        private readonly DiagramViewport _viewport;
+
+        #region BEGIN Public
+        public KneeboardsView()
+        {
+            InitializeComponent();
+            _viewport = new DiagramViewport(DiagramScroll, ZoomBox, Zoom, "kneeboards.zoom");
+            AppearanceManager.ObserveArtwork(this, RefreshPreview);
+        }
+
+
+        /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
+        public void Initialize(IModuleWorkspaceContext context)
+        {
+            ArgumentNullException.ThrowIfNull(context);
+            _context = context;
+            _context.StateChanged += (_, _) => Refresh();
+            Refresh();
+        }
+        #endregion END Public
+
+        #region BEGIN private helpers
+        private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
+
+        private void Refresh()
+        {
+            if (_context?.Working is null && _context?.Saved is null)
+            {
+                KneeboardList.ItemsSource = null;
+                KneeboardPreview.Source = null;
+                KneeboardCaption.Text = "No kneeboard available.";
+                return;
+            }
+            var pages = _context.Working?.Pages ?? _context.Saved?.Pages ?? [];
+            KneeboardList.ItemsSource = pages.OrderBy(x => x.Order).Select(x => $"{x.Order:00}  ·  {x.Title}").ToArray();
+            if (KneeboardList.SelectedIndex < 0 && KneeboardList.Items.Count > 0)
+                KneeboardList.SelectedIndex = 0;
+            RefreshPreview();
+        }
+
+        private void PageSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (GenericPageChoice is not null) GenericPageChoice.SelectedIndex = 0;
+            RefreshPreview();
+        }
+
+        private void GenericPageChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_updating) RefreshPreview();
+        }
+
+        private void RefreshPreview()
+        {
+            if (KneeboardPreview is null || KneeboardCaption is null || GenericPageChoice is null) return;
+            KneeboardPreview.Source = null;
+            GenericPageChoice.IsEnabled = false;
+
+            var index = KneeboardList.SelectedIndex;
+            var workspace = _context?.Working ?? _context?.Saved;
+            if (workspace is null || index < 0 || index >= workspace.Pages.Count)
+            {
+                KneeboardCaption.Text = "No rendered kneeboard image is available.";
+                return;
+            }
+
+            try
+            {
+                var page = workspace.Pages.OrderBy(x => x.Order).ElementAt(index);
+                var path = $"KNEEBOARD/{workspace.Configuration.Module.DcsId}/{page.StableKey}.png";
+                byte[] bytes;
+                if (page.Kind == KneeboardPageKind.Device)
+                {
+                    var diagram = workspace.Diagrams.Single(x =>
+                        KneeboardPageLocator.PageKeyForProfile(workspace, x.ProfileId) == page.StableKey);
+                    var combined = KneeboardDraftProjection.CreateCombined(workspace, diagram, workspace.Assignments, workspace.Labels);
+                    if (diagram.GenericCapabilities is null && diagram.CustomMapping is null)
+                        bytes = CompositeKneeboardRenderer.Render(diagram, combined, "", AppearanceManager.HasBackground(this), AppearanceManager.ArtworkOpacityFor(this));
+                    else
+                    {
+                        var generated = DeviceKneeboardPages.Render(diagram, combined, transparent: AppearanceManager.HasBackground(this), artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
+                        var choices = Enumerable.Range(1, generated.Count).Select(x => "Page " + x).ToArray();
+                        if (!(GenericPageChoice.ItemsSource as string[] ?? []).SequenceEqual(choices, StringComparer.Ordinal))
+                        {
+                            _updating = true;
+                            GenericPageChoice.ItemsSource = choices;
+                            GenericPageChoice.SelectedIndex = 0;
+                            _updating = false;
+                        }
+                        GenericPageChoice.IsEnabled = generated.Count > 1;
+                        var selected = Math.Max(0, GenericPageChoice.SelectedIndex);
+                        bytes = generated[selected];
+                        path = path[..^4] + (selected == 0 ? "" : "-" + (selected + 1).ToString("D3", CultureInfo.InvariantCulture)) + ".png";
+                    }
+                }
+                else if (page.Kind == KneeboardPageKind.Summary)
+                {
+                    var rendered = SnapshotSummaryKneeboardRenderer.Generate(workspace, AppearanceManager.HasBackground(this));
+                    var pages = rendered.Where(x => x.Key == path ||
+                        (x.Key.StartsWith(path[..^4] + "-", StringComparison.Ordinal) &&
+                         x.Key.EndsWith(".png", StringComparison.Ordinal)))
+                        .OrderBy(x => x.Key == path ? 0 : 1).ThenBy(x => x.Key, StringComparer.Ordinal).ToArray();
+                    var choices = Enumerable.Range(1, pages.Length).Select(x => "Page " + x).ToArray();
+                    _updating = true;
+                    GenericPageChoice.ItemsSource = choices;
+                    if (GenericPageChoice.SelectedIndex < 0 || GenericPageChoice.SelectedIndex >= pages.Length)
+                        GenericPageChoice.SelectedIndex = 0;
+                    _updating = false;
+                    GenericPageChoice.IsEnabled = pages.Length > 1;
+                    var selected = Math.Max(0, GenericPageChoice.SelectedIndex);
+                    bytes = pages[selected].Value;
+                    path = pages[selected].Key;
+                }
+                else
+                    throw new InvalidDataException("Unsupported page: " + page.StableKey);
+
+                using var stream = new MemoryStream(bytes);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = stream;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                KneeboardPreview.Source = bitmap;
+                ZoomBox.Width = KneeboardPreview.Width = bitmap.Width;
+                ZoomBox.Height = KneeboardPreview.Height = bitmap.Height;
+                KneeboardCaption.Text = "Generated: " + path;
+            }
+            catch (Exception ex)
+            {
+                KneeboardCaption.Text = "Unable to generate: " + ex.Message;
+            }
+        }
+
+        private void ZoomChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ZoomPercent is null || ZoomBox is null) return;
+            ZoomPercent.Text = ((int)(Zoom.Value * 100)).ToString(CultureInfo.InvariantCulture);
+            ZoomBox.LayoutTransform = new ScaleTransform(Zoom.Value, Zoom.Value);
+        }
+
+        private void ZoomPercentChanged(object sender, RoutedEventArgs e)
+        {
+            if (double.TryParse(ZoomPercent.Text, out var percent))
+                Zoom.Value = Math.Clamp(percent / 100.0, Zoom.Minimum, Zoom.Maximum);
+        }
+
+        private void ZoomReset(object sender, MouseButtonEventArgs e) => Zoom.Value = 1.0;
+        #endregion END private helpers
+    }
+}

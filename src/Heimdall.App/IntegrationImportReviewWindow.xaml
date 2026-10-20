@@ -1,0 +1,19 @@
+<Window x:Class="Heimdall.App.IntegrationImportReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Review integration instructions" Width="1000" Height="700" MinWidth="700" MinHeight="450"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="20">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+      <TextBlock x:Name="IntegrationImportHeading" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock x:Name="IntegrationImportSource" TextWrapping="Wrap" Margin="0,8"/>
+      <TextBlock Text="Matching instruction names are replaced; absent groups remain. Verify this source belongs to the destination aircraft. Legacy Markdown is retained as captured guidance, including any historical paths. This changes instructions only. Save keeps the draft; Discard undoes it." TextWrapping="Wrap"/>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="Cancel" IsCancel="True" Padding="16,4" Margin="0,0,8,0"/>
+      <Button x:Name="StageIntegrationImportButton" Content="Stage import" IsDefault="True" Click="StageClicked" Padding="16,4"/>
+    </StackPanel>
+    <TextBox x:Name="IntegrationImportChanges" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Previous and proposed integration instructions"/>
+  </DockPanel>
+</Window>

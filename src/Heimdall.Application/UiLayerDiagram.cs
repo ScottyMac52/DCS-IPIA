@@ -1,0 +1,39 @@
+namespace Heimdall.Application
+{
+    /// <summary>Positions module-used UI Layer functions over a committed DCS-Common hardware image.</summary>
+    /// <param name="Device">Authored hardware label.</param>
+    /// <param name="Instance">Consumer device instance, if present.</param>
+    /// <param name="Path">Committed DCS-Common SVG source path.</param>
+    /// <param name="Width">SVG viewBox width.</param>
+    /// <param name="Height">SVG viewBox height.</param>
+    /// <param name="Background">The SVG's embedded PNG or JPEG hardware image.</param>
+    /// <param name="Callouts">Only assignments explicitly used by this module and device instance.</param>
+    public sealed record UiLayerDiagram(string Device, string? Instance, string Path, double Width, double Height,
+                                        byte[] Background, IReadOnlyList<UiLayerCallout> Callouts)
+    {
+        #region BEGIN Public
+        /// <summary>Gets the display name, including a physical instance when present.</summary>
+        public string Title => DcsDeviceDisplay.Label(Device, Instance);
+        /// <summary>Gets the exact validated draw.io-generated SVG from the committed shared repository.</summary>
+        public string Svg { get; init; } = string.Empty;
+        /// <summary>Gets the imported device profile identity; never inferred from a Saved Games filename.</summary>
+        public Guid ProfileId { get; init; }
+        /// <summary>Gets the exact pinned canonical UI Layer profile path, when uniquely resolved.</summary>
+        public string ? CanonicalUiLayerSourcePath { get; init; }
+        /// <summary>Gets whether the canonical UI Layer template supports this physical instance.</summary>
+        public bool SupportsUiLayer { get; init; } = true;
+        /// <summary>Gets every mapped control, including empty callouts.</summary>
+        public IReadOnlyList<HardwareGraphicControl> Controls { get; init; } = [];
+        /// <summary>Gets pinned native evidence for an image-free generic layout; null preserves bundled graphics.</summary>
+        public ControllerCapabilities? GenericCapabilities { get; init; }
+        /// <summary>Gets a pinned immutable user mapping, including editable source and captured local images.</summary>
+        public UserMappingRevision? CustomMapping { get; init; }
+        /// <summary>Gets retained older drawing pins for source-free rollback; omitted by older payloads.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyList<UserMappingRevision>? MappingHistory { get; init; }
+        /// <summary>Gets source-independent original built-in artwork for explicit rollback.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public OriginalHardwareDrawing? OriginalDrawing { get; init; }
+        #endregion END Public
+    }
+}

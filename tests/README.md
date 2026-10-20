@@ -121,7 +121,7 @@ complete. No execution of `csharp-test.ps1` is shown in that transcript.
 | Native restore/build/test/export reports failure but later commands still run | [LocalTestSupport.ps1](LocalTestSupport.ps1), `Invoke-LocalTestCommand`. `$ErrorActionPreference` alone does not consistently stop native command failures. | The committed wrappers now check exit codes explicitly and stop before running dependent steps. |
 | No OpenCover data / missing ReportGenerator | [generate-test-reports.ps1](generate-test-reports.ps1). | Run `coverage-test-gates.ps1` and `crap-tests.ps1` before generating reports. |
 | C# layout, theme or Common inventory errors | `scripts/check_csharp_layout.py`, `scripts/check_theme_resources.py`, `scripts/check_common_migration.py`. | Follow the specific file/type/resource/evidence path reported by the checker. |
-| Unit test, coverage or WPF smoke failure | `tests/Dcs.Ipia.Tests`, `tests/Dcs.Ipia.App.Smoke`, and the generated TRX/preview files. | Start with the named failing test and its stack trace; for coverage inspect the implicated assembly and OpenCover report. |
+| Unit test, coverage or WPF smoke failure | `tests/Heimdall.Tests`, `tests/Heimdall.App.Smoke`, and the generated TRX/preview files. | Start with the named failing test and its stack trace; for coverage inspect the implicated assembly and OpenCover report. |
 
 The transcript's reporting command successfully wrote its coverage HTML/CSV/JSON;
 no reporting exception is shown. Confirm `crap-scores.csv`, `test-results.json` and

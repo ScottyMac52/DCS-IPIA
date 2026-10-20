@@ -16,9 +16,9 @@ jobs:
     uses: ScottyMac52/shared-github-workflows/.github/workflows/reusable-dotnet-ci.yml@2bb8c9233fe456e94fe1627f41e24df8e881ceb2
     with:
       dotnet_version: 10.0.x
-      test_project: tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj
-      presentation_project: src/Dcs.Ipia.App/Dcs.Ipia.App.csproj
-      coverage_include: '[Dcs.Ipia.Domain]*%2c[Dcs.Ipia.Application]*%2c[Dcs.Ipia.Infrastructure]*%2c[Dcs.Ipia.Dcs]*%2c[Dcs.Ipia.EliteDangerous]*%2c[Dcs.Ipia.Rendering]*%2c[Dcs.Ipia.Packaging]*'
+      test_project: tests/Heimdall.Tests/Heimdall.Tests.csproj
+      presentation_project: src/Heimdall.App/Heimdall.App.csproj
+      coverage_include: '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.EliteDangerous]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
       line_threshold: 80
       branch_threshold: 80
 
@@ -43,21 +43,21 @@ jobs:
         run: ./tests/installer/Test-RuntimePackNotices.ps1
       - name: Build Visual Studio solution
         id: solution_build
-        run: dotnet build DCS-IPIA.sln --configuration Release
+        run: dotnet build HEIMDALL.sln --configuration Release
       - name: Test setup folder defaults and appsettings persistence
         shell: powershell
         run: ./tests/installer/Test-SavedGamesSettings.ps1
       - name: Open WPF previews and complete both interactive training scenarios
         timeout-minutes: 6
         env:
-          IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
-        run: dotnet run --project tests/Dcs.Ipia.App.Smoke/Dcs.Ipia.App.Smoke.csproj --configuration Release --no-build
+          HEIMDALL_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
+        run: dotnet run --project tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj --configuration Release --no-build
       - name: Run tests on Windows
         if: ${{ !cancelled() && steps.solution_build.outcome == 'success' }}
         env:
-          IPIA_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
-          IPIA_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
-        run: dotnet test tests/Dcs.Ipia.Tests/Dcs.Ipia.Tests.csproj --configuration Release --no-build --logger trx --results-directory "${{ runner.temp }}/windows-test-results"
+          HEIMDALL_PARITY_OUTPUT: ${{ runner.temp }}/huey-parity
+          HEIMDALL_MAPPING_PREVIEW: ${{ runner.temp }}/custom-mapping-preview
+        run: dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj --configuration Release --no-build --logger trx --results-directory "${{ runner.temp }}/windows-test-results"
       - name: Upload custom mapping visual review
         uses: actions/upload-artifact@v7
         if: always()

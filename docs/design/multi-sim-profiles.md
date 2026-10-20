@@ -1,8 +1,8 @@
 # Multi-sim/game profile foundation
 
 PR #285 introduces experimental intermediate profile DTOs in
-`Dcs.Ipia.Domain.MultiSim` and backend/catalog contracts in
-`Dcs.Ipia.Application.Interfaces`. These types do not add another game to the
+`Heimdall.Domain.MultiSim` and backend/catalog contracts in
+`Heimdall.Application.Interfaces`. These types do not add another game to the
 application, replace saved DCS workspaces, migrate SQLite, or deploy native files.
 Implementation and acceptance are tracked in [issue #286](https://github.com/ScottyMac52/DCS-IPIA/issues/286).
 
@@ -133,7 +133,7 @@ backend version.
 
 ## Elite Dangerous adapter (contract version 1)
 
-`Dcs.Ipia.EliteDangerous.EliteDangerousProfileBackend` is the first non-DCS
+`Heimdall.EliteDangerous.EliteDangerousProfileBackend` is the first non-DCS
 implementation of `ISimProfileBackend`. It is a separate project in the solution,
 with no dependency on the DCS parser, renderer or database. The existing shared
 interface and portable domain types did not need changes for this pilot.
