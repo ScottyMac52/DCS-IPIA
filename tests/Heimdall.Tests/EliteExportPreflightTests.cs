@@ -58,6 +58,14 @@ namespace Heimdall.Tests
             var error = Assert.Throws<InvalidOperationException>(() => new EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { ["Custom.4.2.binds"] = source }));
             Assert.Contains("MouseGUI", error.Message);
         }
+        /// <summary>Unknown structured duplicates are reported, rather than silently retaining the first or dropping native data.</summary>
+        [Fact]
+        public void Structured_duplicate_settings_require_source_repair()
+        {
+            var native = Native.Replace("</Root>", "<Future><Value Key='one'/></Future><Future><Value Key='one'/></Future></Root>", StringComparison.Ordinal);
+            var error = Assert.Throws<InvalidOperationException>(() => new EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { ["Custom.4.2.binds"] = native }));
+            Assert.Contains("Future", error.Message);
+        }
         /// <summary>Unsafe or reserved native filenames fail with no output instead of being silently renamed.</summary>
         [Theory]
         [InlineData("")]
