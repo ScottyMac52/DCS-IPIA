@@ -63,7 +63,7 @@ namespace Heimdall.Tests
             Assert.Equal("1", (string?)xml.Root.Element("YawAxisRaw")!.Element("Inverted")!.Attribute("Value"));
             Assert.DoesNotContain(xml.Descendants(), n => (string?)n.Attribute("Device") == "06A30BAC");
             var reimported = new EliteDangerousProfileBackend().Import("controls", files);
-            Assert.Single(reimported.Devices.Where(x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001"));
+            Assert.Single(reimported.Devices, x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001");
             var root = Path.Combine(Path.GetTempPath(), "heimdall-ed-lifecycle-" + Guid.NewGuid().ToString("N"));
             try
             {

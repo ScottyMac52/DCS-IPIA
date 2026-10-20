@@ -436,7 +436,7 @@ namespace Heimdall.App.Games
                 () => ReadReplacementInputs(connected.PhysicalGuid), target, drawing);
             ReviewControllerChange(change);
         });
-        private IReadOnlyCollection<string> ReadReplacementInputs(Guid physicalGuid)
+        private string[] ReadReplacementInputs(Guid physicalGuid)
         {
             EditionAccess.Policy.RequireOwner();
             using var source = _controllerInputs(new WindowInteropHelper(this).EnsureHandle(), [physicalGuid]);
