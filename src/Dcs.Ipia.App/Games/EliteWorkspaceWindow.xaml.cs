@@ -21,6 +21,7 @@ namespace DcsIpia.Presentation.Games
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly EliteDiagramPresenter _diagram;
+        private readonly DiagramViewport _viewport;
         private readonly EliteInputFeedback _input;
         private readonly Func<string?>? _importPicker;
         private readonly Func<string?>? _exportPicker;
@@ -40,6 +41,7 @@ namespace DcsIpia.Presentation.Games
             _services = services; _hardware = hardware; _importPicker = importPicker; _exportPicker = exportPicker; _pendingChoice = pendingChoice;
             InitializeComponent();
             _diagram = new(DiagramCanvas);
+            _viewport = new(DiagramScroll, DiagramCanvas, DiagramZoom, "elite.diagram");
             _input = new(this, _diagram, Status, inputFactory);
             _refreshing = true;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
@@ -82,6 +84,17 @@ namespace DcsIpia.Presentation.Games
             }
             catch (Exception error) { Status("Save failed; pending edits are retained: " + error.Message); return false; }
         }
+        /// <summary>Exports the same authored shared-drawing projection after edition validation.</summary>
+        internal void ExportReference(string path)
+        {
+            if (_session is null || Device is null) throw new InvalidOperationException("Select a profile and associated device first.");
+            _session.Export();
+            var document = _session.Snapshot;
+            if (!document.Hardware.TryGetValue(Device.Id, out var pin)) throw new InvalidOperationException("Associate a shared drawing first.");
+            var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
+            var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
+            File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private string Section => (SectionPicker.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "All";
@@ -109,6 +122,11 @@ namespace DcsIpia.Presentation.Games
                 var choices = _services.Store.List().Where(x => x.BackendId == "elite-dangerous").ToArray();
                 ProfilePicker.ItemsSource = choices;
                 ProfilePicker.SelectedItem = choices.FirstOrDefault(x => x.Id == selected);
+            }
+            catch (Exception error)
+            {
+                ProfilePicker.ItemsSource = Array.Empty<GameWorkspaceEntry>();
+                Status("Saved profiles need attention. You can import a separate profile; retained files are unchanged. " + error.Message);
             }
             finally { _refreshing = false; }
             if (_session is null && selected is { } id) Run(() => LoadProfile(id));
@@ -281,14 +299,10 @@ namespace DcsIpia.Presentation.Games
         private void ExportSheetClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (_session is null || Device is null) return;
-            _session.Export();
-            var document = _session.Snapshot;
-            if (!document.Hardware.TryGetValue(Device.Id, out var pin)) throw new InvalidOperationException("Associate a shared drawing first.");
-            var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
-            var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
             var dialog = new SaveFileDialog { Filter = "PNG reference sheet (*.png)|*.png", FileName = "Elite-controller-reference.png" };
-            if (dialog.ShowDialog(this) == true) { File.WriteAllBytes(dialog.FileName, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name)); Status("Reference sheet exported."); }
+            if (dialog.ShowDialog(this) == true) { ExportReference(dialog.FileName); Status("Reference sheet exported."); }
         });
+
         private bool ConfirmLeave()
         {
             _input.Stop(); if (!Pending) return true;
@@ -329,6 +343,7 @@ namespace DcsIpia.Presentation.Games
                 throw new InvalidOperationException("Associate this native reference with an exact connected controller first.");
             _input.Start(pin, _services.Discover());
         });
+        private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
         private void StopInputClicked(object sender, RoutedEventArgs e) { _input.Stop(); Status("Input test stopped."); }
         #endregion END private helpers
     }

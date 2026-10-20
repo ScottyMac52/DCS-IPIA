@@ -30,7 +30,9 @@ failure or cancellation retains the current workspace.
    button modifiers, inversion and percentage deadzone. A command's native
    **Toggle** is separate from per-binding **Hold**. Right-click a callout to
    select/tune its input or clear its selected assignment. The assignment table
-   remains available for captured inputs without a matching drawing.
+   remains available for captured inputs without a matching drawing. Use Fit or
+   the shared Zoom control to read dense or multi-view drawings; manual zoom and
+   scroll do not change assignment geometry.
 4. Choose **All**, **Ship**, **SRV**, **On Foot** or **General** to filter commands.
    These are conservative display hints, not new native files or cross-context
    reassignment. **All** always exposes every captured command; unfamiliar names
@@ -70,7 +72,7 @@ explicit game/profile. The envelope is versioned and bounded, writes are atomic,
 and a stale revision fails before replacement. Game state does not enter the DCS
 module tables. Existing full-user-data backup/restore includes this directory;
 the regression suite verifies an actual SQLite/profile backup and restore.
-Malformed records/preferences are retained for recovery, and preference failures
+Malformed workspace records are retained for recovery, and preference failures
 do not turn a successful profile save into a failed save.
 
 This first UI integration uses the bundled shared hardware catalog. Custom drawing

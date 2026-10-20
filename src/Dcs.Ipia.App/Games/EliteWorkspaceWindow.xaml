@@ -47,13 +47,16 @@
       <WrapPanel Margin="0,0,0,6"><Button x:Name="StartInputButton" Content="Start input test" Click="StartInputClicked"/>
        <Button x:Name="StopInputButton" Content="Stop" Click="StopInputClicked" Margin="8,0"/>
        <Button x:Name="ExportSheetButton" Content="Export reference PNG…" Click="ExportSheetClicked"/>
+       <Button Content="Fit" Click="FitDiagramClicked" Margin="4,0"/>
+       <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="4,0"/>
+       <Slider x:Name="DiagramZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Elite drawing zoom"/>
       </WrapPanel>
       <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-       <Grid x:Name="DiagramScroll">
+       <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
         <Grid><TextBlock x:Name="DiagramHint" Text="Import a bindings preset, then associate a hardware drawing to show its controls." TextWrapping="Wrap" Margin="20"/>
-         <Viewbox x:Name="DiagramViewbox" Stretch="Uniform"><Canvas x:Name="DiagramCanvas" Width="600" Height="600" Background="Transparent"/></Viewbox>
+         <Canvas x:Name="DiagramCanvas" Width="600" Height="600" Background="Transparent"/>
         </Grid>
-       </Grid>
+       </ScrollViewer>
       </Border>
       <DataGrid x:Name="AssignmentsGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" SelectionChanged="AssignmentSelected" Margin="0,8,0,0" AutomationProperties.Name="Elite assignments">
        <DataGrid.Columns><DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="*"/>

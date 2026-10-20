@@ -30,6 +30,7 @@ namespace Dcs.Ipia.App.Smoke
                     ProductGuid: Guid.Parse("0402044f-0000-0000-0000-504944564944"));
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical));
                 VerifyCards(root, services);
+                VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
                 var choice = MessageBoxResult.Cancel;
@@ -58,6 +59,8 @@ namespace Dcs.Ipia.App.Smoke
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
+                var reference = Path.Combine(root, "Elite-reference.png"); window.ExportReference(reference);
+                if (new FileInfo(reference).Length < 1000) throw new InvalidOperationException("ED reference PNG did not render shared artwork and labels.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-workspace");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
                 Click(window, "StartInputButton"); ThemeControlSmoke.Pump(window); Click(window, "StopInputButton");
@@ -85,6 +88,26 @@ namespace Dcs.Ipia.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyDcsSelectors()
+        {
+            var previewProfile = new global::Dcs.Ipia.Domain.DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
+            var preview = new DcsFolderImportResult("Game selection smoke", [previewProfile], [], [], []);
+            var choice = new SavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
+            var gameWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+                allowGameSwitch: true, moduleChoices: [choice]);
+            gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
+            if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
+                throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
+            Box<ComboBox>(gameWindow, "WorkspaceGamePicker").SelectedIndex = 1;
+            if (gameWindow.IsVisible || gameWindow.RequestedGame != "elite-dangerous")
+                throw new InvalidOperationException("The DCS workspace did not request the selected game after closing.");
+            var profileWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+                allowGameSwitch: true, moduleChoices: [choice]);
+            profileWindow.Show(); ThemeControlSmoke.Pump(profileWindow);
+            Box<ComboBox>(profileWindow, "WorkspaceProfilePicker").SelectedItem = choice;
+            if (profileWindow.IsVisible || profileWindow.RequestedModule != choice.Id)
+                throw new InvalidOperationException("The DCS workspace did not request the selected saved aircraft.");
+        }
         private static void VerifyCards(string root, GameWorkspaceServices services)
         {
             var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";

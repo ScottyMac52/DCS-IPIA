@@ -41,8 +41,10 @@ namespace DcsIpia.Presentation.Games
         /// <summary>Stops sampling and clears feedback before view, device, profile or focus changes.</summary>
         internal void Stop()
         {
+            var wasRunning = _source is not null;
             _timer.Stop(); _source?.Dispose(); _source = null; _previous.Clear(); _axisUntil.Clear();
             foreach (var region in _diagram.Regions) region.Outline.BorderBrush = Brushes.Transparent;
+            if (wasRunning) _status("Input test stopped.");
         }
         /// <summary>Releases all native handles and event subscriptions.</summary>
         public void Dispose() { Stop(); _timer.Tick -= Poll; _owner.Deactivated -= Deactivated; }

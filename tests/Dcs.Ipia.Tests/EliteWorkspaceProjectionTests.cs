@@ -48,11 +48,12 @@ namespace Dcs.Ipia.Tests
             var rows = EliteWorkspaceProjection.Rows(profile, backend.GetCatalog(profile));
             Assert.Contains(rows, x => x.Mode == BindingMode.Hold); Assert.Contains(rows, x => x.IsAxis); Assert.Contains(rows, x => x.Chord == "Key_LeftShift");
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 300, 200, [], [])
-            { Controls = [new("trigger", "Trigger", "JOY_BTN1", 10, 10, 100, 40), new("aux", "Aux", "JOY_BTN2", 10, 60, 100, 40)] };
+            { Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='meta-title'>Shared title</text></svg>", Controls = [new("trigger", "Trigger", "JOY_BTN1", 10, 10, 100, 40), new("aux", "Aux", "JOY_BTN2", 10, 60, 100, 40)] };
             var page = EliteWorkspaceProjection.Diagram("My Controls", diagram, rows, "All");
             Assert.Contains("[Hold]", Assert.Single(page.Labels["trigger"]).Text);
             Assert.Contains("[Key_LeftShift]", Assert.Single(page.Labels["aux"]).Text);
             Assert.Equal("Elite Dangerous · All", page.Kicker);
+            Assert.Equal("Shared title", page.CategoryLabels["title"]);
             Assert.All(EliteWorkspaceProjection.Diagram("My Controls", diagram, rows, "SRV").Labels.Values, Assert.Empty);
             Assert.Equal(source, backend.Export(profile).Files["Synthetic.4.2.binds"]);
         }

@@ -1,4 +1,6 @@
 using Dcs.Ipia.Application;
+using System.Xml;
+using System.Xml.Linq;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Domain.MultiSim;
 
@@ -34,8 +36,19 @@ namespace Dcs.Ipia.EliteDangerous
                         x.CommandName + (x.Slot == "Secondary" ? " [S]" : "") + (x.Mode == BindingMode.Hold ? " [Hold]" : "")
                         + (x.Chord.Length == 0 ? "" : " [" + x.Chord + "]"),
                         KneeboardStateColors.Base, AssignmentLayer.Module, x.Chord)).ToArray(), StringComparer.Ordinal);
-            return new(title, "Elite Dangerous · " + section, labels, new Dictionary<string, string>(), []);
+            return new(title, "Elite Dangerous · " + section, labels, Categories(diagram.Svg), []);
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static Dictionary<string, string> Categories(string svg)
+        {
+            if (string.IsNullOrWhiteSpace(svg)) return new(StringComparer.Ordinal);
+            using var reader = XmlReader.Create(new StringReader(svg), new XmlReaderSettings
+            { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4 * 1024 * 1024 });
+            return XDocument.Load(reader).Descendants().Where(x => x.Name.LocalName == "text" &&
+                ((string?)x.Attribute("id"))?.StartsWith("meta-", StringComparison.Ordinal) == true)
+                .ToDictionary(x => ((string)x.Attribute("id")!)[5..], x => x.Value, StringComparer.Ordinal);
+        }
+        #endregion END private helpers
     }
 }
