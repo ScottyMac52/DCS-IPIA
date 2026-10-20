@@ -35,6 +35,10 @@ namespace DcsIpia.Presentation.Games
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
         private IReadOnlyList<SimCommand> _commands = [];
+        private ReferenceSheetDocument? _referenceSheets;
+        private bool _referenceDirty = true;
+        private bool _renderingReference;
+        private int _referencePage;
         /// <summary>Creates an isolated editor over the existing adapter and profile-owned services.</summary>
         public EliteWorkspaceWindow(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
             Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null,
@@ -48,13 +52,14 @@ namespace DcsIpia.Presentation.Games
             _refreshing = true;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
             CommandCategoryPicker.ItemsSource = new[] { "All categories" }; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0;
+            ReferenceLayoutPicker.SelectedIndex = 0; ReferencePaperPicker.SelectedIndex = 0; ReferenceOrientationPicker.SelectedIndex = 0;
             HardwarePicker.ItemsSource = hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)).ToArray();
             _refreshing = false;
             ReloadChoices(initial);
             FeaturePicker.SelectedIndex = 0;
             CommandsList.PreviewMouseMove += DragCommand;
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
-            AppearanceManager.ObserveArtwork(this, () => Run(RenderDevice));
+            AppearanceManager.ObserveArtwork(this, () => Run(() => { RenderDevice(); InvalidateReferenceSheets(); }));
             Rescan(); UpdateAvailability();
         }
         #region BEGIN Public
@@ -99,6 +104,18 @@ namespace DcsIpia.Presentation.Games
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
             File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this)));
         }
+        /// <summary>Gets the exact PDF backing the current reference preview after revalidating edition access.</summary>
+        internal byte[] ReferencePdf()
+        {
+            _session?.Export(); RefreshReferenceSheets();
+            return _referenceSheets?.Pdf ?? throw new InvalidOperationException("Select a valid controller profile and reference layout first.");
+        }
+        /// <summary>Gets the current preview page as a PNG, using the same document as PDF export.</summary>
+        internal byte[] ReferencePng()
+        {
+            _session?.Export(); RefreshReferenceSheets();
+            return _referenceSheets?.PngPages[_referencePage] ?? throw new InvalidOperationException("Select a valid controller profile and reference layout first.");
+        }
         #endregion END Public
         #region BEGIN private helpers
         private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
@@ -112,7 +129,7 @@ namespace DcsIpia.Presentation.Games
         private void Run(Action action) { try { action(); } catch (Exception error) { Status(error.Message); } }
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
-            _input.Stop();
+            _input.Stop(); _referenceDirty = true;
             ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
@@ -120,7 +137,7 @@ namespace DcsIpia.Presentation.Games
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
             Refresh();
         }
-        private void SessionChanged(object? sender, EventArgs e) { _input.Stop(); Refresh(); }
+        private void SessionChanged(object? sender, EventArgs e) { _input.Stop(); _referenceDirty = true; Refresh(); }
         private void ReloadChoices(Guid? selected)
         {
             _refreshing = true;
@@ -246,8 +263,11 @@ namespace DcsIpia.Presentation.Games
             DeviceTools.Visibility = feature == 0 ? Visibility.Visible : Visibility.Collapsed;
             StartInputButton.Visibility = StopInputButton.Visibility = feature == 2 ? Visibility.Visible : Visibility.Collapsed;
             StartInputButton.IsEnabled = opened && EditionAccess.Policy.IsOwner;
-            ExportSheetButton.Visibility = feature == 3 ? Visibility.Visible : Visibility.Collapsed;
+            ExportSheetButton.Visibility = Visibility.Collapsed;
+            AuthoringPanel.Visibility = feature == 3 ? Visibility.Collapsed : Visibility.Visible;
+            ReferenceSheetsPanel.Visibility = feature == 3 ? Visibility.Visible : Visibility.Collapsed;
             ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
+            if (feature == 3) RefreshReferenceSheets();
         }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -399,9 +419,9 @@ namespace DcsIpia.Presentation.Games
             }
             _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Snapshot.Id); _refreshing = false;
         }
-        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) UpdateAvailability(); }
-        private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { FilterCommands(); RenderDevice(); }); }
-        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
+        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _referenceDirty = true; UpdateAvailability(); } }
+        private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; FilterCommands(); RenderDevice(); }); }
+        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
         private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null) return; _input.Stop(); UpdateAvailability(); }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
@@ -429,6 +449,70 @@ namespace DcsIpia.Presentation.Games
             if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin))
                 throw new InvalidOperationException("Associate this native reference with an exact connected controller first.");
             _input.Start(pin, _services.Discover());
+        });
+        private void InvalidateReferenceSheets()
+        { _referenceDirty = true; if (FeaturePicker.SelectedIndex == 3) RefreshReferenceSheets(); }
+        private void ReferenceOptionsChanged(object sender, SelectionChangedEventArgs e)
+        { if (!_refreshing && !_renderingReference) InvalidateReferenceSheets(); }
+        private void ReferenceAssignedChanged(object sender, RoutedEventArgs e) => InvalidateReferenceSheets();
+        private void RefreshReferenceSheets()
+        {
+            if (_renderingReference || !_referenceDirty) return;
+            _renderingReference = true; _referenceSheets = null; _referencePage = 0;
+            try
+            {
+                if (_session is null || Device is null) throw new InvalidOperationException("Import a controls profile and choose a controller on the left.");
+                _session.Export();
+                var document = _session.Snapshot;
+                var pin = document.Hardware.GetValueOrDefault(Device.Id);
+                var hardware = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+                ReferenceArtworkOption.IsEnabled = hardware is not null;
+                if (hardware is null) ReferenceLayoutPicker.SelectedIndex = 1;
+                var content = EliteReferenceSheetBuilder.Build(document.Profile, _session.Catalog, Device.Id, Device.Name, Section, ReferenceAssignedOnly.IsChecked == true)
+                    with { Title = "Elite Dangerous / " + (string.IsNullOrWhiteSpace(ProfileName.Text) ? document.Name : ProfileName.Text.Trim()) };
+                var options = new ReferenceSheetOptions(ReferencePaperPicker.SelectedIndex == 1 ? "Letter" : "A4",
+                    ReferenceOrientationPicker.SelectedIndex == 1, ReferenceLayoutPicker.SelectedIndex == 0);
+                byte[]? artwork = null;
+                if (options.Artwork && hardware is not null)
+                {
+                    var projection = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
+                    artwork = CompositeKneeboardRenderer.Render(hardware.Diagram, projection, "Elite Dangerous / " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
+                }
+                _referenceSheets = ReferenceSheetRenderer.Render(content, options, artwork);
+                ReferenceStatus.Text = content.Rows.Count + " entries · current profile preview" + (options.Artwork ? " · artwork followed by the complete assignment table" : " · assignment table");
+            }
+            catch (Exception error) { ReferenceStatus.Text = error.Message; }
+            finally { _referenceDirty = false; _renderingReference = false; ShowReferencePage(); }
+        }
+        private void ShowReferencePage()
+        {
+            var ready = _referenceSheets is not null;
+            ReferencePdfButton.IsEnabled = ReferencePngButton.IsEnabled = ready;
+            ReferencePreviousButton.IsEnabled = ready && _referencePage > 0;
+            ReferenceNextButton.IsEnabled = ready && _referencePage + 1 < _referenceSheets!.PageCount;
+            ReferencePageLabel.Text = ready ? "Page " + (_referencePage + 1) + " of " + _referenceSheets!.PageCount : "No preview";
+            ReferencePreview.Source = null;
+            if (!ready) return;
+            using var stream = new MemoryStream(_referenceSheets!.PngPages[_referencePage]);
+            var image = new System.Windows.Media.Imaging.BitmapImage();
+            image.BeginInit(); image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad; image.StreamSource = stream; image.EndInit(); image.Freeze();
+            ReferencePreview.Source = image;
+        }
+        private void ReferencePreviousClicked(object sender, RoutedEventArgs e)
+        { if (_referencePage > 0) { _referencePage--; ShowReferencePage(); } }
+        private void ReferenceNextClicked(object sender, RoutedEventArgs e)
+        { if (_referenceSheets is not null && _referencePage + 1 < _referenceSheets.PageCount) { _referencePage++; ShowReferencePage(); } }
+        private void ReferencePdfClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            var data = ReferencePdf();
+            var dialog = new SaveFileDialog { Filter = "PDF reference (*.pdf)|*.pdf", FileName = "Elite-controller-reference.pdf" };
+            if (dialog.ShowDialog(this) == true) { File.WriteAllBytes(dialog.FileName, data); Status("Reference PDF exported."); }
+        });
+        private void ReferencePngClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            var data = ReferencePng();
+            var dialog = new SaveFileDialog { Filter = "PNG reference page (*.png)|*.png", FileName = "Elite-reference-page-" + (_referencePage + 1) + ".png" };
+            if (dialog.ShowDialog(this) == true) { File.WriteAllBytes(dialog.FileName, data); Status("Current reference page exported."); }
         });
         private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
         private void StopInputClicked(object sender, RoutedEventArgs e) { _input.Stop(); Status("Input test stopped."); }
