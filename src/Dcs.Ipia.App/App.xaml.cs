@@ -1,4 +1,5 @@
 using System.IO;
+using DcsIpia.Presentation.Games;
 using System.Windows;
 using Dcs.Ipia.Application.Interfaces;
 using Dcs.Ipia.Application;
@@ -115,6 +116,7 @@ namespace DcsIpia.Presentation
                         _ => new SqliteEditorWorkspaceRepository(connectionString))
                     .AddSingleton<IHardwareInventoryRepository>(_ => new SqliteHardwareInventoryRepository(connectionString))
                     .AddSingleton<IControllerCapabilityDiscovery, WindowsConnectedDeviceDiscovery>()
+                    .AddSingleton<IConnectedDeviceDiscovery, WindowsConnectedDeviceDiscovery>()
                     .AddSingleton<HardwareInventoryManager>()
                     .AddSingleton<ISetupRepository>(_ => new SqliteSetupRepository(connectionString))
                     .AddSingleton<SetupManager>()
@@ -126,6 +128,8 @@ namespace DcsIpia.Presentation
                             provider.GetRequiredService<IFlyNowPayloadBuilder>()))
                     .AddSingleton<IModuleWorkspaceLoader, ModuleWorkspaceLoader>()
                     .AddSingleton<IDcsFolderImporter, DcsFolderImporter>()
+                    .AddSingleton<IGameWorkspaceStore>(_ => new FileGameWorkspaceStore(userFolder))
+                    .AddSingleton<GameWorkspaceServices>()
                     .AddTransient<MainWindow>();
             if (!releaseSmoke)
             {

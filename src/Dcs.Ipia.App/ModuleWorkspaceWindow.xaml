@@ -11,6 +11,10 @@
       <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
     <StackPanel>
+    <WrapPanel x:Name="GameWorkspaceSelectors" Margin="0,0,0,8" Visibility="Collapsed">
+     <ComboBox x:Name="WorkspaceGamePicker" Width="170" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/></ComboBox>
+     <ComboBox x:Name="WorkspaceProfilePicker" Width="270" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
+    </WrapPanel>
     <DockPanel Margin="0,0,0,5">
       <Expander x:Name="ModuleDetails" Header="Module details" DockPanel.Dock="Right" MaxWidth="660"
                 local:WorkspaceLayout.Key="workspace.details">

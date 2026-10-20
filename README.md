@@ -10,6 +10,15 @@ The initial release supports the reviewed Thrustmaster catalog with a fixed Flig
 
 See the [Free Edition and owner activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
 
+## Game and simulator selection
+
+Choose **DCS World** or **Elite Dangerous** on the opening cards, or continue the
+last saved profile. Compact workspace selectors support guarded game/profile
+switching. The Elite workspace connects native import, assignments, shared
+hardware drawings, save/reopen, input feedback and review/reference exports to
+the ED adapter. See the [game workspace guide](docs/design/game-workspaces.md)
+for supported operations, edition boundaries and manual in-game acceptance.
+
 ## Compact workspace interactive mockup
 
 The shipped workspace uses top feature tabs, a split Assignments editor and persistent Fit/zoom/layout preferences. See [workspace behavior and display acceptance](docs/design/compact-workspace.md). Explore the original design direction in the
@@ -44,7 +53,7 @@ The run summary lists the highest 20 method CRAP scores and the number at or abo
 30. CRAP combines Coverlet's IL-derived method complexity with method line
 coverage: `complexity² × (1 − coverage fraction)³ + complexity`. These scores
 include compiler-generated methods. The separate consumer quality gate enforces
-CRAP ≤ 50 for methods in the six measured production assemblies. The independent **80% line / 80% branch gates for every included
+CRAP ≤ 50 for methods in the seven measured production assemblies. The independent **80% line / 80% branch gates for every included
 assembly** remain enforced by the shared workflow. Linux and Windows test counts
 are displayed as separate runs, rather than counting the same tests twice.
 

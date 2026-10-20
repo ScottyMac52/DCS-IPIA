@@ -169,9 +169,11 @@ localized command catalog and selecting different presets for each game section
 need explicit future authoring flows. The coarse `ModifierChords` capability advertises
 button chords; axis chords remain blocked by backend validation until verified. Selector files are archival evidence and
 remain unchanged; they are not interpreted as a license or an active preset
-selection. This PR does not add a backend selector to WPF, save Elite workspaces
-in SQLite, integrate kneeboards or introduce automatic game deployment. Those
-remain separate steps in issue #286.
+selection. The adapter phase itself did not add WPF authoring. The
+[game workspace shell](game-workspaces.md) now provides explicit game selection,
+ED profile persistence, shared drawings and reviewed output through this API.
+ED workspaces remain separate from the DCS SQLite module tables, and automatic
+game deployment remains a follow-up in issue #286.
 
 ### API usage and manual acceptance
 

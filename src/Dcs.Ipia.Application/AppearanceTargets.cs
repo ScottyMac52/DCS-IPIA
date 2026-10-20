@@ -8,6 +8,8 @@ namespace Dcs.Ipia.Application
         public static IReadOnlyDictionary<string, string> All { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["MainWindow"] = "Main / modules",
+            ["GameSelectionView"] = "Game selection",
+            ["EliteWorkspaceWindow"] = "Elite Dangerous workspace",
             ["ModuleWorkspaceWindow"] = "Module workspace",
             ["NewModuleWindow"] = "New module",
             ["SharedUiLayerWorkspaceWindow"] = "Shared UI layer workspace",
