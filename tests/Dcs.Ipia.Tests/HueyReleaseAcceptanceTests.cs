@@ -30,6 +30,9 @@ namespace Dcs.Ipia.Tests
             var originalPackage = ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1"));
             var portable = adapter.Capture(workspace);
             portable = JsonSerializer.Deserialize<global::Dcs.Ipia.Domain.MultiSim.ProfileDocument>(JsonSerializer.Serialize(portable))!;
+            var portableCatalog = adapter.GetCatalog(portable).Commands;
+            foreach (var command in workspace.ModuleCommands)
+                Assert.Contains(portableCatalog, x => x.Context == portable.ContextId && x.Metadata["nativeId"] == command.Id && x.Category == command.Category && x.DisplayName == command.Name);
             workspace = DcsSimProfileBackend.Restore(portable);
             Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
             Assert.Equal(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1")).Bytes);

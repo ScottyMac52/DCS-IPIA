@@ -95,9 +95,10 @@ namespace Dcs.Ipia.Dcs
                         assignment.Command.Name, BindingDisposition.Added, assignment.Slot.InputKey,
                         assignment.Slot.ModifierChord.Split('+', StringSplitOptions.RemoveEmptyEntries), assignment.Filter));
             }
-            commands.AddRange(workspace.ModuleCommands.Select(x => DcsSimProfileProjection.Command(profile.ContextId, x.Id, x.Name, x.IsAxis, x.Category)));
-            commands.AddRange(workspace.UiCommands.Select(x => DcsSimProfileProjection.Command("UiLayer", x.DcsCommandId, x.Name, x.IsAxis)));
-            Pin(profile, new(profile.ContextId, profile.ProfileId, payload, profile.Devices, commands, snapshot));
+            var catalog = workspace.ModuleCommands.Select(x => DcsSimProfileProjection.Command(profile.ContextId, x.Id, x.Name, x.IsAxis, x.Category))
+                .Concat(workspace.UiCommands.Select(x => DcsSimProfileProjection.Command("UiLayer", x.DcsCommandId, x.Name, x.IsAxis)))
+                .Concat(commands).ToList();
+            Pin(profile, new(profile.ContextId, profile.ProfileId, payload, profile.Devices, catalog, snapshot));
             return profile;
         }
         /// <summary>Restores validated portable assignment edits through the existing DCS workspace validation path.</summary>
