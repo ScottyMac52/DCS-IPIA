@@ -132,14 +132,15 @@ namespace Dcs.Ipia.App.Smoke
                 var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);
                 Click(window, "ChangeDrawingButton"); Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware[0]; Click(window, "UseDrawingButton");
                 Click(window, "ChangeDrawingButton"); Click(window, "NoDrawingButton");
-                if (window.Session.Snapshot.Hardware[pin.Key].HardwareId is not null || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
+                if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
                     throw new InvalidOperationException("Changing artwork changed native controller identity or assignments.");
+                if (!window.SaveProfile() || Box<Button>(window, "ExportSheetButton").IsEnabled) throw new InvalidOperationException("Hiding artwork did not save or still offered an illustrated export.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-add-controller"); window.Close();
             }
             using (var reopened = new EliteWorkspaceWindow(services, hardware, savedId, pendingChoice: () => MessageBoxResult.No))
             {
                 reopened.Show(); ThemeControlSmoke.Pump(reopened);
-                if (reopened.Session!.Snapshot.Hardware.Single().Value.HardwareId is not null) throw new InvalidOperationException("Reopening required a previously omitted drawing.");
+                if (!reopened.Session!.Snapshot.Hardware.Single().Value.DrawingHidden) throw new InvalidOperationException("Reopening lost the explicit No drawing choice.");
                 reopened.Close();
             }
             var unique = hardware.Where(x => DcsPhysicalIdentity.FromFileName(x.DefaultFileName) is not null)

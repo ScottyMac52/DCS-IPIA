@@ -54,7 +54,7 @@ namespace Dcs.Ipia.Tests
             Assert.Equal(original, session.ConnectController(observed.PhysicalGuid));
             Assert.Single(session.Snapshot.Profile.Devices);
             session.ChangeDrawing(original, "tm-mfd"); Assert.Equal("tm-mfd", session.Snapshot.Hardware[original].HardwareId);
-            session.ChangeDrawing(original, null); Assert.Null(session.Snapshot.Hardware[original].HardwareId);
+            session.ChangeDrawing(original, null); Assert.Equal("tm-mfd", session.Snapshot.Hardware[original].HardwareId); Assert.True(session.Snapshot.Hardware[original].DrawingHidden);
             Assert.Equal("ThrustMasterWarthogJoystick", session.Snapshot.Profile.Devices.Single().Identity!.SimSpecificIds["ed.device"]);
             Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing(original, "unknown"));
         }
@@ -96,7 +96,9 @@ namespace Dcs.Ipia.Tests
             free.ChangeDrawing(id, "tm-mfd"); Assert.Empty(free.AccessMessage); Assert.True(free.Export().Succeeded);
             var changedProduct = tm with { ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") };
             Assert.NotEmpty(Session(free.Snapshot, new(), [changedProduct]).AccessMessage);
-            free.ChangeDrawing(id, null); Assert.NotEmpty(free.AccessMessage);
+            free.ChangeDrawing(id, null); Assert.Empty(free.AccessMessage); Assert.True(free.Snapshot.Hardware[id].DrawingHidden);
+            Assert.True(Session(free.Snapshot, new(), []).Snapshot.Hardware[id].DrawingHidden);
+            Assert.Empty(Session(free.Snapshot, new(), []).AccessMessage);
             Assert.Throws<InvalidOperationException>(() => free.ChangeDrawing(id, "moza-ab9"));
         }
         /// <summary>Unsupported identity mutations and bad observations fail before publishing any state.</summary>

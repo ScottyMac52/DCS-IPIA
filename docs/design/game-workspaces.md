@@ -95,7 +95,9 @@ reviewed eligible association matching its native product target, the imported
 data is retained read-only in Free. An unrelated eligible controller or a forged
 association cannot authorize exporting references to another product.
 A controller with no reviewed catalog choice remains read-only in Free; omitting
-artwork does not expand the Free hardware allowlist. Owner can author supported
+artwork does not expand the Free hardware allowlist. Once reviewed, **No drawing**
+hides the illustration while retaining the catalog identity and eligibility.
+Owner can author supported
 HID controllers without a drawing. Keyboard/mouse tokens are system inputs.
 Previously verified associations remain
 usable offline; conflicting current native observations block authoring/export.

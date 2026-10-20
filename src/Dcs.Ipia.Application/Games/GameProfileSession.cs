@@ -77,7 +77,8 @@ namespace Dcs.Ipia.Application.Games
                 reference = candidate.Profile.Devices.Single(x => !_current.Profile.Devices.Any(old => old.LogicalId == x.LogicalId));
             }
             ValidateLink(candidate, reference, observed, observations);
-            candidate.Hardware[reference.LogicalId] = new(hardwareId, observed);
+            var hidden = candidate.Hardware.TryGetValue(reference.LogicalId, out var previous) && previous.HardwareId == hardwareId && previous.DrawingHidden;
+            candidate.Hardware[reference.LogicalId] = new(hardwareId, observed) { DrawingHidden = hidden };
             GameWorkspaceContract.Validate(candidate); ValidateProfile(candidate.Profile);
             _current = candidate;
             Changed?.Invoke(this, EventArgs.Empty);
@@ -89,7 +90,7 @@ namespace Dcs.Ipia.Application.Games
             RequireDrawing(hardwareId);
             if (!_current.Hardware.TryGetValue(logicalId, out var pin)) throw new InvalidOperationException("Connect this controller before choosing its drawing.");
             var candidate = GameWorkspaceContract.Clone(_current);
-            candidate.Hardware[logicalId] = pin with { HardwareId = hardwareId };
+            candidate.Hardware[logicalId] = pin with { HardwareId = hardwareId ?? pin.HardwareId, DrawingHidden = hardwareId is null };
             GameWorkspaceContract.Validate(candidate); _current = candidate; Changed?.Invoke(this, EventArgs.Empty);
         }
         /// <summary>Stages a primary or secondary button assignment without disturbing other command slots.</summary>

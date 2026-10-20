@@ -94,7 +94,7 @@ namespace DcsIpia.Presentation.Games
             if (_session is null || Device is null) throw new InvalidOperationException("Select a profile and associated device first.");
             _session.Export();
             var document = _session.Snapshot;
-            if (!document.Hardware.TryGetValue(Device.Id, out var pin) || pin.HardwareId is null) throw new InvalidOperationException("Choose an optional drawing before exporting an illustrated reference sheet.");
+            if (!document.Hardware.TryGetValue(Device.Id, out var pin) || pin.HardwareId is null || pin.DrawingHidden) throw new InvalidOperationException("Choose an optional drawing before exporting an illustrated reference sheet.");
             var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
             File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this)));
@@ -180,7 +180,7 @@ namespace DcsIpia.Presentation.Games
             _input.Stop(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
-            var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+            var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
             if (hardware is null) { DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
@@ -239,7 +239,7 @@ namespace DcsIpia.Presentation.Games
             ProfileName.IsEnabled = opened; AddControllerButton.IsEnabled = opened && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
-            var drawing = _hardware.FirstOrDefault(x => x.DeviceId == pin?.HardwareId);
+            var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
             ChangeDrawingButton.IsEnabled = pin is not null;
             DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
             var feature = FeaturePicker.SelectedIndex;
