@@ -84,6 +84,7 @@ namespace Dcs.Ipia.App.Smoke
                 var reference = Path.Combine(root, "Elite-reference.png"); window.ExportReference(reference);
                 if (new FileInfo(reference).Length < 1000) throw new InvalidOperationException("ED reference PNG did not render shared artwork and labels.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-workspace");
+                EliteReferenceSheetsSmoke.Verify(window, root, artwork: true);
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
                 Click(window, "StartInputButton"); ThemeControlSmoke.Pump(window); Click(window, "StopInputButton");
                 if (input is null || !input.Disposed) throw new InvalidOperationException("Game input test did not acquire and release the exact controller.");
@@ -135,6 +136,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
                     throw new InvalidOperationException("Changing artwork changed native controller identity or assignments.");
                 if (!window.SaveProfile() || Box<Button>(window, "ExportSheetButton").IsEnabled) throw new InvalidOperationException("Hiding artwork did not save or still offered an illustrated export.");
+                EliteReferenceSheetsSmoke.Verify(window, root, artwork: false);
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-add-controller"); window.Close();
             }
             using (var reopened = new EliteWorkspaceWindow(services, hardware, savedId, pendingChoice: () => MessageBoxResult.No))

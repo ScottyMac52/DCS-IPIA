@@ -74,11 +74,46 @@ failure or cancellation retains the current workspace.
    the selected destination. Previous exports are not overwritten. The known
    active Bindings folder and symbolic-link destinations are rejected. There is
    no Elite automatic deployment/Fly Now path.
-7. **Reference Sheets** exports a PNG using the same shared artwork and current
-   assignment projection. **Input Testing** is an Owner feature, requires the
-   explicitly associated connected instance, and stops on focus loss, navigation
-   or edits. It highlights raw controller feedback; native Elite command
-   execution, hold timing and in-game behavior still require manual verification.
+7. **Reference Sheets** opens a dedicated paginated print preview. Select one
+   controller on the left and **All**, **Ship**, **SRV**, **On Foot** or **General**
+   above. Choose **Artwork + assignment table** or **Assignment table**, A4 or
+   Letter, and portrait or landscape. **Only assigned commands** is enabled by
+   default; disabling it includes captured commands unassigned on this controller.
+   Table entries retain primary/secondary slots, press/hold, toggles, native
+   modifier device/index references, axis inversion and deadzone.
+
+   Artwork uses the shared drawing and includes a complete assignment-table
+   appendix, including inputs without matching illustrated callouts. A controller
+   without visible artwork automatically uses the table layout. Page navigation
+   shows the exact PNG pages backing the complete PDF. Long rows continue onto
+   additional pages instead of being truncated. Profile, controller, section and
+   page number identify every page. **Export PDF…** saves all pages for this
+   controller; **Export page PNG…** saves only the currently previewed page at
+   144 DPI. Paper/table output is opaque white for printing; artwork retains its
+   existing colors and opacity. Palette text/category/type filters do not filter
+   reference content. Preview choices do not change native assignments or save
+   state, and existing edition checks apply before preview/export.
+
+8. **Input Testing** is an Owner feature, requires the explicitly associated
+   connected instance, and stops on focus loss, navigation or edits. It highlights
+   raw controller feedback; native Elite command execution, hold timing and
+   in-game behavior still require manual verification.
+
+### Viewing ED references while playing
+
+These are portable documents, not deployment into a native Elite kneeboard
+folder. Print a PDF, use another screen, or load exported pages into a compatible
+third-party viewer. OpenKneeboard's
+[game compatibility table](https://openkneeboard.com/compatibility/games/)
+lists Elite Dangerous support through **SteamVR/OpenVR**, but lists the ED
+**non-VR** and legacy Oculus overlays as unsupported; ED has no native OpenXR
+mode. OpenComposite is reported to work, but OpenKneeboard does not provide
+support for that combination. Check those runtime requirements before choosing a
+VR viewer. The [OpenKneeboard FAQ](https://openkneeboard.com/faq/) recommends PDF
+for document text and keeping existing images in their original image format.
+IPIA does not install a viewer, alter the VR runtime or claim a non-VR ED overlay.
+Multiple-controller reference packs remain follow-up work.
+
 
 Unknown data inside an edited native assignment, unsupported curves/modes,
 unverified axis chords or malformed values block the operation. Failed edits
@@ -132,7 +167,7 @@ unsupported additions, atomic failures and Free eligibility.
 `GameWorkspaceSmoke` operates the actual WPF cards and ED window on Windows:
 import, single-choice controller addition, optional/automatic drawings, indexed
 reference choices, button/axis edits, save, reopen, export,
-combined category/type/search filtering, empty results, filtered assignment
+dedicated PDF/PNG reference previews, table fallback, page navigation and paper\norientation, combined category/type/search filtering, empty results, filtered assignment
 selection, save/discard/cancel transitions, input acquisition/release and blocked Free
 commands. CI attaches game-selection and ED-workspace screenshots to the
 `custom-mapping-preview` artifact. Existing DCS/training and release smoke remain
