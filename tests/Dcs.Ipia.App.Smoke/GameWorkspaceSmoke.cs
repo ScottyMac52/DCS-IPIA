@@ -73,6 +73,7 @@ namespace Dcs.Ipia.App.Smoke
                 if (window.IsVisible || services.Store.Load(saved.Id).Workspace.Profile.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_22"))
                     throw new InvalidOperationException("Discard persisted pending ED edits.");
                 VerifySwitch(services, hardware, saved.Id, stick.LogicalId, command);
+                VerifyProfileSwitch(services, hardware, saved.Id, stick.LogicalId, command);
                 EditionAccess.SetForTests(new());
                 var acquisitions = 0;
                 using var free = new EliteWorkspaceWindow(services, hardware, saved.Id, pendingChoice: () => MessageBoxResult.No,
@@ -126,6 +127,25 @@ namespace Dcs.Ipia.App.Smoke
                     throw new InvalidOperationException("DCS card did not preserve access to the existing module workflow.");
             }
             finally { window.Close(); }
+        }
+        private static void VerifyProfileSwitch(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware, Guid id, string device, string command)
+        {
+            var other = services.Store.Load(id).Workspace with { Id = Guid.NewGuid(), Name = "Other Controls" };
+            services.Store.Save(other, null);
+            var choice = MessageBoxResult.Cancel;
+            using var window = new EliteWorkspaceWindow(services, hardware, id, pendingChoice: () => choice);
+            window.Show(); ThemeControlSmoke.Pump(window);
+            window.Session!.AssignButton(device, command, "Primary", "Joy_27", BindingMode.Press, []);
+            var picker = Box<ComboBox>(window, "ProfilePicker");
+            var otherChoice = picker.Items.Cast<GameWorkspaceEntry>().Single(x => x.Id == other.Id);
+            picker.SelectedItem = otherChoice;
+            if (window.Session.Snapshot.Id != id || ((GameWorkspaceEntry)picker.SelectedItem).Id != id || !window.Session.HasChanges)
+                throw new InvalidOperationException("Cancel did not retain the selected game profile and draft.");
+            choice = MessageBoxResult.No; picker.SelectedItem = otherChoice;
+            if (window.Session.Snapshot.Id != other.Id || window.Session.HasChanges ||
+                services.Store.Load(id).Workspace.Profile.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_27"))
+                throw new InvalidOperationException("Profile switching persisted discarded data or selected the wrong profile.");
+            window.Close();
         }
         private static void VerifySwitch(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware, Guid id, string device, string command)
         {

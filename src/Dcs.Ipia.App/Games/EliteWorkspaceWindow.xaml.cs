@@ -51,6 +51,7 @@ namespace DcsIpia.Presentation.Games
             FeaturePicker.SelectedIndex = 0;
             CommandsList.PreviewMouseMove += DragCommand;
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
+            AppearanceManager.ObserveArtwork(this, () => Run(RenderDevice));
             Rescan(); UpdateAvailability();
         }
         #region BEGIN Public
@@ -93,7 +94,7 @@ namespace DcsIpia.Presentation.Games
             if (!document.Hardware.TryGetValue(Device.Id, out var pin)) throw new InvalidOperationException("Associate a shared drawing first.");
             var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
-            File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name));
+            File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this)));
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -171,7 +172,7 @@ namespace DcsIpia.Presentation.Games
             if (hardware is null) { DiagramHint.Text = "Choose this device's shared hardware drawing on Devices. You can review its native assignments below."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
-            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()));
+            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this));
             DiagramHint.Visibility = Visibility.Collapsed;
         }
         private void SelectControl(HardwareGraphicControl control)
@@ -321,8 +322,12 @@ namespace DcsIpia.Presentation.Games
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _session?.Snapshot.Id) return;
-            if (ConfirmLeave()) Run(() => LoadProfile(entry.Id));
-            else { _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Snapshot.Id); _refreshing = false; }
+            if (ConfirmLeave())
+            {
+                try { LoadProfile(entry.Id); return; }
+                catch (Exception error) { Status("Unable to open the selected profile; the current profile is retained: " + error.Message); }
+            }
+            _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Snapshot.Id); _refreshing = false;
         }
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) UpdateAvailability(); }
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { FilterCommands(); RenderDevice(); }); }

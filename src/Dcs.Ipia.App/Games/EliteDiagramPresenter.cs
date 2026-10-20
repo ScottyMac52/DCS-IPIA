@@ -16,11 +16,11 @@ namespace DcsIpia.Presentation.Games
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, Action<HardwareGraphicControl> select,
-            Action<HardwareGraphicControl, string> drop, Action clear)
+            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1)
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
-            var png = CanonicalSvgRenderer.RenderComplete(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), diagram.Width, diagram.Height);
+            var png = CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), artworkOpacity), diagram.Width, diagram.Height);
             canvas.Children.Add(new Image { Source = Image(png), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
             foreach (var control in diagram.Controls)
             {

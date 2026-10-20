@@ -176,6 +176,7 @@ namespace DcsIpia.Presentation
             {
                 var hardware = await GameWorkspaceServices.HardwareAsync();
                 var selection = _games.Recent();
+                _games.Remember(selection with { BackendId = "elite-dangerous", DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
                 var window = new EliteWorkspaceWindow(_games, hardware, selection.WorkspaceId) { Owner = this };
                 window.ShowDialog();
                 if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
