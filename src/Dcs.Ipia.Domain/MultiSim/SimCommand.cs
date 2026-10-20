@@ -17,7 +17,7 @@ namespace Dcs.Ipia.Domain.MultiSim
         /// <summary>Gets or sets the command type.</summary>
         public CommandType Type { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the command is aircraft-specific.</summary>
+        /// <summary>Gets or sets a value indicating whether the command is module-specific.</summary>
         public bool IsModuleSpecific { get; set; }
 
         /// <summary>Gets or sets an optional context.</summary>
@@ -29,3 +29,4 @@ namespace Dcs.Ipia.Domain.MultiSim
         #endregion END Public
     }
 }
+

@@ -8,6 +8,9 @@ namespace Dcs.Ipia.Domain.MultiSim
         /// <summary>Gets or sets a stable logical identifier.</summary>
         public string LogicalId { get; set; } = string.Empty;
 
+        /// <summary>Gets or sets the binding context, distinct from the physical instance and catalog.</summary>
+        public string ContextId { get; set; } = string.Empty;
+
         /// <summary>Gets or sets the physical device identity.</summary>
         public PhysicalDeviceIdentity? Identity { get; set; }
 
@@ -20,3 +23,4 @@ namespace Dcs.Ipia.Domain.MultiSim
         #endregion END Public
     }
 }
+

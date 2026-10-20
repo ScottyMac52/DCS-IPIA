@@ -52,3 +52,81 @@ extension values and independent reconstructed collections. They do not claim
 native format fidelity or in-game behavior. Every concrete adapter requires its
 own fixtures, error-path tests, Windows smoke/manual acceptance and the existing
 independent 80% line / 80% branch / method CRAP <= 50 gates.
+
+## DCS compatibility baseline
+
+`DcsSimProfileBackend` now implements the shared `ISimProfileBackend` contract.
+The prototype's implicit file-location `Load`/`Save` and catalog-device
+`ResolveDevice` signatures have been replaced before adoption: import accepts an
+explicit context and captured relative native files; export returns a complete
+in-memory plan or blocking diagnostics. Neither operation reads active game
+folders, writes files, saves to SQLite, or deploys a package.
+
+The portable document has schema/backend versions, stable profile identity,
+backend and context IDs, and a JSON-valued `NativeData` envelope. The supported
+DCS envelope is `dcs.v1`, bounded to 128 MiB on export. Unknown envelope members
+are rejected. The earlier object-valued per-binding extension API remains for
+compatibility, but DCS permits only the documented `dcs.filter` axis extension;
+it is deliberately decoded through JSON, including after save/reopen.
+
+| Concern | DCS version-one behavior |
+| --- | --- |
+| Command identity | Backend, module/UI context, key/axis section and native ID; display names never select commands |
+| Physical identity | Exact native filename and optional DirectInput instance GUID; catalog IDs and USB product IDs are never instance GUIDs |
+| Resolution | Explicit `resolved`, `disconnected`, `unresolved` or `ambiguous`; no automatic product/name fallback or entitlement claim |
+| Binding scope | Separate logical device contexts for module and `UiLayer`, including the same physical controller in both |
+| Chords | Explicit named modifier chords on both buttons and axes; hold/toggle modifier definitions retained in native source |
+| Button mode | Native command selection on press; portable hold/toggle/double-tap/release runtime modes block export |
+| Axis tuning | Deadzone in percentage points (0..100), invert, and exact sparse native filter JSON; no float conversion of untouched native doubles |
+| Curves | Preserve native points, saturation, slider and detents; reject generic sensitivity/curve approximations and non-finite values |
+| Native data | Untouched native files remain byte-for-byte identical, including unknown fields and ambiguous imported bindings |
+| Native edits | Retain removals and changed history; retire cleared/replaced axes explicitly; block edited ambiguous inputs or unknown fields, mistyped native values, sparse array indices or nonstandard Lua syntax |
+| Paths | Context-owned `Config/Input/...` paths; traversal, cross-context paths, duplicate case-equivalent names and invalid portable filename characters are rejected |
+
+Native import needs the module's joystick/keyboard profiles and adjacent
+`modifiers.lua`, with paths relative to the captured input payload. Sources can
+come from the existing folder importer; add the explicit
+`Config/Input/<context>/` prefix to its captured keys. The caller owns selection
+and review of actual filesystem sources. Every active reformer must resolve to a
+modifier in the same scope. Existing commands form the pinned catalog; editing
+cannot invent a command ID or silently move it between module and UI scopes.
+An untouched ambiguous native profile is archival evidence, not permission to
+silently resolve a controller or edit an ambiguous binding.
+
+For complete editor state, `Capture(workspace)` pins the existing verified
+`EditorSnapshotSerializer` snapshot alongside the portable assignment projection.
+`DcsSimProfileBackend.Restore(document)` validates edits through the existing
+assignment and native-output services. It retains original assignment display
+names, removal history, labels, artwork, shared revisions, provenance and
+recovery sources. Keyboard files without an authored editor device remain
+source-only; editing those requires a supported authoring flow. Device membership,
+physical identity and scope changes require explicit re-import rather than an
+implicit rebind. Modifier definitions and hardware layout authoring continue
+through the existing DCS workflows.
+
+This is an opt-in compatibility boundary, not a replacement database/snapshot
+format or a new backend-selection screen. Existing Free/Owner policy,
+manufacturer evidence, UI authoring, deployment review and rollback remain in
+their existing services. Native metadata and instance-resolution results do not
+grant capabilities or hardware entitlement. There is no automatic migration from
+unversioned experimental DTOs and no non-DCS support announcement.
+
+### Acceptance evidence
+
+`DcsSimProfileBackendTests` exercises real F4U native fixtures through the shared
+interface and a JSON save/reopen boundary, plus focused native edits, both
+contexts, modifier modes, sparse curves, unknown fields, invalid versions/paths,
+unsupported conversions, cancellation and repeated-device resolution.
+`HueyReleaseAcceptanceTests` now passes its real released workspace through
+capture, JSON save/reopen and restore before its SQLite, native-output,
+kneeboard, deterministic-package, portable restore and rollback checks. It also
+edits a module axis and clears a UI assignment through the portable projection,
+checking scope isolation and unchanged original saved state. Snapshot digests and
+package bytes are compared against the pre-adapter baseline.
+
+Run the core suite and existing independent 80/80/50 gates, Windows solution and
+training smoke, and release-candidate acceptance in CI. Manual in-game validation
+is still required before claiming new simulator support; automated DCS fixture
+and package parity is the compatibility evidence here. The first additional
+game must validate its own native semantics and may require another reviewed
+backend version.
