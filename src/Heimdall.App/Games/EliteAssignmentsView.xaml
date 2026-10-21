@@ -14,16 +14,16 @@
      <Grid Margin="0,0,10,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="180"/></Grid.RowDefinitions>
       <WrapPanel Margin="0,0,0,6">
-       
-       <Button x:Name="ExportSheetButton" Content="Export reference PNG…"/>
-       
+       <Button x:Name="ExportSheetButton" Content="Export reference PNG…" Visibility="Collapsed"/>
        <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="4,0"/>
        <Slider x:Name="DiagramZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Elite drawing zoom"/>
       </WrapPanel>
       <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
        <Grid>
+       <TextBlock x:Name="InputActivityHint" Visibility="Collapsed" Text="Assign using native keys below, or start an input test to see this controller's raw inputs."
+                  TextWrapping="Wrap" Margin="12" VerticalAlignment="Top"/>
        <TextBox x:Name="InputActivity" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="12"
+                VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="12,60,12,12"
                 AutomationProperties.Name="Live controller input activity" ToolTip="Start input test to see raw button, hat and axis activity for the selected controller."/>
        <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
         <Grid><TextBlock x:Name="DiagramHint" Text="Import a bindings preset, then associate a hardware drawing to show its controls." TextWrapping="Wrap" Margin="20"/>

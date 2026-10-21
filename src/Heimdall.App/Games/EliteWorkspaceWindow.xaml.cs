@@ -326,7 +326,7 @@ namespace Heimdall.App.Games
         }
         private void SelectControl(HardwareGraphicControl control)
         {
-            var key = EliteInputKeys.FromShared(control._assignmentsView.InputKey);
+            var key = EliteInputKeys.FromShared(control.InputKey);
             if (key is null) { Status("This drawing input has no verified Elite key. Choose an explicit native input key instead."); return; }
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
             if (row is not null) SelectRow(row);
@@ -337,7 +337,7 @@ namespace Heimdall.App.Games
             var command = _commands.Single(x => x.Id == id);
             if (control.IsAxis != (command.Type == CommandType.Axis)) throw new InvalidOperationException("Choose an axis command for an axis, or a button command for a button.");
             _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id);
-            _assignmentsView.InputKey.Text = EliteInputKeys.FromShared(control._assignmentsView.InputKey) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
+            _assignmentsView.InputKey.Text = EliteInputKeys.FromShared(control.InputKey) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
             ApplyClicked(this, new());
         });
         private void DragCommand(object sender, MouseEventArgs e)
@@ -653,7 +653,7 @@ namespace Heimdall.App.Games
         private void UpdateInputActivityVisibility()
         {
             var fallback = FeaturePicker.SelectedIndex == 1 && _assignmentsView.DiagramHint.Visibility == Visibility.Visible;
-            _assignmentsView.InputActivity.Visibility = fallback ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.InputActivity.Visibility = _assignmentsView.InputActivityHint.Visibility = fallback ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.DiagramScroll.Visibility = fallback ? Visibility.Collapsed : Visibility.Visible;
         }
         private void ShowInputActivity(string text)

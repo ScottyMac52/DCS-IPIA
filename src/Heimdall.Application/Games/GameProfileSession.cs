@@ -135,7 +135,8 @@ namespace Heimdall.Application.Games
             var keys = nativeInputs().ToArray();
             candidate = candidate with { Profile = DeviceEditor().ReplaceDevice(candidate.Profile, logicalId, target.LogicalId, keys) };
             candidate = candidate with { ControllerOrder = GameControllerOrder.For(_current)
-                .Select(id => id == logicalId ? target.LogicalId : id).Distinct(StringComparer.Ordinal).ToList() };
+                .Where(id => id != target.LogicalId || id == logicalId)
+                .Select(id => id == logicalId ? target.LogicalId : id).ToList() };
             var previous = candidate.Hardware.GetValueOrDefault(target.LogicalId);
             if (logicalId != target.LogicalId) candidate.Hardware.Remove(logicalId);
             candidate.Hardware[target.LogicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid

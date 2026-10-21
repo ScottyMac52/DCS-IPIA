@@ -101,6 +101,21 @@ namespace Heimdall.Tests
             Assert.Equal(new[] { ids[1], ids[2] }, GameControllerOrder.For(session.Snapshot).Take(2));
             Assert.Equal(3, GameControllerOrder.For(session.Snapshot).Count);
         }
+        /// <summary>An existing replacement takes the source position, including when it previously appeared earlier.</summary>
+        [Fact]
+        public void Existing_replacement_inherits_the_source_position_and_self_replacement_keeps_order()
+        {
+            using var issuer = new OwnerLicenseTestIssuer(); var workspace = Workspace();
+            var device = new DetectedDcsDevice(Guid.NewGuid(), "Indexed controller", true,
+                ProductGuid: Guid.Parse("0bac06a3-0000-0000-0000-504944564944"));
+            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, issuer.Policy, [], () => [device], new EliteDeviceReferenceMatcher());
+            var ids = GameControllerOrder.For(workspace).ToArray();
+            session.MoveController(ids[0], ids[2], after: true);
+            session.ApplyControllerChange(session.PreviewReplaceController(ids[0], device.PhysicalGuid, () => ["Joy_1", "Joy_2", "Joy_3"], ids[1]));
+            Assert.Equal(new[] { ids[2], ids[1] }, GameControllerOrder.For(session.Snapshot));
+            session.ApplyControllerChange(session.PreviewReplaceController(ids[1], device.PhysicalGuid, () => ["Joy_1", "Joy_2", "Joy_3"], ids[1]));
+            Assert.Equal(new[] { ids[2], ids[1] }, GameControllerOrder.For(session.Snapshot));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static GameWorkspace Workspace()
