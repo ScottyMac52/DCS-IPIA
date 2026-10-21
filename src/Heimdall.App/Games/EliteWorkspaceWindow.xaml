@@ -5,16 +5,16 @@
  <Grid Margin="12">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <WrapPanel Margin="0,0,0,10">
-   <ComboBox x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/></ComboBox>
-   <ComboBox x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
-   <Button x:Name="ImportPresetButton" Content="Import bindings…" Click="ImportClicked"/>
-   <Button x:Name="SaveProfileButton" Content="Save" Click="SaveClicked" Margin="8,0"/>
-   <Button x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
-   <Button x:Name="ExportPresetButton" Content="Export for review…" Click="ExportClicked" Margin="8,0"/>
-   <TextBlock x:Name="SaveState" VerticalAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/></ComboBox>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
+   <Button Style="{StaticResource ActionButton}" x:Name="ImportPresetButton" Content="Import bindings…" Click="ImportClicked"/>
+   <Button Style="{StaticResource ActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked" Margin="8,0"/>
+   <Button Style="{StaticResource ActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
+   <Button Style="{StaticResource ActionButton}" x:Name="ExportPresetButton" Content="Export for review…" Click="ExportClicked" Margin="8,0"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="SaveState" VerticalAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
   </WrapPanel>
   <StackPanel Grid.Row="1" Margin="0,0,0,8">
-   <WrapPanel><TextBlock Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="200"/>
+   <WrapPanel><TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="200"/>
     <ListBox x:Name="SectionPicker" Margin="16,0,0,0" SelectionChanged="SectionChanged" AutomationProperties.Name="Elite controls section"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
      <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
@@ -22,8 +22,8 @@
      <ListBoxItem Content="All"/><ListBoxItem Content="Ship"/><ListBoxItem Content="SRV"/><ListBoxItem Content="On Foot"/><ListBoxItem Content="General"/>
     </ListBox>
    </WrapPanel>
-   <TextBlock x:Name="ExportState" Text="Workspace saving and ED preset export are separate. Installation into ED is manual." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
-   <TextBlock x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Workspace saving and ED preset export are separate. Installation into ED is manual." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
   </StackPanel>
   <Grid Grid.Row="2">
    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -37,22 +37,22 @@
     <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <DockPanel Margin="0,0,10,0">
      <StackPanel DockPanel.Dock="Top">
-      <TextBlock Text="Controllers in profile" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6"/>
-      <TextBlock Text="Drag to reorder" Margin="0,0,0,6"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Controllers in profile" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Drag to reorder" Margin="0,0,0,6"/>
      </StackPanel>
      <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-      <Button x:Name="MoveControllerUpButton" Content="Move up" Click="MoveControllerUpClicked" ToolTip="Move selected controller up (Ctrl+Up)"/>
-      <Button x:Name="MoveControllerDownButton" Content="Move down" Click="MoveControllerDownClicked" Margin="6,0,0,0" ToolTip="Move selected controller down (Ctrl+Down)"/>
+      <Button Style="{StaticResource ActionButton}" x:Name="MoveControllerUpButton" Content="Move up" Click="MoveControllerUpClicked" ToolTip="Move selected controller up (Ctrl+Up)"/>
+      <Button Style="{StaticResource ActionButton}" x:Name="MoveControllerDownButton" Content="Move down" Click="MoveControllerDownClicked" Margin="6,0,0,0" ToolTip="Move selected controller down (Ctrl+Down)"/>
      </WrapPanel>
      <ListBox x:Name="DevicePicker" SelectionChanged="DeviceChanged" AllowDrop="True" AutomationProperties.Name="Elite native device references"
               ToolTip="Display order only. Drag a controller or use Ctrl+Up / Ctrl+Down.">
-      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
+      <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
      </ListBox>
     </DockPanel>
     <ContentControl x:Name="FeatureContent" Grid.Column="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
    </Grid>
   </Grid>
-  <TextBlock x:Name="WorkspaceStatus" Grid.Row="3" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="WorkspaceStatus" Grid.Row="3" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
  </Grid>
 </Window>
 

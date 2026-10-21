@@ -3,49 +3,49 @@
  xmlns:pres="clr-namespace:Heimdall.App">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button x:Name="IdentifyControllerButton" Content="Identify Controller"/>
-<Button x:Name="CancelIdentificationButton" Content="Stop identifying" Margin="8,0"/>
-<Button x:Name="ConfirmIdentificationButton" Content="Confirm controller link" IsEnabled="False"/>
-<Button x:Name="AddControllerButton" Content="Add controller…"/>
-<Button x:Name="ReplaceControllerButton" Content="Replace selected…" Margin="8,0,0,0"/>
-<Button x:Name="RemoveControllerButton" Content="Remove selected…" Margin="8,0,0,0"/>
-<Button x:Name="RescanControllerButton" Content="Rescan" Margin="8,0"/>
-<Button x:Name="ChangeDrawingButton" Content="Change drawing…" Margin="8,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="IdentifyControllerButton" Content="Identify Controller"/>
+<Button Style="{StaticResource ActionButton}" x:Name="CancelIdentificationButton" Content="Stop identifying" Margin="8,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ConfirmIdentificationButton" Content="Confirm controller link" IsEnabled="False"/>
+<Button Style="{StaticResource ActionButton}" x:Name="AddControllerButton" Content="Add controller…"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ReplaceControllerButton" Content="Replace selected…" Margin="8,0,0,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="RemoveControllerButton" Content="Remove selected…" Margin="8,0,0,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="RescanControllerButton" Content="Rescan" Margin="8,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ChangeDrawingButton" Content="Change drawing…" Margin="8,0"/>
 </pres:ActionBar>
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
-     <TextBlock Text="Identify a controller reference" FontSize="18" FontWeight="SemiBold"/>
-     <TextBlock Text="Select an unknown ID in Controllers in profile, then identify it by operating your hardware. No existing link or drawing is required." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Identify a controller reference" FontSize="18" FontWeight="SemiBold"/>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Select an unknown ID in Controllers in profile, then identify it by operating your hardware. No existing link or drawing is required." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
 
 
 
      </WrapPanel>
-     <TextBlock x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
-     <TextBlock Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
-     <TextBlock Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
+     <TextBlock Style="{StaticResource AppLabel}" x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
-      <ComboBox x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" AutomationProperties.Name="Controller to add or use as replacement"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" AutomationProperties.Name="Controller to add or use as replacement"/>
 
 
 
      </WrapPanel>
      <StackPanel x:Name="ReplacementReferenceTools" Visibility="Collapsed" Margin="0,6,0,0">
-      <TextBlock Text="For an unlinked replacement with identical products, choose its captured ED reference/index explicitly. Connection order is not an ED index." TextWrapping="Wrap"/>
-      <ComboBox x:Name="ReplacementReferencePicker" DisplayMemberPath="Name" Width="430" HorizontalAlignment="Left" AutomationProperties.Name="Replacement ED reference and index"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="For an unlinked replacement with identical products, choose its captured ED reference/index explicitly. Connection order is not an ED index." TextWrapping="Wrap"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReplacementReferencePicker" DisplayMemberPath="Name" Width="430" HorizontalAlignment="Left" AutomationProperties.Name="Replacement ED reference and index"/>
      </StackPanel>
      <StackPanel x:Name="ReferenceChoiceTools" Visibility="Collapsed" Margin="0,8,0,0">
-      <TextBlock Text="Choose the matching reference from your imported ED preset. ED indices identify game references, not Windows connection order." TextWrapping="Wrap"/>
-      <WrapPanel Margin="0,4,0,0"><ComboBox x:Name="ReferencePicker" DisplayMemberPath="Name" Width="430" AutomationProperties.Name="Matching ED reference"/>
-       <Button x:Name="LinkReferenceButton" Content="Link selected reference" Margin="8,0"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Choose the matching reference from your imported ED preset. ED indices identify game references, not Windows connection order." TextWrapping="Wrap"/>
+      <WrapPanel Margin="0,4,0,0"><ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferencePicker" DisplayMemberPath="Name" Width="430" AutomationProperties.Name="Matching ED reference"/>
+       <Button Style="{StaticResource ActionButton}" x:Name="LinkReferenceButton" Content="Link selected reference" Margin="8,0"/>
       </WrapPanel>
      </StackPanel>
-     <WrapPanel Margin="0,8,0,0"><TextBlock x:Name="DrawingStatus" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="550"/>
+     <WrapPanel Margin="0,8,0,0"><TextBlock Style="{StaticResource AppLabel}" x:Name="DrawingStatus" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="550"/>
 
      </WrapPanel>
      <WrapPanel x:Name="DrawingTools" Visibility="Collapsed" Margin="0,6,0,0">
-      <ComboBox x:Name="HardwarePicker" DisplayMemberPath="Title" Width="360" AutomationProperties.Name="Optional shared hardware drawing"/>
-      <Button x:Name="UseDrawingButton" Content="Use drawing" Margin="8,0"/>
-      <Button x:Name="NoDrawingButton" Content="No drawing"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" Width="360" AutomationProperties.Name="Optional shared hardware drawing"/>
+      <Button Style="{StaticResource ActionButton}" x:Name="UseDrawingButton" Content="Use drawing" Margin="8,0"/>
+      <Button Style="{StaticResource ActionButton}" x:Name="NoDrawingButton" Content="No drawing"/>
      </WrapPanel>
     </StackPanel></ScrollViewer>
  </DockPanel>

@@ -3,31 +3,31 @@
  xmlns:pres="clr-namespace:Heimdall.App">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button x:Name="ReferencePreviousButton" Content="Previous page"/>
-<Button x:Name="ReferenceNextButton" Content="Next page"/>
-<Button x:Name="ReferencePdfButton" Content="Export PDF…" Margin="16,0,8,0"/>
-<Button x:Name="ReferencePngButton" Content="Export page PNG…"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ReferencePreviousButton" Content="Previous page"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ReferenceNextButton" Content="Next page"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ReferencePdfButton" Content="Export PDF…" Margin="16,0,8,0"/>
+<Button Style="{StaticResource ActionButton}" x:Name="ReferencePngButton" Content="Export page PNG…"/>
 </pres:ActionBar>
  <Grid x:Name="ReferenceSheetsPanel">
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
      <StackPanel Margin="0,0,0,10">
-      <TextBlock Text="Reference Sheets" FontSize="22" FontWeight="SemiBold"/>
-      <TextBlock Text="Choose a controller on the left and a section above. Preview the current profile, then export its pages." TextWrapping="Wrap" Margin="0,4,0,8"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Reference Sheets" FontSize="22" FontWeight="SemiBold"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Choose a controller on the left and a section above. Preview the current profile, then export its pages." TextWrapping="Wrap" Margin="0,4,0,8"/>
       <WrapPanel>
-       <TextBlock Text="Layout" VerticalAlignment="Center" Margin="0,0,6,0"/>
-       <ComboBox x:Name="ReferenceLayoutPicker" Width="225" AutomationProperties.Name="Reference sheet layout">
+       <TextBlock Style="{StaticResource AppLabel}" Text="Layout" VerticalAlignment="Center" Margin="0,0,6,0"/>
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferenceLayoutPicker" Width="225" AutomationProperties.Name="Reference sheet layout">
         <ComboBoxItem x:Name="ReferenceArtworkOption" Content="Artwork + assignment table"/><ComboBoxItem Content="Assignment table"/>
        </ComboBox>
-       <TextBlock Text="Paper" VerticalAlignment="Center" Margin="12,0,6,0"/>
-       <ComboBox x:Name="ReferencePaperPicker" Width="85" AutomationProperties.Name="Reference paper size">
+       <TextBlock Style="{StaticResource AppLabel}" Text="Paper" VerticalAlignment="Center" Margin="12,0,6,0"/>
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferencePaperPicker" Width="85" AutomationProperties.Name="Reference paper size">
         <ComboBoxItem Content="A4"/><ComboBoxItem Content="Letter"/>
        </ComboBox>
-       <ComboBox x:Name="ReferenceOrientationPicker" Width="125" Margin="8,0" AutomationProperties.Name="Reference orientation">
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferenceOrientationPicker" Width="125" Margin="8,0" AutomationProperties.Name="Reference orientation">
         <ComboBoxItem Content="Portrait"/><ComboBoxItem Content="Landscape"/>
        </ComboBox>
-       <CheckBox x:Name="ReferenceAssignedOnly" Content="Only assigned commands" IsChecked="True" VerticalAlignment="Center"/>
+       <CheckBox Style="{StaticResource AppCheckBox}" x:Name="ReferenceAssignedOnly" Content="Only assigned commands" IsChecked="True" VerticalAlignment="Center"/>
       </WrapPanel>
-      <TextBlock x:Name="ReferenceStatus" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Polite"/>
+      <TextBlock Style="{StaticResource AppLabel}" x:Name="ReferenceStatus" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Polite"/>
      </StackPanel>
      <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource BorderBrush}" Padding="12">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
@@ -36,7 +36,7 @@
      </Border>
      <WrapPanel Grid.Row="2" Margin="0,10,0,0">
 
-      <TextBlock x:Name="ReferencePageLabel" Text="No preview" VerticalAlignment="Center" Margin="12,0"/>
+      <TextBlock Style="{StaticResource AppLabel}" x:Name="ReferencePageLabel" Text="No preview" VerticalAlignment="Center" Margin="12,0"/>
 
 
 
