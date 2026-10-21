@@ -21,7 +21,7 @@ namespace Heimdall.EliteDangerous
             var inputs = device.Buttons.Select(x => x.SourceButton).Concat(device.Axes.Select(x => x.SourceAxis))
                 .Concat(profile.Devices.SelectMany(x => x.Buttons).SelectMany(x => x.Modifiers)
                     .Where(x => x.Source == deviceId).Select(x => x.Value));
-            var extra = inputs.Distinct(StringComparer.Ordinal).Where(key => !controls.Any(x => x.InputKey == key)).Order(StringComparer.Ordinal).ToArray();
+            var extra = inputs.OfType<string>().Distinct(StringComparer.Ordinal).Where(key => !controls.Any(x => x.InputKey == key)).Order(StringComparer.Ordinal).ToArray();
             var baseHeight = token == "Keyboard" ? 600 : 510;
             for (var i = 0; i < extra.Length; i++)
                 controls.Add(new("extra-" + i, extra[i], extra[i], 24 + i % 6 * 200, baseHeight + i / 6 * 80, 188, 70,
