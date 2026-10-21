@@ -7,14 +7,20 @@
   <WrapPanel Margin="0,0,0,10">
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/></ComboBox>
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
-   <Button Style="{StaticResource ToolbarActionButton}" x:Name="ImportPresetButton" Content="Import bindings…" Click="ImportClicked"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="ImportPresetButton" Content="Add / Import…" Click="ImportClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="ExportPresetButton" Content="Export" Click="ExportClicked"/>
    <TextBlock Style="{StaticResource AppLabel}" x:Name="SaveState" VerticalAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
   </WrapPanel>
   <StackPanel Grid.Row="1" Margin="0,0,0,8">
-   <WrapPanel><TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="200"/>
+   <WrapPanel Margin="0,0,0,8">
+    <Button Style="{StaticResource ToolbarActionButton}" x:Name="NewConfigurationButton" Content="New configuration…" Click="NewConfigurationClicked" ToolTip="Start with this configuration’s commands and controllers, with all assignments cleared. Without a configuration, choose an ED preset as a command template."/>
+    <Button Style="{StaticResource ToolbarActionButton}" x:Name="DuplicateConfigurationButton" Content="Duplicate…" Click="DuplicateConfigurationClicked" ToolTip="Create an independent named copy, including current pending edits."/>
+    <Button Style="{StaticResource ToolbarActionButton}" x:Name="RenameConfigurationButton" Content="Rename…" Click="RenameConfigurationClicked" ToolTip="Stage a name change; Save persists it."/>
+    <Button Style="{StaticResource ToolbarActionButton}" x:Name="DeleteConfigurationButton" Content="Delete…" Click="DeleteConfigurationClicked" ToolTip="Delete this saved HEIMDALL configuration. Exported ED presets remain in place."/>
+   </WrapPanel>
+   <WrapPanel><TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="100"/>
     <ListBox x:Name="SectionPicker" Margin="16,0,0,0" SelectionChanged="SectionChanged" AutomationProperties.Name="Elite controls section"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
      <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>

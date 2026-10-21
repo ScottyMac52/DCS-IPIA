@@ -5,7 +5,7 @@ namespace Heimdall.Application.Games
     /// <summary>A game-owned saved document; no aircraft or DCS database identity is synthesized.</summary>
     /// <param name="SchemaVersion">Workspace schema version, currently one.</param>
     /// <param name="Id">Stable user-owned workspace identity.</param>
-    /// <param name="Name">Workspace display name, independent of the native preset filename.</param>
+    /// <param name="Name">Configuration display name used for the exported native preset filename.</param>
     /// <param name="Profile">Versioned backend document with retained native sources.</param>
     /// <param name="Hardware">Explicit native-reference to hardware associations.</param>
     public sealed record GameWorkspace(int SchemaVersion, Guid Id, string Name, ProfileDocument Profile,

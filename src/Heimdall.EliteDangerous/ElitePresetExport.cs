@@ -14,7 +14,7 @@ namespace Heimdall.EliteDangerous
             if (!plan.Succeeded) return plan;
             try
             {
-                ValidateName(name);
+                Heimdall.Application.Games.GameConfigurationName.Validate(name);
                 var native = EliteNativeDocument.Read(plan.Files);
                 var oldName = EliteNativeDocument.Attribute(native.Root, "PresetName");
                 native.Root.SetAttributeValue("PresetName", name);
@@ -34,16 +34,5 @@ namespace Heimdall.EliteDangerous
             }
         }
         #endregion END Public
-        #region BEGIN private helpers
-        private static void ValidateName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name) || name.Length > 100 || name != name.Trim() || name.EndsWith('.')
-                || name.Any(char.IsControl) || name.IndexOfAny(['/', '\\', ':', '<', '>', '"', '|', '*', '?']) >= 0 || name.Contains("..", StringComparison.Ordinal))
-                throw new InvalidOperationException("Choose an ED preset name of 1–100 characters without path characters, trailing dots or surrounding whitespace.");
-            var stem = name.Split('.')[0].ToUpperInvariant();
-            if (stem is "CON" or "PRN" or "AUX" or "NUL" || Regex.IsMatch(stem, @"^(COM|LPT)[1-9¹²³]$"))
-                throw new InvalidOperationException("Choose an ED preset name that is not a reserved Windows filename.");
-        }
-        #endregion END private helpers
     }
 }
