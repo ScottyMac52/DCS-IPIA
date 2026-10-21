@@ -15,11 +15,15 @@
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
      <TextBlock Style="{StaticResource AppLabel}" Text="Identify a controller reference" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Select an unknown ID in Controllers in profile, then identify it by operating your hardware. No existing link or drawing is required." TextWrapping="Wrap" Margin="0,4,0,8"/>
-     <WrapPanel>
-
-
-
+     <WrapPanel Margin="0,0,0,4">
+      <TextBlock Style="{StaticResource AppLabel}" Text="Settling period:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <Slider Style="{StaticResource {x:Type Slider}}" x:Name="IdentificationSettlingSlider" Minimum="0.1" Maximum="2" Value="0.5"
+              TickFrequency="0.1" SmallChange="0.1" LargeChange="0.5" IsSnapToTickEnabled="True" Width="220" VerticalAlignment="Center"
+              AutomationProperties.Name="Controller identification settling period in seconds"
+              ToolTip="Keep controls steady for this long before identification listens for changes. Changing this restarts identification."/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="{Binding ElementName=IdentificationSettlingSlider, Path=Value, StringFormat={}{0:0.0} s}" VerticalAlignment="Center" Margin="8,0,0,0"/>
      </WrapPanel>
+     <TextBlock Style="{StaticResource Hint}" Text="Keep controls still for the settling period, then change an input. Existing button, hat and axis positions are ignored." TextWrapping="Wrap"/>
      <TextBlock Style="{StaticResource AppLabel}" x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>

@@ -62,7 +62,7 @@ namespace Heimdall.App.Games
         /// <summary>Creates an isolated editor over the existing adapter and profile-owned services.</summary>
         public EliteWorkspaceWindow(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
             Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null,
-            Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null)
+            Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null, TimeProvider? identificationTime = null)
         {
             _services = services; _hardware = hardware; _importPicker = importPicker; _exportPicker = exportPicker; _pendingChoice = pendingChoice;
             _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
@@ -116,9 +116,12 @@ namespace Heimdall.App.Games
             _viewport = new(_assignmentsView.DiagramScroll, _assignmentsView.DiagramCanvas, _assignmentsView.DiagramZoom, "elite.diagram");
             _input = new(this, _diagram, Status, ShowInputActivity, inputFactory);
             _input.StateChanged += InputStateChanged;
-            _identification = new(this, ShowIdentification, ClearIdentification, Status, inputFactory);
+            _identification = new(this, ShowIdentification, ClearIdentification, Status, inputFactory, identificationTime);
             _refreshing = true;
-            _bindingsDirectoryOverride = _services.Recent().EliteBindingsDirectory;
+            var recent = _services.Recent();
+            _bindingsDirectoryOverride = recent.EliteBindingsDirectory;
+            _devicesView.IdentificationSettlingSlider.Value = recent.EliteIdentificationSettlingSeconds;
+            _devicesView.IdentificationSettlingSlider.ValueChanged += IdentificationSettlingChanged;
             BindingsDirectoryText.Text = BindingsDirectory;
             ExportToReviewFolder.IsChecked = _exportPicker is not null;
             _assignmentsView.AssignmentStatusPicker.SelectedIndex = 0;
@@ -347,14 +350,29 @@ namespace Heimdall.App.Games
             _devicesView.ConfirmIdentificationButton.IsEnabled = false;
             _devicesView.IdentificationStatus.Text = "";
         }
+        private void IdentificationSettlingChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_refreshing) return;
+            Run(() =>
+            {
+                var selection = _services.Recent() with { EliteIdentificationSettlingSeconds = e.NewValue };
+                GameWorkspaceContract.ValidateSelection(selection); _services.Remember(selection);
+                var restart = _identification.Running;
+                StopLiveInput();
+                if (restart) IdentifyControllerClicked(sender, new RoutedEventArgs());
+                Status(_services.SelectionError is { } error ? "Settling period changed for this session; preference could not be saved: " + error
+                    : "Identification settling: " + e.NewValue.ToString("0.0", CultureInfo.CurrentCulture) + " seconds."
+                        + (restart ? " Baseline collection restarted; keep controls still." : ""));
+            });
+        }
         private void IdentifyControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             StopLiveInput();
             EditionAccess.Policy.RequireOwner();
             if (_session is null || Device is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Select a controller reference on Devices before identifying it.");
-            _identification.Start(_services.Discover());
-            _devicesView.IdentificationStatus.Text = "Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.";
+            _identification.Start(_services.Discover(), TimeSpan.FromSeconds(_devicesView.IdentificationSettlingSlider.Value));
+            _devicesView.IdentificationStatus.Text = "Keep controls still briefly to establish their current state, then change a button or hat, or move an axis noticeably. Initial held switches and axis positions do not identify a controller.";
             Status("Identify " + Device.Name + ": operate the physical controller you want to check.");
         });
         private void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)

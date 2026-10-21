@@ -30,9 +30,23 @@ failure or cancellation retains the current workspace.
    **Confirm controller link** stages the explicit association; identification
    alone never changes the profile or assignments. **Save** persists the link.
 
-   Identification is an Owner live-input feature. Initial held switches and
-   neutral axis positions establish baselines; new presses and axis changes
-   exceeding ten percent count as deliberate activity. Simultaneous activity
+   Identification is an Owner live-input feature. The **Settling period** slider
+   uses the shared slider style and remembers 0.1–2.0 seconds per user (default
+   0.5 seconds). Keep controls still for that interval, then change an input.
+   Each controller independently establishes a quiet baseline; delayed acquisition
+   states, held switches, resting hats and off-center axes never identify it.
+   Initial changes restart that controller's settling interval. Axis noise within
+   two percent is tolerated while settling; gradual initial movement is compared
+   against the quiet-window anchor so it cannot arm just because individual polls
+   are small. The sample that completes settling is still baseline-only.
+   Subsequent button/hat presses and releases, and axis changes exceeding ten
+   percent, count as deliberate activity. Changing the slider clears confirmation,
+   releases live input and restarts any active identification with a fresh baseline.
+   The preference is independent of profile Save/Discard, and older preferences
+   receive the default. Deterministic clock-driven core and WPF smoke tests cover
+   startup state changes, held controls, axis drift, independent settling, duration
+   boundaries, remembered slider settings, restart and normal lifecycle cleanup.
+   Simultaneous activity
    asks you to operate only one controller. Stop, focus loss, device/profile/view
    changes, rescan, disconnect and window close invalidate the pending result
    and release input handles. Start identification again to confirm afterward.

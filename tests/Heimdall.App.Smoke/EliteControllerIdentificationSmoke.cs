@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application;
+using Heimdall.TestSupport;
 using Heimdall.Infrastructure;
 using Heimdall.App;
 using Heimdall.App.Games;
@@ -24,13 +25,16 @@ namespace Heimdall.App.Smoke
             var path = Path.Combine(root, "Identify.4.2.binds");
             File.WriteAllText(path, "<Root PresetName='Identify' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='06A30BAC' Key='Joy_1'/><Secondary Device='044F1001' Key='Joy_2'/></PrimaryFire></Root>");
             IdentificationInputSource? input = null;
+            var time = new IdentificationTestTime();
             using var window = new EliteWorkspaceWindow(services, hardware, pendingChoice: () => MessageBoxResult.No,
                 inputFactory: (_, ids) =>
                 {
                     if (ids.Count != 2 || !ids.Contains(target.PhysicalGuid) || !ids.Contains(other.PhysicalGuid))
                         throw new InvalidOperationException("Identification did not acquire all connected controllers.");
-                    return input = new(ids);
-                });
+                    input = new(ids);
+                    foreach (var values in input.Values.Values) { values["JOY_BTN2"] = 1; values["JOY_BTN_POV1_U"] = 1; values["JOY_X"] = .05; }
+                    return input;
+                }, identificationTime: time);
             window.Show(); window.Activate(); ThemeControlSmoke.Pump(window); window.ImportFile(path);
             var picker = Box<ListBox>(window, "DevicePicker");
             var reference = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "06A30BAC");
@@ -39,6 +43,22 @@ namespace Heimdall.App.Smoke
             Click(window, "ConfirmIdentificationButton");
             if (window.Session.Snapshot.Hardware.Count != 0) throw new InvalidOperationException("Confirmation bypassed identification.");
             Click(window, "IdentifyControllerButton");
+            input!.Values[other.PhysicalGuid]["JOY_X"] = .95;
+            input.Values[target.PhysicalGuid]["JOY_BTN2"] = 0;
+            window.SampleIdentification();
+            time.Advance(200); window.SampleIdentification();
+            if (Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<TextBlock>(window, "IdentificationStatus").Text.Contains(other.Name, StringComparison.Ordinal))
+                throw new InvalidOperationException("Acquisition state changes identified a controller before settling.");
+            Arm(window, time);
+            var slider = Box<Slider>(window, "IdentificationSettlingSlider");
+            slider.Value = 1.2;
+            if (Math.Abs(services.Recent().EliteIdentificationSettlingSeconds - 1.2) > .001 || Box<Button>(window, "ConfirmIdentificationButton").IsEnabled)
+                throw new InvalidOperationException("Settling slider was not remembered or did not invalidate identification.");
+            time.Advance(600); window.SampleIdentification();
+            input!.Values[target.PhysicalGuid]["JOY_X"] = .8; window.SampleIdentification();
+            if (Box<Button>(window, "ConfirmIdentificationButton").IsEnabled)
+                throw new InvalidOperationException("The slider's longer settling period was ignored.");
+            Arm(window, time);
             window.SampleIdentification();
             if (Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<ComboBox>(window, "ConnectedPicker").SelectedItem is not null)
                 throw new InvalidOperationException("An idle sample or discovery order selected a controller.");
@@ -58,10 +78,10 @@ namespace Heimdall.App.Smoke
             Click(window, "ConfirmIdentificationButton");
             if (window.Session.Snapshot.Hardware.Count != 0) throw new InvalidOperationException("A stopped result could still be confirmed.");
 
-            Click(window, "IdentifyControllerButton"); input!.Values[target.PhysicalGuid]["JOY_X"] = .8; window.SampleIdentification();
+            Click(window, "IdentifyControllerButton"); Arm(window, time); input!.Values[target.PhysicalGuid]["JOY_X"] = .8; window.SampleIdentification();
             window.Hide(); ThemeControlSmoke.Pump(window); AssertStopped(window, input);
             window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
-            Click(window, "IdentifyControllerButton");
+            Click(window, "IdentifyControllerButton"); Arm(window, time);
             input!.Values[target.PhysicalGuid]["JOY_BTN1"] = 1; input.Values[other.PhysicalGuid]["JOY_BTN1"] = 1;
             window.SampleIdentification();
             if (Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || !result.Text.Contains("Several controllers", StringComparison.Ordinal))
@@ -69,25 +89,30 @@ namespace Heimdall.App.Smoke
             picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id != reference.Id);
             AssertStopped(window, input);
             picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == reference.Id);
-            Click(window, "IdentifyControllerButton"); input!.Fail = true;
+            Click(window, "IdentifyControllerButton"); Arm(window, time); input!.Fail = true;
             try { window.SampleIdentification(); throw new InvalidOperationException("Disconnect was not reported."); }
             catch (IOException) { AssertStopped(window, input); }
 
-            Click(window, "IdentifyControllerButton");
+            Click(window, "IdentifyControllerButton"); Arm(window, time);
             Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; AssertStopped(window, input!);
             Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
-            Click(window, "IdentifyControllerButton"); input!.Values[target.PhysicalGuid]["JOY_BTN1"] = 1; window.SampleIdentification();
+            Click(window, "IdentifyControllerButton"); Arm(window, time); input!.Values[target.PhysicalGuid]["JOY_BTN1"] = 1; window.SampleIdentification();
             var acquired = input;
             Click(window, "ConfirmIdentificationButton");
             if (!acquired.Disposed || window.Session.Snapshot.Hardware[reference.Id].Device.PhysicalGuid != target.PhysicalGuid
                 || JsonSerializer.Serialize(window.Session.Snapshot.Profile) != profile)
                 throw new InvalidOperationException("Confirmed discovery changed native assignments or linked the wrong unit.");
-            Click(window, "IdentifyControllerButton"); acquired = input!;
+            Click(window, "IdentifyControllerButton"); Arm(window, time); acquired = input!;
             window.Close();
             if (!acquired.Disposed) throw new InvalidOperationException("Closing identification retained controller handles.");
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void Arm(EliteWorkspaceWindow window, IdentificationTestTime time)
+        {
+            time.Advance((int)Math.Ceiling(Box<Slider>(window, "IdentificationSettlingSlider").Value * 1000) + 100);
+            window.SampleIdentification();
+        }
         private static void AssertStopped(FrameworkElement window, IdentificationInputSource input)
         {
             if (!input.Disposed || Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<TextBlock>(window, "IdentificationStatus").Text.Length != 0)

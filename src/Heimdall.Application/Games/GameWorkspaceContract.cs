@@ -33,6 +33,9 @@ namespace Heimdall.Application.Games
         public static void ValidateSelection(GameSelectionState selection)
         {
             ArgumentNullException.ThrowIfNull(selection);
+            if (!double.IsFinite(selection.EliteIdentificationSettlingSeconds)
+                || selection.EliteIdentificationSettlingSeconds < .1 || selection.EliteIdentificationSettlingSeconds > 2)
+                throw new InvalidDataException("Controller identification settling must be between 0.1 and 2.0 seconds.");
             if (selection.EliteBindingsDirectory is { } directory && (string.IsNullOrWhiteSpace(directory)
                 || directory.Length > 32767 || !Path.IsPathFullyQualified(directory)))
                 throw new InvalidDataException("An ED bindings override must be an absolute directory.");

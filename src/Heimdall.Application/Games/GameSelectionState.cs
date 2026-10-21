@@ -11,6 +11,8 @@ namespace Heimdall.Application.Games
         #region BEGIN Public
         /// <summary>Gets an optional absolute export directory; null uses the current user's standard ED folder.</summary>
         public string? EliteBindingsDirectory { get; init; }
+        /// <summary>Gets the remembered controller identification settling period in seconds.</summary>
+        public double EliteIdentificationSettlingSeconds { get; init; } = .5;
         #endregion END Public
     }
 }

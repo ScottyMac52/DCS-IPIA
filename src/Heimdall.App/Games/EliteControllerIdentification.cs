@@ -10,6 +10,7 @@ namespace Heimdall.App.Games
     internal sealed class EliteControllerIdentification : IDisposable
     {
         private readonly Window _owner;
+        private readonly TimeProvider _time;
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _factory;
         private readonly Action<IReadOnlyDictionary<DetectedDcsDevice, string>> _activity;
         private readonly Action _clear;
@@ -19,20 +20,22 @@ namespace Heimdall.App.Games
         private ControllerInputIdentification? _identification;
         private IReadOnlyList<DetectedDcsDevice> _devices = [];
         internal EliteControllerIdentification(Window owner, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> activity,
-            Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
+            Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null, TimeProvider? time = null)
         {
-            _owner = owner; _activity = activity; _clear = clear; _status = status;
+            _time = time ?? TimeProvider.System; _owner = owner; _activity = activity; _clear = clear; _status = status;
             _factory = factory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _timer.Tick += Poll; _owner.Deactivated += Deactivated;
         }
         #region BEGIN Public
-        /// <summary>Acquires every eligible attached instance and establishes neutral baselines before listening.</summary>
-        internal void Start(IReadOnlyList<DetectedDcsDevice> observed)
+        /// <summary>Gets whether native sampling is currently active.</summary>
+        internal bool Running => _source is not null;
+        /// <summary>Acquires every eligible attached instance and establishes current-state baselines before listening.</summary>
+        internal void Start(IReadOnlyList<DetectedDcsDevice> observed, TimeSpan settlingTime)
         {
             Stop(); EditionAccess.Policy.RequireOwner();
             _devices = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
             var ids = _devices.Select(x => x.PhysicalGuid).ToArray();
-            _identification = new(ids);
+            _identification = new(ids, _time, settlingTime);
             try
             {
                 _source = _factory(new WindowInteropHelper(_owner).EnsureHandle(), ids);

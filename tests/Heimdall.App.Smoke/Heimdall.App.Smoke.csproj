@@ -10,4 +10,5 @@
   <ItemGroup><Compile Include="../Shared/OwnerLicenseTestIssuer.cs" Link="OwnerLicenseTestIssuer.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Shared/MixedSnapshotFixture.cs" Link="MixedSnapshotFixture.cs" /></ItemGroup>
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/EliteDangerous/Synthetic.4.2.binds" Link="Fixtures/EliteDangerous/Synthetic.4.2.binds" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/IdentificationTestTime.cs" Link="IdentificationTestTime.cs" /></ItemGroup>
 </Project>
