@@ -21,6 +21,10 @@ namespace Heimdall.App.Games
     /// <summary>Hosts game-owned profile selection, native assignments and shared hardware artwork.</summary>
     public sealed partial class EliteWorkspaceWindow : Window, IDisposable
     {
+        private readonly EliteDevicesView _devicesView = new();
+        private readonly EliteAssignmentsView _assignmentsView = new();
+        private readonly EliteReferenceSheetsView _referenceView = new();
+        private readonly EliteControllerReordering _reordering;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly EliteDiagramPresenter _diagram;
@@ -54,19 +58,57 @@ namespace Heimdall.App.Games
             _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _reviewControllerChange = controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true);
             InitializeComponent();
-            _diagram = new(DiagramCanvas);
-            _viewport = new(DiagramScroll, DiagramCanvas, DiagramZoom, "elite.diagram");
+            RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
+            _devicesView.IdentifyControllerButton.Click += IdentifyControllerClicked;
+            _devicesView.CancelIdentificationButton.Click += CancelIdentificationClicked;
+            _devicesView.ConfirmIdentificationButton.Click += ConfirmIdentificationClicked;
+            _devicesView.ConnectedPicker.SelectionChanged += ConnectedChanged;
+            _devicesView.RescanControllerButton.Click += RescanClicked;
+            _devicesView.AddControllerButton.Click += AddControllerClicked;
+            _devicesView.ReplaceControllerButton.Click += ReplaceControllerClicked;
+            _devicesView.RemoveControllerButton.Click += RemoveControllerClicked;
+            _devicesView.LinkReferenceButton.Click += LinkReferenceClicked;
+            _devicesView.ChangeDrawingButton.Click += ChangeDrawingClicked;
+            _devicesView.UseDrawingButton.Click += UseDrawingClicked;
+            _devicesView.NoDrawingButton.Click += NoDrawingClicked;
+            _assignmentsView.StartInputButton.Click += StartInputClicked;
+            _assignmentsView.StopInputButton.Click += StopInputClicked;
+            _assignmentsView.ExportSheetButton.Click += ExportSheetClicked;
+            _assignmentsView.FitDiagramButton.Click += FitDiagramClicked;
+            _assignmentsView.AssignmentsGrid.SelectionChanged += AssignmentSelected;
+            _assignmentsView.CommandCategoryPicker.SelectionChanged += CommandFilterChanged;
+            _assignmentsView.CommandTypePicker.SelectionChanged += CommandFilterChanged;
+            _assignmentsView.ClearCommandFiltersButton.Click += ClearCommandFiltersClicked;
+            _assignmentsView.CommandSearch.TextChanged += SearchChanged;
+            _assignmentsView.CommandsList.SelectionChanged += CommandChanged;
+            _assignmentsView.SlotPicker.SelectionChanged += SlotChanged;
+            _assignmentsView.AddCombinationButton.Click += AddModifierClicked;
+            _assignmentsView.RemoveCombinationButton.Click += RemoveModifierClicked;
+            _assignmentsView.ApplyAssignmentButton.Click += ApplyClicked;
+            _assignmentsView.ClearAssignmentButton.Click += ClearClicked;
+            _referenceView.ReferenceLayoutPicker.SelectionChanged += ReferenceOptionsChanged;
+            _referenceView.ReferencePaperPicker.SelectionChanged += ReferenceOptionsChanged;
+            _referenceView.ReferenceOrientationPicker.SelectionChanged += ReferenceOptionsChanged;
+            _referenceView.ReferenceAssignedOnly.Click += ReferenceAssignedChanged;
+            _referenceView.ReferencePreviousButton.Click += ReferencePreviousClicked;
+            _referenceView.ReferenceNextButton.Click += ReferenceNextClicked;
+            _referenceView.ReferencePdfButton.Click += ReferencePdfClicked;
+            _referenceView.ReferencePngButton.Click += ReferencePngClicked;
+            _reordering = new(DevicePicker, (source, target, after) => Run(() => _session?.MoveController(source, target, after)));
+
+            _diagram = new(_assignmentsView.DiagramCanvas);
+            _viewport = new(_assignmentsView.DiagramScroll, _assignmentsView.DiagramCanvas, _assignmentsView.DiagramZoom, "elite.diagram");
             _input = new(this, _diagram, Status, ShowInputActivity, inputFactory);
             _identification = new(this, ShowIdentification, ClearIdentification, Status, inputFactory);
             _refreshing = true;
-            GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; SlotPicker.SelectedIndex = 0; ModePicker.SelectedIndex = 0;
-            CommandCategoryPicker.ItemsSource = new[] { "All categories" }; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0;
-            ReferenceLayoutPicker.SelectedIndex = 0; ReferencePaperPicker.SelectedIndex = 0; ReferenceOrientationPicker.SelectedIndex = 0;
-            HardwarePicker.ItemsSource = hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)).ToArray();
+            GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; _assignmentsView.SlotPicker.SelectedIndex = 0; _assignmentsView.ModePicker.SelectedIndex = 0;
+            _assignmentsView.CommandCategoryPicker.ItemsSource = new[] { "All categories" }; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0;
+            _referenceView.ReferenceLayoutPicker.SelectedIndex = 0; _referenceView.ReferencePaperPicker.SelectedIndex = 0; _referenceView.ReferenceOrientationPicker.SelectedIndex = 0;
+            _devicesView.HardwarePicker.ItemsSource = hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)).ToArray();
             _refreshing = false;
             ReloadChoices(initial);
             FeaturePicker.SelectedIndex = 0;
-            CommandsList.PreviewMouseMove += DragCommand;
+            _assignmentsView.CommandsList.PreviewMouseMove += DragCommand;
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
             AppearanceManager.ObserveArtwork(this, () => Run(() => { RenderDevice(); InvalidateReferenceSheets(); }));
             Rescan(); UpdateAvailability();
@@ -75,12 +117,16 @@ namespace Heimdall.App.Games
         /// <summary>Releases native input handles and draft event subscriptions.</summary>
         public void Dispose()
         {
-            _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            FeatureActions.ClearActions(); _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
         /// <summary>Gets the current staged session for deterministic Windows interaction checks.</summary>
         internal GameProfileSession? Session => _session;
+        /// <summary>Builds the same window-scoped payload used by controller drags.</summary>
+        internal DataObject ControllerDrag(string id) => _reordering.Payload(id);
+        /// <summary>Exercises the controller drop boundary without a modal operating-system drag loop.</summary>
+        internal bool DropController(IDataObject data, string target, bool after) => _reordering.DropAt(data, target, after);
         /// <summary>Processes a deterministic sample through the same input path as the foreground timer.</summary>
         internal void SampleInput() => _input.Sample();
         /// <summary>Processes discovery samples through the same path as the foreground identification timer.</summary>
@@ -132,20 +178,27 @@ namespace Heimdall.App.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void RegisterFeatureNames(DependencyObject root)
+        {
+            if (root is FrameworkElement { Name.Length: > 0 } element) RegisterName(element.Name, element);
+            foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) RegisterFeatureNames(child);
+        }
+        private void MoveControllerUpClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(-1);
+        private void MoveControllerDownClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(1);
         private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
-        private string? CommandCategory => CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
-        private CommandType? InputType => CommandTypePicker.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null };
+        private string? CommandCategory => _assignmentsView.CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
+        private CommandType? InputType => _assignmentsView.CommandTypePicker.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null };
         private GameDeviceChoice? Device => DevicePicker.SelectedItem as GameDeviceChoice;
-        private SimCommand? Command => CommandsList.SelectedItem as SimCommand;
-        private string Slot => Command?.Type == CommandType.Axis ? "Binding" : SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
+        private SimCommand? Command => _assignmentsView.CommandsList.SelectedItem as SimCommand;
+        private string Slot => Command?.Type == CommandType.Axis ? "Binding" : _assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
         private bool Pending => _session is not null && (_revision is null || _session.HasChanges || ProfileName.Text.Trim() != _session.Snapshot.Name);
         private void Status(string message) => WorkspaceStatus.Text = message;
         private void StopLiveInput() { _input.Stop(); _identification.Stop(); }
         private void ClearIdentification()
         {
             _identifiedController = null;
-            ConfirmIdentificationButton.IsEnabled = false;
-            IdentificationStatus.Text = "";
+            _devicesView.ConfirmIdentificationButton.IsEnabled = false;
+            _devicesView.IdentificationStatus.Text = "";
         }
         private void IdentifyControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -154,7 +207,7 @@ namespace Heimdall.App.Games
             if (_session is null || Device is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Select a controller reference on Devices before identifying it.");
             _identification.Start(_services.Discover());
-            IdentificationStatus.Text = "Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.";
+            _devicesView.IdentificationStatus.Text = "Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.";
             Status("Identify " + Device.Name + ": operate the physical controller you want to check.");
         });
         private void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)
@@ -162,20 +215,20 @@ namespace Heimdall.App.Games
             ClearIdentification();
             if (activity.Count != 1)
             {
-                IdentificationStatus.Text = "Several controllers moved together. Operate just one controller to identify it.";
+                _devicesView.IdentificationStatus.Text = "Several controllers moved together. Operate just one controller to identify it.";
                 return;
             }
             if (_session is null || Device is null) return;
             var detected = activity.Single();
             var identity = _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!;
             var matches = _services.DeviceReferences.Matches(identity, detected.Key);
-            IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + Environment.NewLine + detected.Key.PhysicalGuid +
+            _devicesView.IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + Environment.NewLine + detected.Key.PhysicalGuid +
                 Environment.NewLine + (matches ? "Matches selected ED reference: " : "Does not match selected ED reference: ") + Device.Name;
             if (!matches) return;
             _identifiedController = detected.Key;
-            ConfirmIdentificationButton.IsEnabled = true;
+            _devicesView.ConfirmIdentificationButton.IsEnabled = true;
             if (_session.ControllerReferences(detected.Key.PhysicalGuid).Count > 1)
-                IdentificationStatus.Text += Environment.NewLine + "Identical products share this ID. Input identifies this physical unit, but cannot prove its ED index. Verify the selected indexed reference in Elite before confirming.";
+                _devicesView.IdentificationStatus.Text += Environment.NewLine + "Identical products share this ID. Input identifies this physical unit, but cannot prove its ED index. Verify the selected indexed reference in Elite before confirming.";
         }
         private void ConfirmIdentificationClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -194,7 +247,7 @@ namespace Heimdall.App.Games
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
             StopLiveInput(); _referenceDirty = true;
-            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
+            _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
             ExportState.Text = "Workspace open in HEIMDALL. Export for review creates a named ED preset; installation into ED is manual.";
@@ -233,9 +286,9 @@ namespace Heimdall.App.Games
             _commands = _session.Catalog.Commands;
             _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
             _refreshing = true;
-            var devices = document.Profile.Devices.Select(x => new GameDeviceChoice(x.LogicalId, ControllerName(document, x.LogicalId))).ToArray();
+            var devices = GameControllerOrder.For(document).Select(id => new GameDeviceChoice(id, ControllerName(document, id))).ToArray();
             DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
-            ModifierDevicePicker.ItemsSource = devices; ModifierDevicePicker.SelectedIndex = 0;
+            _assignmentsView.ModifierDevicePicker.ItemsSource = devices; _assignmentsView.ModifierDevicePicker.SelectedIndex = 0;
             _refreshing = false;
             FilterCommands(previousCommand); RenderDevice(); UpdateReplacementReferences(); UpdateAvailability();
         }
@@ -245,30 +298,30 @@ namespace Heimdall.App.Games
             var previousCategory = CommandCategory;
             var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();
             _refreshing = true;
-            CommandCategoryPicker.ItemsSource = categories;
-            CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
-            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, CommandSearch.Text);
+            _assignmentsView.CommandCategoryPicker.ItemsSource = categories;
+            _assignmentsView.CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
+            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, _assignmentsView.CommandSearch.Text);
             var view = new ListCollectionView(commands.ToList());
             view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
-            CommandsList.ItemsSource = view;
-            CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == selected) ?? (commands.Count > 0 ? commands[0] : null); _refreshing = false;
-            CommandCount.Text = commands.Count + " of " + _commands.Count + " commands";
-            CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
+            _assignmentsView.CommandsList.ItemsSource = view;
+            _assignmentsView.CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == selected) ?? (commands.Count > 0 ? commands[0] : null); _refreshing = false;
+            _assignmentsView.CommandCount.Text = commands.Count + " of " + _commands.Count + " commands";
+            _assignmentsView.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
             LoadAssignment(); UpdateAvailability();
         }
         private void RenderDevice()
         {
-            StopLiveInput(); DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); DiagramHint.Visibility = Visibility.Visible;
+            StopLiveInput(); _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); _assignmentsView.DiagramHint.Visibility = Visibility.Visible;
             UpdateInputActivityVisibility();
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
             var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
-            if (hardware is null) { DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
+            if (hardware is null) { _assignmentsView.DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
             _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this));
-            DiagramHint.Visibility = Visibility.Collapsed;
+            _assignmentsView.DiagramHint.Visibility = Visibility.Collapsed;
             UpdateInputActivityVisibility();
         }
         private void SelectControl(HardwareGraphicControl control)
@@ -277,117 +330,118 @@ namespace Heimdall.App.Games
             if (key is null) { Status("This drawing input has no verified Elite key. Choose an explicit native input key instead."); return; }
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
             if (row is not null) SelectRow(row);
-            InputKey.Text = key; InputKey.Focus();
+            _assignmentsView.InputKey.Text = key; _assignmentsView.InputKey.Focus();
         }
         private void DropCommand(HardwareGraphicControl control, string id) => Run(() =>
         {
             var command = _commands.Single(x => x.Id == id);
             if (control.IsAxis != (command.Type == CommandType.Axis)) throw new InvalidOperationException("Choose an axis command for an axis, or a button command for a button.");
-            CommandsList.SelectedItem = CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id);
-            InputKey.Text = EliteInputKeys.FromShared(control.InputKey) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
+            _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id);
+            _assignmentsView.InputKey.Text = EliteInputKeys.FromShared(control.InputKey) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
             ApplyClicked(this, new());
         });
         private void DragCommand(object sender, MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && Command is { } command && _session?.AccessMessage.Length == 0)
-                DragDrop.DoDragDrop(CommandsList, new DataObject("heimdall.elite.command", command.Id), DragDropEffects.Copy);
+                DragDrop.DoDragDrop(_assignmentsView.CommandsList, new DataObject("heimdall.elite.command", command.Id), DragDropEffects.Copy);
         }
         private void LoadAssignment()
         {
             if (_refreshing || _session is null) return;
             var axis = Command?.Type == CommandType.Axis;
-            AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
-            ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
-            SlotPicker.IsEnabled = ModePicker.IsEnabled = !axis;
+            _assignmentsView.AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
+            _assignmentsView.SlotPicker.IsEnabled = _assignmentsView.ModePicker.IsEnabled = !axis;
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
-            InputKey.Text = row?.Input ?? ""; InvertAxis.IsChecked = row?.Invert ?? false;
-            AxisDeadzone.Text = (row?.Deadzone ?? 0).ToString(CultureInfo.CurrentCulture);
-            ModePicker.SelectedIndex = row?.Mode == BindingMode.Hold ? 1 : 0;
+            _assignmentsView.InputKey.Text = row?.Input ?? ""; _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
+            _assignmentsView.AxisDeadzone.Text = (row?.Deadzone ?? 0).ToString(CultureInfo.CurrentCulture);
+            _assignmentsView.ModePicker.SelectedIndex = row?.Mode == BindingMode.Hold ? 1 : 0;
             _modifiers.Clear();
             if (row is not null) foreach (var modifier in row.Modifiers) _modifiers.Add(new(modifier,
-                (ModifierDevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == modifier.Source)?.Name ?? modifier.Source) + ": " + modifier.Value));
-            ModifiersList.ItemsSource = null; ModifiersList.ItemsSource = _modifiers;
+                (_assignmentsView.ModifierDevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == modifier.Source)?.Name ?? modifier.Source) + ": " + modifier.Value));
+            _assignmentsView.ModifierTools.IsExpanded = _modifiers.Count > 0;
+            _assignmentsView.ModifiersList.ItemsSource = null; _assignmentsView.ModifiersList.ItemsSource = _modifiers;
             var key = "ed.toggle:" + Command?.Id;
             var metadata = _session.Snapshot.Profile.Metadata;
-            CommandToggle.Visibility = metadata.ContainsKey(key) ? Visibility.Visible : Visibility.Collapsed;
-            CommandToggle.IsChecked = metadata.GetValueOrDefault(key) == "1";
+            _assignmentsView.CommandToggle.Visibility = metadata.ContainsKey(key) ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.CommandToggle.IsChecked = metadata.GetValueOrDefault(key) == "1";
         }
         private void UpdateAvailability()
         {
             var opened = _session is not null;
             AccessStatus.Text = _session?.AccessMessage ?? "Import or select a saved Elite controls profile.";
-            AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0;
+            _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0;
             SaveProfileButton.IsEnabled = opened && Pending; DiscardProfileButton.IsEnabled = opened && Pending;
             ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
             var controller = Device is not null && _session is not null && !GameWorkspaceAccess.IsSystemDevice(
                 _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!.SimSpecificIds["ed.device"]);
-            RemoveControllerButton.IsEnabled = opened && controller;
-            ReplaceControllerButton.IsEnabled = opened && controller && EditionAccess.Policy.IsOwner && ConnectedPicker.SelectedItem is DetectedDcsDevice;
-            ProfileName.IsEnabled = opened; AddControllerButton.IsEnabled = opened && ConnectedPicker.SelectedItem is DetectedDcsDevice;
+            _devicesView.RemoveControllerButton.IsEnabled = opened && controller;
+            _devicesView.ReplaceControllerButton.IsEnabled = opened && controller && EditionAccess.Policy.IsOwner && _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice;
+            ProfileName.IsEnabled = opened; _devicesView.AddControllerButton.IsEnabled = opened && _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
             var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
-            ChangeDrawingButton.IsEnabled = pin is not null;
-            IdentifyControllerButton.IsEnabled = opened && Device is not null && EditionAccess.Policy.IsOwner;
-            DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
+            _devicesView.ChangeDrawingButton.IsEnabled = pin is not null;
+            _devicesView.IdentifyControllerButton.IsEnabled = opened && Device is not null && EditionAccess.Policy.IsOwner;
+            _devicesView.DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
             var feature = FeaturePicker.SelectedIndex;
-            DeviceTools.Visibility = feature == 0 ? Visibility.Visible : Visibility.Collapsed;
-            StartInputButton.Visibility = StopInputButton.Visibility = feature == 2 ? Visibility.Visible : Visibility.Collapsed;
-            StartInputButton.IsEnabled = opened && EditionAccess.Policy.IsOwner;
-            ExportSheetButton.Visibility = Visibility.Collapsed;
-            AuthoringPanel.Visibility = feature == 3 ? Visibility.Collapsed : Visibility.Visible;
-            ReferenceSheetsPanel.Visibility = feature == 3 ? Visibility.Visible : Visibility.Collapsed;
-            ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
+            MoveControllerUpButton.IsEnabled = DevicePicker.SelectedIndex > 0;
+            MoveControllerDownButton.IsEnabled = DevicePicker.SelectedIndex >= 0 && DevicePicker.SelectedIndex + 1 < DevicePicker.Items.Count;
+            _assignmentsView.ApplyAssignmentButton.IsEnabled = _assignmentsView.ClearAssignmentButton.IsEnabled = _assignmentsView.AssignmentEditor.IsEnabled && Device is not null;
+            _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
+            _assignmentsView.StartInputButton.IsEnabled = opened && EditionAccess.Policy.IsOwner;
+            _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;
+            _assignmentsView.ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
             UpdateInputActivityVisibility();
-            if (feature == 3) RefreshReferenceSheets();
+            if (feature == 2) RefreshReferenceSheets();
         }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (_session is null || Device is null || Command is null) return;
-            var command = Command; var device = Device; var slot = Slot; var toggle = CommandToggle.IsChecked == true;
-            var hasToggle = CommandToggle.Visibility == Visibility.Visible;
+            var command = Command; var device = Device; var slot = Slot; var toggle = _assignmentsView.CommandToggle.IsChecked == true;
+            var hasToggle = _assignmentsView.CommandToggle.Visibility == Visibility.Visible;
             if (command.Type == CommandType.Axis)
-                _session.AssignAxis(device.Id, command.Id, InputKey.Text.Trim(), InvertAxis.IsChecked == true,
-                    float.Parse(AxisDeadzone.Text, CultureInfo.CurrentCulture));
-            else _session.AssignButton(device.Id, command.Id, slot, InputKey.Text.Trim(), ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
+                _session.AssignAxis(device.Id, command.Id, _assignmentsView.InputKey.Text.Trim(), _assignmentsView.InvertAxis.IsChecked == true,
+                    float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture));
+            else _session.AssignButton(device.Id, command.Id, slot, _assignmentsView.InputKey.Text.Trim(), _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
                 _modifiers.Select(x => x.Modifier).ToArray());
             if (hasToggle) _session.SetToggle(command.Id, toggle);
             Status("Assignment staged. Save before exporting to a review folder.");
         });
         private void ClearClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is not null && _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot && x.Input == InputKey.Text.Trim()))
+            if (_session is not null && _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot && x.Input == _assignmentsView.InputKey.Text.Trim()))
                 _session.Clear(Command!.Id, Slot);
         });
         private void AddModifierClicked(object sender, RoutedEventArgs e)
         {
-            if (ModifierDevicePicker.SelectedItem is not GameDeviceChoice device || string.IsNullOrWhiteSpace(ModifierKey.Text)) return;
-            _modifiers.Add(new(new() { Source = device.Id, Value = ModifierKey.Text.Trim() }, device.Name + ": " + ModifierKey.Text.Trim()));
-            ModifiersList.Items.Refresh(); ModifierKey.Clear();
+            if (_assignmentsView.ModifierDevicePicker.SelectedItem is not GameDeviceChoice device || string.IsNullOrWhiteSpace(_assignmentsView.ModifierKey.Text)) return;
+            _modifiers.Add(new(new() { Source = device.Id, Value = _assignmentsView.ModifierKey.Text.Trim() }, device.Name + ": " + _assignmentsView.ModifierKey.Text.Trim()));
+            _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.Clear();
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
-        { if (ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); ModifiersList.Items.Refresh(); } }
-        private void Rescan() => Run(() => { StopLiveInput(); ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); ConnectedPicker.SelectedIndex = -1; });
+        { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); } }
+        private void Rescan() => Run(() => { StopLiveInput(); _devicesView.ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); _devicesView.ConnectedPicker.SelectedIndex = -1; });
         private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             StopLiveInput();
-            if (_session is null || ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
+            if (_session is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
                 throw new InvalidOperationException("Choose the connected controller you want to add.");
             var document = _session.Snapshot;
             var already = document.Hardware.FirstOrDefault(x => x.Value.Device.PhysicalGuid == connected.PhysicalGuid).Key;
             if (already is not null)
             {
-                ReferenceChoiceTools.Visibility = Visibility.Collapsed;
+                _devicesView.ReferenceChoiceTools.Visibility = Visibility.Collapsed;
                 DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == already);
                 Status("This controller is already in the profile. Its existing link and drawing choice are retained."); return;
             }
             var references = _session.ControllerReferences(connected.PhysicalGuid);
             var available = references.Where(x => !document.Hardware.ContainsKey(x)).ToArray();
             if (references.Count == 0 || available.Length == 1) { ConnectController(connected, available.SingleOrDefault()); return; }
-            ReferencePicker.ItemsSource = references.Select(id => new GameDeviceChoice(id, ControllerName(document, id))).ToArray();
-            ReferencePicker.SelectedIndex = -1; ReferenceChoiceTools.Visibility = Visibility.Visible;
+            _devicesView.ReferencePicker.ItemsSource = references.Select(id => new GameDeviceChoice(id, ControllerName(document, id))).ToArray();
+            _devicesView.ReferencePicker.SelectedIndex = -1; _devicesView.ReferenceChoiceTools.Visibility = Visibility.Visible;
             Status("Choose which captured ED reference belongs to this controller. Existing links are retained until an explicit choice succeeds.");
         });
         private void ConnectController(DetectedDcsDevice connected, string? logicalId)
@@ -397,7 +451,7 @@ namespace Heimdall.App.Games
             var current = logicalId is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(logicalId);
             var drawing = current is null ? GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
             var id = _session.ConnectController(connected.PhysicalGuid, drawing, logicalId);
-            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
+            _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
             Status("Controller connected. Assign commands now; Change drawing is optional." + (_session.AccessMessage.Length > 0 ? " " + _session.AccessMessage : ""));
         }
@@ -409,18 +463,18 @@ namespace Heimdall.App.Games
             return workspace.Hardware.TryGetValue(id, out var pin) ? pin.Device.Name + " · " + token + suffix : token + suffix;
         }
         private void ConnectedChanged(object sender, SelectionChangedEventArgs e)
-        { if (!_refreshing && ReferenceChoiceTools is not null) { ReferenceChoiceTools.Visibility = Visibility.Collapsed; Run(UpdateReplacementReferences); UpdateAvailability(); } }
+        { if (!_refreshing && _devicesView.ReferenceChoiceTools is not null) { _devicesView.ReferenceChoiceTools.Visibility = Visibility.Collapsed; Run(UpdateReplacementReferences); UpdateAvailability(); } }
         private void UpdateReplacementReferences()
         {
-            if (ReplacementReferencePicker is null) return;
-            var selected = (ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
-            var ids = _session is not null && ConnectedPicker.SelectedItem is DetectedDcsDevice connected
+            if (_devicesView.ReplacementReferencePicker is null) return;
+            var selected = (_devicesView.ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
+            var ids = _session is not null && _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice connected
                 ? _session.ControllerReferences(connected.PhysicalGuid) : [];
             var document = _session?.Snapshot;
             var choices = ids.Select(id => new GameDeviceChoice(id, ControllerName(document!, id))).ToArray();
-            ReplacementReferencePicker.ItemsSource = choices;
-            ReplacementReferencePicker.SelectedItem = choices.FirstOrDefault(x => x.Id == selected);
-            ReplacementReferenceTools.Visibility = choices.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
+            _devicesView.ReplacementReferencePicker.ItemsSource = choices;
+            _devicesView.ReplacementReferencePicker.SelectedItem = choices.FirstOrDefault(x => x.Id == selected);
+            _devicesView.ReplacementReferenceTools.Visibility = choices.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
         }
         private void RemoveControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -431,9 +485,9 @@ namespace Heimdall.App.Games
         private void ReplaceControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             StopLiveInput();
-            if (_session is null || Device is null || ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
+            if (_session is null || Device is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
                 throw new InvalidOperationException("Select the old profile controller and its connected replacement.");
-            var target = (ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
+            var target = (_devicesView.ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id;
             var drawing = GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected);
             var change = _session.PreviewReplaceController(Device.Id, connected.PhysicalGuid,
                 () => ReadReplacementInputs(connected.PhysicalGuid), target, drawing);
@@ -452,29 +506,29 @@ namespace Heimdall.App.Games
             if (!_reviewControllerChange(change)) { Status("Controller change cancelled; profile unchanged."); return; }
             _session!.ApplyControllerChange(change);
             if (change.ResultDeviceId is { } id) DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
-            ReferenceChoiceTools.Visibility = DrawingTools.Visibility = Visibility.Collapsed;
+            _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             Status("Reviewed controller change staged. Save to persist; Preview / Export to review the native ED bindings.");
         }
         private void LinkReferenceClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || ReferencePicker.SelectedItem is not GameDeviceChoice reference)
+            if (_devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || _devicesView.ReferencePicker.SelectedItem is not GameDeviceChoice reference)
                 throw new InvalidOperationException("Choose the connected controller and its captured ED reference.");
             ConnectController(connected, reference.Id);
         });
         private void ChangeDrawingClicked(object sender, RoutedEventArgs e)
         {
             if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin)) return;
-            HardwarePicker.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
-            DrawingTools.Visibility = Visibility.Visible;
+            _devicesView.HardwarePicker.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
+            _devicesView.DrawingTools.Visibility = Visibility.Visible;
         }
         private void UseDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is null || Device is null || HardwarePicker.SelectedItem is not WorkspaceHardware drawing)
+            if (_session is null || Device is null || _devicesView.HardwarePicker.SelectedItem is not WorkspaceHardware drawing)
                 throw new InvalidOperationException("Choose an optional drawing first.");
-            _session.ChangeDrawing(Device.Id, drawing.DeviceId); DrawingTools.Visibility = Visibility.Collapsed;
+            _session.ChangeDrawing(Device.Id, drawing.DeviceId); _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
         });
         private void NoDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
-        { if (_session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); DrawingTools.Visibility = Visibility.Collapsed; } });
+        { if (_session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; } });
         private void ImportClicked(object sender, RoutedEventArgs e)
         {
             if (!ConfirmLeave()) return;
@@ -567,39 +621,45 @@ namespace Heimdall.App.Games
         }
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _referenceDirty = true; UpdateAvailability(); } }
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; FilterCommands(); RenderDevice(); }); }
-        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
-        private void FeatureChanged(object sender, SelectionChangedEventArgs e) { if (_input is null || _identification is null) return; StopLiveInput(); UpdateAvailability(); }
+        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; _devicesView.DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
+        private void FeatureChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_input is null || _identification is null) return;
+            StopLiveInput();
+            UserControl view = FeaturePicker.SelectedIndex switch { 1 => _assignmentsView, 2 => _referenceView, _ => _devicesView };
+            FeatureContent.Content = view; FeatureActions.ShowActions(view); UpdateAvailability();
+        }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);
         private void ClearCommandFilters(string? selected)
         {
-            _refreshing = true; CommandCategoryPicker.SelectedIndex = 0; CommandTypePicker.SelectedIndex = 0; CommandSearch.Clear(); _refreshing = false;
+            _refreshing = true; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0; _assignmentsView.CommandSearch.Clear(); _refreshing = false;
             FilterCommands(selected);
         }
         private void CommandChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
         private void SlotChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
-        private void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }
+        private void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _assignmentsView.AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }
         private void SelectRow(EliteAssignmentRow row)
         {
-            if (!CommandsList.Items.Cast<SimCommand>().Any(x => x.Id == row.CommandId))
+            if (!_assignmentsView.CommandsList.Items.Cast<SimCommand>().Any(x => x.Id == row.CommandId))
             {
                 ClearCommandFilters(row.CommandId);
                 Status("Command filters cleared to show the selected assignment.");
             }
-            _refreshing = true; CommandsList.SelectedItem = CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
+            _refreshing = true; _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); _assignmentsView.SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
             LoadAssignment();
         }
         private void UpdateInputActivityVisibility()
         {
-            var fallback = FeaturePicker.SelectedIndex == 2 && DiagramHint.Visibility == Visibility.Visible;
-            InputActivity.Visibility = fallback ? Visibility.Visible : Visibility.Collapsed;
-            DiagramScroll.Visibility = fallback ? Visibility.Collapsed : Visibility.Visible;
+            var fallback = FeaturePicker.SelectedIndex == 1 && _assignmentsView.DiagramHint.Visibility == Visibility.Visible;
+            _assignmentsView.InputActivity.Visibility = _assignmentsView.InputActivityHint.Visibility = fallback ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.DiagramScroll.Visibility = fallback ? Visibility.Collapsed : Visibility.Visible;
         }
         private void ShowInputActivity(string text)
         {
-            if (InputActivity.Text == text) return;
-            InputActivity.Text = text; InputActivity.ScrollToEnd();
+            if (_assignmentsView.InputActivity.Text == text) return;
+            _assignmentsView.InputActivity.Text = text; _assignmentsView.InputActivity.ScrollToEnd();
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -609,7 +669,7 @@ namespace Heimdall.App.Games
             _input.Start(pin, _services.Discover());
         });
         private void InvalidateReferenceSheets()
-        { _referenceDirty = true; if (FeaturePicker.SelectedIndex == 3) RefreshReferenceSheets(); }
+        { _referenceDirty = true; if (FeaturePicker.SelectedIndex == 2) RefreshReferenceSheets(); }
         private void ReferenceOptionsChanged(object sender, SelectionChangedEventArgs e)
         { if (!_refreshing && !_renderingReference) InvalidateReferenceSheets(); }
         private void ReferenceAssignedChanged(object sender, RoutedEventArgs e) => InvalidateReferenceSheets();
@@ -624,12 +684,12 @@ namespace Heimdall.App.Games
                 var document = _session.Snapshot;
                 var pin = document.Hardware.GetValueOrDefault(Device.Id);
                 var hardware = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
-                ReferenceArtworkOption.IsEnabled = hardware is not null;
-                if (hardware is null) ReferenceLayoutPicker.SelectedIndex = 1;
-                var content = EliteReferenceSheetBuilder.Build(document.Profile, _session.Catalog, Device.Id, Device.Name, Section, ReferenceAssignedOnly.IsChecked == true)
+                _referenceView.ReferenceArtworkOption.IsEnabled = hardware is not null;
+                if (hardware is null) _referenceView.ReferenceLayoutPicker.SelectedIndex = 1;
+                var content = EliteReferenceSheetBuilder.Build(document.Profile, _session.Catalog, Device.Id, Device.Name, Section, _referenceView.ReferenceAssignedOnly.IsChecked == true)
                     with { Title = "Elite Dangerous / " + (string.IsNullOrWhiteSpace(ProfileName.Text) ? document.Name : ProfileName.Text.Trim()) };
-                var options = new ReferenceSheetOptions(ReferencePaperPicker.SelectedIndex == 1 ? "Letter" : "A4",
-                    ReferenceOrientationPicker.SelectedIndex == 1, ReferenceLayoutPicker.SelectedIndex == 0);
+                var options = new ReferenceSheetOptions(_referenceView.ReferencePaperPicker.SelectedIndex == 1 ? "Letter" : "A4",
+                    _referenceView.ReferenceOrientationPicker.SelectedIndex == 1, _referenceView.ReferenceLayoutPicker.SelectedIndex == 0);
                 byte[]? artwork = null;
                 if (options.Artwork && hardware is not null)
                 {
@@ -637,24 +697,24 @@ namespace Heimdall.App.Games
                     artwork = CompositeKneeboardRenderer.Render(hardware.Diagram, projection, "Elite Dangerous / " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
                 }
                 _referenceSheets = ReferenceSheetRenderer.Render(content, options, artwork);
-                ReferenceStatus.Text = content.Rows.Count + " entries · current profile preview" + (options.Artwork ? " · artwork followed by the complete assignment table" : " · assignment table");
+                _referenceView.ReferenceStatus.Text = content.Rows.Count + " entries · current profile preview" + (options.Artwork ? " · artwork followed by the complete assignment table" : " · assignment table");
             }
-            catch (Exception error) { ReferenceStatus.Text = error.Message; }
+            catch (Exception error) { _referenceView.ReferenceStatus.Text = error.Message; }
             finally { _referenceDirty = false; _renderingReference = false; ShowReferencePage(); }
         }
         private void ShowReferencePage()
         {
             var ready = _referenceSheets is not null;
-            ReferencePdfButton.IsEnabled = ReferencePngButton.IsEnabled = ready;
-            ReferencePreviousButton.IsEnabled = ready && _referencePage > 0;
-            ReferenceNextButton.IsEnabled = ready && _referencePage + 1 < _referenceSheets!.PageCount;
-            ReferencePageLabel.Text = ready ? "Page " + (_referencePage + 1) + " of " + _referenceSheets!.PageCount : "No preview";
-            ReferencePreview.Source = null;
+            _referenceView.ReferencePdfButton.IsEnabled = _referenceView.ReferencePngButton.IsEnabled = ready;
+            _referenceView.ReferencePreviousButton.IsEnabled = ready && _referencePage > 0;
+            _referenceView.ReferenceNextButton.IsEnabled = ready && _referencePage + 1 < _referenceSheets!.PageCount;
+            _referenceView.ReferencePageLabel.Text = ready ? "Page " + (_referencePage + 1) + " of " + _referenceSheets!.PageCount : "No preview";
+            _referenceView.ReferencePreview.Source = null;
             if (!ready) return;
             using var stream = new MemoryStream(_referenceSheets!.PngPages[_referencePage]);
             var image = new System.Windows.Media.Imaging.BitmapImage();
             image.BeginInit(); image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad; image.StreamSource = stream; image.EndInit(); image.Freeze();
-            ReferencePreview.Source = image;
+            _referenceView.ReferencePreview.Source = image;
         }
         private void ReferencePreviousClicked(object sender, RoutedEventArgs e)
         { if (_referencePage > 0) { _referencePage--; ShowReferencePage(); } }

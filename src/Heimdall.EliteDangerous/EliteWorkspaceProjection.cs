@@ -33,9 +33,8 @@ namespace Heimdall.EliteDangerous
             var labels = diagram.Controls.ToDictionary(control => control.Control, control =>
                 (IReadOnlyList<KneeboardLabelVariant>)rows.Where(x => x.Input == EliteInputKeys.FromShared(control.InputKey)
                     && (section == "All" || x.Section == section)).Select(x => new KneeboardLabelVariant(
-                        x.CommandName + (x.Slot == "Secondary" ? " [S]" : "") + (x.Mode == BindingMode.Hold ? " [Hold]" : "")
-                        + (x.Chord.Length == 0 ? "" : " [" + x.Chord + "]"),
-                        KneeboardStateColors.Base, AssignmentLayer.Module, x.Chord)).ToArray(), StringComparer.Ordinal);
+                        x.CommandName + (x.Slot == "Secondary" ? " [S]" : "") + (x.Mode == BindingMode.Hold ? " [Hold]" : ""),
+                        KneeboardStateColors.Base, AssignmentLayer.Module, "")).ToArray(), StringComparer.Ordinal);
             return new(title, "Elite Dangerous · " + section, labels, Categories(diagram.Svg), []);
         }
         #endregion END Public

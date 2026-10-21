@@ -65,7 +65,7 @@ namespace Heimdall.App.Smoke
                 Click(window, "ChangeDrawingButton");
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 Click(window, "UseDrawingButton");
-                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 SelectCommand(window, "Primary Fire"); Box<TextBox>(window, "InputKey").Text = "Joy_9";
                 Box<ComboBox>(window, "ModePicker").SelectedIndex = 1; Click(window, "ApplyAssignmentButton");
                 SelectCommand(window, "Pitch Axis Raw"); Box<TextBox>(window, "InputKey").Text = "Joy_YAxis";
@@ -78,6 +78,7 @@ namespace Heimdall.App.Smoke
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
+                EliteWorkspaceEnhancementsSmoke.Verify(window, services);
                 var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot);
                 VerifyCommandFilters(window);
                 Box<ListBox>(window, "SectionPicker").SelectedIndex = 3;
@@ -140,7 +141,7 @@ namespace Heimdall.App.Smoke
                 if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
                     throw new InvalidOperationException("Changing artwork changed native controller identity or assignments.");
                 if (!window.SaveProfile() || Box<Button>(window, "ExportSheetButton").IsEnabled) throw new InvalidOperationException("Hiding artwork did not save or still offered an illustrated export.");
-                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 if (!Box<TextBox>(window, "InputActivity").IsVisible) throw new InvalidOperationException("Unillustrated input testing has no text fallback.");
                 EliteReferenceSheetsSmoke.Verify(window, root, artwork: false);
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-add-controller"); window.Close();

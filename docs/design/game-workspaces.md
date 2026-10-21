@@ -73,7 +73,7 @@ failure or cancellation retains the current workspace.
    connected unit cannot be overwritten. Offline replacement requires an explicit
    reference choice. Existing native aliases and targets are never renamed by
    linking a controller or changing its artwork.
-3. Use **Assignments** to choose a command and click an illustrated control, or
+3. Use **Assignments & Testing** to choose a command and click an illustrated control, or
    drag the command onto a compatible callout. Primary and secondary slots are
    separate. The editor supports native input keys, press/hold, cross-device
    button modifiers, inversion and percentage deadzone. A command's native
@@ -124,7 +124,7 @@ failure or cancellation retains the current workspace.
    reference content. Preview choices do not change native assignments or save
    state, and existing edition checks apply before preview/export.
 
-8. **Input Testing** is an Owner feature, requires the explicitly associated
+8. **Assignments & Testing** is an Owner feature, requires the explicitly associated
    connected instance, and stops on focus loss, navigation or edits. It highlights
    raw controller feedback; native Elite command execution, hold timing and
    in-game behavior still require manual verification.
@@ -136,6 +136,34 @@ ED device references are carried by binding slots and modifier nodes, not a sepa
 HEIMDALL retains the preset name/version, selector bytes, unknown settings and unrelated bindings. An unmodeled native reference to a removed controller blocks export rather than leaving an obsolete reference behind. The adapter's original native evidence is retained for reproducibility; the editable profile and exported XML carry the reviewed change.
 
 Export to a review folder, close ED before installing the reviewed preset, back up the existing Bindings directory, then load and test the preset in ED. Check `BindingLoadingErrors.log` if ED refuses it. Frontier documents [backing up game settings and keybinds](https://customersupport.frontier.co.uk/hc/en-us/articles/25580471182620-Back-up-your-game-settings-and-keybinds); community-maintained [EDCD input documentation](https://github.com/EDCD/EliteCustomButtonNames) describes native device naming. Save in HEIMDALL does not modify the live ED preset.
+
+## Organizing and navigating the ED workspace
+
+The feature navigation has **Devices**, **Assignments & Testing** and **Reference Sheets**.
+Each owns a separate view and supplies the shared action bar, matching the DCS shell.
+Assignments and raw input feedback share the same drawing/table surface. **Apply assignment**,
+**Clear slot**, **Start input test**, **Stop** and **Fit** are available from its action bar.
+Leaving that view stops input acquisition. A missing drawing uses the raw activity text fallback;
+testing reports physical inputs and does not emulate Elite commands.
+
+Drag a controller above or below another under **Controllers in profile**. **Move up** / **Move down**
+and **Ctrl+Up** / **Ctrl+Down** provide keyboard alternatives. Selection stays on the same native reference.
+Save persists this organization; Discard restores saved order. Older workspaces use native reference order.
+New references append, removed references disappear and a replacement inherits the old entry's position.
+`ControllerOrder` belongs to the HEIMDALL workspace envelope only: native device order, identities,
+`DeviceIndex`, assignments and `.binds` / selector output are unaffected. Ordering does not grant editing,
+export, controller probing or edition access.
+
+Elite button combinations are native per-binding `<Modifier>` requirements, including keys/buttons from
+another controller. They are not DCS global modifier/switch layers. **Button combination (optional)**
+expands in the assignment editor and opens automatically for an existing combination. Existing combinations
+survive edits, Save/Discard and export. The assignment table retains combination details for review, while
+drawing and reference artwork show the resulting command names without a raw chord suffix or separate
+modifier-layer appearance. Slot and Hold hints remain visible. Reference tables retain full input details.
+
+`GameControllerOrderTests` checks persistence, legacy envelopes, no-op/invalid moves, lifecycle changes and
+byte-identical raw/named exports. `EliteWorkspaceEnhancementsSmoke` checks real feature/action switching,
+window-scoped drop validation, selected-reference retention, move controls and combination editing on Windows.
 
 ## Viewing ED references while playing
 
@@ -194,7 +222,7 @@ The adapter's format/capability limits are documented in
 
 ## Input testing without a drawing
 
-In Elite **Input Testing**, a controller without a displayed drawing (including
+In Elite **Assignments & Testing**, a controller without a displayed drawing (including
 an explicit **No drawing** choice) shows a read-only text area in the drawing
 space. **Start input test** shows the linked controller's Windows name and exact
 instance GUID, followed by the latest twenty raw button/hat presses and releases
@@ -204,7 +232,7 @@ accumulates. Neutral axes establish their baseline without flooding the display.
 
 This uses the same Owner-only, exact-controller input acquisition as illustrated
 testing. Stop, focus loss, controller/profile/view changes and disconnect errors
-release the source and clear its text. The area is hidden outside Input Testing
+release the source and clear its text. The area is hidden outside Assignments & Testing
 and whenever a drawing is displayed. No additional association is required;
 activity does not assign controls or emulate Elite command execution.
 
