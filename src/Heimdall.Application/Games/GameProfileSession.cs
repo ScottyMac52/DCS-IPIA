@@ -176,29 +176,34 @@ namespace Heimdall.Application.Games
             candidate.Hardware[logicalId] = pin with { HardwareId = hardwareId ?? pin.HardwareId, DrawingHidden = hardwareId is null };
             GameWorkspaceContract.Validate(candidate); _current = candidate; Changed?.Invoke(this, EventArgs.Empty);
         }
-        /// <summary>Stages a primary or secondary button assignment without disturbing other command slots.</summary>
-        public void AssignButton(string deviceId, string commandId, string slot, string key, BindingMode mode, IReadOnlyList<Modifier> modifiers) =>
-            Edit(profile =>
+        /// <summary>Reviews a complete draft with the authoritative adapter without publishing edits or events.</summary>
+        public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft)
+        {
+            try
             {
-                Remove(profile, commandId, slot);
-                profile.Devices.Single(x => x.LogicalId == deviceId).Buttons.Add(new()
-                {
-                    CommandId = commandId, SourceButton = key, Mode = mode,
-                    Modifiers = modifiers.Select(x => new Modifier { Source = x.Source, Value = x.Value }).ToList(),
-                    SimSpecific = new() { ["ed.slot"] = slot }
-                });
-            });
+                RequireAccess();
+                var candidate = GameWorkspaceContract.Clone(_current);
+                ApplyDraft(candidate.Profile, draft);
+                var output = ValidateProfile(candidate.Profile);
+                var current = ValidateProfile(_current.Profile);
+                var changed = !output.Files.OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .SequenceEqual(current.Files.OrderBy(x => x.Key, StringComparer.Ordinal));
+                return new(true, changed, "");
+            }
+            catch (Exception error) when (error is InvalidOperationException or ArgumentException)
+            { return new(false, false, error.Message); }
+        }
+        /// <summary>Stages the entire reviewed draft atomically, including its toggle, with one change event.</summary>
+        public void Assign(GameAssignmentEdit draft) => Edit(profile => ApplyDraft(profile, draft));
+        /// <summary>Stages a primary or secondary button assignment without disturbing other command slots.</summary>
+        public void AssignButton(string deviceId, string commandId, string slot, string key, BindingMode mode, IReadOnlyList<Modifier> modifiers)
+        {
+            ArgumentNullException.ThrowIfNull(modifiers);
+            Assign(new(deviceId, commandId, slot, key, Mode: mode, Modifiers: modifiers));
+        }
         /// <summary>Stages an axis assignment with native inversion and percentage deadzone.</summary>
         public void AssignAxis(string deviceId, string commandId, string key, bool invert, float deadzone) =>
-            Edit(profile =>
-            {
-                Remove(profile, commandId, "Binding");
-                profile.Devices.Single(x => x.LogicalId == deviceId).Axes.Add(new()
-                {
-                    CommandId = commandId, SourceAxis = key, Invert = invert, Deadzone = deadzone,
-                    SimSpecific = new() { ["ed.slot"] = "Binding" }
-                });
-            });
+            Assign(new(deviceId, commandId, "Binding", key, IsAxis: true, Invert: invert, Deadzone: deadzone));
         /// <summary>Clears one explicit native command slot.</summary>
         public void Clear(string commandId, string slot) => Edit(profile => Remove(profile, commandId, slot));
         /// <summary>Changes an existing command-level toggle independently from button hold mode.</summary>
@@ -312,6 +317,28 @@ namespace Heimdall.Application.Games
             ValidateProfile(candidate.Profile);
             _current = candidate;
             Changed?.Invoke(this, EventArgs.Empty);
+        }
+        private static void ApplyDraft(ProfileDocument profile, GameAssignmentEdit draft)
+        {
+            ArgumentNullException.ThrowIfNull(draft);
+            if (string.IsNullOrWhiteSpace(draft.Key) || !profile.Devices.Any(x => x.LogicalId == draft.DeviceId)
+                || (draft.IsAxis && (draft.Slot != "Binding" || !float.IsFinite(draft.Deadzone) || draft.Modifiers is { Count: > 0 })))
+                throw new InvalidOperationException("Choose a controller, a nonempty native key and valid axis settings.");
+            Remove(profile, draft.CommandId, draft.Slot);
+            var device = profile.Devices.Single(x => x.LogicalId == draft.DeviceId);
+            if (draft.IsAxis)
+                device.Axes.Add(new() { CommandId = draft.CommandId, SourceAxis = draft.Key, Invert = draft.Invert,
+                    Deadzone = draft.Deadzone, SimSpecific = new() { ["ed.slot"] = draft.Slot } });
+            else
+                device.Buttons.Add(new() { CommandId = draft.CommandId, SourceButton = draft.Key, Mode = draft.Mode,
+                    Modifiers = (draft.Modifiers ?? []).Select(x => new Modifier { Source = x.Source, Value = x.Value }).ToList(),
+                    SimSpecific = new() { ["ed.slot"] = draft.Slot } });
+            if (draft.Toggle is { } toggle)
+            {
+                var key = "ed.toggle:" + draft.CommandId;
+                if (!profile.Metadata.ContainsKey(key)) throw new InvalidOperationException("This command has no native toggle setting.");
+                profile.Metadata[key] = toggle ? "1" : "0";
+            }
         }
         private static void Remove(ProfileDocument profile, string commandId, string slot)
         {

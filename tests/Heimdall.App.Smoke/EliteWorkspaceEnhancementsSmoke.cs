@@ -68,7 +68,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("An imported button combination was hidden or discarded when selected.");
                 var before = JsonSerializer.Serialize(window.Session.Export().Files);
                 var apply = actions.Actions.Single(x => x.Id == "ApplyAssignmentButton").Command;
-                if (!apply.CanExecute(null)) throw new InvalidOperationException("The shared assignment action did not reflect editor availability.");
+                if (apply.CanExecute(null)) throw new InvalidOperationException("An unchanged combination remained enabled for Apply.");
                 apply.Execute(null);
                 if (JsonSerializer.Serialize(window.Session.Export().Files) != before)
                     throw new InvalidOperationException("Applying an unchanged combination altered native binding semantics.");

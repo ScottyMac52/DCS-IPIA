@@ -41,6 +41,14 @@ namespace Heimdall.App.Games
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs;
         private readonly Func<GameControllerChange, bool> _reviewControllerChange;
         internal Func<IReadOnlyList<GameExportIssue>, GameExportResolution?>? ExportReview { get; set; }
+        private readonly System.Windows.Threading.DispatcherTimer _readinessTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+        private bool _lastReady;
+        private bool _loadingAssignment;
+        private bool _busy;
+        private string? _bindingsDirectoryOverride;
+        private GameAssignmentActions _actions = new(false, false, false, false);
+        internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
+        internal Func<string?>? BindingsDirectoryPicker { get; set; }
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -78,6 +86,12 @@ namespace Heimdall.App.Games
             _assignmentsView.AssignmentsGrid.SelectionChanged += AssignmentSelected;
             _assignmentsView.CommandCategoryPicker.SelectionChanged += CommandFilterChanged;
             _assignmentsView.CommandTypePicker.SelectionChanged += CommandFilterChanged;
+            _assignmentsView.AssignmentStatusPicker.SelectionChanged += CommandFilterChanged;
+            _assignmentsView.InputKey.TextChanged += AssignmentTextChanged;
+            _assignmentsView.AxisDeadzone.TextChanged += AssignmentTextChanged;
+            _assignmentsView.ModePicker.SelectionChanged += AssignmentModeChanged;
+            _assignmentsView.InvertAxis.Checked += AssignmentOptionChanged; _assignmentsView.InvertAxis.Unchecked += AssignmentOptionChanged;
+            _assignmentsView.CommandToggle.Checked += AssignmentOptionChanged; _assignmentsView.CommandToggle.Unchecked += AssignmentOptionChanged;
             _assignmentsView.ClearCommandFiltersButton.Click += ClearCommandFiltersClicked;
             _assignmentsView.CommandSearch.TextChanged += SearchChanged;
             _assignmentsView.CommandsList.SelectionChanged += CommandChanged;
@@ -99,8 +113,13 @@ namespace Heimdall.App.Games
             _diagram = new(_assignmentsView.DiagramCanvas);
             _viewport = new(_assignmentsView.DiagramScroll, _assignmentsView.DiagramCanvas, _assignmentsView.DiagramZoom, "elite.diagram");
             _input = new(this, _diagram, Status, ShowInputActivity, inputFactory);
+            _input.StateChanged += InputStateChanged;
             _identification = new(this, ShowIdentification, ClearIdentification, Status, inputFactory);
             _refreshing = true;
+            _bindingsDirectoryOverride = _services.Recent().EliteBindingsDirectory;
+            BindingsDirectoryText.Text = BindingsDirectory;
+            ExportToReviewFolder.IsChecked = _exportPicker is not null;
+            _assignmentsView.AssignmentStatusPicker.SelectedIndex = 0;
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; _assignmentsView.SlotPicker.SelectedIndex = 0; _assignmentsView.ModePicker.SelectedIndex = 0;
             _assignmentsView.CommandCategoryPicker.ItemsSource = new[] { "All categories" }; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0;
             _referenceView.ReferenceLayoutPicker.SelectedIndex = 0; _referenceView.ReferencePaperPicker.SelectedIndex = 0; _referenceView.ReferenceOrientationPicker.SelectedIndex = 0;
@@ -112,12 +131,14 @@ namespace Heimdall.App.Games
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
             AppearanceManager.ObserveArtwork(this, () => Run(() => { RenderDevice(); InvalidateReferenceSheets(); }));
             Rescan(); UpdateAvailability();
+            _readinessTimer.Tick += HardwareReadinessChanged; _readinessTimer.Start();
         }
         #region BEGIN Public
         /// <summary>Releases native input handles and draft event subscriptions.</summary>
         public void Dispose()
         {
-            FeatureActions.ClearActions(); _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
+            FeatureActions.ClearActions(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
@@ -142,16 +163,19 @@ namespace Heimdall.App.Games
         internal bool SaveProfile()
         {
             if (_session is null) return true;
+            if (_busy) return false;
+            _busy = true; UpdateAvailability();
             try
             {
                 var workspace = _session.Snapshot with { Name = ProfileName.Text.Trim() };
                 GameWorkspaceContract.Validate(workspace);
                 _revision = _services.Store.Save(workspace, _revision);
                 OpenSession(workspace, _revision); ReloadChoices(workspace.Id); Remember(workspace);
-                ExportState.Text = "Saved in HEIMDALL. Export for review to create an ED preset; installation into ED is manual.";
+                ExportState.Text = "Saved in HEIMDALL. Export writes the named ED preset to your selected destination.";
                 Status("Saved in your HEIMDALL data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : "")); return true;
             }
             catch (Exception error) { Status("Save failed; pending edits are retained: " + error.Message); return false; }
+            finally { _busy = false; UpdateAvailability(); }
         }
         /// <summary>Exports the same authored shared-drawing projection after edition validation.</summary>
         internal void ExportReference(string path)
@@ -176,6 +200,14 @@ namespace Heimdall.App.Games
             _session?.Export(); RefreshReferenceSheets();
             return _referenceSheets?.PngPages[_referencePage] ?? throw new InvalidOperationException("Select a valid controller profile and reference layout first.");
         }
+        /// <summary>Remembers an explicit directory independently of native profile edits.</summary>
+        internal void SetBindingsDirectory(string? directory)
+        {
+            var selection = _services.Recent() with { EliteBindingsDirectory = directory is null ? null : Path.GetFullPath(directory) };
+            GameWorkspaceContract.ValidateSelection(selection); _services.Remember(selection);
+            _bindingsDirectoryOverride = selection.EliteBindingsDirectory; BindingsDirectoryText.Text = BindingsDirectory;
+            Status(_services.SelectionError is { } error ? "Export directory changed for this session; preference could not be saved: " + error : "Export directory: " + BindingsDirectory);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private void RegisterFeatureNames(DependencyObject root)
@@ -185,6 +217,47 @@ namespace Heimdall.App.Games
         }
         private void MoveControllerUpClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(-1);
         private void MoveControllerDownClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(1);
+        private string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
+        private void BrowseBindingsDirectoryClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            var picker = new OpenFolderDialog { Title = "Choose Elite bindings export directory", InitialDirectory = BindingsDirectory };
+            var path = BindingsDirectoryPicker is null ? picker.ShowDialog(this) == true ? picker.FolderName : null : BindingsDirectoryPicker();
+            if (path is not null) SetBindingsDirectory(path);
+        });
+        private void ResetBindingsDirectoryClicked(object sender, RoutedEventArgs e) => Run(() => SetBindingsDirectory(null));
+        private void RunBusy(Action action)
+        {
+            if (_busy) return;
+            _busy = true; UpdateAvailability();
+            try { action(); } finally { _busy = false; UpdateAvailability(); }
+        }
+        private void HardwareReadinessChanged(object? sender, EventArgs e)
+        {
+            if (_session is null || !IsActive || _busy) return;
+            Run(() =>
+            {
+                var pin = Device is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(Device.Id);
+                var ready = EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
+                if (ready != _lastReady) UpdateAvailability();
+            });
+        }
+        private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }
+        private void AssignmentTextChanged(object sender, TextChangedEventArgs e) => DraftChanged();
+        private void AssignmentModeChanged(object sender, SelectionChangedEventArgs e) => DraftChanged();
+        private void AssignmentOptionChanged(object sender, RoutedEventArgs e) => DraftChanged();
+        private void DraftChanged() { if (!_refreshing && !_loadingAssignment && _session is not null) UpdateAvailability(); }
+        private GameAssignmentEdit? Draft()
+        {
+            if (_session is null || Device is null || Command is null) return null;
+            var axis = Command.Type == CommandType.Axis;
+            if (axis && !float.TryParse(_assignmentsView.AxisDeadzone.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out _)) return null;
+            var deadzone = axis ? float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture) : 0;
+            return new(Device.Id, Command.Id, Slot, _assignmentsView.InputKey.Text.Trim(), axis,
+                _assignmentsView.InvertAxis.IsChecked == true, deadzone,
+                _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
+                _modifiers.Select(x => x.Modifier).ToArray(), _assignmentsView.CommandToggle.Visibility == Visibility.Visible ? _assignmentsView.CommandToggle.IsChecked == true : null);
+        }
         private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
         private string? CommandCategory => _assignmentsView.CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
         private CommandType? InputType => _assignmentsView.CommandTypePicker.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null };
@@ -250,7 +323,7 @@ namespace Heimdall.App.Games
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
-            ExportState.Text = "Workspace open in HEIMDALL. Export for review creates a named ED preset; installation into ED is manual.";
+            ExportState.Text = "Workspace open in HEIMDALL. Export writes a named ED preset to the selected destination.";
             _session = opened; _revision = revision; _session.Changed += SessionChanged;
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
             Refresh();
@@ -300,7 +373,8 @@ namespace Heimdall.App.Games
             _refreshing = true;
             _assignmentsView.CommandCategoryPicker.ItemsSource = categories;
             _assignmentsView.CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
-            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, _assignmentsView.CommandSearch.Text);
+            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, _assignmentsView.CommandSearch.Text,
+                _rows, Device?.Id, (EliteAssignmentStatus)Math.Max(0, _assignmentsView.AssignmentStatusPicker.SelectedIndex));
             var view = new ListCollectionView(commands.ToList());
             view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
             _assignmentsView.CommandsList.ItemsSource = view;
@@ -348,6 +422,7 @@ namespace Heimdall.App.Games
         private void LoadAssignment()
         {
             if (_refreshing || _session is null) return;
+            _loadingAssignment = true;
             var axis = Command?.Type == CommandType.Axis;
             _assignmentsView.AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
@@ -365,14 +440,15 @@ namespace Heimdall.App.Games
             var metadata = _session.Snapshot.Profile.Metadata;
             _assignmentsView.CommandToggle.Visibility = metadata.ContainsKey(key) ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.CommandToggle.IsChecked = metadata.GetValueOrDefault(key) == "1";
+            _loadingAssignment = false; UpdateAvailability();
         }
         private void UpdateAvailability()
         {
             var opened = _session is not null;
             AccessStatus.Text = _session?.AccessMessage ?? "Import or select a saved Elite controls profile.";
-            _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0;
-            SaveProfileButton.IsEnabled = opened && Pending; DiscardProfileButton.IsEnabled = opened && Pending;
-            ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0;
+            _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0 && !_busy;
+            SaveProfileButton.IsEnabled = opened && Pending && !_busy; DiscardProfileButton.IsEnabled = opened && Pending && !_busy;
+            ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0 && !_busy;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
             var controller = Device is not null && _session is not null && !GameWorkspaceAccess.IsSystemDevice(
                 _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!.SimSpecificIds["ed.device"]);
@@ -388,9 +464,20 @@ namespace Heimdall.App.Games
             var feature = FeaturePicker.SelectedIndex;
             MoveControllerUpButton.IsEnabled = DevicePicker.SelectedIndex > 0;
             MoveControllerDownButton.IsEnabled = DevicePicker.SelectedIndex >= 0 && DevicePicker.SelectedIndex + 1 < DevicePicker.Items.Count;
-            _assignmentsView.ApplyAssignmentButton.IsEnabled = _assignmentsView.ClearAssignmentButton.IsEnabled = _assignmentsView.AssignmentEditor.IsEnabled && Device is not null;
+            var draft = Draft();
+            var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
+            var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
+            var ready = opened && EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
+            _lastReady = ready;
+            _actions = GameAssignmentActions.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
+                review.Valid, review.Changed, assigned, ready, _input?.Running == true, _busy);
+            _assignmentsView.ApplyAssignmentButton.IsEnabled = _actions.Apply;
+            _assignmentsView.ClearAssignmentButton.IsEnabled = _actions.Clear;
+            _assignmentsView.StopInputButton.IsEnabled = _actions.Stop;
+            _assignmentsView.AssignmentDraftStatus.Text = _input?.Running == true ? "Stop input testing to apply or clear assignments."
+                : !review.Valid ? review.Message : review.Changed ? "Assignment changes ready to apply." : "Assignment unchanged.";
             _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
-            _assignmentsView.StartInputButton.IsEnabled = opened && EditionAccess.Policy.IsOwner;
+            _assignmentsView.StartInputButton.IsEnabled = _actions.Start;
             _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;
             _assignmentsView.ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
             UpdateInputActivityVisibility();
@@ -398,30 +485,24 @@ namespace Heimdall.App.Games
         }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is null || Device is null || Command is null) return;
-            var command = Command; var device = Device; var slot = Slot; var toggle = _assignmentsView.CommandToggle.IsChecked == true;
-            var hasToggle = _assignmentsView.CommandToggle.Visibility == Visibility.Visible;
-            if (command.Type == CommandType.Axis)
-                _session.AssignAxis(device.Id, command.Id, _assignmentsView.InputKey.Text.Trim(), _assignmentsView.InvertAxis.IsChecked == true,
-                    float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture));
-            else _session.AssignButton(device.Id, command.Id, slot, _assignmentsView.InputKey.Text.Trim(), _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
-                _modifiers.Select(x => x.Modifier).ToArray());
-            if (hasToggle) _session.SetToggle(command.Id, toggle);
-            Status("Assignment staged. Save before exporting to a review folder.");
+            UpdateAvailability();
+            if (!_actions.Apply || Draft() is not { } draft) return;
+            _session!.Assign(draft);
+            Status("Assignment staged. Save before exporting.");
         });
         private void ClearClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is not null && _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot && x.Input == _assignmentsView.InputKey.Text.Trim()))
-                _session.Clear(Command!.Id, Slot);
+            UpdateAvailability();
+            if (_actions.Clear) _session!.Clear(Command!.Id, Slot);
         });
         private void AddModifierClicked(object sender, RoutedEventArgs e)
         {
             if (_assignmentsView.ModifierDevicePicker.SelectedItem is not GameDeviceChoice device || string.IsNullOrWhiteSpace(_assignmentsView.ModifierKey.Text)) return;
             _modifiers.Add(new(new() { Source = device.Id, Value = _assignmentsView.ModifierKey.Text.Trim() }, device.Name + ": " + _assignmentsView.ModifierKey.Text.Trim()));
-            _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.Clear();
+            _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.Clear(); DraftChanged();
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
-        { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); } }
+        { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
         private void Rescan() => Run(() => { StopLiveInput(); _devicesView.ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); _devicesView.ConnectedPicker.SelectedIndex = -1; });
         private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
@@ -537,7 +618,7 @@ namespace Heimdall.App.Games
         private string? PickImport()
         {
             var dialog = new OpenFileDialog { Filter = "Elite bindings (*.binds)|*.binds", Title = "Import Elite controls preset",
-                InitialDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings") };
+                InitialDirectory = BindingsDirectory };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }
         private void SaveClicked(object sender, RoutedEventArgs e) => SaveProfile();
@@ -546,23 +627,39 @@ namespace Heimdall.App.Games
             _session?.Discard();
             if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Snapshot.Name; _refreshing = false; UpdateAvailability(); }
         }
-        private void ExportClicked(object sender, RoutedEventArgs e) => Run(() =>
+        private void ExportClicked(object sender, RoutedEventArgs e) => Run(() => RunBusy(() =>
         {
             if (_session is null || Pending) return;
             StopLiveInput();
             var issues = _session.ReviewGameExport();
             if (issues.Count > 0) { ResolveExportIssue(issues); return; }
-            _session.ExportForGame();
-            var parent = _exportPicker is null ? PickExportFolder() : _exportPicker();
-            if (parent is null) return;
-            // Discovery and validation run again after the folder dialog, before any output directory is created.
             var plan = _session.ExportForGame();
-            var active = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
-            var output = GameReviewExport.Write(parent, plan.Files, [active]);
-            ExportState.Text = "Exported for review: " + output + "\nInstallation into ED is manual. With ED closed, back up Bindings, copy the reviewed preset there, restart ED and select " + _session.Snapshot.Name + ".";
-            Status("Exported for review; active ED bindings unchanged. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
-
-        });
+            if (ExportToReviewFolder.IsChecked == true)
+            {
+                var parent = _exportPicker is null ? PickExportFolder() : _exportPicker();
+                if (parent is null) return;
+                plan = _session.ExportForGame();
+                var active = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
+                var output = GameReviewExport.Write(parent, plan.Files, [active, BindingsDirectory]);
+                ExportState.Text = "Exported separate review copy: " + output + "\nInstallation into ED is manual. With ED closed, copy the reviewed preset into Bindings, restart ED and select " + _session.Snapshot.Name + ".";
+            }
+            else
+            {
+                var prepared = GameBindingsExport.Prepare(BindingsDirectory, plan.Files);
+                var target = Path.Combine(prepared.Directory, prepared.FileName);
+                if (prepared.ExpectedHash is not null && !(ConfirmPresetReplacement?.Invoke(target) ?? ThemeMessageBox.Show(this,
+                    "Replace " + target + "? An exact backup will be created. Close Elite Dangerous before continuing.",
+                    "Export preset", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes))
+                { Status("Export cancelled; existing preset unchanged."); return; }
+                var fresh = _session.ExportForGame();
+                if (Pending || !fresh.Files.TryGetValue(prepared.FileName, out var content) || content != prepared.Content)
+                    throw new InvalidOperationException("The profile changed during export. Save and export again.");
+                var backup = GameBindingsExport.Write(prepared);
+                ExportState.Text = "Exported: " + target + (backup is null ? "" : "\nBackup: " + backup)
+                    + "\nRestart ED and select " + _session.Snapshot.Name + ". Existing preset selectors are unchanged.";
+            }
+            Status("Export complete. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
+        }));
         private void ResolveExportIssue(IReadOnlyList<GameExportIssue> issues)
         {
             GameExportResolution? resolution;
@@ -634,7 +731,7 @@ namespace Heimdall.App.Games
         private void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);
         private void ClearCommandFilters(string? selected)
         {
-            _refreshing = true; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0; _assignmentsView.CommandSearch.Clear(); _refreshing = false;
+            _refreshing = true; _assignmentsView.AssignmentStatusPicker.SelectedIndex = 0; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0; _assignmentsView.CommandSearch.Clear(); _refreshing = false;
             FilterCommands(selected);
         }
         private void CommandChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
@@ -663,6 +760,8 @@ namespace Heimdall.App.Games
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateAvailability();
+            if (!_actions.Start) throw new InvalidOperationException("Choose one linked connected controller and stop any current test before starting.");
             _identification.Stop();
             if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin))
                 throw new InvalidOperationException("On Devices, select this reference and use Identify Controller to discover and confirm its physical controller first.");

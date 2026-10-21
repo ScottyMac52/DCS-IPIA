@@ -30,15 +30,20 @@ namespace Heimdall.App.Games
             _timer.Tick += Poll; owner.Deactivated += Deactivated;
         }
         #region BEGIN Public
+        /// <summary>Raised after every transition into or out of sampling, including focus loss and disconnect.</summary>
+        internal event EventHandler? StateChanged;
+        /// <summary>Gets whether native feedback is currently sampling.</summary>
+        internal bool Running => _source is not null;
         /// <summary>Starts only after Owner entitlement and one exact attached instance are verified.</summary>
         internal void Start(GameHardwarePin pin, IReadOnlyList<DetectedDcsDevice> observed)
         {
             Stop(); EditionAccess.Policy.RequireOwner();
-            if (observed.Count(x => x.Connected && x.PhysicalGuid == pin.Device.PhysicalGuid) != 1)
+            if (!GameInputReadiness.Ready(pin, observed))
                 throw new InvalidOperationException("Connect the explicitly associated controller and rescan before testing.");
             _physical = pin.Device.PhysicalGuid;
             _source = _factory(new WindowInteropHelper(_owner).EnsureHandle(), [_physical]);
             _activityText = new(pin.Device.Name, _physical); _activity(_activityText.Text);
+            StateChanged?.Invoke(this, EventArgs.Empty);
             _timer.Start(); _status("Live hardware feedback · " + pin.Device.Name + ". Move an axis or press a button; feedback appears on the drawing or in the activity text.");
         }
         /// <summary>Stops sampling and clears feedback before view, device, profile or focus changes.</summary>
@@ -48,7 +53,7 @@ namespace Heimdall.App.Games
             _timer.Stop(); _source?.Dispose(); _source = null; _previous.Clear(); _axisUntil.Clear();
             _activityText = null; _activity("");
             foreach (var region in _diagram.Regions) region.Outline.BorderBrush = Brushes.Transparent;
-            if (wasRunning) _status("Input test stopped.");
+            if (wasRunning) { _status("Input test stopped."); StateChanged?.Invoke(this, EventArgs.Empty); }
         }
         /// <summary>Releases all native handles and event subscriptions.</summary>
         public void Dispose() { Stop(); _timer.Tick -= Poll; _owner.Deactivated -= Deactivated; }
@@ -56,23 +61,30 @@ namespace Heimdall.App.Games
         internal void Sample()
         {
             if (_source is null) return;
-            var frames = _source.Read().Where(x => x.PhysicalGuid == _physical).ToArray();
-            if (frames.Length != 1) throw new InvalidOperationException("The associated controller disconnected or returned ambiguous samples.");
-            var values = frames[0].Inputs;
-            _activityText!.Sample(values); _activity(_activityText.Text);
-            foreach (var (control, border) in _diagram.Regions)
+            try
             {
-                var pair = values.FirstOrDefault(x => DcsInputKey.SamePhysicalInput(x.Key, control.InputKey));
-                var active = pair.Key is not null && pair.Value >= .5;
-                if (control.IsAxis)
+                var frames = _source.Read().Where(x => x.PhysicalGuid == _physical).ToArray();
+                if (frames.Length != 1)
                 {
-                    if (pair.Key is not null && _previous.TryGetValue(pair.Key, out var previous) && Math.Abs(previous - pair.Value) > .015)
-                        _axisUntil[control.InputKey] = DateTime.UtcNow.AddMilliseconds(500);
-                    active = _axisUntil.GetValueOrDefault(control.InputKey) > DateTime.UtcNow;
+                    Stop(); throw new InvalidOperationException("The associated controller disconnected or returned ambiguous samples.");
                 }
-                border.BorderBrush = active ? Brushes.DeepSkyBlue : Brushes.Transparent;
+                var values = frames[0].Inputs;
+                _activityText!.Sample(values); _activity(_activityText.Text);
+                foreach (var (control, border) in _diagram.Regions)
+                {
+                    var pair = values.FirstOrDefault(x => DcsInputKey.SamePhysicalInput(x.Key, control.InputKey));
+                    var active = pair.Key is not null && pair.Value >= .5;
+                    if (control.IsAxis)
+                    {
+                        if (pair.Key is not null && _previous.TryGetValue(pair.Key, out var previous) && Math.Abs(previous - pair.Value) > .015)
+                            _axisUntil[control.InputKey] = DateTime.UtcNow.AddMilliseconds(500);
+                        active = _axisUntil.GetValueOrDefault(control.InputKey) > DateTime.UtcNow;
+                    }
+                    border.BorderBrush = active ? Brushes.DeepSkyBlue : Brushes.Transparent;
+                }
+                _previous = new(values, StringComparer.Ordinal);
             }
-            _previous = new(values, StringComparer.Ordinal);
+            catch { Stop(); throw; }
         }
         #endregion END Public
         #region BEGIN private helpers

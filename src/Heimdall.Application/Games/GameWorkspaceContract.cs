@@ -33,6 +33,9 @@ namespace Heimdall.Application.Games
         public static void ValidateSelection(GameSelectionState selection)
         {
             ArgumentNullException.ThrowIfNull(selection);
+            if (selection.EliteBindingsDirectory is { } directory && (string.IsNullOrWhiteSpace(directory)
+                || directory.Length > 32767 || !Path.IsPathFullyQualified(directory)))
+                throw new InvalidDataException("An ED bindings override must be an absolute directory.");
             if (selection.BackendId is not "dcs" and not "elite-dangerous" || selection.WorkspaceId == Guid.Empty
                 || selection.DcsModuleId == Guid.Empty || selection.DisplayName is null || selection.DisplayName.Length > 200)
                 throw new InvalidDataException("Invalid game selection.");

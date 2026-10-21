@@ -79,6 +79,7 @@ namespace Heimdall.App.Smoke
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
                 EliteWorkspaceEnhancementsSmoke.Verify(window, services);
+                EliteWorkspacePolishSmoke.Verify(window, root);
                 var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot);
                 VerifyCommandFilters(window);
                 Box<ListBox>(window, "SectionPicker").SelectedIndex = 3;

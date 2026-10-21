@@ -14,6 +14,11 @@ namespace Heimdall.App
             InitializeComponent();
         }
 
+        /// <summary>Optional workspace-specific shared toolbar style; other workspaces retain ActionButton.</summary>
+        public static readonly DependencyProperty ButtonStyleProperty = DependencyProperty.Register(nameof(ButtonStyle),
+            typeof(Style), typeof(FeatureActionBar), new PropertyMetadata(null));
+        /// <summary>Gets or sets the shared style applied to visible action buttons.</summary>
+        public Style? ButtonStyle { get => (Style?)GetValue(ButtonStyleProperty); set => SetValue(ButtonStyleProperty, value); }
         /// <summary>Bindable action array, changed with one notification per navigation.</summary>
         public static readonly DependencyProperty ActionsProperty =
             DependencyProperty.Register(nameof(Actions), typeof(FeatureAction[]),
