@@ -14,7 +14,7 @@ namespace Heimdall.App.Smoke
         {
             var feature = Box<ListBox>(window, "FeaturePicker");
             var text = Box<TextBox>(window, "InputActivity");
-            feature.SelectedIndex = 1;
+            feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window);
             Click(window, "StartInputButton"); window.SampleInput();
             if (text.IsVisible) throw new InvalidOperationException("Activity text covered an available drawing.");
             Click(window, "StopInputButton");
@@ -33,9 +33,9 @@ namespace Heimdall.App.Smoke
                 || text.Text.Contains("JOY_X", StringComparison.Ordinal))
                 throw new InvalidOperationException("Fallback lost device transitions or displayed the other controller's noisy axes.");
             ThemeControlSmoke.SaveImage(window, "elite-input-text");
-            feature.SelectedIndex = 0;
+            feature.SelectedIndex = 0; ThemeControlSmoke.Pump(window);
             if (text.IsVisible || text.Text.Length != 0 || !input.Disposed) throw new InvalidOperationException("Leaving Assignments & Testing retained activity or native handles.");
-            feature.SelectedIndex = 1; Click(window, "StartInputButton"); window.SampleInput(); input = source()!;
+            feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window); Click(window, "StartInputButton"); window.SampleInput(); input = source()!;
             window.Hide(); ThemeControlSmoke.Pump(window);
             if (!input.Disposed || text.Text.Length != 0) throw new InvalidOperationException("Focus loss retained live input activity.");
             window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);

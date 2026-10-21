@@ -52,14 +52,14 @@ namespace Heimdall.App.Smoke
             window.DropController(window.ControllerDrag(original[^1]), original[^2], after: true);
             devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == selected);
             if (!window.SaveProfile()) throw new InvalidOperationException("Restoring display order failed to save.");
-            feature.SelectedIndex = 0;
+            feature.SelectedIndex = 0; ThemeControlSmoke.Pump(window);
             if (content.Content is not EliteDevicesView || actions.Actions.Any(x => x.Id == "StartInputButton")
                 || !actions.Actions.Any(x => x.Id == "IdentifyControllerButton"))
                 throw new InvalidOperationException("Devices retained another feature's actions.");
-            feature.SelectedIndex = 2;
+            feature.SelectedIndex = 2; ThemeControlSmoke.Pump(window);
             if (content.Content is not EliteReferenceSheetsView || !actions.Actions.Any(x => x.Id == "ReferencePdfButton"))
                 throw new InvalidOperationException("Reference Sheets did not own its view and actions.");
-            feature.SelectedIndex = 1;
+            feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window);
             var combination = Box<DataGrid>(window, "AssignmentsGrid").Items.Cast<EliteAssignmentRow>().FirstOrDefault(x => x.Modifiers.Count > 0);
             if (combination is not null)
             {

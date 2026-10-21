@@ -16,7 +16,7 @@ namespace Heimdall.App.Smoke
         public static void Verify(EliteWorkspaceWindow window, string root, bool artwork)
         {
             var before = JsonSerializer.Serialize(window.Session!.Snapshot);
-            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
+            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2; ThemeControlSmoke.Pump(window);
             Box<ComboBox>(window, "ReferenceLayoutPicker").SelectedIndex = artwork ? 0 : 1;
             ThemeControlSmoke.Pump(window);
             if (!Box<Grid>(window, "ReferenceSheetsPanel").IsVisible || Box<Grid>(window, "AuthoringPanel").IsVisible
@@ -55,7 +55,7 @@ namespace Heimdall.App.Smoke
             File.WriteAllBytes(Path.Combine(root, artwork ? "Artwork-reference.png" : "Table-reference.png"), window.ReferencePng());
             if (JsonSerializer.Serialize(window.Session.Snapshot) != before) throw new InvalidOperationException("Reference preview options changed saved/controller/native state.");
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, artwork ? "elite-reference-sheets" : "elite-reference-table");
-            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
+            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
         }
         #endregion END Public
         #region BEGIN private helpers
