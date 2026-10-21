@@ -46,6 +46,18 @@ namespace Heimdall.Application.Games
         public void AcceptSaved() { _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
         /// <summary>Restores the exact saved document and associations.</summary>
         public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }
+        /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
+        public void MoveController(string source, string target, bool after = false)
+        {
+            var order = GameControllerOrder.For(_current).ToList();
+            if (!order.Contains(source) || !order.Contains(target))
+                throw new ArgumentException("Choose two controllers in this profile.");
+            if (source == target) return;
+            order.Remove(source); order.Insert(order.IndexOf(target) + (after ? 1 : 0), source);
+            if (order.SequenceEqual(GameControllerOrder.For(_current))) return;
+            _current = _current with { ControllerOrder = order };
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Associates a native reference with an explicitly observed unit and reviewed drawing.</summary>
         public void Associate(string logicalId, string hardwareId, Guid physicalGuid)
         {
@@ -91,6 +103,7 @@ namespace Heimdall.Application.Games
             var candidate = GameWorkspaceContract.Clone(_current);
             candidate = candidate with { Profile = DeviceEditor().RemoveDevice(candidate.Profile, logicalId) };
             candidate.Hardware.Remove(logicalId);
+            candidate = candidate with { ControllerOrder = GameControllerOrder.For(candidate).ToList() };
             ValidateControllerCandidate(candidate);
             return new(this, baseline, candidate,
                 DescribeControllerChange("Remove controller", logicalId, candidate.Profile), null);
@@ -121,6 +134,8 @@ namespace Heimdall.Application.Games
             ValidateLink(candidate, target, observed, observations);
             var keys = nativeInputs().ToArray();
             candidate = candidate with { Profile = DeviceEditor().ReplaceDevice(candidate.Profile, logicalId, target.LogicalId, keys) };
+            candidate = candidate with { ControllerOrder = GameControllerOrder.For(_current)
+                .Select(id => id == logicalId ? target.LogicalId : id).Distinct(StringComparer.Ordinal).ToList() };
             var previous = candidate.Hardware.GetValueOrDefault(target.LogicalId);
             if (logicalId != target.LogicalId) candidate.Hardware.Remove(logicalId);
             candidate.Hardware[target.LogicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid

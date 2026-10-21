@@ -9,5 +9,11 @@ namespace Heimdall.Application.Games
     /// <param name="Profile">Versioned backend document with retained native sources.</param>
     /// <param name="Hardware">Explicit native-reference to hardware associations.</param>
     public sealed record GameWorkspace(int SchemaVersion, Guid Id, string Name, ProfileDocument Profile,
-        Dictionary<string, GameHardwarePin> Hardware);
+        Dictionary<string, GameHardwarePin> Hardware)
+    {
+        #region BEGIN Public
+        /// <summary>Gets presentation order only; native devices and ED indices retain their original order.</summary>
+        public List<string> ControllerOrder { get; init; } = [];
+        #endregion END Public
+    }
 }

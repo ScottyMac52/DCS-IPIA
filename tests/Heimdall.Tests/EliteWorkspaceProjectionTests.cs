@@ -39,7 +39,7 @@ namespace Heimdall.Tests
         public void Sections_are_conservative_display_filters(string command, string section) => Assert.Equal(section, EliteCommandSections.ForCommand(command));
         /// <summary>One projection supplies both interactive artwork and reference-sheet labels without touching native state.</summary>
         [Fact]
-        public void Artwork_labels_preserve_slots_holds_and_modifiers()
+        public void Artwork_labels_show_commands_while_rows_preserve_native_combinations()
         {
             var backend = new EliteDangerousProfileBackend();
             var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds");
@@ -51,7 +51,10 @@ namespace Heimdall.Tests
             { Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='meta-title'>Shared title</text></svg>", Controls = [new("trigger", "Trigger", "JOY_BTN1", 10, 10, 100, 40), new("aux", "Aux", "JOY_BTN2", 10, 60, 100, 40)] };
             var page = EliteWorkspaceProjection.Diagram("My Controls", diagram, rows, "All");
             Assert.Contains("[Hold]", Assert.Single(page.Labels["trigger"]).Text);
-            Assert.Contains("[Key_LeftShift]", Assert.Single(page.Labels["aux"]).Text);
+            var label = Assert.Single(page.Labels["aux"]);
+            Assert.DoesNotContain("Key_LeftShift", label.Text);
+            Assert.Empty(label.ModifierChord);
+            Assert.Contains(rows, x => x.Chord == "Key_LeftShift" && x.Modifiers.Count > 0);
             Assert.Equal("Elite Dangerous · All", page.Kicker);
             Assert.Equal("Shared title", page.CategoryLabels["title"]);
             Assert.All(EliteWorkspaceProjection.Diagram("My Controls", diagram, rows, "SRV").Labels.Values, Assert.Empty);

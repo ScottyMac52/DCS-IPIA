@@ -16,7 +16,7 @@ namespace Heimdall.App.Smoke
         public static void Verify(EliteWorkspaceWindow window, string root, bool artwork)
         {
             var before = JsonSerializer.Serialize(window.Session!.Snapshot);
-            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 3;
+            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
             Box<ComboBox>(window, "ReferenceLayoutPicker").SelectedIndex = artwork ? 0 : 1;
             ThemeControlSmoke.Pump(window);
             if (!Box<Grid>(window, "ReferenceSheetsPanel").IsVisible || Box<Grid>(window, "AuthoringPanel").IsVisible
