@@ -49,6 +49,8 @@ namespace Heimdall.App.Games
         private GameAssignmentActions _actions = new(false, false, false, false);
         internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
         internal Func<string?>? BindingsDirectoryPicker { get; set; }
+        internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
+        internal Func<string, bool>? ConfirmConfigurationDeletion { get; set; }
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -156,7 +158,11 @@ namespace Heimdall.App.Games
         internal void ImportFile(string path)
         {
             var profile = _services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
-            var workspace = new GameWorkspace(1, Guid.NewGuid(), profile.Name + " Controls", profile, new());
+            var baseName = profile.Name.Length > 80 ? profile.Name[..80] + " Controls" : profile.Name + " Controls";
+            var used = _services.Store.List().Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var name = baseName; var suffix = 2;
+            while (used.Contains(name)) name = baseName + " " + suffix++;
+            var workspace = new GameWorkspace(1, Guid.NewGuid(), name, profile, new());
             OpenSession(workspace, null); Status("Imported bindings. Associate your hardware drawing, then review and save this profile.");
         }
         /// <summary>Saves the current game workspace without deploying native files.</summary>
@@ -169,6 +175,7 @@ namespace Heimdall.App.Games
             {
                 var workspace = _session.Snapshot with { Name = ProfileName.Text.Trim() };
                 GameWorkspaceContract.Validate(workspace);
+                GameConfigurationName.Validate(workspace.Name);
                 _revision = _services.Store.Save(workspace, _revision);
                 OpenSession(workspace, _revision); ReloadChoices(workspace.Id); Remember(workspace);
                 ExportState.Text = "Saved in HEIMDALL. Export writes the named ED preset to your selected destination.";
@@ -215,6 +222,73 @@ namespace Heimdall.App.Games
             if (root is FrameworkElement { Name.Length: > 0 } element) RegisterName(element.Name, element);
             foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) RegisterFeatureNames(child);
         }
+        private string? ChooseConfigurationName(string action, string initial)
+        {
+            if (ConfigurationNamePicker is not null) return ConfigurationNamePicker(action, initial);
+            var dialog = new GameConfigurationNameWindow(this, action, initial);
+            return dialog.ShowDialog() == true ? dialog.ConfigurationName : null;
+        }
+        private void RequireUniqueName(string name, Guid? except = null)
+        {
+            GameConfigurationName.Validate(name);
+            if (_services.Store.List().Any(x => x.Id != except && x.BackendId == "elite-dangerous"
+                && string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("A configuration with that name already exists. Choose a different name.");
+        }
+        private void NewConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => CreateConfiguration(true));
+        private void DuplicateConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => CreateConfiguration(false));
+        private void CreateConfiguration(bool clear)
+        {
+            if (_busy || (!clear && _session is null)) return;
+            var source = _session?.Snapshot;
+            if (source is null)
+            {
+                var path = _importPicker is null ? PickImport() : _importPicker();
+                if (path is null) return;
+                var profile = _services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
+                source = new(1, Guid.NewGuid(), "Template", profile, new());
+            }
+            var name = ChooseConfigurationName(clear ? "New" : "Duplicate", clear ? "New Controls" : ProfileName.Text.Trim() + " Copy");
+            if (name is null) return;
+            RequireUniqueName(name);
+            // Duplicate includes the visible pending draft; New resolves it before leaving.
+            if (clear && !ConfirmLeave()) return;
+            if (clear && _session is not null) source = _session.Snapshot;
+            var workspace = GameConfigurations.Create(source, name, clear);
+            var revision = _services.Store.Save(workspace, null);
+            OpenSession(workspace, revision); ReloadChoices(workspace.Id); Remember(workspace);
+            Status(clear ? "New configuration saved with assignments cleared. Controller setup and game settings retained."
+                : "Independent configuration copy saved, including your current assignment edits.");
+        }
+        private void RenameConfigurationClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (_session is null || _busy) return;
+            var name = ChooseConfigurationName("Rename", ProfileName.Text.Trim());
+            if (name is null) return;
+            RequireUniqueName(name, _session.Snapshot.Id); ProfileName.Text = name;
+            Status("Configuration name staged. Save to keep it; Export uses the saved name. Previously exported presets are retained.");
+        });
+        private void DeleteConfigurationClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (_session is null || _revision is null || _busy) return;
+            var workspace = _session.Snapshot;
+            var confirmed = ConfirmConfigurationDeletion?.Invoke(workspace.Name) ?? ThemeMessageBox.Show(this,
+                "Delete HEIMDALL configuration: " + workspace.Name + "? Pending edits will also be discarded. Exported ED preset files remain in place.",
+                "Delete configuration", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+            if (!confirmed) return;
+            StopLiveInput(); _services.Store.Delete(workspace.Id, _revision);
+            _session.Changed -= SessionChanged; _session = null; _revision = null;
+            _refreshing = true; ProfileName.Text = ""; DevicePicker.ItemsSource = null;
+            _assignmentsView.CommandsList.ItemsSource = null; _assignmentsView.AssignmentsGrid.ItemsSource = null; _refreshing = false;
+            _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear();
+            _rows = []; _commands = []; _referenceSheets = null; _referenceDirty = true;
+            _referenceView.ReferencePreview.Source = null; _referenceView.ReferencePageLabel.Text = "No preview";
+            ReloadChoices(null);
+            var next = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault();
+            if (next is not null) { LoadProfile(next.Id); ReloadChoices(next.Id); }
+            else _services.Remember(_services.Recent() with { BackendId = "elite-dangerous", WorkspaceId = null, DisplayName = "" });
+            UpdateAvailability(); Status("HEIMDALL configuration deleted. Exported ED presets remain in place.");
+        });
         private void MoveControllerUpClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(-1);
         private void MoveControllerDownClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(1);
         private string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine(
@@ -449,6 +523,10 @@ namespace Heimdall.App.Games
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0 && !_busy;
             SaveProfileButton.IsEnabled = opened && Pending && !_busy; DiscardProfileButton.IsEnabled = opened && Pending && !_busy;
             ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0 && !_busy;
+            NewConfigurationButton.IsEnabled = !_busy && (!opened || AccessStatus.Text.Length == 0);
+            DuplicateConfigurationButton.IsEnabled = opened && !_busy;
+            RenameConfigurationButton.IsEnabled = opened && !_busy;
+            DeleteConfigurationButton.IsEnabled = opened && _revision is not null && !_busy;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
             var controller = Device is not null && _session is not null && !GameWorkspaceAccess.IsSystemDevice(
                 _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!.SimSpecificIds["ed.device"]);

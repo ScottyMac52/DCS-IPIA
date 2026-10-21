@@ -47,6 +47,7 @@ namespace Heimdall.Infrastructure
         public string Save(GameWorkspace workspace, string? expectedRevision)
         {
             GameWorkspaceContract.Validate(workspace);
+            GameConfigurationName.Validate(workspace.Name);
             lock (_gate)
             {
                 var path = WorkspacePath(workspace.Id);
@@ -54,9 +55,25 @@ namespace Heimdall.Infrastructure
                 var actual = File.Exists(path) ? Hash(File.ReadAllBytes(path)) : null;
                 if (!string.Equals(actual, expectedRevision, StringComparison.Ordinal))
                     throw new InvalidOperationException("Saved game profile changed. Reopen it before saving; your pending edits are retained.");
+                if (List().Any(x => x.Id != workspace.Id && x.BackendId == workspace.Profile.BackendId
+                    && string.Equals(x.Name, workspace.Name, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("A configuration with that name already exists. Choose a different name.");
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(workspace, Options);
                 Write(path, bytes);
                 return Hash(bytes);
+            }
+        }
+        /// <summary>Deletes only the reviewed saved revision, retaining other configurations and game files.</summary>
+        public void Delete(Guid id, string expectedRevision)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(expectedRevision);
+            lock (_gate)
+            {
+                var path = WorkspacePath(id);
+                var current = ReadWorkspace(path);
+                if (!string.Equals(current.Revision, expectedRevision, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Saved configuration changed. Reopen it before deleting.");
+                File.Delete(path);
             }
         }
         /// <summary>Reads a supported last selection, defaulting only when no selection has been saved.</summary>

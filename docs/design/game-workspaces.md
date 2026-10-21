@@ -328,3 +328,41 @@ state rules, draft semantics/atomicity, ownership scope/intersections, exact bac
 stale destination detection, preferences and failure paths. `EliteWorkspacePolishSmoke` operates
 the actual WPF buttons, status filter, physical test states, uniform toolbar and direct export
 against temporary fixture directories.
+
+
+## Named ED configurations
+
+The profile selector holds independent saved configurations with their own identities,
+assignments, controller links, drawing choices and controller display order. Names are
+case-insensitively unique within the game and use the same Windows preset-name contract
+as native export: 1–100 characters, spaces allowed, no reserved names or path characters.
+Existing documents still load; saving asks users to correct an invalid or conflicting name.
+
+- **Add / Import…** captures an existing `.binds` preset into a new unsaved configuration.
+  Reimporting a saved name suggests a numbered name rather than replacing its saved identity.
+- **New configuration…** creates and saves a named variant with all authored button/axis
+  assignments and their combinations cleared. It retains command definitions, controller
+  references, associations, display order and game settings. With no open configuration,
+  choose an existing ED preset as a command template first; HEIMDALL does not invent a
+  game-version-specific catalog. Pending edits use the existing Save/Discard/Cancel flow.
+- **Duplicate…** saves an independent named copy, including current pending assignment
+  edits. The original saved configuration is retained. Cancel or a failed save retains the
+  current editing session. The copy's new name replaces any pending rename of the original.
+- **Rename…** stages a validated unique name, just like editing the profile-name field.
+  **Save** persists it under the same workspace identity; **Discard** restores the saved name.
+- **Delete…** confirms removal of a saved HEIMDALL configuration and its pending edits.
+  The exact persisted revision must still match. Cancellation, stale revisions and read
+  failures retain the session. Another saved configuration opens afterwards, or the workspace
+  returns to an empty state and clears the remembered selection.
+
+Changing configurations resolves pending edits and stops live input. New and duplicate
+copies are deep snapshots, including retained native evidence. Export uses the saved name
+for both `PresetName` and `<name>.4.<minor>.binds`; differently named presets coexist.
+Renaming/deleting in HEIMDALL leaves previously exported ED presets in place. Exported
+preset replacement continues to require explicit confirmation and an exact backup.
+
+All configuration buttons use `ToolbarActionButton`; the name dialog uses the shared
+text, label and button styles. `GameConfigurationTests` covers isolated copies, cleared
+native round trips, catalogs/settings, naming conflicts, independent reopen/rename and
+stale deletion. `EliteConfigurationsSmoke` exercises real commands, cancellation, saved
+selection, rename/Save and deleting the final configuration on Windows.
