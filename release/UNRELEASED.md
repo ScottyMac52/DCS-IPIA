@@ -15,3 +15,6 @@ The solution is now `HEIMDALL.sln`; all projects and namespaces use `Heimdall.*`
 ## ED controller lifecycle
 
 Adds reviewed controller removal and replacement alongside Add controller. Removal clears dependent modifier chords in full. Replacement transfers supported native inputs and modifiers, reports cleared bindings, preserves captured device indices and rechecks live capabilities before staging. Existing keyboard/mouse references, unrelated XML, selector files and live ED presets are preserved.
+
+- ED game export now reviews unresolved controller references and their affected commands before writing files, with reviewed replace/clear/cancel repairs, fresh hardware checks and captured-index requirements for identical units.
+- ED exports use the saved profile name consistently in filenames, native preset names and matching captured selectors. Exact duplicate scalar settings are normalized with a diagnostic; conflicting duplicates are blocked. Export status explains the separate manual installation step.

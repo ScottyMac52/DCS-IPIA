@@ -43,6 +43,7 @@ namespace Heimdall.EliteDangerous
             });
             var xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             ValidateRoot(xml.Root);
+            EliteNativeSettings.Validate(xml.Root!);
             var native = new EliteNativeDocument { Sources = sources, Path = files[0], Xml = xml };
             ValidateCommands(native.Commands);
             return native;

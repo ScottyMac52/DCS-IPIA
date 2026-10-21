@@ -25,6 +25,6 @@
     <Secondary Device="{NoDevice}" Key="" />
   </LandingGearToggle>
   <MouseGUI Value="0" />
-  <MouseGUI Value="1" />
+  <MouseGUI Value="0" />
   <FutureSetting Value="preserve"><Nested /></FutureSetting>
 </Root>

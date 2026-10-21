@@ -29,13 +29,15 @@ namespace Heimdall.App.Smoke
                 EditionAccess.SetForTests(issuer.Policy);
                 var physical = new DetectedDcsDevice(Guid.NewGuid(), "Smoke SOL-R controller", true,
                     ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
-                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" }));
+                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" },
+                    physical with { PhysicalGuid = Guid.NewGuid(), Name = "Throttle", ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") }));
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
                 EliteControllerIdentificationSmoke.Verify(root, hardware);
                 EliteControllerLifecycleSmoke.Verify(root, hardware);
+                EliteExportPreflightSmoke.Verify(root, hardware);
                 VerifyControllerAddition(root, hardware);
                 VerifyIdenticalControllers(root, hardware);
                 var choice = MessageBoxResult.Cancel;

@@ -22,6 +22,7 @@
      <ListBoxItem Content="All"/><ListBoxItem Content="Ship"/><ListBoxItem Content="SRV"/><ListBoxItem Content="On Foot"/><ListBoxItem Content="General"/>
     </ListBox>
    </WrapPanel>
+   <TextBlock x:Name="ExportState" Text="Workspace saving and ED preset export are separate. Installation into ED is manual." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
    <TextBlock x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
   </StackPanel>
   <Grid Grid.Row="2">

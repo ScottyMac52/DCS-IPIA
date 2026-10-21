@@ -194,6 +194,22 @@ namespace Heimdall.Application.Games
         });
         /// <summary>Creates a reviewed native payload only after edition and conversion validation.</summary>
         public SimProfileExportPlan Export() { RequireAccess(); return ValidateProfile(_current.Profile); }
+        /// <summary>Reviews all output references against current hardware, independently of offline format validation.</summary>
+        public IReadOnlyList<GameExportIssue> ReviewGameExport()
+        {
+            RequireAccess();
+            var exporter = _backend as ISimGameExport ?? throw new InvalidOperationException("This adapter cannot prepare a game preset.");
+            return GameExportPreflight.Review(_current, exporter.DeviceUsages(_current.Profile), _observed(), _referenceMatcher);
+        }
+        /// <summary>Produces a named game preset only after fresh connected-device preflight; no files are written here.</summary>
+        public SimProfileExportPlan ExportForGame()
+        {
+            var issues = ReviewGameExport();
+            if (issues.Count > 0) throw new InvalidOperationException("Resolve controller references before export: " + string.Join("; ", issues.Select(x => x.Reference + ": " + x.Reason)));
+            var plan = ((ISimGameExport)_backend).ExportNamed(_current.Profile, _current.Name);
+            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
+            return plan;
+        }
         #endregion END Public
         #region BEGIN private helpers
         private ISimDeviceEditor DeviceEditor() => _backend as ISimDeviceEditor
