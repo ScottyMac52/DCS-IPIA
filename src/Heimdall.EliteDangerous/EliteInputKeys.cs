@@ -16,6 +16,9 @@ namespace Heimdall.EliteDangerous
             ["D"] = "Down", ["DL"] = "DownLeft", ["L"] = "Left", ["UL"] = "UpLeft"
         };
         #region BEGIN Public
+        /// <summary>Uses native keys only for built-in system geometry; other drawings retain explicit shared-key translation.</summary>
+        public static string? FromDiagram(Heimdall.Application.UiLayerDiagram diagram, Heimdall.Application.HardwareGraphicControl control) =>
+            diagram.Path.StartsWith("elite-system/", StringComparison.Ordinal) ? control.InputKey : FromShared(control.InputKey);
         /// <summary>Gets a known native key for a shared drawing control, or null when not supported.</summary>
         public static string? FromShared(string key)
         {

@@ -192,10 +192,9 @@ namespace Heimdall.App.Games
             if (_session is null || Device is null) throw new InvalidOperationException("Select a profile and associated device first.");
             _session.Export();
             var document = _session.Snapshot;
-            if (!document.Hardware.TryGetValue(Device.Id, out var pin) || pin.HardwareId is null || pin.DrawingHidden) throw new InvalidOperationException("Choose an optional drawing before exporting an illustrated reference sheet.");
-            var hardware = _hardware.Single(x => x.DeviceId == pin.HardwareId);
+            var hardware = DrawingFor(document, Device.Id) ?? throw new InvalidOperationException("Choose an optional drawing before exporting an illustrated reference sheet.");
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
-            File.WriteAllBytes(path, CompositeKneeboardRenderer.Render(hardware.Diagram, page, "Elite Dangerous · " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this)));
+            File.WriteAllBytes(path, RenderDrawing(hardware, page, "Elite Dangerous · " + document.Name));
         }
         /// <summary>Gets the exact PDF backing the current reference preview after revalidating edition access.</summary>
         internal byte[] ReferencePdf()
@@ -464,23 +463,45 @@ namespace Heimdall.App.Games
             _assignmentsView.AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
             LoadAssignment(); UpdateAvailability();
         }
+        private byte[] RenderDrawing(WorkspaceHardware hardware, KneeboardComposite page, string footer)
+        {
+            if (hardware.Diagram.Path.StartsWith("elite-system/", StringComparison.Ordinal))
+                return CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(hardware.Diagram, page),
+                    AppearanceManager.ArtworkOpacityFor(this)), hardware.Diagram.Width, hardware.Diagram.Height);
+            return CompositeKneeboardRenderer.Render(hardware.Diagram, page, footer, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
+        }
+        private WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)
+        {
+            var system = EliteSystemInputDrawings.Create(document.Profile, deviceId);
+            if (system is not null) return new("elite-system-" + system.Device, system.Device, "", system);
+            return document.Hardware.TryGetValue(deviceId, out var pin) && !pin.DrawingHidden
+                ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+        }
+        private string? DrawingKey(HardwareGraphicControl control)
+        {
+            var drawing = _session is not null && Device is not null ? DrawingFor(_session.Snapshot, Device.Id) : null;
+            return drawing is null ? null : EliteInputKeys.FromDiagram(drawing.Diagram, control);
+        }
         private void RenderDevice()
         {
             StopLiveInput(); _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); _assignmentsView.DiagramHint.Visibility = Visibility.Visible;
             UpdateInputActivityVisibility();
             if (_session is null || Device is null) return;
             var document = _session.Snapshot;
-            var hardware = document.Hardware.TryGetValue(Device.Id, out var pin) && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+            var hardware = DrawingFor(document, Device.Id);
             if (hardware is null) { _assignmentsView.DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
-            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this));
+            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this),
+                control => control.Label + " · " + (EliteInputKeys.FromDiagram(hardware.Diagram, control) ?? control.InputKey) + "\n" +
+                    string.Join("\n", rows.Where(x => x.Input == EliteInputKeys.FromDiagram(hardware.Diagram, control) && (Section == "All" || x.Section == Section))
+                        .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))));
             _assignmentsView.DiagramHint.Visibility = Visibility.Collapsed;
             UpdateInputActivityVisibility();
         }
         private void SelectControl(HardwareGraphicControl control)
         {
-            var key = EliteInputKeys.FromShared(control.InputKey);
+            var key = DrawingKey(control);
             if (key is null) { Status("This drawing input has no verified Elite key. Choose an explicit native input key instead."); return; }
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
             if (row is not null) SelectRow(row);
@@ -491,7 +512,7 @@ namespace Heimdall.App.Games
             var command = _commands.Single(x => x.Id == id);
             if (control.IsAxis != (command.Type == CommandType.Axis)) throw new InvalidOperationException("Choose an axis command for an axis, or a button command for a button.");
             _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id);
-            _assignmentsView.InputKey.Text = EliteInputKeys.FromShared(control.InputKey) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
+            _assignmentsView.InputKey.Text = DrawingKey(control) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
             ApplyClicked(this, new());
         });
         private void DragCommand(object sender, MouseEventArgs e)
@@ -571,9 +592,9 @@ namespace Heimdall.App.Games
             ProfileName.IsEnabled = opened;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
-            var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+            var drawing = document is not null && Device is not null ? DrawingFor(document, Device.Id) : null;
             UpdateControllerAvailability();
-            _devicesView.DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
+            _devicesView.DrawingStatus.Text = drawing is not null ? "Drawing: " + drawing.Label : pin is null ? "Select a controller in this profile to view its drawing." : "No drawing · assignments table available";
             var feature = FeaturePicker.SelectedIndex;
             MoveControllerUpButton.IsEnabled = DevicePicker.SelectedIndex > 0;
             MoveControllerDownButton.IsEnabled = DevicePicker.SelectedIndex >= 0 && DevicePicker.SelectedIndex + 1 < DevicePicker.Items.Count;
@@ -903,8 +924,7 @@ namespace Heimdall.App.Games
                 if (_session is null || Device is null) throw new InvalidOperationException("Import a controls profile and choose a controller on the left.");
                 _session.Export();
                 var document = _session.Snapshot;
-                var pin = document.Hardware.GetValueOrDefault(Device.Id);
-                var hardware = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
+                var hardware = DrawingFor(document, Device.Id);
                 _referenceView.ReferenceArtworkOption.IsEnabled = hardware is not null;
                 if (hardware is null) _referenceView.ReferenceLayoutPicker.SelectedIndex = 1;
                 var content = EliteReferenceSheetBuilder.Build(document.Profile, _session.Catalog, Device.Id, Device.Name, Section, _referenceView.ReferenceAssignedOnly.IsChecked == true)
@@ -915,7 +935,7 @@ namespace Heimdall.App.Games
                 if (options.Artwork && hardware is not null)
                 {
                     var projection = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, _rows.Where(x => x.DeviceId == Device.Id).ToArray(), Section);
-                    artwork = CompositeKneeboardRenderer.Render(hardware.Diagram, projection, "Elite Dangerous / " + document.Name, artworkOpacity: AppearanceManager.ArtworkOpacityFor(this));
+                    artwork = RenderDrawing(hardware, projection, "Elite Dangerous / " + document.Name);
                 }
                 _referenceSheets = ReferenceSheetRenderer.Render(content, options, artwork);
                 _referenceView.ReferenceStatus.Text = content.Rows.Count + " entries · current profile preview" + (options.Artwork ? " · artwork followed by the complete assignment table" : " · assignment table");

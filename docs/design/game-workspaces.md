@@ -330,6 +330,41 @@ the actual WPF buttons, status filter, physical test states, uniform toolbar and
 against temporary fixture directories.
 
 
+## Keyboard and mouse drawings
+
+Native `Keyboard` and `Mouse` entries automatically have built-in vector drawings in
+Assignments & Testing and Reference Sheets. They do not require hardware discovery,
+a drawing selection, an image file, or a physical controller pin. Other hardware retains
+its existing shared/custom drawing choice. System artwork does not enable DirectInput
+acquisition or make system references removable.
+
+The keyboard uses a generic US QWERTY layout with function keys, left/right modifiers,
+navigation, arrows and keypad. It is a reference layout, not automatic detection of the
+user's physical keyboard or regional layout. Mouse artwork exposes the left, right and
+middle buttons and native positive/negative wheel inputs. Captured extra keys, side
+buttons and mouse axes appear as additional exact-name controls; no joystick aliases or
+native input names are invented for imported assignments.
+
+Click a key/button to select its native assignment or prepare a draft; command drag/drop
+and the existing context menu use the same path as controller diagrams. Tooltips show
+complete current command names and combinations. Compact numbered markers keep keys
+readable; the complete reference table uses the same stable per-input numbers and
+retains Primary/Secondary, combinations, hold/toggle and axis details. Numbers remain
+stable across section filters, and unknown inputs remain visible in the additional
+input area and table. Assignment and reference previews share the same geometry.
+
+Both table-only and Artwork + assignment table layouts remain available, with the
+existing PNG/PDF export, pagination, section filters and background/opacity behavior.
+All drawing and reference operations leave native evidence and hardware links intact.
+`EliteSystemInputDrawingTests` covers native names, geometry, escaping, stable reference
+numbers, rendering and isolation; `EliteSystemInputSmoke` exercises keyboard/mouse
+selection, actual diagram clicks, assignment application and illustrated reference exports.
+
+Native naming evidence: captured ED keyboard/mouse defaults archived at
+https://github.com/richardbuckle/EDRefCard/blob/dev/bindings/Defaults%20ODY%20patch%208/KeyboardMouseOnly.binds
+and its key-name catalog. The artwork and implementation are authored here; no third-party
+artwork or code is bundled.
+
 ## Named ED configurations
 
 The profile selector holds independent saved configurations with their own identities,
