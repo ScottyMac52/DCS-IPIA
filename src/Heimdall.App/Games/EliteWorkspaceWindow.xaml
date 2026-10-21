@@ -7,10 +7,10 @@
   <WrapPanel Margin="0,0,0,10">
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/></ComboBox>
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
-   <Button Style="{StaticResource ActionButton}" x:Name="ImportPresetButton" Content="Import bindings…" Click="ImportClicked"/>
-   <Button Style="{StaticResource ActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked" Margin="8,0"/>
-   <Button Style="{StaticResource ActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
-   <Button Style="{StaticResource ActionButton}" x:Name="ExportPresetButton" Content="Export for review…" Click="ExportClicked" Margin="8,0"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="ImportPresetButton" Content="Import bindings…" Click="ImportClicked"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="ExportPresetButton" Content="Export" Click="ExportClicked"/>
    <TextBlock Style="{StaticResource AppLabel}" x:Name="SaveState" VerticalAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
   </WrapPanel>
   <StackPanel Grid.Row="1" Margin="0,0,0,8">
@@ -22,7 +22,19 @@
      <ListBoxItem Content="All"/><ListBoxItem Content="Ship"/><ListBoxItem Content="SRV"/><ListBoxItem Content="On Foot"/><ListBoxItem Content="General"/>
     </ListBox>
    </WrapPanel>
-   <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Workspace saving and ED preset export are separate. Installation into ED is manual." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Save stages your profile in HEIMDALL. Export writes its named preset to the selected destination." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
+   <Expander Header="Export destination" Margin="0,6,0,0">
+    <StackPanel>
+     <Grid Margin="0,4,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Bindings directory:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <TextBox Style="{StaticResource AppTextBox}" x:Name="BindingsDirectoryText" Grid.Column="1" IsReadOnly="True" VerticalContentAlignment="Center" Margin="0,0,8,0" AutomationProperties.Name="ED bindings export directory"/>
+      <Button Style="{StaticResource ToolbarActionButton}" x:Name="BrowseBindingsDirectoryButton" Grid.Column="2" Content="Browse…" Click="BrowseBindingsDirectoryClicked"/>
+      <Button Style="{StaticResource ToolbarActionButton}" x:Name="ResetBindingsDirectoryButton" Grid.Column="3" Content="Reset to default" Click="ResetBindingsDirectoryClicked"/>
+     </Grid>
+     <CheckBox Style="{StaticResource AppCheckBox}" x:Name="ExportToReviewFolder" Content="Export to a separate review folder" ToolTip="Keep installation manual by exporting a separate copy instead of writing to the bindings directory."/>
+     <TextBlock Style="{StaticResource Hint}" Text="Direct export writes only the named preset. Replacing it requires confirmation and creates a backup. Close ED before exporting to its Bindings folder." Margin="0,4,0,0"/>
+    </StackPanel>
+   </Expander>
    <TextBlock Style="{StaticResource AppLabel}" x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
   </StackPanel>
   <Grid Grid.Row="2">
@@ -32,18 +44,18 @@
     <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
     <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments &amp; Testing"/><ListBoxItem Content="Reference Sheets"/>
    </ListBox>
-   <pres:FeatureActionBar x:Name="FeatureActions" Grid.Row="1" Margin="0,6,0,8"/>
+   <pres:FeatureActionBar ButtonStyle="{StaticResource ToolbarActionButton}" x:Name="FeatureActions" Grid.Row="1" Margin="0,6,0,8"/>
    <Grid Grid.Row="2">
-    <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <DockPanel Margin="0,0,10,0">
      <StackPanel DockPanel.Dock="Top">
       <TextBlock Style="{StaticResource AppLabel}" Text="Controllers in profile" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6"/>
       <TextBlock Style="{StaticResource AppLabel}" Text="Drag to reorder" Margin="0,0,0,6"/>
      </StackPanel>
-     <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-      <Button Style="{StaticResource ActionButton}" x:Name="MoveControllerUpButton" Content="Move up" Click="MoveControllerUpClicked" ToolTip="Move selected controller up (Ctrl+Up)"/>
-      <Button Style="{StaticResource ActionButton}" x:Name="MoveControllerDownButton" Content="Move down" Click="MoveControllerDownClicked" Margin="6,0,0,0" ToolTip="Move selected controller down (Ctrl+Down)"/>
-     </WrapPanel>
+     <Grid DockPanel.Dock="Bottom" Margin="0,6,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Button Style="{StaticResource ToolbarActionButton}" x:Name="MoveControllerUpButton" Content="Move up" Click="MoveControllerUpClicked" ToolTip="Move selected controller up (Ctrl+Up)"/>
+      <Button Style="{StaticResource ToolbarActionButton}" Grid.Row="2" x:Name="MoveControllerDownButton" Content="Move down" Click="MoveControllerDownClicked" ToolTip="Move selected controller down (Ctrl+Down)"/>
+     </Grid>
      <ListBox x:Name="DevicePicker" SelectionChanged="DeviceChanged" AllowDrop="True" AutomationProperties.Name="Elite native device references"
               ToolTip="Display order only. Drag a controller or use Ctrl+Up / Ctrl+Down.">
       <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>

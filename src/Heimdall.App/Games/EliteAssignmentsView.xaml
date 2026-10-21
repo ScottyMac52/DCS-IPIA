@@ -3,18 +3,18 @@
  xmlns:pres="clr-namespace:Heimdall.App">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button Style="{StaticResource ActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
-<Button Style="{StaticResource ActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot" Margin="8,0,0,0"/>
-<Button Style="{StaticResource ActionButton}" x:Name="StartInputButton" Content="Start input test"/>
-<Button Style="{StaticResource ActionButton}" x:Name="StopInputButton" Content="Stop" Margin="8,0"/>
-<Button Style="{StaticResource ActionButton}" x:Name="FitDiagramButton" Content="Fit" Margin="4,0"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StartInputButton" Content="Start input test"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StopInputButton" Content="Stop"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
 </pres:ActionBar>
  <Grid x:Name="AuthoringPanel">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="370"/></Grid.ColumnDefinitions>
      <Grid Margin="0,0,10,0">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="180"/></Grid.RowDefinitions>
       <WrapPanel Margin="0,0,0,6">
-       <Button Style="{StaticResource ActionButton}" x:Name="ExportSheetButton" Content="Export reference PNG…" Visibility="Collapsed"/>
+       <Button Style="{StaticResource ToolbarActionButton}" x:Name="ExportSheetButton" Content="Export reference PNG…" Visibility="Collapsed"/>
        <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" VerticalAlignment="Center" Margin="4,0"/>
        <Slider x:Name="DiagramZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Elite drawing zoom"/>
       </WrapPanel>
@@ -48,8 +48,14 @@
         <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandTypePicker" Width="150" AutomationProperties.Name="Elite command input type">
          <ComboBoxItem Content="All types"/><ComboBoxItem Content="Buttons"/><ComboBoxItem Content="Axes"/>
         </ComboBox>
-        <Button Style="{StaticResource ActionButton}" x:Name="ClearCommandFiltersButton" Content="Clear filters" Margin="8,0,0,0"/>
+        <Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearCommandFiltersButton" Content="Clear filters"/>
        </WrapPanel>
+       <TextBlock Style="{StaticResource AppLabel}" Text="Assignment status" Margin="0,8,0,3"/>
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="AssignmentStatusPicker" AutomationProperties.Name="Elite command assignment status"
+                 ToolTip="Assigned Only / Not Assigned refer to the selected controller. Any includes every controller, keyboard and mouse.">
+        <ComboBoxItem Content="All"/><ComboBoxItem Content="Assigned Only"/><ComboBoxItem Content="Not Assigned"/>
+        <ComboBoxItem Content="Not Assigned by Any"/><ComboBoxItem Content="Assigned by Any"/>
+       </ComboBox>
        <TextBox Style="{StaticResource AppTextBox}" x:Name="CommandSearch" ToolTip="Search names, native IDs or categories" Margin="0,8,0,4" AutomationProperties.Name="Search Elite commands"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandCount" Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandEmptyHint" Text="No matching commands. Clear filters or choose another section." TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,4"/>
@@ -59,6 +65,7 @@
          <TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" FontWeight="SemiBold" Margin="2,8,0,4"/>
         </DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ListBox.GroupStyle>
        </ListBox>
+       <TextBlock Style="{StaticResource Hint}" x:Name="AssignmentDraftStatus" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>
        <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0">
         <TextBlock Style="{StaticResource AppLabel}" Text="Assignment" FontSize="18" FontWeight="SemiBold"/>
         <TextBlock Style="{StaticResource AppLabel}" Text="Native input key" Margin="0,8,0,3"/><TextBox Style="{StaticResource AppTextBox}" x:Name="InputKey" AutomationProperties.Name="Elite input key"/>
@@ -69,7 +76,7 @@
         <Expander x:Name="ModifierTools" Header="Button combination (optional)" Margin="0,8,0,0"><StackPanel>
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierDevicePicker" DisplayMemberPath="Name" Margin="0,4,0,4"/>
          <TextBox Style="{StaticResource AppTextBox}" x:Name="ModifierKey" ToolTip="Hold this native key with the assigned input, for example Joy_1 or Key_LeftShift"/>
-         <WrapPanel Margin="0,4,0,0"><Button Style="{StaticResource ActionButton}" x:Name="AddCombinationButton" Content="Add button/key"/><Button Style="{StaticResource ActionButton}" x:Name="RemoveCombinationButton" Content="Remove selected" Margin="8,0,0,0"/></WrapPanel>
+         <WrapPanel Margin="0,4,0,0"><Button Style="{StaticResource ToolbarActionButton}" x:Name="AddCombinationButton" Content="Add button/key"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveCombinationButton" Content="Remove selected"/></WrapPanel>
          <ListBox x:Name="ModifiersList" Height="55" Margin="0,4,0,0"/>
         </StackPanel></Expander>
         <CheckBox Style="{StaticResource AppCheckBox}" x:Name="CommandToggle" Content="Toggle this command" Margin="0,8,0,0"/>

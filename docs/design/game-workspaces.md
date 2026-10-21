@@ -273,3 +273,57 @@ A unique native HID product can resolve without artwork. Repeated products requi
 The saved HEIMDALL workspace name becomes both the native `PresetName` and `<name>.4.<minor>.binds` basename. Names must be valid Windows basenames (1–100 characters); invalid names are reported rather than silently sanitized. Matching lines in captured `.start` selectors change to the new preset name; unrelated section selections and line endings remain intact. Original imported sources remain unchanged. Game export collapses exact duplicate scalar root settings such as identical `MouseGUI` entries and reports the normalization. Conflicting duplicate values block import/export; duplicate command structures remain unsupported.
 
 The status area distinguishes saving in HEIMDALL from exporting a review copy and states that installation into ED is manual. Export remains outside active Bindings. Close ED, back up Bindings, review/copy the generated preset into that folder, restart ED and select its exported name. Review any captured selector separately before copying it so unrelated section choices are preserved. Preflight does not claim to run the game or certify actual in-game behavior.
+
+## ED action states, assignment status and export destinations
+
+ED shell and feature actions use the shared `ToolbarActionButton` resource: 176 pixels wide,
+30 pixels high, with consistent alignment and spacing. DCS keeps its existing toolbar style.
+
+Apply requires an editable controller/command, a valid draft and a native output change.
+Clear requires a binding in the selected controller's selected slot, even when the draft key or
+axis settings are invalid. Review validates a copy through the same backend used for Apply;
+assignment and command-toggle changes publish atomically. Unchanged drafts stay disabled.
+Start requires a linked connected exact instance/product and existing Owner live-input access;
+no drawing or selected command is required. Start/Stop are mutually exclusive. During testing,
+fields remain editable, while Apply/Clear wait for Stop. Stop remains available while testing,
+including during a busy operation. Busy Save/Export operations disable Apply/Clear/Start.
+Focus loss, navigation, disconnect/read failure and Stop release handles and update availability.
+Idle controller connection readiness is refreshed once per second while the window is active.
+
+The command **Assignment status** filter offers:
+
+| Choice | Ownership scope |
+| --- | --- |
+| All | Every matching command |
+| Assigned Only | A primary, secondary or axis binding on the selected controller |
+| Not Assigned | No binding on the selected controller, including commands assigned elsewhere |
+| Not Assigned by Any | No binding anywhere in the complete profile |
+| Assigned by Any | A binding anywhere, including keyboard/mouse |
+
+Combination-only references do not own a command. Whole-profile ownership is evaluated before
+intersecting section, category, input type and text filters. Clear filters resets status to All.
+Selecting an assignment hidden by command filters clears those filters to reveal it. Filtering
+never changes native data or output.
+
+**Export** defaults to `%LOCALAPPDATA%\Frontier Developments\Elite Dangerous\Options\Bindings`.
+Expand **Export destination** to see the resolved folder, **Browse…** for an optional remembered
+per-user override, or **Reset to default**. The same folder is the import dialog's starting point.
+This preference is independent of profile Save/Discard and older selections need no migration.
+
+Direct export writes only the named `.binds` file after fresh device/native validation. Close ED
+before exporting. An existing same-named preset requires confirmation; replacement atomically
+preserves its exact original bytes as `<preset>.binds.backup-<unique-id>`, which does not end in
+`.binds`. Changes to destination bytes after confirmation invalidate the prepared write. Unrelated
+presets and `.start` selectors are retained; restart ED and select the exported preset manually.
+Temporary output is cleaned on failure. Linked/symlinked destinations are rejected.
+
+Enable **Export to a separate review folder** for the previous isolated review-copy workflow,
+including captured selector output for manual review. That mode still cannot write inside either
+the default or configured active bindings directory. Both modes require saved profile edits and
+fresh controller preflight before writing. Selecting the default directory does not auto-export.
+
+`GameAssignmentReviewTests`, `EliteAssignmentStatusTests` and `GameBindingsExportTests` cover
+state rules, draft semantics/atomicity, ownership scope/intersections, exact backup bytes,
+stale destination detection, preferences and failure paths. `EliteWorkspacePolishSmoke` operates
+the actual WPF buttons, status filter, physical test states, uniform toolbar and direct export
+against temporary fixture directories.

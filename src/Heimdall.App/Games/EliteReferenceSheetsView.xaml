@@ -3,10 +3,10 @@
  xmlns:pres="clr-namespace:Heimdall.App">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button Style="{StaticResource ActionButton}" x:Name="ReferencePreviousButton" Content="Previous page"/>
-<Button Style="{StaticResource ActionButton}" x:Name="ReferenceNextButton" Content="Next page"/>
-<Button Style="{StaticResource ActionButton}" x:Name="ReferencePdfButton" Content="Export PDF…" Margin="16,0,8,0"/>
-<Button Style="{StaticResource ActionButton}" x:Name="ReferencePngButton" Content="Export page PNG…"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencePreviousButton" Content="Previous page"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferenceNextButton" Content="Next page"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencePdfButton" Content="Export PDF…"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencePngButton" Content="Export page PNG…"/>
 </pres:ActionBar>
  <Grid x:Name="ReferenceSheetsPanel">
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
