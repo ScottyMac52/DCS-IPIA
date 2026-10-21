@@ -17,11 +17,18 @@ namespace Heimdall.App.Smoke
             var store = new FileGameWorkspaceStore(Path.Combine(root, "Configurations"));
             var services = new GameWorkspaceServices(store, new GameSmokeDiscovery());
             var pending = MessageBoxResult.Cancel;
-            using var window = new EliteWorkspaceWindow(services, [], pendingChoice: () => pending);
+            var fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds");
+            using var window = new EliteWorkspaceWindow(services, [], importPicker: () => fixture, pendingChoice: () => pending);
             window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
             if (!Box<Button>(window, "NewConfigurationButton").IsEnabled || Box<Button>(window, "DeleteConfigurationButton").IsEnabled)
                 throw new InvalidOperationException("New must be available without a saved configuration; Delete must be disabled.");
-            window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "EliteDangerous", "Synthetic.4.2.binds"));
+            window.ConfigurationNamePicker = (_, _) => "First Configuration";
+            Click(window, "NewConfigurationButton");
+            if (store.List().Count != 1 || window.Session is null || window.Session.Snapshot.Profile.Devices.Any(x => x.Buttons.Count != 0 || x.Axes.Count != 0))
+                throw new InvalidOperationException("New did not create an empty configuration from the selected ED command template.");
+            window.ConfirmConfigurationDeletion = _ => true; Click(window, "DeleteConfigurationButton");
+            if (window.Session is not null) throw new InvalidOperationException("Initial configuration did not delete.");
+            window.ImportFile(fixture);
             Box<TextBox>(window, "ProfileName").Text = "Combat";
             if (!window.SaveProfile()) throw new InvalidOperationException("Configuration source did not save.");
             var original = window.Session!.Snapshot.Id;
