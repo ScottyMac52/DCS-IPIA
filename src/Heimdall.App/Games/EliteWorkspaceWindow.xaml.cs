@@ -723,7 +723,8 @@ namespace Heimdall.App.Games
         private void ReviewControllerChange(GameControllerChange change)
         {
             var confirmed = false;
-            RunBusy(() => confirmed = _reviewControllerChange(change));
+            if (_busy) confirmed = _reviewControllerChange(change);
+            else RunBusy(() => confirmed = _reviewControllerChange(change));
             if (!confirmed) { Status("Controller change cancelled; profile unchanged."); return; }
             _session!.ApplyControllerChange(change);
             if (change.ResultDeviceId is { } id) DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
