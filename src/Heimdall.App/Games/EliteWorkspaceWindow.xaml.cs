@@ -46,6 +46,7 @@ namespace Heimdall.App.Games
         private bool _loadingAssignment;
         private bool _busy;
         private string? _bindingsDirectoryOverride;
+        private GameControllerActions _controllerActions = new(false, false, false, false, false, false, false, false);
         private GameAssignmentActions _actions = new(false, false, false, false);
         internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
         internal Func<string?>? BindingsDirectoryPicker { get; set; }
@@ -73,6 +74,7 @@ namespace Heimdall.App.Games
             _devicesView.CancelIdentificationButton.Click += CancelIdentificationClicked;
             _devicesView.ConfirmIdentificationButton.Click += ConfirmIdentificationClicked;
             _devicesView.ConnectedPicker.SelectionChanged += ConnectedChanged;
+            _devicesView.ReplacementReferencePicker.SelectionChanged += (_, _) => { if (!_refreshing) Run(UpdateControllerAvailability); };
             _devicesView.RescanControllerButton.Click += RescanClicked;
             _devicesView.AddControllerButton.Click += AddControllerClicked;
             _devicesView.ReplaceControllerButton.Click += ReplaceControllerClicked;
@@ -314,6 +316,7 @@ namespace Heimdall.App.Games
                 var pin = Device is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(Device.Id);
                 var ready = EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
                 if (ready != _lastReady) UpdateAvailability();
+                else if (FeaturePicker.SelectedIndex == 0) UpdateControllerAvailability();
             });
         }
         private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }
@@ -344,16 +347,18 @@ namespace Heimdall.App.Games
         private void ClearIdentification()
         {
             _identifiedController = null;
-            _devicesView.ConfirmIdentificationButton.IsEnabled = false;
             _devicesView.IdentificationStatus.Text = "";
+            if (_identification is not null && _input is not null && !_refreshing) Run(UpdateControllerAvailability);
         }
         private void IdentifyControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Start) return;
             StopLiveInput();
             EditionAccess.Policy.RequireOwner();
             if (_session is null || Device is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Select a controller reference on Devices before identifying it.");
             _identification.Start(_services.Discover());
+            UpdateControllerAvailability();
             _devicesView.IdentificationStatus.Text = "Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.";
             Status("Identify " + Device.Name + ": operate the physical controller you want to check.");
         });
@@ -373,12 +378,13 @@ namespace Heimdall.App.Games
                 Environment.NewLine + (matches ? "Matches selected ED reference: " : "Does not match selected ED reference: ") + Device.Name;
             if (!matches) return;
             _identifiedController = detected.Key;
-            _devicesView.ConfirmIdentificationButton.IsEnabled = true;
+            UpdateControllerAvailability();
             if (_session.ControllerReferences(detected.Key.PhysicalGuid).Count > 1)
                 _devicesView.IdentificationStatus.Text += Environment.NewLine + "Identical products share this ID. Input identifies this physical unit, but cannot prove its ED index. Verify the selected indexed reference in Elite before confirming.";
         }
         private void ConfirmIdentificationClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Confirm) return;
             EditionAccess.Policy.RequireOwner();
             if (_session is null || Device is null || _identifiedController is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Identify a matching controller before confirming its link.");
@@ -516,6 +522,40 @@ namespace Heimdall.App.Games
             _assignmentsView.CommandToggle.IsChecked = metadata.GetValueOrDefault(key) == "1";
             _loadingAssignment = false; UpdateAvailability();
         }
+        private void UpdateControllerAvailability()
+        {
+            var document = _session?.Snapshot;
+            var reference = document?.Profile.Devices.FirstOrDefault(x => x.LogicalId == Device?.Id);
+            var physical = reference is not null && !GameWorkspaceAccess.IsSystemDevice(reference.Identity!.SimSpecificIds["ed.device"]);
+            var observed = _services.Discover();
+            var eligible = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
+            var selected = _devicesView.ConnectedPicker.SelectedItem as DetectedDcsDevice;
+            var connected = selected is not null && eligible.Count(x => x.PhysicalGuid == selected.PhysicalGuid && x.ProductGuid == selected.ProductGuid) == 1;
+            var pin = reference is null ? null : document!.Hardware.GetValueOrDefault(reference.LogicalId);
+            var alreadyLinked = connected && document is not null && document.Hardware.Values.Any(x => x.Device.PhysicalGuid == selected!.PhysicalGuid);
+            var candidate = _identifiedController;
+            var confirm = document is not null && reference is not null && physical && EditionAccess.Policy.IsOwner && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
+                && _services.DeviceReferences.Matches(reference!.Identity!, candidate)
+                && !document!.Hardware.Any(x => x.Key != reference.LogicalId && x.Value.Device.PhysicalGuid == candidate.PhysicalGuid)
+                && (pin is null || pin.Device.PhysicalGuid == candidate.PhysicalGuid || !GameInputReadiness.Ready(pin, observed))
+                && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"));
+            var indexedChoice = _devicesView.ReplacementReferencePicker.Items.Count <= 1 || _devicesView.ReplacementReferencePicker.SelectedItem is GameDeviceChoice;
+            _controllerActions = GameControllerActions.For(physical && EditionAccess.Policy.IsOwner && eligible.Length > 0,
+                confirm, document is not null && connected && !alreadyLinked,
+                physical && EditionAccess.Policy.IsOwner && connected && pin?.Device.PhysicalGuid != selected!.PhysicalGuid && indexedChoice,
+                physical, physical && pin is not null, _identification?.Running == true,
+                _input?.Running == true, _busy, FeaturePicker.SelectedIndex == 0);
+            _devicesView.IdentifyControllerButton.IsEnabled = _controllerActions.Start;
+            _devicesView.CancelIdentificationButton.IsEnabled = _controllerActions.Stop;
+            _devicesView.ConfirmIdentificationButton.IsEnabled = _controllerActions.Confirm;
+            _devicesView.AddControllerButton.IsEnabled = _controllerActions.Add;
+            _devicesView.ReplaceControllerButton.IsEnabled = _controllerActions.Replace;
+            _devicesView.RemoveControllerButton.IsEnabled = _controllerActions.Remove;
+            _devicesView.RescanControllerButton.IsEnabled = _controllerActions.Rescan;
+            _devicesView.ChangeDrawingButton.IsEnabled = _controllerActions.Drawing;
+            _devicesView.UseDrawingButton.IsEnabled = _devicesView.NoDrawingButton.IsEnabled = _controllerActions.Drawing;
+            _devicesView.LinkReferenceButton.IsEnabled = document is not null && connected && !_identification!.Running && !_input!.Running && !_busy;
+        }
         private void UpdateAvailability()
         {
             var opened = _session is not null;
@@ -528,16 +568,11 @@ namespace Heimdall.App.Games
             RenameConfigurationButton.IsEnabled = opened && !_busy;
             DeleteConfigurationButton.IsEnabled = opened && _revision is not null && !_busy;
             SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
-            var controller = Device is not null && _session is not null && !GameWorkspaceAccess.IsSystemDevice(
-                _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!.SimSpecificIds["ed.device"]);
-            _devicesView.RemoveControllerButton.IsEnabled = opened && controller;
-            _devicesView.ReplaceControllerButton.IsEnabled = opened && controller && EditionAccess.Policy.IsOwner && _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice;
-            ProfileName.IsEnabled = opened; _devicesView.AddControllerButton.IsEnabled = opened && _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice;
+            ProfileName.IsEnabled = opened;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
             var drawing = pin is not null && !pin.DrawingHidden ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId) : null;
-            _devicesView.ChangeDrawingButton.IsEnabled = pin is not null;
-            _devicesView.IdentifyControllerButton.IsEnabled = opened && Device is not null && EditionAccess.Policy.IsOwner;
+            UpdateControllerAvailability();
             _devicesView.DrawingStatus.Text = pin is null ? "Select a controller in this profile to view its drawing." : drawing is null ? "No drawing · assignments table available" : "Drawing: " + drawing.Label;
             var feature = FeaturePicker.SelectedIndex;
             MoveControllerUpButton.IsEnabled = DevicePicker.SelectedIndex > 0;
@@ -582,9 +617,11 @@ namespace Heimdall.App.Games
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
         { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
         private void Rescan() => Run(() => { StopLiveInput(); _devicesView.ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); _devicesView.ConnectedPicker.SelectedIndex = -1; });
-        private void RescanClicked(object sender, RoutedEventArgs e) => Rescan();
+        private void RescanClicked(object sender, RoutedEventArgs e) => Run(() =>
+        { UpdateControllerAvailability(); if (_controllerActions.Rescan) { Rescan(); UpdateControllerAvailability(); } });
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Add) return;
             StopLiveInput();
             if (_session is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
                 throw new InvalidOperationException("Choose the connected controller you want to add.");
@@ -637,12 +674,14 @@ namespace Heimdall.App.Games
         }
         private void RemoveControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Remove) return;
             StopLiveInput();
             if (_session is null || Device is null) throw new InvalidOperationException("Select the profile controller to remove.");
             ReviewControllerChange(_session.PreviewRemoveController(Device.Id));
         });
         private void ReplaceControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Replace) return;
             StopLiveInput();
             if (_session is null || Device is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected)
                 throw new InvalidOperationException("Select the old profile controller and its connected replacement.");
@@ -662,7 +701,9 @@ namespace Heimdall.App.Games
         }
         private void ReviewControllerChange(GameControllerChange change)
         {
-            if (!_reviewControllerChange(change)) { Status("Controller change cancelled; profile unchanged."); return; }
+            var confirmed = false;
+            RunBusy(() => confirmed = _reviewControllerChange(change));
+            if (!confirmed) { Status("Controller change cancelled; profile unchanged."); return; }
             _session!.ApplyControllerChange(change);
             if (change.ResultDeviceId is { } id) DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
@@ -670,24 +711,27 @@ namespace Heimdall.App.Games
         }
         private void LinkReferenceClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_devicesView.LinkReferenceButton.IsEnabled) return;
             if (_devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || _devicesView.ReferencePicker.SelectedItem is not GameDeviceChoice reference)
                 throw new InvalidOperationException("Choose the connected controller and its captured ED reference.");
             ConnectController(connected, reference.Id);
         });
-        private void ChangeDrawingClicked(object sender, RoutedEventArgs e)
+        private void ChangeDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Drawing) return;
             if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin)) return;
             _devicesView.HardwarePicker.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
             _devicesView.DrawingTools.Visibility = Visibility.Visible;
-        }
+        });
         private void UseDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
+            UpdateControllerAvailability(); if (!_controllerActions.Drawing) return;
             if (_session is null || Device is null || _devicesView.HardwarePicker.SelectedItem is not WorkspaceHardware drawing)
                 throw new InvalidOperationException("Choose an optional drawing first.");
             _session.ChangeDrawing(Device.Id, drawing.DeviceId); _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
         });
         private void NoDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
-        { if (_session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; } });
+        { UpdateControllerAvailability(); if (_controllerActions.Drawing && _session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; } });
         private void ImportClicked(object sender, RoutedEventArgs e)
         {
             if (!ConfirmLeave()) return;

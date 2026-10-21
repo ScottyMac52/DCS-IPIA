@@ -38,7 +38,14 @@ namespace Heimdall.App.Smoke
             var profile = JsonSerializer.Serialize(window.Session!.Snapshot.Profile);
             Click(window, "ConfirmIdentificationButton");
             if (window.Session.Snapshot.Hardware.Count != 0) throw new InvalidOperationException("Confirmation bypassed identification.");
+            AssertActions(window, true, false, false, false, false, true, true, false);
             Click(window, "IdentifyControllerButton");
+            AssertActions(window, false, true, false, false, false, false, false, false);
+            var identifying = input;
+            foreach (var action in new[] { "IdentifyControllerButton", "AddControllerButton", "ReplaceControllerButton", "RemoveControllerButton", "RescanControllerButton", "ChangeDrawingButton" })
+                Click(window, action);
+            if (!ReferenceEquals(identifying, input) || input!.Disposed || JsonSerializer.Serialize(window.Session.Snapshot.Profile) != profile)
+                throw new InvalidOperationException("A disabled device action interrupted identification or changed native data.");
             window.SampleIdentification();
             if (Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<ComboBox>(window, "ConnectedPicker").SelectedItem is not null)
                 throw new InvalidOperationException("An idle sample or discovery order selected a controller.");
@@ -52,9 +59,14 @@ namespace Heimdall.App.Smoke
                 || !result.Text.Contains("JOY_BTN1", StringComparison.Ordinal) || !Box<Button>(window, "ConfirmIdentificationButton").IsEnabled
                 || window.Session.Snapshot.Hardware.Count != 0)
                 throw new InvalidOperationException("Physical activity did not identify the exact unit without automatically linking it.");
+            AssertActions(window, false, true, true, false, false, false, false, false);
             ThemeControlSmoke.SaveImage(window, "elite-identify-controller");
             Click(window, "CancelIdentificationButton");
             AssertStopped(window, input);
+            AssertActions(window, true, false, false, false, false, true, true, false);
+            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = target;
+            AssertActions(window, true, false, false, true, true, true, true, false);
+            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = null;
             Click(window, "ConfirmIdentificationButton");
             if (window.Session.Snapshot.Hardware.Count != 0) throw new InvalidOperationException("A stopped result could still be confirmed.");
 
@@ -82,12 +94,26 @@ namespace Heimdall.App.Smoke
             if (!acquired.Disposed || window.Session.Snapshot.Hardware[reference.Id].Device.PhysicalGuid != target.PhysicalGuid
                 || JsonSerializer.Serialize(window.Session.Snapshot.Profile) != profile)
                 throw new InvalidOperationException("Confirmed discovery changed native assignments or linked the wrong unit.");
+            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = target;
+            AssertActions(window, true, false, false, false, false, true, true, true);
             Click(window, "IdentifyControllerButton"); acquired = input!;
             window.Close();
             if (!acquired.Disposed) throw new InvalidOperationException("Closing identification retained controller handles.");
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void AssertActions(FrameworkElement window, params bool[] expected)
+        {
+            var names = new[] { "IdentifyControllerButton", "CancelIdentificationButton", "ConfirmIdentificationButton", "AddControllerButton",
+                "ReplaceControllerButton", "RemoveControllerButton", "RescanControllerButton", "ChangeDrawingButton" };
+            for (var i = 0; i < names.Length; i++)
+                if (Box<Button>(window, names[i]).IsEnabled != expected[i])
+                    throw new InvalidOperationException("Unexpected device action state: " + names[i]);
+            var bar = Box<FeatureActionBar>(window, "FeatureActions");
+            foreach (var action in bar.Actions)
+                if (window.FindName(action.Id) is Button source && action.Command.CanExecute(null) != source.IsEnabled)
+                    throw new InvalidOperationException("The visible action bar did not mirror its device action state.");
+        }
         private static void AssertStopped(FrameworkElement window, IdentificationInputSource input)
         {
             if (!input.Disposed || Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<TextBlock>(window, "IdentificationStatus").Text.Length != 0)
