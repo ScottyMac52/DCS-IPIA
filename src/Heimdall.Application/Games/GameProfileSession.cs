@@ -322,7 +322,7 @@ namespace Heimdall.Application.Games
         {
             ArgumentNullException.ThrowIfNull(draft);
             if (string.IsNullOrWhiteSpace(draft.Key) || !profile.Devices.Any(x => x.LogicalId == draft.DeviceId)
-                || (draft.IsAxis && (draft.Slot != "Binding" || !float.IsFinite(draft.Deadzone))))
+                || (draft.IsAxis && (draft.Slot != "Binding" || !float.IsFinite(draft.Deadzone) || draft.Modifiers is { Count: > 0 })))
                 throw new InvalidOperationException("Choose a controller, a nonempty native key and valid axis settings.");
             Remove(profile, draft.CommandId, draft.Slot);
             var device = profile.Devices.Single(x => x.LogicalId == draft.DeviceId);

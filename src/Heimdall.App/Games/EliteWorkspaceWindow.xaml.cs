@@ -238,7 +238,7 @@ namespace Heimdall.App.Games
             Run(() =>
             {
                 var pin = Device is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(Device.Id);
-                var ready = EditionAccess.Policy.IsOwner && GameInputReadiness.Ready(pin, _services.Discover());
+                var ready = EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
                 if (ready != _lastReady) UpdateAvailability();
             });
         }
@@ -467,7 +467,7 @@ namespace Heimdall.App.Games
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
             var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
-            var ready = opened && EditionAccess.Policy.IsOwner && GameInputReadiness.Ready(pin, _services.Discover());
+            var ready = opened && EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
             _lastReady = ready;
             _actions = GameAssignmentActions.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
                 review.Valid, review.Changed, assigned, ready, _input?.Running == true, _busy);

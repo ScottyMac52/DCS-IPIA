@@ -98,12 +98,13 @@ failure or cancellation retains the current workspace.
    filters. No filter changes command identities, assignments or native files.
 5. **Save** stores an HEIMDALL game workspace. **Discard** restores the last saved
    document. Changing game/profile or closing prompts save/discard/cancel, and a
-   failed save retains the pending draft. Native preset names are retained;
-   changing the HEIMDALL profile name does not rename the game's preset.
-6. **Export for review** requires saved state and creates a new child folder in
-   the selected destination. Previous exports are not overwritten. The known
-   active Bindings folder and symbolic-link destinations are rejected. There is
-   no Elite automatic deployment/Fly Now path.
+   failed save retains the pending draft. Imported native sources are retained;
+   the saved HEIMDALL profile name becomes the exported preset name and basename.
+6. **Export** requires saved state and writes the named preset into the detected
+   or configured Bindings directory. Existing same-named presets require confirmation
+   and receive an exact backup. **Export to a separate review folder** creates a new
+   child folder outside active Bindings for manual installation instead. See export
+   destinations below. Export does not start Elite or alter preset selectors.
 7. **Reference Sheets** opens a dedicated paginated print preview. Select one
    controller on the left and **All**, **Ship**, **SRV**, **On Foot** or **General**
    above. Choose **Artwork + assignment table** or **Assignment table**, A4 or
@@ -266,13 +267,13 @@ not launch Elite or claim that manual acceptance has been completed.
 
 ## ED export preflight and preset identity
 
-Workspace saving retains editable native evidence, even with disconnected hardware. Reference sheets and format-only validation remain available offline where edition access permits. **Export for review** additionally checks every native `Device` field against fresh connected-device observations, including modifier-only dependencies and opaque native extensions. An unresolved reference lists the affected commands, slots and keys before any export folder is created. Choose a connected replacement, clear all affected assignments, or cancel. Each repair uses the existing binding-impact review; missing modifier inputs clear an entire chord. Save explicitly reviewed repairs and export again. No files are written while references remain unresolved.
+Workspace saving retains editable native evidence, even with disconnected hardware. Reference sheets and format-only validation remain available offline where edition access permits. **Export** additionally checks every native `Device` field against fresh connected-device observations, including modifier-only dependencies and opaque native extensions. An unresolved reference lists the affected commands, slots and keys before any export folder is created. Choose a connected replacement, clear all affected assignments, or cancel. Each repair uses the existing binding-impact review; missing modifier inputs clear an entire chord. Save explicitly reviewed repairs and export again. No files are written while references remain unresolved.
 
 A unique native HID product can resolve without artwork. Repeated products require captured ED `DeviceIndex` values and explicit physical-instance links. Disconnected/changed pins, duplicate instance observations and conflicting links block export. Windows discovery order never supplies ED indices. Unsupported aliases or opaque native references are reported without inventing matches; uneditable fields must be repaired in ED or in the source and reimported. Replacement input probing retains its Owner-only boundary.
 
 The saved HEIMDALL workspace name becomes both the native `PresetName` and `<name>.4.<minor>.binds` basename. Names must be valid Windows basenames (1–100 characters); invalid names are reported rather than silently sanitized. Matching lines in captured `.start` selectors change to the new preset name; unrelated section selections and line endings remain intact. Original imported sources remain unchanged. Game export collapses exact duplicate scalar root settings such as identical `MouseGUI` entries and reports the normalization. Conflicting duplicate values block import/export; duplicate command structures remain unsupported.
 
-The status area distinguishes saving in HEIMDALL from exporting a review copy and states that installation into ED is manual. Export remains outside active Bindings. Close ED, back up Bindings, review/copy the generated preset into that folder, restart ED and select its exported name. Review any captured selector separately before copying it so unrelated section choices are preserved. Preflight does not claim to run the game or certify actual in-game behavior.
+The status area distinguishes saving in HEIMDALL, direct preset export and a separate review copy. Close ED before direct export, then restart ED and select the exported name. Separate review copies require manual installation. Review any captured selector separately before copying it so unrelated section choices are preserved. Preflight does not launch the game or certify actual in-game behavior.
 
 ## ED action states, assignment status and export destinations
 

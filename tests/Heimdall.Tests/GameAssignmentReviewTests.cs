@@ -36,6 +36,8 @@ namespace Heimdall.Tests
             var backend = new EliteDangerousProfileBackend();
             var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => []);
             var rows = EliteWorkspaceProjection.Rows(workspace.Profile, session.Catalog);
+            Assert.False(session.ReviewAssignment(null!).Valid);
+            Assert.Throws<ArgumentNullException>(() => session.Assign(null!));
             var before = JsonSerializer.Serialize(session.Snapshot); var changes = 0; session.Changed += (_, _) => changes++;
             foreach (var row in rows)
             {
@@ -58,7 +60,7 @@ namespace Heimdall.Tests
         [Theory]
         [InlineData("empty")][InlineData("device")][InlineData("command")][InlineData("slot")]
         [InlineData("mode")][InlineData("modifier")][InlineData("duplicate")][InlineData("toggle")]
-        [InlineData("nan")][InlineData("deadzone")][InlineData("axisSlot")]
+        [InlineData("nan")][InlineData("deadzone")][InlineData("axisSlot")][InlineData("axisModifiers")]
         public void Invalid_drafts_remain_atomic(string failure)
         {
             using var issuer = new OwnerLicenseTestIssuer(); var workspace = Workspace();
@@ -74,7 +76,8 @@ namespace Heimdall.Tests
                 "modifier" => draft with { Modifiers = [new() { Source = "missing", Value = "Joy_1" }] },
                 "duplicate" => draft with { Modifiers = [draft.Modifiers![0], draft.Modifiers![0]] },
                 "toggle" => draft with { Toggle = true }, "nan" => axis with { Deadzone = float.NaN },
-                "deadzone" => axis with { Deadzone = 101 }, _ => axis with { Slot = "Primary" }
+                "deadzone" => axis with { Deadzone = 101 }, "axisModifiers" => axis with { Modifiers = draft.Modifiers },
+                _ => axis with { Slot = "Primary" }
             };
             var before = JsonSerializer.Serialize(session.Snapshot); var changes = 0; session.Changed += (_, _) => changes++;
             Assert.False(session.ReviewAssignment(draft).Valid);
