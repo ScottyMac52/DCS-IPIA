@@ -39,7 +39,7 @@ namespace Heimdall.Tests
             Assert.Equal(claims, issuer.Verifier.Verify(issuer.License(claims)));
             Assert.Null(other.Verifier.Verify(issuer.License()));
             foreach (var invalid in new[] { claims with { SchemaVersion = 2 }, claims with { Product = "Other" },
-                claims with { Edition = "Premium" }, claims with { LicenseId = Guid.Empty }, claims with { Owner = " " },
+                claims with { Edition = "Unknown" }, claims with { LicenseId = Guid.Empty }, claims with { Owner = " " },
                 claims with { Owner = new string('x', 121) } })
                 Assert.Null(issuer.Verifier.Verify(issuer.License(invalid)));
             foreach (var text in new[] { "null", "[]", "{", "{\"SchemaVersion\":1,\"SchemaVersion\":1}", "{\"Unknown\":true}" })

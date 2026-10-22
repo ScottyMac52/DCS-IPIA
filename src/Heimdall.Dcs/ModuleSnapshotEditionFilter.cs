@@ -10,7 +10,7 @@ namespace Heimdall.Dcs
         /// <summary>Lists unsupported controller profiles, including connected devices with conflicting native manufacturer evidence.</summary>
         public static IReadOnlyList<DeviceProfile> Unsupported(EditorWorkspaceSnapshot workspace, EditionPolicy policy,
             IReadOnlyList<DetectedDcsDevice>? observed = null) => workspace.Configuration.Profiles.Where(profile =>
-                !IsKeyboard(profile) && (!policy.AllowsHardware(profile.DeviceId) || !policy.IsOwner && observed is not null &&
+                !IsKeyboard(profile) && (!policy.AllowsHardware(profile.DeviceId) || !policy.HasPremium && observed is not null &&
                     observed.Any(device => device.Connected && device.PhysicalGuid == DcsPhysicalIdentity.FromFileName(profile.SourceName) && !policy.AllowsDevice(device)))).ToArray();
         /// <summary>Reports whether any allowed profile survives removal, including the existing Free keyboard exception.</summary>
         public static bool HasSupportedProfiles(EditorWorkspaceSnapshot workspace, IReadOnlyList<DeviceProfile> unsupported) =>

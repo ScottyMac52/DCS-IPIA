@@ -70,7 +70,7 @@ namespace Heimdall.App
             try
             {
                 var choices = InventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync());
-                InventoryChoices.ItemsSource = EditionAccess.Policy.IsOwner ? choices : [];
+                InventoryChoices.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
                 _hardware = _hardware.Concat(choices.Select(x => GenericHardwareLayout.Create(x.Definition)))
                     .DistinctBy(x => x.DeviceId).ToArray();
                 _hardware = EditionAccess.Hardware(_hardware, _training).ToArray();
@@ -126,7 +126,7 @@ namespace Heimdall.App
                 });
                 if (_logger.IsEnabled(LogLevel.Debug))
                     ApplicationLog.DevicesDiscovered(_logger, choices.Count, _savedGamesRoot, null);
-                PhysicalChoices.ItemsSource = _training is not null || EditionAccess.Policy.IsOwner ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
+                PhysicalChoices.ItemsSource = _training is not null || EditionAccess.Policy.HasPremium ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
                     DcsPhysicalIdentity.NameFromFileName(item.DefaultFileName).Equals(device.Name, StringComparison.OrdinalIgnoreCase))).ToArray();
                 CreationError.Text = choices.Count + " physical unit(s). " + string.Join(" ", errors);
             }

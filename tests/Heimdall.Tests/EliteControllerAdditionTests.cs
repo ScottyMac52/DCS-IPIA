@@ -81,25 +81,27 @@ namespace Heimdall.Tests
             var unindexed = Session(Workspace("06A30BAC"), issuer.Policy, [a, b]);
             Assert.Throws<InvalidOperationException>(() => unindexed.ConnectController(a.PhysicalGuid));
         }
-        /// <summary>Adding a controller or choosing a drawing cannot grant Free access to another manufacturer.</summary>
+        /// <summary>Even verified Thrustmaster hardware cannot grant Free ED access; Premium can add a controller without artwork.</summary>
         [Fact]
-        public void Free_access_still_requires_native_manufacturer_and_reviewed_catalog_evidence()
+        public void Free_ED_access_cannot_be_granted_by_native_manufacturer_or_reviewed_catalog_evidence()
         {
             var other = Device(); var free = Session(Workspace(), new(), [other]);
             Assert.Throws<InvalidOperationException>(() => free.ConnectController(other.PhysicalGuid, "tm-mfd"));
-            Assert.Empty(free.Snapshot.Hardware);
-            var tm = Device("1001044f-0000-0000-0000-504944564944");
-            free = Session(Workspace(), new(), [tm]);
-            var id = free.ConnectController(tm.PhysicalGuid);
-            Assert.NotEmpty(free.AccessMessage);
-            Assert.Throws<InvalidOperationException>(() => free.Export());
-            free.ChangeDrawing(id, "tm-mfd"); Assert.Empty(free.AccessMessage); Assert.True(free.Export().Succeeded);
-            var changedProduct = tm with { ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") };
-            Assert.NotEmpty(Session(free.Snapshot, new(), [changedProduct]).AccessMessage);
-            free.ChangeDrawing(id, null); Assert.Empty(free.AccessMessage); Assert.True(free.Snapshot.Hardware[id].DrawingHidden);
-            Assert.True(Session(free.Snapshot, new(), []).Snapshot.Hardware[id].DrawingHidden);
-            Assert.Empty(Session(free.Snapshot, new(), []).AccessMessage);
-            Assert.Throws<InvalidOperationException>(() => free.ChangeDrawing(id, "moza-ab9"));
+            var tm = other with { ProductGuid = Guid.Parse("1001044f-0000-0000-0000-504944564944") };
+            var workspace = Workspace(); free = Session(workspace, new(), [tm]);
+            var before = JsonSerializer.Serialize(free.Snapshot);
+            Assert.Throws<InvalidOperationException>(() => free.ConnectController(tm.PhysicalGuid));
+            Assert.Throws<InvalidOperationException>(() => free.ConnectController(tm.PhysicalGuid, "tm-mfd"));
+            Assert.Equal(before, JsonSerializer.Serialize(free.Snapshot)); Assert.False(free.HasChanges);
+            Assert.Contains("Premium", free.AccessMessage); Assert.Throws<InvalidOperationException>(() => free.Export());
+            using var issuer = new OwnerLicenseTestIssuer();
+            var premium = Session(workspace, issuer.PremiumPolicy, [tm]);
+            var id = premium.ConnectController(tm.PhysicalGuid);
+            premium.ChangeDrawing(id, "tm-mfd"); premium.ChangeDrawing(id, null);
+            Assert.True(premium.Snapshot.Hardware[id].DrawingHidden);
+            Assert.Empty(Session(premium.Snapshot, issuer.PremiumPolicy, []).AccessMessage);
+            Assert.Throws<InvalidOperationException>(() => premium.ChangeDrawing(id, "unknown"));
+            Assert.Empty(premium.AccessMessage); Assert.True(premium.Export().Succeeded);
         }
         /// <summary>Unsupported identity mutations and bad observations fail before publishing any state.</summary>
         [Theory]

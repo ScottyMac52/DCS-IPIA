@@ -43,11 +43,11 @@ namespace Heimdall.Tests
         {
             var free = new EditionPolicy();
             Assert.False(free.IsOwner); Assert.Contains("TBA", free.Label);
-            Assert.Throws<InvalidOperationException>(free.RequireOwner);
+            Assert.Throws<InvalidOperationException>(free.RequirePremium);
             Assert.Equal(AppearanceTheme.NavyAmber, free.EffectiveTheme(AppearanceTheme.Light));
             using var issuer = new OwnerLicenseTestIssuer(); var owner = issuer.Policy;
             Assert.True(owner.IsOwner); Assert.Contains("Owner", owner.Label);
-            owner.RequireOwner(); owner.RequireHardware(["anything"]);
+            owner.RequirePremium(); owner.RequireHardware(["anything"]);
             Assert.True(owner.AllowsDevice(new(Guid.NewGuid(), "Unknown hardware", true)));
             Assert.Equal(AppearanceTheme.CockpitGreen, owner.EffectiveTheme(AppearanceTheme.CockpitGreen));
             Assert.False(new EditionPolicy(issuer.License()).IsOwner);

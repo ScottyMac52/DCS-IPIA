@@ -26,7 +26,7 @@ namespace Heimdall.App.Smoke
             using var issuer = new OwnerLicenseTestIssuer();
             try
             {
-                EditionAccess.SetForTests(issuer.Policy);
+                EditionAccess.SetForTests(issuer.PremiumPolicy);
                 var physical = new DetectedDcsDevice(Guid.NewGuid(), "Smoke SOL-R controller", true,
                     ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" },
@@ -117,18 +117,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Discard persisted pending ED edits.");
                 VerifySwitch(services, hardware, saved.Id, stick.LogicalId, command);
                 VerifyProfileSwitch(services, hardware, saved.Id, stick.LogicalId, command);
-                EditionAccess.SetForTests(new());
-                var acquisitions = 0;
-                using var free = new EliteWorkspaceWindow(services, hardware, saved.Id, pendingChoice: () => MessageBoxResult.No,
-                    inputFactory: (_, _) => { acquisitions++; return new FakeDeviceInputSource(physical.PhysicalGuid); });
-                free.Show(); ThemeControlSmoke.Pump(free);
-                if (Box<StackPanel>(free, "AssignmentEditor").IsEnabled || Box<Button>(free, "StartInputButton").IsEnabled)
-                    throw new InvalidOperationException("Free game import bypassed hardware or live-input eligibility.");
-                if (Box<Button>(free, "IdentifyControllerButton").IsEnabled) throw new InvalidOperationException("Free edition enabled live identification.");
-                Click(free, "IdentifyControllerButton"); Click(free, "ConfirmIdentificationButton");
-                Click(free, "StartInputButton");
-                if (acquisitions != 0) throw new InvalidOperationException("A direct Free game command acquired input handles.");
-                free.Close();
+                SimulatorEditionSmoke.Verify(services, hardware, saved.Id, issuer);
             }
             finally { EditionAccess.SetForTests(previous); Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
         }

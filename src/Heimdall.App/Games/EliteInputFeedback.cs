@@ -37,7 +37,7 @@ namespace Heimdall.App.Games
         /// <summary>Starts only after Owner entitlement and one exact attached instance are verified.</summary>
         internal void Start(GameHardwarePin pin, IReadOnlyList<DetectedDcsDevice> observed)
         {
-            Stop(); EditionAccess.Policy.RequireOwner();
+            Stop(); EditionAccess.Policy.RequirePremium();
             if (!GameInputReadiness.Ready(pin, observed))
                 throw new InvalidOperationException("Connect the explicitly associated controller and rescan before testing.");
             _physical = pin.Device.PhysicalGuid;

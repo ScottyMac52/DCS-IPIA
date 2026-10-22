@@ -1,6 +1,6 @@
 namespace Heimdall.Application
 {
-    /// <summary>Defines the initial Free release and the authenticated all-feature owner entitlement.</summary>
+    /// <summary>Defines the Free DCS access and authenticated Premium/Owner feature entitlements.</summary>
     public sealed class EditionPolicy
     {
         private static readonly HashSet<string> FreeHardware = new(StringComparer.Ordinal) {
@@ -12,19 +12,31 @@ namespace Heimdall.Application
         public EditionPolicy(string? license = null, OwnerLicenseVerifier? verifier = null) =>
             _owner = license is null ? null : (verifier ?? new OwnerLicenseVerifier()).Verify(license);
         #region BEGIN Public
-        /// <summary>Gets whether all application features are unlocked for the owner.</summary>
-        public bool IsOwner => _owner is not null;
+        /// <summary>Gets whether the signed entitlement identifies the application owner.</summary>
+        public bool IsOwner => _owner?.Edition == "Owner";
+        /// <summary>Gets whether an authenticated customer Premium license is installed.</summary>
+        public bool IsPremium => _owner?.Edition == "Premium";
+        /// <summary>Gets paid-feature access without conflating a customer license with Owner identity.</summary>
+        public bool HasPremium => IsOwner || IsPremium;
+        /// <summary>Allows DCS in Free; all other nonempty simulator identifiers require a signed paid entitlement.</summary>
+        public bool AllowsSimulator(string simulatorId) => !string.IsNullOrWhiteSpace(simulatorId) && (simulatorId == "dcs" || HasPremium);
+        /// <summary>Rejects reserved simulators independently of hardware, device names or profile contents.</summary>
+        public void RequireSimulator(string simulatorId)
+        {
+            if (!AllowsSimulator(simulatorId))
+                throw new InvalidOperationException("This simulator requires HEIMDALL Premium or Owner. DCS World is available in Free Edition.");
+        }
         /// <summary>Gets a non-sensitive edition label for settings and release evidence.</summary>
-        public string Label => IsOwner ? "Owner — all features unlocked" : "Free Edition — Premium availability and pricing TBA";
+        public string Label => IsOwner ? "Owner — all features unlocked" : IsPremium ? "Premium Edition — all supported simulators and features" : "Free Edition — DCS World; Premium availability and pricing TBA";
         /// <summary>Gets the fixed Free Edition theme without rewriting saved user preferences.</summary>
-        public AppearanceTheme EffectiveTheme(AppearanceTheme saved) => IsOwner ? saved : AppearanceTheme.NavyAmber;
+        public AppearanceTheme EffectiveTheme(AppearanceTheme saved) => HasPremium ? saved : AppearanceTheme.NavyAmber;
         /// <summary>Allows only explicitly reviewed Thrustmaster catalog identities in Free.</summary>
-        public bool AllowsHardware(string hardwareId) => IsOwner || FreeHardware.Contains(hardwareId);
+        public bool AllowsHardware(string hardwareId) => HasPremium || FreeHardware.Contains(hardwareId);
         /// <summary>Accepts native HID Thrustmaster vendor evidence, never a user-editable device name.</summary>
         public bool AllowsDevice(DetectedDcsDevice device)
         {
             var product = device.ProductGuid.ToString("D");
-            return IsOwner || product.EndsWith("504944564944", StringComparison.OrdinalIgnoreCase) &&
+            return HasPremium || product.EndsWith("504944564944", StringComparison.OrdinalIgnoreCase) &&
                 (device.ProductGuid.ToByteArray()[0] | device.ProductGuid.ToByteArray()[1] << 8) == 0x044F;
         }
         /// <summary>Rejects unlicensed hardware operations with a consistent actionable message.</summary>
@@ -36,7 +48,7 @@ namespace Heimdall.Application
         /// <summary>Requires native manufacturer evidence for selected units, retaining previously verified saved units while offline.</summary>
         public void RequireInventory(HardwareInventorySnapshot saved, IReadOnlyList<HardwareInventoryEdit> edits)
         {
-            if (IsOwner) return;
+            if (HasPremium) return;
             var blocked = edits.Where(edit => edit.Selected).Where(edit =>
             {
                 var candidate = edit.Candidate;
@@ -53,9 +65,9 @@ namespace Heimdall.Application
                     "Previously verified Thrustmaster units can remain selected offline. Other manufacturers require the licensed edition; Premium availability TBA.");
         }
         /// <summary>Rejects reserved appearance or live-input operations before side effects.</summary>
-        public void RequireOwner()
+        public void RequirePremium()
         {
-            if (!IsOwner) throw new InvalidOperationException("This feature is reserved for the licensed edition. Premium availability and pricing TBA.");
+            if (!HasPremium) throw new InvalidOperationException("This feature is reserved for HEIMDALL Premium or Owner. Premium availability and pricing TBA.");
         }
         #endregion END Public
     }

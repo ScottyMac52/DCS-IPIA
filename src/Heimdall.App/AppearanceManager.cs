@@ -45,7 +45,7 @@ namespace Heimdall.App
         /// <summary>Applies a validated draft to all open windows without writing settings or files.</summary>
         public static void Preview(AppearanceSettings settings, BitmapSource? image, IReadOnlyDictionary<string, BitmapSource>? images = null)
         {
-            if (!EditionAccess.Policy.IsOwner) { settings = FreeEditionAppearance.Settings; image = FreeEditionAppearance.Image; }
+            if (!EditionAccess.Policy.HasPremium) { settings = FreeEditionAppearance.Settings; image = FreeEditionAppearance.Image; }
             AppearanceValidation.Validate(settings);
             var dictionary = BuildPalette(settings, image is not null);
             _active = settings; _image = image;
@@ -63,7 +63,7 @@ namespace Heimdall.App
         /// <summary>Reloads the accepted appearance after Cancel, close or successful persistence.</summary>
         public static void Restore()
         {
-            if (!EditionAccess.Policy.IsOwner) { Preview(FreeEditionAppearance.Settings, FreeEditionAppearance.Image); return; }
+            if (!EditionAccess.Policy.HasPremium) { Preview(FreeEditionAppearance.Settings, FreeEditionAppearance.Image); return; }
             var settings = Store?.Current ?? new(); BitmapSource? image = null;
             var images = new Dictionary<string, BitmapSource>(StringComparer.Ordinal);
             string? diagnostic = Store?.LastError;
@@ -120,7 +120,7 @@ namespace Heimdall.App
         /// <summary>Gets the effective background for a window or view.</summary>
         public static AppearanceSettings SettingsFor(FrameworkElement surface)
         {
-            if (!EditionAccess.Policy.IsOwner) return FreeEditionAppearance.Settings;
+            if (!EditionAccess.Policy.HasPremium) return FreeEditionAppearance.Settings;
             var key = GetTarget(surface) ?? surface.GetType().Name;
             var parent = surface is Window ? null : Window.GetWindow(surface) is { } owner ? GetTarget(owner) ?? owner.GetType().Name : null;
             if (surface.Name == "TargetPreview") parent = key.EndsWith("View", StringComparison.Ordinal) ? "ModuleWorkspaceWindow" : null;
@@ -257,7 +257,7 @@ namespace Heimdall.App
                 panel.Background = Brushes.Transparent;
             var settings = SettingsFor(window);
             var key = GetTarget(window) ?? window.GetType().Name;
-            var scoped = EditionAccess.Policy.IsOwner && (window.Name == "TargetPreview" || _active.Backgrounds?.ContainsKey(key) == true);
+            var scoped = EditionAccess.Policy.HasPremium && (window.Name == "TargetPreview" || _active.Backgrounds?.ContainsKey(key) == true);
             var image = settings.Image is not null ? _images.GetValueOrDefault(settings.Image) : _image;
             if (settings.Image is not null && settings.Image == _active.Image) image ??= _image;
             if (window.GetValue(LocalPaletteProperty) is ResourceDictionary previous) window.Resources.MergedDictionaries.Remove(previous);

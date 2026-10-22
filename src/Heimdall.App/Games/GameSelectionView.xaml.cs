@@ -9,7 +9,7 @@ namespace Heimdall.App.Games
     {
         private GameSelectionState _recent = new();
         /// <summary>Builds the selection surface.</summary>
-        public GameSelectionView() => InitializeComponent();
+        public GameSelectionView() { InitializeComponent(); SetRecent(new()); }
         #region BEGIN Public
         /// <summary>Requests an explicit supported game selection.</summary>
         public event EventHandler<string>? GameRequested;
@@ -19,6 +19,9 @@ namespace Heimdall.App.Games
         public void SetRecent(GameSelectionState recent)
         {
             _recent = recent;
+            EliteCard.IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
+            EliteAccessText.Text = EliteCard.IsEnabled ? "Select controls profile →" : "Requires Premium";
+            ContinueButton.IsEnabled = EditionAccess.Policy.AllowsSimulator(recent.BackendId);
             RecentText.Text = (recent.BackendId == "dcs" ? "DCS World" : "Elite Dangerous") +
                 (recent.DisplayName.Length == 0 ? " · Choose a profile" : " · " + recent.DisplayName);
             DcsCard.BorderThickness = recent.BackendId == "dcs" ? new Thickness(2) : new Thickness(1);
@@ -27,8 +30,10 @@ namespace Heimdall.App.Games
         #endregion END Public
         #region BEGIN private helpers
         private void DcsClicked(object sender, RoutedEventArgs e) => GameRequested?.Invoke(this, "dcs");
-        private void EliteClicked(object sender, RoutedEventArgs e) => GameRequested?.Invoke(this, "elite-dangerous");
-        private void ContinueClicked(object sender, RoutedEventArgs e) => ContinueRequested?.Invoke(this, EventArgs.Empty);
+        private void EliteClicked(object sender, RoutedEventArgs e)
+        { if (EditionAccess.Policy.AllowsSimulator("elite-dangerous")) GameRequested?.Invoke(this, "elite-dangerous"); }
+        private void ContinueClicked(object sender, RoutedEventArgs e)
+        { if (EditionAccess.Policy.AllowsSimulator(_recent.BackendId)) ContinueRequested?.Invoke(this, EventArgs.Empty); }
         #endregion END private helpers
     }
 }

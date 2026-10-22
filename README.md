@@ -7,9 +7,9 @@ HEIMDALL — Simulation Control Manager replaces DCS-IPIA. See the [branding and
 
 ## Initial Free Edition
 
-The initial release supports the reviewed Thrustmaster catalog with a fixed Navy-Amber photographic appearance. Premium is planned for additional supported hardware, live input testing and appearance customization; **availability and pricing TBA**. There is no checkout or subscription in this release. Existing data and saved appearance preferences are retained.
+Free supports **DCS World only**, using the reviewed Thrustmaster catalog with a fixed Navy-Amber photographic appearance. **Elite Dangerous and all other simulator integrations require a signed Premium or Owner license.** Premium also enables additional supported hardware, live input testing and appearance customization; **availability and pricing TBA**. There is no checkout or subscription in this release. Existing data and saved appearance preferences are retained.
 
-See the [Free Edition and owner activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
+See the [Free/Premium contract and activation guide](docs/design/free-edition.md), launch issue #253 and Premium roadmap #252. Public release remains subject to the licensing/distribution review recorded there.
 
 ## Game and simulator selection
 

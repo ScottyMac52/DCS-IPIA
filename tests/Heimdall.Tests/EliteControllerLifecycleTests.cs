@@ -141,14 +141,20 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => session.PreviewRemoveController(id));
             Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot));
         }
-        /// <summary>Removing an unsupported reference cannot grant access to another unsupported controller; replacement probing remains Owner-only.</summary>
+        /// <summary>Removing a reference never unlocks Free ED; Premium can remove it through the reviewed controller workflow.</summary>
         [Fact]
         public void Edition_boundaries_survive_cleanup_and_replacement()
         {
             var device = Replacement(); var session = Session(Workspace(), new(), [device]);
             Assert.Throws<InvalidOperationException>(() => session.PreviewReplaceController(Source(session), device.PhysicalGuid, () => ["Joy_1"]));
-            session.ApplyControllerChange(session.PreviewRemoveController(Source(session)));
-            Assert.Empty(session.AccessMessage); Assert.True(session.Export().Succeeded);
+            var before = JsonSerializer.Serialize(session.Snapshot);
+            Assert.Throws<InvalidOperationException>(() => session.PreviewRemoveController(Source(session)));
+            Assert.Throws<InvalidOperationException>(() => session.Export());
+            Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot)); Assert.False(session.HasChanges);
+            using var issuer = new OwnerLicenseTestIssuer();
+            var premium = Session(Workspace(), issuer.PremiumPolicy, [device]);
+            premium.ApplyControllerChange(premium.PreviewRemoveController(Source(premium)));
+            Assert.Empty(premium.AccessMessage); Assert.True(premium.Export().Succeeded);
         }
         #endregion END Public
         #region BEGIN private helpers

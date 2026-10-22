@@ -49,6 +49,7 @@ namespace Heimdall.Application.Games
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
         {
+            _policy.RequireSimulator(_backend.SimId);
             var order = GameControllerOrder.For(_current).ToList();
             if (!order.Contains(source) || !order.Contains(target))
                 throw new ArgumentException("Choose two controllers in this profile.");
@@ -72,6 +73,7 @@ namespace Heimdall.Application.Games
         /// <summary>Links one explicitly chosen unit to an existing reference or adds a unique supported product; artwork is optional.</summary>
         public string ConnectController(Guid physicalGuid, string? hardwareId = null, string? logicalId = null)
         {
+            _policy.RequireSimulator(_backend.SimId);
             var observations = _observed(); var observed = Observed(physicalGuid, observations);
             RequireDrawing(hardwareId);
             var pinned = _current.Hardware.Where(x => x.Value.Device.PhysicalGuid == physicalGuid).Select(x => x.Key).ToArray();
@@ -112,9 +114,10 @@ namespace Heimdall.Application.Games
         public GameControllerChange PreviewReplaceController(string logicalId, Guid physicalGuid,
             Func<IReadOnlyCollection<string>> nativeInputs, string? targetLogicalId = null, string? hardwareId = null)
         {
-            _policy.RequireOwner();
+            _policy.RequirePremium();
             var baseline = JsonSerializer.Serialize(_current);
             ArgumentNullException.ThrowIfNull(nativeInputs);
+            _policy.RequireSimulator(_backend.SimId);
             var observations = _observed(); var observed = Observed(physicalGuid, observations);
             RequireDrawing(hardwareId);
             var candidate = GameWorkspaceContract.Clone(_current);
@@ -155,7 +158,7 @@ namespace Heimdall.Application.Games
                 throw new InvalidOperationException("The profile changed after this preview. Review the controller change again.");
             if (change.Target is { } target)
             {
-                _policy.RequireOwner();
+                _policy.RequirePremium();
                 var observed = Observed(target.PhysicalGuid, _observed());
                 if (observed.ProductGuid != target.ProductGuid || !change.Keys.SetEquals(change.Inputs!()))
                     throw new InvalidOperationException("Replacement identity or inputs changed. Review the replacement again.");
@@ -170,6 +173,7 @@ namespace Heimdall.Application.Games
         /// <summary>Changes or removes the shared illustration without changing the physical or native target.</summary>
         public void ChangeDrawing(string logicalId, string? hardwareId)
         {
+            _policy.RequireSimulator(_backend.SimId);
             RequireDrawing(hardwareId);
             if (!_current.Hardware.TryGetValue(logicalId, out var pin)) throw new InvalidOperationException("Connect this controller before choosing its drawing.");
             var candidate = GameWorkspaceContract.Clone(_current);
@@ -238,7 +242,8 @@ namespace Heimdall.Application.Games
         private void ValidateControllerCandidate(GameWorkspace candidate)
         {
             GameWorkspaceContract.Validate(candidate);
-            GameWorkspaceAccess.Require(candidate, _policy, _catalogIds, _observed(), _referenceMatcher);
+            _policy.RequireSimulator(_backend.SimId);
+            GameWorkspaceAccess.Require(candidate, _policy);
             ValidateProfile(candidate.Profile);
         }
         private string DescribeControllerChange(string action, string logicalId, ProfileDocument after)
@@ -301,7 +306,8 @@ namespace Heimdall.Application.Games
         }
         private void RequireAccess()
         {
-            if (!_policy.IsOwner) GameWorkspaceAccess.Require(_current, _policy, _catalogIds, _observed(), _referenceMatcher);
+            _policy.RequireSimulator(_backend.SimId);
+            GameWorkspaceAccess.Require(_current, _policy);
         }
         private SimProfileExportPlan ValidateProfile(ProfileDocument profile)
         {

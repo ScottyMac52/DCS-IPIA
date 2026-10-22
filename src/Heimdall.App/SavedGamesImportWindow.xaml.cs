@@ -73,7 +73,7 @@ namespace Heimdall.App
                     if ((await _repository.GetAsync(id))?.Configuration.Module.DcsId.Equals(DcsIdInput.Text, StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidDataException("This DCS input folder already has a saved module. Open it, or delete it explicitly before importing a replacement.");
                 var workspace = SavedGamesWorkspaceFactory.Create(_folder, DcsIdInput.Text, DisplayNameInput.Text, _defaults,
-                    _hardwareSources, _choices.Select(x => new SavedGamesDeviceSelection(x.Profile.Id, x.Hardware!)).ToArray(), emptyDefaults: _training is null && !EditionAccess.Policy.IsOwner);
+                    _hardwareSources, _choices.Select(x => new SavedGamesDeviceSelection(x.Profile.Id, x.Hardware!)).ToArray(), emptyDefaults: _training is null && !EditionAccess.Policy.HasPremium);
                 EditionAccess.RequireWorkspace(workspace, training: _training);
                 await _repository.SaveAsync(workspace);
                 ImportedWorkspace = await _repository.GetAsync(workspace.Configuration.Module.Id)
