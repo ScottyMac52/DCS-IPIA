@@ -10,5 +10,12 @@ namespace Heimdall.Application
     /// <param name="Height">SVG callout height.</param>
     /// <param name="IsAxis">Whether the authored hardware control is an axis.</param>
     public sealed record HardwareGraphicControl(string Control, string Label, string InputKey, double X, double Y,
-                                                double Width, double Height, bool IsAxis = false);
+                                                double Width, double Height, bool IsAxis = false)
+    {
+        #region BEGIN Public
+        /// <summary>Gets the vertical space reserved for a static input caption above assignment labels.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public double LabelTopInset { get; init; }
+        #endregion END Public
+    }
 }

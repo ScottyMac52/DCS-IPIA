@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Heimdall.Tests
 {
-    /// <summary>Checks native keyboard/mouse geometry, exact keys, numbered references and shared rendering.</summary>
+    /// <summary>Checks native keyboard/mouse geometry, exact keys, command labels and shared rendering.</summary>
     public sealed class EliteSystemInputDrawingTests
     {
         #region BEGIN Public
@@ -15,7 +15,7 @@ namespace Heimdall.Tests
         [Theory]
         [InlineData("Keyboard")]
         [InlineData("Mouse")]
-        public void System_artwork_uses_exact_inputs_and_matching_reference_numbers(string token)
+        public void System_artwork_uses_exact_inputs_and_visible_command_labels(string token)
         {
             var backend = new EliteDangerousProfileBackend(); var profile = Source(); var frozen = JsonSerializer.Serialize(profile);
             var device = profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == token);
@@ -25,19 +25,48 @@ namespace Heimdall.Tests
             Assert.NotEmpty(diagram.Controls); Assert.Equal(diagram.Controls.Count, diagram.Controls.Select(x => x.InputKey).Distinct(StringComparer.Ordinal).Count());
             Assert.All(diagram.Controls, c => { Assert.True(c.X >= 0 && c.Y >= 0 && c.X + c.Width <= diagram.Width && c.Y + c.Height <= diagram.Height); Assert.Equal(c.InputKey, EliteInputKeys.FromDiagram(diagram, c)); });
             var page = EliteWorkspaceProjection.Diagram("Systems", diagram, rows, "All");
-            var markers = EliteSystemInputDrawings.Markers(rows);
             var sheet = EliteReferenceSheetBuilder.Build(profile, catalog, device.LogicalId, token, "All", true);
             foreach (var row in rows)
             {
                 var control = diagram.Controls.Single(x => x.InputKey == row.Input);
-                Assert.Equal("#" + markers[row.Input], Assert.Single(page.Labels[control.Control]).Text);
-                Assert.Contains(sheet.Rows, r => r.Input.StartsWith("#" + markers[row.Input] + " · ", StringComparison.Ordinal) && r.Input.Contains(row.Input, StringComparison.Ordinal));
+                Assert.Contains(page.Labels[control.Control], label => label.Text.Contains(row.CommandName, StringComparison.Ordinal));
+                Assert.Contains(sheet.Rows, r => r.Command.Contains(row.CommandName, StringComparison.Ordinal) && r.Input.Contains(row.Input, StringComparison.Ordinal));
             }
+            var composed = XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page));
+            foreach (var control in diagram.Controls)
+            {
+                var label = composed.Descendants().Single(x => (string?)x.Attribute("id") == "lbl-" + control.Control);
+                Assert.DoesNotContain("#", label.Value);
+                var y = double.Parse(label.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+                foreach (var span in label.Elements())
+                {
+                    y += double.Parse(span.Attribute("dy")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    Assert.True(y > control.Y + control.LabelTopInset && y < control.Y + control.Height);
+                }
+            }
+            var sharedInput = token == "Keyboard" ? "Key_A" : "Mouse_1";
+            var sharedControl = diagram.Controls.Single(x => x.InputKey == sharedInput);
+            Assert.True(page.Labels[sharedControl.Control].Count >= 2);
             var image = CompositeKneeboardRenderer.Render(diagram, page);
             Assert.True(image.Length > 1000);
             var cards = ReferenceSheetRenderer.Render(sheet, new("A4", true, true), image);
             Assert.True(cards.PageCount >= 2); Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(cards.Pdf, 0, 5));
             Assert.Equal(frozen, JsonSerializer.Serialize(profile)); Assert.True(backend.Export(profile).Succeeded);
+        }
+        /// <summary>Malformed label padding fails without accepting an invalid drawing area.</summary>
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(70)]
+        [InlineData(double.NaN)]
+        public void Invalid_caption_insets_are_rejected(double inset)
+        {
+            var profile = Source(); var keyboard = profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Keyboard");
+            var drawing = EliteSystemInputDrawings.Create(profile, keyboard.LogicalId)!;
+            var control = drawing.Controls.Single(x => x.InputKey == "Key_A") with { LabelTopInset = inset, Height = 70 };
+            drawing = drawing with { Controls = [control] };
+            var page = EliteWorkspaceProjection.Diagram("Systems", drawing,
+                EliteWorkspaceProjection.Rows(profile, new EliteDangerousProfileBackend().GetCatalog(profile)).Where(x => x.DeviceId == keyboard.LogicalId).ToArray(), "All");
+            Assert.Throws<InvalidDataException>(() => CompositeKneeboardRenderer.BuildDeviceSvg(drawing, page));
         }
         /// <summary>Keyboard letters, modifiers and keypad keys remain distinct; unknown imported names are escaped and retained.</summary>
         [Fact]
@@ -77,6 +106,7 @@ namespace Heimdall.Tests
               <PrimaryFire><Primary Device="Keyboard" Key="Key_A"><Modifier Device="Keyboard" Key="Key_LeftShift"/></Primary><Secondary Device="Mouse" Key="Mouse_1"/></PrimaryFire>
               <SecondaryFire><Primary Device="Mouse" Key="Pos_Mouse_ZAxis"/><Secondary Device="Keyboard" Key="Key_Future&lt;&amp;"/></SecondaryFire>
               <PitchAxisRaw><Binding Device="Mouse" Key="Mouse_XAxis"/><Inverted Value="0"/><Deadzone Value="0"/></PitchAxisRaw>
+              <DeployHardpointToggle><Primary Device="Mouse" Key="Mouse_1"/><Secondary Device="Keyboard" Key="Key_A"/></DeployHardpointToggle>
               <LandingGearToggle><Primary Device="ExampleStick" Key="Joy_1"/><Secondary Device="{NoDevice}" Key=""/></LandingGearToggle>
             </Root>
             """

@@ -347,18 +347,27 @@ native input names are invented for imported assignments.
 
 Click a key/button to select its native assignment or prepare a draft; command drag/drop
 and the existing context menu use the same path as controller diagrams. Tooltips show
-complete current command names and combinations. Compact numbered markers keep keys
-readable; the complete reference table uses the same stable per-input numbers and
-retains Primary/Secondary, combinations, hold/toggle and axis details. Numbers remain
-stable across section filters, and unknown inputs remain visible in the additional
+complete current command names and combinations. Assigned command names wrap directly inside each key/button, below its input caption.
+Every applicable command on the same input is shown, including Secondary/Hold labels;
+empty inputs retain their caption without invented assignments. Keyboard cells provide
+additional vertical space, and the complete cell remains clickable. The full reference
+table retains Primary/Secondary, combinations, hold/toggle and axis details. Section
+filters apply to displayed commands; unknown inputs remain visible in the additional
 input area and table. Assignment and reference previews share the same geometry.
+
+The same command-label projection serves physical sticks, throttles, rudders and MFDs:
+assigned buttons, hats and axes display their commands in authored callouts. Multiple
+commands share the callout, section filters apply, and unassigned controls have no
+assignment label. Physical artwork retains its authored geometry and full hit areas.
 
 Both table-only and Artwork + assignment table layouts remain available, with the
 existing PNG/PDF export, pagination, section filters and background/opacity behavior.
 All drawing and reference operations leave native evidence and hardware links intact.
-`EliteSystemInputDrawingTests` covers native names, geometry, escaping, stable reference
-numbers, rendering and isolation; `EliteSystemInputSmoke` exercises keyboard/mouse
+`EliteSystemInputDrawingTests` covers native names, geometry, escaping, complete command labels,
+caption separation, rendering and isolation; `EliteSystemInputSmoke` exercises keyboard/mouse
 selection, actual diagram clicks, assignment application and illustrated reference exports.
+`EliteWorkspaceProjectionTests` also covers physical controller callouts for buttons,
+hats, axes, multiple commands, Secondary/Hold labels and section filtering.
 
 Native naming evidence: captured ED keyboard/mouse defaults archived at
 https://github.com/richardbuckle/EDRefCard/blob/dev/bindings/Defaults%20ODY%20patch%208/KeyboardMouseOnly.binds

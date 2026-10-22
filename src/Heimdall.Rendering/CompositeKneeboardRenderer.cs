@@ -112,9 +112,12 @@ namespace Heimdall.Rendering
                 var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control.Control);
                 if (label is not null && label.Value.Length > 0)
                 {
+                    if (!double.IsFinite(control.LabelTopInset) || control.LabelTopInset < 0 || control.LabelTopInset >= control.Height - 2)
+                        throw new InvalidDataException("Control assignment label inset is outside its callout: " + control.Control);
+                    var labelArea = control with { Y = control.Y + control.LabelTopInset, Height = control.Height - control.LabelTopInset };
                     if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
-                        FitStackedCallout(label, control, page.Labels[control.Control]);
-                    else FitCallout(label, control, page.Labels[control.Control]);
+                        FitStackedCallout(label, labelArea, page.Labels[control.Control]);
+                    else FitCallout(label, labelArea, page.Labels[control.Control]);
                 }
             }
             FitCategories(root, diagram, page);
