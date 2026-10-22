@@ -4,16 +4,16 @@
  <AdornerDecorator>
   <Grid x:Name="AssignmentWorkspace" Margin="4" Background="Transparent" pres:WorkspaceLayout.Key="assignments.split"
         AllowDrop="True" PreviewDragOver="WorkspacePreviewDragOver" DragOver="WorkspaceDragOver" Drop="WorkspaceDrop">
-   <Grid.ColumnDefinitions><ColumnDefinition Width=".3*" MinWidth="180"/><ColumnDefinition Width="6"/><ColumnDefinition Width=".7*" MinWidth="300"/></Grid.ColumnDefinitions>
+   <Grid.ColumnDefinitions><ColumnDefinition Width=".3*" MinWidth="180"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".7*" MinWidth="300"/></Grid.ColumnDefinitions>
    <cmd:CommandsManagementView x:Name="CommandManager"/>
-   <GridSplitter Grid.Column="1" Width="6" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}" AutomationProperties.Name="Command and controller divider"/>
+   <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Command and controller divider"/>
    <Grid Grid.Column="2" Margin="6,0,0,0">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="100"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
      <Expander Header="Device status"><TextBlock x:Name="StatusText" TextWrapping="Wrap"/></Expander>
                 <WrapPanel Margin="0,0,0,4">
-                    <TextBlock Text="Device:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
-                    <ComboBox x:Name="DeviceChoice" Width="220" Margin="0,0,16,0" SelectionChanged="DeviceChanged" Style="{StaticResource AppComboBox}"/>
+                    <TextBlock Text="Device:" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
+                    <ComboBox Visibility="Collapsed" SelectedValuePath="ProfileId" x:Name="DeviceChoice" Width="220" Margin="0,0,16,0" SelectionChanged="DeviceChanged" Style="{StaticResource AppComboBox}"/>
                     <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="Scope" Width="140" Margin="0,0,16,0" SelectionChanged="ScopeChanged" Style="{StaticResource AppComboBox}">
                         <ComboBoxItem Content="Module"/>
@@ -25,7 +25,7 @@
 
      <WrapPanel Margin="0,2,0,4">
       <TextBlock x:Name="DeviceTitle" Margin="0,0,10,0" VerticalAlignment="Center"/>
-      <Button x:Name="FitDiagramButton" Content="Fit" Click="FitDiagramClicked" Padding="8,2" ToolTip="Fit the whole controller and its callouts"/>
+      <Button Style="{StaticResource ActionButton}" x:Name="FitDiagramButton" Content="Fit" Click="FitDiagramClicked" Padding="8,2" ToolTip="Fit the whole controller and its callouts"/>
       <TextBlock Text="Zoom:" VerticalAlignment="Center" Margin="6,0"/>
       <Slider x:Name="Zoom" Width="100" Minimum="0.01" Maximum="5" Value="1" ValueChanged="ZoomChanged" MouseDoubleClick="Zoom_MouseDoubleClick" VerticalAlignment="Center"/>
       <TextBox x:Name="ZoomPercent" Width="48" Text="100" LostFocus="ZoomPercentChanged"/><TextBlock Text="%" VerticalAlignment="Center"/>
@@ -36,13 +36,13 @@
     </ScrollViewer>
     <StackPanel Grid.Row="2">
      <TextBlock x:Name="SelectedCallout" TextWrapping="Wrap" Margin="0,4,0,0"/>
-     <Expander x:Name="InputDetails" Header="Selected input · label and details" pres:WorkspaceLayout.Key="assignments.inspector">
+     <Expander x:Name="InputDetails" Header="Selected input · assignment and label" pres:WorkspaceLayout.Key="assignments.inspector">
       <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto"><StackPanel>
                 <TextBlock Text="Label" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
                 <TextBox x:Name="LabelEditor" Margin="0,4,0,0" TextChanged="LabelChanged"/>
                 <TextBlock Text="Generic control name" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
                 <DockPanel Margin="0,4,0,0">
-                    <Button x:Name="RenameGenericControlButton" Content="Rename" Click="RenameGenericControlClicked" Padding="8,4" DockPanel.Dock="Right" Margin="6,0,0,0"/>
+                    <Button Style="{StaticResource ActionButton}" x:Name="RenameGenericControlButton" Content="Rename" Click="RenameGenericControlClicked" Padding="8,4" DockPanel.Dock="Right" Margin="6,0,0,0"/>
                     <TextBox x:Name="GenericControlName" Style="{StaticResource AppTextBox}"/>
                 </DockPanel>
                 <TextBlock x:Name="InspectorDetails" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.8"/>

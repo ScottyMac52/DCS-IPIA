@@ -93,6 +93,7 @@ namespace Heimdall.App.Smoke
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
+                UnifiedWorkspaceSmoke.VerifyElite(window);
                 EliteWorkspaceEnhancementsSmoke.Verify(window, services);
                 EliteWorkspacePolishSmoke.Verify(window, root);
                 var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot);

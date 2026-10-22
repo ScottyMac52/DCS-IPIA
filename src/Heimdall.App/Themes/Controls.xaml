@@ -40,8 +40,31 @@
         <Setter Property="Margin" Value="0,0,10,6"/>
     </Style>
 
-    <Style x:Key="FeatureActionButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
-        <Setter Property="Margin" Value="0,0,8,4"/>
+    <Style x:Key="WorkspaceControllerList" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="ItemContainerStyle"><Setter.Value>
+            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            </Style>
+        </Setter.Value></Setter>
+    </Style>
+    <Style x:Key="WorkspaceDivider" TargetType="GridSplitter">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="ResizeDirection" Value="Columns"/>
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+        <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="KeyboardIncrement" Value="16"/>
+        <Setter Property="DragIncrement" Value="2"/>
+        <Setter Property="ToolTip" Value="Drag to resize. Focus and use Left / Right to adjust with the keyboard."/>
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+        </Style.Triggers>
     </Style>
     <Style x:Key="ToolbarActionButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
         <Setter Property="HorizontalAlignment" Value="Left"/>
@@ -49,5 +72,8 @@
         <Setter Property="Height" Value="30"/>
         <Setter Property="Margin" Value="0,0,8,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="FeatureActionButton" TargetType="Button" BasedOn="{StaticResource ToolbarActionButton}">
+        <Setter Property="Margin" Value="0,0,8,4"/>
     </Style>
 </ResourceDictionary>

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:local="clr-namespace:Heimdall.App"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Icon="{x:Static local:ApplicationBranding.Icon}" Title="{Binding WindowTitle}" Width="1180" Height="760"
+        Icon="{x:Static local:ApplicationBranding.Icon}" Title="{Binding WindowTitle}" Width="1340" Height="860"
         MinWidth="900" MinHeight="540" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
   <Grid x:Name="WorkspaceRoot" Margin="10">
@@ -11,10 +11,35 @@
       <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
     <StackPanel>
+    <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <WrapPanel x:Name="GameWorkspaceSelectors" Margin="0,0,0,8" Visibility="Collapsed">
-     <ComboBox x:Name="WorkspaceGamePicker" Width="170" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/></ComboBox>
-     <ComboBox x:Name="WorkspaceProfilePicker" Width="270" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
+     <ComboBox x:Name="WorkspaceGamePicker" Width="180" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/></ComboBox>
+     <ComboBox x:Name="WorkspaceProfilePicker" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
     </WrapPanel>
+     <WrapPanel Grid.Column="1">
+      <Button x:Name="SaveWorkspaceButton" Style="{StaticResource ToolbarActionButton}" Content="Save" Click="SaveClicked" ToolTip="Save all pending workspace edits to HEIMDALL."/>
+      <Button x:Name="DiscardWorkspaceButton" Style="{StaticResource ToolbarActionButton}" Content="Discard" Click="DiscardClicked" ToolTip="Discard all pending workspace edits."/>
+        <ToggleButton x:Name="OutputMenuButton" Content="Export…" Padding="10,4" Width="176" Height="30" Margin="0,0,8,0">
+          <ToggleButton.Style>
+            <Style TargetType="ToggleButton">
+              <Setter Property="Background" Value="{DynamicResource ControlSurfaceBrush}"/>
+              <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+              <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+              <Setter Property="BorderThickness" Value="1"/>
+              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                  <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                </Border>
+              </ControlTemplate></Setter.Value></Setter>
+              <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+                <Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
+              </Style.Triggers>
+            </Style>
+          </ToggleButton.Style>
+        </ToggleButton>
+     </WrapPanel>
+    </Grid>
     <DockPanel Margin="0,0,0,5">
       <Expander x:Name="ModuleDetails" Header="Module details" DockPanel.Dock="Right" MaxWidth="660"
                 local:WorkspaceLayout.Key="workspace.details">
@@ -39,22 +64,40 @@
       </Style></ListBox.Style>
     </ListBox>
     </StackPanel>
-    <ListBox x:Name="FeatureNav" Grid.Row="1" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+    <StackPanel Grid.Row="1">
+    <ListBox x:Name="FeatureNav" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
         SelectionChanged="FeatureNavChanged" AutomationProperties.Name="Module feature tabs">
       <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="10,5"/></Style></ListBox.ItemContainerStyle>
         <ListBoxItem Content="Devices" Tag="Devices"/>
+        <ListBoxItem Content="Assignments &amp; Testing" Tag="Assignments"/>
+        <ListBoxItem Content="Input Test" Tag="InputTest" Visibility="Collapsed"/>
+        <ListBoxItem Content="Reference Sheets" Tag="Kneeboards"/>
         <ListBoxItem Content="Modifiers" Tag="Modifiers"/>
-        <ListBoxItem Content="Assignments" Tag="Assignments"/>
-        <ListBoxItem Content="Input Test" Tag="InputTest"/>
         <ListBoxItem Content="Commands" Tag="Commands"/>
         <ListBoxItem Content="Pages" Tag="Pages"/>
-        <ListBoxItem Content="Kneeboards" Tag="Kneeboards"/>
         <ListBoxItem Content="Documentation" Tag="Documentation"/>
     </ListBox>
+    <WrapPanel x:Name="AssignmentModes" Visibility="Collapsed" Margin="0,6,0,2">
+     <RadioButton x:Name="AssignMode" Content="Assign" GroupName="AssignmentMode" Margin="0,0,16,0" Click="AssignmentModeClicked" Tag="Assignments"/>
+     <RadioButton x:Name="TestMode" Content="Test inputs" GroupName="AssignmentMode" Click="AssignmentModeClicked" Tag="InputTest"/>
+     <TextBlock Text="Select a controller, then a command and input." Margin="16,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+    </WrapPanel>
+    </StackPanel>
     <local:FeatureActionBar x:Name="FeatureActions" Grid.Row="2" Margin="0,4,0,0"/>
-    <ContentControl x:Name="FeatureContent" Grid.Row="3"
+    <Grid Grid.Row="3" x:Name="ControllerPanes" local:WorkspaceLayout.Key="dcs.controllers.split">
+     <Grid.ColumnDefinitions><ColumnDefinition Width=".18*" MinWidth="160"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".82*" MinWidth="540"/></Grid.ColumnDefinitions>
+     <DockPanel Margin="0,4,6,0">
+      <TextBlock DockPanel.Dock="Top" Text="Controllers in profile" FontWeight="SemiBold" Style="{StaticResource AppLabel}" Margin="0,0,0,8"/>
+      <TextBlock DockPanel.Dock="Bottom" Text="Select a controller to work with its inputs and drawing." TextWrapping="Wrap" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+      <ListBox Style="{StaticResource WorkspaceControllerList}" x:Name="ControllerPicker" SelectedValuePath="ProfileId" AutomationProperties.Name="DCS controllers in profile">
+       <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}" TextWrapping="Wrap" ToolTip="{Binding Title}"/></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+     </DockPanel>
+     <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Controllers and workspace divider"/>
+    <ContentControl x:Name="FeatureContent" Grid.Column="2" Margin="6,0,0,0"
                     HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+    </Grid>
     <Grid Grid.Row="4" Margin="0,5,0,0">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
@@ -69,29 +112,11 @@
         </TextBlock>
       </StackPanel>
       <WrapPanel Grid.Column="1" VerticalAlignment="Bottom">
-        <ToggleButton x:Name="OutputMenuButton" Content="Build &amp; export…" Padding="10,4">
-          <ToggleButton.Style>
-            <Style TargetType="ToggleButton">
-              <Setter Property="Background" Value="{DynamicResource ControlSurfaceBrush}"/>
-              <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-              <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-              <Setter Property="BorderThickness" Value="1"/>
-              <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
-                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
-                  <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
-                </Border>
-              </ControlTemplate></Setter.Value></Setter>
-              <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
-                <Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
-              </Style.Triggers>
-            </Style>
-          </ToggleButton.Style>
-        </ToggleButton>
+
         <Button x:Name="WorkspaceSettingsButton" Content="Settings" Padding="10,4" Click="SettingsClicked"/>
         <Button Content="Close" Padding="10,4" Click="Close_Click"/>
       </WrapPanel>
-      <Popup x:Name="OutputMenu" PlacementTarget="{Binding ElementName=OutputMenuButton}" Placement="Top"
+      <Popup x:Name="OutputMenu" PlacementTarget="{Binding ElementName=OutputMenuButton}" Placement="Bottom"
              Opened="OutputMenuOpened"
              IsOpen="{Binding IsChecked, ElementName=OutputMenuButton, Mode=TwoWay}" StaysOpen="False">
         <Border Background="{DynamicResource ControlBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="12" MaxWidth="620"

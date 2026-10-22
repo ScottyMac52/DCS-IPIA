@@ -12,8 +12,10 @@
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="RescanControllerButton" Content="Rescan"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="ChangeDrawingButton" Content="Change drawing…"/>
 </pres:ActionBar>
- <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
-     <TextBlock Style="{StaticResource AppLabel}" Text="Identify a controller reference" FontSize="18" FontWeight="SemiBold"/>
+ <Grid pres:WorkspaceLayout.Key="elite.devices.split">
+ <Grid.ColumnDefinitions><ColumnDefinition Width=".4*" MinWidth="240"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".6*" MinWidth="280"/></Grid.ColumnDefinitions>
+ <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,6,0"><StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
+     <TextBlock Style="{StaticResource AppLabel}" Text="Controller link" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Select an unknown ID in Controllers in profile, then identify it by operating your hardware. No existing link or drawing is required." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <WrapPanel>
 
@@ -23,19 +25,19 @@
      <TextBlock Style="{StaticResource AppLabel}" x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Add a controller" FontSize="18" FontWeight="SemiBold"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
-     <WrapPanel>
-      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ConnectedPicker" DisplayMemberPath="Title" Width="430" AutomationProperties.Name="Controller to add or use as replacement"/>
+     <StackPanel>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ConnectedPicker" DisplayMemberPath="Title" MinWidth="160" AutomationProperties.Name="Controller to add or use as replacement"/>
 
 
 
-     </WrapPanel>
+     </StackPanel>
      <StackPanel x:Name="ReplacementReferenceTools" Visibility="Collapsed" Margin="0,6,0,0">
       <TextBlock Style="{StaticResource AppLabel}" Text="For an unlinked replacement with identical products, choose its captured ED reference/index explicitly. Connection order is not an ED index." TextWrapping="Wrap"/>
-      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReplacementReferencePicker" DisplayMemberPath="Name" Width="430" HorizontalAlignment="Left" AutomationProperties.Name="Replacement ED reference and index"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReplacementReferencePicker" DisplayMemberPath="Name" MinWidth="160" HorizontalAlignment="Left" AutomationProperties.Name="Replacement ED reference and index"/>
      </StackPanel>
      <StackPanel x:Name="ReferenceChoiceTools" Visibility="Collapsed" Margin="0,8,0,0">
       <TextBlock Style="{StaticResource AppLabel}" Text="Choose the matching reference from your imported ED preset. ED indices identify game references, not Windows connection order." TextWrapping="Wrap"/>
-      <WrapPanel Margin="0,4,0,0"><ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferencePicker" DisplayMemberPath="Name" Width="430" AutomationProperties.Name="Matching ED reference"/>
+      <WrapPanel Margin="0,4,0,0"><ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferencePicker" DisplayMemberPath="Name" MinWidth="160" AutomationProperties.Name="Matching ED reference"/>
        <Button Style="{StaticResource ToolbarActionButton}" x:Name="LinkReferenceButton" Content="Link selected reference"/>
       </WrapPanel>
      </StackPanel>
@@ -43,10 +45,13 @@
 
      </WrapPanel>
      <WrapPanel x:Name="DrawingTools" Visibility="Collapsed" Margin="0,6,0,0">
-      <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" Width="360" AutomationProperties.Name="Optional shared hardware drawing"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" MinWidth="160" AutomationProperties.Name="Optional shared hardware drawing"/>
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="UseDrawingButton" Content="Use drawing"/>
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="NoDrawingButton" Content="No drawing"/>
      </WrapPanel>
     </StackPanel></ScrollViewer>
+ <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Controller link and drawing divider"/>
+ <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>
+ </Grid>
  </DockPanel>
 </UserControl>

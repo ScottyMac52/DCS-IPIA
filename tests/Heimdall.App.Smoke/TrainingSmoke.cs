@@ -84,6 +84,8 @@ namespace Heimdall.App.Smoke
                     if (runner.State == TrainingState.Failed)
                         throw new InvalidOperationException(runner.Error);
                     CheckTrainingState(window, step.Action);
+                    if (step.Action == "devices" && !window.IsHighlightedTargetVisible)
+                        throw new InvalidOperationException("Training did not highlight the visible controller rail: " + window.HighlightedTargetVisibilityDetails);
                     if (!ReferenceEquals(editionBefore, EditionAccess.Policy))
                         throw new InvalidOperationException("Training temporarily changed the process-wide edition.");
                     if (step.Action == "drag" && !window.AreDragEndpointsVisible)

@@ -26,19 +26,19 @@
         </StackPanel>
         <Grid Grid.Row="1" pres:WorkspaceLayout.Key="devices.split">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=".5*" MinWidth="200"/>
-                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width=".4*" MinWidth="240"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width=".6*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
-            <DataGrid x:Name="ManagedDevices" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,4,0">
+            <DataGrid Visibility="Collapsed" SelectedValuePath="ProfileId" x:Name="ManagedDevices" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,4,0">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Device" Binding="{Binding Title}" Width="*"/>
                     <DataGridTextColumn Header="Instance" Binding="{Binding Instance}" Width="100"/>
                     <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
-            <GridSplitter ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderBrush}"/>
-            <GroupBox Grid.Column="2" Header="Device" Padding="8" Margin="4,0,0,0">
+            <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Controller link and drawing divider"/>
+            <GroupBox Grid.Column="0" Header="Controller link" Padding="8" Margin="4,0,0,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                     <TextBlock Text="Detected device" Style="{StaticResource AppLabel}"/>
@@ -91,6 +91,7 @@
                 </StackPanel>
                 </ScrollViewer>
             </GroupBox>
+            <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>
         </Grid>
     </Grid>
 </UserControl>

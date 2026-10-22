@@ -32,7 +32,7 @@
       "Action": "create",
       "Title": "Create and open the module",
       "Explanation": "The form saves a new module into the isolated database and opens its actual feature workspace. Its shared-default revision is pinned.",
-      "Target": "Devices:ManagedDevices",
+      "Target": "Host:ControllerPicker",
       "Checkpoint": true
     },
     {
@@ -40,7 +40,7 @@
       "Action": "devices",
       "Title": "Review physical devices",
       "Explanation": "The same fictional joystick is used throughout mapping and testing. Real device filenames contain physical GUIDs: select or rebind your own unit explicitly. A model name alone does not distinguish two identical controllers. The aircraft and module UI Layer are separate scopes.",
-      "Target": "Devices:ManagedDevices",
+      "Target": "Host:ControllerPicker",
       "Checkpoint": true
     },
     {
@@ -208,7 +208,7 @@
       "Action": "reopen",
       "Title": "Reopen saved state",
       "Explanation": "The workspace has been reloaded from SQLite. These assignments and labels survive closing and reopening HEIMDALL.",
-      "Target": "Devices:ManagedDevices",
+      "Target": "Host:ControllerPicker",
       "Checkpoint": true
     },
     {

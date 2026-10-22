@@ -59,6 +59,9 @@ namespace Heimdall.App.Features.Commands
             if (_assignmentScope == scope) return;
             _assignmentScope = scope;
             CatalogEditor.IsExpanded = false;
+            CatalogEditor.Visibility = Visibility.Collapsed;
+            CatalogActionsBar.IsFeatureActions = false;
+            Commands.Columns[1].Visibility = Visibility.Collapsed;
             CatalogFields.IsEnabled = scope == AssignmentLayer.Module;
             foreach (var caption in CatalogActions)
                 if (ActionBar.FindButton(this, caption) is { } button) button.IsEnabled = scope == AssignmentLayer.Module;
