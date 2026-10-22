@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using Heimdall.Application;
+using Heimdall.Dcs;
 
 namespace Heimdall.App.Smoke
 {
