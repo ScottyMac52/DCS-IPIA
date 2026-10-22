@@ -78,6 +78,7 @@ namespace Heimdall.App.Smoke
                 ShowWithoutSetup(restarted);
                 var profiles = new UserDataProfileWindow(profile, lifecycle, () => { }) { Owner = restarted };
                 profiles.Show();
+                UserGuideCapture.Save(profiles, "test-profiles");
                 Click(ActionBar.FindButton(profiles, "Rerun setup (preserve saved data)")!);
                 if (!profiles.ResumeSetupRequested || !lifecycle.SetupCompleted)
                     throw new InvalidOperationException("Profiles/reset rerun cleared completion before setup opened.");
