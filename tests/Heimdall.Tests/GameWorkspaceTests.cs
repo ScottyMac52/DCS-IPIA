@@ -99,10 +99,16 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => session.MoveController(physical[0].LogicalId, physical[1].LogicalId));
             Assert.Throws<InvalidOperationException>(() => session.PreviewRemoveController(physical[0].LogicalId));
             Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot)); Assert.False(session.HasChanges);
-            workspace.Profile.Devices.Clear(); workspace.Hardware.Clear();
-            var empty = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), [], () => []);
-            Assert.Contains("Premium", empty.AccessMessage);
-            Assert.Throws<InvalidOperationException>(() => empty.Export());
+            foreach (var token in new[] { "Keyboard", "{NoDevice}" })
+            {
+                var backend = new EliteDangerousProfileBackend();
+                var profile = backend.Import("controls", new Dictionary<string, string> { ["Minimal.4.2.binds"] =
+                    "<Root PresetName='Minimal' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='" + token +
+                    "' Key='" + (token == "Keyboard" ? "Key_A" : "") + "'/><Secondary Device='{NoDevice}' Key=''/></PrimaryFire></Root>" });
+                var minimal = new GameProfileSession(backend, new(1, Guid.NewGuid(), "Minimal", profile, new()), new(), [], () => []);
+                Assert.Contains("Premium", minimal.AccessMessage);
+                Assert.Throws<InvalidOperationException>(() => minimal.Export());
+            }
         }
 
         /// <summary>Another native vendor cannot gain eligibility through an unrelated Thrustmaster drawing association.</summary>
