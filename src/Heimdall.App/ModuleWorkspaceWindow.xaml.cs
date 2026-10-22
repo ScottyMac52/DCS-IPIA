@@ -407,7 +407,8 @@ namespace Heimdall.App
         internal void UpdateBuildAvailability()
         {
             if (BuildButton is null || PackageVersion is null) return;
-            SaveWorkspaceButton.IsEnabled = !_building && _repository is not null && _saved is not null && HasPendingChanges();
+            SaveWorkspaceButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
+                EditionAccess.AllowsWorkspace(_working, _training) && HasPendingChanges();
             DiscardWorkspaceButton.IsEnabled = !_building && HasPendingChanges();
             PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&

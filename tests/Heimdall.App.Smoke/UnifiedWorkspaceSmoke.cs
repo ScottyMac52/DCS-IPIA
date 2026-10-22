@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Heimdall.Application;
 using Heimdall.Domain;
+using Heimdall.Dcs;
 using Heimdall.App.Games;
 
 namespace Heimdall.App.Smoke

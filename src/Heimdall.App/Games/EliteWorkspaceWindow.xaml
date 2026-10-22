@@ -26,7 +26,6 @@
    <WrapPanel><TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="250" TextChanged="ProfileNameChanged" MaxLength="100"/>
 
    </WrapPanel>
-   <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Save stages your profile in HEIMDALL. Export writes its named preset to the selected destination." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
    <Expander Header="Export destination" Margin="0,6,0,0">
     <StackPanel>
      <Grid Margin="0,4,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -39,7 +38,6 @@
      <TextBlock Style="{StaticResource Hint}" Text="Direct export writes only the named preset. Replacing it requires confirmation and creates a backup. Close ED before exporting to its Bindings folder." Margin="0,4,0,0"/>
     </StackPanel>
    </Expander>
-   <TextBlock Style="{StaticResource AppLabel}" x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
   </StackPanel></ScrollViewer>
    </Expander>
     <ListBox x:Name="SectionPicker" Margin="0,4,0,0" SelectionChanged="SectionChanged" AutomationProperties.Name="Elite controls section"
@@ -77,7 +75,11 @@
     <ContentControl x:Name="FeatureContent" Margin="6,0,0,0" Grid.Column="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
    </Grid>
   </Grid>
-  <TextBlock Style="{StaticResource AppLabel}" x:Name="WorkspaceStatus" Grid.Row="3" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  <StackPanel Grid.Row="3">
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Save stages your profile in HEIMDALL. Export writes its named preset to the selected destination." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="WorkspaceStatus" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
  </Grid>
 </Window>
 
