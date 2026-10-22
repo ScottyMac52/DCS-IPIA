@@ -95,8 +95,8 @@ namespace Heimdall.App.Smoke
                 window.Width = width; window.Height = height;
                 root.LayoutTransform = new ScaleTransform(1.25, 1.25); ThemeControlSmoke.Pump(window);
                 ThemeControlSmoke.SaveImage(window, "unified-elite-scaled");
-                if (drawing.ActualHeight < 120 || !Box<ComboBox>(window, "InputKey").IsVisible)
-                    throw new InvalidOperationException($"Enlarged UI scaling hid the ED input editor or drawing: drawing={drawing.ActualHeight}, input visible={Box<ComboBox>(window, "InputKey").IsVisible}.");
+                if (drawing.ActualHeight < 120 || !InspectorInputVisible(window))
+                    throw new InvalidOperationException($"Enlarged UI scaling hid the ED input editor or drawing: drawing={drawing.ActualHeight}, input inside inspector={InspectorInputVisible(window)}.");
                 if (JsonSerializer.Serialize(window.Session.Export().Files) != original)
                     throw new InvalidOperationException("Workspace presentation changed native ED bindings.");
             }
@@ -105,6 +105,16 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
+        private static bool InspectorInputVisible(Window window)
+        {
+            var input = Box<ComboBox>(window, "InputKey");
+            var viewport = Box<ScrollViewer>(window, "AssignmentInspectorScroll");
+            var available = viewport.TransformToAncestor(window).TransformBounds(new Rect(viewport.RenderSize));
+            var bounds = input.TransformToAncestor(window).TransformBounds(new Rect(input.RenderSize));
+            available.Inflate(1, 1);
+            return input.IsVisible && available.Contains(bounds);
+        }
+
         private static DeviceProfile Profile(string name) => new(Guid.NewGuid(), "tm-tpr", name, name, name + ".diff.lua");
         private static T Box<T>(FrameworkElement view, string name) where T : FrameworkElement => (T)view.FindName(name);
         private static void VerifyDivider(Window window, Grid grid)
