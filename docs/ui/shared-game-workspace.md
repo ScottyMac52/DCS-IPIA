@@ -40,7 +40,7 @@ scrollable disclosure rather than consuming permanent working height.
 ## Verification
 
 `UnifiedWorkspaceSmoke` exercises both divider boundaries through WPF keyboard events,
-checks selected-controller continuity across DCS Devices/Assign/Test, checks ED command
+checks selected-controller continuity and add/discard refresh across cached DCS Devices/Assign/Test, checks ED command
 and inspector geometry, smaller window size and 125% presentation scaling, and compares
 native export/snapshot state before and after presentation changes. CI captures actual
 DCS/ED assignment, ED device/reference and enlarged UI screenshots. Existing Windows

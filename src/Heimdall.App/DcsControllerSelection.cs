@@ -44,6 +44,9 @@ namespace Heimdall.App
                     SelectControllerPage(view);
                     return;
                 }
+                if (view is Features.InputTest.InputTestView && _workspace() is { } current)
+                    selector.ItemsSource = WorkspaceStructureEditor.Describe(current).Devices
+                        .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
                 if (_selectedController is { } selected) selector.SelectedValue = selected;
                 if (selector.SelectedIndex < 0 && selector.Items.Count > 0) selector.SelectedIndex = 0;
                 _picker.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("ItemsSource") { Source = selector });

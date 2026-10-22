@@ -53,6 +53,20 @@ namespace Heimdall.App.Smoke
                 if (EditorSnapshotSerializer.Serialize(window._working!) != original ||
                     !window._draft!.Snapshot.SequenceEqual(workspace.Assignments) || window._labels.Count != workspace.Labels.Count)
                     throw new InvalidOperationException("Presentation geometry or selection changed the DCS snapshot.");
+                var added = Profile("New");
+                window.RunStructureEdit(current => current with
+                {
+                    Configuration = new(module, profiles.Append(added), [], [], "smoke"),
+                    Diagrams = diagrams.Append(diagrams[0] with { ProfileId = added.Id, Device = "New" }).ToArray()
+                });
+                var test = WorkspaceUi.Navigate(window, "InputTest"); ThemeControlSmoke.Pump(window);
+                rail.SelectedValue = added.Id;
+                if (rail.Items.Count != 3 || !Equals(Box<Selector>(test, "FeedbackDevice").SelectedValue, added.Id))
+                    throw new InvalidOperationException("Cached input testing omitted a newly added DCS controller.");
+                window.DiscardClicked(window, new RoutedEventArgs());
+                WorkspaceUi.Navigate(window, "Devices"); WorkspaceUi.Navigate(window, "InputTest"); ThemeControlSmoke.Pump(window);
+                if (rail.Items.Count != 2 || EditorSnapshotSerializer.Serialize(window._working!) != original)
+                    throw new InvalidOperationException("Cached input testing retained a discarded controller or changed native state.");
             }
             finally { window.Close(); }
         }
