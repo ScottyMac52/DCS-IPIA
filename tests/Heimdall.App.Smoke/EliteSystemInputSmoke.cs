@@ -32,6 +32,11 @@ namespace Heimdall.App.Smoke
             Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
             AssertArtwork(window, "Key_A");
             var keyboard = window.Session!.Snapshot.Profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Keyboard");
+            // Catalog order starts with Flight Rotation. Select the existing button assignment through its key first.
+            Region(window, "Key_A").RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            if (Box<ListBox>(window, "CommandsList").SelectedItem is not Heimdall.Domain.MultiSim.SimCommand { DisplayName: "Primary Fire", Type: Heimdall.Domain.MultiSim.CommandType.Button }
+                || Box<TextBox>(window, "InputKey").Text != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
+                throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding.");
             var region = Region(window, "Key_B");
             region.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             if (Box<TextBox>(window, "InputKey").Text != "Key_B" || !Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
@@ -39,6 +44,10 @@ namespace Heimdall.App.Smoke
             Box<Button>(window, "ApplyAssignmentButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (!window.Session.Snapshot.Profile.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Buttons.Any(x => x.SourceButton == "Key_B"))
                 throw new InvalidOperationException("A clicked keyboard key did not apply through the native assignment boundary.");
+            var authored = window.Session.Snapshot.Profile;
+            if (!authored.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse").Axes.Any(x => x.SourceAxis == "Mouse_XAxis")
+                || authored.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Axes.Count != 0)
+                throw new InvalidOperationException("A keyboard button edit changed the existing mouse axis binding.");
             ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {
