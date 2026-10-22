@@ -63,6 +63,7 @@ namespace Heimdall.App.Smoke
             var feature = Box<ListBox>(window, "FeaturePicker");
             var width = window.Width; var height = window.Height;
             var root = Box<Grid>(window, "WorkspaceRoot");
+            var persistence = WorkspaceLayout.GetPersistenceEnabled(root);
             WorkspaceLayout.SetPersistenceEnabled(root, false);
             try
             {
@@ -92,13 +93,13 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Resizing removed usable ED drawing or assignment space.");
                 window.Width = width; window.Height = height;
                 root.LayoutTransform = new ScaleTransform(1.25, 1.25); ThemeControlSmoke.Pump(window);
-                if (drawing.ActualHeight < 120 || !Box<ComboBox>(window, "InputKey").IsVisible)
-                    throw new InvalidOperationException("Enlarged UI scaling hid the ED input editor or drawing.");
                 ThemeControlSmoke.SaveImage(window, "unified-elite-scaled");
+                if (drawing.ActualHeight < 120 || !Box<ComboBox>(window, "InputKey").IsVisible)
+                    throw new InvalidOperationException($"Enlarged UI scaling hid the ED input editor or drawing: drawing={drawing.ActualHeight}, input visible={Box<ComboBox>(window, "InputKey").IsVisible}.");
                 if (JsonSerializer.Serialize(window.Session.Export().Files) != original)
                     throw new InvalidOperationException("Workspace presentation changed native ED bindings.");
             }
-            finally { root.LayoutTransform = Transform.Identity; window.Width = width; window.Height = height; feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window); }
+            finally { WorkspaceLayout.SetPersistenceEnabled(root, persistence); root.LayoutTransform = Transform.Identity; window.Width = width; window.Height = height; feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window); }
         }
         #endregion END Public
 

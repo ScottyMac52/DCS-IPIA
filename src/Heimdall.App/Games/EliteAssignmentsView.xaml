@@ -15,7 +15,7 @@
    <local:EliteCommandBrowserView x:Name="CommandBrowser" Margin="0,0,6,0"/>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Commands and assignment divider"/>
    <Grid Grid.Column="2" Margin="6,0,0,0">
-    <Grid.RowDefinitions><RowDefinition Height=".62*" MinHeight="130"/><RowDefinition Height=".38*" MinHeight="100" MaxHeight="240"/></Grid.RowDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height=".62*" MinHeight="180"/><RowDefinition Height=".38*" MinHeight="100" MaxHeight="240"/></Grid.RowDefinitions>
     <local:EliteAssignmentArtworkView x:Name="Artwork"/>
     <local:EliteAssignmentEditorView x:Name="Editor" Grid.Row="1"/>
    </Grid>

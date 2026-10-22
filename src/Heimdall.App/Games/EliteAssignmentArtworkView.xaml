@@ -1,6 +1,6 @@
 <UserControl x:Class="Heimdall.App.Games.EliteAssignmentArtworkView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:pres="clr-namespace:Heimdall.App">
-<Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="120"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>      <WrapPanel Margin="0,0,0,6">
+<Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="122"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>      <WrapPanel Margin="0,0,0,6">
        <Button Style="{StaticResource ToolbarActionButton}" x:Name="ExportSheetButton" Content="Export reference PNG…" Visibility="Collapsed"/>
        <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" VerticalAlignment="Center" Margin="4,0"/>
        <Slider x:Name="DiagramZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Elite drawing zoom"/>

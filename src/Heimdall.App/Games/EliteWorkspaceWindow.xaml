@@ -76,9 +76,11 @@
    </Grid>
   </Grid>
   <StackPanel Grid.Row="3">
+   <Expander Header="Export status and installation details" Margin="0,5,0,0"><ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
    <TextBlock Style="{StaticResource AppLabel}" x:Name="ExportState" Text="Save stages your profile in HEIMDALL. Export writes its named preset to the selected destination." TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.Name="ED export and installation status"/>
+   </ScrollViewer></Expander>
    <TextBlock Style="{StaticResource AppLabel}" x:Name="AccessStatus" Margin="0,5,0,0" TextWrapping="Wrap"/>
-  <TextBlock Style="{StaticResource AppLabel}" x:Name="WorkspaceStatus" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="WorkspaceStatus" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
   </StackPanel>
  </Grid>
 </Window>
