@@ -8,6 +8,8 @@ namespace Heimdall.Tests
     /// <summary>Checks device-scoped combination choices, original captions and exact native keys without hardware access.</summary>
     public sealed class EliteCombinationInputsTests
     {
+        private static readonly string[] PhysicalKeys = ["Joy_1", "Joy_2", "Joy_3", "Joy_10", "Joy_24", "Joy_POV1Left"];
+        private static readonly string[] CapturedKeys = ["Joy_1", "Joy_24"];
         #region BEGIN Public
         /// <summary>Authored buttons and hats include unassigned controls, while captured cross-device modifiers remain available.</summary>
         [Fact]
@@ -23,7 +25,7 @@ namespace Heimdall.Tests
                     new("unknown", "Unknown", "JOY_SLIDER1", 100, 120, 100, 50)]
             };
             var choices = EliteCombinationInputs.ForDevice(profile, stick.LogicalId, diagram);
-            Assert.Equal(new[] { "Joy_1", "Joy_2", "Joy_3", "Joy_10", "Joy_24", "Joy_POV1Left" }, choices.Select(x => x.Key));
+            Assert.Equal(PhysicalKeys, choices.Select(x => x.Key));
             Assert.Equal("Trigger · Button 2 · Joy_2", choices.Single(x => x.Key == "Joy_2").DisplayName);
             Assert.Equal("Hat up", choices.Single(x => x.Key == "Joy_10").DefaultLabel);
             Assert.Equal("Button 3 · Joy_3", choices.Single(x => x.Key == "Joy_3").DisplayName);
@@ -35,8 +37,10 @@ namespace Heimdall.Tests
         public void Devices_without_drawings_preserve_captured_keys_and_reject_missing_references()
         {
             var profile = Source(); var stick = profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Stick");
+            stick.Buttons[0].Modifiers.Add(new() { Source = stick.LogicalId, Value = null });
+            stick.Buttons[0].Modifiers.Add(new() { Source = stick.LogicalId, Value = " " });
             var choices = EliteCombinationInputs.ForDevice(profile, stick.LogicalId);
-            Assert.Equal(new[] { "Joy_1", "Joy_24" }, choices.Select(x => x.Key));
+            Assert.Equal(CapturedKeys, choices.Select(x => x.Key));
             Assert.All(choices, x => Assert.Equal(x.Key, x.DefaultLabel));
             Assert.Throws<InvalidOperationException>(() => EliteCombinationInputs.ForDevice(profile, "missing"));
         }
