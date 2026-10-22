@@ -37,6 +37,7 @@ namespace Heimdall.App.Smoke
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
+                EliteCombinationInputsSmoke.Verify(root, hardware);
                 EliteControllerIdentificationSmoke.Verify(root, hardware);
                 EliteControllerLifecycleSmoke.Verify(root, hardware);
                 EliteExportPreflightSmoke.Verify(root, hardware);

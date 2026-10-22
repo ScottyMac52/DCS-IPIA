@@ -101,6 +101,7 @@ namespace Heimdall.App.Games
             _assignmentsView.CommandsList.SelectionChanged += CommandChanged;
             _assignmentsView.SlotPicker.SelectionChanged += SlotChanged;
             _assignmentsView.AddCombinationButton.Click += AddModifierClicked;
+            _assignmentsView.ModifierDevicePicker.SelectionChanged += (_, _) => { if (!_refreshing) RefreshCombinationInputs(); };
             _assignmentsView.RemoveCombinationButton.Click += RemoveModifierClicked;
             _assignmentsView.ApplyAssignmentButton.Click += ApplyClicked;
             _assignmentsView.ClearAssignmentButton.Click += ClearClicked;
@@ -281,6 +282,7 @@ namespace Heimdall.App.Games
             _session.Changed -= SessionChanged; _session = null; _revision = null;
             _refreshing = true; ProfileName.Text = ""; DevicePicker.ItemsSource = null;
             _assignmentsView.CommandsList.ItemsSource = null; _assignmentsView.AssignmentsGrid.ItemsSource = null; _refreshing = false;
+            _assignmentsView.ModifierDevicePicker.ItemsSource = null; RefreshCombinationInputs();
             _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear();
             _rows = []; _commands = []; _referenceSheets = null; _referenceDirty = true;
             _referenceView.ReferencePreview.Source = null; _referenceView.ReferencePageLabel.Text = "No preview";
@@ -435,13 +437,17 @@ namespace Heimdall.App.Games
             if (_session is null) { UpdateAvailability(); return; }
             var document = _session.Snapshot;
             var previousDevice = Device?.Id; var previousCommand = Command?.Id;
+            var previousCombinationDevice = (_assignmentsView.ModifierDevicePicker.SelectedItem as GameDeviceChoice)?.Id;
             _commands = _session.Catalog.Commands;
             _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
             _refreshing = true;
             var devices = GameControllerOrder.For(document).Select(id => new GameDeviceChoice(id, ControllerName(document, id))).ToArray();
             DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
-            _assignmentsView.ModifierDevicePicker.ItemsSource = devices; _assignmentsView.ModifierDevicePicker.SelectedIndex = 0;
+            _assignmentsView.ModifierDevicePicker.ItemsSource = devices;
+            _assignmentsView.ModifierDevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousCombinationDevice)
+                ?? devices.FirstOrDefault(x => x.Id == Device?.Id);
             _refreshing = false;
+            RefreshCombinationInputs();
             FilterCommands(previousCommand); RenderDevice(); UpdateReplacementReferences(); UpdateAvailability();
         }
         private void FilterCommands(string? selected = null)
@@ -534,7 +540,8 @@ namespace Heimdall.App.Games
             _assignmentsView.ModePicker.SelectedIndex = row?.Mode == BindingMode.Hold ? 1 : 0;
             _modifiers.Clear();
             if (row is not null) foreach (var modifier in row.Modifiers) _modifiers.Add(new(modifier,
-                (_assignmentsView.ModifierDevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == modifier.Source)?.Name ?? modifier.Source) + ": " + modifier.Value));
+                (_assignmentsView.ModifierDevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == modifier.Source)?.Name ?? modifier.Source)
+                    + ": " + (CombinationInputs(modifier.Source).FirstOrDefault(x => x.Key == modifier.Value)?.DisplayName ?? modifier.Value)));
             _assignmentsView.ModifierTools.IsExpanded = _modifiers.Count > 0;
             _assignmentsView.ModifiersList.ItemsSource = null; _assignmentsView.ModifiersList.ItemsSource = _modifiers;
             var key = "ed.toggle:" + Command?.Id;
@@ -632,8 +639,24 @@ namespace Heimdall.App.Games
         private void AddModifierClicked(object sender, RoutedEventArgs e)
         {
             if (_assignmentsView.ModifierDevicePicker.SelectedItem is not GameDeviceChoice device || string.IsNullOrWhiteSpace(_assignmentsView.ModifierKey.Text)) return;
-            _modifiers.Add(new(new() { Source = device.Id, Value = _assignmentsView.ModifierKey.Text.Trim() }, device.Name + ": " + _assignmentsView.ModifierKey.Text.Trim()));
-            _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.Clear(); DraftChanged();
+            var choice = _assignmentsView.ModifierKey.SelectedItem as EliteCombinationInput;
+            var key = choice is not null && _assignmentsView.ModifierKey.Text == choice.DisplayName ? choice.Key : _assignmentsView.ModifierKey.Text.Trim();
+            var label = CombinationInputs(device.Id).FirstOrDefault(x => x.Key == key)?.DisplayName ?? key;
+            _modifiers.Add(new(new() { Source = device.Id, Value = key }, device.Name + ": " + label));
+            _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.SelectedIndex = -1; _assignmentsView.ModifierKey.Text = ""; DraftChanged();
+        }
+        private IReadOnlyList<EliteCombinationInput> CombinationInputs(string deviceId)
+        {
+            if (_session is null) return [];
+            var document = _session.Snapshot;
+            var drawing = document.Hardware.TryGetValue(deviceId, out var pin)
+                ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId)?.Diagram : null;
+            return EliteCombinationInputs.ForDevice(document.Profile, deviceId, drawing);
+        }
+        private void RefreshCombinationInputs()
+        {
+            _assignmentsView.ModifierKey.ItemsSource = _assignmentsView.ModifierDevicePicker.SelectedItem is GameDeviceChoice device ? CombinationInputs(device.Id) : [];
+            _assignmentsView.ModifierKey.SelectedIndex = -1; _assignmentsView.ModifierKey.Text = "";
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
         { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
