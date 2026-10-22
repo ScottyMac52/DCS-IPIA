@@ -37,9 +37,10 @@ namespace Heimdall.Tests
             {
                 var label = composed.Descendants().Single(x => (string?)x.Attribute("id") == "lbl-" + control.Control);
                 Assert.DoesNotContain("#", label.Value);
+                var y = double.Parse(label.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture);
                 foreach (var span in label.Elements())
                 {
-                    var y = double.Parse(span.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    y += double.Parse(span.Attribute("dy")!.Value, System.Globalization.CultureInfo.InvariantCulture);
                     Assert.True(y > control.Y + control.LabelTopInset && y < control.Y + control.Height);
                 }
             }
