@@ -34,7 +34,9 @@ namespace Heimdall.App.Smoke
             var keyboard = window.Session!.Snapshot.Profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Keyboard");
             // Catalog order starts with Flight Rotation. Select the existing button assignment through its key first.
             Region(window, "Key_A").RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            ThemeControlSmoke.Pump(window);
             if (Box<ListBox>(window, "CommandsList").SelectedItem is not Heimdall.Domain.MultiSim.SimCommand { DisplayName: "Primary Fire", Type: Heimdall.Domain.MultiSim.CommandType.Button }
+                || Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire"
                 || Box<TextBox>(window, "InputKey").Text != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
                 throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding.");
             var region = Region(window, "Key_B");
@@ -64,7 +66,9 @@ namespace Heimdall.App.Smoke
                 if (token == "Mouse")
                 {
                     Region(window, "Pos_Mouse_ZAxis").RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-                    if (Box<TextBox>(window, "InputKey").Text != "Pos_Mouse_ZAxis") throw new InvalidOperationException("Mouse wheel used a guessed joystick input.");
+                    ThemeControlSmoke.Pump(window);
+                    if (Box<TextBox>(window, "InputKey").Text != "Pos_Mouse_ZAxis" || Box<TextBlock>(window, "AssignmentCommand").Text != "Secondary Fire")
+                        throw new InvalidOperationException("Mouse wheel selection did not show its native input and assigned command in the editor.");
                 }
                 var frozen = JsonSerializer.Serialize(window.Session.Snapshot);
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2;
