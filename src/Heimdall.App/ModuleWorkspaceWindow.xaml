@@ -90,7 +90,7 @@
      <DockPanel Margin="0,4,6,0">
       <TextBlock DockPanel.Dock="Top" Text="Controllers in profile" FontWeight="SemiBold" Style="{StaticResource AppLabel}" Margin="0,0,0,8"/>
       <TextBlock DockPanel.Dock="Bottom" Text="Select a controller to work with its inputs and drawing." TextWrapping="Wrap" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
-      <ListBox x:Name="ControllerPicker" SelectedValuePath="ProfileId" SelectionChanged="ControllerSelectionChanged" AutomationProperties.Name="DCS controllers in profile">
+      <ListBox x:Name="ControllerPicker" SelectedValuePath="ProfileId" AutomationProperties.Name="DCS controllers in profile">
        <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}" TextWrapping="Wrap" ToolTip="{Binding Title}"/></DataTemplate></ListBox.ItemTemplate>
       </ListBox>
      </DockPanel>

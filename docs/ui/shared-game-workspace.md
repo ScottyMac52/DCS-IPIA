@@ -16,7 +16,7 @@ usable and controller names wrap. Secondary, longer forms scroll inside their ow
 
 ## Presentation ownership
 
-- `ModuleWorkspaceWindow.Controllers.cs` connects the DCS rail to existing view selectors;
+- `DcsControllerSelection` connects the DCS rail to existing view selectors;
   it coordinates presentation selection without editing native identities or profile order.
   The stable feature keys remain available to training and automation. Assign/Test modes
   reuse cached native views, including the existing frozen input-test snapshot behavior.

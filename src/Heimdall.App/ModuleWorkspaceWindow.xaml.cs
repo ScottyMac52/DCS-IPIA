@@ -22,6 +22,7 @@ namespace Heimdall.App
     public partial class ModuleWorkspaceWindow : Window
     {
         private bool _changingSelection;
+        private readonly DcsControllerSelection _controllerSelection;
         private readonly WindowContext _context;
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private readonly INavigationService _navigation;
@@ -90,6 +91,7 @@ namespace Heimdall.App
             foreach (var pair in viewModel.Labels)
                 _labels[pair.Key] = pair.Value;
             InitializeComponent();
+            _controllerSelection = new(ControllerPicker, () => _working);
             _changingSelection = true;
             WorkspaceGamePicker.SelectedIndex = 0;
             WorkspaceProfilePicker.ItemsSource = moduleChoices ?? [];
@@ -145,6 +147,20 @@ namespace Heimdall.App
             try { await SaveWorkspaceAsync(); return !HasPendingChanges(); }
             catch (Exception error) { EditorMessage.Text = "Unable to save before switching: " + error.Message; return false; }
         }
+        private void AssignmentModeClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not RadioButton { Tag: string key }) return;
+            FeatureNav.SelectedItem = FeatureNav.Items.Cast<ListBoxItem>().Single(x => Equals(x.Tag, "Assignments"));
+            _navigation.NavigateTo(key);
+        }
+
+        private void RefreshAssignmentMode(string key)
+        {
+            AssignmentModes.Visibility = key is "Assignments" or "InputTest" ? Visibility.Visible : Visibility.Collapsed;
+            AssignMode.IsChecked = key == "Assignments";
+            TestMode.IsChecked = key == "InputTest";
+        }
+
         private void FeatureNavChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FeatureNav.SelectedItem is ListBoxItem item)
@@ -175,7 +191,7 @@ namespace Heimdall.App
             if (_views.TryGetValue(key, out var cached))
             {
                 FeatureContent.Content = cached;
-                LinkControllerSelection(cached);
+                _controllerSelection.Link(cached);
                 FeatureActions.ShowActions(cached);
                 return;
             }
@@ -195,7 +211,7 @@ namespace Heimdall.App
             {
                 WorkspaceLayout.SetPersistenceEnabled(view, WorkspaceLayout.GetPersistenceEnabled(WorkspaceRoot));
                 _views[key] = view;
-                LinkControllerSelection(view);
+                _controllerSelection.Link(view);
                 FeatureActions.ShowActions(view);
             }
             else FeatureActions.ClearActions();

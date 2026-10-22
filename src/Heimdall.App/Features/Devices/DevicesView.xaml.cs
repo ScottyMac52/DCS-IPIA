@@ -20,6 +20,7 @@ namespace Heimdall.App.Features.Devices
         {
             InitializeComponent();
             ManagedDevices.SelectionChanged += ManagedDeviceSelected;
+            AppearanceManager.ObserveArtwork(this, Refresh);
         }
 
         /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
