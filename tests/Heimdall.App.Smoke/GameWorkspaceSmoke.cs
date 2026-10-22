@@ -32,6 +32,7 @@ namespace Heimdall.App.Smoke
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" },
                     physical with { PhysicalGuid = Guid.NewGuid(), Name = "Throttle", ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") }));
                 EliteConfigurationsSmoke.Verify(root);
+                EliteSystemInputSmoke.Verify(root);
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
                 var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();

@@ -17,6 +17,8 @@ namespace Heimdall.EliteDangerous
                 throw new ArgumentException("Choose a supported Elite section.", nameof(section));
             if (!profile.Devices.Any(x => x.LogicalId == deviceId)) throw new InvalidOperationException("Select a controller in this profile.");
             var assignments = EliteWorkspaceProjection.Rows(profile, catalog).Where(x => x.DeviceId == deviceId).ToLookup(x => x.CommandId);
+            var system = profile.Devices.Single(x => x.LogicalId == deviceId).Identity!.SimSpecificIds["ed.device"] is "Keyboard" or "Mouse";
+            var markers = EliteSystemInputDrawings.Markers(EliteWorkspaceProjection.Rows(profile, catalog).Where(x => x.DeviceId == deviceId));
             var rows = new List<ReferenceSheetRow>();
             foreach (var command in EliteCommandBrowser.Filter(catalog.Commands, section))
             {
@@ -24,7 +26,7 @@ namespace Heimdall.EliteDangerous
                 if (bound.Length == 0 && !assignedOnly)
                     rows.Add(new(command.Category + " · " + command.DisplayName, "Not assigned", "No assignment on this controller"));
                 foreach (var row in bound)
-                    rows.Add(new(command.Category + " · " + row.CommandName, Input(row, profile), Details(row, profile)));
+                    rows.Add(new(command.Category + " · " + row.CommandName, (system ? "#" + markers[row.Input] + " · " : "") + Input(row, profile), Details(row, profile)));
             }
             return new(profile.Name, controllerName, section, rows);
         }

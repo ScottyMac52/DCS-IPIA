@@ -16,7 +16,7 @@ namespace Heimdall.App.Games
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, Action<HardwareGraphicControl> select,
-            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1)
+            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null)
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
@@ -26,7 +26,7 @@ namespace Heimdall.App.Games
             {
                 var border = new Border { Width = control.Width, Height = control.Height, Background = Brushes.Transparent,
                     BorderBrush = Brushes.Transparent, BorderThickness = new Thickness(3), AllowDrop = true,
-                    ToolTip = control.Label + " · " + control.InputKey, Tag = control };
+                    ToolTip = tooltip?.Invoke(control) ?? control.Label + " · " + control.InputKey, Tag = control };
                 Canvas.SetLeft(border, control.X); Canvas.SetTop(border, control.Y);
                 border.MouseLeftButtonDown += (_, e) => { select(control); e.Handled = true; };
                 border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent("heimdall.elite.command") ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
