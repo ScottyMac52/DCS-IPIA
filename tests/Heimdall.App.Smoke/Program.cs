@@ -14,7 +14,7 @@ namespace Heimdall.App.Smoke
     /// <summary>Opens both read-only WPF preview modes on a Windows CI runner.</summary>
     public static class Program
     {
-        private static readonly string[] NavigationHeaders = ["Devices", "Modifiers", "Assignments"];
+        private static readonly string[] NavigationHeaders = ["Devices", "Assignments & Testing", "Reference Sheets"];
         private static readonly string[] CommandImportButtons = ["LoadCommandJsonButton", "LoadCommandHtmlButton"];
         private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
             "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
@@ -115,8 +115,8 @@ namespace Heimdall.App.Smoke
             var diagnostics = (ListBox)folderWindow.FindName("ImportDiagnostics")!;
             if (!folderWindow.IsVisible || !diagnostics.Items.Cast<string>().Any(x => x.Contains("bad-profile", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Saved Games preview did not show its diagnostics.");
-            if (!folderNav.Items.Cast<ListBoxItem>().Take(3).Select(x => x.Content.ToString()).SequenceEqual(NavigationHeaders))
-                throw new InvalidOperationException("Devices and Modifiers must precede Assignments.");
+            if (!folderNav.Items.Cast<ListBoxItem>().Where(x => x.Visibility == Visibility.Visible).Take(3).Select(x => x.Content.ToString()).SequenceEqual(NavigationHeaders))
+                throw new InvalidOperationException("Common workspace tasks must precede DCS-specific tools.");
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             var mfd = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
             var configuration = new ModuleConfiguration(
