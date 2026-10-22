@@ -96,6 +96,7 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => session.ExportForGame());
             Assert.Throws<InvalidOperationException>(() => session.Associate(physical[0].LogicalId, "tm-mfd", observed.PhysicalGuid));
             Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing(physical[0].LogicalId, null));
+            Assert.Throws<InvalidOperationException>(() => session.MoveController(physical[0].LogicalId, physical[1].LogicalId));
             Assert.Throws<InvalidOperationException>(() => session.PreviewRemoveController(physical[0].LogicalId));
             Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot)); Assert.False(session.HasChanges);
             workspace.Profile.Devices.Clear(); workspace.Hardware.Clear();

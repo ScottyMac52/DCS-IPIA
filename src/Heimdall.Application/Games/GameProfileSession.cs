@@ -242,7 +242,8 @@ namespace Heimdall.Application.Games
         private void ValidateControllerCandidate(GameWorkspace candidate)
         {
             GameWorkspaceContract.Validate(candidate);
-            GameWorkspaceAccess.Require(candidate, _policy, _catalogIds, _observed(), _referenceMatcher);
+            _policy.RequireSimulator(_backend.SimId);
+            GameWorkspaceAccess.Require(candidate, _policy);
             ValidateProfile(candidate.Profile);
         }
         private string DescribeControllerChange(string action, string logicalId, ProfileDocument after)
@@ -306,7 +307,7 @@ namespace Heimdall.Application.Games
         private void RequireAccess()
         {
             _policy.RequireSimulator(_backend.SimId);
-            if (!_policy.HasPremium) GameWorkspaceAccess.Require(_current, _policy, _catalogIds, _observed(), _referenceMatcher);
+            GameWorkspaceAccess.Require(_current, _policy);
         }
         private SimProfileExportPlan ValidateProfile(ProfileDocument profile)
         {

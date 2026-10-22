@@ -41,7 +41,7 @@ namespace Heimdall.App.Smoke
             EditionAccess.SetForTests(issuer.Policy);
             using var owner = new EliteWorkspaceWindow(services, hardware, id);
             owner.Show(); ThemeControlSmoke.Pump(owner);
-            if (owner.Session?.Snapshot.Id != id || owner.Session.AccessMessage.Length != 0)
+            if (owner.Session is not { } session || session.Snapshot.Id != id || session.AccessMessage.Length != 0)
                 throw new InvalidOperationException("Owner could not reopen the retained ED configuration.");
             owner.Close();
         }

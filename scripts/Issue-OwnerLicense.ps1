@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)][string]$SigningKeyPath,
     [Parameter(Mandatory)][string]$OutputPath,
     [string]$OwnerName = 'Scott McIntosh',
-    [ValidateSet('Owner', 'Premium')][string]$Edition = 'Owner'
+    [ValidateSet('Owner', 'Premium', IgnoreCase = $false)][string]$Edition = 'Owner'
 )
 
 Set-StrictMode -Version Latest
