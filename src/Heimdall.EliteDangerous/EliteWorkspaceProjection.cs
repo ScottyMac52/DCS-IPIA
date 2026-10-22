@@ -30,12 +30,10 @@ namespace Heimdall.EliteDangerous
         public static KneeboardComposite Diagram(string title, UiLayerDiagram diagram,
             IReadOnlyList<EliteAssignmentRow> rows, string section)
         {
-            var system = diagram.Path.StartsWith("elite-system/", StringComparison.Ordinal);
-            var markers = EliteSystemInputDrawings.Markers(rows);
             var labels = diagram.Controls.ToDictionary(control => control.Control, control =>
                 (IReadOnlyList<KneeboardLabelVariant>)rows.Where(x => x.Input == EliteInputKeys.FromDiagram(diagram, control)
                     && (section == "All" || x.Section == section)).Select(x => new KneeboardLabelVariant(
-                        system ? "#" + markers[x.Input] : x.CommandName + (x.Slot == "Secondary" ? " [S]" : "") + (x.Mode == BindingMode.Hold ? " [Hold]" : ""),
+                        x.CommandName + (x.Slot == "Secondary" ? " [S]" : "") + (x.Mode == BindingMode.Hold ? " [Hold]" : ""),
                         KneeboardStateColors.Base, AssignmentLayer.Module, "")).DistinctBy(x => x.Text).ToArray(), StringComparer.Ordinal);
             return new(title, "Elite Dangerous · " + section, labels, Categories(diagram.Svg), []);
         }

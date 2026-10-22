@@ -48,6 +48,13 @@ namespace Heimdall.App.Smoke
             if (!authored.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse").Axes.Any(x => x.SourceAxis == "Mouse_XAxis")
                 || authored.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Axes.Count != 0)
                 throw new InvalidOperationException("A keyboard button edit changed the existing mouse axis binding.");
+            var drawing = Heimdall.EliteDangerous.EliteSystemInputDrawings.Create(authored, keyboard.LogicalId)!;
+            var projection = Heimdall.EliteDangerous.EliteWorkspaceProjection.Diagram("Systems", drawing,
+                Heimdall.EliteDangerous.EliteWorkspaceProjection.Rows(authored, window.Session.Catalog).Where(x => x.DeviceId == keyboard.LogicalId).ToArray(), "All");
+            var composed = Heimdall.Rendering.CompositeKneeboardRenderer.BuildDeviceSvg(drawing, projection);
+            if (!composed.Contains("Primary", StringComparison.Ordinal) || !composed.Contains("Fire", StringComparison.Ordinal)
+                || composed.Contains("Numbered inputs", StringComparison.Ordinal))
+                throw new InvalidOperationException("Keyboard assignment artwork omitted the assigned command name.");
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {

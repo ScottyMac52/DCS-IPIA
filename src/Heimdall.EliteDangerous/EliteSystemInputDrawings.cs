@@ -17,21 +17,28 @@ namespace Heimdall.EliteDangerous
             var token = device.Identity!.SimSpecificIds["ed.device"];
             if (token is not ("Keyboard" or "Mouse")) return null;
             var controls = new List<HardwareGraphicControl>();
-            if (token == "Keyboard") Keyboard(controls); else Mouse(controls);
+            if (token == "Keyboard")
+            {
+                Keyboard(controls);
+                controls = controls.Select(control => control with { Y = 80 + (control.Y - 80) * 1.5, Height = control.Height * 1.5 }).ToList();
+            }
+            else Mouse(controls);
             var inputs = device.Buttons.Select(x => x.SourceButton).Concat(device.Axes.Select(x => x.SourceAxis))
                 .Concat(profile.Devices.SelectMany(x => x.Buttons).SelectMany(x => x.Modifiers)
                     .Where(x => x.Source == deviceId).Select(x => x.Value));
             var extra = inputs.OfType<string>().Distinct(StringComparer.Ordinal).Where(key => !controls.Any(x => x.InputKey == key)).Order(StringComparer.Ordinal).ToArray();
-            var baseHeight = token == "Keyboard" ? 600 : 510;
+            var baseHeight = token == "Keyboard" ? 820 : 510;
             for (var i = 0; i < extra.Length; i++)
                 controls.Add(new("extra-" + i, extra[i], extra[i], 24 + i % 6 * 200, baseHeight + i / 6 * 80, 188, 70,
                     device.Axes.Any(x => x.SourceAxis == extra[i])));
+            // Reserve the key/button caption while leaving its complete rectangle clickable.
+            controls = controls.Select(control => control with { LabelTopInset = 24 }).ToList();
             var height = baseHeight + (extra.Length + 5) / 6 * 80 + 30;
             var svg = new XElement(SvgNamespace + "svg", new XAttribute("viewBox", $"0 0 1240 {height}"),
                 new XAttribute("width", 1240), new XAttribute("height", height),
                 new XElement(SvgNamespace + "rect", new XAttribute("width", 1240), new XAttribute("height", height), new XAttribute("fill", "#06101d")));
             Text(svg, 24, 28, token == "Keyboard" ? "Keyboard · US QWERTY reference layout" : "Mouse · buttons and wheel", 20);
-            Text(svg, 24, 52, "Numbered inputs match the reference table. Additional imported inputs retain their exact native names.", 14);
+            Text(svg, 24, 52, "Assigned commands appear on each input. Additional imported inputs retain their exact native names.", 14);
             if (token == "Mouse")
                 svg.Add(new XElement(SvgNamespace + "rect", new XAttribute("x", 430), new XAttribute("y", 90), new XAttribute("width", 380),
                     new XAttribute("height", 390), new XAttribute("rx", 150), new XAttribute("fill", "#162c41"), new XAttribute("stroke", "#89a3ba")));
@@ -47,10 +54,6 @@ namespace Heimdall.EliteDangerous
             return new(token, null, "elite-system/" + token + ".svg", 1240, height, [], [])
             { Svg = svg.ToString(SaveOptions.DisableFormatting), Controls = controls, SupportsUiLayer = false };
         }
-        /// <summary>Numbers primary input keys consistently across artwork, sections and reference tables.</summary>
-        public static IReadOnlyDictionary<string, int> Markers(IEnumerable<EliteAssignmentRow> rows) => rows.Select(x => x.Input)
-            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select((key, index) => (key, number: index + 1))
-            .ToDictionary(x => x.key, x => x.number, StringComparer.Ordinal);
         #endregion END Public
         #region BEGIN private helpers
         private static void Keyboard(List<HardwareGraphicControl> controls)
