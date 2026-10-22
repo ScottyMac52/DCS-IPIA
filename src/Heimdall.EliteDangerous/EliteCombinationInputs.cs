@@ -19,7 +19,7 @@ namespace Heimdall.EliteDangerous
                         choices.TryAdd(key, new(key, string.IsNullOrWhiteSpace(control.Label) ? key : control.Label));
             var captured = device.Buttons.Select(x => x.SourceButton).Concat(profile.Devices.SelectMany(x => x.Buttons)
                 .SelectMany(x => x.Modifiers).Where(x => x.Source == deviceId).Select(x => x.Value));
-            foreach (var key in captured.Where(x => !string.IsNullOrWhiteSpace(x))) choices.TryAdd(key, new(key, key));
+            foreach (var key in captured.OfType<string>().Where(x => !string.IsNullOrWhiteSpace(x))) choices.TryAdd(key, new(key, key));
             return choices.Values.OrderBy(x => x.ButtonNumber is null ? 1 : 0).ThenBy(x => x.ButtonNumber)
                 .ThenBy(x => x.Key, StringComparer.Ordinal).ToArray();
         }
