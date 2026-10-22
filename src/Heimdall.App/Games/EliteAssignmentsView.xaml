@@ -79,7 +79,9 @@
         <StackPanel x:Name="AxisTools" Margin="0,8,0,0"><CheckBox Style="{StaticResource AppCheckBox}" x:Name="InvertAxis" Content="Invert axis"/><TextBlock Style="{StaticResource AppLabel}" Text="Deadzone (%)" Margin="0,6,0,3"/><TextBox Style="{StaticResource AppTextBox}" x:Name="AxisDeadzone" Text="0"/></StackPanel>
         <Expander x:Name="ModifierTools" Header="Button combination (optional)" Margin="0,8,0,0"><StackPanel>
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierDevicePicker" DisplayMemberPath="Name" Margin="0,4,0,4"/>
-         <TextBox Style="{StaticResource AppTextBox}" x:Name="ModifierKey" ToolTip="Hold this native key with the assigned input, for example Joy_1 or Key_LeftShift"/>
+         <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierKey" IsEditable="True" DisplayMemberPath="DisplayName" TextSearch.TextPath="DisplayName"
+                   AutomationProperties.Name="Combination button or key" MaxDropDownHeight="300"
+                   ToolTip="Choose a button/key from the device above. Choices show the default label, button number and native key. You can also enter an exact native key."/>
          <WrapPanel Margin="0,4,0,0"><Button Style="{StaticResource ToolbarActionButton}" x:Name="AddCombinationButton" Content="Add button/key"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveCombinationButton" Content="Remove selected"/></WrapPanel>
          <ListBox x:Name="ModifiersList" Height="55" Margin="0,4,0,0"/>
         </StackPanel></Expander>

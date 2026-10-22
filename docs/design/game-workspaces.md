@@ -360,6 +360,16 @@ the native input key. It follows diagram clicks, assignment-table selection and 
 selection on every device, wraps long names and shows "No command selected." when the
 selection is cleared. Viewing a binding leaves the native profile unchanged.
 
+Button combination input choices follow the device selected inside the combination
+editor, independently of the controller receiving the command. The editable dropdown
+shows authored default captions, explicit button numbers and exact native keys; these
+are hardware captions rather than currently assigned command names. It includes
+unassigned drawing buttons and hats, keyboard/mouse keys, and captured combination
+inputs. Axes and other devices' inputs are excluded. Without a known drawing, only
+captured native inputs are listed; exact keys can still be entered manually. Hiding
+artwork retains the reviewed hardware choices. Changing the combination source clears
+the pending key, and export stores only the native device/key, never display captions.
+
 The same command-label projection serves physical sticks, throttles, rudders and MFDs:
 assigned buttons, hats and axes display their commands in authored callouts. Multiple
 commands share the callout, section filters apply, and unassigned controls have no
