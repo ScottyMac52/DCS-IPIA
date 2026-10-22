@@ -18,7 +18,7 @@ namespace Heimdall.App.Smoke
         {
             Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
             var status = Box<ComboBox>(window, "AssignmentStatusPicker");
-            var commands = Box<ListBox>(window, "CommandsList"); var input = Box<TextBox>(window, "InputKey");
+            var commands = Box<ListBox>(window, "CommandsList"); var input = Box<ComboBox>(window, "InputKey");
             var actions = Box<FeatureActionBar>(window, "FeatureActions");
             var frozen = JsonSerializer.Serialize(window.Session!.Snapshot);
             var rows = EliteWorkspaceProjection.Rows(window.Session.Snapshot.Profile, window.Session.Catalog);

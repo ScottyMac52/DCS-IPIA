@@ -69,9 +69,20 @@ namespace Heimdall.App.Smoke
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 Click(window, "UseDrawingButton");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
-                SelectCommand(window, "Primary Fire"); Box<TextBox>(window, "InputKey").Text = "Joy_9";
+                SelectCommand(window, "Primary Fire");
+                var inputPicker = Box<ComboBox>(window, "InputKey");
+                var buttonChoice = inputPicker.Items.Cast<EliteInputChoice>().Single(x => x.Key == "Joy_9");
+                if (inputPicker.Items.Cast<EliteInputChoice>().Any(x => x.Key.EndsWith("Axis", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("A button command offered axis inputs.");
+                inputPicker.SelectedItem = buttonChoice; ThemeControlSmoke.Pump(window);
+                if (inputPicker.Text != buttonChoice.DisplayName || !inputPicker.Text.Contains("Button 9", StringComparison.Ordinal))
+                    throw new InvalidOperationException("The main input picker omitted the default label or button number.");
                 Box<ComboBox>(window, "ModePicker").SelectedIndex = 1; Click(window, "ApplyAssignmentButton");
-                SelectCommand(window, "Pitch Axis Raw"); Box<TextBox>(window, "InputKey").Text = "Joy_YAxis";
+                SelectCommand(window, "Pitch Axis Raw");
+                if (inputPicker.Items.Cast<EliteInputChoice>().Any(x => x.ButtonNumber is not null))
+                    throw new InvalidOperationException("An axis command offered button inputs.");
+                inputPicker.SelectedItem = inputPicker.Items.Cast<EliteInputChoice>().Single(x => x.Key == "Joy_YAxis");
+                ThemeControlSmoke.Pump(window);
                 Box<CheckBox>(window, "InvertAxis").IsChecked = false; Box<TextBox>(window, "AxisDeadzone").Text = "7.5"; Click(window, "ApplyAssignmentButton");
                 if (!window.Session!.HasChanges || !window.SaveProfile()) throw new InvalidOperationException("ED authoring did not save.");
                 var saved = window.Session.Snapshot;
@@ -130,19 +141,29 @@ namespace Heimdall.App.Smoke
             region.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
             { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             ThemeControlSmoke.Pump(window);
-            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire" || Box<TextBox>(window, "InputKey").Text != "Joy_9"
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire" || (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Joy_9"
                 || Box<ComboBox>(window, "ModePicker").SelectedIndex != 1 || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
                 throw new InvalidOperationException("A physical diagram click did not show the existing command and settings in the assignment editor.");
+            Box<ComboBox>(window, "InputKey").BringIntoView();
+            ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-input-picker");
             var grid = Box<DataGrid>(window, "AssignmentsGrid");
             grid.SelectedItem = grid.Items.Cast<EliteAssignmentRow>().First(x => x.IsAxis);
             ThemeControlSmoke.Pump(window);
-            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Pitch Axis Raw" || Box<TextBox>(window, "InputKey").Text != "Joy_YAxis"
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Pitch Axis Raw" || (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Joy_YAxis"
                 || !Box<StackPanel>(window, "AxisTools").IsVisible)
                 throw new InvalidOperationException("Selecting an axis assignment did not synchronize the command readout and editor settings.");
             Box<TextBlock>(window, "AssignmentCommand").BringIntoView();
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-selected-assignment");
             if (System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot) != frozen)
                 throw new InvalidOperationException("Inspecting an existing assignment changed the native profile.");
+            var devices = Box<ListBox>(window, "DevicePicker"); var selected = devices.SelectedItem;
+            devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Keyboard");
+            SelectCommand(window, "Primary Fire");
+            var picker = Box<ComboBox>(window, "InputKey");
+            if (picker.SelectedItem is not null || picker.Text.Length != 0 || !picker.Items.Cast<EliteInputChoice>().Any(x => x.Key == "Key_Space")
+                || picker.Items.Cast<EliteInputChoice>().Any(x => x.Key.StartsWith("Joy_", StringComparison.Ordinal)))
+                throw new InvalidOperationException("Changing assignment devices retained stale joystick choices or a pending input.");
+            devices.SelectedItem = selected;
         }
         private static void VerifyControllerAddition(string root, WorkspaceHardware[] hardware)
         {
@@ -159,7 +180,7 @@ namespace Heimdall.App.Smoke
                 if (document.Profile.Devices.Count != 2 || pin.Value.HardwareId is not null || !Box<StackPanel>(window, "AssignmentEditor").IsEnabled
                     || Box<WrapPanel>(window, "DrawingTools").IsVisible || Box<StackPanel>(window, "ReferenceChoiceTools").IsVisible)
                     throw new InvalidOperationException("A new controller still required ED reference or drawing choices.");
-                SelectCommand(window, "Primary Fire"); Box<TextBox>(window, "InputKey").Text = "Joy_4"; Click(window, "ApplyAssignmentButton");
+                SelectCommand(window, "Primary Fire"); Box<ComboBox>(window, "InputKey").Text = "Joy_4"; Click(window, "ApplyAssignmentButton");
                 if (!window.SaveProfile() || !services.Backend.Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
                     throw new InvalidOperationException("A new unillustrated controller did not save and export.");
                 var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);

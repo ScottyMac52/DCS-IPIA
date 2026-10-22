@@ -370,6 +370,21 @@ captured native inputs are listed; exact keys can still be entered manually. Hid
 artwork retains the reviewed hardware choices. Changing the combination source clears
 the pending key, and export stores only the native device/key, never display captions.
 
+The main Native input key editor uses the same editable device-input choices and
+default captions. Its source is the selected controller in the profile; its input kind
+follows the selected command (buttons/hats/keys or axes). Diagram/table selection loads
+the corresponding choice, and Apply writes its exact native key. Captured inputs remain
+available without a drawing, and manual entry still accepts exact keys. Device or
+command changes rebuild the list and load the applicable binding rather than retaining
+another controller's pending choice.
+
+Manual-entry review: the ED workspace's remaining editable text fields are command
+search, configuration names and numeric deadzone values. The export directory already
+has a folder picker. Further dropdown candidates outside this workspace are the advanced
+DCS/UI Layer editor's binding input, modifier input and modifier chord, plus editable
+category suggestions in its command catalog and the module command catalog. Names,
+labels, command-code authoring, paths and numeric values still need free-form entry.
+
 The same command-label projection serves physical sticks, throttles, rudders and MFDs:
 assigned buttons, hats and axes display their commands in authored callouts. Multiple
 commands share the callout, section filters apply, and unassigned controls have no
