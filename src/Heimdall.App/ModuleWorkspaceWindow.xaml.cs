@@ -164,6 +164,7 @@ namespace Heimdall.App
         private void LoadCurrentView()
         {
             var key = _navigation.CurrentFeatureKey ?? "Devices";
+            RefreshAssignmentMode(key);
             FeatureContent.IsEnabled = FeatureActions.IsEnabled = EditionAccess.AllowsWorkspace(_working, _training);
             if (!FeatureContent.IsEnabled) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
             if (key == "InputTest" && !EditionAccess.AllowsInputTest(_context))
@@ -174,6 +175,7 @@ namespace Heimdall.App
             if (_views.TryGetValue(key, out var cached))
             {
                 FeatureContent.Content = cached;
+                LinkControllerSelection(cached);
                 FeatureActions.ShowActions(cached);
                 return;
             }
@@ -193,6 +195,7 @@ namespace Heimdall.App
             {
                 WorkspaceLayout.SetPersistenceEnabled(view, WorkspaceLayout.GetPersistenceEnabled(WorkspaceRoot));
                 _views[key] = view;
+                LinkControllerSelection(view);
                 FeatureActions.ShowActions(view);
             }
             else FeatureActions.ClearActions();
@@ -388,6 +391,8 @@ namespace Heimdall.App
         internal void UpdateBuildAvailability()
         {
             if (BuildButton is null || PackageVersion is null) return;
+            SaveWorkspaceButton.IsEnabled = !_building && _repository is not null && _saved is not null && HasPendingChanges();
+            DiscardWorkspaceButton.IsEnabled = !_building && HasPendingChanges();
             PendingSummary.Text = HasPendingChanges() ? "Pending assignment or authoring changes" : "No pending assignment changes";
             BuildButton.IsEnabled = !_building && _repository is not null && _saved is not null &&
                                     EditionAccess.AllowsWorkspace(_saved, _training) && !_viewModel.HasErrors && !HasPendingChanges() &&

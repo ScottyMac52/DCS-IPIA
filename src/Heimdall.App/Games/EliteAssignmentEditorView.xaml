@@ -1,0 +1,27 @@
+<UserControl x:Class="Heimdall.App.Games.EliteAssignmentEditorView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:pres="clr-namespace:Heimdall.App">
+<ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="240"><StackPanel>       <TextBlock Style="{StaticResource Hint}" x:Name="AssignmentDraftStatus" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>
+       <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0">
+        <TextBlock Style="{StaticResource AppLabel}" Text="Assignment" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Style="{StaticResource AppLabel}" x:Name="AssignmentCommand" TextWrapping="Wrap" Text="No command selected."
+                   AutomationProperties.Name="Elite assignment command" AutomationProperties.LiveSetting="Polite"/>
+        <TextBlock Style="{StaticResource AppLabel}" Text="Native input key" Margin="0,8,0,3"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="InputKey" IsEditable="True" DisplayMemberPath="DisplayName" SelectedValuePath="Key"
+                  TextSearch.TextPath="DisplayName" MaxDropDownHeight="300" AutomationProperties.Name="Elite input key"
+                  ToolTip="Choose an input from the selected controller. Buttons/hats or axes follow the command type. Choices show the default label, button number and exact native key; exact keys can also be typed."/>
+        <WrapPanel Margin="0,8,0,0"><ComboBox Style="{StaticResource AppComboBox}" x:Name="SlotPicker" Width="145"><ComboBoxItem Content="Primary"/><ComboBoxItem Content="Secondary"/></ComboBox>
+         <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModePicker" Width="145" Margin="8,0,0,0"><ComboBoxItem Content="Press"/><ComboBoxItem Content="Hold"/></ComboBox>
+        </WrapPanel>
+        <StackPanel x:Name="AxisTools" Margin="0,8,0,0"><CheckBox Style="{StaticResource AppCheckBox}" x:Name="InvertAxis" Content="Invert axis"/><TextBlock Style="{StaticResource AppLabel}" Text="Deadzone (%)" Margin="0,6,0,3"/><TextBox Style="{StaticResource AppTextBox}" x:Name="AxisDeadzone" Text="0"/></StackPanel>
+        <Expander x:Name="ModifierTools" Header="Button combination (optional)" Margin="0,8,0,0"><StackPanel>
+         <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierDevicePicker" DisplayMemberPath="Name" Margin="0,4,0,4"/>
+         <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierKey" IsEditable="True" DisplayMemberPath="DisplayName" SelectedValuePath="Key" TextSearch.TextPath="DisplayName"
+                   AutomationProperties.Name="Combination button or key" MaxDropDownHeight="300"
+                   ToolTip="Choose a button/key from the device above. Choices show the default label, button number and native key. You can also enter an exact native key."/>
+         <WrapPanel Margin="0,4,0,0"><Button Style="{StaticResource ToolbarActionButton}" x:Name="AddCombinationButton" Content="Add button/key"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveCombinationButton" Content="Remove selected"/></WrapPanel>
+         <ListBox x:Name="ModifiersList" Height="55" Margin="0,4,0,0"/>
+        </StackPanel></Expander>
+        <CheckBox Style="{StaticResource AppCheckBox}" x:Name="CommandToggle" Content="Toggle this command" Margin="0,8,0,0"/>
+        <WrapPanel Margin="0,10,0,0"></WrapPanel>
+       </StackPanel></StackPanel></ScrollViewer>
+</UserControl>

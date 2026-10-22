@@ -75,6 +75,7 @@ namespace Heimdall.App.Smoke
             Console.WriteLine("Smoke: shared feature action bar.");
             FeatureActionBarSmoke.Verify();
             CompactWorkspaceSmoke.Verify();
+            UnifiedWorkspaceSmoke.VerifyDcs();
             Console.WriteLine("Smoke: draft notifications across cached features.");
             DraftNotificationsSmoke.Verify();
             Console.WriteLine("Smoke: device page deletion.");

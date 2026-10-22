@@ -72,6 +72,7 @@ namespace Heimdall.App.Features.Devices
         {
             if (_context?.Working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device)
             {
+                ControllerPreview.Clear();
                 ManagedFileName.Text = "";
                 ManagedInstance.Text = "";
                 ManagedRole.Text = "";
@@ -91,6 +92,7 @@ namespace Heimdall.App.Features.Devices
             var diagram = _context.Working.Diagrams.Single(x => x.ProfileId == device.ProfileId);
             var page = KneeboardDraftProjection.CreateCombined(
                 _context.Working, diagram, _context.Draft?.Snapshot ?? _context.Working.Assignments, new Dictionary<string, string>());
+            ControllerPreview.Show(diagram, page, AppearanceManager.ArtworkOpacityFor(this));
             var labels = page.CategoryLabels;
             MfdLeft.Text = labels.GetValueOrDefault("mfd-category-left") ?? "";
             MfdRight.Text = labels.GetValueOrDefault("mfd-category-right") ?? "";

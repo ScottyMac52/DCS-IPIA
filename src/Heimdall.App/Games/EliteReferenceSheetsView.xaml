@@ -8,17 +8,18 @@
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencePdfButton" Content="Export PDF…"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencePngButton" Content="Export page PNG…"/>
 </pres:ActionBar>
- <Grid x:Name="ReferenceSheetsPanel">
+ <Grid x:Name="ReferenceSheetsPanel" pres:WorkspaceLayout.Key="elite.reference.split">
+     <Grid.ColumnDefinitions><ColumnDefinition Width=".34*" MinWidth="220"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".66*" MinWidth="280"/></Grid.ColumnDefinitions>
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-     <StackPanel Margin="0,0,0,10">
+     <ScrollViewer Grid.RowSpan="3" VerticalScrollBarVisibility="Auto" Margin="0,0,6,0"><StackPanel>
       <TextBlock Style="{StaticResource AppLabel}" Text="Reference Sheets" FontSize="22" FontWeight="SemiBold"/>
       <TextBlock Style="{StaticResource AppLabel}" Text="Choose a controller on the left and a section above. Preview the current profile, then export its pages." TextWrapping="Wrap" Margin="0,4,0,8"/>
-      <WrapPanel>
+      <StackPanel>
        <TextBlock Style="{StaticResource AppLabel}" Text="Layout" VerticalAlignment="Center" Margin="0,0,6,0"/>
        <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferenceLayoutPicker" Width="225" AutomationProperties.Name="Reference sheet layout">
         <ComboBoxItem x:Name="ReferenceArtworkOption" Content="Artwork + assignment table"/><ComboBoxItem Content="Assignment table"/>
        </ComboBox>
-       <TextBlock Style="{StaticResource AppLabel}" Text="Paper" VerticalAlignment="Center" Margin="12,0,6,0"/>
+       <TextBlock Style="{StaticResource AppLabel}" Text="Paper" VerticalAlignment="Center" Margin="0,8,0,6"/>
        <ComboBox Style="{StaticResource AppComboBox}" x:Name="ReferencePaperPicker" Width="85" AutomationProperties.Name="Reference paper size">
         <ComboBoxItem Content="A4"/><ComboBoxItem Content="Letter"/>
        </ComboBox>
@@ -26,15 +27,16 @@
         <ComboBoxItem Content="Portrait"/><ComboBoxItem Content="Landscape"/>
        </ComboBox>
        <CheckBox Style="{StaticResource AppCheckBox}" x:Name="ReferenceAssignedOnly" Content="Only assigned commands" IsChecked="True" VerticalAlignment="Center"/>
-      </WrapPanel>
+      </StackPanel>
       <TextBlock Style="{StaticResource AppLabel}" x:Name="ReferenceStatus" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Polite"/>
-     </StackPanel>
-     <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource BorderBrush}" Padding="12">
+     </StackPanel></ScrollViewer>
+     <GridSplitter Grid.Column="1" Grid.RowSpan="3" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Reference options and preview divider"/>
+     <Border Grid.Column="2" Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource BorderBrush}" Padding="12">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-       <Image x:Name="ReferencePreview" Width="700" Stretch="Uniform" VerticalAlignment="Top" AutomationProperties.Name="Reference sheet page preview"/>
+       <Image x:Name="ReferencePreview" MaxWidth="700" Stretch="Uniform" VerticalAlignment="Top" AutomationProperties.Name="Reference sheet page preview"/>
       </ScrollViewer>
      </Border>
-     <WrapPanel Grid.Row="2" Margin="0,10,0,0">
+     <WrapPanel Grid.Column="2" Grid.Row="2" Margin="0,10,0,0">
 
       <TextBlock Style="{StaticResource AppLabel}" x:Name="ReferencePageLabel" Text="No preview" VerticalAlignment="Center" Margin="12,0"/>
 

@@ -3,11 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pres="clr-namespace:Heimdall.App">
     <Grid Margin="4" pres:WorkspaceLayout.Key="kneeboards.split">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width=".25*" MinWidth="150"/><ColumnDefinition Width="6"/>
+            <ColumnDefinition Width=".25*" MinWidth="150"/><ColumnDefinition Width="8"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <ListBox x:Name="KneeboardList" Grid.Column="0" SelectionChanged="PageSelected"/>
-        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="{DynamicResource BorderBrush}"/>
+        <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Tools and controller divider"/>
         <Grid Grid.Column="2" Margin="6,0,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -16,7 +16,7 @@
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Margin="0,0,0,8">
                 <WrapPanel>
-                    <Button x:Name="FitDiagramButton" Content="Fit" Click="FitDiagramClicked" Padding="8,2" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource ActionButton}" x:Name="FitDiagramButton" Content="Fit" Click="FitDiagramClicked" Padding="8,2" Margin="0,0,8,0"/>
                     <TextBlock Text="Zoom: " VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <Slider x:Name="Zoom" Width="160" Minimum="0.01" Maximum="5.0" Value="1"
                 ValueChanged="ZoomChanged" VerticalAlignment="Center" MouseDoubleClick="ZoomReset"/>
