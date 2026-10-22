@@ -50,7 +50,8 @@ namespace Heimdall.App.Smoke
                 if (!ReferenceEquals(assignments, Box<ContentControl>(window, "FeatureContent").Content))
                     throw new InvalidOperationException("Assign/Test mode discarded the cached assignment surface.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "unified-dcs-assignments");
-                if (EditorSnapshotSerializer.Serialize(workspace) != original)
+                if (EditorSnapshotSerializer.Serialize(window._working!) != original ||
+                    !window._draft!.Snapshot.SequenceEqual(workspace.Assignments) || window._labels.Count != workspace.Labels.Count)
                     throw new InvalidOperationException("Presentation geometry or selection changed the DCS snapshot.");
             }
             finally { window.Close(); }
@@ -104,7 +105,7 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
-        private static DeviceProfile Profile(string name) => new(Guid.NewGuid(), "tm-tpr", null, name, name + ".diff.lua");
+        private static DeviceProfile Profile(string name) => new(Guid.NewGuid(), "tm-tpr", name, name, name + ".diff.lua");
         private static T Box<T>(FrameworkElement view, string name) where T : FrameworkElement => (T)view.FindName(name);
         private static void VerifyDivider(Window window, Grid grid)
         {

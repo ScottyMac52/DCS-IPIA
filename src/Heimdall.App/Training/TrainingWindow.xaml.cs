@@ -46,7 +46,8 @@ namespace Heimdall.App
         {
             get
             {
-                if (_highlight?.AdornedElement is not FrameworkElement target || !ApplicationViewport.IsAncestorOf(target)) return false;
+                if (_highlight?.AdornedElement is not FrameworkElement target || !target.IsVisible ||
+                    target.ActualWidth <= 0 || target.ActualHeight <= 0 || !ApplicationViewport.IsAncestorOf(target)) return false;
                 ApplicationView.UpdateLayout();
                 var bounds = target.TransformToAncestor(ApplicationViewport).TransformBounds(new Rect(target.RenderSize));
                 var viewport = new Rect(0, 0, ApplicationViewport.ViewportWidth, ApplicationViewport.ViewportHeight);
