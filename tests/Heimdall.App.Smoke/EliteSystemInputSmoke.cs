@@ -48,7 +48,7 @@ namespace Heimdall.App.Smoke
             if (!authored.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse").Axes.Any(x => x.SourceAxis == "Mouse_XAxis")
                 || authored.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Axes.Count != 0)
                 throw new InvalidOperationException("A keyboard button edit changed the existing mouse axis binding.");
-            ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
+            ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {
                 picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == token);
@@ -67,10 +67,12 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("A built-in system drawing did not offer illustrated reference cards and the full table.");
                 File.WriteAllBytes(Path.Combine(root, token + "-reference.pdf"), window.ReferencePdf());
                 File.WriteAllBytes(Path.Combine(root, token + "-reference.png"), window.ReferencePng());
-                window.ExportReference(Path.Combine(root, token + "-artwork.png"));
+                var preview = Environment.GetEnvironmentVariable("HEIMDALL_MAPPING_PREVIEW") ?? root;
+                Directory.CreateDirectory(preview);
+                window.ExportReference(Path.Combine(preview, token + "-artwork.png"));
                 if (JsonSerializer.Serialize(window.Session.Snapshot) != frozen || window.Session.Snapshot.Hardware.Count != 0)
                     throw new InvalidOperationException("System artwork or reference export created physical controller links or changed assignments.");
-                ThemeControlSmoke.SaveImage(window, "elite-" + token.ToLowerInvariant() + "-reference");
+                ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-" + token.ToLowerInvariant() + "-reference");
             }
             window.Close();
         }
