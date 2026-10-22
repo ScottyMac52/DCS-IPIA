@@ -31,7 +31,7 @@
             </Grid>
               </ScrollViewer>
             </Expander>
-            <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+            <pres:ActionBar x:Name="CatalogActionsBar" IsFeatureActions="True" Visibility="Collapsed">
                 <Button Content="Add" Click="AddClicked" Style="{StaticResource ActionButton}"/>
                 <Button Content="Update" Click="UpdateClicked" Style="{StaticResource ActionButton}"/>
                 <Button Content="Remove" Click="RemoveClicked" Style="{StaticResource ActionButton}"/>
