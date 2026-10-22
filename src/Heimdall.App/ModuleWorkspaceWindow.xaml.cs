@@ -94,6 +94,7 @@ namespace Heimdall.App
             _controllerSelection = new(ControllerPicker, () => _working);
             _changingSelection = true;
             WorkspaceGamePicker.SelectedIndex = 0;
+            ((ComboBoxItem)WorkspaceGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
             WorkspaceProfilePicker.ItemsSource = moduleChoices ?? [];
             WorkspaceProfilePicker.SelectedItem = moduleChoices?.FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id);
             GameWorkspaceSelectors.Visibility = allowGameSwitch && training is null ? Visibility.Visible : Visibility.Collapsed;
@@ -127,7 +128,7 @@ namespace Heimdall.App
 
         private async void WorkspaceGameChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_changingSelection || WorkspaceGamePicker.SelectedIndex != 1) return;
+            if (_changingSelection || WorkspaceGamePicker.SelectedIndex != 1 || !EditionAccess.Policy.AllowsSimulator("elite-dangerous")) return;
             if (await ConfirmWorkspaceSwitch()) { RequestedGame = "elite-dangerous"; Close(); }
             else { _changingSelection = true; WorkspaceGamePicker.SelectedIndex = 0; _changingSelection = false; }
         }

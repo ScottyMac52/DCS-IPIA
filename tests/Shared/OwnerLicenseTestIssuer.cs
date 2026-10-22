@@ -14,6 +14,8 @@ namespace Heimdall.TestSupport
         public OwnerLicenseVerifier Verifier => new(_key.ExportSubjectPublicKeyInfoPem());
         /// <summary>Gets an authenticated all-feature policy for isolated test fixtures.</summary>
         public EditionPolicy Policy => new(License(), Verifier);
+        /// <summary>Gets a customer Premium policy from the same isolated signing protocol.</summary>
+        public EditionPolicy PremiumPolicy => new(License(new(1, "HEIMDALL", "Premium", Guid.NewGuid(), "Isolated Premium customer")), Verifier);
         /// <summary>Signs complete claims, optionally with invalid fields for negative tests.</summary>
         public string License(OwnerLicenseClaims? claims = null) => Sign(JsonSerializer.Serialize(claims ??
             new OwnerLicenseClaims(1, "DCS-IPIA", "Owner", Guid.NewGuid(), "Isolated test owner")));

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Heimdall.Application
 {
-    /// <summary>Validates signed owner entitlements without trusting identifiers or client-side flags.</summary>
+    /// <summary>Validates signed Premium and Owner entitlements without trusting identifiers or client-side flags.</summary>
     public sealed class OwnerLicenseVerifier
     {
         private readonly string _publicKey;
@@ -15,7 +15,7 @@ namespace Heimdall.Application
         #region BEGIN Public
         /// <summary>Maximum encoded license file size.</summary>
         public const int MaximumBytes = 16384;
-        /// <summary>Returns authenticated owner claims, or null for malformed, foreign or tampered licenses.</summary>
+        /// <summary>Returns authenticated edition claims, or null for malformed, foreign or tampered licenses.</summary>
         public OwnerLicenseClaims? Verify(string json)
         {
             if (string.IsNullOrWhiteSpace(json) || Encoding.UTF8.GetByteCount(json) > MaximumBytes) return null;
@@ -30,7 +30,7 @@ namespace Heimdall.Application
                 var text = new UTF8Encoding(false, true).GetString(payload);
                 RequireUniqueObject(text);
                 var claims = JsonSerializer.Deserialize<OwnerLicenseClaims>(text, Options)!;
-                return claims.SchemaVersion == 1 && (claims.Product == "HEIMDALL" || claims.Product == "DCS-IPIA") && claims.Edition == "Owner" &&
+                return claims.SchemaVersion == 1 && (claims.Product == "HEIMDALL" || claims.Product == "DCS-IPIA") && (claims.Edition is "Owner" or "Premium") &&
                     claims.LicenseId != Guid.Empty && !string.IsNullOrWhiteSpace(claims.Owner) && claims.Owner.Length <= 120 ? claims : null;
             }
             catch (Exception ex) when (ex is ArgumentException or FormatException or JsonException or CryptographicException or DecoderFallbackException)

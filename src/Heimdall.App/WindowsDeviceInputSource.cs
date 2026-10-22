@@ -14,7 +14,7 @@ namespace Heimdall.App
         /// <param name="devices">Attached physical identities.</param>
         public WindowsDeviceInputSource(nint window, IReadOnlyList<Guid> devices)
         {
-            EditionAccess.Policy.RequireOwner();
+            EditionAccess.Policy.RequirePremium();
             _connection = new WindowsDirectInputConnection();
             try
             {

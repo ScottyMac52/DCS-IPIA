@@ -10,7 +10,8 @@ namespace Heimdall.Application.Games
         public static void Require(GameWorkspace workspace, EditionPolicy policy, IReadOnlyCollection<string> catalogIds,
             IReadOnlyList<DetectedDcsDevice> observed, ISimDeviceReferenceMatcher? referenceMatcher)
         {
-            if (policy.IsOwner) return;
+            policy.RequireSimulator(workspace.Profile.BackendId);
+            if (policy.HasPremium) return;
             foreach (var device in workspace.Profile.Devices.Where(x => !IsSystemDevice(x.Identity?.SimSpecificIds.GetValueOrDefault("ed.device"))))
             {
                 if (!workspace.Hardware.TryGetValue(device.LogicalId, out var pin) || pin.HardwareId is null || !catalogIds.Contains(pin.HardwareId)

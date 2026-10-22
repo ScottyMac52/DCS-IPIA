@@ -18,6 +18,15 @@ try {
     if (-not $key.VerifyData($payload, [Convert]::FromBase64String($document.Signature), [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pss)) { throw 'Issuer signature is invalid.' }
     $claims = [Text.Encoding]::UTF8.GetString($payload) | ConvertFrom-Json
     if ($claims.Product -ne 'HEIMDALL' -or $claims.Edition -ne 'Owner' -or $claims.SchemaVersion -ne 1 -or $claims.Owner -ne 'Isolated issuer test' -or [guid]$claims.LicenseId -eq [guid]::Empty) { throw 'Issuer claims are invalid.' }
+    $premium = Join-Path $root 'premium-license.json'
+    & $script -SigningKeyPath $private -OutputPath $premium -OwnerName 'Isolated customer' -Edition Premium
+    $premiumDocument = Get-Content -LiteralPath $premium -Raw | ConvertFrom-Json
+    $premiumPayload = [Convert]::FromBase64String($premiumDocument.Payload)
+    $premiumClaims = [Text.Encoding]::UTF8.GetString($premiumPayload) | ConvertFrom-Json
+    if ($premiumClaims.Edition -ne 'Premium' -or $premiumClaims.Owner -ne 'Isolated customer' -or -not $key.VerifyData($premiumPayload, [Convert]::FromBase64String($premiumDocument.Signature), [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pss)) { throw 'Premium issuance is invalid.' }
+    $rejected = $false
+    try { & $script -SigningKeyPath $private -OutputPath (Join-Path $root 'unknown.json') -Edition Unknown } catch { $rejected = $true }
+    if (-not $rejected -or (Test-Path -LiteralPath (Join-Path $root 'unknown.json'))) { throw 'Unknown edition was issued.' }
     $preserved = [IO.File]::ReadAllText($license)
     $rejected = $false
     try { & $script -SigningKeyPath $private -OutputPath $license } catch { $rejected = $true }
@@ -27,6 +36,6 @@ try {
     $invalid = Join-Path $root 'invalid-license.json'
     try { & $script -SigningKeyPath $private -OutputPath $invalid } catch { $rejected = $true }
     if (-not $rejected -or (Test-Path -LiteralPath $invalid)) { throw 'Wrong-key issuance was accepted.' }
-    Write-Host 'Owner issuer signing, claims, overwrite protection and key mismatch checks passed with ephemeral keys.'
+    Write-Host 'Premium/Owner issuer signing, claims, overwrite protection and key mismatch checks passed with ephemeral keys.'
 }
 finally { $key.Dispose(); $wrong.Dispose(); Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }

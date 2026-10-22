@@ -80,32 +80,28 @@ namespace Heimdall.Tests
             Assert.Equal(snapshot, JsonSerializer.Serialize(session.Snapshot)); Assert.False(session.HasChanges);
         }
 
-        /// <summary>Free requires reviewed drawings and native manufacturer evidence for every physical reference.</summary>
+        /// <summary>ED remains reserved with verified Thrustmaster hardware, no hardware, or a retained saved association.</summary>
         [Fact]
         public void Free_edition_cannot_be_unlocked_by_game_names_or_product_tokens()
         {
             var workspace = Workspace(numeric: true);
             var physical = workspace.Profile.Devices.Where(x => !GameWorkspaceAccess.IsSystemDevice(x.Identity!.SimSpecificIds["ed.device"])).ToArray();
-            var devices = physical.Select((x, i) => new DetectedDcsDevice(Guid.NewGuid(), "User-editable name " + i, true,
-                ProductGuid: Guid.Parse((0x1001 + i).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) + "044f-0000-0000-0000-504944564944"))).ToArray();
-            var catalog = new[] { "tm-mfd", "tm-warthog-throttle" };
-            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), catalog, () => devices, new EliteDeviceReferenceMatcher());
-            Assert.NotEmpty(session.AccessMessage); Assert.Throws<InvalidOperationException>(() => session.Export());
-            var command = session.Catalog.Commands.First(x => x.Type == CommandType.Button).Id;
-            Assert.Throws<InvalidOperationException>(() => session.AssignButton(physical[0].LogicalId, command, "Primary", "Joy_8", BindingMode.Press, []));
-            Assert.Throws<InvalidOperationException>(() => session.Associate(physical[0].LogicalId, "moza-ab9", devices[0].PhysicalGuid));
-            Assert.Throws<InvalidOperationException>(() => session.Associate("unknown", "tm-mfd", devices[0].PhysicalGuid));
-            Assert.Throws<InvalidOperationException>(() => session.Associate(physical[0].LogicalId, "tm-mfd", Guid.NewGuid()));
-            for (var i = 0; i < physical.Length; i++) session.Associate(physical[i].LogicalId, catalog[i], devices[i].PhysicalGuid);
-            Assert.Empty(session.AccessMessage); Assert.True(session.Export().Succeeded);
-            var offline = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [], new EliteDeviceReferenceMatcher());
-            Assert.Empty(offline.AccessMessage);
-            var otherBrand = devices[0] with { ProductGuid = Guid.Parse("0001046d-0000-0000-0000-504944564944") };
-            var blocked = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [otherBrand], new EliteDeviceReferenceMatcher());
-            Assert.NotEmpty(blocked.AccessMessage); Assert.Throws<InvalidOperationException>(() => blocked.Export());
-            Assert.Throws<InvalidOperationException>(() => blocked.Associate(physical[0].LogicalId, "tm-mfd", otherBrand.PhysicalGuid));
-            var ambiguous = new GameProfileSession(new EliteDangerousProfileBackend(), session.Snapshot, new(), catalog, () => [devices[0], devices[0]], new EliteDeviceReferenceMatcher());
-            Assert.NotEmpty(ambiguous.AccessMessage);
+            var observed = new DetectedDcsDevice(Guid.NewGuid(), "Thrustmaster controller", true,
+                ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
+            foreach (var device in physical) workspace.Hardware[device.LogicalId] = new("tm-mfd", observed);
+            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), ["tm-mfd"], () => [observed], new EliteDeviceReferenceMatcher());
+            var before = JsonSerializer.Serialize(session.Snapshot);
+            Assert.Contains("Premium", session.AccessMessage);
+            Assert.Throws<InvalidOperationException>(() => session.Export());
+            Assert.Throws<InvalidOperationException>(() => session.ExportForGame());
+            Assert.Throws<InvalidOperationException>(() => session.Associate(physical[0].LogicalId, "tm-mfd", observed.PhysicalGuid));
+            Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing(physical[0].LogicalId, null));
+            Assert.Throws<InvalidOperationException>(() => session.PreviewRemoveController(physical[0].LogicalId));
+            Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot)); Assert.False(session.HasChanges);
+            workspace.Profile.Devices.Clear(); workspace.Hardware.Clear();
+            var empty = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new(), [], () => []);
+            Assert.Contains("Premium", empty.AccessMessage);
+            Assert.Throws<InvalidOperationException>(() => empty.Export());
         }
 
         /// <summary>Another native vendor cannot gain eligibility through an unrelated Thrustmaster drawing association.</summary>

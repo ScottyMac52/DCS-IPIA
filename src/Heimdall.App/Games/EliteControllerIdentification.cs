@@ -31,7 +31,7 @@ namespace Heimdall.App.Games
         /// <summary>Acquires every eligible attached instance and establishes neutral baselines before listening.</summary>
         internal void Start(IReadOnlyList<DetectedDcsDevice> observed)
         {
-            Stop(); EditionAccess.Policy.RequireOwner();
+            Stop(); EditionAccess.Policy.RequirePremium();
             _devices = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
             var ids = _devices.Select(x => x.PhysicalGuid).ToArray();
             _identification = new(ids);

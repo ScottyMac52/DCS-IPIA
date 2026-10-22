@@ -25,7 +25,7 @@
       </Canvas></Viewbox>
       <TextBlock Text="Elite Dangerous" FontSize="24" FontWeight="SemiBold"/>
       <TextBlock Text="Ship, SRV and on-foot controls" Margin="0,8,0,22" TextWrapping="Wrap"/>
-      <TextBlock Text="Select controls profile →" FontWeight="SemiBold"/>
+      <TextBlock x:Name="EliteAccessText" Text="Select controls profile →" FontWeight="SemiBold"/>
      </StackPanel>
     </Button>
    </UniformGrid>

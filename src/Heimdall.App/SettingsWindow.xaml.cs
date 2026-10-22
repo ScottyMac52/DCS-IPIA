@@ -18,11 +18,11 @@ namespace Heimdall.App
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             InitializeComponent();
             ThemeChoice.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
-            ThemeChoice.IsEnabled = ResetAppearance.IsEnabled = EditionAccess.Policy.IsOwner;
+            ThemeChoice.IsEnabled = ResetAppearance.IsEnabled = EditionAccess.Policy.HasPremium;
             EditionStatus.Text = EditionAccess.Policy.Label;
             ConflictChoice.SelectedIndex = (int)_settings.Current.OccupiedDestinationBehavior;
             SaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? EditionAccess.Store.LastError ?? string.Empty;
-            CustomizeAppearance.IsEnabled = EditionAccess.Policy.IsOwner && AppearanceManager.Store is not null;
+            CustomizeAppearance.IsEnabled = EditionAccess.Policy.HasPremium && AppearanceManager.Store is not null;
             SavedGamesFolder.Text = _settings.Current.SavedGamesDcsFolder;
             _ready = true;
         }
@@ -33,10 +33,10 @@ namespace Heimdall.App
         #region BEGIN private helpers
         private void InstallOwnerLicenseClicked(object sender, RoutedEventArgs e)
         {
-            var picker = new ThemeBrowseDialog { Title = "Install signed owner license", Filter = "Owner license JSON|*.json", CheckFileExists = true };
+            var picker = new ThemeBrowseDialog { Title = "Install signed Premium or Owner license", Filter = "HEIMDALL license JSON|*.json", CheckFileExists = true };
             if (picker.ShowDialog(this) != true) return;
             SaveStatus.Text = EditionAccess.Store.Import(picker.FileName)
-                ? "Owner license installed. Restart HEIMDALL to unlock all features and restore your saved appearance."
+                ? "License installed. Restart HEIMDALL to unlock all features and restore your saved appearance."
                 : EditionAccess.Store.LastError;
         }
 
@@ -50,14 +50,14 @@ namespace Heimdall.App
 
         private void CustomizeAppearanceClicked(object sender, RoutedEventArgs e)
         {
-            if (!EditionAccess.Policy.IsOwner) return;
+            if (!EditionAccess.Policy.HasPremium) return;
             if (AppearanceManager.Store is { } store) new AppearanceWindow(store) { Owner = this }.ShowDialog();
             SaveStatus.Text = AppearanceManager.LastError ?? "Appearance preview closed.";
         }
 
         private void ResetAppearanceClicked(object sender, RoutedEventArgs e)
         {
-            if (!EditionAccess.Policy.IsOwner) return;
+            if (!EditionAccess.Policy.HasPremium) return;
             if (AppearanceManager.Store is { } store && !store.TrySave(new AppearanceSettings()))
             { SaveStatus.Text = store.LastError; return; }
             AppearanceManager.Restore();
@@ -71,7 +71,7 @@ namespace Heimdall.App
 
         private void ThemeChoice_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!EditionAccess.Policy.IsOwner || !_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag: string value })
+            if (!EditionAccess.Policy.HasPremium || !_ready || ThemeChoice.SelectedItem is not ComboBoxItem { Tag: string value })
                 return;
             var theme = Enum.Parse<AppearanceTheme>(value);
             ThemeManager.Apply(value);

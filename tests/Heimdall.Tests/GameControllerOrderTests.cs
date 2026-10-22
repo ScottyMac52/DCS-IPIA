@@ -46,13 +46,14 @@ namespace Heimdall.Tests
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
-        /// <summary>Self drops, adjacent no-ops and invalid references never dirty the session or raise change events.</summary>
+        /// <summary>Self drops, adjacent no-ops and invalid references never dirty an authorized session or raise change events.</summary>
         [Fact]
-        public void Noop_and_invalid_moves_are_atomic_even_without_edition_access()
+        public void Noop_and_invalid_moves_are_atomic_in_a_licensed_session()
         {
             var workspace = Workspace(); var ids = GameControllerOrder.For(workspace).ToArray();
-            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, new EditionPolicy(), [], () => []);
-            Assert.NotEmpty(session.AccessMessage);
+            using var issuer = new OwnerLicenseTestIssuer();
+            var session = new GameProfileSession(new EliteDangerousProfileBackend(), workspace, issuer.PremiumPolicy, [], () => []);
+            Assert.Empty(session.AccessMessage);
             var changes = 0; session.Changed += (_, _) => changes++;
             session.MoveController(ids[0], ids[0]); session.MoveController(ids[0], ids[1]);
             session.MoveController(ids[1], ids[0], after: true);

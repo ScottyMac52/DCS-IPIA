@@ -111,7 +111,8 @@ namespace Heimdall.App
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
             ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
-            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            ThemePicker.IsEnabled = EditionAccess.Policy.HasPremium;
+            ((ComboBoxItem)LandingGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
             EditionStatus.Text = EditionAccess.Policy.Label;
             ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             Loaded += async (_, _) =>
@@ -174,6 +175,7 @@ namespace Heimdall.App
             SetModuleOperationBusy(true);
             try
             {
+                EditionAccess.Policy.RequireSimulator("elite-dangerous");
                 var hardware = await GameWorkspaceServices.HardwareAsync();
                 var selection = _games.Recent();
                 _games.Remember(selection with { BackendId = "elite-dangerous", DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
@@ -399,7 +401,7 @@ namespace Heimdall.App
                     SavedGamesDeviceDiscovery.Discover(destination)));
                 EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
                 var captured = ModuleAxisCleanup.CaptureDevices(saved,
-                    devices.Where(x => EditionAccess.Policy.IsOwner || EditionAccess.Policy.AllowsDevice(x) ||
+                    devices.Where(x => EditionAccess.Policy.HasPremium || EditionAccess.Policy.AllowsDevice(x) ||
                         saved.Configuration.Profiles.Any(profile => DcsPhysicalIdentity.FromFileName(profile.SourceName) == x.PhysicalGuid)).Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
                         .Where(x => DcsPhysicalIdentity.FromFileName(x) is not null)));
                 if (!ReferenceEquals(saved, captured)) await _workspaces.SaveAsync(captured);
@@ -501,7 +503,7 @@ namespace Heimdall.App
                 var json = await File.ReadAllTextAsync(path);
                 var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Read(json));
                 var workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
-                var observed = EditionAccess.Policy.IsOwner ? null : _deviceDiscovery.Discover();
+                var observed = EditionAccess.Policy.HasPremium ? null : _deviceDiscovery.Discover();
                 var unsupported = ModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
                 if (unsupported.Count > 0)
                 {
@@ -675,7 +677,7 @@ namespace Heimdall.App
             RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
             DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
             SharedDefaultsButton.IsEnabled = !busy && _sharedDefaults is not null;
-            ThemePicker.IsEnabled = !busy && EditionAccess.Policy.IsOwner;
+            ThemePicker.IsEnabled = !busy && EditionAccess.Policy.HasPremium;
             CommandManager.InvalidateRequerySuggested();
             UpdateFlyNowControls();
         }
@@ -782,7 +784,7 @@ namespace Heimdall.App
         {
             if (ThemePicker.SelectedItem is not ComboBoxItem { Tag: string theme })
                 return;
-            if (!EditionAccess.Policy.IsOwner) return;
+            if (!EditionAccess.Policy.HasPremium) return;
             ThemeManager.Apply(theme);
             var saved = _settings.TryUpdateTheme(Enum.Parse<AppearanceTheme>(theme));
             ThemeSaveStatus.Text =
@@ -799,7 +801,7 @@ namespace Heimdall.App
             var dialog = new SettingsWindow(_settings) { Owner = this };
             dialog.ShowDialog();
             ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
-            ThemePicker.IsEnabled = EditionAccess.Policy.IsOwner;
+            ThemePicker.IsEnabled = EditionAccess.Policy.HasPremium;
             EditionStatus.Text = EditionAccess.Policy.Label;
             ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             UpdateFlyNowControls();

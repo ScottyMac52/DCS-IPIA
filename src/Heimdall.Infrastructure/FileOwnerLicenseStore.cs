@@ -2,7 +2,7 @@ using Heimdall.Application;
 
 namespace Heimdall.Infrastructure
 {
-    /// <summary>Stores an authenticated owner file outside profile backups; never persists invalid imports.</summary>
+    /// <summary>Stores an authenticated Premium/Owner file outside profile backups; never persists invalid imports.</summary>
     public sealed class FileOwnerLicenseStore
     {
         private readonly string _path;
@@ -23,7 +23,7 @@ namespace Heimdall.Infrastructure
                 return new EditionPolicy(ReadValidated(_path), _verifier);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-            { LastError = "Owner license unavailable; using Free Edition. " + ex.Message; return new EditionPolicy(); }
+            { LastError = "License unavailable; using Free Edition. " + ex.Message; return new EditionPolicy(); }
         }
         /// <summary>Authenticates before atomically replacing an accepted license; restart applies it.</summary>
         public bool Import(string source)
@@ -39,7 +39,7 @@ namespace Heimdall.Infrastructure
                 return true;
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-            { LastError = "Owner license was not installed. " + ex.Message; return false; }
+            { LastError = "License was not installed. " + ex.Message; return false; }
             finally { if (temporary is not null && File.Exists(temporary)) File.Delete(temporary); }
         }
         #endregion END Public
@@ -53,7 +53,7 @@ namespace Heimdall.Infrastructure
             var count = reader.ReadBlock(buffer, 0, buffer.Length);
             if (count > OwnerLicenseVerifier.MaximumBytes) throw new InvalidDataException("License exceeds the supported size.");
             var json = new string(buffer, 0, count);
-            if (_verifier.Verify(json) is null) throw new InvalidDataException("Choose an authentic signed HEIMDALL owner license.");
+            if (_verifier.Verify(json) is null) throw new InvalidDataException("Choose an authentic signed HEIMDALL Premium or Owner license.");
             return json;
         }
         #endregion END private helpers

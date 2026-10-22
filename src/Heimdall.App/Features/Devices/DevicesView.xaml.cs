@@ -348,7 +348,7 @@ namespace Heimdall.App.Features.Devices
             try
             {
                 var choices = InventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
-                InventoryUnits.ItemsSource = EditionAccess.Policy.IsOwner ? choices : [];
+                InventoryUnits.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
             }
             catch (Exception ex)
             {

@@ -66,6 +66,7 @@ namespace Heimdall.App.Games
             Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null,
             Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null)
         {
+            EditionAccess.Policy.RequireSimulator(services.Backend.SimId);
             _services = services; _hardware = hardware; _importPicker = importPicker; _exportPicker = exportPicker; _pendingChoice = pendingChoice;
             _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _reviewControllerChange = controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true);
@@ -318,7 +319,7 @@ namespace Heimdall.App.Games
             Run(() =>
             {
                 var pin = Device is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(Device.Id);
-                var ready = EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
+                var ready = EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
                 if (ready != _lastReady) UpdateAvailability();
                 else if (FeaturePicker.SelectedIndex == 0) UpdateControllerAvailability();
             });
@@ -359,7 +360,7 @@ namespace Heimdall.App.Games
         {
             UpdateControllerAvailability(); if (!_controllerActions.Start) return;
             StopLiveInput();
-            EditionAccess.Policy.RequireOwner();
+            EditionAccess.Policy.RequirePremium();
             if (_session is null || Device is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Select a controller reference on Devices before identifying it.");
             _identification.Start(_services.Discover());
@@ -390,7 +391,7 @@ namespace Heimdall.App.Games
         private void ConfirmIdentificationClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             UpdateControllerAvailability(); if (!_controllerActions.Confirm) return;
-            EditionAccess.Policy.RequireOwner();
+            EditionAccess.Policy.RequirePremium();
             if (_session is null || Device is null || _identifiedController is null || FeaturePicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Identify a matching controller before confirming its link.");
             var physical = _identifiedController.PhysicalGuid;
@@ -569,15 +570,15 @@ namespace Heimdall.App.Games
             var pin = reference is null ? null : document!.Hardware.GetValueOrDefault(reference.LogicalId);
             var alreadyLinked = connected && document is not null && document.Hardware.Values.Any(x => x.Device.PhysicalGuid == selected!.PhysicalGuid);
             var candidate = _identifiedController;
-            var confirm = document is not null && reference is not null && physical && EditionAccess.Policy.IsOwner && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
+            var confirm = document is not null && reference is not null && physical && EditionAccess.Policy.HasPremium && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
                 && _services.DeviceReferences.Matches(reference!.Identity!, candidate)
                 && !document!.Hardware.Any(x => x.Key != reference.LogicalId && x.Value.Device.PhysicalGuid == candidate.PhysicalGuid)
                 && (pin is null || pin.Device.PhysicalGuid == candidate.PhysicalGuid || !GameInputReadiness.Ready(pin, observed))
                 && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"));
             var indexedChoice = _devicesView.ReplacementReferencePicker.Items.Count <= 1 || _devicesView.ReplacementReferencePicker.SelectedItem is GameDeviceChoice;
-            _controllerActions = GameControllerActions.For(physical && EditionAccess.Policy.IsOwner && eligible.Length > 0,
+            _controllerActions = GameControllerActions.For(physical && EditionAccess.Policy.HasPremium && eligible.Length > 0,
                 confirm, document is not null && connected && !alreadyLinked,
-                physical && EditionAccess.Policy.IsOwner && connected && pin?.Device.PhysicalGuid != selected!.PhysicalGuid && indexedChoice,
+                physical && EditionAccess.Policy.HasPremium && connected && pin?.Device.PhysicalGuid != selected!.PhysicalGuid && indexedChoice,
                 physical, physical && pin is not null, _identification?.Running == true,
                 _input?.Running == true, _busy, FeaturePicker.SelectedIndex == 0);
             _devicesView.IdentifyControllerButton.IsEnabled = _controllerActions.Start;
@@ -615,7 +616,7 @@ namespace Heimdall.App.Games
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
             var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
-            var ready = opened && EditionAccess.Policy.IsOwner && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
+            var ready = opened && EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
             _lastReady = ready;
             _actions = GameAssignmentActions.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
                 review.Valid, review.Changed, assigned, ready, _input?.Running == true, _busy);
@@ -751,7 +752,7 @@ namespace Heimdall.App.Games
         });
         private string[] ReadReplacementInputs(Guid physicalGuid)
         {
-            EditionAccess.Policy.RequireOwner();
+            EditionAccess.Policy.RequirePremium();
             using var source = _controllerInputs(new WindowInteropHelper(this).EnsureHandle(), [physicalGuid]);
             if (!source.SupportedInputs.TryGetValue(physicalGuid, out var inputs))
                 throw new InvalidOperationException("Replacement inputs are unavailable. Rescan and review again.");
@@ -849,7 +850,7 @@ namespace Heimdall.App.Games
             {
                 var connected = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
                 var dialog = new EliteExportReviewWindow(this, issues, connected, guid => _session!.ControllerReferences(guid)
-                    .Select(id => new GameDeviceChoice(id, ControllerName(_session.Snapshot, id))).ToArray(), EditionAccess.Policy.IsOwner);
+                    .Select(id => new GameDeviceChoice(id, ControllerName(_session.Snapshot, id))).ToArray(), EditionAccess.Policy.HasPremium);
                 resolution = dialog.ShowDialog() == true ? dialog.Resolution : null;
             }
             if (resolution is null) { Status("Export cancelled; no files written."); return; }

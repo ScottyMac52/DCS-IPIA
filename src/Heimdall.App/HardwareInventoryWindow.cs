@@ -178,7 +178,7 @@ namespace Heimdall.App
             _cancel.IsEnabled = true;
             try
             {
-                if (!EditionAccess.Policy.IsOwner)
+                if (!EditionAccess.Policy.HasPremium)
                     EditionAccess.Policy.RequireInventory(await _manager.ReadSnapshotAsync(_scan.Token), _rows.Select(row => row.Edit()).ToArray());
                 if (_setup is not null)
                 {

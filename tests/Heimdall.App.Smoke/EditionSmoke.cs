@@ -49,12 +49,16 @@ namespace Heimdall.App.Smoke
                 finally { chooser.Close(); }
                 VerifyHardware(root, settings);
                 VerifyFreeTraining(root);
-                EditionAccess.SetForTests(issuer.Policy); ThemeManager.Apply(settings.Current.Theme.ToString()); AppearanceManager.Restore();
-                if (AppearanceManager.Active != saved) throw new InvalidOperationException("Owner activation did not restore saved appearance.");
-                var unlocked = new SettingsWindow(settings); unlocked.Show(); ThemeControlSmoke.Pump(unlocked);
-                if (!((ComboBox)unlocked.FindName("ThemeChoice")!).IsEnabled || !((Button)unlocked.FindName("CustomizeAppearance")!).IsEnabled)
-                    throw new InvalidOperationException("Authenticated owner did not unlock appearance controls.");
-                unlocked.Close();
+                foreach (var policy in new[] { issuer.PremiumPolicy, issuer.Policy })
+                {
+                    EditionAccess.SetForTests(policy); ThemeManager.Apply(settings.Current.Theme.ToString()); AppearanceManager.Restore();
+                    if (AppearanceManager.Active != saved) throw new InvalidOperationException("Paid activation did not restore saved appearance.");
+                    var unlocked = new SettingsWindow(settings); unlocked.Show(); ThemeControlSmoke.Pump(unlocked);
+                    if (!((ComboBox)unlocked.FindName("ThemeChoice")!).IsEnabled || !((Button)unlocked.FindName("CustomizeAppearance")!).IsEnabled
+                        || ((TextBlock)unlocked.FindName("EditionStatus")!).Text != policy.Label)
+                        throw new InvalidOperationException("Signed Premium/Owner did not expose its own edition and unlock appearance controls.");
+                    unlocked.Close();
+                }
             }
             finally
             {

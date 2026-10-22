@@ -314,7 +314,7 @@ namespace Heimdall.App
         }
         private async Task SaveOutputAsync(SharedUiLayerOutputSnapshot snapshot)
         {
-            if (!EditionAccess.Policy.IsOwner)
+            if (!EditionAccess.Policy.HasPremium)
             {
                 var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
                 var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];

@@ -26,7 +26,7 @@ namespace Heimdall.App
             if (training is not null) { training.RequireWorkspace(workspace); return; }
             Policy.RequireHardware(workspace.Configuration.Profiles.Where(profile => !profile.SourceName.Equals("Keyboard.diff.lua", StringComparison.OrdinalIgnoreCase))
                 .Select(profile => profile.DeviceId));
-            if (Policy.IsOwner || discovery is null) return;
+            if (Policy.HasPremium || discovery is null) return;
             var physical = workspace.Configuration.Profiles.Select(profile => DcsPhysicalIdentity.FromFileName(profile.SourceName)).ToHashSet();
             if (discovery.Discover().Any(device => device.Connected && physical.Contains(device.PhysicalGuid) && !Policy.AllowsDevice(device)))
                 throw new InvalidOperationException("The connected controller is not a verified Thrustmaster HID device. Premium availability TBA.");
@@ -44,23 +44,23 @@ namespace Heimdall.App
         /// <summary>Gets the explicit training scope of a mounted workspace, never a process-wide entitlement.</summary>
         internal static TrainingEnvironment? Training(IModuleWorkspaceContext? context) => (context as WindowContext)?.Training;
         /// <summary>Gets whether this specific view can run the real or isolated simulated tester.</summary>
-        internal static bool AllowsInputTest(IModuleWorkspaceContext? context) => Policy.IsOwner || Training(context) is { IsActive: true };
-        /// <summary>Requires Owner for ordinary views, or validates the owned sample for training views.</summary>
+        internal static bool AllowsInputTest(IModuleWorkspaceContext? context) => Policy.HasPremium || Training(context) is { IsActive: true };
+        /// <summary>Requires Premium/Owner for ordinary views, or validates the owned sample for training views.</summary>
         internal static void RequireInputTest(IModuleWorkspaceContext? context)
         {
-            if (Training(context) is not { } training) { Policy.RequireOwner(); return; }
+            if (Training(context) is not { } training) { Policy.RequirePremium(); return; }
             training.RequireRepository(context!.Repository);
             training.RequireWorkspace(context.Working ?? throw new InvalidOperationException("No training workspace."));
         }
         /// <summary>Checks shared profiles against reviewed hardware choices, including explicit base aliases.</summary>
         internal static void RequireSharedDiagrams(SharedUiLayerOutputSnapshot snapshot, IEnumerable<WorkspaceHardware> hardware)
         {
-            if (!Policy.IsOwner) SharedUiLayerHardwareMapping.Resolve(snapshot.Defaults, Hardware(hardware));
+            if (!Policy.HasPremium) SharedUiLayerHardwareMapping.Resolve(snapshot.Defaults, Hardware(hardware));
         }
         /// <summary>Checks shared-default saves against the pinned Free catalog before persistence.</summary>
         internal static async Task RequireDefaultsAsync(SharedUiLayerWorkspace defaults)
         {
-            if (Policy.IsOwner) return;
+            if (Policy.HasPremium) return;
             var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
             try { SharedUiLayerHardwareMapping.Resolve(defaults, Hardware(catalog)); }
