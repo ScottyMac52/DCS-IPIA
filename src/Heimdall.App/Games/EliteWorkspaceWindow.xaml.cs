@@ -25,6 +25,7 @@ namespace Heimdall.App.Games
         private readonly EliteAssignmentsView _assignmentsView = new();
         private readonly EliteReferenceSheetsView _referenceView = new();
         private readonly EliteControllerReordering _reordering;
+        private readonly DependencyPropertyDescriptor _inputTextProperty = DependencyPropertyDescriptor.FromProperty(ComboBox.TextProperty, typeof(ComboBox))!;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly EliteDiagramPresenter _diagram;
@@ -91,7 +92,8 @@ namespace Heimdall.App.Games
             _assignmentsView.CommandCategoryPicker.SelectionChanged += CommandFilterChanged;
             _assignmentsView.CommandTypePicker.SelectionChanged += CommandFilterChanged;
             _assignmentsView.AssignmentStatusPicker.SelectionChanged += CommandFilterChanged;
-            _assignmentsView.InputKey.TextChanged += AssignmentTextChanged;
+            _inputTextProperty.AddValueChanged(_assignmentsView.InputKey, InputTextChanged);
+            _assignmentsView.InputKey.SelectionChanged += AssignmentModeChanged;
             _assignmentsView.AxisDeadzone.TextChanged += AssignmentTextChanged;
             _assignmentsView.ModePicker.SelectionChanged += AssignmentModeChanged;
             _assignmentsView.InvertAxis.Checked += AssignmentOptionChanged; _assignmentsView.InvertAxis.Unchecked += AssignmentOptionChanged;
@@ -143,6 +145,7 @@ namespace Heimdall.App.Games
         public void Dispose()
         {
             _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
+            _inputTextProperty.RemoveValueChanged(_assignmentsView.InputKey, InputTextChanged);
             FeatureActions.ClearActions(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
@@ -322,6 +325,7 @@ namespace Heimdall.App.Games
         }
         private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }
         private void AssignmentTextChanged(object sender, TextChangedEventArgs e) => DraftChanged();
+        private void InputTextChanged(object? sender, EventArgs e) => DraftChanged();
         private void AssignmentModeChanged(object sender, SelectionChangedEventArgs e) => DraftChanged();
         private void AssignmentOptionChanged(object sender, RoutedEventArgs e) => DraftChanged();
         private void DraftChanged() { if (!_refreshing && !_loadingAssignment && _session is not null) UpdateAvailability(); }
@@ -331,7 +335,7 @@ namespace Heimdall.App.Games
             var axis = Command.Type == CommandType.Axis;
             if (axis && !float.TryParse(_assignmentsView.AxisDeadzone.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out _)) return null;
             var deadzone = axis ? float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture) : 0;
-            return new(Device.Id, Command.Id, Slot, _assignmentsView.InputKey.Text.Trim(), axis,
+            return new(Device.Id, Command.Id, Slot, NativeInput(_assignmentsView.InputKey), axis,
                 _assignmentsView.InvertAxis.IsChecked == true, deadzone,
                 _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
                 _modifiers.Select(x => x.Modifier).ToArray(), _assignmentsView.CommandToggle.Visibility == Visibility.Visible ? _assignmentsView.CommandToggle.IsChecked == true : null);
@@ -511,14 +515,14 @@ namespace Heimdall.App.Games
             if (key is null) { Status("This drawing input has no verified Elite key. Choose an explicit native input key instead."); return; }
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
             if (row is not null) SelectRow(row);
-            _assignmentsView.InputKey.Text = key; _assignmentsView.InputKey.Focus();
+            SelectInput(key); _assignmentsView.InputKey.Focus();
         }
         private void DropCommand(HardwareGraphicControl control, string id) => Run(() =>
         {
             var command = _commands.Single(x => x.Id == id);
             if (control.IsAxis != (command.Type == CommandType.Axis)) throw new InvalidOperationException("Choose an axis command for an axis, or a button command for a button.");
             _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id);
-            _assignmentsView.InputKey.Text = DrawingKey(control) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key.");
+            SelectInput(DrawingKey(control) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key."));
             ApplyClicked(this, new());
         });
         private void DragCommand(object sender, MouseEventArgs e)
@@ -535,13 +539,14 @@ namespace Heimdall.App.Games
             _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.SlotPicker.IsEnabled = _assignmentsView.ModePicker.IsEnabled = !axis;
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
-            _assignmentsView.InputKey.Text = row?.Input ?? ""; _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
+            _assignmentsView.InputKey.ItemsSource = Device is not null && Command is not null ? DeviceInputs(Device.Id, axis) : [];
+            SelectInput(row?.Input ?? ""); _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
             _assignmentsView.AxisDeadzone.Text = (row?.Deadzone ?? 0).ToString(CultureInfo.CurrentCulture);
             _assignmentsView.ModePicker.SelectedIndex = row?.Mode == BindingMode.Hold ? 1 : 0;
             _modifiers.Clear();
             if (row is not null) foreach (var modifier in row.Modifiers) _modifiers.Add(new(modifier,
                 (_assignmentsView.ModifierDevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == modifier.Source)?.Name ?? modifier.Source)
-                    + ": " + (CombinationInputs(modifier.Source).FirstOrDefault(x => x.Key == modifier.Value)?.DisplayName ?? modifier.Value)));
+                    + ": " + (DeviceInputs(modifier.Source).FirstOrDefault(x => x.Key == modifier.Value)?.DisplayName ?? modifier.Value)));
             _assignmentsView.ModifierTools.IsExpanded = _modifiers.Count > 0;
             _assignmentsView.ModifiersList.ItemsSource = null; _assignmentsView.ModifiersList.ItemsSource = _modifiers;
             var key = "ed.toggle:" + Command?.Id;
@@ -639,23 +644,30 @@ namespace Heimdall.App.Games
         private void AddModifierClicked(object sender, RoutedEventArgs e)
         {
             if (_assignmentsView.ModifierDevicePicker.SelectedItem is not GameDeviceChoice device || string.IsNullOrWhiteSpace(_assignmentsView.ModifierKey.Text)) return;
-            var choice = _assignmentsView.ModifierKey.SelectedItem as EliteCombinationInput;
-            var key = choice is not null && _assignmentsView.ModifierKey.Text == choice.DisplayName ? choice.Key : _assignmentsView.ModifierKey.Text.Trim();
-            var label = CombinationInputs(device.Id).FirstOrDefault(x => x.Key == key)?.DisplayName ?? key;
+            var key = NativeInput(_assignmentsView.ModifierKey);
+            var label = DeviceInputs(device.Id).FirstOrDefault(x => x.Key == key)?.DisplayName ?? key;
             _modifiers.Add(new(new() { Source = device.Id, Value = key }, device.Name + ": " + label));
             _assignmentsView.ModifiersList.Items.Refresh(); _assignmentsView.ModifierKey.SelectedIndex = -1; _assignmentsView.ModifierKey.Text = ""; DraftChanged();
         }
-        private IReadOnlyList<EliteCombinationInput> CombinationInputs(string deviceId)
+        private static string NativeInput(ComboBox picker) => picker.SelectedItem is EliteInputChoice choice && picker.Text == choice.DisplayName
+            ? choice.Key : picker.Text.Trim();
+        private void SelectInput(string key)
+        {
+            var choice = _assignmentsView.InputKey.Items.Cast<EliteInputChoice>().FirstOrDefault(x => x.Key == key);
+            _assignmentsView.InputKey.SelectedItem = choice;
+            _assignmentsView.InputKey.Text = choice?.DisplayName ?? key;
+        }
+        private IReadOnlyList<EliteInputChoice> DeviceInputs(string deviceId, bool axes = false)
         {
             if (_session is null) return [];
             var document = _session.Snapshot;
             var drawing = document.Hardware.TryGetValue(deviceId, out var pin)
                 ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId)?.Diagram : null;
-            return EliteCombinationInputs.ForDevice(document.Profile, deviceId, drawing);
+            return EliteDeviceInputs.ForDevice(document.Profile, deviceId, drawing, axes);
         }
         private void RefreshCombinationInputs()
         {
-            _assignmentsView.ModifierKey.ItemsSource = _assignmentsView.ModifierDevicePicker.SelectedItem is GameDeviceChoice device ? CombinationInputs(device.Id) : [];
+            _assignmentsView.ModifierKey.ItemsSource = _assignmentsView.ModifierDevicePicker.SelectedItem is GameDeviceChoice device ? DeviceInputs(device.Id) : [];
             _assignmentsView.ModifierKey.SelectedIndex = -1; _assignmentsView.ModifierKey.Text = "";
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)

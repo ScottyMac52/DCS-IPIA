@@ -2,10 +2,10 @@ using System.Globalization;
 
 namespace Heimdall.EliteDangerous
 {
-    /// <summary>A native combination input with its original hardware caption, independent of assigned commands.</summary>
-    /// <param name="Key">Exact native ED key stored in a combination.</param>
+    /// <summary>A native device input with its original hardware caption, independent of assigned commands.</summary>
+    /// <param name="Key">Exact native ED key stored in an assignment or combination.</param>
     /// <param name="DefaultLabel">Authored hardware caption, or the native key when no caption is available.</param>
-    public sealed record EliteCombinationInput(string Key, string DefaultLabel)
+    public sealed record EliteInputChoice(string Key, string DefaultLabel)
     {
         #region BEGIN Public
         /// <summary>Gets the positive native button number, leaving keyboard, mouse and hat names intact.</summary>

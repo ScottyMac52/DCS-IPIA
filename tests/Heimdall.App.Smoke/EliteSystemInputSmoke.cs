@@ -37,11 +37,11 @@ namespace Heimdall.App.Smoke
             ThemeControlSmoke.Pump(window);
             if (Box<ListBox>(window, "CommandsList").SelectedItem is not Heimdall.Domain.MultiSim.SimCommand { DisplayName: "Primary Fire", Type: Heimdall.Domain.MultiSim.CommandType.Button }
                 || Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire"
-                || Box<TextBox>(window, "InputKey").Text != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
+                || (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
                 throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding.");
             var region = Region(window, "Key_B");
             region.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-            if (Box<TextBox>(window, "InputKey").Text != "Key_B" || !Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
+            if ((string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_B" || !Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
                 throw new InvalidOperationException("Clicking a keyboard key did not populate the native assignment draft.");
             Box<Button>(window, "ApplyAssignmentButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (!window.Session.Snapshot.Profile.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Buttons.Any(x => x.SourceButton == "Key_B"))
@@ -67,7 +67,7 @@ namespace Heimdall.App.Smoke
                 {
                     Region(window, "Pos_Mouse_ZAxis").RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
                     ThemeControlSmoke.Pump(window);
-                    if (Box<TextBox>(window, "InputKey").Text != "Pos_Mouse_ZAxis" || Box<TextBlock>(window, "AssignmentCommand").Text != "Secondary Fire")
+                    if ((string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Pos_Mouse_ZAxis" || Box<TextBlock>(window, "AssignmentCommand").Text != "Secondary Fire")
                         throw new InvalidOperationException("Mouse wheel selection did not show its native input and assigned command in the editor.");
                 }
                 var frozen = JsonSerializer.Serialize(window.Session.Snapshot);

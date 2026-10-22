@@ -44,10 +44,10 @@ namespace Heimdall.App.Smoke
             var source = Box<ComboBox>(window, "ModifierDevicePicker"); var inputs = Box<ComboBox>(window, "ModifierKey");
             var frozen = JsonSerializer.Serialize(window.Session.Snapshot);
             source.SelectedItem = source.Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
-            var choice = inputs.Items.Cast<EliteCombinationInput>().Single(x => x.Key == "Joy_9");
+            var choice = inputs.Items.Cast<EliteInputChoice>().Single(x => x.Key == "Joy_9");
             var caption = drawing.Diagram.Controls.First(x => x.InputKey == "JOY_BTN9").Label;
             if (choice.DefaultLabel != caption || !choice.DisplayName.Contains("Button 9", StringComparison.Ordinal)
-                || inputs.Items.Cast<EliteCombinationInput>().Any(x => x.Key.EndsWith("Axis", StringComparison.Ordinal))
+                || inputs.Items.Cast<EliteInputChoice>().Any(x => x.Key.EndsWith("Axis", StringComparison.Ordinal))
                 || JsonSerializer.Serialize(window.Session.Snapshot) != frozen)
                 throw new InvalidOperationException("Combination choices omitted default captions, included axes or changed the profile merely by selecting a source.");
             inputs.SelectedItem = choice; ThemeControlSmoke.Pump(window);
@@ -61,8 +61,8 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Selecting a labeled combination did not export the exact native device/key or retain its default label after refresh.");
             inputs.Text = "Joy_12";
             source.SelectedItem = source.Items.Cast<GameDeviceChoice>().Single(x => x.Id == keyboard.LogicalId);
-            if (inputs.Text.Length != 0 || !inputs.Items.Cast<EliteCombinationInput>().Any(x => x.Key == "Key_LeftShift")
-                || inputs.Items.Cast<EliteCombinationInput>().Any(x => x.Key == "Joy_9"))
+            if (inputs.Text.Length != 0 || !inputs.Items.Cast<EliteInputChoice>().Any(x => x.Key == "Key_LeftShift")
+                || inputs.Items.Cast<EliteInputChoice>().Any(x => x.Key == "Joy_9"))
                 throw new InvalidOperationException("Changing combination devices retained a stale input or another device's button choices.");
             inputs.Text = "Key_ManualExact"; Click(window, "AddCombinationButton"); Click(window, "ApplyAssignmentButton");
             xml = XDocument.Parse(window.Session.Export().Files.Values.Single());
@@ -71,8 +71,8 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Editable combination choices stopped accepting exact native keys.");
             window.Session.ChangeDrawing(stick.LogicalId, null);
             source.SelectedItem = source.Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
-            inputs.SelectedItem = inputs.Items.Cast<EliteCombinationInput>().Single(x => x.Key == "Joy_9");
-            Box<Expander>(window, "ModifierTools").IsExpanded = true; inputs.BringIntoView();
+            inputs.SelectedItem = inputs.Items.Cast<EliteInputChoice>().Single(x => x.Key == "Joy_9");
+            Box<Expander>(window, "ModifierTools").IsExpanded = true; ThemeControlSmoke.Pump(window); inputs.BringIntoView();
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-combination-inputs");
             window.Close();
         }
