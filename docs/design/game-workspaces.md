@@ -366,3 +366,32 @@ text, label and button styles. `GameConfigurationTests` covers isolated copies, 
 native round trips, catalogs/settings, naming conflicts, independent reopen/rename and
 stale deletion. `EliteConfigurationsSmoke` exercises real commands, cancellation, saved
 selection, rename/Save and deleting the final configuration on Windows.
+
+
+## ED device action states
+
+Controller management uses one `GameControllerActions` availability policy and rechecks
+fresh observations inside the handlers. Source buttons retain shared styles, and the
+feature action bar mirrors their enabled states.
+
+| Action | Prerequisite while Devices is idle and not busy |
+| --- | --- |
+| Start Identification | Selected physical native reference, Owner live-input access, eligible connected hardware |
+| Stop Identification | Identification is running; available even while busy |
+| Confirm Controller Link | Identification is running, one fresh matching result, legal available link/index, Owner access, not busy |
+| Add Controller | Selected eligible connected instance, open profile, instance not already linked |
+| Replace Selected | Selected physical native reference, different eligible connected replacement, explicit indexed choice when needed, Owner access |
+| Remove Selected | Selected physical native reference; keyboard and mouse are retained |
+| Rescan | No identification, input test or busy operation; available without a profile |
+| Change Drawing | Selected linked physical controller; drawing remains optional |
+
+Start, Add, Replace, Remove, Rescan and drawing changes are disabled while identifying
+or testing input. A missing, mismatching or ambiguous result cannot be confirmed.
+Fresh discovery is rechecked before actions and while idle on Devices; focus loss,
+Stop, view/device changes, errors and disconnect invalidate the result and restore
+idle states. Review dialogs use the busy state. Existing detection thresholds and
+baseline behavior remain unchanged; the aborted settling-slider work is not included.
+
+`GameControllerActionsTests` verifies the truth table, and Windows identification smoke
+checks all eight source buttons, visible action commands, connected/unlinked/linked
+transitions, conflicts raised directly against disabled handlers and lifecycle cleanup.

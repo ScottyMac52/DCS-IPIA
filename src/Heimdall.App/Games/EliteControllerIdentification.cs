@@ -26,6 +26,8 @@ namespace Heimdall.App.Games
             _timer.Tick += Poll; _owner.Deactivated += Deactivated;
         }
         #region BEGIN Public
+        /// <summary>Gets whether identification owns live input handles.</summary>
+        internal bool Running => _source is not null;
         /// <summary>Acquires every eligible attached instance and establishes neutral baselines before listening.</summary>
         internal void Start(IReadOnlyList<DetectedDcsDevice> observed)
         {
