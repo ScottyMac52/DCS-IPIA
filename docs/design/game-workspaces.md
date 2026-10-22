@@ -355,6 +355,11 @@ table retains Primary/Secondary, combinations, hold/toggle and axis details. Sec
 filters apply to displayed commands; unknown inputs remain visible in the additional
 input area and table. Assignment and reference previews share the same geometry.
 
+The Assignment editor also displays the currently selected command name directly above
+the native input key. It follows diagram clicks, assignment-table selection and catalog
+selection on every device, wraps long names and shows "No command selected." when the
+selection is cleared. Viewing a binding leaves the native profile unchanged.
+
 The same command-label projection serves physical sticks, throttles, rudders and MFDs:
 assigned buttons, hats and axes display their commands in authored callouts. Multiple
 commands share the callout, section filters apply, and unassigned controls have no

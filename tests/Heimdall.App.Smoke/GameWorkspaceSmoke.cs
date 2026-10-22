@@ -74,6 +74,7 @@ namespace Heimdall.App.Smoke
                 Box<CheckBox>(window, "InvertAxis").IsChecked = false; Box<TextBox>(window, "AxisDeadzone").Text = "7.5"; Click(window, "ApplyAssignmentButton");
                 if (!window.Session!.HasChanges || !window.SaveProfile()) throw new InvalidOperationException("ED authoring did not save.");
                 var saved = window.Session.Snapshot;
+                VerifyAssignmentSelection(window);
                 Click(window, "ExportPresetButton");
                 var exported = Directory.GetFiles(Path.Combine(root, "Review"), "*.binds", SearchOption.AllDirectories).Single();
                 var native = services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });
@@ -120,6 +121,28 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyAssignmentSelection(EliteWorkspaceWindow window)
+        {
+            var frozen = System.Text.Json.JsonSerializer.Serialize(window.Session!.Snapshot);
+            var region = Box<Canvas>(window, "DiagramCanvas").Children.OfType<Border>().First(x =>
+                x.Tag is HardwareGraphicControl control && EliteInputKeys.FromShared(control.InputKey) == "Joy_9");
+            region.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+            { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            ThemeControlSmoke.Pump(window);
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire" || Box<TextBox>(window, "InputKey").Text != "Joy_9"
+                || Box<ComboBox>(window, "ModePicker").SelectedIndex != 1 || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
+                throw new InvalidOperationException("A physical diagram click did not show the existing command and settings in the assignment editor.");
+            var grid = Box<DataGrid>(window, "AssignmentsGrid");
+            grid.SelectedItem = grid.Items.Cast<EliteAssignmentRow>().First(x => x.IsAxis);
+            ThemeControlSmoke.Pump(window);
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Pitch Axis Raw" || Box<TextBox>(window, "InputKey").Text != "Joy_YAxis"
+                || !Box<StackPanel>(window, "AxisTools").IsVisible)
+                throw new InvalidOperationException("Selecting an axis assignment did not synchronize the command readout and editor settings.");
+            Box<TextBlock>(window, "AssignmentCommand").BringIntoView();
+            ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-selected-assignment");
+            if (System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot) != frozen)
+                throw new InvalidOperationException("Inspecting an existing assignment changed the native profile.");
+        }
         private static void VerifyControllerAddition(string root, WorkspaceHardware[] hardware)
         {
             var physical = new DetectedDcsDevice(Guid.NewGuid(), "Unillustrated controller", true, ProductGuid: Guid.Parse("0bac06a3-0000-0000-0000-504944564944"));
@@ -194,8 +217,11 @@ namespace Heimdall.App.Smoke
             if (commands.Items.Count != 2 || commands.Items.Cast<SimCommand>().Any(x => x.Type != CommandType.Axis))
                 throw new InvalidOperationException("Axes filtering did not use the native command type.");
             categories.SelectedItem = "Weapons";
+            ThemeControlSmoke.Pump(window);
             if (commands.Items.Count != 0 || !Box<TextBlock>(window, "CommandEmptyHint").IsVisible || Box<StackPanel>(window, "AssignmentEditor").IsEnabled)
                 throw new InvalidOperationException("An empty category/type intersection left a stale command editable.");
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "No command selected.")
+                throw new InvalidOperationException("An empty command selection left a stale command name in the assignment editor.");
             types.SelectedIndex = 1;
             if (commands.Items.Count != 2 || commands.Items.Cast<SimCommand>().Any(x => x.Type != CommandType.Button))
                 throw new InvalidOperationException("Buttons filtering did not intersect the Weapons category.");
