@@ -48,6 +48,7 @@ namespace Heimdall.App.Smoke
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
             defaultsWindow.UpdateLayout();
+            UserGuideCapture.Save(defaultsWindow, "shared-ui-layer");
             Console.WriteLine("Smoke: rendered theme control states and dropdown keyboard behavior.");
             ThemeControlSmoke.Verify();
             MainWindowThemeSmoke.Verify();
@@ -539,6 +540,7 @@ namespace Heimdall.App.Smoke
                 VerifyIntegrationInstructions(window, repository, configuration.Module.Id, integrationPath);
                 VerifyAxisDefaults(window, repository, configuration.Module.Id, Path.Combine(htmlRoot, "axes.diff.lua"));
                 VerifyModuleSnapshotButtons(window, repository, configuration.Module.Id);
+                UserGuideCapture.DcsFeatures(window);
                 window.Close();
             }
             finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }

@@ -59,6 +59,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("New devices were selected automatically or repeated identities collapsed.");
                 rows[0].Selected = true; rows[0].Label = "Left panel";
                 rows[1].Selected = true; rows[1].Label = "Right panel";
+                UserGuideCapture.Save(window, "hardware-inventory");
                 Click(save);
                 Pump(window,() => ((TextBlock)window.FindName("HardwareInventoryStatus")!).Text.StartsWith("Reviewed inventory saved",StringComparison.Ordinal));
                 window.Close();

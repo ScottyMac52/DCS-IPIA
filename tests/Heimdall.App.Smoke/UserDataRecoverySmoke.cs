@@ -52,6 +52,7 @@ namespace Heimdall.App.Smoke
                 var archive = Path.Combine(folder, "backup.heimdall-backup.zip");
                 var tools = new UserDataRecoveryWindow(recovery, backupPicker: () => archive);
                 tools.Show();
+                UserGuideCapture.Save(tools, "data-recovery");
                 Click((Button)tools.FindName("BackupUserDataButton")!);
                 Pump(tools, () => ((TextBlock)tools.FindName("RecoveryStatus")!).Text.StartsWith("Verified full backup saved:", StringComparison.Ordinal));
                 tools.Close();
