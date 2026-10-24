@@ -469,3 +469,19 @@ baseline behavior remain unchanged; the aborted settling-slider work is not incl
 `GameControllerActionsTests` verifies the truth table, and Windows identification smoke
 checks all eight source buttons, visible action commands, connected/unlinked/linked
 transitions, conflicts raised directly against disabled handlers and lifecycle cleanup.
+
+## Elite command binding slots
+
+Button commands have **Primary** and **Secondary** slots shared across the entire
+profile. Either input activates the command. For example, UI Select can use a
+joystick button in Primary and a throttle button in Secondary. Choose the other
+slot to add a second input; assigning an occupied slot replaces its current input,
+even when it belongs to another device. The inspector lists both slot owners and
+inputs across all devices and explains replacement before Apply. Clearing a slot
+on its owning device preserves the other slot. Drag-and-drop uses the selected slot.
+
+Axis commands have one native **Binding** slot. Their inspector shows that slot
+and axis tuning rather than offering Primary/Secondary or button press/hold mode.
+Keyboard bindings count toward the same two button slots; there is no third slot
+per controller. Import, save/reopen, and export retain each slot's device identity,
+button combinations and supported mode independently.

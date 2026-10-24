@@ -541,6 +541,8 @@ namespace Heimdall.App.Games
             _assignmentsView.AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.SlotPicker.IsEnabled = _assignmentsView.ModePicker.IsEnabled = !axis;
+            _assignmentsView.SlotPicker.Visibility = _assignmentsView.ModePicker.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
+            _assignmentsView.AxisSlotLabel.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
             _assignmentsView.InputKey.ItemsSource = Device is not null && Command is not null ? DeviceInputs(Device.Id, axis) : [];
             SelectInput(row?.Input ?? ""); _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
@@ -623,8 +625,10 @@ namespace Heimdall.App.Games
             _assignmentsView.ApplyAssignmentButton.IsEnabled = _actions.Apply;
             _assignmentsView.ClearAssignmentButton.IsEnabled = _actions.Clear;
             _assignmentsView.StopInputButton.IsEnabled = _actions.Stop;
+            var deviceNames = DevicePicker.Items.Cast<GameDeviceChoice>().ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);
+            _assignmentsView.CommandSlotSummary.Text = Command is null ? "" : EliteCommandSlots.Summary(_rows, Command.Id, Command.Type == CommandType.Axis, deviceNames);
             _assignmentsView.AssignmentDraftStatus.Text = _input?.Running == true ? "Stop input testing to apply or clear assignments."
-                : !review.Valid ? review.Message : review.Changed ? "Assignment changes ready to apply." : "Assignment unchanged.";
+                : !review.Valid ? review.Message : review.Changed ? EliteCommandSlots.Replacement(_rows, Command!.Id, Slot, deviceNames) : "Assignment unchanged.";
             _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
             _assignmentsView.StartInputButton.IsEnabled = _actions.Start;
             _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;

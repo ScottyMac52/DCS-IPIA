@@ -84,6 +84,31 @@ namespace Heimdall.Tests
             Assert.ThrowsAny<Exception>(() => session.Assign(draft));
             Assert.Equal(before, JsonSerializer.Serialize(session.Snapshot)); Assert.Equal(0, changes);
         }
+        /// <summary>Slots belong to the command across devices; replacing or clearing one retains its sibling through export/reimport.</summary>
+        [Fact]
+        public void Two_device_slots_round_trip_and_replace_independently()
+        {
+            using var issuer = new OwnerLicenseTestIssuer(); var workspace = Workspace();
+            var backend = new EliteDangerousProfileBackend();
+            var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => []);
+            var rows = EliteWorkspaceProjection.Rows(workspace.Profile, session.Catalog);
+            var primary = rows.Single(x => x.CommandName == "Primary Fire" && x.Slot == "Primary");
+            var secondary = rows.Single(x => x.CommandId == primary.CommandId && x.Slot == "Secondary");
+            var throttle = rows.Single(x => x.CommandName == "Throttle Axis").DeviceId;
+            session.AssignButton(throttle, primary.CommandId, "Secondary", "Joy_7", BindingMode.Press, []);
+            var exported = session.Export().Files;
+            var imported = backend.Import("controls", exported);
+            var actual = EliteWorkspaceProjection.Rows(imported, backend.GetCatalog(imported)).Where(x => x.CommandId == primary.CommandId).ToArray();
+            Assert.Equal(2, actual.Length);
+            Assert.Contains(actual, x => x.Slot == "Primary" && x.DeviceId == primary.DeviceId && x.Input == primary.Input && x.Mode == primary.Mode);
+            Assert.Contains(actual, x => x.Slot == "Secondary" && x.DeviceId == throttle && x.Input == "Joy_7");
+            Assert.DoesNotContain(actual, x => x.DeviceId == secondary.DeviceId);
+            session.Clear(primary.CommandId, "Secondary");
+            imported = backend.Import("controls", session.Export().Files);
+            var remaining = Assert.Single(EliteWorkspaceProjection.Rows(imported, backend.GetCatalog(imported)), x => x.CommandId == primary.CommandId);
+            Assert.Equal(primary.DeviceId, remaining.DeviceId); Assert.Equal(primary.Slot, remaining.Slot);
+            Assert.Equal(primary.Input, remaining.Input); Assert.Equal(primary.Mode, remaining.Mode);
+        }
         /// <summary>Read-only entitlement cannot gain authoring through draft review.</summary>
         [Fact]
         public void Review_enforces_edition_access()
