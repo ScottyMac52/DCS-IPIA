@@ -1,13 +1,16 @@
-# War Thunder adapter foundation
+# War Thunder adapter — native capture support
 
-This isolated project is a starting point for War Thunder `.blk` support. It does not register a simulator, change existing adapters, or write user configuration.
+The isolated `Heimdall.WarThunder` project now inventories captured BLK scalars and blocks, preserves untouched input text, and supports guarded replacement of an existing scalar by unique full path. It does **not** yet implement HEIMDALL game selection, controller assignment UI, profile persistence, or a simulator backend.
 
-## Safety gates
+## Native evidence and safety
 
-- Preserve all unknown BLK properties and original bytes on no-op round trips.
-- Verify numeric fast/long/double-tap activation codes before interpreting them.
-- Verify device offsets and global axis/button indices before assigning controls.
-- Preserve advanced axis tuning fields, including unknown parameters.
-- Add fixture tests, guarded editing/export, and regression tests for DCS, ED and Squadrons before integration.
+- Read `machine.blk` with `WarThunderControls`; original source is retained exactly for no-op output.
+- `Hotkeys`, `Axes`, and `Joysticks` expose captured scalar fields without inventing bindings.
+- `ActivationCodes()` returns numeric codes only. Fast/long/double-tap meanings are not established by this code.
+- Joystick global offsets are **not** stable hardware identifiers. Never map a global axis/button to TPR, TQS or other devices without verified native joystick association.
+- Scalar replacement requires an existing unique path and type-valid value; unrelated fields remain unchanged.
+- Never write directly into live game settings without explicit review and backup.
 
-**Draft foundation only — not a finished War Thunder adapter.**
+## Not yet delivered
+
+Native nested-binding interpretation, complete export safety checks, device identification, gesture editing, axis-tuning UI, simulator registration, workspace integration, automated tests, and DCS/ED/Squadrons regression validation. This branch remains a draft and must not be merged as a completed integration.
