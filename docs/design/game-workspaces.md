@@ -26,6 +26,9 @@ artwork and reference sheets are not exposed yet. Captured slots support explici
 physical links with button/axis identification, reviewed replacement/unlink and
 fresh instance/product checks. These links persist independently of native bindings;
 they do not prove Squadrons acquired the device or that its slot mapping is correct.
+The assignments table now distinguishes captured slot references from verified
+physical inputs. Editing requires a connected linked device and enumerated control;
+generic/stale button or hat records on axis-only devices remain flagged and preserved.
 See the [Squadrons desktop workflow and remaining scope](squadrons-adapter.md).
 
 ## Elite Dangerous

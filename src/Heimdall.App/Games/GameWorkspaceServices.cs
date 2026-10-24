@@ -40,6 +40,9 @@ namespace Heimdall.App.Games
         }
         /// <summary>Gets current native controller evidence, never inferred from a game product token.</summary>
         public IReadOnlyList<DetectedDcsDevice> Discover() => _discovery.Discover();
+        /// <summary>Enumerates real device controls without acquisition; missing capability discovery remains unknown.</summary>
+        public Task<IReadOnlyList<ControllerObservation>> DiscoverInputsAsync() => _discovery is IControllerCapabilityDiscovery inputs
+            ? inputs.DiscoverAsync() : Task.FromResult<IReadOnlyList<ControllerObservation>>([]);
         /// <summary>Loads the same verified bundled drawings used by DCS.</summary>
         public static async Task<IReadOnlyList<WorkspaceHardware>> HardwareAsync()
         {

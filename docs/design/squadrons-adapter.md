@@ -66,7 +66,9 @@ in-game hardware test, and there is no established device-count limit from these
 3. Use **Captured controllers**, context, input-type and search filters to find
    an assignment. Slot numbers remain visible when saved names are duplicated.
 4. Select an editable joystick record, its destination captured controller and
-   physical input/direction, then **Apply assignment**. This changes only that
+   physical input/direction, then **Apply assignment**. The destination must have
+   an explicit connected physical link and verified input enumeration; the input
+   picker offers only controls actually enumerated on that device. This changes only that
    native record. Keyboard/mouse/gamepad and unsupported combinations remain
    visible as preserved records with editing disabled.
 5. Name and **Save profile**. **Discard changes** restores the saved baseline;
@@ -108,6 +110,20 @@ was detected by Squadrons or that every connected device can be acquired togethe
 Identification stops on focus loss, slot/profile/import changes, discard and close.
 There is no automatic relinking or migration when the connected lineup changes.
 Replacement links do not translate button locations or verify input compatibility.
+Use **Rescan** to enumerate connected devices' actual controls without acquiring
+them. The **Hardware check** column distinguishes **Verified device input**,
+**Not on linked device**, **Hardware unverified**, preserved system inputs and
+preserved native encodings. Use the **Verified device inputs** filter to inspect
+supported records only. The captured-slot label describes the file's reference,
+not proof that its assigned input exists on the linked physical hardware.
+
+For example, an axis-only pedal unit may occupy a slot that still has generic or
+stale button/hat records in the capture. These remain visible as unsupported
+records; they do not become pedal controls. HEIMDALL does not delete or guess a
+different owner for those records. New edits require verified destination controls
+through the application session as well as the UI. Missing, failed or obsolete
+scans never fall back to the generic joystick input list. A disconnected or changed
+instance/product blocks application even if an older capability scan succeeded.
 Native exports contain the same captured slot names and binding records; links are
 HEIMDALL workspace metadata and never repair game acquisition by themselves.
 
@@ -137,3 +153,7 @@ filters, save/reopen, review export and canceled game transitions.
 Physical-link tests cover duplicate products, stale reviews, reconnect/product
 checks, offline unlink, persistence and unchanged native output. Windows smoke
 also covers input identification, cancel/replace/unlink, discard and handle cleanup.
+Axis-only controller regressions cover unsupported buttons/hats, physical key
+mapping, capability mismatch/failure, picker restrictions and preserved native
+records. Windows smoke also exercises asynchronous failure, obsolete completion
+and closing during a capability scan.

@@ -21,7 +21,11 @@ namespace Heimdall.Tests
             try
             {
                 var backend = new SquadronsProfileBackend(); var workspace = Workspace(backend);
-                var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => []);
+                var observed = workspace.Profile.Devices.Select(x => new DetectedDcsDevice(Guid.NewGuid(), x.Identity!.WindowsName!, true, ProductGuid: Guid.NewGuid())).ToArray();
+                for (var index = 0; index < observed.Length; index++) workspace.Hardware[workspace.Profile.Devices[index].LogicalId] = new(null, observed[index]);
+                var caps = ControllerCapabilityMapper.Map([new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 2u, "Z axis"), new(Guid.NewGuid(), 12u | (1u << 8), "Button 2")]);
+                var inputs = observed.Select(x => new ControllerObservation(x, caps)).ToArray();
+                var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => observed, controllerInputs: () => inputs);
                 Assert.True(session.CanEditNativeRecords);
                 session.RebindNative("IncomStarshipInputConcepts.ConceptThrottle.4", "squadrons.joystick.10", "JOY_Z", CommandType.Axis, 1);
                 session.Rename("Space Controls"); Assert.True(session.HasChanges);
@@ -29,7 +33,7 @@ namespace Heimdall.Tests
                 store.SaveSelection(new("star-wars-squadrons", workspace.Id, DisplayName: "Space Controls"));
                 Assert.Equal("star-wars-squadrons", store.ReadSelection().BackendId);
                 Assert.Equal("Space Controls", Assert.Single(store.List()).Name);
-                var reopened = new GameProfileSession(backend, store.Load(workspace.Id).Workspace, issuer.Policy, [], () => []);
+                var reopened = new GameProfileSession(backend, store.Load(workspace.Id).Workspace, issuer.Policy, [], () => observed, controllerInputs: () => inputs);
                 Assert.False(reopened.HasChanges);
                 var rows = SquadronsWorkspaceProjection.Rows(reopened.Snapshot.Profile);
                 Assert.Contains(rows, x => x.RecordId.EndsWith(".4", StringComparison.Ordinal) && x.DeviceLabel.Contains("10", StringComparison.Ordinal) && x.Editable);

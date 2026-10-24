@@ -9,6 +9,8 @@ namespace Heimdall.Squadrons
     public sealed record SquadronsInput(string Key, CommandType Type, int Direction)
     {
         #region BEGIN Public
+        /// <summary>Gets the exact shared key for comparison with enumerated controls, including POV direction spelling.</summary>
+        public string PhysicalKey => SquadronsInputCodec.PhysicalKey(Key);
         /// <summary>Gets a readable physical input label for selection and assignment tables.</summary>
         public string DisplayName => Type switch
         {

@@ -62,7 +62,8 @@
      <DataGrid.Columns>
       <DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="*"/>
       <DataGridTextColumn Header="Context" Binding="{Binding Section}" Width="140"/>
-      <DataGridTextColumn Header="Controller" Binding="{Binding DeviceLabel}" Width="190"/>
+      <DataGridTextColumn Header="Hardware check" Binding="{Binding HardwareStatus}" Width="160"/>
+      <DataGridTextColumn Header="Captured slot" Binding="{Binding DeviceLabel}" Width="190"/>
       <DataGridTextColumn Header="Input" Binding="{Binding InputLabel}" Width="175"/>
       <DataGridTextColumn Header="Binding" Binding="{Binding BindingLabel}" Width="85"/>
      </DataGrid.Columns>
@@ -70,8 +71,8 @@
     <StackPanel Grid.Row="2" Margin="0,12,0,0">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
-      <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" AutomationProperties.Name="Squadrons assignment controller"/>
-      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" AutomationProperties.Name="Squadrons assignment input"/>
+      <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
+      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="InputChanged" AutomationProperties.Name="Squadrons assignment input"/>
       <Button x:Name="ApplyButton" Style="{StaticResource ToolbarActionButton}" Content="Apply assignment" Margin="8,0,0,0" Click="ApplyClicked"/>
      </WrapPanel>
     </StackPanel>

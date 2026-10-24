@@ -6,6 +6,10 @@ namespace Heimdall.Squadrons
     public static class SquadronsWorkspaceProjection
     {
         #region BEGIN Public
+        /// <summary>Distinguishes raw captured records from supported physical inputs without guessing another controller or deleting evidence.</summary>
+        public static IReadOnlyList<SquadronsWorkspaceRow> ReviewInputs(IEnumerable<SquadronsWorkspaceRow> rows, IReadOnlyDictionary<string, IReadOnlyCollection<string>> verified) =>
+            rows.Select(row => row with { HardwareStatus = row.Native.Type != 3 ? "Preserved system input" : row.Native.Input is not { } input ? "Preserved native encoding" :
+                !verified.TryGetValue(row.DeviceId, out var keys) ? "Hardware unverified" : keys.Contains(input.PhysicalKey, StringComparer.Ordinal) ? "Verified device input" : "Not on linked device" }).ToArray();
         /// <summary>Lists every native record with explicit slot ownership, retaining duplicate names and unsupported records.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Rows(ProfileDocument profile)
         {
@@ -38,6 +42,7 @@ namespace Heimdall.Squadrons
             "Axes" => row.Native.Input?.Type == CommandType.Axis,
             "Buttons and hats" => row.Native.Input?.Type is CommandType.Button or CommandType.Hat,
             "Preserved inputs" => row.Native.Input is null,
+            "Verified device inputs" => row.HardwareStatus == "Verified device input",
             _ => true
         };
         #endregion END private helpers
