@@ -20,6 +20,9 @@ hardware drawings, save/reopen, input feedback and review/reference exports to
 the ED adapter. See the [game workspace guide](docs/design/game-workspaces.md)
 for supported operations, edition boundaries and manual in-game acceptance.
 
+Star Wars: Squadrons support has started with a tested native adapter. Desktop
+workspace integration is pending; see the [Squadrons adapter scope and roadmap](docs/design/squadrons-adapter.md).
+
 ## Compact workspace interactive mockup
 
 The shipped workspace uses top feature tabs, a split Assignments editor and persistent Fit/zoom/layout preferences. See [workspace behavior and display acceptance](docs/design/compact-workspace.md). Explore the original design direction in the

@@ -22,6 +22,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Heimdall.App.Smoke", "tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Heimdall.EliteDangerous", "src\Heimdall.EliteDangerous\Heimdall.EliteDangerous.csproj", "{F34F2415-8B3B-458A-8CDD-B91D9A842867}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Heimdall.Squadrons", "src\Heimdall.Squadrons\Heimdall.Squadrons.csproj", "{1ABC8957-F47D-451C-9E82-B725051DC484}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +70,10 @@ Global
 		{F34F2415-8B3B-458A-8CDD-B91D9A842867}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F34F2415-8B3B-458A-8CDD-B91D9A842867}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F34F2415-8B3B-458A-8CDD-B91D9A842867}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1ABC8957-F47D-451C-9E82-B725051DC484}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1ABC8957-F47D-451C-9E82-B725051DC484}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1ABC8957-F47D-451C-9E82-B725051DC484}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1ABC8957-F47D-451C-9E82-B725051DC484}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
