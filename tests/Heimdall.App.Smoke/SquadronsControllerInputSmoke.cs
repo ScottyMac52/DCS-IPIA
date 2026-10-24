@@ -31,6 +31,9 @@ namespace Heimdall.App.Smoke
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
                 using var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No, reviewChange: _ => true);
                 window.Show(); ThemeControlSmoke.Pump(window);
+                Box<CheckBox>(window, "ReviewCaptured").IsChecked = true;
+                Box<ComboBox>(window, "SectionPicker").SelectedItem = "All";
+                Box<Expander>(window, "ControllerSetup").IsExpanded = true;
                 window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
                 var native = window.Session!.Export().Files[SquadronsProfileBackend.FileName];
                 var devices = Box<ListBox>(window, "DevicePicker");

@@ -29,6 +29,9 @@ they do not prove Squadrons acquired the device or that its slot mapping is corr
 The assignments table now distinguishes captured slot references from verified
 physical inputs. Editing requires a connected linked device and enumerated control;
 generic/stale button or hat records on axis-only devices remain flagged and preserved.
+The normal view opens on compatible **Flight** assignments with a compact table
+and collapsed **Controller setup**. **Review captured records (advanced)** restores
+raw records and diagnostic columns; context/input/search filters apply in both modes.
 See the [Squadrons desktop workflow and remaining scope](squadrons-adapter.md).
 
 ## Elite Dangerous

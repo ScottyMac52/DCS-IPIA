@@ -63,8 +63,17 @@ in-game hardware test, and there is no established device-count limit from these
    Premium and cannot open the workspace or edit/export through session APIs.
 2. Choose **Import controls** and select a captured settings file. Imports are
    bounded, and a failed import retains the current workspace.
-3. Use **Captured controllers**, context, input-type and search filters to find
-   an assignment. Slot numbers remain visible when saved names are duplicated.
+3. Choose a controller, then use context, input-type and search filters to find
+   an assignment. The default **Flight** view shows only inputs compatible with
+   verified linked hardware. A selected controller needs only **Command** and
+   **Input** columns; command names wrap instead of being truncated. Controller
+   choices use numeric slot order and retain slot numbers for duplicate names.
+   **Controller setup** is collapsed until needed for linking/identification.
+   **Review captured records (advanced)** exposes preserved, unverified and
+   incompatible records plus hardware/slot/binding diagnostics. Context and search
+   still apply; select **All** contexts to inspect the full capture. Unlinked or
+   empty views explain how to link/rescan or open capture review. The assignment
+   editor appears after selecting a record.
 4. Select an editable joystick record, its destination captured controller and
    physical input/direction, then **Apply assignment**. The destination must have
    an explicit connected physical link and verified input enumeration; the input
@@ -111,15 +120,15 @@ Identification stops on focus loss, slot/profile/import changes, discard and clo
 There is no automatic relinking or migration when the connected lineup changes.
 Replacement links do not translate button locations or verify input compatibility.
 Use **Rescan** to enumerate connected devices' actual controls without acquiring
-them. The **Hardware check** column distinguishes **Verified device input**,
+them. In **Review captured records (advanced)**, the **Hardware check** column distinguishes **Verified device input**,
 **Not on linked device**, **Hardware unverified**, preserved system inputs and
 preserved native encodings. Use the **Verified device inputs** filter to inspect
 supported records only. The captured-slot label describes the file's reference,
 not proof that its assigned input exists on the linked physical hardware.
 
 For example, an axis-only pedal unit may occupy a slot that still has generic or
-stale button/hat records in the capture. These remain visible as unsupported
-records; they do not become pedal controls. HEIMDALL does not delete or guess a
+stale button/hat records in the capture. These remain available as unsupported
+records in capture review; they do not become pedal controls. HEIMDALL does not delete or guess a
 different owner for those records. New edits require verified destination controls
 through the application session as well as the UI. Missing, failed or obsolete
 scans never fall back to the generic joystick input list. A disconnected or changed
@@ -157,3 +166,7 @@ Axis-only controller regressions cover unsupported buttons/hats, physical key
 mapping, capability mismatch/failure, picker restrictions and preserved native
 records. Windows smoke also exercises asynchronous failure, obsolete completion
 and closing during a capability scan.
+Presentation regressions cover compatible-only authoring, explicit raw-record
+review, numeric controller ordering and unchanged native output. Windows smoke
+checks the selected-controller layout at 1200×810 and 900×620, including command
+width, wrapping, collapsed setup, empty state and diagnostic column visibility.

@@ -21,6 +21,10 @@ Adds reviewed controller removal and replacement alongside Add controller. Remov
 
 ## Squadrons desktop workspace
 
+- Simplify the normal Squadrons view to compatible Flight assignments, wrapping
+  command names and a two-column table when a controller is selected. Move raw
+  records and diagnostic columns behind explicit capture review; collapse linking
+  tools under Controller setup, order slots numerically and explain empty views.
 - Fix captured button/hat records being presented as usable controls on linked
   axis-only hardware such as TPR pedals. Show per-record hardware verification,
   restrict the editor to enumerated destination controls, and enforce the same

@@ -6,6 +6,9 @@ namespace Heimdall.Squadrons
     public static class SquadronsWorkspaceProjection
     {
         #region BEGIN Public
+        /// <summary>Orders controller choices numerically without changing captured slot order or native identity.</summary>
+        public static IReadOnlyList<LogicalDevice> OrderedDevices(ProfileDocument profile) => profile.Devices
+            .OrderBy(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         /// <summary>Distinguishes raw captured records from supported physical inputs without guessing another controller or deleting evidence.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> ReviewInputs(IEnumerable<SquadronsWorkspaceRow> rows, IReadOnlyDictionary<string, IReadOnlyCollection<string>> verified) =>
             rows.Select(row => row with { HardwareStatus = row.Native.Type != 3 ? "Preserved system input" : row.Native.Input is not { } input ? "Preserved native encoding" :
@@ -27,11 +30,11 @@ namespace Heimdall.Squadrons
                 return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label);
             }).ToArray();
         }
-        /// <summary>Intersects game context, decoded input type, text and captured device without mutating native state.</summary>
-        public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId)
+        /// <summary>Intersects context/type/text/device filters; normal authoring can exclude raw unverified and incompatible records.</summary>
+        public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
             var text = search.Trim();
-            return rows.Where(x => (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
+            return rows.Where(x => (includeUnverified || x.HardwareStatus == "Verified device input") && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
                 && (x.CommandName.Contains(text, StringComparison.OrdinalIgnoreCase) || x.InputLabel.Contains(text, StringComparison.OrdinalIgnoreCase)
                     || x.DeviceLabel.Contains(text, StringComparison.OrdinalIgnoreCase)) && MatchesType(x, type)).ToArray();
         }

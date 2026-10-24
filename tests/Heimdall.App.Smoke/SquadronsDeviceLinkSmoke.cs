@@ -30,6 +30,7 @@ namespace Heimdall.App.Smoke
                 var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No,
                     reviewChange: change => { reviewed = change; return accept; }, identificationFactory: (_, ids) => input = new(ids));
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
+                Box<Expander>(window, "ControllerSetup").IsExpanded = true;
                 window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
                 var native = window.Session!.Export().Files[SquadronsProfileBackend.FileName];
                 if (Box<Button>(window, "LinkControllerButton").IsEnabled) throw new InvalidOperationException("All-devices filter allowed physical linking.");
