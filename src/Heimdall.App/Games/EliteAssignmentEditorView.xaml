@@ -13,7 +13,10 @@
                   TextSearch.TextPath="DisplayName" MaxDropDownHeight="300" AutomationProperties.Name="Elite input key"
                   ToolTip="Choose an input from the selected controller. Buttons/hats or axes follow the command type. Choices show the default label, button number and exact native key; exact keys can also be typed."/>
         </Grid>
-        <WrapPanel Margin="0,8,0,0"><ComboBox Style="{StaticResource AppComboBox}" x:Name="SlotPicker" Width="145"><ComboBoxItem Content="Primary"/><ComboBoxItem Content="Secondary"/></ComboBox>
+        <TextBlock Style="{StaticResource Hint}" x:Name="CommandSlotSummary" TextWrapping="Wrap" Margin="0,8,0,0"
+                   AutomationProperties.Name="Elite command slots across all devices" AutomationProperties.LiveSetting="Polite"/>
+        <WrapPanel Margin="0,8,0,0"><TextBlock Style="{StaticResource AppLabel}" x:Name="AxisSlotLabel" Text="Binding (axis)" Visibility="Collapsed" VerticalAlignment="Center"/>
+         <ComboBox Style="{StaticResource AppComboBox}" x:Name="SlotPicker" Width="145" AutomationProperties.Name="Elite command binding slot" ToolTip="Primary and Secondary are shared across all devices. Choose the other slot to keep an existing binding."><ComboBoxItem Content="Primary"/><ComboBoxItem Content="Secondary"/></ComboBox>
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModePicker" Width="145" Margin="8,0,0,0"><ComboBoxItem Content="Press"/><ComboBoxItem Content="Hold"/></ComboBox>
         </WrapPanel>
         <TextBlock Style="{StaticResource Hint}" x:Name="AssignmentDraftStatus" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>

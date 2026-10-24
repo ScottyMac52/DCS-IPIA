@@ -61,6 +61,29 @@ namespace Heimdall.Tests
             Assert.All(EliteWorkspaceProjection.Diagram("My Controls", diagram, rows, "SRV").Labels.Values, Assert.Empty);
             Assert.Equal(source, backend.Export(profile).Files["Synthetic.4.2.binds"]);
         }
+        /// <summary>Ownership summaries expose both devices and replacement semantics without inventing extra axis slots.</summary>
+        [Fact]
+        public void Slot_summary_shows_global_ownership_and_native_limits()
+        {
+            EliteAssignmentRow[] rows = [new("stick", "fire", "Fire", "Ship", "Primary", "Joy_1", BindingMode.Hold, []),
+                new("keyboard", "fire", "Fire", "Ship", "Secondary", "Key_Space", BindingMode.Press, []),
+                new("stick", "pitch", "Pitch", "Ship", "Binding", "Joy_YAxis", BindingMode.Press, [], true)];
+            var names = new Dictionary<string, string> { ["stick"] = "My stick", ["keyboard"] = "Keyboard" };
+            var summary = EliteCommandSlots.Summary(rows, "fire", false, names);
+            Assert.Contains("Primary: My stick · Joy_1 [Hold]", summary);
+            Assert.Contains("Secondary: Keyboard · Key_Space", summary);
+            Assert.Contains("Two bindings per command across all devices", summary);
+            Assert.Contains("Applying replaces Secondary (Keyboard · Key_Space)", EliteCommandSlots.Replacement(rows, "fire", "Secondary", names));
+            Assert.Contains("Other slots are preserved", EliteCommandSlots.Replacement(rows, "fire", "Primary", names));
+            Assert.Contains("Secondary: Unassigned", EliteCommandSlots.Summary(rows.Take(1), "fire", false, names));
+            Assert.Equal("Assignment changes ready to apply.", EliteCommandSlots.Replacement([], "fire", "Primary", names));
+            var axis = EliteCommandSlots.Summary(rows, "pitch", true, names);
+            Assert.Contains("Binding: My stick · Joy_YAxis", axis); Assert.DoesNotContain("Primary", axis); Assert.DoesNotContain("Secondary", axis);
+            Assert.Contains("Binding: Unassigned", EliteCommandSlots.Summary([], "pitch", true, names));
+            var chord = rows[0] with { Modifiers = [new() { Source = "keyboard", Value = "Key_LeftShift" }] };
+            Assert.Contains("Keyboard: Key_LeftShift", EliteCommandSlots.Summary([chord], "fire", false, names));
+            Assert.Contains("stick · Joy_1", EliteCommandSlots.Summary(rows, "fire", false, new Dictionary<string, string>()));
+        }
         /// <summary>Physical controller callouts show every assigned command on buttons, hats and axes using the shared renderer.</summary>
         [Theory]
         [InlineData("Stick", "JOY_Y", "Joy_YAxis")]

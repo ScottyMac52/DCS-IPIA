@@ -34,6 +34,14 @@ namespace Heimdall.App.Smoke
             if (status.SelectedIndex != 0 || JsonSerializer.Serialize(window.Session.Snapshot) != frozen)
                 throw new InvalidOperationException("Clear filters failed to reset ownership or filtering changed native state.");
             commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.DisplayName == "Primary Fire");
+            var summary = Box<TextBlock>(window, "CommandSlotSummary");
+            if (!summary.Text.Contains("Primary:", StringComparison.Ordinal) || !summary.Text.Contains("Secondary:", StringComparison.Ordinal))
+                throw new InvalidOperationException("Command inspector must expose both global slot owners.");
+            var slot = Box<ComboBox>(window, "SlotPicker"); slot.SelectedIndex = 1;
+            input.Text = "Joy_29";
+            if (!Box<TextBlock>(window, "AssignmentDraftStatus").Text.Contains("Applying replaces Secondary", StringComparison.Ordinal))
+                throw new InvalidOperationException("Cross-device slot replacement was not explained before applying.");
+            slot.SelectedIndex = 0;
             AssertActions(window, false, true, true, false);
             input.Text = "Joy_27"; AssertActions(window, true, true, true, false);
             input.Text = " "; AssertActions(window, false, true, true, false);
@@ -46,6 +54,10 @@ namespace Heimdall.App.Smoke
             input.Text = ""; Action(window, "ClearAssignmentButton"); AssertActions(window, false, false, true, false);
             window.Session.Discard();
             commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.DisplayName == "Pitch Axis Raw");
+            if (slot.Visibility != Visibility.Collapsed || Box<ComboBox>(window, "ModePicker").Visibility != Visibility.Collapsed
+                || Box<TextBlock>(window, "AxisSlotLabel").Visibility != Visibility.Visible
+                || !summary.Text.Contains("Binding:", StringComparison.Ordinal) || summary.Text.Contains("Secondary:", StringComparison.Ordinal))
+                throw new InvalidOperationException("Axis inspector must expose only the single native Binding slot.");
             Box<TextBox>(window, "AxisDeadzone").Text = "invalid"; AssertActions(window, false, true, true, false);
             window.Session.Discard();
             ThemeControlSmoke.Pump(window);

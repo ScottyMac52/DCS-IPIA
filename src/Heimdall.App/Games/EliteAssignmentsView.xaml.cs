@@ -31,6 +31,8 @@ namespace Heimdall.App.Games
         internal StackPanel AssignmentEditor => Editor.AssignmentEditor;
         internal TextBlock AssignmentCommand => Editor.AssignmentCommand;
         internal ComboBox InputKey => Editor.InputKey;
+        internal TextBlock CommandSlotSummary => Editor.CommandSlotSummary;
+        internal TextBlock AxisSlotLabel => Editor.AxisSlotLabel;
         internal ComboBox SlotPicker => Editor.SlotPicker;
         internal ComboBox ModePicker => Editor.ModePicker;
         internal StackPanel AxisTools => Editor.AxisTools;
