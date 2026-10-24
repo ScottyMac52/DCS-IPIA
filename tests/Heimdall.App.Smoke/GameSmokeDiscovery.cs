@@ -8,8 +8,10 @@ namespace Heimdall.App.Smoke
     internal sealed class GameSmokeDiscovery(params DetectedDcsDevice[] devices) : IConnectedDeviceDiscovery
     {
         #region BEGIN Public
+        /// <summary>Gets or sets fresh observations for disconnect and rescan scenarios.</summary>
+        public IReadOnlyList<DetectedDcsDevice> Devices { get; set; } = devices;
         /// <summary>Returns deterministic attached units without choosing one.</summary>
-        public IReadOnlyList<DetectedDcsDevice> Discover() => devices;
+        public IReadOnlyList<DetectedDcsDevice> Discover() => Devices;
         #endregion END Public
     }
 }

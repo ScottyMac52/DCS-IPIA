@@ -6,8 +6,8 @@ using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
 {
-    /// <summary>Owns foreground discovery across all attached controllers independently of existing ED links.</summary>
-    internal sealed class EliteControllerIdentification : IDisposable
+    /// <summary>Owns foreground discovery across all attached controllers independently of saved game links.</summary>
+    internal sealed class GameControllerIdentification : IDisposable
     {
         private readonly Window _owner;
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _factory;
@@ -18,7 +18,7 @@ namespace Heimdall.App.Games
         private IDeviceInputSource? _source;
         private ControllerInputIdentification? _identification;
         private IReadOnlyList<DetectedDcsDevice> _devices = [];
-        internal EliteControllerIdentification(Window owner, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> activity,
+        internal GameControllerIdentification(Window owner, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> activity,
             Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
         {
             _owner = owner; _activity = activity; _clear = clear; _status = status;

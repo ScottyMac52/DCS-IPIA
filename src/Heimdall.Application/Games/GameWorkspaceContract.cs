@@ -25,6 +25,9 @@ namespace Heimdall.Application.Games
                     || pin.Device.PhysicalGuid == Guid.Empty || (pin.HardwareId is not null && string.IsNullOrWhiteSpace(pin.HardwareId)))
                     throw new InvalidDataException("Invalid game hardware association.");
             }
+            if (workspace.Profile.BackendId == "star-wars-squadrons" && (workspace.Hardware.Values.Any(x => x.Device.ProductGuid == Guid.Empty)
+                || workspace.Hardware.Values.Select(x => x.Device.PhysicalGuid).Distinct().Count() != workspace.Hardware.Count))
+                throw new InvalidDataException("Squadrons links require a native product identity and a different physical instance for each captured slot.");
         }
         /// <summary>Creates an independent snapshot, including JSON-valued native extensions.</summary>
         public static GameWorkspace Clone(GameWorkspace workspace) =>

@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.Infrastructure;
 using Heimdall.Squadrons;
 using Microsoft.Win32;
@@ -10,11 +12,13 @@ using Microsoft.Win32;
 namespace Heimdall.App.Games
 {
     /// <summary>Hosts captured Squadrons profiles with guarded native editing, shared persistence and review-only export.</summary>
-    public partial class SquadronsWorkspaceWindow : Window
+    public partial class SquadronsWorkspaceWindow : Window, IDisposable
     {
         private readonly GameWorkspaceServices _services;
         private readonly SquadronsProfileBackend _backend = new();
         private readonly Func<MessageBoxResult>? _pendingChoice;
+        private readonly Func<GameControllerChange, bool>? _reviewChange;
+        private readonly GameControllerIdentification _identification;
         private GameProfileSession? _session;
         private string? _revision;
         private string? _sourceDirectory;
@@ -22,30 +26,39 @@ namespace Heimdall.App.Games
         private bool _refreshing = true;
         private bool _allowClose;
         /// <summary>Opens an explicitly chosen Squadrons workspace without importing active settings automatically.</summary>
-        public SquadronsWorkspaceWindow(GameWorkspaceServices services, Guid? initial = null, Func<MessageBoxResult>? pendingChoice = null)
+        public SquadronsWorkspaceWindow(GameWorkspaceServices services, Guid? initial = null, Func<MessageBoxResult>? pendingChoice = null,
+            Func<GameControllerChange, bool>? reviewChange = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? identificationFactory = null)
         {
             EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
-            _services = services; _pendingChoice = pendingChoice;
+            _services = services; _pendingChoice = pendingChoice; _reviewChange = reviewChange;
             InitializeComponent(); AppearanceManager.Attach(this);
+            _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 0;
             TypePicker.ItemsSource = new[] { "All inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
             InputPicker.ItemsSource = SquadronsInputCodec.Choices;
             Closing += ConfirmClose;
+            Closed += (_, _) => Dispose();
             _refreshing = false;
             ReloadChoices();
             if (initial is { } id) Run(() => LoadProfile(id));
-            else Refresh();
+            else Run(() => Refresh());
+            Run(RescanControllers);
         }
         #region BEGIN Public
+        /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
+        public void Dispose() { _identification.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Gets the game explicitly requested after the pending-change guard accepted leaving.</summary>
         public string? RequestedGame { get; private set; }
         /// <summary>Gets the isolated editing boundary for deterministic Windows smoke checks.</summary>
         internal GameProfileSession? Session => _session;
+        /// <summary>Samples the shared identification boundary deterministically in Windows smoke tests.</summary>
+        internal void SampleIdentification() => _identification.Sample();
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
         {
             if (!ConfirmLeave()) return;
+            _identification.Stop();
             if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException("Squadrons controls exceed the 4 MiB import limit.");
             var profile = _backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = File.ReadAllText(path) });
             var name = "Squadrons Controls"; var number = 2; var existing = _services.Store.List().Where(x => x.BackendId == _backend.SimId).Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -90,6 +103,7 @@ namespace Heimdall.App.Games
         }
         private void LoadProfile(Guid id)
         {
+            _identification.Stop();
             var saved = _services.Store.Load(id); var opened = CreateSession(saved.Workspace);
             _session = opened; _revision = saved.Revision; _sourceDirectory = null;
             Remember(); ReloadChoices(); Refresh();
@@ -119,7 +133,7 @@ namespace Heimdall.App.Games
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
             TargetDevice.ItemsSource = devices;
             _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.Rows(snapshot.Profile);
-            _refreshing = false; RefreshRows(); UpdateAvailability();
+            _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability();
         }
         private void RefreshRows()
         {
@@ -151,6 +165,69 @@ namespace Heimdall.App.Games
             ProfileName.IsEnabled = _session is not null;
             SaveState.Text = _session is null ? "No profile" : Pending ? "Unsaved changes" : "Saved";
         }
+        private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice { Id: not "all" } device ? device.Id : null;
+        private void RescanControllers()
+        {
+            _identification.Stop();
+            var observed = _services.Discover();
+            ConnectedPicker.ItemsSource = observed.Where(x => x.Connected && x.PhysicalGuid != Guid.Empty && x.ProductGuid != Guid.Empty && EditionAccess.Policy.AllowsDevice(x))
+                .GroupBy(x => x.PhysicalGuid).Where(x => x.Count() == 1).Select(x => x.Single()).ToArray();
+            ConnectedPicker.SelectedIndex = -1; UpdateControllerAvailability();
+        }
+        private void UpdateControllerAvailability()
+        {
+            var selected = SelectedController;
+            var ready = selected is not null && _session?.CanLinkCapturedDevices == true && _session.AccessMessage.Length == 0;
+            var running = _identification.Running;
+            var pin = selected is null ? null : _session?.Snapshot.Hardware.GetValueOrDefault(selected);
+            RescanControllerButton.IsEnabled = !running;
+            ConnectedPicker.IsEnabled = ready && !running;
+            IdentifyControllerButton.IsEnabled = ready && !running && ConnectedPicker.Items.Count > 0;
+            CancelIdentificationButton.IsEnabled = running;
+            LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
+            UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
+            LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
+                "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
+                (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
+        }
+        private void ClearIdentification()
+        {
+            IdentificationStatus.Text = ""; ConnectedPicker.SelectedIndex = -1;
+            if (!_refreshing) Run(UpdateControllerAvailability);
+        }
+        private void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)
+        {
+            ConnectedPicker.SelectedIndex = -1;
+            if (activity.Count != 1) { IdentificationStatus.Text = "Several controllers moved. Operate just one physical unit."; return; }
+            var detected = activity.Single();
+            _identification.Stop();
+            ConnectedPicker.SelectedItem = ConnectedPicker.Items.Cast<DetectedDcsDevice>().SingleOrDefault(x => x.PhysicalGuid == detected.Key.PhysicalGuid);
+            IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + "\n" + detected.Key.PhysicalGuid + "\nPhysical unit identified. Verify its captured slot in Squadrons, then review the link.";
+            UpdateControllerAvailability();
+        }
+        private void ReviewLink(GameControllerChange change)
+        {
+            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
+            _session!.ApplyControllerChange(change); Refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
+        }
+        private void LinkClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!LinkControllerButton.IsEnabled || SelectedController is not { } id || ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return;
+            ReviewLink(_session!.PreviewCapturedDeviceLink(id, device.PhysicalGuid));
+        });
+        private void UnlinkClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (UnlinkControllerButton.IsEnabled && SelectedController is { } id) ReviewLink(_session!.PreviewCapturedDeviceUnlink(id));
+        });
+        private void IdentifyClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!IdentifyControllerButton.IsEnabled) return;
+            _identification.Start(_services.Discover()); UpdateControllerAvailability();
+            IdentificationStatus.Text = "Press a button, move a hat or move an axis noticeably on one controller. Held switches are ignored until pressed again.";
+        });
+        private void StopIdentificationClicked(object sender, RoutedEventArgs e) => _identification.Stop();
+        private void RescanClicked(object sender, RoutedEventArgs e) { if (RescanControllerButton.IsEnabled) Run(RescanControllers); }
+        private void ConnectedChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateControllerAvailability); }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Editable: true } row || TargetDevice.SelectedItem is not GameDeviceChoice device || InputPicker.SelectedItem is not SquadronsInput input)
@@ -171,6 +248,7 @@ namespace Heimdall.App.Games
         private void SaveClicked(object sender, RoutedEventArgs e) => SaveProfile();
         private void DiscardClicked(object sender, RoutedEventArgs e)
         {
+            _identification.Stop();
             _session?.Discard(); Refresh();
             if (_revision is null) { _session = null; Refresh(); }
         }
@@ -194,8 +272,13 @@ namespace Heimdall.App.Games
             if (choice != MessageBoxResult.No) return false;
             _session?.Discard(); return true;
         }
-        private void ConfirmClose(object? sender, CancelEventArgs e) { if (!_allowClose) e.Cancel = !ConfirmLeave(); }
-        private void FilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) RefreshRows(); }
+        private void ConfirmClose(object? sender, CancelEventArgs e) { _identification.Stop(); if (!_allowClose) e.Cancel = !ConfirmLeave(); }
+        private void FilterChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); }
+            RefreshRows();
+        }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) RefreshRows(); }
         private void BindingChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) UpdateEditor(); }
         private void NameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) UpdateAvailability(); }

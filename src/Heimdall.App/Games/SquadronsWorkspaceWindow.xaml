@@ -22,10 +22,30 @@
    </WrapPanel>
   </StackPanel>
   <TextBlock Grid.Row="1" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,0,0,12"
-   Text="Edit captured joystick bindings and export a separate review copy. Keyboard, mouse, gamepad and unsupported combinations are preserved. Saved controller slots do not confirm detection in Squadrons. Hardware artwork, live input testing and reference sheets are coming in a later increment."/>
+   Text="Edit captured joystick bindings and link physical controllers to captured slots. Keyboard, mouse, gamepad and unsupported combinations are preserved. A link does not confirm detection in Squadrons. Hardware artwork, live input testing and reference sheets are coming in a later increment."/>
   <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width=".24*" MinWidth="210"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".76*" MinWidth="500"/></Grid.ColumnDefinitions>
    <DockPanel Margin="0,0,8,0">
     <TextBlock DockPanel.Dock="Top" Style="{StaticResource AppLabel}" Text="Captured controllers" FontSize="18" Margin="0,0,0,8"/>
+    <ScrollViewer DockPanel.Dock="Bottom" VerticalScrollBarVisibility="Auto" MaxHeight="365" Margin="0,12,0,0">
+     <StackPanel>
+      <TextBlock x:Name="LinkStatus" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Physical controller" Margin="0,8,0,4"/>
+      <ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" SelectionChanged="ConnectedChanged" AutomationProperties.Name="Squadrons physical controller">
+       <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <WrapPanel Margin="0,8,0,0">
+       <Button x:Name="RescanControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Rescan" Click="RescanClicked"/>
+       <Button x:Name="IdentifyControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Identify…" Click="IdentifyClicked"/>
+       <Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop" Click="StopIdentificationClicked"/>
+      </WrapPanel>
+      <TextBlock x:Name="IdentificationStatus" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,4" AutomationProperties.LiveSetting="Polite"/>
+      <WrapPanel>
+       <Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link / replace…" Click="LinkClicked"/>
+       <Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink…" Click="UnlinkClicked"/>
+      </WrapPanel>
+      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Select a captured slot first. Identify finds the physical unit; verify its slot in Squadrons before linking. For another slot, bind an input on that device in Squadrons and import a fresh capture."/>
+     </StackPanel>
+    </ScrollViewer>
     <ListBox x:Name="DevicePicker" DisplayMemberPath="Name" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons controller filter"/>
    </DockPanel>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>

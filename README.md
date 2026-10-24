@@ -21,7 +21,8 @@ the ED adapter. See the [game workspace guide](docs/design/game-workspaces.md)
 for supported operations, edition boundaries and manual in-game acceptance.
 
 Star Wars: Squadrons is available from the game selection screen for Premium/Owner users.
-Import captured controls, edit supported joystick records, save/reopen profiles and
+Import captured controls, identify and link physical controllers to captured slots,
+edit supported joystick records, save/reopen profiles and
 export a separate review copy. See the [Squadrons desktop guide and remaining scope](docs/design/squadrons-adapter.md).
 
 ## Compact workspace interactive mockup
