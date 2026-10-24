@@ -1,16 +1,13 @@
-# War Thunder adapter — native capture support
+# War Thunder adapter — Phase 1 native BLK capture
 
-The isolated `Heimdall.WarThunder` project now inventories captured BLK scalars and blocks, preserves untouched input text, and supports guarded replacement of an existing scalar by unique full path. It does **not** yet implement HEIMDALL game selection, controller assignment UI, profile persistence, or a simulator backend.
+This branch provides an isolated, build-registered `Heimdall.WarThunder` project with regression tests for captured BLK inventory and conservative editing. It does **not** advertise a working game selection or device editor.
 
-## Native evidence and safety
+- Parse typed BLK scalars and nested blocks; preserve unchanged text exactly.
+- Inventory captured hotkey, axis and joystick fields without inferring hardware identity.
+- Expose numeric activation codes without assigning undocumented tap/hold meanings.
+- Replace a single uniquely addressed captured scalar, rejecting unknown, ambiguous or type-invalid edits.
+- Include the project in `HEIMDALL.sln` and the unit-test project; tests cover round trips, inventory, edits and malformed input.
 
-- Read `machine.blk` with `WarThunderControls`; original source is retained exactly for no-op output.
-- `Hotkeys`, `Axes`, and `Joysticks` expose captured scalar fields without inventing bindings.
-- `ActivationCodes()` returns numeric codes only. Fast/long/double-tap meanings are not established by this code.
-- Joystick global offsets are **not** stable hardware identifiers. Never map a global axis/button to TPR, TQS or other devices without verified native joystick association.
-- Scalar replacement requires an existing unique path and type-valid value; unrelated fields remain unchanged.
-- Never write directly into live game settings without explicit review and backup.
+## Remaining work
 
-## Not yet delivered
-
-Native nested-binding interpretation, complete export safety checks, device identification, gesture editing, axis-tuning UI, simulator registration, workspace integration, automated tests, and DCS/ED/Squadrons regression validation. This branch remains a draft and must not be merged as a completed integration.
+The parser is intentionally a conservative Phase 1 subset; validation against real War Thunder BLK fixtures and uncommon native encodings is still required. Simulator backend integration, device linking, gesture/axis tuning, game selection, and safe reviewed deployment remain follow-up phases. Do not deploy output into live game settings without a backup. Builds and tests have not been executed in this connector-only environment.
