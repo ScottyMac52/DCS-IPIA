@@ -38,7 +38,7 @@ namespace Heimdall.App.Games
             InitializeComponent(); AppearanceManager.Attach(this);
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
-            SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 0;
+            SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
             TypePicker.ItemsSource = new[] { "All inputs", "Verified device inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
             Loaded += async (_, _) => await RefreshControllerInputsAsync();
             Closing += ConfirmClose;
@@ -148,7 +148,7 @@ namespace Heimdall.App.Games
             _refreshing = true;
             var snapshot = _session?.Snapshot;
             if (resetName) ProfileName.Text = snapshot?.Name ?? "";
-            var devices = snapshot?.Profile.Devices.Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray() ?? [];
+            var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
             DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
             TargetDevice.ItemsSource = devices;
@@ -163,16 +163,26 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             var selected = (BindingsGrid.SelectedItem as SquadronsWorkspaceRow)?.RecordId;
+            var review = ReviewCaptured.IsChecked == true;
+            var section = SectionPicker.SelectedItem as string ?? "Flight";
             var rows = SquadronsWorkspaceProjection.Filter(_rows, SectionPicker.SelectedItem as string ?? "All", TypePicker.SelectedItem as string ?? "All inputs", Search.Text,
-                (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all");
+                (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all", includeUnverified: review);
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
-            CountText.Text = rows.Count == 0 ? "No matching records. Clear the search or change the filters." : rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Not on linked device") + " inputs not on linked hardware";
+            ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
+            ControllerColumn.Visibility = review || SelectedController is null ? Visibility.Visible : Visibility.Collapsed;
+            HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
+            CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Not on linked device") + " inputs not on linked hardware" :
+                rows.Count + " compatible assignments · " + section + ". Hardware compatibility does not confirm in-game slot ownership.";
+            EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            EmptyState.Text = _session is null ? "Import a Squadrons controls file to get started." : review ? "No matching captured records. Change the context, input filter or search." :
+                _scanningInputs ? "Inspecting controller inputs…" : "No compatible assignments match these filters. Open Controller setup to link and rescan hardware, change the context, or enable Review captured records to inspect and repair the capture.";
             UpdateEditor();
         }
         private void UpdateEditor()
         {
             var row = BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
+            AssignmentEditor.Visibility = row is null ? Visibility.Collapsed : Visibility.Visible;
             var editable = row?.Editable == true && _session?.AccessMessage.Length == 0;
             TargetDevice.IsEnabled = editable && !_scanningInputs;
             TargetDevice.SelectedItem = TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == row?.DeviceId);
@@ -230,7 +240,11 @@ namespace Heimdall.App.Games
             LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
+            ControllerSummary.Text = selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
+                pin.Device.Name + (GameInputReadiness.Ready(pin, _services.Discover()) ? " · Connected" : " · Unavailable");
         }
+        private void CaptureReviewChanged(object sender, RoutedEventArgs e) { if (!_refreshing) RefreshRows(); }
+        private void SetupCollapsed(object sender, RoutedEventArgs e) { if (!_refreshing && ReferenceEquals(e.OriginalSource, ControllerSetup)) _identification.Stop(); }
         private void ClearIdentification()
         {
             IdentificationStatus.Text = ""; ConnectedPicker.SelectedIndex = -1;

@@ -39,6 +39,9 @@ namespace Heimdall.App.Smoke
                 var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced");
                 var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true);
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
+                Box<CheckBox>(window, "ReviewCaptured").IsChecked = true;
+                Box<ComboBox>(window, "SectionPicker").SelectedItem = "All";
+                Box<Expander>(window, "ControllerSetup").IsExpanded = true;
                 if (!Box<Button>(window, "SaveButton").IsEnabled || Box<Button>(window, "ExportButton").IsEnabled)
                     throw new InvalidOperationException("An imported capture must be saved before export.");
                 var devices = Box<ListBox>(window, "DevicePicker");
