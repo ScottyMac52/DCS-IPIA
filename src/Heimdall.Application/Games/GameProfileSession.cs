@@ -46,6 +46,25 @@ namespace Heimdall.Application.Games
         public void AcceptSaved() { _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
         /// <summary>Restores the exact saved document and associations.</summary>
         public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }
+        /// <summary>Gets whether native indexed-record editing is implemented by the active adapter.</summary>
+        public bool CanEditNativeRecords => _backend is INativeRecordEditor;
+        /// <summary>Stages one validated native record edit atomically; foreign backend/context results are rejected.</summary>
+        public void RebindNative(string recordId, string logicalDeviceId, string key, CommandType type, int direction)
+        {
+            RequireAccess();
+            var editor = _backend as INativeRecordEditor ?? throw new InvalidOperationException("This game does not support native record editing.");
+            var profile = editor.RebindNative(Snapshot.Profile, recordId, logicalDeviceId, key, type, direction);
+            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException("The native edit changed the owning game or profile identity.");
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile }); Changed?.Invoke(this, EventArgs.Empty);
+        }
+        /// <summary>Stages a configuration display name independently of immutable native source metadata.</summary>
+        public void Rename(string name)
+        {
+            RequireAccess(); GameConfigurationName.Validate(name);
+            _current = _current with { Name = name }; Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
         {

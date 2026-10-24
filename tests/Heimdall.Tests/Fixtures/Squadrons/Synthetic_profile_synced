@@ -1,0 +1,37 @@
+GstKeyBinding.InputDataVersion 4
+GstInput.JoystickDevice3 Smoke Stick 1
+GstInput.JoystickDevice5 Smoke Throttle 1
+GstInput.JoystickDevice10 Smoke Throttle 1
+Future.Setting preserved
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.type 3
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.axis 26
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.button 41
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.deviceid 4
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.identifier 123
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.modifier 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.altbutton 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.negate 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.type 3
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.axis 26
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.button 40
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.deviceid 4
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.identifier 123
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.modifier 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.altbutton 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.5.negate 1
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.type 3
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.axis 26
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.button 22
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.deviceid 2
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.identifier 123
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.modifier 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.altbutton 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptFire.2.negate 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.type 2
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.axis 26
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.button 57
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.deviceid -1
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.identifier 123
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.modifier 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.altbutton 0
+GstKeyBinding.IncomStarshipInputConcepts.ConceptMenu.0.negate 0

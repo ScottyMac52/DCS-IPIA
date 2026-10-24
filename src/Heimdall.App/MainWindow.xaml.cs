@@ -113,6 +113,7 @@ namespace Heimdall.App
             ThemePicker.SelectedIndex = (int)EditionAccess.Policy.EffectiveTheme(_settings.Current.Theme);
             ThemePicker.IsEnabled = EditionAccess.Policy.HasPremium;
             ((ComboBoxItem)LandingGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
+            ((ComboBoxItem)LandingGamePicker.Items[2]).IsEnabled = EditionAccess.Policy.AllowsSimulator("star-wars-squadrons");
             EditionStatus.Text = EditionAccess.Policy.Label;
             ThemeSaveStatus.Text = _settings.LastError ?? AppearanceManager.LastError ?? string.Empty;
             Loaded += async (_, _) =>
@@ -143,10 +144,11 @@ namespace Heimdall.App
         }
         private void ShowGamesClicked(object sender, RoutedEventArgs e) => ShowGameSelection();
         private void LandingGameChanged(object sender, SelectionChangedEventArgs e)
-        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); }
+        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); else if (!_changingGame && LandingGamePicker.SelectedIndex == 2) OpenSquadrons(); }
         private void SelectGame(string game)
         {
             if (game == "elite-dangerous") { OpenElite(); return; }
+            if (game == "star-wars-squadrons") { OpenSquadrons(); return; }
             GameSelection.Visibility = Visibility.Collapsed; DcsLandingPanel.Visibility = Visibility.Visible;
             _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
             if (_games is not null)
@@ -165,6 +167,7 @@ namespace Heimdall.App
             {
                 var selection = _games.Recent();
                 if (selection.BackendId == "elite-dangerous") OpenElite();
+                else if (selection.BackendId == "star-wars-squadrons") OpenSquadrons();
                 else { SelectGame("dcs"); if (selection.DcsModuleId is not null) OpenSaved_Click(this, new RoutedEventArgs()); }
             }
             catch (Exception error) { ShowImportError("Unable to reopen recent workspace: " + error.Message); }
@@ -178,13 +181,32 @@ namespace Heimdall.App
                 EditionAccess.Policy.RequireSimulator("elite-dangerous");
                 var hardware = await GameWorkspaceServices.HardwareAsync();
                 var selection = _games.Recent();
-                _games.Remember(selection with { BackendId = "elite-dangerous", DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
-                var window = new EliteWorkspaceWindow(_games, hardware, selection.WorkspaceId) { Owner = this };
+                _games.Remember(selection with { BackendId = "elite-dangerous", WorkspaceId = selection.BackendId == "elite-dangerous" ? selection.WorkspaceId : null, DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
+                var window = new EliteWorkspaceWindow(_games, hardware, selection.BackendId == "elite-dangerous" ? selection.WorkspaceId : null) { Owner = this };
                 window.ShowDialog();
-                if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
+                if (window.SquadronsRequested) _ = Dispatcher.BeginInvoke(new Action(OpenSquadrons));
+                else if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
             }
             catch (Exception error) { ShowImportError("Unable to open Elite workspace: " + error.Message); }
             finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); if (DcsLandingPanel.Visibility == Visibility.Visible) OfferHardwareSetup(); }
+        }
+        private void OpenSquadrons()
+        {
+            if (_games is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
+                var selection = _games.Recent();
+                var initial = selection.BackendId == "star-wars-squadrons" ? selection.WorkspaceId : null;
+                _games.Remember(selection with { BackendId = "star-wars-squadrons", WorkspaceId = initial, DisplayName = initial is null ? "" : selection.DisplayName });
+                var window = new SquadronsWorkspaceWindow(_games, initial) { Owner = this };
+                window.ShowDialog();
+                if (window.RequestedGame is { } game) _ = Dispatcher.BeginInvoke(new Action(() => SelectGame(game)));
+                else ShowGameSelection();
+            }
+            catch (Exception error) { ShowImportError("Unable to open Squadrons workspace: " + error.Message); }
+            finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); }
         }
         private void RememberDcs(Guid? id, string name)
         {
@@ -774,6 +796,7 @@ namespace Heimdall.App
                 RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);
             window.ShowDialog();
             if (window.RequestedGame == "elite-dangerous") OpenElite();
+            else if (window.RequestedGame == "star-wars-squadrons") OpenSquadrons();
             else if (window.RequestedModule is { } id)
             {
                 SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id);

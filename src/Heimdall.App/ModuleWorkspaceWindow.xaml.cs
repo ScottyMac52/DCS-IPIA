@@ -95,6 +95,7 @@ namespace Heimdall.App
             _changingSelection = true;
             WorkspaceGamePicker.SelectedIndex = 0;
             ((ComboBoxItem)WorkspaceGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
+            ((ComboBoxItem)WorkspaceGamePicker.Items[2]).IsEnabled = EditionAccess.Policy.AllowsSimulator("star-wars-squadrons");
             WorkspaceProfilePicker.ItemsSource = moduleChoices ?? [];
             WorkspaceProfilePicker.SelectedItem = moduleChoices?.FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id);
             GameWorkspaceSelectors.Visibility = allowGameSwitch && training is null ? Visibility.Visible : Visibility.Collapsed;
@@ -128,8 +129,9 @@ namespace Heimdall.App
 
         private async void WorkspaceGameChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_changingSelection || WorkspaceGamePicker.SelectedIndex != 1 || !EditionAccess.Policy.AllowsSimulator("elite-dangerous")) return;
-            if (await ConfirmWorkspaceSwitch()) { RequestedGame = "elite-dangerous"; Close(); }
+            var game = WorkspaceGamePicker.SelectedIndex switch { 1 => "elite-dangerous", 2 => "star-wars-squadrons", _ => null };
+            if (_changingSelection || game is null || !EditionAccess.Policy.AllowsSimulator(game)) return;
+            if (await ConfirmWorkspaceSwitch()) { RequestedGame = game; Close(); }
             else { _changingSelection = true; WorkspaceGamePicker.SelectedIndex = 0; _changingSelection = false; }
         }
         private async void WorkspaceProfileChanged(object sender, SelectionChangedEventArgs e)

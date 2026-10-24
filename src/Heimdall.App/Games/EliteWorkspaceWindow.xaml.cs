@@ -151,6 +151,8 @@ namespace Heimdall.App.Games
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
+        /// <summary>Gets an explicit guarded request for the Squadrons workspace.</summary>
+        public bool SquadronsRequested { get; private set; }
         /// <summary>Gets the current staged session for deterministic Windows interaction checks.</summary>
         internal GameProfileSession? Session => _session;
         /// <summary>Builds the same window-scoped payload used by controller drags.</summary>
@@ -888,9 +890,9 @@ namespace Heimdall.App.Games
         private void ConfirmClose(object? sender, CancelEventArgs e) { if (!_allowClose) e.Cancel = !ConfirmLeave(); }
         private void GameChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_refreshing || GamePicker.SelectedIndex != 0) return;
+            if (_refreshing || GamePicker.SelectedIndex is not 0 and not 2) return;
             if (!ConfirmLeave()) { _refreshing = true; GamePicker.SelectedIndex = 1; _refreshing = false; return; }
-            DcsRequested = true; _allowClose = true; Close();
+            DcsRequested = GamePicker.SelectedIndex == 0; SquadronsRequested = GamePicker.SelectedIndex == 2; _allowClose = true; Close();
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {

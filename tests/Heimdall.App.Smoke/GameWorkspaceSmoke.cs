@@ -267,6 +267,14 @@ namespace Heimdall.App.Smoke
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
+            if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 3)
+                throw new InvalidOperationException("DCS must offer all three game choices.");
+            var squadronsWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+                allowGameSwitch: true, moduleChoices: [choice]);
+            squadronsWindow.Show(); ThemeControlSmoke.Pump(squadronsWindow);
+            Box<ComboBox>(squadronsWindow, "WorkspaceGamePicker").SelectedIndex = 2;
+            if (squadronsWindow.IsVisible || squadronsWindow.RequestedGame != "star-wars-squadrons")
+                throw new InvalidOperationException("The DCS workspace did not activate the Squadrons game option.");
             Box<ComboBox>(gameWindow, "WorkspaceGamePicker").SelectedIndex = 1;
             if (gameWindow.IsVisible || gameWindow.RequestedGame != "elite-dangerous")
                 throw new InvalidOperationException("The DCS workspace did not request the selected game after closing.");

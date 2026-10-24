@@ -5,7 +5,7 @@
    <Image Source="{x:Static pres:ApplicationBranding.Banner}" Height="110" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,0,14" AutomationProperties.Name="HEIMDALL — Simulation Control Manager"/>
    <TextBlock Text="Choose a game or simulator" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap"/>
    <TextBlock Text="Your hardware. Separate assignments for every game." Style="{DynamicResource Hint}" Margin="0,6,0,20"/>
-   <UniformGrid Columns="2">
+   <UniformGrid Columns="3">
     <Button x:Name="DcsCard" Click="DcsClicked" Margin="0,0,8,0" Padding="18" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Select DCS World">
      <StackPanel>
       <Viewbox Height="86" Margin="0,0,0,10" Stretch="Uniform"><Canvas Width="240" Height="90">
@@ -26,6 +26,16 @@
       <TextBlock Text="Elite Dangerous" FontSize="24" FontWeight="SemiBold"/>
       <TextBlock Text="Ship, SRV and on-foot controls" Margin="0,8,0,22" TextWrapping="Wrap"/>
       <TextBlock x:Name="EliteAccessText" Text="Select controls profile →" FontWeight="SemiBold"/>
+     </StackPanel>
+    </Button>
+    <Button x:Name="SquadronsCard" Click="SquadronsClicked" Margin="8,0,0,0" Padding="18" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Select Star Wars Squadrons">
+     <StackPanel>
+      <Viewbox Height="86" Margin="0,0,0,10" Stretch="Uniform"><Canvas Width="240" Height="90">
+       <Path Fill="{DynamicResource PrimaryTextBrush}" Opacity=".7" Data="M 25,10 L 105,40 105,30 135,30 135,40 215,10 220,20 150,48 220,75 215,85 135,55 135,65 105,65 105,55 25,85 20,75 90,48 20,20 Z"/>
+      </Canvas></Viewbox>
+      <TextBlock Text="Star Wars: Squadrons" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock Text="Captured flight and menu controls" Margin="0,8,0,22" TextWrapping="Wrap"/>
+      <TextBlock x:Name="SquadronsAccessText" Text="Select controls profile →" FontWeight="SemiBold"/>
      </StackPanel>
     </Button>
    </UniformGrid>

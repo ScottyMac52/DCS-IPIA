@@ -7,6 +7,8 @@ namespace Heimdall.Squadrons
     {
         private static readonly Dictionary<(int Axis, int Button), SquadronsInput> Inputs = BuildInputs();
         #region BEGIN Public
+        /// <summary>Gets independent supported inputs for a desktop picker.</summary>
+        public static IReadOnlyList<SquadronsInput> Choices => Inputs.Values.ToArray();
         /// <summary>Returns null for unassigned or unknown input encodings, which remain native evidence.</summary>
         public static SquadronsInput? Decode(int axis, int button) => Inputs.GetValueOrDefault((axis, button));
         /// <summary>Encodes one supported input without guessing a physical button number from a native code.</summary>

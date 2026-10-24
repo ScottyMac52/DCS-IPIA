@@ -26,9 +26,10 @@ namespace Heimdall.Tests
             Assert.False(own.Enabled); Assert.Equal(0, own.ArtworkOpacity);
             var parsed = AppearanceValidation.ParseSettings(JsonSerializer.Serialize(settings));
             Assert.Equal(settings.Backgrounds!.OrderBy(x => x.Key), parsed.Backgrounds!.OrderBy(x => x.Key));
-            Assert.Equal(37, AppearanceTargets.All.Count);
+            Assert.Equal(38, AppearanceTargets.All.Count);
             Assert.Contains("GameSelectionView", AppearanceTargets.All.Keys);
             Assert.Contains("EliteWorkspaceWindow", AppearanceTargets.All.Keys);
+            Assert.Contains("SquadronsWorkspaceWindow", AppearanceTargets.All.Keys);
         }
         /// <summary>Invalid target names, null entries, paths, nested duplicates and non-finite adjustments are rejected.</summary>
         [Fact]

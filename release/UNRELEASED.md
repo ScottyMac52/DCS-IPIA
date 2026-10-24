@@ -18,3 +18,12 @@ Adds reviewed controller removal and replacement alongside Add controller. Remov
 
 - ED game export now reviews unresolved controller references and their affected commands before writing files, with reviewed replace/clear/cancel repairs, fresh hardware checks and captured-index requirements for identical units.
 - ED exports use the saved profile name consistently in filenames, native preset names and matching captured selectors. Exact duplicate scalar settings are normalized with a diagnostic; conflicting duplicates are blocked. Export status explains the separate manual installation step.
+
+## Squadrons desktop workspace
+
+- Add Star Wars: Squadrons to game cards, recent-workspace continuation and guarded
+  game selectors for Premium/Owner users.
+- Import captured controls, filter native bindings by device/context/input type/text,
+  edit supported joystick records, and save/reopen/discard named profiles.
+- Export a separate native review copy while preserving other assignments and settings;
+  active-game deployment, hardware association, live testing and reference sheets remain pending.

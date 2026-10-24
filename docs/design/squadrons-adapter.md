@@ -1,10 +1,10 @@
-# Star Wars: Squadrons native adapter — first increment
+# Star Wars: Squadrons desktop workspace
 
 `Heimdall.Squadrons` implements `ISimProfileBackend` for one explicitly captured
 `ProfileOptions_profile_synced` file with `GstKeyBinding.InputDataVersion 4`.
-It never discovers, reads, or writes the active game directory. This increment is
-a native adapter and API foundation; **Squadrons is not selectable in the desktop
-workspace yet**. DCS and ED navigation, profiles and edition behavior are unchanged.
+It never discovers, reads, or writes the active game directory. The adapter is connected to a desktop workspace for Premium/Owner users.
+DCS and ED profiles remain separate; all three games are available through the
+opening game cards and guarded workspace game selectors.
 
 ## Implemented contract
 
@@ -57,22 +57,40 @@ Consequently, **simultaneous acquisition of the full controller lineup is not ye
 verified**. File presence and offline validation must not be presented as a successful
 in-game hardware test, and there is no established device-count limit from these captures.
 
-## Follow-up increments
+## Desktop workflow
 
-1. Extract a game-neutral workspace presentation from the ED-specific view and
-   remove backend assumptions from persistence/selection through explicit capabilities.
-2. Add Squadrons selection and gated workspace import/save/reopen; maintain Premium
-   requirements for non-DCS simulators. Do not enable the starter backend by widening
-   backend allowlists before its workflow is wired and tested.
-3. Add explicit device identification/association, controller lifecycle operations,
-   slot-change review and full-lineup acquisition guidance. Preserve assignment ownership
-   when reordering; never infer instance identity from duplicate names.
-4. Connect categories/search/type/assignment filters, hardware artwork and fallback
-   views, native assignment editing, input testing and printable reference sheets.
-5. Verify keyboard/mouse/gamepad editing, combinations and game-specific tuning before
-   exposing those operations. Preserve unsupported settings until then.
-6. Add backup/conflict-aware game deployment, cloud-sync guidance, Windows UI smoke
-   coverage and manual in-game round-trip acceptance with all intended devices.
+1. Select **Star Wars: Squadrons** on the opening screen. Free displays Requires
+   Premium and cannot open the workspace or edit/export through session APIs.
+2. Choose **Import controls** and select a captured settings file. Imports are
+   bounded, and a failed import retains the current workspace.
+3. Use **Captured controllers**, context, input-type and search filters to find
+   an assignment. Slot numbers remain visible when saved names are duplicated.
+4. Select an editable joystick record, its destination captured controller and
+   physical input/direction, then **Apply assignment**. This changes only that
+   native record. Keyboard/mouse/gamepad and unsupported combinations remain
+   visible as preserved records with editing disabled.
+5. Name and **Save profile**. **Discard changes** restores the saved baseline;
+   saved profiles appear in the profile selector and **Continue** reopens the recent
+   Squadrons workspace. Save uses the shared optimistic revision check.
+6. **Export review copy** creates a new Squadrons-Review folder containing the exact
+   native filename. Save first; the exporter blocks default active settings folders
+   and the selected import directory. Close the game and back up its settings before
+   manually installing a review copy. The app does not deploy into active settings.
+7. Changing game/profile, importing another capture or closing with unsaved changes
+   offers Save/Discard/Cancel. Cancel retains the current session and selection.
+
+The desktop shows decoded inputs (including continuous Z-axis directions), captured
+slot ownership and individual indexed records. It does not claim that a saved slot
+was detected by Squadrons or that every connected device can be acquired together.
+
+## Remaining increments
+
+- Explicit physical device identification/association and add/replace/remove lifecycle,
+  with reviewed reconciliation when saved slot ownership changes.
+- Hardware artwork and fallback surfaces, live input testing and reference sheets.
+- Verified keyboard/mouse/gamepad editing, combinations and game-specific tuning.
+- Native assignment creation/clearing beyond the adapter's existing-record edits.
+- Backup/conflict-aware active-game deployment and full-lineup in-game acceptance.
 
 ## Validation
 
@@ -81,3 +99,5 @@ multiple devices with duplicate names, extended axis codes, physical button/hat
 codes, explicit slot edits, unchanged sibling records and rejection of unsupported
 mutations. The adapter is included in the solution, CI/local coverage collection,
 and independent 80% line / 80% branch / maximum CRAP 50 gates.
+Windows smoke tests exercise game activation, edition gating, native editing,
+filters, save/reopen, review export and canceled game transitions.

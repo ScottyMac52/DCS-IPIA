@@ -2,4 +2,5 @@
   <ItemGroup><Compile Include="../../src/Heimdall.App/WorkspaceLayoutStore.cs" Link="Presentation/WorkspaceLayoutStore.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Shared/MixedSnapshotFixture.cs" Link="MixedSnapshotFixture.cs" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Heimdall.Squadrons/Heimdall.Squadrons.csproj" /></ItemGroup>
+  <ItemGroup><Content Include="Fixtures/Squadrons/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>
