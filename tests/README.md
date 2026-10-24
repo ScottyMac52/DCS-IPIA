@@ -96,7 +96,7 @@ failures happen after tests complete, so `failed: 0` alone is not a gate pass.
 
 `crap-tests.ps1` only prepares ReportGenerator. `generate-test-reports.ps1` runs the
 reporting tools. CRAP scores measure complexity and coverage. Reporting enforces a maximum of 50
-for every measured method in the six production assemblies, alongside independent
+for every measured method in the eight production assemblies, alongside independent
 80/80 assembly coverage. Gate failures are written to `QualityGateSummary.md`
 and `LOCAL-SUMMARY.md` before the script stops. The local publisher records results found in raw TRX files;
 it cannot infer a failed build from a missing TRX file. Keep the console error too.

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from publish_test_results import cell, read_metrics
 
 ASSEMBLIES = tuple("Heimdall." + name for name in
-                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Rendering", "Packaging"))
+                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Squadrons", "Rendering", "Packaging"))
 
 
 def coverage_rows(report, assemblies=ASSEMBLIES, line_threshold=80, branch_threshold=80):

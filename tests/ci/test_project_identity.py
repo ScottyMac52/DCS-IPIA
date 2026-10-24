@@ -12,7 +12,7 @@ class ProjectIdentityTests(unittest.TestCase):
     def test_solution_and_all_project_references_resolve(self):
         solution = (ROOT / 'HEIMDALL.sln').read_text()
         projects = re.findall(r'"([^"\n]+\.csproj)"', solution)
-        self.assertEqual(10, len(projects))
+        self.assertEqual(11, len(projects))
         self.assertNotIn('Dcs.Ipia', solution)
         for relative in projects:
             project = ROOT / relative.replace('\\', '/')

@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'LocalTestSupport.ps1')
 Invoke-LocalTestSuite {
     $project = 'tests/Heimdall.Tests/Heimdall.Tests.csproj'
-    $include = '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.EliteDangerous]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
+    $include = '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.EliteDangerous]*%2c[Heimdall.Squadrons]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
     $coverage = Join-Path $PWD 'TestResults/raw/dotnet/coverage'
     Invoke-LocalTestCommand 'Restore' { dotnet restore $project }
     Invoke-LocalTestCommand 'Formatting' { dotnet format style $project --verify-no-changes --no-restore --severity warn }
