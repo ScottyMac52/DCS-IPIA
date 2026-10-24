@@ -22,6 +22,8 @@ namespace Heimdall.Tests
             using var issuer = new OwnerLicenseTestIssuer();
             var backend = new EliteDangerousProfileBackend();
             var session = new GameProfileSession(backend, Workspace(), issuer.Policy, [], () => []);
+            Assert.False(session.CanEditNativeRecords);
+            Assert.Throws<InvalidOperationException>(() => session.RebindNative("unknown", "unknown", "JOY_BTN1", CommandType.Button, 0));
             var before = session.Snapshot;
             var stick = before.Profile.Devices.First(x => x.Buttons.Count > 0);
             var command = session.Catalog.Commands.First(x => x.Type == CommandType.Button);

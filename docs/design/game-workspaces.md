@@ -1,6 +1,6 @@
-# Game selection and Elite Dangerous workspace
+# Game selection and game workspaces
 
-The opening screen offers **DCS World** and **Elite Dangerous** cards, plus
+The opening screen offers **DCS World**, **Elite Dangerous** and **Star Wars: Squadrons** cards, plus
 **Continue** for the last explicitly selected game/profile. The same theme and
 per-surface background settings apply throughout. No game or controller is
 selected by guessing an installed folder or a device name.
@@ -14,6 +14,16 @@ when entering DCS, rather than forcing DCS destination setup before choosing a
 game. The game and aircraft dropdowns inside the DCS workspace provide a compact
 way to switch. Pending edits prompt **save / discard / cancel** first; save
 failure or cancellation retains the current workspace.
+
+## Star Wars: Squadrons
+
+Premium/Owner users can import captured controls, inspect controller slots and
+native binding records, filter commands, edit supported joystick assignments,
+save/reopen named profiles and export separate review copies. Pending changes are
+guarded when importing, switching profiles/games or closing. Keyboard, mouse,
+gamepad and unverified combinations remain preserved and read-only. Live input,
+controller hardware association, artwork and reference sheets are not exposed yet.
+See the [Squadrons desktop workflow and remaining scope](squadrons-adapter.md).
 
 ## Elite Dangerous
 

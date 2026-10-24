@@ -13,15 +13,16 @@ See the [Free/Premium contract and activation guide](docs/design/free-edition.md
 
 ## Game and simulator selection
 
-Choose **DCS World** or **Elite Dangerous** on the opening cards, or continue the
+Choose **DCS World**, **Elite Dangerous** or **Star Wars: Squadrons** on the opening cards, or continue the
 last saved profile. Compact workspace selectors support guarded game/profile
 switching. The Elite workspace connects native import, assignments, shared
 hardware drawings, save/reopen, input feedback and review/reference exports to
 the ED adapter. See the [game workspace guide](docs/design/game-workspaces.md)
 for supported operations, edition boundaries and manual in-game acceptance.
 
-Star Wars: Squadrons support has started with a tested native adapter. Desktop
-workspace integration is pending; see the [Squadrons adapter scope and roadmap](docs/design/squadrons-adapter.md).
+Star Wars: Squadrons is available from the game selection screen for Premium/Owner users.
+Import captured controls, edit supported joystick records, save/reopen profiles and
+export a separate review copy. See the [Squadrons desktop guide and remaining scope](docs/design/squadrons-adapter.md).
 
 ## Compact workspace interactive mockup
 

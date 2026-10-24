@@ -13,7 +13,7 @@ namespace Heimdall.Application.Games
             if (workspace.SchemaVersion != 1 || workspace.Id == Guid.Empty || string.IsNullOrWhiteSpace(workspace.Name)
                 || workspace.Name.Length > 200 || workspace.Profile is null || workspace.Hardware is null || workspace.ControllerOrder is null)
                 throw new InvalidDataException("Invalid game workspace identity, name or schema.");
-            if (workspace.Profile.BackendId != "elite-dangerous" || workspace.Profile.Devices is null
+            if (workspace.Profile.BackendId is not "elite-dangerous" and not "star-wars-squadrons" || workspace.Profile.Devices is null
                 || workspace.Profile.Devices.Any(x => x is null))
                 throw new InvalidDataException("Unsupported game workspace backend or device collection.");
             if (workspace.ControllerOrder.Any(string.IsNullOrWhiteSpace)
@@ -36,7 +36,7 @@ namespace Heimdall.Application.Games
             if (selection.EliteBindingsDirectory is { } directory && (string.IsNullOrWhiteSpace(directory)
                 || directory.Length > 32767 || !Path.IsPathFullyQualified(directory)))
                 throw new InvalidDataException("An ED bindings override must be an absolute directory.");
-            if (selection.BackendId is not "dcs" and not "elite-dangerous" || selection.WorkspaceId == Guid.Empty
+            if (selection.BackendId is not "dcs" and not "elite-dangerous" and not "star-wars-squadrons" || selection.WorkspaceId == Guid.Empty
                 || selection.DcsModuleId == Guid.Empty || selection.DisplayName is null || selection.DisplayName.Length > 200)
                 throw new InvalidDataException("Invalid game selection.");
         }

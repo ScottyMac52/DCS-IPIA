@@ -21,8 +21,11 @@ namespace Heimdall.App.Games
             _recent = recent;
             EliteCard.IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
             EliteAccessText.Text = EliteCard.IsEnabled ? "Select controls profile →" : "Requires Premium";
+            SquadronsCard.IsEnabled = EditionAccess.Policy.AllowsSimulator("star-wars-squadrons");
+            SquadronsAccessText.Text = SquadronsCard.IsEnabled ? "Select controls profile →" : "Requires Premium";
+            SquadronsCard.BorderThickness = recent.BackendId == "star-wars-squadrons" ? new Thickness(2) : new Thickness(1);
             ContinueButton.IsEnabled = EditionAccess.Policy.AllowsSimulator(recent.BackendId);
-            RecentText.Text = (recent.BackendId == "dcs" ? "DCS World" : "Elite Dangerous") +
+            RecentText.Text = (recent.BackendId switch { "dcs" => "DCS World", "star-wars-squadrons" => "Star Wars: Squadrons", _ => "Elite Dangerous" }) +
                 (recent.DisplayName.Length == 0 ? " · Choose a profile" : " · " + recent.DisplayName);
             DcsCard.BorderThickness = recent.BackendId == "dcs" ? new Thickness(2) : new Thickness(1);
             EliteCard.BorderThickness = recent.BackendId == "elite-dangerous" ? new Thickness(2) : new Thickness(1);
@@ -32,6 +35,8 @@ namespace Heimdall.App.Games
         private void DcsClicked(object sender, RoutedEventArgs e) => GameRequested?.Invoke(this, "dcs");
         private void EliteClicked(object sender, RoutedEventArgs e)
         { if (EditionAccess.Policy.AllowsSimulator("elite-dangerous")) GameRequested?.Invoke(this, "elite-dangerous"); }
+        private void SquadronsClicked(object sender, RoutedEventArgs e)
+        { if (EditionAccess.Policy.AllowsSimulator("star-wars-squadrons")) GameRequested?.Invoke(this, "star-wars-squadrons"); }
         private void ContinueClicked(object sender, RoutedEventArgs e)
         { if (EditionAccess.Policy.AllowsSimulator(_recent.BackendId)) ContinueRequested?.Invoke(this, EventArgs.Empty); }
         #endregion END private helpers

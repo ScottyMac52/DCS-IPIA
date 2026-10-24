@@ -10,6 +10,7 @@ namespace Heimdall.Application
             ["MainWindow"] = "Main / modules",
             ["GameSelectionView"] = "Game selection",
             ["EliteWorkspaceWindow"] = "Elite Dangerous workspace",
+            ["SquadronsWorkspaceWindow"] = "Star Wars: Squadrons workspace",
             ["ModuleWorkspaceWindow"] = "Module workspace",
             ["NewModuleWindow"] = "New module",
             ["SharedUiLayerWorkspaceWindow"] = "Shared UI layer workspace",
