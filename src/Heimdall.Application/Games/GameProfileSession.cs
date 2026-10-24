@@ -65,6 +65,30 @@ namespace Heimdall.Application.Games
             RequireAccess(); GameConfigurationName.Validate(name);
             _current = _current with { Name = name }; Changed?.Invoke(this, EventArgs.Empty);
         }
+        /// <summary>Gets whether the adapter supports reviewed physical links to captured slots without native identity inference.</summary>
+        public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinks;
+        /// <summary>Reviews a new or replacement physical link without altering native slots or bindings.</summary>
+        public GameControllerChange PreviewCapturedDeviceLink(string logicalId, Guid physicalGuid)
+        {
+            RequireCapturedDevice(logicalId);
+            var observed = Observed(physicalGuid, _observed());
+            if (observed.ProductGuid == Guid.Empty) throw new InvalidOperationException("Rescan this controller to obtain its native product identity.");
+            if (_current.Hardware.Any(x => x.Key != logicalId && x.Value.Device.PhysicalGuid == physicalGuid))
+                throw new InvalidOperationException("This physical controller is already linked to another captured slot. Unlink that slot first.");
+            var candidate = Snapshot;
+            var previous = candidate.Hardware.GetValueOrDefault(logicalId);
+            candidate.Hardware[logicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid && previous.Device.ProductGuid == observed.ProductGuid
+                ? previous with { Device = observed } : new(null, observed);
+            return CapturedDeviceChange(logicalId, candidate, observed);
+        }
+        /// <summary>Reviews removal of the physical association while retaining the captured slot and all native assignments.</summary>
+        public GameControllerChange PreviewCapturedDeviceUnlink(string logicalId)
+        {
+            RequireCapturedDevice(logicalId);
+            var candidate = Snapshot;
+            if (!candidate.Hardware.Remove(logicalId)) throw new InvalidOperationException("This captured slot has no physical link to remove.");
+            return CapturedDeviceChange(logicalId, candidate, null);
+        }
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
         {
@@ -179,7 +203,7 @@ namespace Heimdall.Application.Games
             {
                 _policy.RequirePremium();
                 var observed = Observed(target.PhysicalGuid, _observed());
-                if (observed.ProductGuid != target.ProductGuid || !change.Keys.SetEquals(change.Inputs!()))
+                if (observed.ProductGuid != target.ProductGuid || (change.Inputs is { } inputs && !change.Keys.SetEquals(inputs())))
                     throw new InvalidOperationException("Replacement identity or inputs changed. Review the replacement again.");
             }
             var candidate = GameWorkspaceContract.Clone(change.Candidate);
@@ -256,6 +280,26 @@ namespace Heimdall.Application.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void RequireCapturedDevice(string logicalId)
+        {
+            RequireAccess();
+            var links = _backend as ISimCapturedDeviceLinks ?? throw new InvalidOperationException("This adapter does not support captured-slot physical links.");
+            links.ValidateCapturedDeviceLink(Snapshot.Profile, logicalId);
+        }
+        private GameControllerChange CapturedDeviceChange(string logicalId, GameWorkspace candidate, DetectedDcsDevice? target)
+        {
+            ValidateControllerCandidate(candidate);
+            var source = _current.Profile.Devices.Single(x => x.LogicalId == logicalId);
+            var previous = _current.Hardware.GetValueOrDefault(logicalId)?.Device;
+            var summary = (target is null ? "Unlink physical controller" : "Link / replace physical controller") +
+                "\nCaptured slot: " + logicalId + " · " + source.Identity!.WindowsName +
+                "\nPrevious: " + (previous is null ? "Unlinked" : previous.Name + " · " + previous.PhysicalGuid) +
+                "\nNew: " + (target is null ? "Unlinked" : target.Name + " · " + target.PhysicalGuid + "\nProduct: " + target.ProductGuid) +
+                "\n\nNative slots and bindings are unchanged. This stages a workspace association only; save to keep it." +
+                "\nOperating a device identifies its physical instance, but cannot prove its captured game slot. Verify that slot in the game." +
+                "\nThis does not confirm that the game acquired the controller. A replacement may have different input capabilities; review assignments before use.";
+            return new(this, JsonSerializer.Serialize(_current), candidate, summary, logicalId, target);
+        }
         private ISimDeviceEditor DeviceEditor() => _backend as ISimDeviceEditor
             ?? throw new InvalidOperationException("This game adapter cannot edit controllers.");
         private void ValidateControllerCandidate(GameWorkspace candidate)

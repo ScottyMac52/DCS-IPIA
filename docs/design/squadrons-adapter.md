@@ -83,10 +83,43 @@ The desktop shows decoded inputs (including continuous Z-axis directions), captu
 slot ownership and individual indexed records. It does not claim that a saved slot
 was detected by Squadrons or that every connected device can be acquired together.
 
+## Physical controller links
+
+1. Select a numbered captured slot under **Captured controllers**. **All devices and
+   inputs** is a filter and cannot receive a link.
+2. Use **Rescan** after connecting hardware. Each physical choice displays its name
+   and DirectInput instance GUID, including devices with identical names/products.
+   No choice is selected automatically from discovery order or a saved name.
+3. Select the known unit, or choose **Identify…** and press a button, move a hat or
+   move an axis noticeably on one unit. Held switches are ignored until pressed
+   again; simultaneous activity remains ambiguous. Identification selects the
+   physical unit and releases input handles. It does not identify a Squadrons slot.
+4. Verify the selected slot in Squadrons, then choose **Link / replace…**. Review
+   the captured slot and previous/new instance GUIDs before staging. Fresh connected
+   instance/product evidence is checked again after review; disconnections, duplicate
+   observations, changed products or stale workspace previews block the change.
+5. **Save profile** persists the association. **Discard changes** restores saved
+   links. Reopening retains them even when a device is unplugged; the selected slot
+   shows unavailable until **Rescan** confirms its exact instance and product.
+6. **Unlink…** reviews removal of just the physical association. It works offline
+   and preserves the captured slot, its native name and every binding. To move one
+   physical unit to another captured slot, explicitly unlink its previous slot first.
+
+Identification stops on focus loss, slot/profile/import changes, discard and close.
+There is no automatic relinking or migration when the connected lineup changes.
+Replacement links do not translate button locations or verify input compatibility.
+Native exports contain the same captured slot names and binding records; links are
+HEIMDALL workspace metadata and never repair game acquisition by themselves.
+
+To add another native slot, bind an input on that device in Squadrons and import a
+fresh capture. This creates a separate workspace with no inherited physical links;
+review slot ownership again. Native slot add/remove, binding transfer and capture
+reconciliation remain separate work because saved names cannot establish identity.
+
 ## Remaining increments
 
-- Explicit physical device identification/association and add/replace/remove lifecycle,
-  with reviewed reconciliation when saved slot ownership changes.
+- Native slot add/remove and binding transfer, with reviewed reconciliation when
+  saved slot ownership changes across captures.
 - Hardware artwork and fallback surfaces, live input testing and reference sheets.
 - Verified keyboard/mouse/gamepad editing, combinations and game-specific tuning.
 - Native assignment creation/clearing beyond the adapter's existing-record edits.
@@ -101,3 +134,6 @@ mutations. The adapter is included in the solution, CI/local coverage collection
 and independent 80% line / 80% branch / maximum CRAP 50 gates.
 Windows smoke tests exercise game activation, edition gating, native editing,
 filters, save/reopen, review export and canceled game transitions.
+Physical-link tests cover duplicate products, stale reviews, reconnect/product
+checks, offline unlink, persistence and unchanged native output. Windows smoke
+also covers input identification, cancel/replace/unlink, discard and handle cleanup.

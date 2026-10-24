@@ -21,6 +21,12 @@ Adds reviewed controller removal and replacement alongside Add controller. Remov
 
 ## Squadrons desktop workspace
 
+- Add reviewed physical-controller link/replace/unlink for captured slots, rescan
+  status and button/hat/axis identification using the shared foreground input
+  service. Duplicate names retain explicit instance GUIDs; stale reviews and changed
+  hardware block staging. Links save/reopen/discard independently of native slots
+  and bindings. Native slot creation/removal and full-lineup game acquisition remain
+  separate follow-up work.
 - Add Star Wars: Squadrons to game cards, recent-workspace continuation and guarded
   game selectors for Premium/Owner users.
 - Import captured controls, filter native bindings by device/context/input type/text,

@@ -9,7 +9,7 @@ namespace Heimdall.App.Games
     {
         internal ControllerChangeReviewWindow(Window owner, GameControllerChange change)
         {
-            Owner = owner; Title = "Review ED controller change";
+            Owner = owner; Title = "Review controller change";
             Width = 760; Height = 560; MinWidth = 500; MinHeight = 350;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");

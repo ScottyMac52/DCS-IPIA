@@ -22,7 +22,10 @@ native binding records, filter commands, edit supported joystick assignments,
 save/reopen named profiles and export separate review copies. Pending changes are
 guarded when importing, switching profiles/games or closing. Keyboard, mouse,
 gamepad and unverified combinations remain preserved and read-only. Live input,
-controller hardware association, artwork and reference sheets are not exposed yet.
+artwork and reference sheets are not exposed yet. Captured slots support explicit
+physical links with button/axis identification, reviewed replacement/unlink and
+fresh instance/product checks. These links persist independently of native bindings;
+they do not prove Squadrons acquired the device or that its slot mapping is correct.
 See the [Squadrons desktop workflow and remaining scope](squadrons-adapter.md).
 
 ## Elite Dangerous

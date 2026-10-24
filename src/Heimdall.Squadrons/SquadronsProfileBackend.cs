@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordEditor
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordEditor, ISimCapturedDeviceLinks
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -70,6 +70,13 @@ namespace Heimdall.Squadrons
                 ?? throw new InvalidOperationException("Choose a captured Squadrons controller slot.");
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
             return RebindJoystick(profile, recordId, slot, new(key, type, direction));
+        }
+        /// <summary>Allows explicit workspace-only links to named captured slots without inferring hardware from their names.</summary>
+        public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)
+        {
+            Evidence(profile);
+            if (!profile.Devices.Any(x => x.LogicalId == logicalDeviceId))
+                throw new InvalidOperationException("Choose a named captured Squadrons slot. To add another slot, bind an input on that device in Squadrons and import a fresh capture.");
         }
         /// <summary>Resolves explicit physical instance identity only; saved names, duplicates and ordinals never imply a connection.</summary>
         public SimDeviceResolution ResolveDevice(PhysicalDeviceIdentity identity, IReadOnlyList<PhysicalDeviceIdentity> connected)
