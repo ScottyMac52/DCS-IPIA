@@ -7,6 +7,8 @@ namespace Heimdall.Squadrons
     {
         private static readonly Dictionary<(int Axis, int Button), SquadronsInput> Inputs = BuildInputs();
         #region BEGIN Public
+        /// <summary>Maps native POV spelling to the shared enumerated key; axes and buttons already use shared keys.</summary>
+        public static string PhysicalKey(string key) => key.Replace("JOY_POV", "JOY_BTN_POV", StringComparison.Ordinal);
         /// <summary>Gets independent supported inputs for a desktop picker.</summary>
         public static IReadOnlyList<SquadronsInput> Choices => Inputs.Values.ToArray();
         /// <summary>Returns null for unassigned or unknown input encodings, which remain native evidence.</summary>

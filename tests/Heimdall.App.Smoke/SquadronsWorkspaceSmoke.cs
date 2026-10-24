@@ -31,13 +31,20 @@ namespace Heimdall.App.Smoke
                 card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (!card.IsEnabled || requested != "star-wars-squadrons" || !((TextBlock)cards.FindName("RecentText")).Text.Contains("Squadrons", StringComparison.Ordinal))
                     throw new InvalidOperationException("Squadrons card or recent workspace label is not activated.");
-                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery());
+                var throttle = new DetectedDcsDevice(Guid.NewGuid(), "Smoke Throttle", true, ProductGuid: Guid.NewGuid());
+                var discovery = new GameSmokeDiscovery(throttle);
+                discovery.Inputs[throttle.PhysicalGuid] = ControllerCapabilityMapper.Map([new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 2u, "Z axis")]);
+                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
                 var choice = MessageBoxResult.Cancel;
                 var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced");
-                var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => choice);
+                var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true);
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
                 if (!Box<Button>(window, "SaveButton").IsEnabled || Box<Button>(window, "ExportButton").IsEnabled)
                     throw new InvalidOperationException("An imported capture must be saved before export.");
+                var devices = Box<ListBox>(window, "DevicePicker");
+                devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
+                Box<ComboBox>(window, "ConnectedPicker").SelectedItem = throttle; Click(window, "LinkControllerButton");
+                devices.SelectedIndex = 0;
                 var grid = Box<DataGrid>(window, "BindingsGrid");
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.Native.Type == 2);
                 if (Box<Button>(window, "ApplyButton").IsEnabled) throw new InvalidOperationException("Preserved keyboard record became editable.");

@@ -23,6 +23,10 @@ namespace Heimdall.App.Games
         private string? _revision;
         private string? _sourceDirectory;
         private IReadOnlyList<SquadronsWorkspaceRow> _rows = [];
+        private IReadOnlyList<ControllerObservation> _controllerInputs = [];
+        private int _inputScan;
+        private bool _scanningInputs;
+        private bool _disposed;
         private bool _refreshing = true;
         private bool _allowClose;
         /// <summary>Opens an explicitly chosen Squadrons workspace without importing active settings automatically.</summary>
@@ -35,8 +39,8 @@ namespace Heimdall.App.Games
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 0;
-            TypePicker.ItemsSource = new[] { "All inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
-            InputPicker.ItemsSource = SquadronsInputCodec.Choices;
+            TypePicker.ItemsSource = new[] { "All inputs", "Verified device inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
+            Loaded += async (_, _) => await RefreshControllerInputsAsync();
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
             _refreshing = false;
@@ -47,7 +51,23 @@ namespace Heimdall.App.Games
         }
         #region BEGIN Public
         /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
-        public void Dispose() { _identification.Dispose(); GC.SuppressFinalize(this); }
+        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _identification.Dispose(); GC.SuppressFinalize(this); }
+        /// <summary>Refreshes capability evidence asynchronously; failed, obsolete or closed-window scans cannot enable assignments.</summary>
+        internal async Task RefreshControllerInputsAsync()
+        {
+            if (_disposed) return;
+            var scan = ++_inputScan; _scanningInputs = true; _controllerInputs = [];
+            try
+            {
+                Refresh(false); StatusText.Text = "Inspecting connected controller inputs…";
+                var inputs = await _services.DiscoverInputsAsync();
+                if (scan != _inputScan || _disposed) return;
+                _controllerInputs = inputs;
+                StatusText.Text = "Controller inputs inspected. Captured records are marked separately from verified device inputs.";
+            }
+            catch (Exception error) { if (scan == _inputScan && !_disposed) StatusText.Text = "Controller input verification unavailable: " + error.Message; }
+            finally { if (scan == _inputScan && !_disposed) { _scanningInputs = false; Run(() => Refresh(false)); } }
+        }
         /// <summary>Gets the game explicitly requested after the pending-change guard accepted leaving.</summary>
         public string? RequestedGame { get; private set; }
         /// <summary>Gets the isolated editing boundary for deterministic Windows smoke checks.</summary>
@@ -99,7 +119,7 @@ namespace Heimdall.App.Games
         private GameProfileSession CreateSession(GameWorkspace workspace)
         {
             if (workspace.Profile.BackendId != _backend.SimId) throw new InvalidDataException("This is not a Squadrons profile.");
-            return new(_backend, workspace, EditionAccess.Policy, [], _services.Discover);
+            return new(_backend, workspace, EditionAccess.Policy, [], _services.Discover, controllerInputs: () => _controllerInputs);
         }
         private void LoadProfile(Guid id)
         {
@@ -132,7 +152,11 @@ namespace Heimdall.App.Games
             DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
             TargetDevice.ItemsSource = devices;
-            _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.Rows(snapshot.Profile);
+            var verified = new Dictionary<string, IReadOnlyCollection<string>>();
+            if (snapshot is not null)
+                foreach (var (id, pin) in snapshot.Hardware)
+                    if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs) is { } keys) verified[id] = keys;
+            _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
             _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability();
         }
         private void RefreshRows()
@@ -143,20 +167,37 @@ namespace Heimdall.App.Games
                 (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all");
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
-            CountText.Text = rows.Count == 0 ? "No matching assignments. Clear the search or change the filters." : rows.Count + " binding records";
+            CountText.Text = rows.Count == 0 ? "No matching records. Clear the search or change the filters." : rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Not on linked device") + " inputs not on linked hardware";
             UpdateEditor();
         }
         private void UpdateEditor()
         {
             var row = BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
             var editable = row?.Editable == true && _session?.AccessMessage.Length == 0;
-            TargetDevice.IsEnabled = InputPicker.IsEnabled = ApplyButton.IsEnabled = editable;
+            TargetDevice.IsEnabled = editable && !_scanningInputs;
             TargetDevice.SelectedItem = TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == row?.DeviceId);
-            InputPicker.SelectedItem = SquadronsInputCodec.Choices.FirstOrDefault(x => x == row?.Native.Input);
             AssignmentHint.Text = row is null ? "Select an assignment to edit." : editable
                 ? row.CommandName + " · " + row.BindingLabel + ". Applying replaces only this record; other assignments remain intact."
                 : "This native record is preserved. Editing its input type or combination is not supported yet.";
+            UpdateInputChoices();
         }
+        private void UpdateInputChoices()
+        {
+            var row = BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
+            var pin = TargetDevice.SelectedItem is GameDeviceChoice target ? _session?.Snapshot.Hardware.GetValueOrDefault(target.Id) : null;
+            var keys = _scanningInputs ? null : GameControllerInputs.VerifiedKeys(pin, _controllerInputs);
+            InputPicker.ItemsSource = keys is null ? [] : SquadronsInputCodec.Choices.Where(x => keys.Contains(x.PhysicalKey, StringComparer.Ordinal)).ToArray();
+            InputPicker.SelectedItem = InputPicker.Items.Cast<SquadronsInput>().FirstOrDefault(x => x == row?.Native.Input);
+            InputPicker.IsEnabled = row?.Editable == true && TargetDevice.IsEnabled && keys is not null;
+            UpdateApplyAvailability();
+            if (row?.Editable == true)
+                AssignmentHint.Text = keys is null ? "Link the destination captured slot to a connected controller and Rescan to verify its real inputs. No generic controls can be assigned." :
+                    row.CommandName + " · " + row.BindingLabel + ". Only enumerated controls on the destination device are offered." +
+                    (row.HardwareStatus == "Not on linked device" ? " The captured input does not exist in the linked device's verified controls; its native record is preserved for review." : "");
+        }
+        private void UpdateApplyAvailability() => ApplyButton.IsEnabled = InputPicker.IsEnabled && InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
+        private void TargetChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateInputChoices); }
+        private void InputChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) UpdateApplyAvailability(); }
         private void UpdateAvailability()
         {
             if (_refreshing || SaveState is null) return;
@@ -177,10 +218,10 @@ namespace Heimdall.App.Games
         private void UpdateControllerAvailability()
         {
             var selected = SelectedController;
-            var ready = selected is not null && _session?.CanLinkCapturedDevices == true && _session.AccessMessage.Length == 0;
+            var ready = selected is not null && !_scanningInputs && _session?.CanLinkCapturedDevices == true && _session.AccessMessage.Length == 0;
             var running = _identification.Running;
             var pin = selected is null ? null : _session?.Snapshot.Hardware.GetValueOrDefault(selected);
-            RescanControllerButton.IsEnabled = !running;
+            RescanControllerButton.IsEnabled = !running && !_scanningInputs;
             ConnectedPicker.IsEnabled = ready && !running;
             IdentifyControllerButton.IsEnabled = ready && !running && ConnectedPicker.Items.Count > 0;
             CancelIdentificationButton.IsEnabled = running;
@@ -226,7 +267,11 @@ namespace Heimdall.App.Games
             IdentificationStatus.Text = "Press a button, move a hat or move an axis noticeably on one controller. Held switches are ignored until pressed again.";
         });
         private void StopIdentificationClicked(object sender, RoutedEventArgs e) => _identification.Stop();
-        private void RescanClicked(object sender, RoutedEventArgs e) { if (RescanControllerButton.IsEnabled) Run(RescanControllers); }
+        private async void RescanClicked(object sender, RoutedEventArgs e)
+        {
+            if (!RescanControllerButton.IsEnabled) return;
+            Run(RescanControllers); await RefreshControllerInputsAsync();
+        }
         private void ConnectedChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateControllerAvailability); }
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {

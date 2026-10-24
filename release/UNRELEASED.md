@@ -21,6 +21,11 @@ Adds reviewed controller removal and replacement alongside Add controller. Remov
 
 ## Squadrons desktop workspace
 
+- Fix captured button/hat records being presented as usable controls on linked
+  axis-only hardware such as TPR pedals. Show per-record hardware verification,
+  restrict the editor to enumerated destination controls, and enforce the same
+  check in the application session. Preserve unsupported native records; failed
+  or missing enumeration never offers generic inputs as a fallback.
 - Add reviewed physical-controller link/replace/unlink for captured slots, rescan
   status and button/hat/axis identification using the shared foreground input
   service. Duplicate names retain explicit instance GUIDs; stale reviews and changed

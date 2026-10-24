@@ -15,6 +15,8 @@ namespace Heimdall.Squadrons
         public const string FileName = "ProfileOptions_profile_synced";
         /// <summary>Gets the owning backend.</summary>
         public string SimId => "star-wars-squadrons";
+        /// <summary>Maps the adapter's POV spelling to the shared enumerated physical key; axes and buttons retain their keys.</summary>
+        public string PhysicalInputKey(string key) => SquadronsInputCodec.PhysicalKey(key);
         /// <summary>Declares initial semantics; unsupported chord/tuning edits are retained as native evidence only.</summary>
         public SimBackendCapabilities Capabilities => new(1, [BindingMode.Press], false, false, false);
         /// <summary>Imports one captured version four settings file and retains its exact source.</summary>

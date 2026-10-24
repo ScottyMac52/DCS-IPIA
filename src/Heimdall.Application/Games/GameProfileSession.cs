@@ -12,13 +12,16 @@ namespace Heimdall.Application.Games
         private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
         private readonly IReadOnlyCollection<string> _catalogIds;
         private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;
+        private readonly Func<IReadOnlyList<ControllerObservation>> _controllerInputs;
         private GameWorkspace _current;
         private GameWorkspace _saved;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
-            IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null)
+            IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
+            Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null)
         {
             _backend = backend; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
+            _controllerInputs = controllerInputs ?? (() => []);
             GameWorkspaceContract.Validate(workspace);
             ValidateProfile(workspace.Profile);
             _current = GameWorkspaceContract.Clone(workspace);
@@ -53,6 +56,10 @@ namespace Heimdall.Application.Games
         {
             RequireAccess();
             var editor = _backend as INativeRecordEditor ?? throw new InvalidOperationException("This game does not support native record editing.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) || keys?.Contains(editor.PhysicalInputKey(key), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Choose an input verified on this linked controller. Link its captured slot and rescan connected hardware; buttons and hats absent from the device cannot be assigned.");
             var profile = editor.RebindNative(Snapshot.Profile, recordId, logicalDeviceId, key, type, direction);
             if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
                 throw new InvalidOperationException("The native edit changed the owning game or profile identity.");
