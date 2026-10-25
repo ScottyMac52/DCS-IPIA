@@ -30,11 +30,11 @@ namespace Heimdall.Squadrons
                 return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label);
             }).ToArray();
         }
-        /// <summary>Intersects context/type/text/device filters; normal authoring can exclude raw unverified and incompatible records.</summary>
+        /// <summary>Intersects context/type/text/device filters; native assignments remain visible even when hardware cannot be verified.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
             var text = search.Trim();
-            return rows.Where(x => (includeUnverified || x.HardwareStatus == "Supported physical input (slot unconfirmed)") && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
+            return rows.Where(x => (includeUnverified || (x.Native.Type == 3 && x.Native.Input is not null)) && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
                 && (x.CommandName.Contains(text, StringComparison.OrdinalIgnoreCase) || x.InputLabel.Contains(text, StringComparison.OrdinalIgnoreCase)
                     || x.DeviceLabel.Contains(text, StringComparison.OrdinalIgnoreCase)) && MatchesType(x, type)).ToArray();
         }
