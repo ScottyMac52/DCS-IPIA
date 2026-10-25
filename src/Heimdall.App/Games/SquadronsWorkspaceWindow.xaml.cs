@@ -39,7 +39,7 @@ namespace Heimdall.App.Games
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
-            TypePicker.ItemsSource = new[] { "All inputs", "Verified device inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
+            TypePicker.ItemsSource = new[] { "All inputs", "Supported physical inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
             Loaded += async (_, _) => await RefreshControllerInputsAsync();
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
