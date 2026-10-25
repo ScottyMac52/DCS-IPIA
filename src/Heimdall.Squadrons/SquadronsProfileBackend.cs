@@ -62,6 +62,16 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Choose an existing unchorded joystick record and a named captured device slot.");
             var (axis, button) = SquadronsInputCodec.Encode(input); var prefix = "GstKeyBinding." + row.RecordId + ".";
             var text = document.ReplaceValues(new Dictionary<string, int> { [prefix + "axis"] = axis, [prefix + "button"] = button, [prefix + "deviceid"] = targetSlot - 1 });
+            // Fail closed if the native writer changed anything beyond the requested record or lost its input encoding.
+            var written = new SquadronsNativeDocument(text);
+            var updated = written.Bindings.Single(x => x.RecordId == recordId);
+            if (updated.DeviceId != targetSlot - 1 || updated.Input != input
+                || document.Bindings.Count != written.Bindings.Count
+                || document.Bindings.Where(x => x.RecordId != recordId).Any(original =>
+                    !written.Bindings.Any(candidate => candidate.RecordId == original.RecordId
+                        && candidate.Fields.Count == original.Fields.Count
+                        && original.Fields.All(field => candidate.Fields.TryGetValue(field.Key, out var value) && value == field.Value))))
+                throw new InvalidOperationException("Squadrons native binding validation failed; no profile changes were applied.");
             return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
         }
         /// <summary>Resolves an explicitly selected captured device and delegates to the native record editor.</summary>
