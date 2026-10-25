@@ -34,7 +34,7 @@ namespace Heimdall.Squadrons
         public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
             var text = search.Trim();
-            return rows.Where(x => (includeUnverified || (x.Native.Type == 3 && x.Native.Input is not null)) && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
+            return rows.Where(x => (includeUnverified || (x.Native.Type == 3 && x.Native.Input is not null && x.HardwareStatus == "Supported physical input (slot unconfirmed)")) && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
                 && (x.CommandName.Contains(text, StringComparison.OrdinalIgnoreCase) || x.InputLabel.Contains(text, StringComparison.OrdinalIgnoreCase)
                     || x.DeviceLabel.Contains(text, StringComparison.OrdinalIgnoreCase)) && MatchesType(x, type)).ToArray();
         }
