@@ -18,13 +18,15 @@ namespace Heimdall.Tests
             var rows = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile),
                 new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.5"] = ["JOY_Z"] });
             var visible = SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.5", includeUnverified: false);
-            Assert.Equal(2, visible.Count); Assert.All(visible, x => Assert.Equal("Verified device input", x.HardwareStatus));
+            Assert.Equal(2, visible.Count); Assert.All(visible, x => Assert.Equal("Supported physical input (slot unconfirmed)", x.HardwareStatus));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false));
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Menus & General", "All inputs", "", "all", includeUnverified: false));
             Assert.NotEmpty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "all", includeUnverified: true));
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Increase", "all", includeUnverified: false));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.DoesNotContain(rows, x => x.HardwareStatus == "Verified device input");
+            Assert.Contains(rows, x => x.HardwareStatus == "Input absent on linked device" || x.HardwareStatus == "Hardware unverified");
         }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
