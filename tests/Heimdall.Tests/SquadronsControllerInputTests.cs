@@ -31,13 +31,13 @@ namespace Heimdall.Tests
             Assert.Contains(reviewed, x => x.InputLabel == "Button 1" && x.HardwareStatus == "Input absent on linked device");
             Assert.Contains(reviewed, x => x.HardwareStatus == "Hardware unverified");
             Assert.Contains(reviewed, x => x.HardwareStatus == "Preserved system input");
-            Assert.Empty(SquadronsWorkspaceProjection.Filter(reviewed, "All", "Verified device inputs", "", "all"));
+            Assert.Empty(SquadronsWorkspaceProjection.Filter(reviewed, "All", "Supported physical inputs", "", "all"));
             Assert.Throws<InvalidOperationException>(() => session.RebindNative("IncomStarshipInputConcepts.ConceptFire.2", "squadrons.joystick.3", "JOY_BTN1", CommandType.Button, 0));
             Assert.Throws<InvalidOperationException>(() => session.RebindNative("IncomStarshipInputConcepts.ConceptFire.2", "squadrons.joystick.3", "JOY_POV1_U", CommandType.Hat, 0));
             Assert.False(session.HasChanges); Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
             session.RebindNative("IncomStarshipInputConcepts.ConceptFire.2", "squadrons.joystick.3", "JOY_RZ", CommandType.Axis, 1);
             var valid = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(session.Snapshot.Profile), new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.3"] = keys });
-            Assert.Single(SquadronsWorkspaceProjection.Filter(valid, "All", "Verified device inputs", "", "all"));
+            Assert.Single(SquadronsWorkspaceProjection.Filter(valid, "All", "Supported physical inputs", "", "all"));
             Assert.True(session.HasChanges); session.AcceptSaved();
             connected = []; Assert.Throws<InvalidOperationException>(() => session.RebindNative("IncomStarshipInputConcepts.ConceptFire.2", "squadrons.joystick.3", "JOY_X", CommandType.Axis, 1));
             connected = [pedals]; evidence = [new(pedals, null, "Enumeration failed")];
