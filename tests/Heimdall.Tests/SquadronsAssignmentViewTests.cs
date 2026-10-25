@@ -8,7 +8,7 @@ namespace Heimdall.Tests
     public sealed class SquadronsAssignmentViewTests
     {
         #region BEGIN Public
-        /// <summary>Normal flight/device filtering excludes unsupported, unverified and preserved rows; review explicitly restores them.</summary>
+        /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
         {
@@ -19,7 +19,7 @@ namespace Heimdall.Tests
                 new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.5"] = ["JOY_Z"] });
             var visible = SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.5", includeUnverified: false);
             Assert.Equal(2, visible.Count); Assert.All(visible, x => Assert.Equal("Supported physical input (slot unconfirmed)", x.HardwareStatus));
-            Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false));
+            Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false));
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Menus & General", "All inputs", "", "all", includeUnverified: false));
             Assert.NotEmpty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "all", includeUnverified: true));
