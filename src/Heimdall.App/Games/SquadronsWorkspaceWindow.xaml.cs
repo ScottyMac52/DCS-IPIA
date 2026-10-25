@@ -173,10 +173,10 @@ namespace Heimdall.App.Games
             ControllerColumn.Visibility = review || SelectedController is null ? Visibility.Visible : Visibility.Collapsed;
             HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
             CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs absent on linked hardware" :
-                rows.Count + " compatible assignments · " + section + ". Hardware compatibility does not confirm in-game slot ownership.";
+                rows.Count + " captured joystick assignments · " + section + ". Check hardware status in advanced review; saved slot ownership is not physical identity.";
             EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             EmptyState.Text = _session is null ? "Import a Squadrons controls file to get started." : review ? "No matching captured records. Change the context, input filter or search." :
-                _scanningInputs ? "Inspecting controller inputs…" : "No compatible assignments match these filters. Open Controller setup to link and rescan hardware, change the context, or enable Review captured records to inspect and repair the capture.";
+                _scanningInputs ? "Inspecting controller inputs…" : "No captured joystick assignments match these filters. Change the context or input filter, or enable advanced review for preserved native records.";
             UpdateEditor();
         }
         private void UpdateEditor()
