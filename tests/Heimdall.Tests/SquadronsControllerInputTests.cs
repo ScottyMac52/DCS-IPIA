@@ -28,7 +28,7 @@ namespace Heimdall.Tests
             var choices = SquadronsInputCodec.Choices.Where(x => keys.Contains(x.PhysicalKey)).ToArray();
             Assert.Equal(6, choices.Length); Assert.All(choices, x => Assert.Equal(CommandType.Axis, x.Type));
             var reviewed = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile), new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.3"] = keys });
-            Assert.Contains(reviewed, x => x.InputLabel == "Button 1" && x.HardwareStatus == "Not on linked device");
+            Assert.Contains(reviewed, x => x.InputLabel == "Button 1" && x.HardwareStatus == "Input absent on linked device");
             Assert.Contains(reviewed, x => x.HardwareStatus == "Hardware unverified");
             Assert.Contains(reviewed, x => x.HardwareStatus == "Preserved system input");
             Assert.Empty(SquadronsWorkspaceProjection.Filter(reviewed, "All", "Verified device inputs", "", "all"));
