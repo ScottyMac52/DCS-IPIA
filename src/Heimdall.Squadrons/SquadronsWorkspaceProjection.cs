@@ -12,7 +12,7 @@ namespace Heimdall.Squadrons
         /// <summary>Distinguishes raw captured records from supported physical inputs without guessing another controller or deleting evidence.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> ReviewInputs(IEnumerable<SquadronsWorkspaceRow> rows, IReadOnlyDictionary<string, IReadOnlyCollection<string>> verified) =>
             rows.Select(row => row with { HardwareStatus = row.Native.Type != 3 ? "Preserved system input" : row.Native.Input is not { } input ? "Preserved native encoding" :
-                !verified.TryGetValue(row.DeviceId, out var keys) ? "Hardware unverified" : keys.Contains(input.PhysicalKey, StringComparer.Ordinal) ? "Verified device input" : "Not on linked device" }).ToArray();
+                !verified.TryGetValue(row.DeviceId, out var keys) ? "Hardware unverified" : keys.Contains(input.PhysicalKey, StringComparer.Ordinal) ? "Supported physical input (slot unconfirmed)" : "Input absent on linked device" }).ToArray();
         /// <summary>Lists every native record with explicit slot ownership, retaining duplicate names and unsupported records.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Rows(ProfileDocument profile)
         {
@@ -34,7 +34,7 @@ namespace Heimdall.Squadrons
         public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
             var text = search.Trim();
-            return rows.Where(x => (includeUnverified || x.HardwareStatus == "Verified device input") && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
+            return rows.Where(x => (includeUnverified || x.HardwareStatus == "Supported physical input (slot unconfirmed)") && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
                 && (x.CommandName.Contains(text, StringComparison.OrdinalIgnoreCase) || x.InputLabel.Contains(text, StringComparison.OrdinalIgnoreCase)
                     || x.DeviceLabel.Contains(text, StringComparison.OrdinalIgnoreCase)) && MatchesType(x, type)).ToArray();
         }
