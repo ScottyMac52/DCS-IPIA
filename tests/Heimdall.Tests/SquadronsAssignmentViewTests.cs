@@ -19,7 +19,7 @@ namespace Heimdall.Tests
                 new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.5"] = ["JOY_Z"] });
             var visible = SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.5", includeUnverified: false);
             Assert.Equal(2, visible.Count); Assert.All(visible, x => Assert.Equal("Supported physical input (slot unconfirmed)", x.HardwareStatus));
-            Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false));
+            Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false));
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Menus & General", "All inputs", "", "all", includeUnverified: false));
             Assert.NotEmpty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "all", includeUnverified: true));
@@ -30,7 +30,7 @@ namespace Heimdall.Tests
         }
         /// <summary>Unverified native joystick assignments remain visible; flight context excludes camera and spectator controls.</summary>
         [Fact]
-        public void Flight_view_retains_unverified_native_assignments_without_mixing_camera_contexts()
+        public void Flight_view_hides_unverified_native_assignments_without_mixing_camera_contexts()
         {
             var backend = new SquadronsProfileBackend();
             var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
@@ -38,10 +38,11 @@ namespace Heimdall.Tests
             var rows = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile),
                 new Dictionary<string, IReadOnlyCollection<string>>());
             var flight = SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: false);
-            Assert.Single(flight);
-            Assert.Equal("Hardware unverified", flight[0].HardwareStatus);
-            Assert.Equal("Fire", flight[0].CommandName);
-            Assert.DoesNotContain(flight, x => x.CommandName.Contains("Camera", StringComparison.Ordinal));
+            Assert.Empty(flight);
+            var advanced = SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true);
+            Assert.Single(advanced);
+            Assert.Equal("Hardware unverified", advanced[0].HardwareStatus);
+            Assert.Equal("Fire", advanced[0].CommandName);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
