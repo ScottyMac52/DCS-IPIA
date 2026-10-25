@@ -45,7 +45,7 @@ namespace Heimdall.Squadrons
             "Axes" => row.Native.Input?.Type == CommandType.Axis,
             "Buttons and hats" => row.Native.Input?.Type is CommandType.Button or CommandType.Hat,
             "Preserved inputs" => row.Native.Input is null,
-            "Verified device inputs" => row.HardwareStatus == "Verified device input",
+            "Supported physical inputs" => row.HardwareStatus == "Supported physical input (slot unconfirmed)",
             _ => true
         };
         #endregion END private helpers
