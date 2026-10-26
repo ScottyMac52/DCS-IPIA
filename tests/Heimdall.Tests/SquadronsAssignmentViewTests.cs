@@ -119,7 +119,7 @@ namespace Heimdall.Tests
             Assert.Equal("Smoke Throttle 1", changed.Devices.Single(x => x.LogicalId == "squadrons.joystick.1").Identity!.WindowsName);
             Assert.Equal("Smoke Stick 1", changed.Devices.Single(x => x.LogicalId == "squadrons.joystick.2").Identity!.WindowsName);
             Assert.Equal(2, backend.ReadBindings(changed).Count(x => x.Type == 3 && x.DeviceId == 2));
-            Assert.Single(backend.ReadBindings(changed).Where(x => x.Type == 3 && x.DeviceId == 1));
+            Assert.Single(backend.ReadBindings(changed), x => x.Type == 3 && x.DeviceId == 1);
             Assert.Contains(backend.ReadBindings(changed), x => x.Type == 2 && x.DeviceId == -1);
             Assert.Contains("Future.Setting preserved", backend.Export(changed).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(profile.Devices.Sum(x => x.Buttons.Count + x.Axes.Count),
