@@ -223,6 +223,27 @@ namespace Heimdall.Tests
                 "All types", "All", "throttle", null));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Native keyboard, mouse and gamepad records are inspectable without claiming an unverified key mapping.</summary>
+        [Fact]
+        public void System_inputs_are_visible_when_selected_and_remain_noneditable()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var rows = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile),
+                new Dictionary<string, IReadOnlyCollection<string>>());
+            var keyboard = SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "",
+                "system.2", includeUnverified: false);
+            var capturedKey = Assert.Single(keyboard);
+            Assert.False(capturedKey.Editable);
+            Assert.StartsWith("Keyboard · button code 57 · axis code 26", capturedKey.InputLabel, StringComparison.Ordinal);
+            Assert.Equal("Preserved system input", capturedKey.HardwareStatus);
+            Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "system.0",
+                includeUnverified: false));
+            Assert.Throws<InvalidOperationException>(() =>
+                backend.ClearCapturedRecord(profile, capturedKey.RecordId));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
