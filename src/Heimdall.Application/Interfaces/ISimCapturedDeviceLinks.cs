@@ -10,6 +10,10 @@ namespace Heimdall.Application.Interfaces
         void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId);
         /// <summary>Remove only unreferenced captured slots.</summary>
         ProfileDocument RemoveUnusedCapturedDevice(ProfileDocument profile, string logicalDeviceId);
+        /// <summary>Clears all captured joystick binding records on one slot.</summary>
+        ProfileDocument ClearCapturedAssignments(ProfileDocument profile, string logicalDeviceId);
+        /// <summary>Renumbers all declared native slots and matching input references.</summary>
+        ProfileDocument ReorderCapturedSlots(ProfileDocument profile, IReadOnlyList<string> order);
         #endregion END Public
     }
 }
