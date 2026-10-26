@@ -6,7 +6,7 @@ namespace Heimdall.Squadrons
     {
         // Squadrons v4 keyboard values follow DirectInput keyboard scan codes (DIK).
         // These values are independent of keyboard layout and do not represent typed characters.
-        private static readonly IReadOnlyDictionary<int, string> Keys = new Dictionary<int, string>
+        private static readonly Dictionary<int, string> Keys = new()
         {
             [1] = "Esc", [2] = "1", [3] = "2", [4] = "3", [5] = "4",
             [6] = "5", [7] = "6", [8] = "7", [9] = "8", [10] = "9", [11] = "0",
