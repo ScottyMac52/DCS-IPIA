@@ -51,6 +51,7 @@
       <WrapPanel>
        <Button x:Name="LinkControllerButton" Style="{StaticResource SquadronsActionButton}" Content="Link / replace…" Click="LinkClicked"/>
        <Button x:Name="UnlinkControllerButton" Style="{StaticResource SquadronsActionButton}" Content="Unlink…" Click="UnlinkClicked"/>
+       <Button x:Name="ClearSlotButton" Style="{StaticResource SquadronsActionButton}" Content="Clear assignments…" Click="ClearSlotClicked"/>
        <Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource SquadronsActionButton}" Content="Remove unused slot…" Click="RemoveUnusedSlotClicked"/>
       </WrapPanel>
       <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Select a captured slot first. Identify finds the physical unit; verify its slot in Squadrons before linking. For another slot, bind an input on that device in Squadrons and import a fresh capture."/>
@@ -58,7 +59,7 @@
     </ScrollViewer>
      </Expander>
     </StackPanel>
-    <ListBox x:Name="DevicePicker" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons controller filter">
+    <ListBox x:Name="DevicePicker" AllowDrop="True" ToolTip="Drag controllers to renumber their native Squadrons slots; Ctrl+Up/Down also works. Changes require review." HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons controller filter">
      <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/></DataTemplate></ListBox.ItemTemplate>
     </ListBox>
    </DockPanel>
