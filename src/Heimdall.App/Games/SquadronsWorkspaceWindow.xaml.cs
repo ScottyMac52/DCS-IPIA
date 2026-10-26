@@ -413,7 +413,7 @@ namespace Heimdall.App.Games
                 // No unique replacement target: append only if the backend can
                 // verify a native template for the exact command concept.
                 _session.AddSquadronsNativeBinding(command.Metadata["squadrons.concept"],
-                    slot, match[0].Key, match[0].Type, match[0].Direction);
+                    slot, input.Key, input.Type, input.Direction);
                 Refresh(false);
                 StatusText.Text = "New Squadrons binding created in draft. Save before exporting.";
             }
