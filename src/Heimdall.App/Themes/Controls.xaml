@@ -70,6 +70,7 @@
     <Style x:Key="ToolbarComboBox" TargetType="ComboBox" BasedOn="{StaticResource AppComboBox}">
         <Setter Property="Height" Value="30"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
     </Style>
     <Style x:Key="ToolbarActionButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
         <Setter Property="HorizontalAlignment" Value="Left"/>
