@@ -20,7 +20,7 @@ opening game cards and guarded workspace game selectors.
   without unverified modifier/alternate-button semantics. Keyboard, mouse,
   gamepad, unknown and unassigned records remain inspectable through `ReadBindings`
   and round-trip unchanged, even when not exposed as portable assignments.
-- Commands come from captured concepts, including unassigned ones. Menus/general,
+- The command browser combines 125 known v4 native concept identifiers with any additional concepts captured in the imported file. Clearing the last binding does not delete a command from the catalog. The catalog contains names only and does not invent native binding records. Menus/general,
   hangar/briefing and flight contexts have display categories; unknown concepts
   remain available under Other. Friendly labels initially split native CamelCase.
 - Unchanged import/export retains exact text, including after JSON persistence.
