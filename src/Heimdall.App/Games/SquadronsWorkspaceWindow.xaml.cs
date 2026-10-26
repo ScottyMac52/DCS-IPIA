@@ -597,8 +597,8 @@ namespace Heimdall.App.Games
                 command.DisplayName + " · " + command.Category + " · " +
                 plan.CapturedRecords + " captured records · " + plan.EditableRecords +
                 " supported replacement records. " + (plan.CanReplaceCapturedRecord
-                    ? "Select an existing assignment below to change its verified controller input."
-                    : "Creating a new native record is not yet validated; no guessed slot will be written.");
+                    ? "Drag a command onto a compatible drawing input to replace the sole editable record, or select an assignment below."
+                    : "Drag onto a compatible drawing input to create a record when this command has a verified native template; unknown templates remain blocked.");
         }
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
