@@ -50,6 +50,35 @@ namespace Heimdall.Tests
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
+        /// <summary>Moving native slots carries exact physical links; clearing is staged and stale changes cannot apply.</summary>
+        [Fact]
+        public void Reviewed_native_reorder_preserves_links_and_clear_can_be_discarded()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var backend = new SquadronsProfileBackend();
+            var first = Device("Stick"); var throttle = Device("Throttle");
+            var session = new GameProfileSession(backend, Workspace(backend), issuer.Policy, [], () => [first, throttle]);
+            session.ApplyControllerChange(session.PreviewCapturedDeviceLink("squadrons.joystick.3", first.PhysicalGuid));
+            session.ApplyControllerChange(session.PreviewCapturedDeviceLink("squadrons.joystick.5", throttle.PhysicalGuid));
+            session.AcceptSaved();
+            var original = session.Export().Files[SquadronsProfileBackend.FileName];
+            var reorder = session.PreviewMoveCapturedSlot("squadrons.joystick.5", "squadrons.joystick.3");
+            Assert.False(session.HasChanges);
+            session.ApplyControllerChange(reorder);
+            Assert.True(session.HasChanges);
+            Assert.Equal(throttle.PhysicalGuid, session.Snapshot.Hardware["squadrons.joystick.1"].Device.PhysicalGuid);
+            Assert.Equal(first.PhysicalGuid, session.Snapshot.Hardware["squadrons.joystick.2"].Device.PhysicalGuid);
+            Assert.Equal(2, backend.CountCapturedAssignments(session.Snapshot.Profile, "squadrons.joystick.1"));
+            Assert.Equal(1, backend.CountCapturedAssignments(session.Snapshot.Profile, "squadrons.joystick.2"));
+            var clear = session.PreviewClearCapturedAssignments("squadrons.joystick.1");
+            session.ApplyControllerChange(clear);
+            Assert.Equal(0, backend.CountCapturedAssignments(session.Snapshot.Profile, "squadrons.joystick.1"));
+            Assert.Throws<InvalidOperationException>(() => session.ApplyControllerChange(clear));
+            session.Discard();
+            Assert.False(session.HasChanges);
+            Assert.Equal(original, session.Export().Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(throttle.PhysicalGuid, session.Snapshot.Hardware["squadrons.joystick.5"].Device.PhysicalGuid);
+        }
         /// <summary>Stale reviews, unplugged/ambiguous/changed devices and links already used by another slot fail atomically.</summary>
         [Fact]
         public void Link_review_revalidates_live_identity_and_workspace_revision()
