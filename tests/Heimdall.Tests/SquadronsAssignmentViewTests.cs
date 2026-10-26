@@ -152,6 +152,26 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() =>
                 backend.ClearCapturedRecord(profile, "IncomStarshipInputConcepts.ConceptMenu.0"));
         }
+        /// <summary>Command-first authoring uses existing safe indexed records and does not invent missing ones.</summary>
+        [Fact]
+        public void Assignment_planner_distinguishes_existing_record_replacement_from_new_native_creation()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var throttle = SquadronsAssignmentPlanner.For(backend, profile, "IncomStarshipInputConcepts.ConceptThrottle");
+            Assert.Equal(2, throttle.CapturedRecords);
+            Assert.Equal(2, throttle.EditableRecords);
+            Assert.True(throttle.CanReplaceCapturedRecord);
+            Assert.False(throttle.RequiresNewNativeRecord);
+            Assert.Contains("IncomStarshipInputConcepts.ConceptThrottle.4", throttle.EditableRecordIds);
+            var cleared = backend.ClearCapturedAssignments(profile, "squadrons.joystick.5");
+            Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, cleared,
+                "IncomStarshipInputConcepts.ConceptThrottle"));
+            Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, profile,
+                "IncomStarshipInputConcepts.ConceptNotCaptured"));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
