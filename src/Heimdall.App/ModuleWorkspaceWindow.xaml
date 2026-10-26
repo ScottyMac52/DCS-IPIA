@@ -13,8 +13,8 @@
     <StackPanel>
     <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <WrapPanel x:Name="GameWorkspaceSelectors" Margin="0,0,0,8" Visibility="Collapsed">
-     <ComboBox x:Name="WorkspaceGamePicker" Width="180" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/></ComboBox>
-     <ComboBox x:Name="WorkspaceProfilePicker" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
+     <ComboBox Style="{StaticResource ToolbarComboBox}" x:Name="WorkspaceGamePicker" Width="180" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/></ComboBox>
+     <ComboBox Style="{StaticResource ToolbarComboBox}" x:Name="WorkspaceProfilePicker" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
     </WrapPanel>
      <WrapPanel Grid.Column="1">
       <Button x:Name="SaveWorkspaceButton" Style="{StaticResource ToolbarActionButton}" Content="Save" Click="SaveClicked" ToolTip="Save all pending workspace edits to HEIMDALL."/>
