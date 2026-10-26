@@ -13,14 +13,14 @@
      <Expander Header="Device status"><TextBlock x:Name="StatusText" TextWrapping="Wrap"/></Expander>
                 <WrapPanel Margin="0,0,0,4">
                     <TextBlock Text="Device:" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
-                    <ComboBox Visibility="Collapsed" SelectedValuePath="ProfileId" x:Name="DeviceChoice" Width="220" Margin="0,0,16,0" SelectionChanged="DeviceChanged" Style="{StaticResource AppComboBox}"/>
+                    <ComboBox Visibility="Collapsed" SelectedValuePath="ProfileId" x:Name="DeviceChoice" Width="220" Margin="0,0,16,0" SelectionChanged="DeviceChanged" Style="{StaticResource ToolbarComboBox}"/>
                     <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
-                    <ComboBox x:Name="Scope" Width="140" Margin="0,0,16,0" SelectionChanged="ScopeChanged" Style="{StaticResource AppComboBox}">
+                    <ComboBox x:Name="Scope" Width="140" Margin="0,0,16,0" SelectionChanged="ScopeChanged" Style="{StaticResource ToolbarComboBox}">
                         <ComboBoxItem Content="Module"/>
                         <ComboBoxItem Content="Module UI Layer"/>
                     </ComboBox>
                     <TextBlock Text="Layer:" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
-                    <ComboBox x:Name="Layers" Width="160" SelectionChanged="LayerChanged" Style="{StaticResource AppComboBox}"/>
+                    <ComboBox x:Name="Layers" Width="160" SelectionChanged="LayerChanged" Style="{StaticResource ToolbarComboBox}"/>
                 </WrapPanel>
 
      <WrapPanel Margin="0,2,0,4">
