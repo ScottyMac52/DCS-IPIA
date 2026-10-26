@@ -156,7 +156,7 @@ encodes the input using the shared Squadrons codec, and verifies all
 existing native records retain their original fields after round-trip
 import. This is an initial safe creation path, not yet full from-scratch
 authoring: commands with **no captured template at all** are deliberately
-blocked pending verified identifier discovery; axis drawing drops ask for an explicit positive or negative direction.
+blocked pending verified identifier discovery; analog axis drawing drops assign directly without a direction prompt. The codec uses its canonical positive native encoding for new axis records, or preserves the native direction when replacing an existing binding on that same axis. Native direction and the separately retained `negate` flag are not conflated.
 Unsupported or unverified control encodings remain blocked. The appended native
 index follows the highest index already captured for the same concept; game
 acceptance of additional native record indices still needs in-game testing. Review copies are
