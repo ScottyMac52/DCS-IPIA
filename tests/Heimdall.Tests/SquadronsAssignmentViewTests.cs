@@ -8,6 +8,40 @@ namespace Heimdall.Tests
     public sealed class SquadronsAssignmentViewTests
     {
         #region BEGIN Public
+        /// <summary>One physical axis callout resolves without asking the user to choose native +/- encodings.</summary>
+        [Theory]
+        [InlineData("JOY_X")]
+        [InlineData("JOY_Y")]
+        [InlineData("JOY_Z")]
+        [InlineData("JOY_RX")]
+        [InlineData("JOY_RY")]
+        [InlineData("JOY_RZ")]
+        [InlineData("JOY_SLIDER1")]
+        [InlineData("JOY_SLIDER2")]
+        public void Analog_axis_drawing_drop_uses_one_canonical_native_input(string key)
+        {
+            var chosen = SquadronsInputCodec.FromDrawing(key, true);
+            Assert.Equal(key, chosen.Key);
+            Assert.Equal(CommandType.Axis, chosen.Type);
+            Assert.Equal(1, chosen.Direction);
+            Assert.Equal(chosen, SquadronsInputCodec.Decode(
+                SquadronsInputCodec.Encode(chosen).Axis, SquadronsInputCodec.Encode(chosen).Button));
+            var reverse = SquadronsInputCodec.Choices.Single(x =>
+                x.Key == key && x.Type == CommandType.Axis && x.Direction == -1);
+            Assert.Equal(reverse, SquadronsInputCodec.FromDrawing(key, true, reverse));
+        }
+
+        [Fact]
+        public void Drawing_drop_keeps_button_and_hat_inputs_distinct_and_rejects_mismatched_control_type()
+        {
+            var button = SquadronsInputCodec.FromDrawing("JOY_BTN1", false);
+            Assert.Equal(CommandType.Button, button.Type);
+            var hat = SquadronsInputCodec.FromDrawing("JOY_BTN_POV1_U", false);
+            Assert.Equal(CommandType.Hat, hat.Type);
+            Assert.Throws<InvalidOperationException>(() => SquadronsInputCodec.FromDrawing("JOY_X", false));
+            Assert.Throws<InvalidOperationException>(() => SquadronsInputCodec.FromDrawing("JOY_BTN1", true));
+            Assert.Throws<InvalidOperationException>(() => SquadronsInputCodec.FromDrawing("JOY_UNKNOWN", false));
+        }
         /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
