@@ -41,7 +41,7 @@ namespace Heimdall.App.Games
             {
                 if (source == "all" || target == "all") return;
                 Run(() => ReviewNativeChange(_session!.PreviewMoveCapturedSlot(source, target, after)));
-            });
+            }, id => id != "all");
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
