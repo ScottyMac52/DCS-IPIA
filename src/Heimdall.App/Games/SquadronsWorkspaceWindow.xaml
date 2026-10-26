@@ -72,9 +72,21 @@
       <TextBox x:Name="Search" Style="{StaticResource AppTextBox}" Width="200" Margin="8,0,0,0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons commands"/>
      </WrapPanel>
      <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False" Checked="CaptureReviewChanged" Unchecked="CaptureReviewChanged" Margin="0,8,0,0" AutomationProperties.Name="Review all Squadrons captured records"/>
+     <WrapPanel Margin="0,8,0,0">
+      <TextBlock Style="{StaticResource AppLabel}" Text="Command" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox x:Name="CommandPicker" Style="{StaticResource ToolbarComboBox}" Width="320" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="Browse captured commands, including commands without a current joystick binding."/>
+      <Button x:Name="ShowCommandButton" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
+     </WrapPanel>
+     <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap"/>
     </StackPanel>
     <DataGrid x:Name="BindingsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" SelectionChanged="BindingChanged" AutomationProperties.Name="Squadrons assignments">
+     <DataGrid.ContextMenu>
+      <ContextMenu>
+       <MenuItem Header="Edit selected assignment" Click="EditSelectedClicked"/>
+       <MenuItem Header="Clear selected assignment…" Click="ClearSelectedClicked"/>
+      </ContextMenu>
+     </DataGrid.ContextMenu>
      <DataGrid.Columns>
       <DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="2*" MinWidth="260" ElementStyle="{StaticResource SquadronsCellText}"/>
       <DataGridTextColumn x:Name="ContextColumn" Header="Context" Binding="{Binding Section}" Width="180" Visibility="Collapsed" ElementStyle="{StaticResource SquadronsCellText}"/>
