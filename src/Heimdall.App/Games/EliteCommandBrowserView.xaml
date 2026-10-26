@@ -4,7 +4,7 @@
        <TextBlock Style="{StaticResource AppLabel}" Text="Category" Margin="0,8,0,3"/>
        <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandCategoryPicker" AutomationProperties.Name="Elite command category"/>
        <WrapPanel Margin="0,6,0,0"><TextBlock Style="{StaticResource AppLabel}" Text="Input type" VerticalAlignment="Center" Margin="0,0,8,0"/>
-        <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandTypePicker" Width="150" AutomationProperties.Name="Elite command input type">
+        <ComboBox Style="{StaticResource ToolbarComboBox}" x:Name="CommandTypePicker" Width="150" AutomationProperties.Name="Elite command input type">
          <ComboBoxItem Content="All types"/><ComboBoxItem Content="Buttons"/><ComboBoxItem Content="Axes"/>
         </ComboBox>
         <Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearCommandFiltersButton" Content="Clear filters"/>
