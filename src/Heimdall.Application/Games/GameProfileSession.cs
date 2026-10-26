@@ -66,6 +66,28 @@ namespace Heimdall.Application.Games
             ValidateProfile(profile);
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile }); Changed?.Invoke(this, EventArgs.Empty);
         }
+        /// <summary>Stages a new captured Squadrons record only after the same physical
+        /// device and verified key checks used for edits to existing records.</summary>
+        public void AddSquadronsNativeBinding(string concept, string logicalDeviceId,
+            string key, CommandType type, int direction)
+        {
+            RequireAccess();
+            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend backend)
+                throw new InvalidOperationException("This operation requires a Squadrons profile.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(backend.PhysicalInputKey(key), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Choose an input verified on this linked controller before creating the record.");
+            var profile = backend.AddJoystickBinding(Snapshot.Profile, concept, logicalDeviceId,
+                new Heimdall.Squadrons.SquadronsInput(key, type, direction));
+            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId ||
+                profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException("Native creation changed game or profile identity.");
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Stages a configuration display name independently of immutable native source metadata.</summary>
         public void Rename(string name)
         {
