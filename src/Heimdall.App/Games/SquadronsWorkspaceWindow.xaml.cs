@@ -389,12 +389,21 @@ namespace Heimdall.App.Games
                 throw new InvalidOperationException("This drawing control has no unique verified native Squadrons input.");
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
-            if (plan.EditableRecords != 1)
-                throw new InvalidOperationException("This command needs native binding creation or record selection. " +
-                    "The record-allocation and identifier rules must be verified before applying the drop.");
-            _session.RebindNative(plan.EditableRecordIds[0], slot, match[0].Key, match[0].Type, match[0].Direction);
-            Refresh(false);
-            StatusText.Text = "Existing Squadrons binding updated in draft. Save before exporting.";
+            if (plan.EditableRecords == 1)
+            {
+                _session.RebindNative(plan.EditableRecordIds[0], slot, match[0].Key, match[0].Type, match[0].Direction);
+                Refresh(false);
+                StatusText.Text = "Existing Squadrons binding updated in draft. Save before exporting.";
+            }
+            else
+            {
+                // No unique replacement target: append only if the backend can
+                // verify a native template for the exact command concept.
+                _session.AddSquadronsNativeBinding(command.Metadata["squadrons.concept"],
+                    slot, match[0].Key, match[0].Type, match[0].Direction);
+                Refresh(false);
+                StatusText.Text = "New Squadrons binding created in draft. Save before exporting.";
+            }
         });
         private void DragCapturedCommand(object sender, MouseEventArgs e)
         {
