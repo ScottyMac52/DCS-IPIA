@@ -321,14 +321,45 @@ namespace Heimdall.App.Games
             StatusText.Text = "Drawing hidden. Save profile to retain this choice.";
         });
         private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
+        // The Expander may be larger than the pane's arranged row. Clamp the scroll
+        // host to the actual resizable row so WPF registers clipped drawing content
+        // as scrollable extent instead of simply hiding it behind the window edge.
+        private bool _drawingBoundsQueued;
+        private void DrawingPanelSizeChanged(object sender, SizeChangedEventArgs e) => QueueDrawingBounds();
+
+        private void QueueDrawingBounds()
+        {
+            if (_drawingBoundsQueued || DrawingPanel is null || DrawingScroll is null) return;
+            _drawingBoundsQueued = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+            {
+                _drawingBoundsQueued = false;
+                if (!DrawingPanel.IsExpanded || DrawingRow.ActualHeight <= 0) return;
+                var top = DrawingScroll.TranslatePoint(new Point(0, 0), DrawingPanel).Y;
+                var maximum = Math.Max(24, DrawingRow.ActualHeight - DrawingPanel.Margin.Top - top - 4);
+                if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
+                    DrawingScroll.MaxHeight = maximum;
+                UpdateDrawingScrollMetrics();
+            }));
+        }
+
+        private void DrawingScrollChanged(object sender, ScrollChangedEventArgs e) => UpdateDrawingScrollMetrics();
+
+        private void UpdateDrawingScrollMetrics()
+        {
+            if (DrawingScrollMetrics is null || DrawingScroll is null) return;
+            DrawingScrollMetrics.Text = $"Viewport {DrawingScroll.ViewportHeight:0} / Content {DrawingScroll.ExtentHeight:0} / Scroll {DrawingScroll.ScrollableHeight:0} / Position {DrawingScroll.VerticalOffset:0}";
+        }
+
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
             if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
             // A GridSplitter cannot resize an Auto row; give the open drawing
             // a share of the available height rather than relying on its content size.
-            DrawingRow.MinHeight = 100;
+            DrawingRow.MinHeight = 150;
             DrawingRow.Height = new GridLength(1, GridUnitType.Star);
             DrawingSplitter.Visibility = Visibility.Visible;
+            QueueDrawingBounds();
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
         }
         private void DrawingCollapsed(object sender, RoutedEventArgs e)
@@ -338,6 +369,8 @@ namespace Heimdall.App.Games
             DrawingSplitter.Visibility = Visibility.Collapsed;
             DrawingRow.MinHeight = 0;
             DrawingRow.Height = GridLength.Auto;
+            DrawingScroll.MaxHeight = double.PositiveInfinity;
+            DrawingScrollMetrics.Text = "";
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
