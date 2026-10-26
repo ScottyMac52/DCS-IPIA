@@ -131,11 +131,15 @@ advanced review disabled. These entries cannot be linked, dragged to reorder nat
 joystick slots, or edited/cleared as joystick bindings. They are kept in original
 native evidence and round-trip without mutation.
 
-Where a system input's actual key/button mapping has not been verified, the table
-shows the original numeric native `button` and `axis` codes instead of the
-misleading generic “Preserved native input” label or an invented Windows key name.
-This is a read-only diagnostic representation, not a decoded human-readable key
-map. The Squadrons toolbar now uses a single 8-pixel gap between its shared
+The table now decodes supported native read-only input codes to friendly
+labels: DirectInput keyboard scan codes (for example, Space and W), mouse X/Y
+movement and wheel directions, and mapped gamepad face buttons, D-pad, triggers,
+shoulders and stick axes. It retains numeric values for unrecognized inputs;
+mouse button codes without a verified button-name correspondence use numbered
+Button labels rather than guessing left/right/middle. Display labels do not
+grant edit rights or imply a particular device layout. The mapping is informed by
+the community squadrons_config parser (moff-wildfire/squadrons_config) and needs
+acceptance testing against actual in-game captures. The Squadrons toolbar now uses a single 8-pixel gap between its shared
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
