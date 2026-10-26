@@ -72,11 +72,29 @@
       <TextBox x:Name="Search" Style="{StaticResource AppTextBox}" Width="200" Margin="8,0,0,0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons commands"/>
      </WrapPanel>
      <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False" Checked="CaptureReviewChanged" Unchecked="CaptureReviewChanged" Margin="0,8,0,0" AutomationProperties.Name="Review all Squadrons captured records"/>
-     <WrapPanel Margin="0,8,0,0">
+     <Expander Header="Command filters" IsExpanded="True" Margin="0,8,0,4">
+      <StackPanel Margin="0,6,0,4">
+       <WrapPanel>
+        <TextBlock Style="{StaticResource AppLabel}" Text="Context" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="CommandContextFilter" Style="{StaticResource ToolbarComboBox}" Width="160" SelectionChanged="CommandFiltersChanged"/>
+        <TextBlock Style="{StaticResource AppLabel}" Text="Input type" VerticalAlignment="Center" Margin="4,0,6,0"/>
+        <ComboBox x:Name="CommandInputFilter" Style="{StaticResource ToolbarComboBox}" Width="170" SelectionChanged="CommandFiltersChanged"/>
+        <TextBlock Style="{StaticResource AppLabel}" Text="Assignment" VerticalAlignment="Center" Margin="4,0,6,0"/>
+        <ComboBox x:Name="CommandStatusFilter" Style="{StaticResource ToolbarComboBox}" Width="230" SelectionChanged="CommandFiltersChanged"/>
+       </WrapPanel>
+       <WrapPanel Margin="0,6,0,0">
+        <TextBlock Style="{StaticResource AppLabel}" Text="Search" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="CommandSearch" Style="{StaticResource AppTextBox}" Width="300" VerticalAlignment="Center" TextChanged="CommandSearchChanged" AutomationProperties.Name="Search Squadrons command catalog"/>
+        <Button x:Name="ResetCommandFiltersButton" Style="{StaticResource SquadronsActionButton}" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
+       </WrapPanel>
+      </StackPanel>
+     </Expander>
+     <WrapPanel Margin="0,4,0,0">
       <TextBlock Style="{StaticResource AppLabel}" Text="Command" VerticalAlignment="Center" Margin="0,0,8,0"/>
-      <ComboBox x:Name="CommandPicker" Style="{StaticResource ToolbarComboBox}" Width="320" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="Browse captured commands, including commands without a current joystick binding."/>
+      <ComboBox x:Name="CommandPicker" Style="{StaticResource ToolbarComboBox}" Width="320" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
       <Button x:Name="ShowCommandButton" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
      </WrapPanel>
+     <TextBlock x:Name="CommandFilterCount" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,3" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap"/>
     </StackPanel>
