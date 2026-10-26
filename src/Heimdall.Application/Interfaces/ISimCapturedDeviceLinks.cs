@@ -8,6 +8,8 @@ namespace Heimdall.Application.Interfaces
         #region BEGIN Public
         /// <summary>Rejects foreign, missing or unsupported captured references before a workspace-only link is reviewed.</summary>
         void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId);
+        /// <summary>Remove only unreferenced captured slots.</summary>
+        ProfileDocument RemoveUnusedCapturedDevice(ProfileDocument profile, string logicalDeviceId);
         #endregion END Public
     }
 }
