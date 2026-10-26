@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
@@ -20,6 +21,8 @@ namespace Heimdall.App.Games
         private readonly Func<GameControllerChange, bool>? _reviewChange;
         private readonly GameControllerIdentification _identification;
         private readonly GameControllerReordering _reordering;
+        private readonly EliteDiagramPresenter _drawingPresenter;
+        private IReadOnlyList<WorkspaceHardware> _drawings = [];
         private GameProfileSession? _session;
         private string? _revision;
         private string? _sourceDirectory;
@@ -38,6 +41,7 @@ namespace Heimdall.App.Games
             EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
             _services = services; _pendingChoice = pendingChoice; _reviewChange = reviewChange;
             InitializeComponent(); AppearanceManager.Attach(this);
+            _drawingPresenter = new(DrawingCanvas);
             _reordering = new(DevicePicker, (source, target, after) =>
             {
                 if (source == "all" || target == "all") return;
@@ -51,7 +55,16 @@ namespace Heimdall.App.Games
             CommandInputFilter.ItemsSource = new[] { "All types", "Axes", "Buttons and hats", "Unknown / unbound" };
             CommandStatusFilter.ItemsSource = new[] { "All", "Assigned to selected controller", "Not assigned to selected controller", "Assigned anywhere", "Unassigned everywhere" };
             CommandContextFilter.SelectedIndex = CommandInputFilter.SelectedIndex = CommandStatusFilter.SelectedIndex = 0;
-            Loaded += async (_, _) => await RefreshControllerInputsAsync();
+            Loaded += async (_, _) =>
+            {
+                await RefreshControllerInputsAsync();
+                try
+                {
+                    _drawings = await GameWorkspaceServices.HardwareAsync();
+                    if (!_disposed) Run(RenderDrawing);
+                }
+                catch (Exception error) { if (!_disposed) DrawingHint.Text = "Shared drawing catalog unavailable: " + error.Message; }
+            };
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
             _refreshing = false;
@@ -177,7 +190,7 @@ namespace Heimdall.App.Games
                 foreach (var (id, pin) in snapshot.Hardware)
                     if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs) is { } keys) verified[id] = keys;
             _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
-            _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability();
+            _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability(); RenderDrawing();
         }
         /// <summary>Refreshes the command catalog independently of the captured-binding table.</summary>
         private void RefreshCommandCatalog(GameWorkspace? snapshot)
@@ -222,6 +235,75 @@ namespace Heimdall.App.Games
             }
             finally { _refreshing = false; }
             RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private const string SquadronsCommandDragFormat = "heimdall.squadrons.command";
+        /// <summary>Renders only the explicitly pinned shared drawing for a selected joystick slot.</summary>
+        private void RenderDrawing()
+        {
+            DrawingCanvas.Children.Clear();
+            _drawingPresenter.Regions.Clear();
+            DrawingHint.Visibility = Visibility.Visible;
+            if (DrawingPanel.IsExpanded != true || _session is null || SelectedController is not { } slot)
+            {
+                DrawingHint.Text = "Select a linked joystick slot to view its shared drawing.";
+                return;
+            }
+            var snapshot = _session.Snapshot;
+            if (!snapshot.Hardware.TryGetValue(slot, out var pin) || pin.DrawingHidden)
+            {
+                DrawingHint.Text = "Link this controller to verified hardware with a drawing to show control callouts.";
+                return;
+            }
+            var hardware = _drawings.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
+            if (hardware is null || string.IsNullOrWhiteSpace(hardware.Diagram.Svg))
+            {
+                DrawingHint.Text = "No bundled drawing is available for this linked hardware.";
+                return;
+            }
+            var diagram = hardware.Diagram;
+            var emptyLabels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(StringComparer.Ordinal);
+            var page = new KneeboardComposite(snapshot.Name, "Star Wars: Squadrons",
+                emptyLabels, new Dictionary<string, string>(StringComparer.Ordinal), []);
+            _drawingPresenter.Show(diagram, page, SelectDrawingInput, DropDrawingCommand,
+                () => StatusText.Text = "Select an existing assignment in the table to clear it.",
+                AppearanceManager.ArtworkOpacityFor(this),
+                control => control.Label + " · " + control.InputKey,
+                SquadronsCommandDragFormat);
+            DrawingHint.Visibility = Visibility.Collapsed;
+        }
+        private void DrawingExpanded(object sender, RoutedEventArgs e)
+        {
+            if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
+        }
+        private void SelectDrawingInput(HardwareGraphicControl control)
+        {
+            StatusText.Text = control.Label + " · " + control.InputKey +
+                ". Choose a command and its input. Drawing callouts will use the native assignment writer.";
+        }
+        private void DropDrawingCommand(HardwareGraphicControl control, string commandId) => Run(() =>
+        {
+            if (_session is null || SelectedController is not { } slot)
+                throw new InvalidOperationException("Select a linked joystick slot.");
+            var command = _backend.GetCatalog(_session.Snapshot.Profile).Commands.Single(x => x.Id == commandId);
+            var match = SquadronsInputCodec.Choices.Where(x => x.PhysicalKey == control.InputKey
+                || x.Key == control.InputKey).ToArray();
+            if (match.Length != 1)
+                throw new InvalidOperationException("This drawing control has no unique verified native Squadrons input.");
+            var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
+                command.Metadata["squadrons.concept"]);
+            if (plan.EditableRecords != 1)
+                throw new InvalidOperationException("This command needs native binding creation or record selection. " +
+                    "The record-allocation and identifier rules must be verified before applying the drop.");
+            _session.RebindNative(plan.EditableRecordIds[0], slot, match[0].Key, match[0].Type, match[0].Direction);
+            Refresh(false);
+            StatusText.Text = "Existing Squadrons binding updated in draft. Save before exporting.";
+        });
+        private void DragCapturedCommand(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed ||
+                CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
+                _session?.AccessMessage.Length != 0) return;
+            DragDrop.DoDragDrop(CommandPicker, new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
         }
         private void RefreshRows()
         {
@@ -496,6 +578,7 @@ namespace Heimdall.App.Games
                 }
                 Run(UpdateControllerAvailability);
                 RefreshCommandCatalog(_session?.Snapshot);
+                Run(RenderDrawing);
             }
             if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
                 _focusedConcept = null;
