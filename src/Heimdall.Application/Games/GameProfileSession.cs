@@ -10,7 +10,7 @@ namespace Heimdall.Application.Games
         private readonly ISimProfileBackend _backend;
         private readonly EditionPolicy _policy;
         private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
-        private readonly IReadOnlyCollection<string> _catalogIds;
+        private IReadOnlyCollection<string> _catalogIds;
         private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;
         private readonly Func<IReadOnlyList<ControllerObservation>> _controllerInputs;
         private GameWorkspace _current;
@@ -292,6 +292,16 @@ namespace Heimdall.Application.Games
                 throw new InvalidOperationException("The profile changed during validation. Review the change again.");
             _current = candidate;
             Changed?.Invoke(this, EventArgs.Empty);
+        }
+        /// <summary>Registers a verified bundled drawing catalog after asynchronous artwork discovery.
+        /// Updates validation metadata only; it never changes a staged or saved workspace.</summary>
+        public void SetDrawingCatalog(IReadOnlyCollection<string> hardwareIds)
+        {
+            ArgumentNullException.ThrowIfNull(hardwareIds);
+            if (hardwareIds.Any(string.IsNullOrWhiteSpace) ||
+                hardwareIds.Distinct(StringComparer.Ordinal).Count() != hardwareIds.Count)
+                throw new ArgumentException("Drawing catalog must contain unique nonempty hardware IDs.", nameof(hardwareIds));
+            _catalogIds = hardwareIds.ToArray();
         }
         /// <summary>Changes or removes the shared illustration without changing the physical or native target.</summary>
         public void ChangeDrawing(string logicalId, string? hardwareId)
