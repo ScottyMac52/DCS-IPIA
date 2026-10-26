@@ -195,6 +195,34 @@ namespace Heimdall.Tests
             Assert.True(planner.RequiresNewNativeRecord);
             Assert.Equal(source, backend.Export(original).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Catalog filters preserve unbound native commands while distinguishing native ownership and input type.</summary>
+        [Fact]
+        public void Command_filters_intersect_context_type_status_search_and_controller()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var all = backend.GetCatalog(profile).Commands;
+            var records = backend.ReadBindings(profile);
+            var yaw = SquadronsCommandFilter.Apply(all, records, "Flight", "All types",
+                "Unassigned everywhere", "yaw", null);
+            Assert.Contains(yaw, x => x.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptYaw");
+            Assert.DoesNotContain(yaw, x => x.DisplayName == "Throttle");
+            var throttle = SquadronsCommandFilter.Apply(all, records, "Flight", "Axes",
+                "Assigned to selected controller", "throttle", "squadrons.joystick.5");
+            Assert.Single(throttle);
+            Assert.Equal("Throttle", throttle[0].DisplayName);
+            Assert.Empty(SquadronsCommandFilter.Apply(all, records, "Flight", "Axes",
+                "Assigned to selected controller", "throttle", "squadrons.joystick.3"));
+            Assert.Contains(SquadronsCommandFilter.Apply(all, records, "Flight", "All types",
+                "Not assigned to selected controller", "throttle", "squadrons.joystick.3"),
+                x => x.DisplayName == "Throttle");
+            Assert.Contains(SquadronsCommandFilter.Apply(all, records, "All", "Unknown / unbound",
+                "All", "yaw", null), x => x.DisplayName == "Yaw");
+            Assert.Empty(SquadronsCommandFilter.Apply(all, records, "Hangar & Briefing Room",
+                "All types", "All", "throttle", null));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
