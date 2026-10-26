@@ -90,6 +90,22 @@ namespace Heimdall.Squadrons
             if (!profile.Devices.Any(x => x.LogicalId == logicalDeviceId))
                 throw new InvalidOperationException("Choose a named captured Squadrons slot. To add another slot, bind an input on that device in Squadrons and import a fresh capture.");
         }
+        /// <summary>Removes an unreferenced slot without reindexing or deleting any bindings.</summary>
+        public ProfileDocument RemoveUnusedCapturedDevice(ProfileDocument profile, string logicalDeviceId)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.SingleOrDefault(x => x.LogicalId == logicalDeviceId)
+                ?? throw new InvalidOperationException("Choose a named captured Squadrons slot.");
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            if (document.Bindings.Any(row => row.Type == 3 && row.DeviceId == slot - 1))
+                throw new InvalidOperationException("Cannot remove a slot with native joystick bindings. Reassign its bindings first.");
+            var text = document.RemoveSetting("GstInput.JoystickDevice" + slot);
+            var result = Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+            if (new SquadronsNativeDocument(text).Bindings.Count != document.Bindings.Count || result.Devices.Any(x => x.LogicalId == logicalDeviceId))
+                throw new InvalidOperationException("Captured slot removal validation failed.");
+            return result;
+        }
         /// <summary>Resolves explicit physical instance identity only; saved names, duplicates and ordinals never imply a connection.</summary>
         public SimDeviceResolution ResolveDevice(PhysicalDeviceIdentity identity, IReadOnlyList<PhysicalDeviceIdentity> connected)
         {
