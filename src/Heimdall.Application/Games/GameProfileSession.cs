@@ -112,6 +112,50 @@ namespace Heimdall.Application.Games
                 "\nOnly its native joystick declaration will be removed; no binding records or inventory entries change." +
                 "\nSave profile before export.", null);
         }
+        /// <summary>Reviews clearing all native joystick records belonging to one captured slot.</summary>
+        public GameControllerChange PreviewClearCapturedAssignments(string logicalId)
+        {
+            RequireCapturedDevice(logicalId);
+            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend adapter)
+                throw new InvalidOperationException("Native joystick clearing is unavailable for this simulator.");
+            var before = adapter.ReadBindings(_current.Profile).Count(x => x.Type == 3 &&
+                x.DeviceId == int.Parse(logicalId["squadrons.joystick.".Length..], System.Globalization.CultureInfo.InvariantCulture) - 1);
+            if (before == 0) throw new InvalidOperationException("No captured joystick assignments exist on this slot.");
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = adapter.ClearCapturedAssignments(candidate.Profile, logicalId) };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Clear all " + before + " native joystick records on " + logicalId +
+                "\nThis removes button, axis, hat, unsupported and other captured joystick records on the selected slot." +
+                "\nOther controllers and their records are untouched. Save profile before exporting.", logicalId);
+        }
+        /// <summary>Reviews physical native slot renumbering; every binding reference and hardware association follows its unit.</summary>
+        public GameControllerChange PreviewMoveCapturedSlot(string source, string target, bool after = false)
+        {
+            RequireCapturedDevice(source);
+            RequireCapturedDevice(target);
+            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend adapter)
+                throw new InvalidOperationException("Native slot renumbering is unavailable for this simulator.");
+            if (source == target) throw new InvalidOperationException("Choose a different destination slot.");
+            var order = adapter is not null ? _current.Profile.Devices
+                .OrderBy(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture))
+                .Select(x => x.LogicalId).ToList() : [];
+            order.Remove(source);
+            order.Insert(order.IndexOf(target) + (after ? 1 : 0), source);
+            var oldSlots = order.Select((old, index) => (old, next: "squadrons.joystick." + (index + 1)))
+                .ToDictionary(x => x.old, x => x.next, StringComparer.Ordinal);
+            var candidate = Snapshot;
+            var profile = adapter.ReorderCapturedSlots(candidate.Profile, order);
+            var pins = candidate.Hardware.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal);
+            candidate = candidate with { Profile = profile, Hardware = pins,
+                ControllerOrder = order.Select(id => oldSlots[id]).ToList() };
+            ValidateControllerCandidate(candidate);
+            var moves = order.Select((id, index) => id + " → Slot " + (index + 1));
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Renumber Squadrons native joystick slots:\n" + string.Join("\n", moves) +
+                "\nAll joystick binding device IDs and physical links follow the original units." +
+                "\nSave profile and export a review copy; game-side recognition still needs validation.", oldSlots[source]);
+        }
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
         {
