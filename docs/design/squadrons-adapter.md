@@ -143,6 +143,23 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
+## Choosing a shared controller drawing
+
+The drawing panel uses the same bundled shared hardware definitions as DCS and
+Elite, but **linking a physical controller does not automatically choose artwork**.
+After linking a captured joystick slot, expand **Controller drawing and assignment
+drop targets**, choose its exact **Hardware drawing** from the shared catalog,
+then **Save profile**. A saved drawing selection is distinct from the controller's
+physical instance GUID and native Squadrons slot; it remains associated with the
+same logical slot. **Hide drawing** hides artwork without unlinking the hardware.
+If the shared catalog cannot be loaded, the picker remains unavailable and the
+native controller bindings remain intact.
+
+The drawing catalog loads asynchronously. The shared session registers its
+verified catalog IDs once loaded; this does not modify any saved workspace.
+Only an explicitly chosen bundled drawing can be pinned—controller names are
+not used to infer artwork or grip configuration.
+
 ## Physical controller links
 
 1. Select a numbered captured slot under **Captured controllers**. **All devices and
