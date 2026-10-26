@@ -130,6 +130,28 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => backend.ReorderCapturedSlots(profile,
                 ["squadrons.joystick.3", "squadrons.joystick.5"]));
         }
+        /// <summary>Deleting one native record cannot alter sibling records, other inputs or the command catalog.</summary>
+        [Fact]
+        public void Clear_single_record_preserves_other_bindings_and_command_catalog()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var command = backend.GetCatalog(profile).Commands.Single(x =>
+                x.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptThrottle");
+            Assert.Equal("Flight", command.Category);
+            var original = backend.ReadBindings(profile);
+            var cleared = backend.ClearCapturedRecord(profile, "IncomStarshipInputConcepts.ConceptThrottle.4");
+            var remaining = backend.ReadBindings(cleared);
+            Assert.Equal(original.Count - 1, remaining.Count);
+            Assert.DoesNotContain(remaining, x => x.RecordId == "IncomStarshipInputConcepts.ConceptThrottle.4");
+            Assert.Contains(remaining, x => x.RecordId == "IncomStarshipInputConcepts.ConceptThrottle.5");
+            Assert.Contains(remaining, x => x.RecordId == "IncomStarshipInputConcepts.ConceptMenu.0");
+            Assert.Contains("Future.Setting preserved", backend.Export(cleared).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Throws<InvalidOperationException>(() =>
+                backend.ClearCapturedRecord(profile, "IncomStarshipInputConcepts.ConceptMenu.0"));
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
