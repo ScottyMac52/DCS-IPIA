@@ -257,6 +257,34 @@ namespace Heimdall.Tests
                 backend.ClearCapturedRecord(profile, capturedKey.RecordId));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Mouse, gamepad, and keyboard selectors must not be parsed as joystick slot numbers.</summary>
+        [Fact]
+        public void Command_filter_accepts_read_only_system_sources_without_a_joystick_prefix()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var commands = backend.GetCatalog(profile).Commands;
+            var records = backend.ReadBindings(profile);
+            foreach (var system in new[] { "system.0", "system.1", "system.2" })
+            {
+                var selected = SquadronsCommandFilter.Apply(commands, records, "All", "All types",
+                    "Assigned to selected controller", "", system);
+                Assert.Equal(system == "system.2" ? 1 : 0, selected.Count);
+                Assert.All(selected, command => Assert.Equal("Menu", command.DisplayName));
+                var unassigned = SquadronsCommandFilter.Apply(commands, records, "All", "All types",
+                    "Not assigned to selected controller", "yaw", system);
+                Assert.Contains(unassigned, command => command.DisplayName == "Yaw");
+            }
+            Assert.NotEmpty(SquadronsCommandFilter.Apply(commands, records, "All", "All types",
+                "Assigned to selected controller", "", "squadrons.joystick.5"));
+            Assert.NotEmpty(SquadronsCommandFilter.Apply(commands, records, "All", "All types",
+                "Assigned to selected controller", "", "all"));
+            foreach (var invalid in new[] { "system.", "system.3", "squadrons.joystick.", "squadrons.joystick.11", "nonsense" })
+                Assert.Throws<ArgumentException>(() => SquadronsCommandFilter.Apply(commands, records,
+                    "All", "All types", "All", "", invalid));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
