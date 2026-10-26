@@ -240,6 +240,8 @@ namespace Heimdall.App.Games
             LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
+            if (selected is not null && _session is not null)
+                LinkStatus.Text += "\n" + SquadronsWorkspaceProjection.SlotDiagnostic(_session.Snapshot.Profile, _rows, selected);
             ControllerSummary.Text = selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
                 pin.Device.Name + (GameInputReadiness.Ready(pin, _services.Discover()) ? " · Connected" : " · Unavailable");
         }
