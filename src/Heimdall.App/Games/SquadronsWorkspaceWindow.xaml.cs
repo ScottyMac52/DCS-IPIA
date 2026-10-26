@@ -237,6 +237,7 @@ namespace Heimdall.App.Games
             CancelIdentificationButton.IsEnabled = running;
             LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
+            RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
             LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
@@ -275,6 +276,15 @@ namespace Heimdall.App.Games
         private void UnlinkClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (UnlinkControllerButton.IsEnabled && SelectedController is { } id) ReviewLink(_session!.PreviewCapturedDeviceUnlink(id));
+        });
+        private void RemoveUnusedSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!RemoveUnusedSlotButton.IsEnabled || SelectedController is not { } id) return;
+            var change = _session!.PreviewRemoveUnusedCapturedDevice(id);
+            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
+            _session.ApplyControllerChange(change);
+            Refresh(false);
+            StatusText.Text = "Unused slot removed from staged profile. Save before exporting.";
         });
         private void IdentifyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
