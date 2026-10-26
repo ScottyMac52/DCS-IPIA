@@ -355,9 +355,9 @@ namespace Heimdall.App.Games
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return;
-            _focusedConcept = command.Metadata["squadrons.concept"];
             SectionPicker.SelectedItem = command.Category;
             ReviewCaptured.IsChecked = true;
+            _focusedConcept = command.Metadata["squadrons.concept"];
             RefreshRows();
             var match = _rows.FirstOrDefault(row => row.Native.Concept == _focusedConcept
                 && (SelectedController is null || row.DeviceId == SelectedController));
