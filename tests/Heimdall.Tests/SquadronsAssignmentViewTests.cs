@@ -375,6 +375,8 @@ namespace Heimdall.Tests
                 row.Type == 2 && row.Fields["button"] == 57);
             Assert.Contains(menuRows, row => row.Concept == "IncomStarshipInputConcepts.ConceptMenu" &&
                 row.Type == 3 && row.DeviceId == 4 && row.Input == input);
+            Assert.Throws<InvalidOperationException>(() => backend.AddJoystickBinding(menu,
+                "IncomStarshipInputConcepts.ConceptMenu", "squadrons.joystick.5", input));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Throws<InvalidOperationException>(() => backend.AddJoystickBinding(profile,
                 "IncomStarshipInputConcepts.ConceptYaw", "squadrons.joystick.5", input));
