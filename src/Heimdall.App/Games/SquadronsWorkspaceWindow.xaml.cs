@@ -42,7 +42,7 @@ namespace Heimdall.App.Games
             {
                 if (source == "all" || target == "all") return;
                 Run(() => ReviewNativeChange(_session!.PreviewMoveCapturedSlot(source, target, after)));
-            }, id => id != "all");
+            }, id => id.StartsWith("squadrons.joystick.", StringComparison.Ordinal));
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
@@ -160,7 +160,14 @@ namespace Heimdall.App.Games
             var snapshot = _session?.Snapshot;
             if (resetName) ProfileName.Text = snapshot?.Name ?? "";
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
-            DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
+            var systemDevices = new[]
+            {
+                new GameDeviceChoice("system.0", "Mouse · read-only"),
+                new GameDeviceChoice("system.2", "Keyboard · read-only"),
+                new GameDeviceChoice("system.1", "Gamepad · read-only")
+            };
+            DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }
+                .Concat(devices).Concat(snapshot is null ? [] : systemDevices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
             RefreshCommandCatalog(snapshot);
             if (snapshot is null) _focusedConcept = null;
@@ -228,7 +235,8 @@ namespace Heimdall.App.Games
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
             ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
-            ControllerColumn.Visibility = review || SelectedController is null ? Visibility.Visible : Visibility.Collapsed;
+            ControllerColumn.Visibility = review || (DevicePicker.SelectedItem is GameDeviceChoice { Id: "all" })
+                ? Visibility.Visible : Visibility.Collapsed;
             HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
             CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs absent on linked hardware" :
                 rows.Count + " captured joystick assignments · " + section + ". Check hardware status in advanced review; saved slot ownership is not physical identity.";
@@ -307,7 +315,10 @@ namespace Heimdall.App.Games
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
             if (selected is not null && _session is not null)
                 LinkStatus.Text += "\n" + SquadronsWorkspaceProjection.SlotDiagnostic(_session.Snapshot.Profile, _rows, selected);
-            ControllerSummary.Text = selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
+            var systemSelection = DevicePicker.SelectedItem is GameDeviceChoice { Id: var systemId }
+                && systemId.StartsWith("system.", StringComparison.Ordinal);
+            ControllerSummary.Text = systemSelection ? "Native system assignments · read-only. Codes are shown exactly as captured." :
+                selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
                 pin.Device.Name + (GameInputReadiness.Ready(pin, _services.Discover()) ? " · Connected" : " · Unavailable");
         }
         private void CaptureReviewChanged(object sender, RoutedEventArgs e) { if (!_refreshing) RefreshRows(); }
@@ -469,7 +480,19 @@ namespace Heimdall.App.Games
         private void FilterChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
-            if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); RefreshCommandCatalog(_session?.Snapshot); }
+            if (ReferenceEquals(sender, DevicePicker))
+            {
+                _identification.Stop();
+                if (DevicePicker.SelectedItem is GameDeviceChoice { Id: var id } &&
+                    id.StartsWith("system.", StringComparison.Ordinal))
+                {
+                    SectionPicker.SelectedItem = "All";
+                    TypePicker.SelectedItem = "All inputs";
+                    ControllerSetup.IsExpanded = false;
+                }
+                Run(UpdateControllerAvailability);
+                RefreshCommandCatalog(_session?.Snapshot);
+            }
             if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
                 _focusedConcept = null;
             RefreshRows();
