@@ -10,7 +10,7 @@ namespace Heimdall.App.Games
         private readonly ListBox _list;
         private readonly Action<string, string, bool> _move;
         private readonly Func<string, bool> _canMove;
-        private readonly string _format = "heimdall.elite.controller." + Guid.NewGuid().ToString("N");
+        private readonly string _format = "heimdall.game.controller." + Guid.NewGuid().ToString("N");
         private Point _origin;
         private string? _source;
         internal GameControllerReordering(ListBox list, Action<string, string, bool> move, Func<string, bool>? canMove = null)
