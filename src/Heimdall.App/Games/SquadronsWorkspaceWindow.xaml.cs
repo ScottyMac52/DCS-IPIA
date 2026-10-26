@@ -339,16 +339,7 @@ namespace Heimdall.App.Games
                 var maximum = Math.Max(24, DrawingRow.ActualHeight - DrawingPanel.Margin.Top - top - 4);
                 if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
                     DrawingScroll.MaxHeight = maximum;
-                UpdateDrawingScrollMetrics();
             }));
-        }
-
-        private void DrawingScrollChanged(object sender, ScrollChangedEventArgs e) => UpdateDrawingScrollMetrics();
-
-        private void UpdateDrawingScrollMetrics()
-        {
-            if (DrawingScrollMetrics is null || DrawingScroll is null) return;
-            DrawingScrollMetrics.Text = $"Viewport {DrawingScroll.ViewportHeight:0} / Content {DrawingScroll.ExtentHeight:0} / Scroll {DrawingScroll.ScrollableHeight:0} / Position {DrawingScroll.VerticalOffset:0}";
         }
 
         private void DrawingExpanded(object sender, RoutedEventArgs e)
@@ -370,7 +361,6 @@ namespace Heimdall.App.Games
             DrawingRow.MinHeight = 0;
             DrawingRow.Height = GridLength.Auto;
             DrawingScroll.MaxHeight = double.PositiveInfinity;
-            DrawingScrollMetrics.Text = "";
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
