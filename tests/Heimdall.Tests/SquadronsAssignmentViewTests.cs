@@ -345,6 +345,31 @@ namespace Heimdall.Tests
                 "squadrons.joystick.3", "Menus & General"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Adding a second native binding retains all captured values and rejects unknown templates.</summary>
+        [Fact]
+        public void Native_record_creation_appends_a_verified_command_without_changing_existing_evidence()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var original = backend.ReadBindings(profile);
+            var input = SquadronsInputCodec.Decode(26, 24)!;
+            Assert.NotNull(input);
+            var updated = backend.AddJoystickBinding(profile, "IncomStarshipInputConcepts.ConceptThrottle",
+                "squadrons.joystick.5", input);
+            var output = backend.Export(updated).Files[SquadronsProfileBackend.FileName];
+            Assert.StartsWith(source.TrimEnd('\r', '\n'), output, StringComparison.Ordinal);
+            var next = backend.ReadBindings(updated);
+            Assert.Equal(original.Count + 1, next.Count);
+            Assert.All(original, row => Assert.Contains(next, candidate =>
+                candidate.RecordId == row.RecordId && candidate.Fields.Count == row.Fields.Count &&
+                row.Fields.All(pair => candidate.Fields.TryGetValue(pair.Key, out var value) && value == pair.Value)));
+            Assert.Contains(next, row => row.Concept == "IncomStarshipInputConcepts.ConceptThrottle" &&
+                row.Index == 0 && row.DeviceId == 4 && row.Input == input);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Throws<InvalidOperationException>(() => backend.AddJoystickBinding(profile,
+                "IncomStarshipInputConcepts.ConceptYaw", "squadrons.joystick.5", input));
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
