@@ -100,6 +100,9 @@ namespace Heimdall.Squadrons
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"],
                 System.Globalization.CultureInfo.InvariantCulture);
             var original = new SquadronsNativeDocument(evidence.Text);
+            if (original.Bindings.Any(x => x.Concept == concept && x.Type == 3 &&
+                x.DeviceId == slot - 1 && x.Input == input))
+                throw new InvalidOperationException("This input is already assigned to the selected command on this controller.");
             var written = new SquadronsNativeDocument(original.AppendJoystickRecord(concept, slot, input));
             if (written.Bindings.Count != original.Bindings.Count + 1 ||
                 original.Bindings.Any(old => !written.Bindings.Any(next =>
