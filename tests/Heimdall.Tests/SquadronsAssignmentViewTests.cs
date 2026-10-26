@@ -310,6 +310,41 @@ namespace Heimdall.Tests
                     "All", "All types", "All", "", invalid));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Native joystick assignments populate shared hardware callouts without reassigning commands.</summary>
+        [Fact]
+        public void Captured_joystick_assignments_render_on_matching_shared_drawing_controls()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var rows = SquadronsWorkspaceProjection.Rows(profile);
+            var drawing = new Heimdall.Application.UiLayerDiagram("Example joystick", null, "fixture", 640, 360, [],
+                [])
+            {
+                Controls =
+                [
+                    new Heimdall.Application.HardwareGraphicControl("throttle", "Throttle lever", "JOY_Z", 0, 0, 100, 50, true),
+                    new Heimdall.Application.HardwareGraphicControl("trigger", "Trigger", "JOY_BTN1", 110, 0, 100, 50),
+                    new Heimdall.Application.HardwareGraphicControl("empty", "Unassigned", "JOY_X", 220, 0, 100, 50)
+                ]
+            };
+            var throttle = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.5", "Flight");
+            Assert.Equal(2, throttle.Labels["throttle"].Count);
+            Assert.All(throttle.Labels["throttle"], label => Assert.Contains("Throttle", label.Text));
+            Assert.Empty(throttle.Labels["trigger"]);
+            Assert.Empty(throttle.Labels["empty"]);
+            var trigger = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.3", "Flight");
+            Assert.Single(trigger.Labels["trigger"]);
+            Assert.Contains("Fire", trigger.Labels["trigger"][0].Text);
+            Assert.Empty(trigger.Labels["throttle"]);
+            Assert.Equal(2, SquadronsDrawingProjection.ForControl(drawing.Controls[0], rows,
+                "squadrons.joystick.5", "Flight").Count);
+            Assert.Empty(SquadronsDrawingProjection.ForControl(drawing.Controls[0], rows,
+                "squadrons.joystick.3", "Flight"));
+            Assert.Empty(SquadronsDrawingProjection.ForControl(drawing.Controls[1], rows,
+                "squadrons.joystick.3", "Menus & General"));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
