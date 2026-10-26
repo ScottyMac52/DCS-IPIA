@@ -143,19 +143,22 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
-## Diagnosing clipped drawing navigation
+## Native joystick record creation (template-backed)
 
-The expanded drawing panel constrains its scroll host to the **arranged**
-height of the surrounding resizable pane. This prevents a WPF Expander from
-reporting an unconstrained scroll viewport while its artwork is visibly
-clipped by the window. The temporary compact diagnostic in the drawing toolbar
-reports the viewport height, content extent, vertical scroll range, and current
-vertical offset. The vertical scrollbar is intentionally always displayed
-while investigating this issue. If **Scroll** stays at 0 despite visible
-clipping, the problem is still layout measurement, not wheel routing; if
-**Scroll** is positive but **Position** does not move when the wheel is used,
-the problem is input routing. Scroll shortcuts remain independent:
-plain wheel vertical, Shift+wheel horizontal, Ctrl+wheel zoom.
+Squadrons drag-and-drop now has two staged paths: when a command has one
+editable captured record it rebinds that record; otherwise the backend
+attempts to append a new native joystick record for the selected control.
+New records are permitted only when existing records for **that exact
+command concept** establish one unambiguous native `identifier`, the
+captured joystick slot exists, and the selected input is verified on the
+linked physical device. The writer allocates an unused numeric index,
+encodes the input using the shared Squadrons codec, and verifies all
+existing native records retain their original fields after round-trip
+import. This is an initial safe creation path, not yet full from-scratch
+authoring: commands with **no captured template at all** are deliberately
+blocked pending verified identifier discovery; unsupported/ambiguous
+directional drawing controls also remain blocked. Review copies are
+exported separately; active game settings are never overwritten.
 
 ## Smart navigation for controller drawings
 
