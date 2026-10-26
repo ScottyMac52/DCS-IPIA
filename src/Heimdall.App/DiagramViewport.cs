@@ -88,10 +88,28 @@ namespace Heimdall.App
             }
             else if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
             {
-                _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - e.Delta);
+                // Explicitly handle the preview event; relying on ScrollViewer's default
+                // bubbling behavior does not consistently scroll nested hardware drawings.
+                ScrollWheel(false, e.Delta);
                 e.Handled = true;
             }
-            // Plain wheel retains native WPF vertical scrolling.
+            else
+            {
+                ScrollWheel(true, e.Delta);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>Scrolls drawing extents in device-independent pixels; callers own the wheel routing.</summary>
+        private void ScrollWheel(bool vertical, int delta)
+        {
+            // WPF commonly uses 48 DIPs per wheel notch (three 16-DIP lines).
+            // Use a fractional distance for high-resolution wheels or trackpads.
+            var amount = delta / 120.0 * 48;
+            if (vertical)
+                _viewport.ScrollToVerticalOffset(_viewport.VerticalOffset - amount);
+            else
+                _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - amount);
         }
 
         private void BeginPan(object sender, MouseButtonEventArgs e)
