@@ -81,7 +81,7 @@ namespace Heimdall.Tests
             var removed = backend.RemoveUnusedCapturedDevice(profile, "squadrons.joystick.10");
             var output = backend.Export(removed).Files[SquadronsProfileBackend.FileName];
             Assert.DoesNotContain("GstInput.JoystickDevice10 ", output);
-            Assert.Equal(source.Replace("GstInput.JoystickDevice10 Smoke Throttle 1\n", "", StringComparison.Ordinal), output);
+            Assert.Equal(source.Replace("GstInput.JoystickDevice10 Smoke Throttle 1" + (source.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n"), "", StringComparison.Ordinal), output);
             Assert.Equal(backend.ReadBindings(profile).Count, backend.ReadBindings(removed).Count);
             Assert.Throws<InvalidOperationException>(() => backend.RemoveUnusedCapturedDevice(profile, "squadrons.joystick.5"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
