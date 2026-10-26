@@ -236,7 +236,7 @@ namespace Heimdall.Tests
                 "system.2", includeUnverified: false);
             var capturedKey = Assert.Single(keyboard);
             Assert.False(capturedKey.Editable);
-            Assert.StartsWith("Keyboard · button code 57 · axis code 26", capturedKey.InputLabel);
+            Assert.Equal("Keyboard · Space", capturedKey.InputLabel);
             Assert.Equal("Preserved system input", capturedKey.HardwareStatus);
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "system.0",
                 includeUnverified: false));
@@ -249,13 +249,38 @@ namespace Heimdall.Tests
                     new Dictionary<string, IReadOnlyCollection<string>>());
                 var systemRow = Assert.Single(SquadronsWorkspaceProjection.Filter(testRows, "All", "All inputs", "",
                     "system." + type, includeUnverified: false));
-                Assert.StartsWith(label + " · button code 57", systemRow.InputLabel);
+                Assert.Equal(type == 0 ? "Mouse · axis code 26" : "Gamepad · button code 57", systemRow.InputLabel);
                 Assert.False(systemRow.Editable);
                 Assert.Equal(variant, backend.Export(testProfile).Files[SquadronsProfileBackend.FileName]);
             }
             Assert.Throws<InvalidOperationException>(() =>
                 backend.ClearCapturedRecord(profile, capturedKey.RecordId));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Known native scan codes, mouse movements and gamepad controls have readable, noneditable labels.</summary>
+        [Fact]
+        public void System_input_decoder_labels_known_controls_and_preserves_unknown_codes()
+        {
+            static SquadronsBindingRow Row(int type, int axis, int button) =>
+                new("IncomDefaultInputConcepts.ConceptMenu", 0, new Dictionary<string, int>
+                {
+                    ["type"] = type, ["axis"] = axis, ["button"] = button,
+                    ["deviceid"] = -1, ["identifier"] = 123, ["modifier"] = 0,
+                    ["altbutton"] = 0, ["negate"] = 0
+                });
+            Assert.Equal("Keyboard · Space", SquadronsSystemInputDisplay.Describe(Row(2, 26, 57)));
+            Assert.Equal("Keyboard · W", SquadronsSystemInputDisplay.Describe(Row(2, 26, 17)));
+            Assert.Equal("Keyboard · scan code 250", SquadronsSystemInputDisplay.Describe(Row(2, 26, 250)));
+            Assert.Equal("Mouse · Wheel up", SquadronsSystemInputDisplay.Describe(Row(0, 14, 8)));
+            Assert.Equal("Mouse · Wheel down", SquadronsSystemInputDisplay.Describe(Row(0, 15, 8)));
+            Assert.Equal("Mouse · X axis (+)", SquadronsSystemInputDisplay.Describe(Row(0, 2, 8)));
+            Assert.Equal("Mouse · Button 0", SquadronsSystemInputDisplay.Describe(Row(0, 26, 0)));
+            Assert.Equal("Gamepad · A", SquadronsSystemInputDisplay.Describe(Row(1, 26, 5)));
+            Assert.Equal("Gamepad · D-pad Up", SquadronsSystemInputDisplay.Describe(Row(1, 26, 0)));
+            Assert.Equal("Gamepad · Left trigger", SquadronsSystemInputDisplay.Describe(Row(1, 26, 14)));
+            Assert.Equal("Gamepad · Right stick X (-)", SquadronsSystemInputDisplay.Describe(Row(1, 10, 174)));
+            Assert.Equal("Gamepad · button code 99", SquadronsSystemInputDisplay.Describe(Row(1, 26, 99)));
+            Assert.False(new SquadronsWorkspaceRow(Row(2, 26, 57), "Menu", "Menus & General", "system.2", "Keyboard").Editable);
         }
         /// <summary>Mouse, gamepad, and keyboard selectors must not be parsed as joystick slot numbers.</summary>
         [Fact]
