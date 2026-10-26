@@ -114,6 +114,23 @@ namespace Heimdall.Squadrons
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
             return new SquadronsNativeDocument(evidence.Text).Bindings.Count(x => x.Type == 3 && x.DeviceId == slot - 1);
         }
+        /// <summary>Clears one selected joystick binding while keeping all other native records unchanged.</summary>
+        public ProfileDocument ClearCapturedRecord(ProfileDocument profile, string recordId)
+        {
+            var evidence = Evidence(profile);
+            var source = new SquadronsNativeDocument(evidence.Text);
+            var target = source.Bindings.SingleOrDefault(x => x.RecordId == recordId);
+            if (target is null || target.Type != 3)
+                throw new InvalidOperationException("Choose an existing joystick assignment.");
+            var updated = new SquadronsNativeDocument(source.RemoveJoystickRecord(recordId));
+            if (updated.Bindings.Count != source.Bindings.Count - 1 ||
+                source.Bindings.Where(x => x.RecordId != recordId).Any(row =>
+                    !updated.Bindings.Any(other => other.RecordId == row.RecordId
+                    && other.Fields.Count == row.Fields.Count
+                    && row.Fields.All(f => other.Fields.TryGetValue(f.Key, out var v) && v == f.Value))))
+                throw new InvalidOperationException("Single native assignment clear failed validation.");
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+        }
         /// <summary>Clears every native joystick binding owned by the captured slot, preserving all other settings.</summary>
         public ProfileDocument ClearCapturedAssignments(ProfileDocument profile, string logicalDeviceId)
         {
