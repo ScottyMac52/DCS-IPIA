@@ -50,6 +50,33 @@ namespace Heimdall.Tests
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
+        /// <summary>A captured physical link can receive and retain its independent, late-loaded shared drawing identity.</summary>
+        [Fact]
+        public void Captured_slot_drawing_can_be_selected_after_async_catalog_and_saved()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var backend = new SquadronsProfileBackend();
+            var workspace = Workspace(backend);
+            var physical = Device("Viper TQS");
+            var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => [physical]);
+            const string drawingId = "shared-tqs-drawing";
+            session.ApplyControllerChange(session.PreviewCapturedDeviceLink("squadrons.joystick.5", physical.PhysicalGuid));
+            Assert.Null(session.Snapshot.Hardware["squadrons.joystick.5"].HardwareId);
+            Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing("squadrons.joystick.5", drawingId));
+            session.SetDrawingCatalog([drawingId]);
+            session.AcceptSaved();
+            session.ChangeDrawing("squadrons.joystick.5", drawingId);
+            Assert.Equal(drawingId, session.Snapshot.Hardware["squadrons.joystick.5"].HardwareId);
+            Assert.True(session.HasChanges);
+            Assert.False(session.Snapshot.Hardware["squadrons.joystick.5"].DrawingHidden);
+            session.AcceptSaved();
+            var restored = new GameProfileSession(backend, session.Snapshot, issuer.Policy, [drawingId], () => [physical]);
+            Assert.Equal(drawingId, restored.Snapshot.Hardware["squadrons.joystick.5"].HardwareId);
+            restored.ChangeDrawing("squadrons.joystick.5", null);
+            Assert.True(restored.Snapshot.Hardware["squadrons.joystick.5"].DrawingHidden);
+            restored.Discard();
+            Assert.False(restored.Snapshot.Hardware["squadrons.joystick.5"].DrawingHidden);
+        }
         /// <summary>Moving native slots carries exact physical links; clearing is staged and stale changes cannot apply.</summary>
         [Fact]
         public void Reviewed_native_reorder_preserves_links_and_clear_can_be_discarded()
