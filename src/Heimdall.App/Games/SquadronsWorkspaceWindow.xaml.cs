@@ -61,7 +61,11 @@ namespace Heimdall.App.Games
                 try
                 {
                     _drawings = await GameWorkspaceServices.HardwareAsync();
-                    if (!_disposed) Run(RenderDrawing);
+                    if (!_disposed)
+                    {
+                        _session?.SetDrawingCatalog(_drawings.Select(x => x.DeviceId).ToArray());
+                        Run(RenderDrawing);
+                    }
                 }
                 catch (Exception error) { if (!_disposed) DrawingHint.Text = "Shared drawing catalog unavailable: " + error.Message; }
             };
@@ -143,7 +147,7 @@ namespace Heimdall.App.Games
         private GameProfileSession CreateSession(GameWorkspace workspace)
         {
             if (workspace.Profile.BackendId != _backend.SimId) throw new InvalidDataException("This is not a Squadrons profile.");
-            return new(_backend, workspace, EditionAccess.Policy, [], _services.Discover, controllerInputs: () => _controllerInputs);
+            return new(_backend, workspace, EditionAccess.Policy, _drawings.Select(x => x.DeviceId).ToArray(), _services.Discover, controllerInputs: () => _controllerInputs);
         }
         private void LoadProfile(Guid id)
         {
@@ -243,27 +247,46 @@ namespace Heimdall.App.Games
             DrawingCanvas.Children.Clear();
             _drawingPresenter.Regions.Clear();
             DrawingHint.Visibility = Visibility.Visible;
-            if (DrawingPanel.IsExpanded != true || _session is null || SelectedController is not { } slot)
+            var snapshot = _session?.Snapshot;
+            var slot = SelectedController;
+            var pin = slot is null ? null : snapshot?.Hardware.GetValueOrDefault(slot);
+            // A native physical link does not imply an artwork catalog identity.
+            var oldRefreshing = _refreshing;
+            _refreshing = true;
+            try
             {
-                DrawingHint.Text = "Select a linked joystick slot to view its shared drawing.";
+                DrawingPicker.ItemsSource = _drawings.Where(x => !string.IsNullOrWhiteSpace(x.Diagram.Svg))
+                    .OrderBy(x => x.Title, StringComparer.OrdinalIgnoreCase).ToArray();
+                DrawingPicker.SelectedItem = _drawings.FirstOrDefault(x => x.DeviceId == pin?.HardwareId);
+            }
+            finally { _refreshing = oldRefreshing; }
+            DrawingPicker.IsEnabled = ClearDrawingButton.IsEnabled = pin is not null && _drawings.Count > 0;
+            if (DrawingPanel.IsExpanded != true) return;
+            if (slot is null || pin is null)
+            {
+                DrawingHint.Text = "Select a linked joystick controller before choosing its hardware drawing.";
                 return;
             }
-            var snapshot = _session.Snapshot;
-            if (!snapshot.Hardware.TryGetValue(slot, out var pin) || pin.DrawingHidden)
+            if (pin.DrawingHidden)
             {
-                DrawingHint.Text = "Link this controller to verified hardware with a drawing to show control callouts.";
+                DrawingHint.Text = "Drawing hidden. Select a hardware drawing to show it again.";
+                return;
+            }
+            if (string.IsNullOrEmpty(pin.HardwareId))
+            {
+                DrawingHint.Text = "This controller is linked, but no hardware drawing is selected. Choose a matching shared drawing above.";
                 return;
             }
             var hardware = _drawings.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
             if (hardware is null || string.IsNullOrWhiteSpace(hardware.Diagram.Svg))
             {
-                DrawingHint.Text = "No bundled drawing is available for this linked hardware.";
+                DrawingHint.Text = "The selected hardware drawing is not available in the current shared catalog.";
                 return;
             }
             var diagram = hardware.Diagram;
-            var emptyLabels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(StringComparer.Ordinal);
-            var page = new KneeboardComposite(snapshot.Name, "Star Wars: Squadrons",
-                emptyLabels, new Dictionary<string, string>(StringComparer.Ordinal), []);
+            var labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(StringComparer.Ordinal);
+            var page = new KneeboardComposite(snapshot!.Name, "Star Wars: Squadrons",
+                labels, new Dictionary<string, string>(StringComparer.Ordinal), []);
             _drawingPresenter.Show(diagram, page, SelectDrawingInput, DropDrawingCommand,
                 () => StatusText.Text = "Select an existing assignment in the table to clear it.",
                 AppearanceManager.ArtworkOpacityFor(this),
@@ -271,6 +294,24 @@ namespace Heimdall.App.Games
                 SquadronsCommandDragFormat);
             DrawingHint.Visibility = Visibility.Collapsed;
         }
+        private void DrawingChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing || _session is null || SelectedController is not { } slot ||
+                DrawingPicker.SelectedItem is not WorkspaceHardware drawing) return;
+            Run(() =>
+            {
+                _session.ChangeDrawing(slot, drawing.DeviceId);
+                Refresh(false);
+                StatusText.Text = "Shared drawing selected. Save profile to retain this choice.";
+            });
+        }
+        private void ClearDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (_session is null || SelectedController is not { } slot) return;
+            _session.ChangeDrawing(slot, null);
+            Refresh(false);
+            StatusText.Text = "Drawing hidden. Save profile to retain this choice.";
+        });
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
