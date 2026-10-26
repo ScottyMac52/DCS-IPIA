@@ -96,6 +96,22 @@ namespace Heimdall.Application.Games
             if (!candidate.Hardware.Remove(logicalId)) throw new InvalidOperationException("This captured slot has no physical link to remove.");
             return CapturedDeviceChange(logicalId, candidate, null);
         }
+        /// <summary>Reviews removal of an unused and unlinked captured slot.</summary>
+        public GameControllerChange PreviewRemoveUnusedCapturedDevice(string logicalId)
+        {
+            RequireCapturedDevice(logicalId);
+            if (_current.Hardware.ContainsKey(logicalId))
+                throw new InvalidOperationException("Unlink this physical controller before removing its captured slot.");
+            var editor = (ISimCapturedDeviceLinks)_backend;
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
+                ControllerOrder = candidate.ControllerOrder.Where(x => x != logicalId).ToList() };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Remove unused captured slot " + logicalId +
+                "\nOnly its native joystick declaration will be removed; no binding records or inventory entries change." +
+                "\nSave profile before export.", null);
+        }
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
         {
