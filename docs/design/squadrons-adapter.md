@@ -149,8 +149,8 @@ Squadrons uses the existing shared `DiagramViewport` with opt-in smart
 navigation. **Fit** automatically scales artwork to the resized drawing pane;
 the **Zoom** slider supports 10–300% manual scale and retains the existing
 workspace layout persistence rules. **Ctrl+mouse wheel** zooms around the
-pointer, ordinary wheel scrolls vertically, **Shift+wheel** scrolls horizontally,
-and **middle-button drag** pans the enlarged artwork. Mouse-based navigation
+pointer, ordinary wheel explicitly scrolls vertically, **Shift+wheel** scrolls horizontally,
+and **middle-button drag** pans the enlarged artwork. Scrolling requires the scaled\nartwork to extend beyond the viewport (Fit mode may have no scrollable extent). Mouse-based navigation
 is scoped to the drawing viewport, not the command filters or assignment grid.
 Existing click-to-select and drag-to-assign drawing controls remain intact.
 This does not modify native Squadrons records.
