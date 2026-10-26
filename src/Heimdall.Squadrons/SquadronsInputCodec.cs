@@ -11,6 +11,26 @@ namespace Heimdall.Squadrons
         public static string PhysicalKey(string key) => key.Replace("JOY_POV", "JOY_BTN_POV", StringComparison.Ordinal);
         /// <summary>Gets independent supported inputs for a desktop picker.</summary>
         public static IReadOnlyList<SquadronsInput> Choices => Inputs.Values.ToArray();
+        /// <summary>Resolves one physical drawing callout to its native input without exposing
+        /// codec direction variants as separate physical controls. Existing axis direction
+        /// is preserved when rebinding the same physical axis; new axes use the canonical
+        /// positive code. This does not change the native record's negate flag.</summary>
+        public static SquadronsInput FromDrawing(string physicalKey, bool isAxis,
+            SquadronsInput? existing = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(physicalKey);
+            var matches = Choices.Where(x => x.PhysicalKey == physicalKey).ToArray();
+            if (matches.Length == 1 && (matches[0].Type == CommandType.Axis) == isAxis)
+                return matches[0];
+            if (isAxis && matches.Length == 2 && matches.All(x => x.Type == CommandType.Axis) &&
+                matches.Count(x => x.Direction == 1) == 1 && matches.Count(x => x.Direction == -1) == 1)
+            {
+                var preservedDirection = existing?.Type == CommandType.Axis &&
+                    existing.PhysicalKey == physicalKey ? existing.Direction : 1;
+                return matches.Single(x => x.Direction == preservedDirection);
+            }
+            throw new InvalidOperationException("This drawing control has no unique supported Squadrons input.");
+        }
         /// <summary>Returns null for unassigned or unknown input encodings, which remain native evidence.</summary>
         public static SquadronsInput? Decode(int axis, int button) => Inputs.GetValueOrDefault((axis, button));
         /// <summary>Encodes one supported input without guessing a physical button number from a native code.</summary>
