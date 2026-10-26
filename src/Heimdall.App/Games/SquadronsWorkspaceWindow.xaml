@@ -79,7 +79,7 @@
     </ListBox>
    </DockPanel>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>
-   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
      <!-- Compact captured-record filters, independent of the command catalog filters. -->
      <Grid>
@@ -119,7 +119,7 @@
        <ColumnDefinition Width="80"/><ColumnDefinition Width="400"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
       <TextBlock Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Command"/>
-      <ComboBox x:Name="CommandPicker" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
+      <ComboBox x:Name="CommandPicker" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" PreviewMouseMove="DragCapturedCommand" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
       <Button x:Name="ShowCommandButton" Grid.Column="2" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
      </Grid>
      <TextBlock x:Name="CommandFilterCount" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,3" AutomationProperties.LiveSetting="Polite"/>
@@ -143,7 +143,17 @@
      </DataGrid.Columns>
     </DataGrid>
     <TextBlock x:Name="EmptyState" Grid.Row="1" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
-    <StackPanel x:Name="AssignmentEditor" Grid.Row="2" Margin="0,12,0,0" Visibility="Collapsed">
+    <Expander x:Name="DrawingPanel" Grid.Row="2" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded">
+     <Grid Height="250">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+       <Grid>
+        <TextBlock x:Name="DrawingHint" Text="Choose a linked controller with a shared hardware drawing." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap"/>
+        <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200"/>
+       </Grid>
+      </ScrollViewer>
+     </Grid>
+    </Expander>
+    <StackPanel x:Name="AssignmentEditor" Grid.Row="3" Margin="0,12,0,0" Visibility="Collapsed">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
       <ComboBox x:Name="TargetDevice" Style="{StaticResource ToolbarComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
