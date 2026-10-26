@@ -189,7 +189,7 @@ namespace Heimdall.App.Games
                 CommandContextFilter.SelectedItem as string ?? "All",
                 CommandInputFilter.SelectedItem as string ?? "All types",
                 CommandStatusFilter.SelectedItem as string ?? "All",
-                CommandSearch.Text, SelectedController);
+                CommandSearch.Text, SelectedAssignmentSource);
             var wasRefreshing = _refreshing;
             _refreshing = true;
             try
@@ -287,7 +287,11 @@ namespace Heimdall.App.Games
             ProfileName.IsEnabled = _session is not null;
             SaveState.Text = _session is null ? "No profile" : Pending ? "Unsaved changes" : "Saved";
         }
-        private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice { Id: not "all" } device ? device.Id : null;
+        /// <summary>Only native joystick slots support physical linking and slot diagnostics.</summary>
+        private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice choice &&
+            choice.Id.StartsWith("squadrons.joystick.", StringComparison.Ordinal) ? choice.Id : null;
+        /// <summary>The catalog filters any selected native source, including read-only system devices.</summary>
+        private string? SelectedAssignmentSource => (DevicePicker.SelectedItem as GameDeviceChoice)?.Id;
         private void RescanControllers()
         {
             _identification.Stop();
