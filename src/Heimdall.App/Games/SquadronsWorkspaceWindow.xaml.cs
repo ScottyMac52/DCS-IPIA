@@ -47,6 +47,10 @@ namespace Heimdall.App.Games
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
             TypePicker.ItemsSource = new[] { "All inputs", "Supported physical inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
+            CommandContextFilter.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" };
+            CommandInputFilter.ItemsSource = new[] { "All types", "Axes", "Buttons and hats", "Unknown / unbound" };
+            CommandStatusFilter.ItemsSource = new[] { "All", "Assigned to selected controller", "Not assigned to selected controller", "Assigned anywhere", "Unassigned everywhere" };
+            CommandContextFilter.SelectedIndex = CommandInputFilter.SelectedIndex = CommandStatusFilter.SelectedIndex = 0;
             Loaded += async (_, _) => await RefreshControllerInputsAsync();
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
@@ -158,13 +162,7 @@ namespace Heimdall.App.Games
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
             DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
-            var selectedCommand = (CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
-            var catalog = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands
-                .OrderBy(command => command.Category, StringComparer.Ordinal)
-                .ThenBy(command => command.DisplayName, StringComparer.Ordinal).ToArray();
-            CommandPicker.ItemsSource = catalog;
-            CommandPicker.SelectedItem = CommandPicker.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>()
-                .FirstOrDefault(x => x.Id == selectedCommand);
+            RefreshCommandCatalog(snapshot);
             if (snapshot is null) _focusedConcept = null;
             TargetDevice.ItemsSource = devices;
             var verified = new Dictionary<string, IReadOnlyCollection<string>>();
@@ -173,6 +171,50 @@ namespace Heimdall.App.Games
                     if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs) is { } keys) verified[id] = keys;
             _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
             _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability();
+        }
+        /// <summary>Refreshes the command catalog independently of the captured-binding table.</summary>
+        private void RefreshCommandCatalog(GameWorkspace? snapshot)
+        {
+            var selected = (CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
+            var all = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands;
+            var filtered = snapshot is null ? [] : SquadronsCommandFilter.Apply(all,
+                _backend.ReadBindings(snapshot.Profile),
+                CommandContextFilter.SelectedItem as string ?? "All",
+                CommandInputFilter.SelectedItem as string ?? "All types",
+                CommandStatusFilter.SelectedItem as string ?? "All",
+                CommandSearch.Text, SelectedController);
+            var wasRefreshing = _refreshing;
+            _refreshing = true;
+            try
+            {
+                CommandPicker.ItemsSource = filtered;
+                CommandPicker.SelectedItem = filtered.FirstOrDefault(x => x.Id == selected);
+            }
+            finally { _refreshing = wasRefreshing; }
+            CommandFilterCount.Text = filtered.Count + " of " + all.Count +
+                " known/imported commands · assignment status includes all native input records.";
+            ShowCommandButton.IsEnabled = CommandPicker.SelectedItem is not null;
+        }
+        private void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_refreshing) RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private void CommandSearchChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_refreshing) RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private void ResetCommandFiltersClicked(object sender, RoutedEventArgs e)
+        {
+            _refreshing = true;
+            try
+            {
+                CommandContextFilter.SelectedIndex = 0;
+                CommandInputFilter.SelectedIndex = 0;
+                CommandStatusFilter.SelectedIndex = 0;
+                CommandSearch.Clear();
+            }
+            finally { _refreshing = false; }
+            RefreshCommandCatalog(_session?.Snapshot);
         }
         private void RefreshRows()
         {
@@ -427,7 +469,7 @@ namespace Heimdall.App.Games
         private void FilterChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
-            if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); }
+            if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); RefreshCommandCatalog(_session?.Snapshot); }
             if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
                 _focusedConcept = null;
             RefreshRows();
