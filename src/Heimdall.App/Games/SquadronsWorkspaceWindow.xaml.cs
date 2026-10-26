@@ -22,6 +22,7 @@ namespace Heimdall.App.Games
         private readonly GameControllerIdentification _identification;
         private readonly GameControllerReordering _reordering;
         private readonly EliteDiagramPresenter _drawingPresenter;
+        private readonly DiagramViewport _drawingViewport;
         private IReadOnlyList<WorkspaceHardware> _drawings = [];
         private GameProfileSession? _session;
         private string? _revision;
@@ -42,6 +43,8 @@ namespace Heimdall.App.Games
             _services = services; _pendingChoice = pendingChoice; _reviewChange = reviewChange;
             InitializeComponent(); AppearanceManager.Attach(this);
             _drawingPresenter = new(DrawingCanvas);
+            _drawingViewport = new(DrawingScroll, DrawingCanvas, DrawingZoom, "squadrons.diagram");
+            _drawingViewport.EnableSmartNavigation();
             _reordering = new(DevicePicker, (source, target, after) =>
             {
                 if (source == "all" || target == "all") return;
@@ -317,6 +320,7 @@ namespace Heimdall.App.Games
             Refresh(false);
             StatusText.Text = "Drawing hidden. Save profile to retain this choice.";
         });
+        private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
             if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
