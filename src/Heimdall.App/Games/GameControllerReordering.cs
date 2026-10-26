@@ -9,12 +9,13 @@ namespace Heimdall.App.Games
     {
         private readonly ListBox _list;
         private readonly Action<string, string, bool> _move;
+        private readonly Func<string, bool> _canMove;
         private readonly string _format = "heimdall.elite.controller." + Guid.NewGuid().ToString("N");
         private Point _origin;
         private string? _source;
-        internal GameControllerReordering(ListBox list, Action<string, string, bool> move)
+        internal GameControllerReordering(ListBox list, Action<string, string, bool> move, Func<string, bool>? canMove = null)
         {
-            _list = list; _move = move;
+            _list = list; _move = move; _canMove = canMove ?? (_ => true);
             list.PreviewMouseLeftButtonDown += PointerDown;
             list.PreviewMouseMove += PointerMove;
             list.DragOver += DragOver; list.Drop += Drop; list.PreviewKeyDown += KeyDown;
@@ -32,14 +33,17 @@ namespace Heimdall.App.Games
         {
             var index = _list.SelectedIndex; var target = index + direction;
             if (index < 0 || target < 0 || target >= _list.Items.Count || Math.Abs(direction) != 1) return;
-            _move(((GameDeviceChoice)_list.Items[index]).Id, ((GameDeviceChoice)_list.Items[target]).Id, direction > 0);
+            var sourceId = ((GameDeviceChoice)_list.Items[index]).Id;
+            var targetId = ((GameDeviceChoice)_list.Items[target]).Id;
+            if (_canMove(sourceId) && _canMove(targetId)) _move(sourceId, targetId, direction > 0);
         }
         /// <summary>Creates a payload scoped to this workspace, excluding command and foreign-window drags.</summary>
         internal DataObject Payload(string id) => new(_format, id);
         /// <summary>Accepts only current references from this workspace, leaving self and foreign drops unchanged.</summary>
         internal bool DropAt(IDataObject data, string target, bool after)
         {
-            if (!data.GetDataPresent(_format) || data.GetData(_format) is not string source || source == target) return false;
+            if (!data.GetDataPresent(_format) || data.GetData(_format) is not string source || source == target
+                || !_canMove(source) || !_canMove(target)) return false;
             var ids = _list.Items.Cast<GameDeviceChoice>().Select(x => x.Id).ToArray();
             if (!ids.Contains(source, StringComparer.Ordinal) || !ids.Contains(target, StringComparer.Ordinal)) return false;
             _move(source, target, after); return true;
@@ -51,7 +55,7 @@ namespace Heimdall.App.Games
         private void PointerDown(object sender, MouseButtonEventArgs e)
         {
             _origin = e.GetPosition(_list);
-            _source = Container(e.OriginalSource)?.DataContext is GameDeviceChoice choice ? choice.Id : null;
+            _source = Container(e.OriginalSource)?.DataContext is GameDeviceChoice choice && _canMove(choice.Id) ? choice.Id : null;
         }
         private void PointerMove(object sender, MouseEventArgs e)
         {
@@ -64,7 +68,7 @@ namespace Heimdall.App.Games
         }
         private void DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(_format) && Container(e.OriginalSource)?.DataContext is GameDeviceChoice
+            e.Effects = e.Data.GetDataPresent(_format) && Container(e.OriginalSource)?.DataContext is GameDeviceChoice choice && _canMove(choice.Id)
                 ? DragDropEffects.Move : DragDropEffects.None;
             e.Handled = true;
         }
