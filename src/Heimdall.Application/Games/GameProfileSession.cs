@@ -116,7 +116,7 @@ namespace Heimdall.Application.Games
         public GameControllerChange PreviewClearCapturedAssignments(string logicalId)
         {
             RequireCapturedDevice(logicalId);
-            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend adapter)
+            if (_backend is not ISimCapturedDeviceLinks adapter)
                 throw new InvalidOperationException("Native joystick clearing is unavailable for this simulator.");
             var before = adapter.ReadBindings(_current.Profile).Count(x => x.Type == 3 &&
                 x.DeviceId == int.Parse(logicalId["squadrons.joystick.".Length..], System.Globalization.CultureInfo.InvariantCulture) - 1);
@@ -134,12 +134,12 @@ namespace Heimdall.Application.Games
         {
             RequireCapturedDevice(source);
             RequireCapturedDevice(target);
-            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend adapter)
+            if (_backend is not ISimCapturedDeviceLinks adapter)
                 throw new InvalidOperationException("Native slot renumbering is unavailable for this simulator.");
             if (source == target) throw new InvalidOperationException("Choose a different destination slot.");
-            var order = adapter is not null ? _current.Profile.Devices
+            var order = _current.Profile.Devices
                 .OrderBy(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture))
-                .Select(x => x.LogicalId).ToList() : [];
+                .Select(x => x.LogicalId).ToList();
             order.Remove(source);
             order.Insert(order.IndexOf(target) + (after ? 1 : 0), source);
             var oldSlots = order.Select((old, index) => (old, next: "squadrons.joystick." + (index + 1)))
