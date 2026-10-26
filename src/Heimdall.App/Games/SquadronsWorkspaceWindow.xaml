@@ -87,8 +87,8 @@
     <StackPanel x:Name="AssignmentEditor" Grid.Row="2" Margin="0,12,0,0" Visibility="Collapsed">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
-      <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
-      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="InputChanged" AutomationProperties.Name="Squadrons assignment input"/>
+      <ComboBox x:Name="TargetDevice" Style="{StaticResource ToolbarComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
+      <ComboBox x:Name="InputPicker" Style="{StaticResource ToolbarComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="InputChanged" AutomationProperties.Name="Squadrons assignment input"/>
       <Button x:Name="ApplyButton" Style="{StaticResource SquadronsActionButton}" Content="Apply assignment" Margin="8,0,0,0" Click="ApplyClicked"/>
      </WrapPanel>
     </StackPanel>
