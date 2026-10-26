@@ -284,13 +284,18 @@ namespace Heimdall.App.Games
                 return;
             }
             var diagram = hardware.Diagram;
-            var labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(StringComparer.Ordinal);
-            var page = new KneeboardComposite(snapshot!.Name, "Star Wars: Squadrons",
-                labels, new Dictionary<string, string>(StringComparer.Ordinal), []);
+            var section = SectionPicker.SelectedItem as string ?? "All";
+            var page = SquadronsDrawingProjection.Diagram(snapshot!.Name, diagram, _rows, slot, section);
             _drawingPresenter.Show(diagram, page, SelectDrawingInput, DropDrawingCommand,
                 () => StatusText.Text = "Select an existing assignment in the table to clear it.",
                 AppearanceManager.ArtworkOpacityFor(this),
-                control => control.Label + " · " + control.InputKey,
+                control =>
+                {
+                    var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
+                    return control.Label + " · " + control.InputKey +
+                        (matches.Count == 0 ? "\\nNo captured assignments" :
+                            "\\n" + string.Join("\\n", matches.Select(x => x.CommandName + " · " + x.InputLabel)));
+                },
                 SquadronsCommandDragFormat);
             DrawingHint.Visibility = Visibility.Collapsed;
         }
@@ -318,8 +323,19 @@ namespace Heimdall.App.Games
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
+            if (SelectedController is not { } slot) return;
+            var section = SectionPicker.SelectedItem as string ?? "All";
+            var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
+            if (matches.Count > 0)
+            {
+                var recordId = matches[0].RecordId;
+                BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
+                    .FirstOrDefault(row => row.RecordId == recordId);
+                if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
+            }
             StatusText.Text = control.Label + " · " + control.InputKey +
-                ". Choose a command and its input. Drawing callouts will use the native assignment writer.";
+                (matches.Count == 0 ? " · No captured assignments." :
+                    " · " + matches.Count + " captured assignment(s).");
         }
         private void DropDrawingCommand(HardwareGraphicControl control, string commandId) => Run(() =>
         {
@@ -372,6 +388,7 @@ namespace Heimdall.App.Games
             if (_focusedConcept is not null && rows.Count == 0)
                 EmptyState.Text = "This command has no assignments matching the current controller and input filters. The command is still available in the catalog.";
             UpdateEditor();
+            if (DrawingPanel.IsExpanded == true) Run(RenderDrawing);
         }
         private void UpdateEditor()
         {
