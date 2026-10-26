@@ -71,6 +71,21 @@ namespace Heimdall.Tests
                 SquadronsWorkspaceProjection.SlotDiagnostic(profile, withGrip, "squadrons.joystick.3"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Only unreferenced slots can be removed without affecting bindings.</summary>
+        [Fact]
+        public void Unused_duplicate_slot_removal_preserves_every_native_binding()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var removed = backend.RemoveUnusedCapturedDevice(profile, "squadrons.joystick.10");
+            var output = backend.Export(removed).Files[SquadronsProfileBackend.FileName];
+            Assert.DoesNotContain("GstInput.JoystickDevice10 ", output);
+            Assert.Equal(source.Replace("GstInput.JoystickDevice10 Smoke Throttle 1\n", "", StringComparison.Ordinal), output);
+            Assert.Equal(backend.ReadBindings(profile).Count, backend.ReadBindings(removed).Count);
+            Assert.Throws<InvalidOperationException>(() => backend.RemoveUnusedCapturedDevice(profile, "squadrons.joystick.5"));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
