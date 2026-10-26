@@ -7,7 +7,7 @@ namespace Heimdall.Squadrons
         /// <summary>Retains commands when the user clears their final native binding record.</summary>
         internal static IReadOnlyCollection<string> All { get; } = Build();
 
-        private static IReadOnlyCollection<string> Build()
+        private static HashSet<string> Build()
         {
             var result = new HashSet<string>(StringComparer.Ordinal);
             Add(result, "IncomDefaultInputConcepts", """
