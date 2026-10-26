@@ -45,6 +45,32 @@ namespace Heimdall.Tests
             Assert.Equal("Fire", advanced[0].CommandName);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Shared capability evidence identifies usable inputs, while identical native slot names remain separate.</summary>
+        [Fact]
+        public void Slot_diagnostics_distinguish_duplicate_names_and_current_grip_capabilities()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var baseOnly = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile),
+                new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.3"] = ["JOY_X", "JOY_Y"], ["squadrons.joystick.5"] = ["JOY_Z"] });
+            var stick = SquadronsWorkspaceProjection.SlotDiagnostic(profile, baseOnly, "squadrons.joystick.3");
+            Assert.Contains("1 captured joystick records", stick);
+            Assert.Contains("1 absent on linked hardware", stick);
+            Assert.Contains("0 supported by current enumeration", stick);
+            var throttle = SquadronsWorkspaceProjection.SlotDiagnostic(profile, baseOnly, "squadrons.joystick.5");
+            Assert.Contains("2 captured joystick records", throttle);
+            Assert.Contains("2 supported by current enumeration", throttle);
+            Assert.Contains("2 slots share the name", throttle);
+            var unused = SquadronsWorkspaceProjection.SlotDiagnostic(profile, baseOnly, "squadrons.joystick.10");
+            Assert.Contains("0 captured joystick records", unused);
+            Assert.DoesNotContain("unverified", unused, StringComparison.OrdinalIgnoreCase);
+            var withGrip = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(profile),
+                new Dictionary<string, IReadOnlyCollection<string>> { ["squadrons.joystick.3"] = ["JOY_X", "JOY_Y", "JOY_BTN1"] });
+            Assert.Contains("1 supported by current enumeration",
+                SquadronsWorkspaceProjection.SlotDiagnostic(profile, withGrip, "squadrons.joystick.3"));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
