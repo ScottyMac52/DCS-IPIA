@@ -346,7 +346,8 @@ namespace Heimdall.App.Games
             }
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
-            CommandHint.Text = command.DisplayName + " · " + command.Category + " · " +
+            CommandHint.Text = CommandPicker.Items.Count + " catalog commands (reference + imported) · " +
+                command.DisplayName + " · " + command.Category + " · " +
                 plan.CapturedRecords + " captured records · " + plan.EditableRecords +
                 " supported replacement records. " + (plan.CanReplaceCapturedRecord
                     ? "Select an existing assignment below to change its verified controller input."
