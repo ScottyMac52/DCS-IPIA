@@ -143,6 +143,24 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
+## Resizable filters, assignments, and drawing
+
+The Squadrons workspace separates the top command-filter region from the
+captured-assignment grid with a draggable horizontal splitter. A second
+horizontal splitter sits between the assignment grid and the hardware drawing.
+The filters scroll within their allocated height; the assignment list remains
+independently scrollable. Collapsing the drawing keeps it optional.
+
+Once a linked joystick slot is associated with a shared drawing, its existing
+captured native joystick bindings automatically populate the diagram's callout
+labels through `SquadronsDrawingProjection`. Each canonical physical input key
+maps to every matching command on the selected slot and context; axis
+directions remain distinguished. Hovering a control lists the captured
+assignments, and selecting a callout selects the matching visible binding
+record. A drawing is a presentation of saved assignments, not a separate
+authoritative binding store. Unknown native input encodings remain visible
+in the assignment table rather than being guessed onto a callout.
+
 ## Choosing a shared controller drawing
 
 The drawing panel uses the same bundled shared hardware definitions as DCS and
