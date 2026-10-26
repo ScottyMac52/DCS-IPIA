@@ -112,6 +112,20 @@ namespace Heimdall.Application.Games
                 "\nOnly its native joystick declaration will be removed; no binding records or inventory entries change." +
                 "\nSave profile before export.", null);
         }
+        /// <summary>Reviews removing one exact native joystick record without rewriting any other assignments.</summary>
+        public GameControllerChange PreviewClearCapturedRecord(string recordId)
+        {
+            _policy.RequireSimulator(_backend.SimId);
+            if (_backend is not ISimCapturedDeviceLinks adapter)
+                throw new InvalidOperationException("Native record clearing is unavailable for this simulator.");
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = adapter.ClearCapturedRecord(candidate.Profile, recordId) };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Clear selected Squadrons native binding: " + recordId +
+                "\nOther native records, devices, and physical links remain unchanged." +
+                "\nSave the profile before exporting a separate review copy.", null);
+        }
         /// <summary>Reviews clearing all native joystick records belonging to one captured slot.</summary>
         public GameControllerChange PreviewClearCapturedAssignments(string logicalId)
         {
