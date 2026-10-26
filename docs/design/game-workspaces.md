@@ -32,6 +32,22 @@ generic/stale button or hat records on axis-only devices remain flagged and pres
 The normal view opens on compatible **Flight** assignments with a compact table
 and collapsed **Controller setup**. **Review captured records (advanced)** restores
 raw records and diagnostic columns; context/input/search filters apply in both modes.
+Use **Clear assignments…** under Controller setup to review and stage removal of every
+indexed native joystick binding record belonging to the selected captured slot.
+This includes records not recognized by the physical hardware capability scanner.
+It removes those records from the staged native profile rather than resetting them
+to a presumed undocumented Squadrons default, so re-creating those commands requires
+an appropriate binding source. **Discard changes** restores the saved profile.
+
+Drag a named controller onto another controller (or use Ctrl+Up/Down) to preview
+a contiguous 1-based native slot renumbering. HEIMDALL reindexes all declared
+joystick slots and rewrites native joystick `deviceid` references as one reviewed
+operation, preserving bound physical identities under their new logical slot IDs.
+The **All devices and inputs** filter row is not draggable. Both actions require
+confirmation, Save profile, then a separate review export. Game-side hardware
+recognition is not guaranteed by syntax-only validation. Back up the active game
+profile before installing any exported changes.
+
 See the [Squadrons desktop workflow and remaining scope](squadrons-adapter.md).
 
 ## Elite Dangerous
