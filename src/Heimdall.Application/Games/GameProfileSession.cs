@@ -72,15 +72,14 @@ namespace Heimdall.Application.Games
             string key, CommandType type, int direction)
         {
             RequireAccess();
-            if (_backend is not Heimdall.Squadrons.SquadronsProfileBackend backend)
-                throw new InvalidOperationException("This operation requires a Squadrons profile.");
+            if (_backend is not INativeRecordCreator backend)
+                throw new InvalidOperationException("This game does not support native record creation.");
             var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
             var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
             if (!GameInputReadiness.Ready(pin, _observed()) ||
                 keys?.Contains(backend.PhysicalInputKey(key), StringComparer.Ordinal) != true)
                 throw new InvalidOperationException("Choose an input verified on this linked controller before creating the record.");
-            var profile = backend.AddJoystickBinding(Snapshot.Profile, concept, logicalDeviceId,
-                new Heimdall.Squadrons.SquadronsInput(key, type, direction));
+            var profile = backend.AddNativeBinding(Snapshot.Profile, concept, logicalDeviceId, key, type, direction);
             if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId ||
                 profile.ProfileId != _current.Profile.ProfileId)
                 throw new InvalidOperationException("Native creation changed game or profile identity.");
