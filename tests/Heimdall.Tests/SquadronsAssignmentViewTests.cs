@@ -365,7 +365,7 @@ namespace Heimdall.Tests
                 candidate.RecordId == row.RecordId && candidate.Fields.Count == row.Fields.Count &&
                 row.Fields.All(pair => candidate.Fields.TryGetValue(pair.Key, out var value) && value == pair.Value)));
             Assert.Contains(next, row => row.Concept == "IncomStarshipInputConcepts.ConceptThrottle" &&
-                row.Index == 0 && row.DeviceId == 4 && row.Input == input);
+                row.Index == 6 && row.DeviceId == 4 && row.Input == input);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Throws<InvalidOperationException>(() => backend.AddJoystickBinding(profile,
                 "IncomStarshipInputConcepts.ConceptYaw", "squadrons.joystick.5", input));
