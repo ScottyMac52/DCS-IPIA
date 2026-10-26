@@ -19,7 +19,7 @@ namespace Heimdall.App.Games
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private readonly Func<GameControllerChange, bool>? _reviewChange;
         private readonly GameControllerIdentification _identification;
-        private readonly EliteControllerReordering _reordering;
+        private readonly GameControllerReordering _reordering;
         private GameProfileSession? _session;
         private string? _revision;
         private string? _sourceDirectory;
