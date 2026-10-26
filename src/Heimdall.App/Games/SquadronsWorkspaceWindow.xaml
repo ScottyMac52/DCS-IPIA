@@ -7,6 +7,21 @@
    <Setter Property="Width" Value="Auto"/><Setter Property="MinWidth" Value="80"/><Setter Property="Padding" Value="12,0"/>
   </Style>
   <Style x:Key="SquadronsCellText" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style>
+  <!-- Shared per-field layout inside the aligned Squadrons command-filter grid. -->
+  <Style x:Key="SquadronsFilterLabel" TargetType="TextBlock" BasedOn="{StaticResource AppLabel}">
+   <Setter Property="VerticalAlignment" Value="Center"/>
+   <Setter Property="Margin" Value="0,0,8,0"/>
+  </Style>
+  <Style x:Key="SquadronsFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource ToolbarComboBox}">
+   <Setter Property="Width" Value="Auto"/>
+   <Setter Property="HorizontalAlignment" Value="Stretch"/>
+   <Setter Property="Margin" Value="0,0,12,0"/>
+  </Style>
+  <Style x:Key="SquadronsFilterTextBox" TargetType="TextBox" BasedOn="{StaticResource AppTextBox}">
+   <Setter Property="Height" Value="30"/>
+   <Setter Property="VerticalAlignment" Value="Center"/>
+   <Setter Property="Margin" Value="0,0,12,0"/>
+  </Style>
  </Window.Resources>
  <Grid Margin="16"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <StackPanel>
@@ -66,34 +81,47 @@
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>
    <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
-     <WrapPanel>
-      <ComboBox x:Name="SectionPicker" Style="{StaticResource ToolbarComboBox}" Width="190" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons command context"/>
-      <ComboBox x:Name="TypePicker" Style="{StaticResource ToolbarComboBox}" Width="170" Margin="8,0,0,0" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons input type"/>
-      <TextBox x:Name="Search" Style="{StaticResource AppTextBox}" Width="200" Margin="8,0,0,0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons commands"/>
-     </WrapPanel>
+     <!-- Compact captured-record filters, independent of the command catalog filters. -->
+     <Grid>
+      <Grid.ColumnDefinitions>
+       <ColumnDefinition Width="190"/><ColumnDefinition Width="12"/>
+       <ColumnDefinition Width="170"/><ColumnDefinition Width="12"/>
+       <ColumnDefinition Width="200"/><ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <ComboBox x:Name="SectionPicker" Grid.Column="0" Style="{StaticResource SquadronsFilterCombo}" Margin="0" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons command context"/>
+      <ComboBox x:Name="TypePicker" Grid.Column="2" Style="{StaticResource SquadronsFilterCombo}" Margin="0" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons input type"/>
+      <TextBox x:Name="Search" Grid.Column="4" Style="{StaticResource SquadronsFilterTextBox}" Margin="0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons assignments"/>
+     </Grid>
      <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False" Checked="CaptureReviewChanged" Unchecked="CaptureReviewChanged" Margin="0,8,0,0" AutomationProperties.Name="Review all Squadrons captured records"/>
      <Expander Header="Command filters" IsExpanded="True" Margin="0,8,0,4">
-      <StackPanel Margin="0,6,0,4">
-       <WrapPanel>
-        <TextBlock Style="{StaticResource AppLabel}" Text="Context" VerticalAlignment="Center" Margin="0,0,6,0"/>
-        <ComboBox x:Name="CommandContextFilter" Style="{StaticResource ToolbarComboBox}" Width="160" SelectionChanged="CommandFiltersChanged"/>
-        <TextBlock Style="{StaticResource AppLabel}" Text="Input type" VerticalAlignment="Center" Margin="4,0,6,0"/>
-        <ComboBox x:Name="CommandInputFilter" Style="{StaticResource ToolbarComboBox}" Width="170" SelectionChanged="CommandFiltersChanged"/>
-        <TextBlock Style="{StaticResource AppLabel}" Text="Assignment" VerticalAlignment="Center" Margin="4,0,6,0"/>
-        <ComboBox x:Name="CommandStatusFilter" Style="{StaticResource ToolbarComboBox}" Width="230" SelectionChanged="CommandFiltersChanged"/>
-       </WrapPanel>
-       <WrapPanel Margin="0,6,0,0">
-        <TextBlock Style="{StaticResource AppLabel}" Text="Search" VerticalAlignment="Center" Margin="0,0,6,0"/>
-        <TextBox x:Name="CommandSearch" Style="{StaticResource AppTextBox}" Width="300" VerticalAlignment="Center" TextChanged="CommandSearchChanged" AutomationProperties.Name="Search Squadrons command catalog"/>
-        <Button x:Name="ResetCommandFiltersButton" Style="{StaticResource SquadronsActionButton}" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
-       </WrapPanel>
-      </StackPanel>
+      <Grid Margin="0,6,0,4">
+       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="80"/><ColumnDefinition Width="190"/>
+        <ColumnDefinition Width="90"/><ColumnDefinition Width="190"/>
+        <ColumnDefinition Width="100"/><ColumnDefinition Width="240"/>
+       </Grid.ColumnDefinitions>
+       <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/>
+       </Grid.RowDefinitions>
+       <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Context"/>
+       <ComboBox x:Name="CommandContextFilter" Grid.Row="0" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource SquadronsFilterLabel}" Text="Input type"/>
+       <ComboBox x:Name="CommandInputFilter" Grid.Row="0" Grid.Column="3" Style="{StaticResource SquadronsFilterCombo}" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Grid.Row="0" Grid.Column="4" Style="{StaticResource SquadronsFilterLabel}" Text="Assignment"/>
+       <ComboBox x:Name="CommandStatusFilter" Grid.Row="0" Grid.Column="5" Style="{StaticResource SquadronsFilterCombo}" Margin="0" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Search"/>
+       <TextBox x:Name="CommandSearch" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SquadronsFilterTextBox}" TextChanged="CommandSearchChanged" AutomationProperties.Name="Search Squadrons command catalog"/>
+       <Button x:Name="ResetCommandFiltersButton" Grid.Row="2" Grid.Column="4" Grid.ColumnSpan="2" Style="{StaticResource SquadronsActionButton}" HorizontalAlignment="Left" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
+      </Grid>
      </Expander>
-     <WrapPanel Margin="0,4,0,0">
-      <TextBlock Style="{StaticResource AppLabel}" Text="Command" VerticalAlignment="Center" Margin="0,0,8,0"/>
-      <ComboBox x:Name="CommandPicker" Style="{StaticResource ToolbarComboBox}" Width="320" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
-      <Button x:Name="ShowCommandButton" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
-     </WrapPanel>
+     <Grid Margin="0,4,0,0">
+      <Grid.ColumnDefinitions>
+       <ColumnDefinition Width="80"/><ColumnDefinition Width="400"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Command"/>
+      <ComboBox x:Name="CommandPicker" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
+      <Button x:Name="ShowCommandButton" Grid.Column="2" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
+     </Grid>
      <TextBlock x:Name="CommandFilterCount" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,3" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap"/>
