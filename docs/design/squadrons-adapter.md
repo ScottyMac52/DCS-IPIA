@@ -150,7 +150,7 @@ navigation. **Fit** automatically scales artwork to the resized drawing pane;
 the **Zoom** slider supports 10–300% manual scale and retains the existing
 workspace layout persistence rules. **Ctrl+mouse wheel** zooms around the
 pointer, ordinary wheel scrolls **only vertically**, **Shift+wheel** scrolls **only horizontally**,
-and **middle-button drag** pans the enlarged artwork. Scrolling requires the scaled\nartwork to extend beyond the viewport (Fit mode may have no scrollable extent). Mouse-based navigation
+and **middle-button drag** pans the enlarged artwork. The scroll viewer measures\nthe zoomed canvas directly so the vertical and horizontal scroll extents reflect\nits scaled dimensions. Scrolling requires the drawing to extend beyond the\nviewport (Fit mode may have no scrollable extent). Mouse-based navigation
 is scoped to the drawing viewport, not the command filters or assignment grid.
 Existing click-to-select and drag-to-assign drawing controls remain intact.
 This does not modify native Squadrons records.
