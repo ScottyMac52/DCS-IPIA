@@ -176,8 +176,8 @@ namespace Heimdall.App.Games
         private void RefreshCommandCatalog(GameWorkspace? snapshot)
         {
             var selected = (CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
-            var all = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands;
-            var filtered = snapshot is null ? [] : SquadronsCommandFilter.Apply(all,
+            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> all = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands;
+            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> filtered = snapshot is null ? [] : SquadronsCommandFilter.Apply(all,
                 _backend.ReadBindings(snapshot.Profile),
                 CommandContextFilter.SelectedItem as string ?? "All",
                 CommandInputFilter.SelectedItem as string ?? "All types",
