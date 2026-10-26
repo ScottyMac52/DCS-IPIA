@@ -166,11 +166,34 @@ namespace Heimdall.Tests
             Assert.False(throttle.RequiresNewNativeRecord);
             Assert.Contains("IncomStarshipInputConcepts.ConceptThrottle.4", throttle.EditableRecordIds);
             var cleared = backend.ClearCapturedAssignments(profile, "squadrons.joystick.5");
-            Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, cleared,
-                "IncomStarshipInputConcepts.ConceptThrottle"));
+            var unassigned = SquadronsAssignmentPlanner.For(backend, cleared,
+                "IncomStarshipInputConcepts.ConceptThrottle");
+            Assert.Equal(0, unassigned.CapturedRecords);
+            Assert.True(unassigned.RequiresNewNativeRecord);
             Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, profile,
                 "IncomStarshipInputConcepts.ConceptNotCaptured"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Unbound Pitch/Roll/Yaw remain discoverable even after removing the last joystick binding.</summary>
+        [Fact]
+        public void Command_catalog_is_independent_of_native_binding_records()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var original = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var cleared = backend.ClearCapturedAssignments(original, "squadrons.joystick.5");
+            var commands = backend.GetCatalog(cleared).Commands;
+            foreach (var name in new[] { "Pitch", "Roll", "Yaw", "Throttle", "Afterburner" })
+            {
+                var concept = "IncomStarshipInputConcepts.Concept" + name;
+                Assert.Contains(commands, command => command.Metadata["squadrons.concept"] == concept
+                    && command.Category == "Flight");
+            }
+            Assert.True(commands.Count >= 125);
+            var planner = SquadronsAssignmentPlanner.For(backend, cleared, "IncomStarshipInputConcepts.ConceptYaw");
+            Assert.Equal(0, planner.CapturedRecords);
+            Assert.True(planner.RequiresNewNativeRecord);
+            Assert.Equal(source, backend.Export(original).Files[SquadronsProfileBackend.FileName]);
         }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
