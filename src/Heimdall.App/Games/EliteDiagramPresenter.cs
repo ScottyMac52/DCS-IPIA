@@ -16,7 +16,7 @@ namespace Heimdall.App.Games
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, Action<HardwareGraphicControl> select,
-            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null)
+            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null, string dragFormat = "heimdall.elite.command")
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
@@ -29,8 +29,8 @@ namespace Heimdall.App.Games
                     ToolTip = tooltip?.Invoke(control) ?? control.Label + " · " + control.InputKey, Tag = control };
                 Canvas.SetLeft(border, control.X); Canvas.SetTop(border, control.Y);
                 border.MouseLeftButtonDown += (_, e) => { select(control); e.Handled = true; };
-                border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent("heimdall.elite.command") ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
-                border.Drop += (_, e) => { if (e.Data.GetData("heimdall.elite.command") is string id) drop(control, id); e.Handled = true; };
+                border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(dragFormat) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
+                border.Drop += (_, e) => { if (e.Data.GetData(dragFormat) is string id) drop(control, id); e.Handled = true; };
                 var menu = new ContextMenu();
                 var edit = new MenuItem { Header = control.IsAxis ? "Tune / assign axis" : "Select input for assignment" };
                 edit.Click += (_, _) => select(control);
