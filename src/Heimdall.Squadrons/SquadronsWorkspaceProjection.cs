@@ -30,6 +30,22 @@ namespace Heimdall.Squadrons
                 return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label);
             }).ToArray();
         }
+        /// <summary>Summarizes one native slot using the shared controller-enumeration review without treating a saved name as physical identity.</summary>
+        public static string SlotDiagnostic(ProfileDocument profile, IEnumerable<SquadronsWorkspaceRow> reviewedRows, string logicalDeviceId)
+        {
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var name = device.Identity?.WindowsName ?? "";
+            var duplicates = profile.Devices.Count(x => string.Equals(x.Identity?.WindowsName, name, StringComparison.OrdinalIgnoreCase));
+            var rows = reviewedRows.Where(x => x.Native.Type == 3 && x.DeviceId == logicalDeviceId).ToArray();
+            var supported = rows.Count(x => x.HardwareStatus == "Supported physical input (slot unconfirmed)");
+            var missing = rows.Count(x => x.HardwareStatus == "Input absent on linked device");
+            var unknown = rows.Count(x => x.HardwareStatus == "Hardware unverified");
+            var detail = rows.Length + " captured joystick records · " + supported + " supported by current enumeration";
+            if (missing > 0) detail += " · " + missing + " absent on linked hardware";
+            if (unknown > 0) detail += " · " + unknown + " unverified";
+            if (duplicates > 1) detail += " · " + duplicates + " slots share the name '" + name + "' (not proof of duplicate hardware)";
+            return detail + ". Saved bindings are not proof of in-game recognition.";
+        }
         /// <summary>Intersects context/type/text/device filters; native assignments remain visible even when hardware cannot be verified.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
