@@ -106,9 +106,12 @@ namespace Heimdall.App
             // WPF commonly uses 48 DIPs per wheel notch (three 16-DIP lines).
             // Use a fractional distance for high-resolution wheels or trackpads.
             var amount = delta / 120.0 * 48;
-            if (vertical)
+            // Drawings are often wider than they are tall. At a given zoom the
+            // vertical extent may be zero even though horizontal scrolling is possible.
+            // In that case ordinary wheel navigation follows the available axis.
+            if (vertical && _viewport.ScrollableHeight > 0.5)
                 _viewport.ScrollToVerticalOffset(_viewport.VerticalOffset - amount);
-            else
+            else if (_viewport.ScrollableWidth > 0.5)
                 _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - amount);
         }
 
