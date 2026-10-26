@@ -106,6 +106,37 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Captured slot removal validation failed.");
             return result;
         }
+        /// <summary>Clears every native joystick binding owned by the captured slot, preserving all other settings.</summary>
+        public ProfileDocument ClearCapturedAssignments(ProfileDocument profile, string logicalDeviceId)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            var original = new SquadronsNativeDocument(evidence.Text);
+            var updated = new SquadronsNativeDocument(original.RemoveJoystickBindings(slot));
+            var expected = original.Bindings.Where(x => x.Type != 3 || x.DeviceId != slot - 1).ToArray();
+            if (updated.Bindings.Count != expected.Length || expected.Any(row => !updated.Bindings.Any(other =>
+                other.RecordId == row.RecordId && row.Fields.Count == other.Fields.Count
+                && row.Fields.All(field => other.Fields.TryGetValue(field.Key, out var number) && number == field.Value))))
+                throw new InvalidOperationException("Native assignment clearing failed validation.");
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+        }
+        /// <summary>Reindexes every captured slot and joystick binding atomically without changing input codes.</summary>
+        public ProfileDocument ReorderCapturedSlots(ProfileDocument profile, IReadOnlyList<string> order)
+        {
+            var evidence = Evidence(profile);
+            var slots = order.Select(id => profile.Devices.Single(x => x.LogicalId == id))
+                .Select(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var updated = new SquadronsNativeDocument(document.ReorderJoystickSlots(slots));
+            if (updated.Bindings.Count != document.Bindings.Count ||
+                document.Bindings.Any(row => !updated.Bindings.Any(other =>
+                    other.RecordId == row.RecordId && other.Fields.Count == row.Fields.Count
+                    && row.Fields.All(field => other.Fields.TryGetValue(field.Key, out var value) &&
+                        value == (field.Key == "deviceid" && row.Type == 3 ? Array.IndexOf(slots, row.DeviceId + 1) : field.Value)))))
+                throw new InvalidOperationException("Native slot permutation failed validation.");
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+        }
         /// <summary>Resolves explicit physical instance identity only; saved names, duplicates and ordinals never imply a connection.</summary>
         public SimDeviceResolution ResolveDevice(PhysicalDeviceIdentity identity, IReadOnlyList<PhysicalDeviceIdentity> connected)
         {
