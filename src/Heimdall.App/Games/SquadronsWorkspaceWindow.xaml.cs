@@ -383,25 +383,13 @@ namespace Heimdall.App.Games
             if (_session is null || SelectedController is not { } slot)
                 throw new InvalidOperationException("Select a linked joystick slot.");
             var command = _backend.GetCatalog(_session.Snapshot.Profile).Commands.Single(x => x.Id == commandId);
-            var matches = SquadronsInputCodec.Choices.Where(x => x.PhysicalKey == control.InputKey
-                || x.Key == control.InputKey).ToArray();
-            if (matches.Length == 0)
-                throw new InvalidOperationException("This drawing control has no verified native Squadrons input.");
-            SquadronsInput input;
-            if (matches.Length == 1) input = matches[0];
-            else if (control.IsAxis && matches.Length == 2 &&
-                matches.All(x => x.Type == Heimdall.Domain.MultiSim.CommandType.Axis) &&
-                matches.Any(x => x.Direction == 1) && matches.Any(x => x.Direction == -1))
-            {
-                var direction = MessageBox.Show(this,
-                    "Which direction should this axis binding use?\\nYes = positive (+)\\nNo = negative (-)\\nCancel = do not assign.",
-                    "Squadrons axis direction", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (direction == MessageBoxResult.Cancel) return;
-                input = matches.Single(x => x.Direction == (direction == MessageBoxResult.Yes ? 1 : -1));
-            }
-            else throw new InvalidOperationException("This control has ambiguous native input encodings.");
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
+            var captured = plan.EditableRecords == 1
+                ? _backend.ReadBindings(_session.Snapshot.Profile)
+                    .Single(x => x.RecordId == plan.EditableRecordIds[0]).Input
+                : null;
+            var input = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, captured);
             if (plan.EditableRecords == 1)
             {
                 _session.RebindNative(plan.EditableRecordIds[0], slot, input.Key, input.Type, input.Direction);
