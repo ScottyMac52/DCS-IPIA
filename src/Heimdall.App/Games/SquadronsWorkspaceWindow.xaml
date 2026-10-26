@@ -51,6 +51,7 @@
       <WrapPanel>
        <Button x:Name="LinkControllerButton" Style="{StaticResource SquadronsActionButton}" Content="Link / replace…" Click="LinkClicked"/>
        <Button x:Name="UnlinkControllerButton" Style="{StaticResource SquadronsActionButton}" Content="Unlink…" Click="UnlinkClicked"/>
+       <Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource SquadronsActionButton}" Content="Remove unused slot…" Click="RemoveUnusedSlotClicked"/>
       </WrapPanel>
       <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Select a captured slot first. Identify finds the physical unit; verify its slot in Squadrons before linking. For another slot, bind an input on that device in Squadrons and import a fresh capture."/>
      </StackPanel>
