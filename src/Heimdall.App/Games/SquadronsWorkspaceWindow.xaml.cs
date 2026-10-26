@@ -24,6 +24,7 @@ namespace Heimdall.App.Games
         private string? _revision;
         private string? _sourceDirectory;
         private IReadOnlyList<SquadronsWorkspaceRow> _rows = [];
+        private string? _focusedConcept;
         private IReadOnlyList<ControllerObservation> _controllerInputs = [];
         private int _inputScan;
         private bool _scanningInputs;
@@ -164,6 +165,7 @@ namespace Heimdall.App.Games
             CommandPicker.ItemsSource = catalog;
             CommandPicker.SelectedItem = CommandPicker.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>()
                 .FirstOrDefault(x => x.Id == selectedCommand);
+            if (snapshot is null) _focusedConcept = null;
             TargetDevice.ItemsSource = devices;
             var verified = new Dictionary<string, IReadOnlyCollection<string>>();
             if (snapshot is not null)
@@ -180,6 +182,7 @@ namespace Heimdall.App.Games
             var section = SectionPicker.SelectedItem as string ?? "Flight";
             var rows = SquadronsWorkspaceProjection.Filter(_rows, SectionPicker.SelectedItem as string ?? "All", TypePicker.SelectedItem as string ?? "All inputs", Search.Text,
                 (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all", includeUnverified: review);
+            if (_focusedConcept is not null) rows = rows.Where(row => row.Native.Concept == _focusedConcept).ToArray();
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
             ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
@@ -187,9 +190,14 @@ namespace Heimdall.App.Games
             HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
             CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs absent on linked hardware" :
                 rows.Count + " captured joystick assignments · " + section + ". Check hardware status in advanced review; saved slot ownership is not physical identity.";
+            if (_focusedConcept is not null)
+                CountText.Text = "Command: " + _focusedConcept + " · " + rows.Count + " matching captured bindings. " +
+                    "Unassigned commands remain selectable in the command browser.";
             EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             EmptyState.Text = _session is null ? "Import a Squadrons controls file to get started." : review ? "No matching captured records. Change the context, input filter or search." :
                 _scanningInputs ? "Inspecting controller inputs…" : "No captured joystick assignments match these filters. Change the context or input filter, or enable advanced review for preserved native records.";
+            if (_focusedConcept is not null && rows.Count == 0)
+                EmptyState.Text = "This command has no assignments matching the current controller and input filters. The command is still available in the catalog.";
             UpdateEditor();
         }
         private void UpdateEditor()
@@ -347,9 +355,11 @@ namespace Heimdall.App.Games
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return;
+            _focusedConcept = command.Metadata["squadrons.concept"];
             SectionPicker.SelectedItem = command.Category;
             ReviewCaptured.IsChecked = true;
-            var match = _rows.FirstOrDefault(row => row.Native.Concept == command.Metadata["squadrons.concept"]
+            RefreshRows();
+            var match = _rows.FirstOrDefault(row => row.Native.Concept == _focusedConcept
                 && (SelectedController is null || row.DeviceId == SelectedController));
             if (match is not null)
                 BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
@@ -417,6 +427,8 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); }
+            if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
+                _focusedConcept = null;
             RefreshRows();
         }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) RefreshRows(); }
