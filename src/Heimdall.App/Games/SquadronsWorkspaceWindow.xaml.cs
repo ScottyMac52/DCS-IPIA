@@ -19,6 +19,7 @@ namespace Heimdall.App.Games
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private readonly Func<GameControllerChange, bool>? _reviewChange;
         private readonly GameControllerIdentification _identification;
+        private readonly EliteControllerReordering _reordering;
         private GameProfileSession? _session;
         private string? _revision;
         private string? _sourceDirectory;
@@ -36,6 +37,11 @@ namespace Heimdall.App.Games
             EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
             _services = services; _pendingChoice = pendingChoice; _reviewChange = reviewChange;
             InitializeComponent(); AppearanceManager.Attach(this);
+            _reordering = new(DevicePicker, (source, target, after) =>
+            {
+                if (source == "all" || target == "all") return;
+                Run(() => ReviewNativeChange(_session!.PreviewMoveCapturedSlot(source, target, after)));
+            });
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
@@ -51,7 +57,7 @@ namespace Heimdall.App.Games
         }
         #region BEGIN Public
         /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
-        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _identification.Dispose(); GC.SuppressFinalize(this); }
+        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _identification.Dispose(); _reordering.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Refreshes capability evidence asynchronously; failed, obsolete or closed-window scans cannot enable assignments.</summary>
         internal async Task RefreshControllerInputsAsync()
         {
@@ -238,6 +244,7 @@ namespace Heimdall.App.Games
             LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
             RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
+            ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
@@ -277,7 +284,21 @@ namespace Heimdall.App.Games
         {
             if (UnlinkControllerButton.IsEnabled && SelectedController is { } id) ReviewLink(_session!.PreviewCapturedDeviceUnlink(id));
         });
-        private void RemoveUnusedSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
+        private void ReviewNativeChange(GameControllerChange change)
+        {
+            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
+            _session!.ApplyControllerChange(change);
+            Refresh(false);
+            if (change.ResultDeviceId is { } id)
+                DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == id);
+            StatusText.Text = "Native Squadrons assignments / slots updated in the draft. Save before exporting a review copy.";
+        }
+        private void ClearSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (ClearSlotButton.IsEnabled && SelectedController is { } id)
+                ReviewNativeChange(_session!.PreviewClearCapturedAssignments(id));
+        });
+                private void RemoveUnusedSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (!RemoveUnusedSlotButton.IsEnabled || SelectedController is not { } id) return;
             var change = _session!.PreviewRemoveUnusedCapturedDevice(id);
