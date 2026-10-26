@@ -62,8 +62,11 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("A native record template for this command is not verified. Capture a binding for this command once to establish its identifier.");
             if (Bindings.Count(x => x.Concept == concept) >= 128)
                 throw new InvalidOperationException("Too many native binding records for this command.");
-            var index = Enumerable.Range(0, 128).FirstOrDefault(n => !Bindings.Any(x => x.Concept == concept && x.Index == n), -1);
-            if (index < 0) throw new InvalidOperationException("No free native binding index.");
+            // Preserve existing concept-local slot ordering instead of filling an
+            // earlier hole (which may represent a different input family).
+            // The game's acceptance of appended slots still requires in-game verification.
+            var index = Bindings.Where(x => x.Concept == concept).Max(x => x.Index) + 1;
+            if (index >= 128) throw new InvalidOperationException("No free native binding index.");
             var encoded = SquadronsInputCodec.Encode(input);
             var values = new Dictionary<string, int>(StringComparer.Ordinal)
             {
