@@ -156,8 +156,10 @@ encodes the input using the shared Squadrons codec, and verifies all
 existing native records retain their original fields after round-trip
 import. This is an initial safe creation path, not yet full from-scratch
 authoring: commands with **no captured template at all** are deliberately
-blocked pending verified identifier discovery; unsupported/ambiguous
-directional drawing controls also remain blocked. Review copies are
+blocked pending verified identifier discovery; axis drawing drops ask for an explicit positive or negative direction.
+Unsupported or unverified control encodings remain blocked. The appended native
+index follows the highest index already captured for the same concept; game
+acceptance of additional native record indices still needs in-game testing. Review copies are
 exported separately; active game settings are never overwritten.
 
 ## Smart navigation for controller drawings
