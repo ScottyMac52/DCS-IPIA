@@ -11,7 +11,7 @@
             <TextBlock x:Name="StatusText" Style="{StaticResource AppLabel}" />
             <WrapPanel Margin="0,8,0,0">
                 <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource AppLabel}"/>
-                <ComboBox x:Name="ModifiersScope" Width="160" SelectionChanged="ScopeChanged" Style="{StaticResource AppComboBox}">
+                <ComboBox x:Name="ModifiersScope" Width="160" SelectionChanged="ScopeChanged" Style="{StaticResource ToolbarComboBox}">
                     <ComboBoxItem Content="Module"/>
                     <ComboBoxItem Content="Module UI Layer"/>
                 </ComboBox>
