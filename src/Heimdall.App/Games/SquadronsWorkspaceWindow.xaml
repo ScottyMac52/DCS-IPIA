@@ -167,12 +167,11 @@
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Zoom" Margin="12,0,8,0"/>
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
        <Button x:Name="FitDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Fit" Margin="8,0,0,0" Click="FitDrawingClicked" ToolTip="Fit controller drawing to the available pane"/>
-       <TextBlock x:Name="DrawingScrollMetrics" Style="{StaticResource Hint}" Margin="12,0,0,0" VerticalAlignment="Center" ToolTip="Live drawing viewport / scrollable extent / vertical offset for troubleshooting"/>
       </WrapPanel>
       <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
            between them can mask the vertically transformed content extent. -->
       <Grid Grid.Row="1" MinHeight="0" ClipToBounds="True">
-       <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ScrollChanged="DrawingScrollChanged" CanContentScroll="False" Focusable="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
+       <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="False" Focusable="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
         <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top"/>
        </ScrollViewer>
        <TextBlock x:Name="DrawingHint" Text="Choose a linked controller and select a shared hardware drawing above." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap" IsHitTestVisible="False"/>
