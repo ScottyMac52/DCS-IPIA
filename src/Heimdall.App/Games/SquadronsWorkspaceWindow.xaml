@@ -96,9 +96,9 @@
      <Expander Header="Command filters" IsExpanded="True" Margin="0,8,0,4">
       <Grid Margin="0,6,0,4">
        <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="80"/><ColumnDefinition Width="190"/>
-        <ColumnDefinition Width="90"/><ColumnDefinition Width="190"/>
-        <ColumnDefinition Width="100"/><ColumnDefinition Width="240"/>
+        <ColumnDefinition Width="80"/><ColumnDefinition Width="1*"/>
+        <ColumnDefinition Width="90"/><ColumnDefinition Width="1*"/>
+        <ColumnDefinition Width="100"/><ColumnDefinition Width="1.25*"/>
        </Grid.ColumnDefinitions>
        <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/>
