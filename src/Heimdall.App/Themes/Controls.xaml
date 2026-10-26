@@ -66,6 +66,11 @@
             <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/></Trigger>
         </Style.Triggers>
     </Style>
+    <!-- Consistent with ToolbarActionButton: horizontal toolbar selectors are 30 pixels high. -->
+    <Style x:Key="ToolbarComboBox" TargetType="ComboBox" BasedOn="{StaticResource AppComboBox}">
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
     <Style x:Key="ToolbarActionButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="Width" Value="176"/>
