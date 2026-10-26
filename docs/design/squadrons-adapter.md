@@ -96,6 +96,16 @@ was detected by Squadrons or that every connected device can be acquired togethe
 
 ## Command-first assignment workflow (in progress)
 
+Command catalog filtering now follows the DCS/Elite pattern: context,
+input type (axes, buttons/hats, unknown or unbound), assignment status
+(on the selected controller or anywhere), and case-insensitive name/native
+concept search. These filters are computed by the game-specific pure
+`SquadronsCommandFilter` and do not hide unassigned commands merely because
+they have no native record. A command without any captured input has unknown
+type; HEIMDALL does not guess that Pitch/Yaw are axis-only without evidence.
+The catalog and captured-binding table have separate filters and independent
+counts. **Clear filters** restores the complete known/imported command list.
+
 The Squadrons workspace now includes a **Command** browser that uses the adapter's
 captured command catalog rather than inventing commands in WPF. **Show assignments**
 selects the command's context and reveals its existing native records. The binding
