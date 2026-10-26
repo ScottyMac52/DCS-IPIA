@@ -293,8 +293,8 @@ namespace Heimdall.App.Games
                 {
                     var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
                     return control.Label + " · " + control.InputKey +
-                        (matches.Count == 0 ? "\\nNo captured assignments" :
-                            "\\n" + string.Join("\\n", matches.Select(x => x.CommandName + " · " + x.InputLabel)));
+                        (matches.Count == 0 ? "\nNo captured assignments" :
+                            "\n" + string.Join("\n", matches.Select(x => x.CommandName + " · " + x.InputLabel)));
                 },
                 SquadronsCommandDragFormat);
             DrawingHint.Visibility = Visibility.Collapsed;
