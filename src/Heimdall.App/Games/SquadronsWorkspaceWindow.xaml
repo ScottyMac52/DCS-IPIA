@@ -79,7 +79,8 @@
     </ListBox>
    </DockPanel>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>
-   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="265" MinHeight="105"/><RowDefinition Height="6"/><RowDefinition Height="*" MinHeight="140"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel>
      <!-- Compact captured-record filters, independent of the command catalog filters. -->
      <Grid>
@@ -126,7 +127,9 @@
      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap"/>
     </StackPanel>
-    <DataGrid x:Name="BindingsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" SelectionChanged="BindingChanged" AutomationProperties.Name="Squadrons assignments">
+    </ScrollViewer>
+    <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="{DynamicResource WindowBackgroundBrush}" ToolTip="Drag to resize Filters and Assignments"/>
+    <DataGrid x:Name="BindingsGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" SelectionChanged="BindingChanged" AutomationProperties.Name="Squadrons assignments">
      <DataGrid.ContextMenu>
       <ContextMenu>
        <MenuItem Header="Edit selected assignment" Click="EditSelectedClicked"/>
@@ -142,8 +145,9 @@
       <DataGridTextColumn x:Name="BindingColumn" Header="Binding" Binding="{Binding BindingLabel}" Width="85" Visibility="Collapsed"/>
      </DataGrid.Columns>
     </DataGrid>
-    <TextBlock x:Name="EmptyState" Grid.Row="1" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
-    <Expander x:Name="DrawingPanel" Grid.Row="2" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded">
+    <TextBlock x:Name="EmptyState" Grid.Row="2" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
+    <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="{DynamicResource WindowBackgroundBrush}" ToolTip="Drag to resize Assignments and Drawing"/>
+    <Expander x:Name="DrawingPanel" Grid.Row="4" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded">
      <DockPanel Margin="0,6,0,0">
       <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Hardware drawing"/>
@@ -158,7 +162,7 @@
       </ScrollViewer>
      </DockPanel>
     </Expander>
-    <StackPanel x:Name="AssignmentEditor" Grid.Row="3" Margin="0,12,0,0" Visibility="Collapsed">
+    <StackPanel x:Name="AssignmentEditor" Grid.Row="5" Margin="0,12,0,0" Visibility="Collapsed">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
       <ComboBox x:Name="TargetDevice" Style="{StaticResource ToolbarComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
