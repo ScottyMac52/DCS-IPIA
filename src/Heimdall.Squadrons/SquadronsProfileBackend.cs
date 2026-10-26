@@ -106,6 +106,14 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Captured slot removal validation failed.");
             return result;
         }
+        /// <summary>Counts all indexed records, including unknown joystick encodings, for one captured slot.</summary>
+        public int CountCapturedAssignments(ProfileDocument profile, string logicalDeviceId)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            return new SquadronsNativeDocument(evidence.Text).Bindings.Count(x => x.Type == 3 && x.DeviceId == slot - 1);
+        }
         /// <summary>Clears every native joystick binding owned by the captured slot, preserving all other settings.</summary>
         public ProfileDocument ClearCapturedAssignments(ProfileDocument profile, string logicalDeviceId)
         {
