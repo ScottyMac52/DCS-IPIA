@@ -236,10 +236,23 @@ namespace Heimdall.Tests
                 "system.2", includeUnverified: false);
             var capturedKey = Assert.Single(keyboard);
             Assert.False(capturedKey.Editable);
-            Assert.StartsWith("Keyboard · button code 57 · axis code 26", capturedKey.InputLabel, StringComparison.Ordinal);
+            Assert.StartsWith("Keyboard · button code 57 · axis code 26", capturedKey.InputLabel);
             Assert.Equal("Preserved system input", capturedKey.HardwareStatus);
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "system.0",
                 includeUnverified: false));
+            foreach (var (type, label) in new[] { (0, "Mouse"), (1, "Gamepad") })
+            {
+                var variant = source.Replace("IncomStarshipInputConcepts.ConceptMenu.0.type 2",
+                    "IncomStarshipInputConcepts.ConceptMenu.0.type " + type, StringComparison.Ordinal);
+                var testProfile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = variant });
+                var testRows = SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(testProfile),
+                    new Dictionary<string, IReadOnlyCollection<string>>());
+                var systemRow = Assert.Single(SquadronsWorkspaceProjection.Filter(testRows, "All", "All inputs", "",
+                    "system." + type, includeUnverified: false));
+                Assert.StartsWith(label + " · button code 57", systemRow.InputLabel);
+                Assert.False(systemRow.Editable);
+                Assert.Equal(variant, backend.Export(testProfile).Files[SquadronsProfileBackend.FileName]);
+            }
             Assert.Throws<InvalidOperationException>(() =>
                 backend.ClearCapturedRecord(profile, capturedKey.RecordId));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
