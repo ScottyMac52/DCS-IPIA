@@ -249,7 +249,7 @@ namespace Heimdall.Tests
                     new Dictionary<string, IReadOnlyCollection<string>>());
                 var systemRow = Assert.Single(SquadronsWorkspaceProjection.Filter(testRows, "All", "All inputs", "",
                     "system." + type, includeUnverified: false));
-                Assert.Equal(type == 0 ? "Mouse · axis code 26" : "Gamepad · button code 57", systemRow.InputLabel);
+                Assert.Equal(type == 0 ? "Mouse · Button 57" : "Gamepad · button code 57", systemRow.InputLabel);
                 Assert.False(systemRow.Editable);
                 Assert.Equal(variant, backend.Export(testProfile).Files[SquadronsProfileBackend.FileName]);
             }
