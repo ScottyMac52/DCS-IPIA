@@ -331,11 +331,18 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             var command = CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
-            var count = command is null ? 0 : _rows.Count(row => row.Native.Concept ==
+            if (command is null || _session is null)
+            {
+                CommandHint.Text = "Choose a command to inspect its saved binding records.";
+                return;
+            }
+            var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
-            CommandHint.Text = command is null ? "Choose a command to inspect its saved binding records." :
-                command.DisplayName + " · " + command.Category + " · " + count +
-                " captured records. New native binding creation requires a verified record template.";
+            CommandHint.Text = command.DisplayName + " · " + command.Category + " · " +
+                plan.CapturedRecords + " captured records · " + plan.EditableRecords +
+                " supported replacement records. " + (plan.CanReplaceCapturedRecord
+                    ? "Select an existing assignment below to change its verified controller input."
+                    : "Creating a new native record is not yet validated; no guessed slot will be written.");
         }
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
