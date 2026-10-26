@@ -24,7 +24,7 @@ namespace Heimdall.App.Games
         private readonly EliteDevicesView _devicesView = new();
         private readonly EliteAssignmentsView _assignmentsView = new();
         private readonly EliteReferenceSheetsView _referenceView = new();
-        private readonly EliteControllerReordering _reordering;
+        private readonly GameControllerReordering _reordering;
         private readonly DependencyPropertyDescriptor _inputTextProperty = DependencyPropertyDescriptor.FromProperty(ComboBox.TextProperty, typeof(ComboBox))!;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
