@@ -143,6 +143,18 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
+## Smart navigation for controller drawings
+
+Squadrons uses the existing shared `DiagramViewport` with opt-in smart
+navigation. **Fit** automatically scales artwork to the resized drawing pane;
+the **Zoom** slider supports 10–300% manual scale and retains the existing
+workspace layout persistence rules. **Ctrl+mouse wheel** zooms around the
+pointer, ordinary wheel scrolls vertically, **Shift+wheel** scrolls horizontally,
+and **middle-button drag** pans the enlarged artwork. Mouse-based navigation
+is scoped to the drawing viewport, not the command filters or assignment grid.
+Existing click-to-select and drag-to-assign drawing controls remain intact.
+This does not modify native Squadrons records.
+
 ## Resizable filters, assignments, and drawing
 
 The Squadrons workspace separates the top command-filter region from the
