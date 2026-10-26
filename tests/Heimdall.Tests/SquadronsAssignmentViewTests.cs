@@ -366,6 +366,15 @@ namespace Heimdall.Tests
                 row.Fields.All(pair => candidate.Fields.TryGetValue(pair.Key, out var value) && value == pair.Value)));
             Assert.Contains(next, row => row.Concept == "IncomStarshipInputConcepts.ConceptThrottle" &&
                 row.Index == 6 && row.DeviceId == 4 && row.Input == input);
+            // A command with only a keyboard record can acquire its first joystick
+            // assignment using the captured concept's identifier without touching the keyboard input.
+            var menu = backend.AddJoystickBinding(profile, "IncomStarshipInputConcepts.ConceptMenu",
+                "squadrons.joystick.5", input);
+            var menuRows = backend.ReadBindings(menu);
+            Assert.Contains(menuRows, row => row.Concept == "IncomStarshipInputConcepts.ConceptMenu" &&
+                row.Type == 2 && row.Fields["button"] == 57);
+            Assert.Contains(menuRows, row => row.Concept == "IncomStarshipInputConcepts.ConceptMenu" &&
+                row.Type == 3 && row.DeviceId == 4 && row.Input == input);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Throws<InvalidOperationException>(() => backend.AddJoystickBinding(profile,
                 "IncomStarshipInputConcepts.ConceptYaw", "squadrons.joystick.5", input));
