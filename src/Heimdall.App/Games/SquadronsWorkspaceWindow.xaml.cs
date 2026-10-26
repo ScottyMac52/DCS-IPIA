@@ -157,6 +157,13 @@ namespace Heimdall.App.Games
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
             DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
+            var selectedCommand = (CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
+            var catalog = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands
+                .OrderBy(command => command.Category, StringComparer.Ordinal)
+                .ThenBy(command => command.DisplayName, StringComparer.Ordinal).ToArray();
+            CommandPicker.ItemsSource = catalog;
+            CommandPicker.SelectedItem = CommandPicker.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>()
+                .FirstOrDefault(x => x.Id == selectedCommand);
             TargetDevice.ItemsSource = devices;
             var verified = new Dictionary<string, IReadOnlyCollection<string>>();
             if (snapshot is not null)
@@ -320,6 +327,40 @@ namespace Heimdall.App.Games
             Run(RescanControllers); await RefreshControllerInputsAsync();
         }
         private void ConnectedChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateControllerAvailability); }
+        private void CommandChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            var command = CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
+            var count = command is null ? 0 : _rows.Count(row => row.Native.Concept ==
+                command.Metadata["squadrons.concept"]);
+            CommandHint.Text = command is null ? "Choose a command to inspect its saved binding records." :
+                command.DisplayName + " · " + command.Category + " · " + count +
+                " captured records. New native binding creation requires a verified record template.";
+        }
+        private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return;
+            SectionPicker.SelectedItem = command.Category;
+            ReviewCaptured.IsChecked = true;
+            var match = _rows.FirstOrDefault(row => row.Native.Concept == command.Metadata["squadrons.concept"]
+                && (SelectedController is null || row.DeviceId == SelectedController));
+            if (match is not null)
+                BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
+                    .FirstOrDefault(row => row.RecordId == match.RecordId);
+            if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
+            else CommandHint.Text = "No captured assignment matches this command and controller. No new native records were written.";
+        });
+        private void EditSelectedClicked(object sender, RoutedEventArgs e)
+        {
+            if (BindingsGrid.SelectedItem is SquadronsWorkspaceRow)
+                UpdateEditor();
+        }
+        private void ClearSelectedClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Native.Type: 3 } row)
+                throw new InvalidOperationException("Choose an existing joystick assignment to clear.");
+            ReviewNativeChange(_session!.PreviewClearCapturedRecord(row.RecordId));
+        });
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Editable: true } row || TargetDevice.SelectedItem is not GameDeviceChoice device || InputPicker.SelectedItem is not SquadronsInput input)
