@@ -13,9 +13,9 @@ namespace Heimdall.Squadrons
             ArgumentNullException.ThrowIfNull(commands);
             ArgumentNullException.ThrowIfNull(records);
             var rows = records.ToLookup(x => x.Concept, StringComparer.Ordinal);
-            var slot = controllerId is null ? (int?)null
-                : int.Parse(controllerId["squadrons.joystick.".Length..],
-                    System.Globalization.CultureInfo.InvariantCulture) - 1;
+            // Controller IDs are domain references, not interchangeable numeric indices.
+            // "all" means all input sources; system.0/1/2 are native read-only input types.
+            var selection = ParseSource(controllerId);
             var query = (search ?? "").Trim();
             return commands.Where(command =>
             {
@@ -28,7 +28,13 @@ namespace Heimdall.Squadrons
                 if (inputType == "Buttons and hats" && !joystick.Any(x => x.Input!.Type is CommandType.Button or CommandType.Hat)) return false;
                 if (inputType == "Unknown / unbound" && joystick.Length > 0) return false;
                 var any = native.Length > 0;
-                var onController = native.Any(x => x.Type == 3 && (slot is null || x.DeviceId == slot));
+                var onController = native.Any(x => selection.Kind switch
+                {
+                    SourceKind.All => true,
+                    SourceKind.Joystick => x.Type == 3 && x.DeviceId == selection.Index,
+                    SourceKind.System => x.Type == selection.Index,
+                    _ => false
+                });
                 if (assignmentStatus == "Assigned to selected controller" && !onController) return false;
                 if (assignmentStatus == "Not assigned to selected controller" && onController) return false;
                 if (assignmentStatus == "Assigned anywhere" && !any) return false;
@@ -38,6 +44,22 @@ namespace Heimdall.Squadrons
                     || command.Category.Contains(query, StringComparison.OrdinalIgnoreCase);
             }).OrderBy(x => x.Category, StringComparer.Ordinal)
                 .ThenBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+        }
+        private enum SourceKind { All, Joystick, System }
+        private readonly record struct Source(SourceKind Kind, int Index);
+
+        /// <summary>Rejects malformed device references instead of slicing arbitrary strings.</summary>
+        private static Source ParseSource(string? id)
+        {
+            if (id is null or "all") return new(SourceKind.All, -1);
+            const string joystick = "squadrons.joystick.";
+            if (id.StartsWith(joystick, StringComparison.Ordinal) &&
+                int.TryParse(id[joystick.Length..], System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out var slot) && slot is >= 1 and <= 10)
+                return new(SourceKind.Joystick, slot - 1);
+            if (id is "system.0" or "system.1" or "system.2")
+                return new(SourceKind.System, id[^1] - '0');
+            throw new ArgumentException("Unsupported Squadrons assignment source.", nameof(id));
         }
     }
 }
