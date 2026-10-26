@@ -89,7 +89,7 @@
     </ListBox>
    </DockPanel>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>
-   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="265" MinHeight="105"/><RowDefinition Height="6"/><RowDefinition Height="*" MinHeight="140"/><RowDefinition Height="6"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="265" MinHeight="105"/><RowDefinition Height="6"/><RowDefinition Height="*" MinHeight="100"/><RowDefinition Height="6"/><RowDefinition x:Name="DrawingRow" Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel>
      <!-- Compact captured-record filters, independent of the command catalog filters. -->
@@ -156,15 +156,15 @@
      </DataGrid.Columns>
     </DataGrid>
     <TextBlock x:Name="EmptyState" Grid.Row="2" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
-    <GridSplitter Grid.Row="3" Style="{StaticResource SquadronsSectionSplitter}" ToolTip="Drag to resize Assignments and Drawing"/>
-    <Expander x:Name="DrawingPanel" Grid.Row="4" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded">
+    <GridSplitter x:Name="DrawingSplitter" Grid.Row="3" Visibility="Collapsed" Style="{StaticResource SquadronsSectionSplitter}" ToolTip="Drag to resize Assignments and Drawing"/>
+    <Expander x:Name="DrawingPanel" Grid.Row="4" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded" Collapsed="DrawingCollapsed">
      <DockPanel Margin="0,6,0,0">
       <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Hardware drawing"/>
        <ComboBox x:Name="DrawingPicker" Style="{StaticResource ToolbarComboBox}" Width="340" DisplayMemberPath="Title" SelectionChanged="DrawingChanged" AutomationProperties.Name="Squadrons shared hardware drawing"/>
        <Button x:Name="ClearDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Hide drawing" Click="ClearDrawingClicked"/>
       </WrapPanel>
-      <ScrollViewer Height="250" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
        <Grid>
         <TextBlock x:Name="DrawingHint" Text="Choose a linked controller and select a shared hardware drawing above." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap"/>
         <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200"/>
