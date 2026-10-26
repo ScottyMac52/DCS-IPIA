@@ -94,6 +94,24 @@ The desktop shows decoded inputs (including continuous Z-axis directions), captu
 slot ownership and individual indexed records. It does not claim that a saved slot
 was detected by Squadrons or that every connected device can be acquired together.
 
+## Command-first assignment workflow (in progress)
+
+The Squadrons workspace now includes a **Command** browser that uses the adapter's
+captured command catalog rather than inventing commands in WPF. **Show assignments**
+selects the command's context and reveals its existing native records. The binding
+table has **Edit selected assignment** and **Clear selected assignment…** context
+actions; clearing previews the exact native record, uses the shared session's
+stale-review protection, and preserves every unrelated setting and record.
+
+This is **not yet an Add binding operation**: a previously unbound concept may have
+no safely reusable native joystick record. The writer still requires a captured
+record for assignment replacement, and no arbitrary binding index, `identifier`,
+native default, or grip-dependent control is synthesized. Complete creation, shared
+hardware drawings, drawing callouts, drag/drop commands, label overrides, and
+context-menu assignment to an illustrated control remain follow-on work. Drawings
+should use `GameWorkspaceServices.HardwareAsync` and the canonical diagram
+presenter, and must never imply controller recognition or a particular attached grip.
+
 ## Physical controller links
 
 1. Select a numbered captured slot under **Captured controllers**. **All devices and
