@@ -122,6 +122,23 @@ context-menu assignment to an illustrated control remain follow-on work. Drawing
 should use `GameWorkspaceServices.HardwareAsync` and the canonical diagram
 presenter, and must never imply controller recognition or a particular attached grip.
 
+## Read-only native system assignments
+
+The controller selector includes separate **Mouse**, **Keyboard**, and **Gamepad**
+entries whenever a Squadrons profile is loaded. Selecting one changes the captured
+binding view to **All** contexts and exposes the matching records even with
+advanced review disabled. These entries cannot be linked, dragged to reorder native
+joystick slots, or edited/cleared as joystick bindings. They are kept in original
+native evidence and round-trip without mutation.
+
+Where a system input's actual key/button mapping has not been verified, the table
+shows the original numeric native `button` and `axis` codes instead of the
+misleading generic “Preserved native input” label or an invented Windows key name.
+This is a read-only diagnostic representation, not a decoded human-readable key
+map. The Squadrons toolbar now uses a single 8-pixel gap between its shared
+ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
+toolbar control height.
+
 ## Physical controller links
 
 1. Select a numbered captured slot under **Captured controllers**. **All devices and
