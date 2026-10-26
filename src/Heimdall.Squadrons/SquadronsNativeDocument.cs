@@ -46,6 +46,15 @@ namespace Heimdall.Squadrons
             }
             return string.Join("\n", lines);
         }
+        /// <summary>Removes exactly one scalar setting without changing unrelated native lines.</summary>
+        public string RemoveSetting(string key)
+        {
+            if (!Values.ContainsKey(key)) throw new InvalidOperationException("Setting does not exist.");
+            var lines = Text.Split('\n');
+            var kept = lines.Where(line => !line.StartsWith(key + " ", StringComparison.Ordinal)).ToArray();
+            if (kept.Length != lines.Length - 1) throw new InvalidOperationException("Ambiguous setting removal.");
+            return string.Join("\n", kept);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static List<SquadronsBindingRow> ReadBindings(Dictionary<string, string> values)
