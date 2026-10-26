@@ -149,7 +149,11 @@ The Squadrons workspace separates the top command-filter region from the
 captured-assignment grid with a draggable horizontal splitter. A second
 horizontal splitter sits between the assignment grid and the hardware drawing.
 The filters scroll within their allocated height; the assignment list remains
-independently scrollable. Collapsing the drawing keeps it optional.
+independently scrollable. When the drawing expands, its row becomes star-sized
+so the lower splitter genuinely redistributes space between assignments and
+artwork; the drawing scroll viewer fills the resized viewport instead of
+enforcing a fixed 250-pixel height. Collapsing the drawing hides its splitter,
+restores its row to Auto, and returns the available height to assignments.
 
 Once a linked joystick slot is associated with a shared drawing, its existing
 captured native joystick bindings automatically populate the diagram's callout
