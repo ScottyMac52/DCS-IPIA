@@ -118,8 +118,7 @@ namespace Heimdall.Application.Games
             RequireCapturedDevice(logicalId);
             if (_backend is not ISimCapturedDeviceLinks adapter)
                 throw new InvalidOperationException("Native joystick clearing is unavailable for this simulator.");
-            var before = adapter.ReadBindings(_current.Profile).Count(x => x.Type == 3 &&
-                x.DeviceId == int.Parse(logicalId["squadrons.joystick.".Length..], System.Globalization.CultureInfo.InvariantCulture) - 1);
+            var before = adapter.CountCapturedAssignments(_current.Profile, logicalId);
             if (before == 0) throw new InvalidOperationException("No captured joystick assignments exist on this slot.");
             var candidate = Snapshot;
             candidate = candidate with { Profile = adapter.ClearCapturedAssignments(candidate.Profile, logicalId) };
