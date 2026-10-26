@@ -319,7 +319,21 @@ namespace Heimdall.App.Games
         });
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
+            // A GridSplitter cannot resize an Auto row; give the open drawing
+            // a share of the available height rather than relying on its content size.
+            DrawingRow.MinHeight = 100;
+            DrawingRow.Height = new GridLength(1, GridUnitType.Star);
+            DrawingSplitter.Visibility = Visibility.Visible;
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
+        }
+        private void DrawingCollapsed(object sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
+            // Return all reclaimed space to the assignment list when artwork is hidden.
+            DrawingSplitter.Visibility = Visibility.Collapsed;
+            DrawingRow.MinHeight = 0;
+            DrawingRow.Height = GridLength.Auto;
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
