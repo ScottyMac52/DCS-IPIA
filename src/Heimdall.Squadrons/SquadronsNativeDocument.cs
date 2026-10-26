@@ -55,6 +55,47 @@ namespace Heimdall.Squadrons
             if (kept.Length != lines.Length - 1) throw new InvalidOperationException("Ambiguous setting removal.");
             return string.Join("\n", kept);
         }
+        /// <summary>Deletes complete indexed joystick binding records for one captured slot, including unsupported encodings.</summary>
+        public string RemoveJoystickBindings(int slot)
+        {
+            if (slot is < 1 or > 10) throw new ArgumentOutOfRangeException(nameof(slot));
+            var prefixes = Bindings.Where(row => row.Type == 3 && row.DeviceId == slot - 1)
+                .Select(row => BindingPrefix + row.RecordId + ".").ToArray();
+            return string.Join("\n", Text.Split('\n').Where(line =>
+                !prefixes.Any(prefix => line.StartsWith(prefix, StringComparison.Ordinal))));
+        }
+        /// <summary>Atomically reassigns native declarations and all joystick device references to a contiguous ordered slot list.</summary>
+        public string ReorderJoystickSlots(IReadOnlyList<int> orderedSlots)
+        {
+            ArgumentNullException.ThrowIfNull(orderedSlots);
+            if (orderedSlots.Count is < 1 or > 10 || orderedSlots.Distinct().Count() != orderedSlots.Count
+                || orderedSlots.Any(slot => slot is < 1 or > 10
+                    || !Values.ContainsKey("GstInput.JoystickDevice" + slot)))
+                throw new InvalidOperationException("Supply each captured joystick slot exactly once.");
+            var declared = Values.Keys.Where(x => x.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
+            if (declared.Length != orderedSlots.Count)
+                throw new InvalidOperationException("Reordering must include every captured joystick slot.");
+            var map = orderedSlots.Select((slot, index) => (slot, next: index + 1)).ToDictionary(x => x.slot, x => x.next);
+            if (Bindings.Any(row => row.Type == 3 && !map.ContainsKey(row.DeviceId + 1)))
+                throw new InvalidOperationException("Native joystick bindings reference a slot absent from this profile.");
+            var deviceKeys = Values.Keys.Where(x => x.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
+            var bindingKeys = Bindings.Where(x => x.Type == 3).Select(x => BindingPrefix + x.RecordId + ".deviceid").ToDictionary(
+                key => key, key => map[int.Parse(Values[key], CultureInfo.InvariantCulture) + 1] - 1, StringComparer.Ordinal);
+            return string.Join("\n", Text.Split('\n').Select(line =>
+            {
+                var delimiter = line.IndexOf(' ');
+                if (delimiter < 0) return line;
+                var key = line[..delimiter];
+                if (deviceKeys.Contains(key))
+                {
+                    var slot = int.Parse(key["GstInput.JoystickDevice".Length..], CultureInfo.InvariantCulture);
+                    return "GstInput.JoystickDevice" + map[slot] + line[delimiter..];
+                }
+                if (bindingKeys.TryGetValue(key, out var deviceId))
+                    return key + " " + deviceId.ToString(CultureInfo.InvariantCulture) + (line.EndsWith('\r') ? "\r" : "");
+                return line;
+            }));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static List<SquadronsBindingRow> ReadBindings(Dictionary<string, string> values)
