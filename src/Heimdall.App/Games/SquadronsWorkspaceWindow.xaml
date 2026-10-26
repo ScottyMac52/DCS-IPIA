@@ -11,7 +11,7 @@
  <Grid Margin="16"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <StackPanel>
    <WrapPanel>
-    <ComboBox x:Name="GamePicker" Style="{StaticResource AppComboBox}" VerticalAlignment="Center" Width="200" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection">
+    <ComboBox x:Name="GamePicker" Style="{StaticResource ToolbarComboBox}" VerticalAlignment="Center" Width="200" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection">
      <ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/>
     </ComboBox>
     <Button x:Name="ImportButton" Style="{StaticResource SquadronsActionButton}" Content="Import controls…" Click="ImportClicked" Margin="8,0,0,0"/>
@@ -21,7 +21,7 @@
    </WrapPanel>
    <WrapPanel Margin="0,8,0,8">
     <TextBlock Style="{StaticResource AppLabel}" Text="Saved profile" VerticalAlignment="Center" Margin="0,0,8,0"/>
-    <ComboBox x:Name="ProfilePicker" Style="{StaticResource AppComboBox}" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" AutomationProperties.Name="Squadrons saved profile"/>
+    <ComboBox x:Name="ProfilePicker" Style="{StaticResource ToolbarComboBox}" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" AutomationProperties.Name="Squadrons saved profile"/>
     <TextBlock Style="{StaticResource AppLabel}" Text="Name" VerticalAlignment="Center" Margin="16,0,8,0"/>
     <TextBox x:Name="ProfileName" Style="{StaticResource AppTextBox}" Width="220" MaxLength="100" TextChanged="NameChanged" AutomationProperties.Name="Squadrons configuration name"/>
     <TextBlock x:Name="SaveState" Style="{StaticResource Hint}" Margin="12,4,0,0"/>
@@ -66,8 +66,8 @@
    <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
      <WrapPanel>
-      <ComboBox x:Name="SectionPicker" Style="{StaticResource AppComboBox}" Width="190" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons command context"/>
-      <ComboBox x:Name="TypePicker" Style="{StaticResource AppComboBox}" Width="170" Margin="8,0,0,0" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons input type"/>
+      <ComboBox x:Name="SectionPicker" Style="{StaticResource ToolbarComboBox}" Width="190" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons command context"/>
+      <ComboBox x:Name="TypePicker" Style="{StaticResource ToolbarComboBox}" Width="170" Margin="8,0,0,0" SelectionChanged="FilterChanged" AutomationProperties.Name="Squadrons input type"/>
       <TextBox x:Name="Search" Style="{StaticResource AppTextBox}" Width="200" Margin="8,0,0,0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons commands"/>
      </WrapPanel>
      <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False" Checked="CaptureReviewChanged" Unchecked="CaptureReviewChanged" Margin="0,8,0,0" AutomationProperties.Name="Review all Squadrons captured records"/>
