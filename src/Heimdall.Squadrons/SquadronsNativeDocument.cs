@@ -55,6 +55,19 @@ namespace Heimdall.Squadrons
             if (kept.Length != lines.Length - 1) throw new InvalidOperationException("Ambiguous setting removal.");
             return string.Join("\n", kept);
         }
+        /// <summary>Removes one exact native joystick record, never an unrelated command or system input.</summary>
+        public string RemoveJoystickRecord(string recordId)
+        {
+            var selected = Bindings.SingleOrDefault(row => row.RecordId == recordId);
+            if (selected is null || selected.Type != 3)
+                throw new InvalidOperationException("Select one existing joystick binding record.");
+            var prefix = BindingPrefix + recordId + ".";
+            var lines = Text.Split('\n');
+            var retained = lines.Where(line => !line.StartsWith(prefix, StringComparison.Ordinal)).ToArray();
+            if (lines.Length - retained.Length != selected.Fields.Count)
+                throw new InvalidOperationException("Native record removal did not match the complete captured record.");
+            return string.Join("\n", retained);
+        }
         /// <summary>Deletes complete indexed joystick binding records for one captured slot, including unsupported encodings.</summary>
         public string RemoveJoystickBindings(int slot)
         {
