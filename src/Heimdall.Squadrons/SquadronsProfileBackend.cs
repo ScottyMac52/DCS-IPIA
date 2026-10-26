@@ -83,6 +83,30 @@ namespace Heimdall.Squadrons
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
             return RebindJoystick(profile, recordId, slot, new(key, type, direction));
         }
+        /// <summary>Adds a new record for a captured command using its verified native identifier.
+        /// All other native records and scalar settings must remain identical.</summary>
+        public ProfileDocument AddJoystickBinding(ProfileDocument profile, string concept,
+            string logicalDeviceId, SquadronsInput input)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.SingleOrDefault(x => x.LogicalId == logicalDeviceId)
+                ?? throw new InvalidOperationException("Select a captured Squadrons joystick slot.");
+            if (!GetCatalog(profile).Commands.Any(x => x.Metadata["squadrons.concept"] == concept))
+                throw new InvalidOperationException("Unknown Squadrons command concept.");
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"],
+                System.Globalization.CultureInfo.InvariantCulture);
+            var original = new SquadronsNativeDocument(evidence.Text);
+            var written = new SquadronsNativeDocument(original.AppendJoystickRecord(concept, slot, input));
+            if (written.Bindings.Count != original.Bindings.Count + 1 ||
+                original.Bindings.Any(old => !written.Bindings.Any(next =>
+                    next.RecordId == old.RecordId && next.Fields.Count == old.Fields.Count &&
+                    old.Fields.All(f => next.Fields.TryGetValue(f.Key, out var v) && v == f.Value))) ||
+                written.Bindings.ExceptBy(original.Bindings.Select(x => x.RecordId), x => x.RecordId)
+                    .SingleOrDefault() is not { } added ||
+                added.Concept != concept || added.Type != 3 || added.DeviceId != slot - 1 || added.Input != input)
+                throw new InvalidOperationException("Native record creation failed round-trip validation.");
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = written.Text });
+        }
         /// <summary>Allows explicit workspace-only links to named captured slots without inferring hardware from their names.</summary>
         public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)
         {
