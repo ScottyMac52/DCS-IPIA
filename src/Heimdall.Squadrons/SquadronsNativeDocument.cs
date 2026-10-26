@@ -46,6 +46,38 @@ namespace Heimdall.Squadrons
             }
             return string.Join("\n", lines);
         }
+        /// <summary>Appends a complete version-four joystick record using proven identifiers from
+        /// existing records for the exact command concept. Unknown command templates fail closed.</summary>
+        public string AppendJoystickRecord(string concept, int slot, SquadronsInput input)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(concept);
+            ArgumentNullException.ThrowIfNull(input);
+            if (slot is < 1 or > 10 || !Values.ContainsKey("GstInput.JoystickDevice" + slot))
+                throw new InvalidOperationException("Select an existing named Squadrons joystick slot.");
+            var templates = Bindings.Where(row => row.Concept == concept &&
+                row.Fields.Count == RequiredFields.Length && row.Fields["modifier"] == 0 &&
+                row.Fields["altbutton"] == 0).ToArray();
+            var identifiers = templates.Select(x => x.Fields["identifier"]).Distinct().ToArray();
+            if (identifiers.Length != 1)
+                throw new InvalidOperationException("A native record template for this command is not verified. Capture a binding for this command once to establish its identifier.");
+            if (Bindings.Count(x => x.Concept == concept) >= 128)
+                throw new InvalidOperationException("Too many native binding records for this command.");
+            var index = Enumerable.Range(0, 128).FirstOrDefault(n => !Bindings.Any(x => x.Concept == concept && x.Index == n), -1);
+            if (index < 0) throw new InvalidOperationException("No free native binding index.");
+            var encoded = SquadronsInputCodec.Encode(input);
+            var values = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["altbutton"] = 0, ["axis"] = encoded.Axis, ["button"] = encoded.Button,
+                ["deviceid"] = slot - 1, ["identifier"] = identifiers[0], ["modifier"] = 0,
+                ["negate"] = 0, ["type"] = 3
+            };
+            var newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            var prefix = BindingPrefix + concept + "." + index + ".";
+            var lines = RequiredFields.Select(field => prefix + field + " " +
+                values[field].ToString(CultureInfo.InvariantCulture));
+            var separator = Text.EndsWith("\n", StringComparison.Ordinal) ? "" : newline;
+            return Text + separator + string.Join(newline, lines) + newline;
+        }
         /// <summary>Removes exactly one scalar setting without changing unrelated native lines.</summary>
         public string RemoveSetting(string key)
         {
