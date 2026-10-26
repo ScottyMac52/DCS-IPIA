@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -51,6 +52,74 @@ namespace Heimdall.App
             _fit = true;
             QueueFit();
             Save();
+        }
+
+        /// <summary>Opt-in smart navigation shared by game drawings; does not change existing viewport behavior.</summary>
+        internal void EnableSmartNavigation()
+        {
+            _viewport.PreviewMouseWheel += SmartWheel;
+            _viewport.PreviewMouseDown += BeginPan;
+            _viewport.PreviewMouseMove += MovePan;
+            _viewport.PreviewMouseUp += EndPan;
+            _viewport.LostMouseCapture += (_, _) => _panning = false;
+        }
+
+        private bool _panning;
+        private Point _panStart;
+        private double _panHorizontal;
+        private double _panVertical;
+
+        private void SmartWheel(object sender, MouseWheelEventArgs e)
+        {
+            if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                var oldScale = _zoom.Value;
+                var next = Math.Clamp(oldScale * Math.Pow(1.12, e.Delta / 120.0), _zoom.Minimum, _zoom.Maximum);
+                if (Math.Abs(next - oldScale) < 0.00001) { e.Handled = true; return; }
+                // Keep the point beneath the cursor stationary after LayoutTransform updates the scroll extent.
+                var cursor = e.GetPosition(_viewport);
+                var logicalX = (_viewport.HorizontalOffset + cursor.X) / oldScale;
+                var logicalY = (_viewport.VerticalOffset + cursor.Y) / oldScale;
+                _zoom.Value = next;
+                _viewport.UpdateLayout();
+                _viewport.ScrollToHorizontalOffset(logicalX * next - cursor.X);
+                _viewport.ScrollToVerticalOffset(logicalY * next - cursor.Y);
+                e.Handled = true;
+            }
+            else if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+            {
+                _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - e.Delta);
+                e.Handled = true;
+            }
+            // Plain wheel retains native WPF vertical scrolling.
+        }
+
+        private void BeginPan(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Middle) return;
+            _panStart = e.GetPosition(_viewport);
+            _panHorizontal = _viewport.HorizontalOffset;
+            _panVertical = _viewport.VerticalOffset;
+            _panning = _viewport.CaptureMouse();
+            if (_panning) e.Handled = true;
+        }
+
+        private void MovePan(object sender, MouseEventArgs e)
+        {
+            if (!_panning) return;
+            if (e.MiddleButton != MouseButtonState.Pressed) { EndPan(sender, null); return; }
+            var at = e.GetPosition(_viewport);
+            _viewport.ScrollToHorizontalOffset(_panHorizontal + _panStart.X - at.X);
+            _viewport.ScrollToVerticalOffset(_panVertical + _panStart.Y - at.Y);
+            e.Handled = true;
+        }
+
+        private void EndPan(object sender, MouseButtonEventArgs? e)
+        {
+            if (!_panning) return;
+            _panning = false;
+            _viewport.ReleaseMouseCapture();
+            if (e is not null) e.Handled = true;
         }
 
         private void Save()
