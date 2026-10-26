@@ -86,6 +86,50 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => backend.RemoveUnusedCapturedDevice(profile, "squadrons.joystick.5"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Clearing one controller removes every native record, not merely records supported by its current grip.</summary>
+        [Fact]
+        public void Clear_all_joystick_records_keeps_other_controllers_and_non_joystick_settings()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            Assert.Equal(2, backend.CountCapturedAssignments(profile, "squadrons.joystick.5"));
+            var cleared = backend.ClearCapturedAssignments(profile, "squadrons.joystick.5");
+            var originalRows = backend.ReadBindings(profile);
+            var remaining = backend.ReadBindings(cleared);
+            Assert.Equal(originalRows.Count - 2, remaining.Count);
+            Assert.DoesNotContain(remaining, row => row.Type == 3 && row.DeviceId == 4);
+            Assert.Contains(remaining, row => row.Type == 3 && row.DeviceId == 2);
+            Assert.Contains(remaining, row => row.Type == 2);
+            var exported = backend.Export(cleared).Files[SquadronsProfileBackend.FileName];
+            Assert.Contains("Future.Setting preserved", exported);
+            Assert.Contains("GstInput.JoystickDevice5 Smoke Throttle 1", exported);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(0, backend.CountCapturedAssignments(cleared, "squadrons.joystick.5"));
+        }
+        /// <summary>Native permutation closes slot gaps and carries all joystick records to the correct new device IDs.</summary>
+        [Fact]
+        public void Drag_order_reindexes_slots_and_preserves_other_native_fields()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var reorder = new[] { "squadrons.joystick.10", "squadrons.joystick.3", "squadrons.joystick.5" };
+            var changed = backend.ReorderCapturedSlots(profile, reorder);
+            Assert.Equal("Smoke Throttle 1", changed.Devices.Single(x => x.LogicalId == "squadrons.joystick.1").Identity!.WindowsName);
+            Assert.Equal("Smoke Stick 1", changed.Devices.Single(x => x.LogicalId == "squadrons.joystick.2").Identity!.WindowsName);
+            Assert.Equal(2, backend.ReadBindings(changed).Count(x => x.Type == 3 && x.DeviceId == 2));
+            Assert.Single(backend.ReadBindings(changed).Where(x => x.Type == 3 && x.DeviceId == 1));
+            Assert.Contains(backend.ReadBindings(changed), x => x.Type == 2 && x.DeviceId == -1);
+            Assert.Contains("Future.Setting preserved", backend.Export(changed).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(profile.Devices.Sum(x => x.Buttons.Count + x.Axes.Count),
+                changed.Devices.Sum(x => x.Buttons.Count + x.Axes.Count));
+            var back = backend.ReorderCapturedSlots(changed, ["squadrons.joystick.2", "squadrons.joystick.3", "squadrons.joystick.1"]);
+            Assert.Equal(profile.Devices.Sum(x => x.Buttons.Count + x.Axes.Count),
+                back.Devices.Sum(x => x.Buttons.Count + x.Axes.Count));
+            Assert.Throws<InvalidOperationException>(() => backend.ReorderCapturedSlots(profile,
+                ["squadrons.joystick.3", "squadrons.joystick.5"]));
+        }
         /// <summary>Controller display order is numeric even when the capture lists slot ten before slot three.</summary>
         [Fact]
         public void Controllers_are_ordered_by_native_slot_number_without_reordering_the_profile()
