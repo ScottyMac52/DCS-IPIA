@@ -5,8 +5,8 @@
  <Grid x:Name="WorkspaceRoot" Margin="10">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <WrapPanel Margin="0,0,0,10">
-   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/></ComboBox>
-   <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
+   <ComboBox Style="{StaticResource ToolbarComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/></ComboBox>
+   <ComboBox Style="{StaticResource ToolbarComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="ExportPresetButton" Content="Export" Click="ExportClicked"/>
