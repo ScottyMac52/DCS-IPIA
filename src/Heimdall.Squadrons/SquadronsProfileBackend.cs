@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordEditor, ISimCapturedDeviceLinks
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, ISimCapturedDeviceLinks
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -83,6 +83,10 @@ namespace Heimdall.Squadrons
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
             return RebindJoystick(profile, recordId, slot, new(key, type, direction));
         }
+        /// <summary>Adapter-neutral creation entry point used by the game workspace.</summary>
+        public ProfileDocument AddNativeBinding(ProfileDocument profile, string concept,
+            string logicalDeviceId, string key, CommandType type, int direction) =>
+            AddJoystickBinding(profile, concept, logicalDeviceId, new(key, type, direction));
         /// <summary>Adds a new record for a captured command using its verified native identifier.
         /// All other native records and scalar settings must remain identical.</summary>
         public ProfileDocument AddJoystickBinding(ProfileDocument profile, string concept,
