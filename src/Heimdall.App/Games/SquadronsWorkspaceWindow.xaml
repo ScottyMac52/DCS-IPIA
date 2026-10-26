@@ -167,12 +167,14 @@
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
        <Button x:Name="FitDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Fit" Margin="8,0,0,0" Click="FitDrawingClicked" ToolTip="Fit controller drawing to the available pane"/>
       </WrapPanel>
-      <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="True" ToolTip="Wheel: scroll · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
-       <Grid>
-        <TextBlock x:Name="DrawingHint" Text="Choose a linked controller and select a shared hardware drawing above." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap"/>
-        <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200"/>
-       </Grid>
-      </ScrollViewer>
+      <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
+           between them can mask the vertically transformed content extent. -->
+      <Grid>
+       <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="True" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
+        <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+       </ScrollViewer>
+       <TextBlock x:Name="DrawingHint" Text="Choose a linked controller and select a shared hardware drawing above." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap" IsHitTestVisible="False"/>
+      </Grid>
      </DockPanel>
     </Expander>
     <StackPanel x:Name="AssignmentEditor" Grid.Row="5" Margin="0,12,0,0" Visibility="Collapsed">
