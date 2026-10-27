@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -264,6 +265,8 @@ namespace Heimdall.App.Games
             RefreshCommandCatalog(_session?.Snapshot);
         }
         private const string SquadronsCommandDragFormat = "heimdall.squadrons.command";
+        private const string SquadronsJoystick = "squadrons.joystick.";
+
         /// <summary>Renders only the explicitly pinned shared drawing for a selected joystick slot.</summary>
         private void RenderDrawing()
         {
@@ -407,7 +410,7 @@ namespace Heimdall.App.Games
             var candidate = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis);
             var record = SquadronsAssignmentTarget.Find(
                 _backend.ReadBindings(_session.Snapshot.Profile), plan.EditableRecordIds,
-                candidate, int.Parse(slot["squadrons.joystick.".Length..]) - 1);
+                candidate, int.Parse(slot[SquadronsJoystick.Length..], CultureInfo.InvariantCulture) - 1);
             var input = record is not null
                 ? SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, record.Input)
                 : candidate;
