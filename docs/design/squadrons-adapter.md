@@ -143,16 +143,27 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
-## Direct command assignment workflow
+## Shared game assignment workspace
 
-Choose a command from the filtered command catalog. Enable **Click drawing to
-assign**, then click an outlined hardware control. The click and the optional
-drag handle use the same native assignment writer, including verification and
-duplicate protection. Turn off the checkbox to restore the normal click-to-
-inspect behavior. Failed assignments show an immediate warning and explanatory
-text adjacent to the drawing, rather than silently failing in a window-footer
-status label. The command ComboBox is for selecting commands, not initiating
-drag gestures.
+Squadrons now follows the same high-level workspace organization as Elite:
+a searchable **Commands** list to the left and the **Assignments / controller
+drawing** area on the right, separated by the shared WorkspaceDivider splitter.
+The controller inventory remains separate. Rarely used captured-record display
+filters are hidden under an advanced expander instead of occupying the main
+command selection surface.
+
+Select a command from the list and click an outlined control to assign it.
+Alternatively drag the command directly from its list row to a control; there
+is no separate drag handle or click-mode checkbox. A single validated native
+writer handles both gestures. Native failures are shown inline beside the
+artwork instead of opening repetitive modal dialogs. With no selected command,
+clicking an already-labeled callout inspects its existing assignment.
+
+When a native axis command contains separate positive and negative editable
+records, the adapter selects the matching directional record instead of
+mistakenly trying to create a fresh record with an unknown identifier. Existing
+negative-direction records are preserved. Native metadata that is actually
+absent or ambiguous still blocks new record creation safely.
 
 ## Native joystick record creation (template-backed)
 
