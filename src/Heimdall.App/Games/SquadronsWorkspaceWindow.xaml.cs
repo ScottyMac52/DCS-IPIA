@@ -382,8 +382,26 @@ namespace Heimdall.App.Games
             DrawingRow.Height = GridLength.Auto;
             DrawingScroll.MaxHeight = double.PositiveInfinity;
         }
+        private void ClickToAssignChanged(object sender, RoutedEventArgs e)
+        {
+            if (DrawingDropFeedback is null) return;
+            DrawingDropFeedback.Text = ClickToAssign.IsChecked == true
+                ? "Assignment mode: select a command, then click an outlined hardware control."
+                : "Inspection mode: click a control to inspect its existing bindings.";
+        }
+
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
+            if (ClickToAssign.IsChecked == true)
+            {
+                if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand selected)
+                {
+                    DrawingDropFeedback.Text = "Select a command above before clicking a drawing control.";
+                    return;
+                }
+                DropDrawingCommand(control, selected.Id);
+                return;
+            }
             if (SelectedController is not { } slot) return;
             var section = SectionPicker.SelectedItem as string ?? "All";
             var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
