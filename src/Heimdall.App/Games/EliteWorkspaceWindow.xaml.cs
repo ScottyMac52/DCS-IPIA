@@ -349,7 +349,8 @@ namespace Heimdall.App.Games
         private GameDeviceChoice? Device => DevicePicker.SelectedItem as GameDeviceChoice;
         private SimCommand? Command => _assignmentsView.CommandsList.SelectedItem as SimCommand;
         private string Slot => Command?.Type == CommandType.Axis ? "Binding" : _assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
-        private bool Pending => _session is not null && (_revision is null || _session.HasChanges || ProfileName.Text.Trim() != _session.Snapshot.Name);
+        private GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(_session, _revision, ProfileName.Text.Trim(), _busy);
+        private bool Pending => Chrome.Pending;
         private void Status(string message) => WorkspaceStatus.Text = message;
         private void StopLiveInput() { _input.Stop(); _identification.Stop(); }
         private void ClearIdentification()
@@ -601,13 +602,13 @@ namespace Heimdall.App.Games
             var opened = _session is not null;
             AccessStatus.Text = _session?.AccessMessage ?? "Import or select a saved Elite controls profile.";
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && AccessStatus.Text.Length == 0 && !_busy;
-            SaveProfileButton.IsEnabled = opened && Pending && !_busy; DiscardProfileButton.IsEnabled = opened && Pending && !_busy;
-            ExportPresetButton.IsEnabled = opened && !Pending && AccessStatus.Text.Length == 0 && !_busy;
+            SaveProfileButton.IsEnabled = Chrome.CanSave; DiscardProfileButton.IsEnabled = Chrome.CanDiscard;
+            ExportPresetButton.IsEnabled = Chrome.CanExport;
             NewConfigurationButton.IsEnabled = !_busy && (!opened || AccessStatus.Text.Length == 0);
             DuplicateConfigurationButton.IsEnabled = opened && !_busy;
             RenameConfigurationButton.IsEnabled = opened && !_busy;
             DeleteConfigurationButton.IsEnabled = opened && _revision is not null && !_busy;
-            SaveState.Text = !opened ? "No profile" : Pending ? "Unsaved changes" : "Saved";
+            SaveState.Text = Chrome.Status;
             ProfileName.IsEnabled = opened;
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
@@ -881,11 +882,15 @@ namespace Heimdall.App.Games
 
         private bool ConfirmLeave()
         {
-            StopLiveInput(); if (!Pending) return true;
-            var choice = _pendingChoice?.Invoke() ?? ThemeMessageBox.Show(this, "Save this profile before leaving? Yes saves, No discards pending edits, Cancel stays here.", "Unsaved game profile", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
-            if (choice == MessageBoxResult.Yes) return SaveProfile();
-            if (choice != MessageBoxResult.No) return false;
-            _session?.Discard(); return true;
+            StopLiveInput();
+            return GameWorkspaceLeaveGuard.Confirm(Pending,
+                () => (_pendingChoice?.Invoke() ?? ThemeMessageBox.Show(this, "Save this profile before leaving? Yes saves, No discards pending edits, Cancel stays here.", "Unsaved game profile", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel)) switch
+                {
+                    MessageBoxResult.Yes => GameWorkspaceLeaveDecision.Save,
+                    MessageBoxResult.No => GameWorkspaceLeaveDecision.Discard,
+                    _ => GameWorkspaceLeaveDecision.Cancel
+                },
+                SaveProfile, () => _session?.Discard());
         }
         private void ConfirmClose(object? sender, CancelEventArgs e) { if (!_allowClose) e.Cancel = !ConfirmLeave(); }
         private void GameChanged(object sender, SelectionChangedEventArgs e)

@@ -115,7 +115,8 @@ namespace Heimdall.App.Games
         }
         #endregion END Public
         #region BEGIN private helpers
-        private bool Pending => _session is not null && (_revision is null || _session.HasChanges || ProfileName.Text != _session.Snapshot.Name);
+        private GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(_session, _revision, ProfileName.Text);
+        private bool Pending => Chrome.Pending;
         private GameProfileSession CreateSession(GameWorkspace workspace)
         {
             if (workspace.Profile.BackendId != _backend.SimId) throw new InvalidDataException("This is not a Squadrons profile.");
@@ -211,10 +212,10 @@ namespace Heimdall.App.Games
         private void UpdateAvailability()
         {
             if (_refreshing || SaveState is null) return;
-            SaveButton.IsEnabled = DiscardButton.IsEnabled = Pending;
-            ExportButton.IsEnabled = _session is not null && !Pending && _session.AccessMessage.Length == 0;
+            SaveButton.IsEnabled = Chrome.CanSave; DiscardButton.IsEnabled = Chrome.CanDiscard;
+            ExportButton.IsEnabled = Chrome.CanExport;
             ProfileName.IsEnabled = _session is not null;
-            SaveState.Text = _session is null ? "No profile" : Pending ? "Unsaved changes" : "Saved";
+            SaveState.Text = Chrome.Status;
         }
         private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice { Id: not "all" } device ? device.Id : null;
         private void RescanControllers()
@@ -325,11 +326,14 @@ namespace Heimdall.App.Games
         }
         private bool ConfirmLeave()
         {
-            if (!Pending) return true;
-            var choice = _pendingChoice?.Invoke() ?? ThemeMessageBox.Show(this, "Save changes to this Squadrons profile?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (choice == MessageBoxResult.Yes) return SaveProfile();
-            if (choice != MessageBoxResult.No) return false;
-            _session?.Discard(); return true;
+            return GameWorkspaceLeaveGuard.Confirm(Pending,
+                () => (_pendingChoice?.Invoke() ?? ThemeMessageBox.Show(this, "Save changes to this Squadrons profile?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question)) switch
+                {
+                    MessageBoxResult.Yes => GameWorkspaceLeaveDecision.Save,
+                    MessageBoxResult.No => GameWorkspaceLeaveDecision.Discard,
+                    _ => GameWorkspaceLeaveDecision.Cancel
+                },
+                SaveProfile, () => _session?.Discard());
         }
         private void ConfirmClose(object? sender, CancelEventArgs e) { _identification.Stop(); if (!_allowClose) e.Cancel = !ConfirmLeave(); }
         private void FilterChanged(object sender, SelectionChangedEventArgs e)
