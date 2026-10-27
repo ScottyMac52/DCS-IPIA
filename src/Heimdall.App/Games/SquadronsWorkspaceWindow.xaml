@@ -191,6 +191,7 @@
     </StackPanel>
    </Grid>
   </Grid>
+  </Grid>
   <TextBlock x:Name="StatusText" Grid.Row="3" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
  </Grid>
 </Window>
