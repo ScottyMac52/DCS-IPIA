@@ -92,8 +92,8 @@ namespace Heimdall.Squadrons
                 positive.Fields.Count != 8 || negative.Fields.Count != 8 ||
                 positive.Fields["modifier"] != 0 || negative.Fields["modifier"] != 0 ||
                 positive.Fields["altbutton"] != 0 || negative.Fields["altbutton"] != 0 ||
-                positive.Input?.Type != CommandType.Axis || positive.Input.Direction != 1 ||
-                negative.Input?.Type != CommandType.Axis || negative.Input.Direction != -1 ||
+                positive.Input is not { Type: CommandType.Axis, Direction: 1 } ||
+                negative.Input is not { Type: CommandType.Axis, Direction: -1 } ||
                 slot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + slot, out var name) ||
                 string.IsNullOrWhiteSpace(name))
                 throw new InvalidOperationException("Both editable directional records are required to assign this axis.");
