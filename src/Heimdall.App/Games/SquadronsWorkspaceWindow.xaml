@@ -110,25 +110,22 @@
       </StackPanel>
      </Expander>
      <Expander Header="Command filters" IsExpanded="True" Margin="0,8,0,4">
-      <Grid Margin="0,6,0,4">
-       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="80"/><ColumnDefinition Width="1*"/>
-        <ColumnDefinition Width="90"/><ColumnDefinition Width="1*"/>
-        <ColumnDefinition Width="100"/><ColumnDefinition Width="1.25*"/>
-       </Grid.ColumnDefinitions>
-       <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/>
-       </Grid.RowDefinitions>
-       <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Context"/>
-       <ComboBox x:Name="CommandContextFilter" Grid.Row="0" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" SelectionChanged="CommandFiltersChanged"/>
-       <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource SquadronsFilterLabel}" Text="Input type"/>
-       <ComboBox x:Name="CommandInputFilter" Grid.Row="0" Grid.Column="3" Style="{StaticResource SquadronsFilterCombo}" SelectionChanged="CommandFiltersChanged"/>
-       <TextBlock Grid.Row="0" Grid.Column="4" Style="{StaticResource SquadronsFilterLabel}" Text="Assignment"/>
-       <ComboBox x:Name="CommandStatusFilter" Grid.Row="0" Grid.Column="5" Style="{StaticResource SquadronsFilterCombo}" Margin="0" SelectionChanged="CommandFiltersChanged"/>
-       <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Search"/>
-       <TextBox x:Name="CommandSearch" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource SquadronsFilterTextBox}" TextChanged="CommandSearchChanged" AutomationProperties.Name="Search Squadrons command catalog"/>
-       <Button x:Name="ResetCommandFiltersButton" Grid.Row="2" Grid.Column="4" Grid.ColumnSpan="2" Style="{StaticResource SquadronsActionButton}" HorizontalAlignment="Left" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
-      </Grid>
+      <StackPanel Margin="0,6,0,4">
+       <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Context"/>
+       <ComboBox x:Name="CommandContextFilter" Style="{StaticResource SquadronsFilterCombo}"
+                 Margin="0,2,0,6" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Input type"/>
+       <ComboBox x:Name="CommandInputFilter" Style="{StaticResource SquadronsFilterCombo}"
+                 Margin="0,2,0,6" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Assignment status"/>
+       <ComboBox x:Name="CommandStatusFilter" Style="{StaticResource SquadronsFilterCombo}"
+                 Margin="0,2,0,6" SelectionChanged="CommandFiltersChanged"/>
+       <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Search"/>
+       <TextBox x:Name="CommandSearch" Style="{StaticResource SquadronsFilterTextBox}"
+                Margin="0,2,0,6" TextChanged="CommandSearchChanged" AutomationProperties.Name="Search Squadrons command catalog"/>
+       <Button x:Name="ResetCommandFiltersButton" Style="{StaticResource SquadronsActionButton}"
+               HorizontalAlignment="Left" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
+      </StackPanel>
      </Expander>
      <TextBlock Style="{StaticResource AppLabel}" Text="Commands" FontSize="18" FontWeight="SemiBold" Margin="0,12,0,4"/>
      <ListBox x:Name="CommandPicker" MinHeight="160" MaxHeight="360" DisplayMemberPath="DisplayName"
