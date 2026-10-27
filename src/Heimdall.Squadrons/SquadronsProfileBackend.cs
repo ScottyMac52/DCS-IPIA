@@ -97,6 +97,23 @@ namespace Heimdall.Squadrons
                 slot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + slot, out var name) ||
                 string.IsNullOrWhiteSpace(name))
                 throw new InvalidOperationException("Both editable directional records are required to assign this axis.");
+            // A complete physical axis may not silently acquire an unrelated command.
+            // Reject the collision before writing either directional native record.
+            // Keep the old source-axis bindings untouched; the user must explicitly
+            // reassign or clear the conflicting command through a validated workflow.
+            var collisions = document.Bindings.Where(row =>
+                row.RecordId != positiveRecordId && row.RecordId != negativeRecordId &&
+                row.Type == 3 && row.DeviceId == slot - 1 &&
+                row.Input is { Type: CommandType.Axis } existing &&
+                existing.PhysicalKey == SquadronsInputCodec.PhysicalKey(physicalAxisKey) &&
+                row.Concept != positive.Concept)
+                .Select(row => row.Concept).Distinct(StringComparer.Ordinal).ToArray();
+            if (collisions.Length > 0)
+                throw new InvalidOperationException(
+                    "This physical axis already has another Squadrons command: " +
+                    string.Join(", ", collisions.Select(x => x[(x.LastIndexOf('.') + 1)..]
+                        .Replace("Concept", "", StringComparison.Ordinal))) +
+                    ". Choose a different axis or explicitly clear/reassign the existing command.");
             var plus = new SquadronsInput(physicalAxisKey, CommandType.Axis, 1);
             var minus = new SquadronsInput(physicalAxisKey, CommandType.Axis, -1);
             var (plusAxis, plusButton) = SquadronsInputCodec.Encode(plus);
