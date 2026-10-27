@@ -132,6 +132,12 @@
       <TextBlock Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Command"/>
       <ComboBox x:Name="CommandPicker" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" PreviewMouseMove="DragCapturedCommand" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
       <Button x:Name="ShowCommandButton" Grid.Column="2" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
+      <Border x:Name="CommandDragHandle" Grid.Column="3" Background="#243E5A" BorderBrush="#64839B" BorderThickness="1" CornerRadius="3"
+              Margin="8,0,0,0" Padding="12,6" HorizontalAlignment="Left" VerticalAlignment="Center" Cursor="Hand"
+              PreviewMouseLeftButtonDown="CommandDragPressed" PreviewMouseMove="DragCapturedCommand"
+              ToolTip="Hold and drag this command onto an outlined control on the hardware drawing.">
+       <TextBlock Text="Drag selected command to drawing" Foreground="White" IsHitTestVisible="False"/>
+      </Border>
      </Grid>
      <TextBlock x:Name="CommandFilterCount" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,3" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
@@ -167,6 +173,7 @@
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Zoom" Margin="12,0,8,0"/>
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
        <Button x:Name="FitDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Fit" Margin="8,0,0,0" Click="FitDrawingClicked" ToolTip="Fit controller drawing to the available pane"/>
+       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Drag the selected command onto a control outline."/>
       </WrapPanel>
       <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
            between them can mask the vertically transformed content extent. -->
