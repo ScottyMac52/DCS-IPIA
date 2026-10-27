@@ -67,7 +67,7 @@ namespace Heimdall.Tests
             Assert.Equal(2, SquadronsWorkspaceProjection.Filter(rows, "All", "Axes", "", "all").Count);
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "Buttons and hats", "", "all"));
             var preserved = Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "Preserved inputs", "", "all"));
-            Assert.False(preserved.Editable); Assert.Equal("Keyboard", preserved.DeviceLabel); Assert.Equal("Preserved native input", preserved.InputLabel);
+            Assert.False(preserved.Editable); Assert.Equal("Keyboard", preserved.DeviceLabel); Assert.Equal("Keyboard · Space", preserved.InputLabel);
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "Button 1", "all"));
             Assert.Equal(2, SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "Throttle 1", "all").Count);
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "squadrons.joystick.3"));
