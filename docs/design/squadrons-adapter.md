@@ -143,6 +143,17 @@ acceptance testing against actual in-game captures. The Squadrons toolbar now us
 ToolbarComboBox and action buttons; the profile-name field matches the 30-pixel
 toolbar control height.
 
+## Direct command assignment workflow
+
+Choose a command from the filtered command catalog. Enable **Click drawing to
+assign**, then click an outlined hardware control. The click and the optional
+drag handle use the same native assignment writer, including verification and
+duplicate protection. Turn off the checkbox to restore the normal click-to-
+inspect behavior. Failed assignments show an immediate warning and explanatory
+text adjacent to the drawing, rather than silently failing in a window-footer
+status label. The command ComboBox is for selecting commands, not initiating
+drag gestures.
+
 ## Native joystick record creation (template-backed)
 
 Squadrons drag-and-drop now has two staged paths: when a command has one
