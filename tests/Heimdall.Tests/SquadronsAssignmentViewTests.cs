@@ -63,6 +63,40 @@ namespace Heimdall.Tests
             Assert.Equal(entries[1], SquadronsAssignmentTarget.Find(entries, allowed, negative, 0));
             Assert.Null(SquadronsAssignmentTarget.Find(entries, [], positive, 0));
         }
+        /// <summary>Assigning a physical axis rewrites both native directions in one transaction,
+        /// preserving independent identifiers, negate flags and unrelated profile content.</summary>
+        [Fact]
+        public void Analog_assignment_rebinds_both_directions_and_preserves_other_native_fields()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
+                "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var profile = backend.Import("controls", new Dictionary<string, string>
+                { [SquadronsProfileBackend.FileName] = source });
+            const string prefix = "IncomStarshipInputConcepts.ConceptThrottle.";
+            var result = backend.RebindAxisPair(profile, prefix + "5", prefix + "4",
+                "squadrons.joystick.3", "JOY_Y");
+            var records = backend.ReadBindings(result);
+            var positive = records.Single(x => x.RecordId == prefix + "5");
+            var negative = records.Single(x => x.RecordId == prefix + "4");
+            Assert.Equal(new SquadronsInput("JOY_Y", CommandType.Axis, 1), positive.Input);
+            Assert.Equal(new SquadronsInput("JOY_Y", CommandType.Axis, -1), negative.Input);
+            Assert.Equal(2, positive.DeviceId);
+            Assert.Equal(2, negative.DeviceId);
+            Assert.Equal(1, positive.Fields["negate"]);
+            Assert.Equal(0, negative.Fields["negate"]);
+            Assert.Equal(123, positive.Fields["identifier"]);
+            Assert.Equal(123, negative.Fields["identifier"]);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Contains("Future.Setting preserved", backend.Export(result).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(backend.ReadBindings(profile).Count, records.Count);
+            var original = backend.ReadBindings(profile);
+            Assert.All(original.Where(x => !x.RecordId.StartsWith(prefix, StringComparison.Ordinal)), row =>
+                Assert.Contains(records, other => other.RecordId == row.RecordId &&
+                    other.Fields.All(pair => row.Fields.TryGetValue(pair.Key, out var value) && value == pair.Value)));
+            Assert.Throws<InvalidOperationException>(() => backend.RebindAxisPair(profile,
+                prefix + "5", prefix + "5", "squadrons.joystick.3", "JOY_Y"));
+        }
         /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
