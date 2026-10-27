@@ -12,7 +12,7 @@ namespace Heimdall.Squadrons
         /// <summary>Distinguishes raw captured records from supported physical inputs without guessing another controller or deleting evidence.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> ReviewInputs(IEnumerable<SquadronsWorkspaceRow> rows, IReadOnlyDictionary<string, IReadOnlyCollection<string>> verified) =>
             rows.Select(row => row with { HardwareStatus = row.Native.Type != 3 ? "Preserved system input" : row.Native.Input is not { } input ? "Preserved native encoding" :
-                !verified.TryGetValue(row.DeviceId, out var keys) ? "Hardware unverified" : keys.Contains(input.PhysicalKey, StringComparer.Ordinal) ? "Verified device input" : "Not on linked device" }).ToArray();
+                !verified.TryGetValue(row.DeviceId, out var keys) ? "Hardware unverified" : keys.Contains(input.PhysicalKey, StringComparer.Ordinal) ? "Supported physical input (slot unconfirmed)" : "Input absent on linked device" }).ToArray();
         /// <summary>Lists every native record with explicit slot ownership, retaining duplicate names and unsupported records.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Rows(ProfileDocument profile)
         {
@@ -30,11 +30,27 @@ namespace Heimdall.Squadrons
                 return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label);
             }).ToArray();
         }
-        /// <summary>Intersects context/type/text/device filters; normal authoring can exclude raw unverified and incompatible records.</summary>
+        /// <summary>Summarizes one native slot using the shared controller-enumeration review without treating a saved name as physical identity.</summary>
+        public static string SlotDiagnostic(ProfileDocument profile, IEnumerable<SquadronsWorkspaceRow> reviewedRows, string logicalDeviceId)
+        {
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var name = device.Identity?.WindowsName ?? "";
+            var duplicates = profile.Devices.Count(x => string.Equals(x.Identity?.WindowsName, name, StringComparison.OrdinalIgnoreCase));
+            var rows = reviewedRows.Where(x => x.Native.Type == 3 && x.DeviceId == logicalDeviceId).ToArray();
+            var supported = rows.Count(x => x.HardwareStatus == "Supported physical input (slot unconfirmed)");
+            var missing = rows.Count(x => x.HardwareStatus == "Input absent on linked device");
+            var unknown = rows.Count(x => x.HardwareStatus == "Hardware unverified");
+            var detail = rows.Length + " captured joystick records · " + supported + " supported by current enumeration";
+            if (missing > 0) detail += " · " + missing + " absent on linked hardware";
+            if (unknown > 0) detail += " · " + unknown + " unverified";
+            if (duplicates > 1) detail += " · " + duplicates + " slots share the name '" + name + "' (not proof of duplicate hardware)";
+            return detail + ". Saved bindings are not proof of in-game recognition.";
+        }
+        /// <summary>Intersects context/type/text/device filters; native assignments remain visible even when hardware cannot be verified.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> Filter(IEnumerable<SquadronsWorkspaceRow> rows, string section, string type, string search, string deviceId, bool includeUnverified = true)
         {
             var text = search.Trim();
-            return rows.Where(x => (includeUnverified || x.HardwareStatus == "Verified device input") && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
+            return rows.Where(x => (includeUnverified || (x.Native.Type is >= 0 and <= 2 && deviceId.StartsWith("system.", StringComparison.Ordinal)) || (x.Native.Type == 3 && x.Native.Input is not null && x.HardwareStatus == "Supported physical input (slot unconfirmed)")) && (section == "All" || x.Section == section) && (deviceId == "all" || x.DeviceId == deviceId)
                 && (x.CommandName.Contains(text, StringComparison.OrdinalIgnoreCase) || x.InputLabel.Contains(text, StringComparison.OrdinalIgnoreCase)
                     || x.DeviceLabel.Contains(text, StringComparison.OrdinalIgnoreCase)) && MatchesType(x, type)).ToArray();
         }
@@ -45,7 +61,7 @@ namespace Heimdall.Squadrons
             "Axes" => row.Native.Input?.Type == CommandType.Axis,
             "Buttons and hats" => row.Native.Input?.Type is CommandType.Button or CommandType.Hat,
             "Preserved inputs" => row.Native.Input is null,
-            "Verified device inputs" => row.HardwareStatus == "Verified device input",
+            "Supported physical inputs" => row.HardwareStatus == "Supported physical input (slot unconfirmed)",
             _ => true
         };
         #endregion END private helpers
