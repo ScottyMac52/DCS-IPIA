@@ -317,10 +317,8 @@ namespace Heimdall.App.Games
                 AppearanceManager.ArtworkOpacityFor(this),
                 control =>
                 {
-                    var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
-                    return control.Label + " · " + control.InputKey +
-                        (matches.Count == 0 ? "\nNo captured assignments" :
-                            "\n" + string.Join("\n", matches.Select(x => x.CommandName + " · " + x.InputLabel)));
+                    return control.Label + " · " + control.InputKey + "\n" +
+                        SquadronsDrawingProjection.AssignmentSummary(control, _rows, slot, section);
                 },
                 SquadronsCommandDragFormat);
             DrawingHint.Visibility = Visibility.Collapsed;
@@ -394,9 +392,9 @@ namespace Heimdall.App.Games
                     .FirstOrDefault(row => row.RecordId == matches[0].RecordId);
                 if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
             }
-            DrawingDropFeedback.Text = matches.Count == 0
-                ? "Select a command to assign " + control.Label + "."
-                : control.Label + ": " + string.Join(", ", matches.Select(x => x.CommandName));
+            DrawingDropFeedback.Text = control.Label + ": " +
+                SquadronsDrawingProjection.AssignmentSummary(control, _rows, slot, section)
+                    .Replace("\n", " · ", StringComparison.Ordinal);
         }
         private void DropDrawingCommand(HardwareGraphicControl control, string commandId)
         {
