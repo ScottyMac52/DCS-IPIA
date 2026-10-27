@@ -23,6 +23,7 @@ namespace Heimdall.App.Games
         private readonly GameControllerReordering _reordering;
         private readonly EliteDiagramPresenter _drawingPresenter;
         private readonly DiagramViewport _drawingViewport;
+        private Point? _commandDragStart;
         private IReadOnlyList<WorkspaceHardware> _drawings = [];
         private GameProfileSession? _session;
         private string? _revision;
@@ -378,8 +379,10 @@ namespace Heimdall.App.Games
                 (matches.Count == 0 ? " · No captured assignments." :
                     " · " + matches.Count + " captured assignment(s).");
         }
-        private void DropDrawingCommand(HardwareGraphicControl control, string commandId) => Run(() =>
+        private void DropDrawingCommand(HardwareGraphicControl control, string commandId)
         {
+            try
+            {
             if (_session is null || SelectedController is not { } slot)
                 throw new InvalidOperationException("Select a linked joystick slot.");
             var command = _backend.GetCatalog(_session.Snapshot.Profile).Commands.Single(x => x.Id == commandId);
@@ -405,13 +408,37 @@ namespace Heimdall.App.Games
                 Refresh(false);
                 StatusText.Text = "New Squadrons binding created in draft. Save before exporting.";
             }
-        });
+            DrawingDropFeedback.Text = StatusText.Text;
+            }
+            catch (Exception error)
+            {
+                DrawingDropFeedback.Text = "Assignment not applied: " + error.Message;
+                StatusText.Text = DrawingDropFeedback.Text;
+                MessageBox.Show(this, error.Message, "Squadrons assignment not applied",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        private void CommandDragPressed(object sender, MouseButtonEventArgs e)
+        {
+            _commandDragStart = e.GetPosition(CommandDragHandle);
+        }
         private void DragCapturedCommand(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton != MouseButtonState.Pressed ||
+            if (!ReferenceEquals(sender, CommandDragHandle) || _commandDragStart is not { } start ||
+                e.LeftButton != MouseButtonState.Pressed ||
                 CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
-                _session?.AccessMessage.Length != 0) return;
-            DragDrop.DoDragDrop(CommandPicker, new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
+                _session is null || _session.AccessMessage.Length != 0)
+            {
+                if (e.LeftButton != MouseButtonState.Pressed) _commandDragStart = null;
+                return;
+            }
+            var at = e.GetPosition(CommandDragHandle);
+            if (Math.Abs(at.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(at.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            _commandDragStart = null;
+            DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.";
+            DragDrop.DoDragDrop(CommandDragHandle,
+                new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
         }
         private void RefreshRows()
         {
