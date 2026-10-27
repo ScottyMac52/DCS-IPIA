@@ -89,8 +89,9 @@
     </ListBox>
    </DockPanel>
    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}"/>
-   <Grid Grid.Column="2" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="265" MinHeight="105"/><RowDefinition Height="6"/><RowDefinition Height="*" MinHeight="100"/><RowDefinition Height="6"/><RowDefinition x:Name="DrawingRow" Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+   <Grid Grid.Column="2" Margin="8,0,0,0">
+    <Grid.ColumnDefinitions><ColumnDefinition Width=".38*" MinWidth="230"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".62*" MinWidth="300"/></Grid.ColumnDefinitions>
+    <ScrollViewer Grid.Column="0" Margin="0,0,6,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel>
      <!-- Compact captured-record filters, independent of the command catalog filters. -->
      <Grid>
@@ -125,32 +126,22 @@
        <Button x:Name="ResetCommandFiltersButton" Grid.Row="2" Grid.Column="4" Grid.ColumnSpan="2" Style="{StaticResource SquadronsActionButton}" HorizontalAlignment="Left" Content="Clear filters" Click="ResetCommandFiltersClicked"/>
       </Grid>
      </Expander>
-     <Grid Margin="0,4,0,0">
-      <Grid.ColumnDefinitions>
-       <ColumnDefinition Width="80"/><ColumnDefinition Width="400"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-      </Grid.ColumnDefinitions>
-      <TextBlock Grid.Column="0" Style="{StaticResource SquadronsFilterLabel}" Text="Command"/>
-      <ComboBox x:Name="CommandPicker" Grid.Column="1" Style="{StaticResource SquadronsFilterCombo}" DisplayMemberPath="DisplayName" SelectionChanged="CommandChanged" AutomationProperties.Name="Squadrons command browser" ToolTip="All catalog commands including those with no captured binding records."/>
-      <Button x:Name="ShowCommandButton" Grid.Column="2" Style="{StaticResource SquadronsActionButton}" Content="Show assignments" Click="ShowCommandClicked"/>
-      <WrapPanel Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Center">
-      <CheckBox x:Name="ClickToAssign" Style="{StaticResource AppCheckBox}" Content="Click drawing to assign" Margin="8,0,8,0"
-                VerticalAlignment="Center" HorizontalAlignment="Left" Checked="ClickToAssignChanged" Unchecked="ClickToAssignChanged"
-                ToolTip="When enabled, click an outlined hardware control to assign the selected command. Turn off to inspect existing bindings."/>
-      <Border x:Name="CommandDragHandle" Grid.Column="3" Background="#243E5A" BorderBrush="#64839B" BorderThickness="1" CornerRadius="3"
-              Margin="8,0,0,0" Padding="12,6" HorizontalAlignment="Left" VerticalAlignment="Center" Cursor="Hand"
-              PreviewMouseLeftButtonDown="CommandDragPressed" PreviewMouseMove="DragCapturedCommand"
-              ToolTip="Hold and drag this command onto an outlined control on the hardware drawing.">
-       <TextBlock Text="Drag selected command to drawing" Foreground="White" IsHitTestVisible="False"/>
-      </Border>
-      </WrapPanel>
-     </Grid>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Commands" FontSize="18" FontWeight="SemiBold" Margin="0,12,0,4"/>
+     <ListBox x:Name="CommandPicker" MinHeight="160" MaxHeight="360" DisplayMemberPath="DisplayName"
+              SelectionChanged="CommandChanged" PreviewMouseLeftButtonDown="CommandListDragPressed"
+              PreviewMouseMove="DragCapturedCommand" AutomationProperties.Name="Squadrons command browser"
+              ToolTip="Select a command, then click a controller callout to assign. Drag a command as an alternative."/>
+     <Button x:Name="ShowCommandButton" Style="{StaticResource SquadronsActionButton}" Content="Show saved assignments"
+             HorizontalAlignment="Left" Margin="0,6,0,0" Click="ShowCommandClicked"/>
      <TextBlock x:Name="CommandFilterCount" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,3" AutomationProperties.LiveSetting="Polite"/>
      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Choose a command to inspect its saved binding records." Margin="0,2,0,4"/>
      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" Margin="0,6,0,6" TextWrapping="Wrap"/>
     </StackPanel>
     </ScrollViewer>
-    <GridSplitter Grid.Row="1" Style="{StaticResource SquadronsSectionSplitter}" ToolTip="Drag to resize Filters and Assignments"/>
-    <DataGrid x:Name="BindingsGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" SelectionChanged="BindingChanged" AutomationProperties.Name="Squadrons assignments">
+    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" ToolTip="Resize Commands and Assignment workspace"/> 
+    <Grid Grid.Column="2" Margin="6,0,0,0">
+     <Grid.RowDefinitions><RowDefinition Height=".36*" MinHeight="105"/><RowDefinition Height="6"/><RowDefinition Height=".64*" MinHeight="150"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <DataGrid x:Name="BindingsGrid" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" SelectionChanged="BindingChanged" AutomationProperties.Name="Squadrons assignments">
      <DataGrid.ContextMenu>
       <ContextMenu>
        <MenuItem Header="Edit selected assignment" Click="EditSelectedClicked"/>
@@ -166,9 +157,9 @@
       <DataGridTextColumn x:Name="BindingColumn" Header="Binding" Binding="{Binding BindingLabel}" Width="85" Visibility="Collapsed"/>
      </DataGrid.Columns>
     </DataGrid>
-    <TextBlock x:Name="EmptyState" Grid.Row="2" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
-    <GridSplitter x:Name="DrawingSplitter" Grid.Row="3" Visibility="Collapsed" Style="{StaticResource SquadronsSectionSplitter}" ToolTip="Drag to resize Assignments and Drawing"/>
-    <Expander x:Name="DrawingPanel" Grid.Row="4" Header="Controller drawing and assignment drop targets" IsExpanded="False" Margin="0,8,0,0" Expanded="DrawingExpanded" Collapsed="DrawingCollapsed" SizeChanged="DrawingPanelSizeChanged">
+    <TextBlock x:Name="EmptyState" Grid.Row="0" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="24,60,24,24" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
+    <GridSplitter x:Name="DrawingSplitter" Grid.Row="1" Visibility="Visible" Style="{StaticResource SquadronsSectionSplitter}" ToolTip="Drag to resize Assignments and Drawing"/>
+    <Expander x:Name="DrawingPanel" Grid.Row="2" Header="Controller drawing and assignments" IsExpanded="True" Margin="0,8,0,0" Expanded="DrawingExpanded" Collapsed="DrawingCollapsed" SizeChanged="DrawingPanelSizeChanged">
      <Grid Margin="0,6,0,0" MinHeight="0" ClipToBounds="True">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
       <WrapPanel Grid.Row="0" Margin="0,0,0,6">
@@ -178,7 +169,7 @@
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Zoom" Margin="12,0,8,0"/>
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
        <Button x:Name="FitDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Fit" Margin="8,0,0,0" Click="FitDrawingClicked" ToolTip="Fit controller drawing to the available pane"/>
-       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Drag the selected command onto a control outline."/>
+       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Select a command and click an outlined control to assign. Dragging also works."/>
       </WrapPanel>
       <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
            between them can mask the vertically transformed content extent. -->
@@ -190,7 +181,7 @@
       </Grid>
      </Grid>
     </Expander>
-    <StackPanel x:Name="AssignmentEditor" Grid.Row="5" Margin="0,12,0,0" Visibility="Collapsed">
+    <StackPanel x:Name="AssignmentEditor" Grid.Row="3" Margin="0,12,0,0" Visibility="Collapsed">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
       <ComboBox x:Name="TargetDevice" Style="{StaticResource ToolbarComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
