@@ -165,6 +165,23 @@ mistakenly trying to create a fresh record with an unknown identifier. Existing
 negative-direction records are preserved. Native metadata that is actually
 absent or ambiguous still blocks new record creation safely.
 
+## Whole-axis assignment versus directional native records
+
+One physical analog callout (such as MOZA pitch) represents both positive and
+negative motion. Squadrons may store each direction in a distinct native record.
+Clicking or dropping an axis assignment now requires two existing editable
+native records for that command, one per direction, and updates both as one
+validated transaction. The adapter retains each record's original identifier,
+negate and modifier metadata; a failed validation leaves the draft untouched.
+It **does not** create only a positive-direction record as a fallback.
+
+Drawing labels coalesce a complete +/- pair into a single command label
+(e.g., `Pitch`). A lone captured direction remains explicitly labeled
+`Pitch (+)` or `Pitch (-)` to reveal an incomplete mapping. Special
+commands that use distinct display names for different directions (such as
+Throttle Increase and Throttle Decrease) remain separate. Native record
+creation for missing directional templates still requires format validation.
+
 ## Native joystick record creation (template-backed)
 
 Squadrons drag-and-drop now has two staged paths: when a command has one
