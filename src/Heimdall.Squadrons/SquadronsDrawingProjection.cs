@@ -21,7 +21,7 @@ namespace Heimdall.Squadrons
                 var inputs = assigned.Where(row =>
                     string.Equals(row.Native.Input!.PhysicalKey, key, StringComparison.Ordinal)).ToArray();
                 return (IReadOnlyList<KneeboardLabelVariant>)inputs
-                    .GroupBy(row => row.Native.Concept, StringComparer.Ordinal)
+                    .GroupBy(row => (row.Native.Concept, row.CommandName))
                     .SelectMany(group =>
                     {
                         if (group.All(row => row.Native.Input!.Type == CommandType.Axis) &&
