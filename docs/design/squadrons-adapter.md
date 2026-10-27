@@ -165,6 +165,18 @@ mistakenly trying to create a fresh record with an unknown identifier. Existing
 negative-direction records are preserved. Native metadata that is actually
 absent or ambiguous still blocks new record creation safely.
 
+## Shared-axis collision diagnostics and narrow command filters
+
+The shared hardware drawing can legitimately expose multiple native commands
+on one physical input. For example, Roll and Yaw may both be assigned to
+`JOY_RZ`. The projection now summarizes the +/- native records for each
+command once in its tooltip, explicitly indicates when distinct concepts
+share the same physical axis, and marks an incomplete one-direction binding
+with `(+ only)` or `(- only)`. It never silently deletes or moves a
+collision: the owner must deliberately choose which command should use the
+axis. The command browser filter fields stack vertically to fit a narrow
+resizable Commands pane instead of squeezing the combos horizontally.
+
 ## Whole-axis assignment versus directional native records
 
 One physical analog callout (such as MOZA pitch) represents both positive and
