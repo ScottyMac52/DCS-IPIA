@@ -408,6 +408,24 @@ namespace Heimdall.App.Games
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
             var candidate = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis);
+            if (control.IsAxis && candidate.Type == Heimdall.Domain.MultiSim.CommandType.Axis)
+            {
+                var records = _backend.ReadBindings(_session.Snapshot.Profile);
+                var nativeSlot = int.Parse(slot[SquadronsJoystick.Length..], CultureInfo.InvariantCulture) - 1;
+                var positive = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds,
+                    candidate with { Direction = 1 }, nativeSlot);
+                var negative = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds,
+                    candidate with { Direction = -1 }, nativeSlot);
+                if (positive is null || negative is null)
+                    throw new InvalidOperationException(
+                        "This command does not have both editable native axis direction records. " +
+                        "HEIMDALL will not silently assign only half of a physical analog axis.");
+                _session.RebindNativeAxisPair(positive.RecordId, negative.RecordId, slot, candidate.Key);
+                Refresh(false);
+                StatusText.Text = "Both directions of the Squadrons axis updated in draft. Save before exporting.";
+                DrawingDropFeedback.Text = StatusText.Text;
+                return;
+            }
             var record = SquadronsAssignmentTarget.Find(
                 _backend.ReadBindings(_session.Snapshot.Profile), plan.EditableRecordIds,
                 candidate, int.Parse(slot[SquadronsJoystick.Length..], CultureInfo.InvariantCulture) - 1);
