@@ -40,6 +40,29 @@ namespace Heimdall.Squadrons
                 labels, new Dictionary<string, string>(StringComparer.Ordinal), []);
         }
 
+        /// <summary>Explains all commands using one physical callout. Opposite
+        /// native directions of the same command count as one binding; two distinct
+        /// concepts on the same axis are an explicit collision, not duplicate labels.</summary>
+        public static string AssignmentSummary(HardwareGraphicControl control,
+            IEnumerable<SquadronsWorkspaceRow> rows, string logicalDeviceId, string section)
+        {
+            var matches = ForControl(control, rows, logicalDeviceId, section);
+            if (matches.Count == 0) return "No captured assignments";
+            var concepts = matches.GroupBy(x => x.Native.Concept, StringComparer.Ordinal).ToArray();
+            var names = concepts.Select(group =>
+            {
+                var directions = group.Where(x => x.Native.Input?.Type == CommandType.Axis)
+                    .Select(x => x.Native.Input!.Direction).Distinct().ToArray();
+                var suffix = directions.Length == 1
+                    ? directions[0] > 0 ? " (+ only)" : " (- only)"
+                    : "";
+                return group.First().CommandName + suffix;
+            }).Distinct(StringComparer.Ordinal).ToArray();
+            return (control.IsAxis && concepts.Length > 1
+                ? "⚠ Shared axis: multiple commands assigned\n" : "")
+                + string.Join("\n", names);
+        }
+
         /// <summary>Returns assignments underlying a drawing control for tooltips and selection.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> ForControl(HardwareGraphicControl control,
             IEnumerable<SquadronsWorkspaceRow> rows, string logicalDeviceId, string section)
