@@ -93,7 +93,9 @@
     <Grid.ColumnDefinitions><ColumnDefinition Width=".38*" MinWidth="230"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".62*" MinWidth="300"/></Grid.ColumnDefinitions>
     <ScrollViewer Grid.Column="0" Margin="0,0,6,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel>
-     <!-- Compact captured-record filters, independent of the command catalog filters. -->
+     <Expander Header="Assignment display filters (advanced)" IsExpanded="False" Margin="0,0,0,8">
+      <StackPanel Margin="0,8,0,4">
+     <!-- Captured record filters only; independent from the command catalog. -->
      <Grid>
       <Grid.ColumnDefinitions>
        <ColumnDefinition Width="190"/><ColumnDefinition Width="12"/>
@@ -105,6 +107,8 @@
       <TextBox x:Name="Search" Grid.Column="4" Style="{StaticResource SquadronsFilterTextBox}" Margin="0" TextChanged="SearchChanged" AutomationProperties.Name="Search Squadrons assignments"/>
      </Grid>
      <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False" Checked="CaptureReviewChanged" Unchecked="CaptureReviewChanged" Margin="0,8,0,0" AutomationProperties.Name="Review all Squadrons captured records"/>
+      </StackPanel>
+     </Expander>
      <Expander Header="Command filters" IsExpanded="True" Margin="0,8,0,4">
       <Grid Margin="0,6,0,4">
        <Grid.ColumnDefinitions>
