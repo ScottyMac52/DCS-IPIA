@@ -133,6 +133,35 @@ namespace Heimdall.Tests
             Assert.Contains("(+ only)", SquadronsDrawingProjection.AssignmentSummary(control,
                 rows.Take(1), "squadrons.joystick.1", "Flight"));
         }
+        /// <summary>An existing Yaw axis must not be silently shared with Roll by a drawing click.</summary>
+        [Fact]
+        public void Native_axis_pair_refuses_to_overwrite_an_axis_already_used_by_another_command()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
+                "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var throttlePrefix = "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.";
+            var yawPrefix = "GstKeyBinding.IncomStarshipInputConcepts.ConceptYaw.";
+            var original = source.Split('\n').Where(line =>
+                line.StartsWith(throttlePrefix + "4.", StringComparison.Ordinal) ||
+                line.StartsWith(throttlePrefix + "5.", StringComparison.Ordinal)).ToArray();
+            var yaw = original.Select(line =>
+            {
+                var duplicate = line.Replace(throttlePrefix, yawPrefix, StringComparison.Ordinal);
+                if (duplicate.Contains(".4.button ", StringComparison.Ordinal)) return yawPrefix + "4.button 46";
+                if (duplicate.Contains(".5.button ", StringComparison.Ordinal)) return yawPrefix + "5.button 47";
+                return duplicate;
+            });
+            var native = source.TrimEnd('\r', '\n') + "\n" + string.Join("\n", yaw) + "\n";
+            var profile = backend.Import("controls", new Dictionary<string, string>
+                { [SquadronsProfileBackend.FileName] = native });
+            var error = Assert.Throws<InvalidOperationException>(() => backend.RebindAxisPair(
+                profile, "IncomStarshipInputConcepts.ConceptThrottle.5",
+                "IncomStarshipInputConcepts.ConceptThrottle.4",
+                "squadrons.joystick.5", "JOY_RZ"));
+            Assert.Contains("Yaw", error.Message);
+            Assert.Equal(native, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
         /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
