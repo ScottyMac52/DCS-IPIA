@@ -78,7 +78,7 @@ namespace Heimdall.Squadrons
             var prefix = BindingPrefix + concept + "." + index + ".";
             var lines = RequiredFields.Select(field => prefix + field + " " +
                 values[field].ToString(CultureInfo.InvariantCulture));
-            var separator = Text.EndsWith("\n", StringComparison.Ordinal) ? "" : newline;
+            var separator = Text.EndsWith('\n') ? "" : newline;
             return Text + separator + string.Join(newline, lines) + newline;
         }
         /// <summary>Removes exactly one scalar setting without changing unrelated native lines.</summary>
