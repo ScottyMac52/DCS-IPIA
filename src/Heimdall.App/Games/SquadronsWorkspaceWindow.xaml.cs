@@ -354,9 +354,9 @@ namespace Heimdall.App.Games
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
             {
                 _drawingBoundsQueued = false;
-                if (!DrawingPanel.IsExpanded || DrawingRow.ActualHeight <= 0) return;
+                if (!DrawingPanel.IsExpanded || DrawingPanel.ActualHeight <= 0) return;
                 var top = DrawingScroll.TranslatePoint(new Point(0, 0), DrawingPanel).Y;
-                var maximum = Math.Max(24, DrawingRow.ActualHeight - DrawingPanel.Margin.Top - top - 4);
+                var maximum = Math.Max(24, DrawingPanel.ActualHeight - top - 4);
                 if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
                     DrawingScroll.MaxHeight = maximum;
             }));
@@ -364,42 +364,22 @@ namespace Heimdall.App.Games
 
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
-            if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
-            // A GridSplitter cannot resize an Auto row; give the open drawing
-            // a share of the available height rather than relying on its content size.
-            DrawingRow.MinHeight = 150;
-            DrawingRow.Height = new GridLength(1, GridUnitType.Star);
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
             DrawingSplitter.Visibility = Visibility.Visible;
             QueueDrawingBounds();
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
         }
         private void DrawingCollapsed(object sender, RoutedEventArgs e)
         {
-            if (!ReferenceEquals(e.OriginalSource, DrawingPanel) || DrawingRow is null) return;
-            // Return all reclaimed space to the assignment list when artwork is hidden.
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
             DrawingSplitter.Visibility = Visibility.Collapsed;
-            DrawingRow.MinHeight = 0;
-            DrawingRow.Height = GridLength.Auto;
             DrawingScroll.MaxHeight = double.PositiveInfinity;
         }
-        private void ClickToAssignChanged(object sender, RoutedEventArgs e)
-        {
-            if (DrawingDropFeedback is null) return;
-            DrawingDropFeedback.Text = ClickToAssign.IsChecked == true
-                ? "Assignment mode: select a command, then click an outlined hardware control."
-                : "Inspection mode: click a control to inspect its existing bindings.";
-        }
-
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
-            if (ClickToAssign.IsChecked == true)
+            if (CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand command)
             {
-                if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand selected)
-                {
-                    DrawingDropFeedback.Text = "Select a command above before clicking a drawing control.";
-                    return;
-                }
-                DropDrawingCommand(control, selected.Id);
+                DropDrawingCommand(control, command.Id);
                 return;
             }
             if (SelectedController is not { } slot) return;
@@ -407,14 +387,13 @@ namespace Heimdall.App.Games
             var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
             if (matches.Count > 0)
             {
-                var recordId = matches[0].RecordId;
                 BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
-                    .FirstOrDefault(row => row.RecordId == recordId);
+                    .FirstOrDefault(row => row.RecordId == matches[0].RecordId);
                 if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
             }
-            StatusText.Text = control.Label + " · " + control.InputKey +
-                (matches.Count == 0 ? " · No captured assignments." :
-                    " · " + matches.Count + " captured assignment(s).");
+            DrawingDropFeedback.Text = matches.Count == 0
+                ? "Select a command to assign " + control.Label + "."
+                : control.Label + ": " + string.Join(", ", matches.Select(x => x.CommandName));
         }
         private void DropDrawingCommand(HardwareGraphicControl control, string commandId)
         {
@@ -425,14 +404,26 @@ namespace Heimdall.App.Games
             var command = _backend.GetCatalog(_session.Snapshot.Profile).Commands.Single(x => x.Id == commandId);
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
-            var captured = plan.EditableRecords == 1
-                ? _backend.ReadBindings(_session.Snapshot.Profile)
-                    .Single(x => x.RecordId == plan.EditableRecordIds[0]).Input
-                : null;
-            var input = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, captured);
-            if (plan.EditableRecords == 1)
+            var candidate = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis);
+            var eligible = _backend.ReadBindings(_session.Snapshot.Profile)
+                .Where(x => plan.EditableRecordIds.Contains(x.RecordId, StringComparer.Ordinal) &&
+                    x.Input?.Type == candidate.Type &&
+                    (candidate.Type != Heimdall.Domain.MultiSim.CommandType.Axis ||
+                     x.Input.Direction == candidate.Direction)).ToArray();
+            if (eligible.Length > 1)
             {
-                _session.RebindNative(plan.EditableRecordIds[0], slot, input.Key, input.Type, input.Direction);
+                var onController = eligible.Where(x => x.DeviceId ==
+                    int.Parse(slot["squadrons.joystick.".Length..]) - 1).ToArray();
+                if (onController.Length == 1) eligible = onController;
+            }
+            if (eligible.Length > 1)
+                throw new InvalidOperationException("Several native records match this input. Select a specific assignment before replacing it.");
+            var input = eligible.Length == 1
+                ? SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, eligible[0].Input)
+                : candidate;
+            if (eligible.Length == 1)
+            {
+                _session.RebindNative(eligible[0].RecordId, slot, input.Key, input.Type, input.Direction);
                 Refresh(false);
                 StatusText.Text = "Existing Squadrons binding updated in draft. Save before exporting.";
             }
@@ -451,17 +442,16 @@ namespace Heimdall.App.Games
             {
                 DrawingDropFeedback.Text = "Assignment not applied: " + error.Message;
                 StatusText.Text = DrawingDropFeedback.Text;
-                MessageBox.Show(this, error.Message, "Squadrons assignment not applied",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+
             }
         }
-        private void CommandDragPressed(object sender, MouseButtonEventArgs e)
+        private void CommandListDragPressed(object sender, MouseButtonEventArgs e)
         {
-            _commandDragStart = e.GetPosition(CommandDragHandle);
+            _commandDragStart = e.GetPosition(CommandPicker);
         }
         private void DragCapturedCommand(object sender, MouseEventArgs e)
         {
-            if (!ReferenceEquals(sender, CommandDragHandle) || _commandDragStart is not { } start ||
+            if (!ReferenceEquals(sender, CommandPicker) || _commandDragStart is not { } start ||
                 e.LeftButton != MouseButtonState.Pressed ||
                 CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
                 _session is null || _session.AccessMessage.Length != 0)
@@ -469,12 +459,12 @@ namespace Heimdall.App.Games
                 if (e.LeftButton != MouseButtonState.Pressed) _commandDragStart = null;
                 return;
             }
-            var at = e.GetPosition(CommandDragHandle);
+            var at = e.GetPosition(CommandPicker);
             if (Math.Abs(at.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
                 Math.Abs(at.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
             _commandDragStart = null;
             DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.";
-            var effect = DragDrop.DoDragDrop(CommandDragHandle,
+            var effect = DragDrop.DoDragDrop(CommandPicker,
                 new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
             if (effect == DragDropEffects.None &&
                 !DrawingDropFeedback.Text.StartsWith("Drop onto ", StringComparison.Ordinal))
