@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, ISimCapturedDeviceLinks
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -72,6 +72,59 @@ namespace Heimdall.Squadrons
                         && candidate.Fields.Count == original.Fields.Count
                         && original.Fields.All(field => candidate.Fields.TryGetValue(field.Key, out var value) && value == field.Value))))
                 throw new InvalidOperationException("Squadrons native binding validation failed; no profile changes were applied.");
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+        }
+        /// <summary>Rebinds both captured axis directions together without changing their
+        /// independent identifiers, negate values or unrelated native records.</summary>
+        public ProfileDocument RebindAxisPair(ProfileDocument profile, string positiveRecordId,
+            string negativeRecordId, string logicalDeviceId, string physicalAxisKey)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.SingleOrDefault(x => x.LogicalId == logicalDeviceId)
+                ?? throw new InvalidOperationException("Select a captured Squadrons controller slot.");
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"],
+                System.Globalization.CultureInfo.InvariantCulture);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
+            var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
+            if (positive is null || negative is null || positive.RecordId == negative.RecordId ||
+                positive.Concept != negative.Concept || positive.Type != 3 || negative.Type != 3 ||
+                positive.Fields.Count != 8 || negative.Fields.Count != 8 ||
+                positive.Fields["modifier"] != 0 || negative.Fields["modifier"] != 0 ||
+                positive.Fields["altbutton"] != 0 || negative.Fields["altbutton"] != 0 ||
+                positive.Input?.Type != CommandType.Axis || positive.Input.Direction != 1 ||
+                negative.Input?.Type != CommandType.Axis || negative.Input.Direction != -1 ||
+                slot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + slot, out var name) ||
+                string.IsNullOrWhiteSpace(name))
+                throw new InvalidOperationException("Both editable directional records are required to assign this axis.");
+            var plus = new SquadronsInput(physicalAxisKey, CommandType.Axis, 1);
+            var minus = new SquadronsInput(physicalAxisKey, CommandType.Axis, -1);
+            var (plusAxis, plusButton) = SquadronsInputCodec.Encode(plus);
+            var (minusAxis, minusButton) = SquadronsInputCodec.Encode(minus);
+            var changes = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (record, axis, button) in new[]
+            {
+                (positive, plusAxis, plusButton), (negative, minusAxis, minusButton)
+            })
+            {
+                var prefix = "GstKeyBinding." + record.RecordId + ".";
+                changes[prefix + "axis"] = axis;
+                changes[prefix + "button"] = button;
+                changes[prefix + "deviceid"] = slot - 1;
+            }
+            var text = document.ReplaceValues(changes);
+            var written = new SquadronsNativeDocument(text);
+            if (written.Bindings.Count != document.Bindings.Count ||
+                written.Bindings.Single(x => x.RecordId == positiveRecordId).Input != plus ||
+                written.Bindings.Single(x => x.RecordId == negativeRecordId).Input != minus ||
+                written.Bindings.Where(x => x.RecordId == positiveRecordId || x.RecordId == negativeRecordId)
+                    .Any(x => x.DeviceId != slot - 1) ||
+                document.Bindings.Any(old => !written.Bindings.Any(updated =>
+                    updated.RecordId == old.RecordId && old.Fields.All(field =>
+                        updated.Fields.TryGetValue(field.Key, out var value) &&
+                        (changes.ContainsKey("GstKeyBinding." + old.RecordId + "." + field.Key) ||
+                         value == field.Value))))
+                throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
             return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
         }
         /// <summary>Resolves an explicitly selected captured device and delegates to the native record editor.</summary>
