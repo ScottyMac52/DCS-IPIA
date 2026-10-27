@@ -644,9 +644,8 @@ namespace Heimdall.App.Games
             CommandHint.Text = CommandPicker.Items.Count + " catalog commands (reference + imported) · " +
                 command.DisplayName + " · " + command.Category + " · " +
                 plan.CapturedRecords + " captured records · " + plan.EditableRecords +
-                " supported replacement records. " + (plan.CanReplaceCapturedRecord
-                    ? "Drag a command onto a compatible drawing input to replace the sole editable record, or select an assignment below."
-                    : "Drag onto a compatible drawing input to create a record when this command has a verified native template; unknown templates remain blocked.");
+                " editable native records. Select a control on the drawing to assign; drag from the list if preferred. " +
+                "Existing directional records are matched by axis direction; new records require verified native metadata.";
         }
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
