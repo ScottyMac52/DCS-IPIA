@@ -123,7 +123,7 @@ namespace Heimdall.Squadrons
                     updated.RecordId == old.RecordId && old.Fields.All(field =>
                         updated.Fields.TryGetValue(field.Key, out var value) &&
                         (changes.ContainsKey("GstKeyBinding." + old.RecordId + "." + field.Key) ||
-                         value == field.Value))))
+                         value == field.Value)))))
                 throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
             return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
         }
