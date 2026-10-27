@@ -405,25 +405,15 @@ namespace Heimdall.App.Games
             var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
                 command.Metadata["squadrons.concept"]);
             var candidate = SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis);
-            var eligible = _backend.ReadBindings(_session.Snapshot.Profile)
-                .Where(x => plan.EditableRecordIds.Contains(x.RecordId, StringComparer.Ordinal) &&
-                    x.Input?.Type == candidate.Type &&
-                    (candidate.Type != Heimdall.Domain.MultiSim.CommandType.Axis ||
-                     x.Input.Direction == candidate.Direction)).ToArray();
-            if (eligible.Length > 1)
-            {
-                var onController = eligible.Where(x => x.DeviceId ==
-                    int.Parse(slot["squadrons.joystick.".Length..]) - 1).ToArray();
-                if (onController.Length == 1) eligible = onController;
-            }
-            if (eligible.Length > 1)
-                throw new InvalidOperationException("Several native records match this input. Select a specific assignment before replacing it.");
-            var input = eligible.Length == 1
-                ? SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, eligible[0].Input)
+            var record = SquadronsAssignmentTarget.Find(
+                _backend.ReadBindings(_session.Snapshot.Profile), plan.EditableRecordIds,
+                candidate, int.Parse(slot["squadrons.joystick.".Length..]) - 1);
+            var input = record is not null
+                ? SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis, record.Input)
                 : candidate;
-            if (eligible.Length == 1)
+            if (record is not null)
             {
-                _session.RebindNative(eligible[0].RecordId, slot, input.Key, input.Type, input.Direction);
+                _session.RebindNative(record.RecordId, slot, input.Key, input.Type, input.Direction);
                 Refresh(false);
                 StatusText.Text = "Existing Squadrons binding updated in draft. Save before exporting.";
             }
