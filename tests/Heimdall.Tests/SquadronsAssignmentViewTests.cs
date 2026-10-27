@@ -42,6 +42,27 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => SquadronsInputCodec.FromDrawing("JOY_BTN1", true));
             Assert.Throws<InvalidOperationException>(() => SquadronsInputCodec.FromDrawing("JOY_UNKNOWN", false));
         }
+        /// <summary>Pitch/Yaw with two native directions must select the matching input
+        /// instead of mistakenly attempting native record creation.</summary>
+        [Fact]
+        public void Directional_records_select_the_matching_axis_without_creating_an_identifier()
+        {
+            var positive = new SquadronsInput("JOY_Y", CommandType.Axis, 1);
+            var negative = new SquadronsInput("JOY_Y", CommandType.Axis, -1);
+            static SquadronsBindingRow Record(int index, int code, int device) =>
+                new("IncomStarshipInputConcepts.ConceptPitch", index,
+                    new Dictionary<string, int>
+                    {
+                        ["axis"] = code, ["button"] = 174, ["deviceid"] = device,
+                        ["identifier"] = index * 73, ["type"] = 3,
+                        ["modifier"] = 0, ["altbutton"] = 0, ["negate"] = 0
+                    });
+            var entries = new[] { Record(4, 11, 0), Record(5, 9, 0) };
+            var allowed = entries.Select(x => x.RecordId).ToArray();
+            Assert.Equal(entries[0], SquadronsAssignmentTarget.Find(entries, allowed, positive, 0));
+            Assert.Equal(entries[1], SquadronsAssignmentTarget.Find(entries, allowed, negative, 0));
+            Assert.Null(SquadronsAssignmentTarget.Find(entries, [], positive, 0));
+        }
         /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
