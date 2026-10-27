@@ -55,8 +55,8 @@ namespace Heimdall.Tests
             Assert.Equal(2, entries.Length);
             Assert.All(entries, row => Assert.Equal(4, row.DeviceId));
             Assert.All(entries, row => Assert.Equal("JOY_Z", row.Input?.Key));
-            Assert.Equal(new[] { -1, 1 }, entries.Select(x => x.Input!.Direction).Order().ToArray());
-            Assert.Equal(new[] { 0, 1 }, entries.Select(x => x.Fields["negate"]).Order().ToArray());
+            Assert.Equal([-1, 1], entries.Select(x => x.Input!.Direction).Order().ToArray());
+            Assert.Equal([0,1], entries.Select(x => x.Fields["negate"]).Order().ToArray());
             Assert.All(entries, row => Assert.Equal(123, row.Fields["identifier"]));
             Assert.Equal(raw, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
