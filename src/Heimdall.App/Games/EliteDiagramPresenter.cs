@@ -16,7 +16,7 @@ namespace Heimdall.App.Games
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, Action<HardwareGraphicControl> select,
-            Action<HardwareGraphicControl, string> drop, Action clear, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null, string dragFormat = "heimdall.elite.command")
+            Action<HardwareGraphicControl, string> drop, Action? clear, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null, string dragFormat = "heimdall.elite.command")
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
@@ -32,11 +32,19 @@ namespace Heimdall.App.Games
                 border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(dragFormat) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
                 border.Drop += (_, e) => { if (e.Data.GetData(dragFormat) is string id) drop(control, id); e.Handled = true; };
                 var menu = new ContextMenu();
-                var edit = new MenuItem { Header = control.IsAxis ? "Tune / assign axis" : "Select input for assignment" };
+                // Selecting an axis is not tuning it; never advertise unsupported commands.
+                var edit = new MenuItem { Header = control.IsAxis
+                    ? "Select axis for assignment" : "Select input for assignment" };
                 edit.Click += (_, _) => select(control);
-                var remove = new MenuItem { Header = "Clear selected assignment" };
-                remove.Click += (_, _) => { select(control); clear(); };
-                menu.Items.Add(edit); menu.Items.Add(remove); border.ContextMenu = menu;
+                menu.Items.Add(edit);
+                // Simulators without a real clear action must not show a phantom menu item.
+                if (clear is not null)
+                {
+                    var remove = new MenuItem { Header = "Clear selected assignment" };
+                    remove.Click += (_, _) => { select(control); clear(); };
+                    menu.Items.Add(remove);
+                }
+                border.ContextMenu = menu;
                 canvas.Children.Add(border); Regions.Add((control, border));
             }
         }
