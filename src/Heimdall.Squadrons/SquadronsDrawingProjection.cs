@@ -18,13 +18,23 @@ namespace Heimdall.Squadrons
             var labels = diagram.Controls.ToDictionary(control => control.Control, control =>
             {
                 var key = SquadronsInputCodec.PhysicalKey(control.InputKey);
-                return (IReadOnlyList<KneeboardLabelVariant>)assigned.Where(row =>
-                        string.Equals(row.Native.Input!.PhysicalKey, key, StringComparison.Ordinal))
-                    .Select(row => new KneeboardLabelVariant(
-                        row.CommandName + (row.Native.Input!.Type == CommandType.Axis
-                            ? " (" + (row.Native.Input.Direction > 0 ? "+" : "-") + ")" : ""),
-                        KneeboardStateColors.Base, AssignmentLayer.Module, ""))
-                    .DistinctBy(label => label.Text, StringComparer.Ordinal).ToArray();
+                var inputs = assigned.Where(row =>
+                    string.Equals(row.Native.Input!.PhysicalKey, key, StringComparison.Ordinal)).ToArray();
+                return (IReadOnlyList<KneeboardLabelVariant>)inputs
+                    .GroupBy(row => row.Native.Concept, StringComparer.Ordinal)
+                    .SelectMany(group =>
+                    {
+                        if (group.All(row => row.Native.Input!.Type == CommandType.Axis) &&
+                            group.Any(row => row.Native.Input!.Direction == 1) &&
+                            group.Any(row => row.Native.Input!.Direction == -1))
+                            return new[] { group.First().CommandName };
+                        return group.Select(row => row.CommandName +
+                            (row.Native.Input!.Type == CommandType.Axis
+                                ? " (" + (row.Native.Input.Direction > 0 ? "+" : "-") + ")" : ""));
+                    })
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(name => new KneeboardLabelVariant(
+                        name, KneeboardStateColors.Base, AssignmentLayer.Module, "")).ToArray();
             }, StringComparer.Ordinal);
             return new KneeboardComposite(title, "Star Wars: Squadrons · " + section,
                 labels, new Dictionary<string, string>(StringComparer.Ordinal), []);
