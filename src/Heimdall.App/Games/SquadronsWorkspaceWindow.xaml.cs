@@ -312,8 +312,10 @@ namespace Heimdall.App.Games
             var diagram = hardware.Diagram;
             var section = SectionPicker.SelectedItem as string ?? "All";
             var page = SquadronsDrawingProjection.Diagram(snapshot!.Name, diagram, _rows, slot, section);
+            // Clearing a specific native record requires a disambiguated record selection.
+            // Do not advertise a context-menu clear action that only displays a message.
             _drawingPresenter.Show(diagram, page, SelectDrawingInput, DropDrawingCommand,
-                () => StatusText.Text = "Select an existing assignment in the table to clear it.",
+                null,
                 AppearanceManager.ArtworkOpacityFor(this),
                 control =>
                 {
