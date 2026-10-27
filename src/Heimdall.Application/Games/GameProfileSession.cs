@@ -66,6 +66,29 @@ namespace Heimdall.Application.Games
             ValidateProfile(profile);
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile }); Changed?.Invoke(this, EventArgs.Empty);
         }
+        /// <summary>Atomically stages both native directions of a single analog control,
+        /// applying the same physical link and verified-input checks as normal edits.</summary>
+        public void RebindNativeAxisPair(string positiveRecordId, string negativeRecordId,
+            string logicalDeviceId, string axisKey)
+        {
+            RequireAccess();
+            if (_backend is not INativeAxisPairEditor editor)
+                throw new InvalidOperationException("This game does not support bidirectional native axis editing.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(editor.PhysicalInputKey(axisKey), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Link and verify this physical axis before assigning it.");
+            var profile = editor.RebindAxisPair(Snapshot.Profile, positiveRecordId,
+                negativeRecordId, logicalDeviceId, axisKey);
+            if (profile.BackendId != _backend.SimId ||
+                profile.ContextId != _current.Profile.ContextId ||
+                profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException("The native axis edit changed the owning game or profile identity.");
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Stages a new captured Squadrons record only after the same physical
         /// device and verified key checks used for edits to existing records.</summary>
         public void AddSquadronsNativeBinding(string concept, string logicalDeviceId,
