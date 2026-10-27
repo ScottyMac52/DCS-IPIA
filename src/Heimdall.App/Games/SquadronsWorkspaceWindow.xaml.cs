@@ -714,6 +714,8 @@ namespace Heimdall.App.Games
         {
             _identification.Stop();
             _session?.Discard(); Refresh();
+            StatusText.Text = "Draft changes discarded.";
+            DrawingDropFeedback.Text = "";
             if (_revision is null) { _session = null; Refresh(); }
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
