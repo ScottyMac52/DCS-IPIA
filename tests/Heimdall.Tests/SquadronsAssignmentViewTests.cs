@@ -97,6 +97,42 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => backend.RebindAxisPair(profile,
                 prefix + "5", prefix + "5", "squadrons.joystick.3", "JOY_Y"));
         }
+        /// <summary>Two directions of Roll produce one tooltip label; a distinct Yaw
+        /// concept on the same RZ axis is shown as a collision, not four bindings.</summary>
+        [Fact]
+        public void Axis_callout_deduplicates_direction_records_and_explains_real_collisions()
+        {
+            static SquadronsWorkspaceRow Row(string concept, string command, int index, int axis, int button)
+            {
+                var native = new SquadronsBindingRow(concept, index, new Dictionary<string, int>
+                {
+                    ["type"] = 3, ["axis"] = axis, ["button"] = button, ["deviceid"] = 0,
+                    ["identifier"] = 123, ["modifier"] = 0, ["altbutton"] = 0, ["negate"] = 0
+                });
+                return new SquadronsWorkspaceRow(native, command, "Flight",
+                    "squadrons.joystick.1", "Stick");
+            }
+            var rows = new[]
+            {
+                Row("IncomStarshipInputConcepts.ConceptRoll", "Roll", 1, 26, 46),
+                Row("IncomStarshipInputConcepts.ConceptRoll", "Roll", 2, 26, 47),
+                Row("IncomStarshipInputConcepts.ConceptYaw", "Yaw", 3, 26, 46),
+                Row("IncomStarshipInputConcepts.ConceptYaw", "Yaw", 4, 26, 47)
+            };
+            var control = new Heimdall.Application.HardwareGraphicControl(
+                "rz", "Grip twist", "JOY_RZ", 0, 0, 100, 40, true);
+            var summary = SquadronsDrawingProjection.AssignmentSummary(control, rows,
+                "squadrons.joystick.1", "Flight");
+            Assert.Contains("Shared axis", summary);
+            Assert.Equal(1, summary.Split('\n').Count(x => x == "Roll"));
+            Assert.Equal(1, summary.Split('\n').Count(x => x == "Yaw"));
+            Assert.DoesNotContain("(+ only)", summary);
+            Assert.DoesNotContain("(- only)", summary);
+            Assert.Equal("Roll", SquadronsDrawingProjection.AssignmentSummary(control,
+                rows.Take(2), "squadrons.joystick.1", "Flight"));
+            Assert.Contains("(+ only)", SquadronsDrawingProjection.AssignmentSummary(control,
+                rows.Take(1), "squadrons.joystick.1", "Flight"));
+        }
         /// <summary>Normal flight/device filtering retains captured joystick inputs while review restores preserved system records.</summary>
         [Fact]
         public void Normal_view_shows_only_compatible_inputs_in_the_selected_context_and_device()
