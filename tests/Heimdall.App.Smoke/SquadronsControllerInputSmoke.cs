@@ -43,7 +43,7 @@ namespace Heimdall.App.Smoke
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.RecordId.EndsWith("ConceptFire.2", StringComparison.Ordinal));
                 var row = (SquadronsWorkspaceRow)grid.SelectedItem;
                 var inputs = Box<ComboBox>(window, "InputPicker");
-                if (row.HardwareStatus != "Not on linked device" || inputs.Items.Count != 6
+                if (row.HardwareStatus != "Input absent on linked device" || inputs.Items.Count != 6
                     || inputs.Items.Cast<SquadronsInput>().Any(x => x.Type != CommandType.Axis) || Box<Button>(window, "ApplyButton").IsEnabled)
                     throw new InvalidOperationException("Pedals exposed buttons/hats or presented a captured button as a verified control.");
                 var targets = Box<ComboBox>(window, "TargetDevice");
@@ -53,7 +53,7 @@ namespace Heimdall.App.Smoke
                 targets.SelectedItem = targets.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 if (!window.SaveProfile() || window.Session.Export().Files[SquadronsProfileBackend.FileName] != native)
                     throw new InvalidOperationException("Hardware review changed captured native records.");
-                Box<ComboBox>(window, "TypePicker").SelectedItem = "Verified device inputs";
+                Box<ComboBox>(window, "TypePicker").SelectedItem = "Supported physical inputs";
                 if (grid.Items.Count != 0) throw new InvalidOperationException("Verified-only filtering retained a nonexistent pedal button.");
                 Box<ComboBox>(window, "TypePicker").SelectedItem = "All inputs";
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.RecordId.EndsWith("ConceptFire.2", StringComparison.Ordinal));
