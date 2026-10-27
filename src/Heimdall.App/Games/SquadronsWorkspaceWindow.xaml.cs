@@ -46,6 +46,25 @@ namespace Heimdall.App.Games
             _drawingPresenter = new(DrawingCanvas);
             _drawingViewport = new(DrawingScroll, DrawingCanvas, DrawingZoom, "squadrons.diagram");
             _drawingViewport.EnableSmartNavigation();
+            // Any drawing-area drop outside a verified callout must be explained.
+            DrawingCanvas.AllowDrop = true;
+            DrawingCanvas.DragOver += (_, e) =>
+            {
+                if (!e.Handled && e.Data.GetDataPresent(SquadronsCommandDragFormat))
+                {
+                    e.Effects = DragDropEffects.None;
+                    e.Handled = true;
+                }
+            };
+            DrawingCanvas.Drop += (_, e) =>
+            {
+                if (!e.Handled && e.Data.GetDataPresent(SquadronsCommandDragFormat))
+                {
+                    DrawingDropFeedback.Text = "Drop onto an outlined control callout, not the drawing background.";
+                    StatusText.Text = DrawingDropFeedback.Text;
+                    e.Handled = true;
+                }
+            };
             _reordering = new(DevicePicker, (source, target, after) =>
             {
                 if (source == "all" || target == "all") return;
@@ -437,8 +456,11 @@ namespace Heimdall.App.Games
                 Math.Abs(at.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
             _commandDragStart = null;
             DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.";
-            DragDrop.DoDragDrop(CommandDragHandle,
+            var effect = DragDrop.DoDragDrop(CommandDragHandle,
                 new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
+            if (effect == DragDropEffects.None &&
+                !DrawingDropFeedback.Text.StartsWith("Drop onto ", StringComparison.Ordinal))
+                DrawingDropFeedback.Text = "Drop canceled or outside a supported callout. Aim for an outlined input on the drawing.";
         }
         private void RefreshRows()
         {
