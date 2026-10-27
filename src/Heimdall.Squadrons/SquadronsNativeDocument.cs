@@ -59,7 +59,7 @@ namespace Heimdall.Squadrons
                 row.Fields["altbutton"] == 0).ToArray();
             var identifiers = templates.Select(x => x.Fields["identifier"]).Distinct().ToArray();
             if (identifiers.Length != 1)
-                throw new InvalidOperationException("A native record template for this command is not verified. Capture a binding for this command once to establish its identifier.");
+                throw new InvalidOperationException("This profile has no unambiguous native identifier template for the selected command. Creating a record without one could corrupt the exported controls; creation remains unavailable for this command.");
             if (Bindings.Count(x => x.Concept == concept) >= 128)
                 throw new InvalidOperationException("Too many native binding records for this command.");
             // Preserve existing concept-local slot ordering instead of filling an
