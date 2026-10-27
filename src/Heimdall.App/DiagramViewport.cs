@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -36,6 +37,7 @@ namespace Heimdall.App
                 QueueFit();
             };
             viewport.SizeChanged += (_, _) => QueueFit();
+            viewport.PreviewMouseWheel += OnPreviewMouseWheel;
             drawing.SizeChanged += (_, _) => QueueFit();
             zoom.ValueChanged += (_, _) =>
             {
@@ -51,6 +53,45 @@ namespace Heimdall.App
             _fit = true;
             QueueFit();
             Save();
+        }
+
+        /// <summary>All diagram surfaces share identical wheel gestures. Handling this
+        /// at the viewport prevents a nested drawing control from scrolling a parent.</summary>
+        private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Delta == 0) return;
+            var mode = DiagramWheelNavigation.Mode(
+                (Keyboard.Modifiers & ModifierKeys.Control) != 0,
+                (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+            if (mode == DiagramWheelMode.Zoom)
+            {
+                var before = _zoom.Value;
+                var after = DiagramWheelNavigation.Zoom(before, e.Delta, _zoom.Minimum, _zoom.Maximum);
+                if (Math.Abs(after - before) > 0.0000001)
+                {
+                    var point = e.GetPosition(_viewport);
+                    var horizontal = _viewport.HorizontalOffset;
+                    var vertical = _viewport.VerticalOffset;
+                    _zoom.Value = after;
+                    // LayoutTransform changes extent on layout. Restore the same
+                    // image pixel under the mouse after the new extent is measured.
+                    _viewport.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                    {
+                        var ratio = after / before;
+                        _viewport.ScrollToHorizontalOffset(
+                            DiagramWheelNavigation.AnchoredOffset(horizontal, point.X, ratio));
+                        _viewport.ScrollToVerticalOffset(
+                            DiagramWheelNavigation.AnchoredOffset(vertical, point.Y, ratio));
+                    }));
+                }
+            }
+            else if (mode == DiagramWheelMode.Horizontal)
+                _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset -
+                    DiagramWheelNavigation.ScrollDelta(e.Delta));
+            else
+                _viewport.ScrollToVerticalOffset(_viewport.VerticalOffset -
+                    DiagramWheelNavigation.ScrollDelta(e.Delta));
+            e.Handled = true;
         }
 
         private void Save()
