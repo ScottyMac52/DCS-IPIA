@@ -102,7 +102,7 @@ namespace Heimdall.Tests
             var editable = SquadronsWorkspaceProjection.Filter(reviewed,
                 "Flight", "Axes", "", "squadrons.joystick.5", includeUnverified: false);
             Assert.Equal(2, editable.Count);
-            Assert.All(editable, row => Assert.Equal("Verified device input", row.HardwareStatus));
+            Assert.All(editable, row => Assert.Equal("Supported physical input (slot unconfirmed)", row.HardwareStatus));
             var unsupported = SquadronsWorkspaceProjection.Filter(reviewed,
                 "All", "All inputs", "", "squadrons.joystick.3", includeUnverified: false);
             Assert.Empty(unsupported);

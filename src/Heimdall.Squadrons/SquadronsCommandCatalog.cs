@@ -11,13 +11,22 @@ namespace Heimdall.Squadrons
         /// <summary>Gets the owning adapter.</summary>
         public string SimId => "star-wars-squadrons";
         /// <summary>Gets independent commands, retaining unknown concepts under Other.</summary>
-        public IReadOnlyList<SimCommand> Commands => document.Bindings.GroupBy(x => x.Concept, StringComparer.Ordinal)
-            .Select(group => new SimCommand
+        public IReadOnlyList<SimCommand> Commands
+        {
+            get
             {
-                Id = context + "/" + group.Key, Context = context,
-                DisplayName = Display(group.Key), Category = Category(group.Key),
-                Type = InputType(group), Metadata = new() { ["squadrons.concept"] = group.Key }
-            }).ToArray();
+                var captured = document.Bindings.GroupBy(x => x.Concept, StringComparer.Ordinal)
+                    .ToDictionary(x => x.Key, x => (IReadOnlyCollection<SquadronsBindingRow>)x.ToArray(), StringComparer.Ordinal);
+                return SquadronsKnownConcepts.All.Concat(captured.Keys).Distinct(StringComparer.Ordinal)
+                    .Select(concept => new SimCommand
+                    {
+                        Id = context + "/" + concept, Context = context,
+                        DisplayName = Display(concept), Category = Category(concept),
+                        Type = captured.TryGetValue(concept, out var rows) ? InputType(rows) : CommandType.Other,
+                        Metadata = new() { ["squadrons.concept"] = concept }
+                    }).ToArray();
+            }
+        }
         /// <summary>Finds an exact scoped command.</summary>
         public SimCommand? Find(string id) => Commands.FirstOrDefault(x => x.Id == id);
         #endregion END Public

@@ -39,7 +39,7 @@ namespace Heimdall.App.Games
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
-            TypePicker.ItemsSource = new[] { "All inputs", "Verified device inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
+            TypePicker.ItemsSource = new[] { "All inputs", "Supported physical inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
             Loaded += async (_, _) => await RefreshControllerInputsAsync();
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
@@ -173,7 +173,7 @@ namespace Heimdall.App.Games
             ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
             ControllerColumn.Visibility = review || SelectedController is null ? Visibility.Visible : Visibility.Collapsed;
             HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
-            CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Not on linked device") + " inputs not on linked hardware" :
+            CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs not on linked hardware" :
                 rows.Count + " compatible assignments · " + section + ". Hardware compatibility does not confirm in-game slot ownership.";
             EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             EmptyState.Text = _session is null ? "Import a Squadrons controls file to get started." : review ? "No matching captured records. Change the context, input filter or search." :
@@ -204,7 +204,7 @@ namespace Heimdall.App.Games
             if (row?.Editable == true)
                 AssignmentHint.Text = keys is null ? "Link the destination captured slot to a connected controller and Rescan to verify its real inputs. No generic controls can be assigned." :
                     row.CommandName + " · " + row.BindingLabel + ". Only enumerated controls on the destination device are offered." +
-                    (row.HardwareStatus == "Not on linked device" ? " The captured input does not exist in the linked device's verified controls; its native record is preserved for review." : "");
+                    (row.HardwareStatus == "Input absent on linked device" ? " The captured input does not exist in the linked device's verified controls; its native record is preserved for review." : "");
         }
         private void UpdateApplyAvailability() => ApplyButton.IsEnabled = InputPicker.IsEnabled && InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
         private void TargetChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateInputChoices); }

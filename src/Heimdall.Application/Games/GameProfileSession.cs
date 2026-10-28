@@ -10,7 +10,7 @@ namespace Heimdall.Application.Games
         private readonly ISimProfileBackend _backend;
         private readonly EditionPolicy _policy;
         private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
-        private readonly IReadOnlyCollection<string> _catalogIds;
+        private IReadOnlyCollection<string> _catalogIds;
         private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;
         private readonly Func<IReadOnlyList<ControllerObservation>> _controllerInputs;
         private GameWorkspace _current;
@@ -66,6 +66,50 @@ namespace Heimdall.Application.Games
             ValidateProfile(profile);
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile }); Changed?.Invoke(this, EventArgs.Empty);
         }
+        /// <summary>Atomically stages both native directions of a single analog control,
+        /// applying the same physical link and verified-input checks as normal edits.</summary>
+        public void RebindNativeAxisPair(string positiveRecordId, string negativeRecordId,
+            string logicalDeviceId, string axisKey)
+        {
+            RequireAccess();
+            if (_backend is not INativeAxisPairEditor editor)
+                throw new InvalidOperationException("This game does not support bidirectional native axis editing.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(editor.PhysicalInputKey(axisKey), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Link and verify this physical axis before assigning it.");
+            var profile = editor.RebindAxisPair(Snapshot.Profile, positiveRecordId,
+                negativeRecordId, logicalDeviceId, axisKey);
+            if (profile.BackendId != _backend.SimId ||
+                profile.ContextId != _current.Profile.ContextId ||
+                profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException("The native axis edit changed the owning game or profile identity.");
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        /// <summary>Stages a new captured Squadrons record only after the same physical
+        /// device and verified key checks used for edits to existing records.</summary>
+        public void AddSquadronsNativeBinding(string concept, string logicalDeviceId,
+            string key, CommandType type, int direction)
+        {
+            RequireAccess();
+            if (_backend is not INativeRecordCreator backend)
+                throw new InvalidOperationException("This game does not support native record creation.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(backend.PhysicalInputKey(key), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Choose an input verified on this linked controller before creating the record.");
+            var profile = backend.AddNativeBinding(Snapshot.Profile, concept, logicalDeviceId, key, type, direction);
+            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId ||
+                profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException("Native creation changed game or profile identity.");
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Stages a configuration display name independently of immutable native source metadata.</summary>
         public void Rename(string name)
         {
@@ -95,6 +139,79 @@ namespace Heimdall.Application.Games
             var candidate = Snapshot;
             if (!candidate.Hardware.Remove(logicalId)) throw new InvalidOperationException("This captured slot has no physical link to remove.");
             return CapturedDeviceChange(logicalId, candidate, null);
+        }
+        /// <summary>Reviews removal of an unused and unlinked captured slot.</summary>
+        public GameControllerChange PreviewRemoveUnusedCapturedDevice(string logicalId)
+        {
+            RequireCapturedDevice(logicalId);
+            if (_current.Hardware.ContainsKey(logicalId))
+                throw new InvalidOperationException("Unlink this physical controller before removing its captured slot.");
+            var editor = (ISimCapturedDeviceLinks)_backend;
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
+                ControllerOrder = candidate.ControllerOrder.Where(x => x != logicalId).ToList() };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Remove unused captured slot " + logicalId +
+                "\nOnly its native joystick declaration will be removed; no binding records or inventory entries change." +
+                "\nSave profile before export.", null);
+        }
+        /// <summary>Reviews removing one exact native joystick record without rewriting any other assignments.</summary>
+        public GameControllerChange PreviewClearCapturedRecord(string recordId)
+        {
+            _policy.RequireSimulator(_backend.SimId);
+            if (_backend is not ISimCapturedDeviceLinks adapter)
+                throw new InvalidOperationException("Native record clearing is unavailable for this simulator.");
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = adapter.ClearCapturedRecord(candidate.Profile, recordId) };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Clear selected Squadrons native binding: " + recordId +
+                "\nOther native records, devices, and physical links remain unchanged." +
+                "\nSave the profile before exporting a separate review copy.", null);
+        }
+        /// <summary>Reviews clearing all native joystick records belonging to one captured slot.</summary>
+        public GameControllerChange PreviewClearCapturedAssignments(string logicalId)
+        {
+            RequireCapturedDevice(logicalId);
+            if (_backend is not ISimCapturedDeviceLinks adapter)
+                throw new InvalidOperationException("Native joystick clearing is unavailable for this simulator.");
+            var before = adapter.CountCapturedAssignments(_current.Profile, logicalId);
+            if (before == 0) throw new InvalidOperationException("No captured joystick assignments exist on this slot.");
+            var candidate = Snapshot;
+            candidate = candidate with { Profile = adapter.ClearCapturedAssignments(candidate.Profile, logicalId) };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Clear all " + before + " native joystick records on " + logicalId +
+                "\nThis removes button, axis, hat, unsupported and other captured joystick records on the selected slot." +
+                "\nOther controllers and their records are untouched. Save profile before exporting.", logicalId);
+        }
+        /// <summary>Reviews physical native slot renumbering; every binding reference and hardware association follows its unit.</summary>
+        public GameControllerChange PreviewMoveCapturedSlot(string source, string target, bool after = false)
+        {
+            RequireCapturedDevice(source);
+            RequireCapturedDevice(target);
+            if (_backend is not ISimCapturedDeviceLinks adapter)
+                throw new InvalidOperationException("Native slot renumbering is unavailable for this simulator.");
+            if (source == target) throw new InvalidOperationException("Choose a different destination slot.");
+            var order = _current.Profile.Devices
+                .OrderBy(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture))
+                .Select(x => x.LogicalId).ToList();
+            order.Remove(source);
+            order.Insert(order.IndexOf(target) + (after ? 1 : 0), source);
+            var oldSlots = order.Select((old, index) => (old, next: "squadrons.joystick." + (index + 1)))
+                .ToDictionary(x => x.old, x => x.next, StringComparer.Ordinal);
+            var candidate = Snapshot;
+            var profile = adapter.ReorderCapturedSlots(candidate.Profile, order);
+            var pins = candidate.Hardware.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal);
+            candidate = candidate with { Profile = profile, Hardware = pins,
+                ControllerOrder = order.Select(id => oldSlots[id]).ToList() };
+            ValidateControllerCandidate(candidate);
+            var moves = order.Select((id, index) => id + " → Slot " + (index + 1));
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Renumber Squadrons native joystick slots:\n" + string.Join("\n", moves) +
+                "\nAll joystick binding device IDs and physical links follow the original units." +
+                "\nSave profile and export a review copy; game-side recognition still needs validation.", oldSlots[source]);
         }
         /// <summary>Moves a controller in saved display order; native identities, indices and bindings are untouched.</summary>
         public void MoveController(string source, string target, bool after = false)
@@ -219,6 +336,16 @@ namespace Heimdall.Application.Games
                 throw new InvalidOperationException("The profile changed during validation. Review the change again.");
             _current = candidate;
             Changed?.Invoke(this, EventArgs.Empty);
+        }
+        /// <summary>Registers a verified bundled drawing catalog after asynchronous artwork discovery.
+        /// Updates validation metadata only; it never changes a staged or saved workspace.</summary>
+        public void SetDrawingCatalog(IReadOnlyCollection<string> hardwareIds)
+        {
+            ArgumentNullException.ThrowIfNull(hardwareIds);
+            if (hardwareIds.Any(string.IsNullOrWhiteSpace) ||
+                hardwareIds.Distinct(StringComparer.Ordinal).Count() != hardwareIds.Count)
+                throw new ArgumentException("Drawing catalog must contain unique nonempty hardware IDs.", nameof(hardwareIds));
+            _catalogIds = hardwareIds.ToArray();
         }
         /// <summary>Changes or removes the shared illustration without changing the physical or native target.</summary>
         public void ChangeDrawing(string logicalId, string? hardwareId)

@@ -14,7 +14,7 @@ namespace Heimdall.Squadrons
         /// <summary>Gets the exact address used by the native edit boundary.</summary>
         public string RecordId => Native.RecordId;
         /// <summary>Gets a readable input rather than exposing the encoded button-field axis representation.</summary>
-        public string InputLabel => Native.Input?.DisplayName ?? "Preserved native input";
+        public string InputLabel => Native.Input?.DisplayName ?? SquadronsSystemInputDisplay.Describe(Native);
         /// <summary>Gets a one-based presentation label without changing the native index.</summary>
         public string BindingLabel => "Binding " + (Native.Index + 1);
         /// <summary>Gets whether this record's semantics can be edited by the current adapter.</summary>
