@@ -10,6 +10,8 @@ namespace Heimdall.App.Games
         internal TextBlock AssignmentCommand { get; } = new() { Name = "AssignmentCommand", Text = "No command selected.", TextWrapping = TextWrapping.Wrap };
         internal TextBlock AssignmentDraftStatus { get; } = new() { Name = "AssignmentDraftStatus", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
         private readonly ContentControl _nativeEditor = new();
+        #region BEGIN Public
+        /// <summary>Creates the shared command readout and adjacent feedback surface.</summary>
         public GameAssignmentEditorView()
         {
             var layout = new DockPanel();
@@ -26,5 +28,6 @@ namespace Heimdall.App.Games
         public void SetEditor(UIElement editor) => _nativeEditor.Content = editor;
         /// <summary>Refreshes the command readout from the authoritative selection state.</summary>
         public void ShowCommand(SimCommand? command) => AssignmentCommand.Text = command?.DisplayName ?? "No command selected.";
+        #endregion END Public
     }
 }

@@ -52,3 +52,11 @@ Cross-compilation verifies C#/XAML compilation; it does not establish Windows GU
 - WPF app and smoke project cross-compiled with `EnableWindowsTargeting=true`; Windows execution/manual GUI acceptance remains required.
 - `git diff --check` passed.
 - `dotnet format style` could not open its MSBuild workspace because this environment denies the build host's named-pipe connection. No formatter pass is claimed; run the standard Windows coverage script (which includes formatting verification) before merge.
+
+## Additional repository checks and CI limitation
+
+Documentation and theme-resource checks passed. The C# layout checker reports no diagnostics in this PR's new/modified files; it still reports 71 diagnostics in unchanged baseline files. Existing baseline layout failures are not claimed fixed by this scoped extraction.
+
+After nonsemantic XML/region/file-layout cleanup, 58 focused shared-presentation and Elite browser tests passed again. The full 1,607-test/coverage results above precede only that cleanup, not a behavior change.
+
+GitHub Actions run 40717308139 did not start its jobs. The check annotation states: "The job was not started because your account is locked due to a billing issue." This is separate from local build/test results. No successful GitHub CI run is claimed.

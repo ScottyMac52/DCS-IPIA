@@ -12,6 +12,8 @@ namespace Heimdall.Tests
         private static readonly string[] AllCategories = ["Flight", "Other", "Weapons"];
         private static readonly string[] ShipCategories = ["Other", "Weapons"];
         private static readonly string[] SortedIds = ["other", "a", "z"];
+        #region BEGIN Public
+        /// <summary>Ownership follows the adapter projection without mutating source records.</summary>
         [Theory]
         [InlineData(GameCommandAssignmentStatus.All, "left", 4)]
         [InlineData(GameCommandAssignmentStatus.AssignedToController, "left", 2)]
@@ -28,6 +30,7 @@ namespace Heimdall.Tests
             Assert.Equal(frozen, JsonSerializer.Serialize(entries));
         }
 
+        /// <summary>Native types, categories and text filters intersect without inferring controls.</summary>
         [Fact]
         public void Search_scope_type_and_category_intersect_without_guessing_from_labels()
         {
@@ -48,6 +51,7 @@ namespace Heimdall.Tests
                 new(AssignmentStatus: (GameCommandAssignmentStatus)999)));
         }
 
+        /// <summary>Catalog refresh uses a stable native-identity tie breaker.</summary>
         [Fact]
         public void Display_order_is_category_then_label_then_native_identity()
         {
@@ -56,6 +60,7 @@ namespace Heimdall.Tests
             Assert.Equal(SortedIds, GameCommandBrowser.Filter(entries, new()).Select(x => x.Command.Id));
         }
 
+        /// <summary>Controller changes and hidden commands invalidate stale pending input.</summary>
         [Fact]
         public void Refresh_preserves_identity_and_pending_input_only_for_the_same_controller_and_command()
         {
@@ -80,6 +85,7 @@ namespace Heimdall.Tests
             Assert.Null(selection.InputKey);
         }
 
+        /// <summary>Command, slot and workspace transitions cannot reuse pending inputs.</summary>
         [Fact]
         public void Command_slot_and_workspace_transitions_clear_stale_input()
         {
@@ -106,6 +112,7 @@ namespace Heimdall.Tests
             Assert.Equal("Primary", selection.Slot);
         }
 
+        /// <summary>Elite supplies typed filter capabilities and native ownership facts.</summary>
         [Fact]
         public void Elite_declares_filters_and_projects_native_categories_and_owners()
         {
@@ -126,6 +133,7 @@ namespace Heimdall.Tests
             Assert.All(EliteCommandBrowser.AssignmentStatuses, x => Assert.NotEmpty(x.Label));
         }
 
+        /// <summary>Editor feedback and native actions consistently follow review and live testing.</summary>
         [Theory]
         [InlineData(true, true, false, false, true, "Native replacement review")]
         [InlineData(true, false, false, false, false, "Assignment unchanged.")]
@@ -143,6 +151,8 @@ namespace Heimdall.Tests
             Assert.Equal(running, state.Actions.Stop);
         }
 
+        #endregion END Public
+        #region BEGIN private helpers
         private static SimCommand Command(string id, string name) => new() { Id = id, DisplayName = name };
         private static GameCommandEntry[] Entries() =>
         [
@@ -151,5 +161,6 @@ namespace Heimdall.Tests
             new(Command("future", "Unknown Axis Button"), "Ship", "Other", [], []),
             new(Command("mixed", "Mixed"), "Ship", "Weapons", [CommandType.Axis, CommandType.Button], ["left", "right"])
         ];
+        #endregion END private helpers
     }
 }

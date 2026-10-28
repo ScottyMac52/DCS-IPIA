@@ -3,6 +3,7 @@ namespace Heimdall.Application.Games
     /// <summary>Deterministic action availability and adjacent feedback shared by native assignment editors.</summary>
     public sealed record GameAssignmentEditorState(GameAssignmentActions Actions, string Feedback)
     {
+        #region BEGIN Public
         /// <summary>Combines native review with current editing/testing state without staging any changes.</summary>
         public static GameAssignmentEditorState For(bool editable, GameAssignmentReview review,
             bool assigned, bool ready, bool running, bool busy, string changedMessage)
@@ -12,5 +13,6 @@ namespace Heimdall.Application.Games
                 : !review.Valid ? review.Message : review.Changed ? changedMessage : "Assignment unchanged.";
             return new(actions, feedback);
         }
+        #endregion END Public
     }
 }

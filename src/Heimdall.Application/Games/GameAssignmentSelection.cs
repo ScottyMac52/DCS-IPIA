@@ -6,9 +6,14 @@ namespace Heimdall.Application.Games
     /// Selection transitions never edit a profile or persist a workspace.</summary>
     public sealed class GameAssignmentSelection
     {
+        #region BEGIN Public
+        /// <summary>Gets the displayed controller identity, independent of any physical hardware link.</summary>
         public string? ControllerId { get; private set; }
+        /// <summary>Gets the selected visible native command identity.</summary>
         public string? CommandId { get; private set; }
+        /// <summary>Gets the adapter-selected native binding slot.</summary>
         public string Slot { get; private set; } = "Primary";
+        /// <summary>Gets the pending native input key, cleared when its selection context changes.</summary>
         public string? InputKey { get; private set; }
 
         /// <summary>Preserves a visible command by identity, otherwise selects the first visible command.
@@ -40,5 +45,6 @@ namespace Heimdall.Application.Games
             ControllerId = CommandId = InputKey = null;
             Slot = "Primary";
         }
+        #endregion END Public
     }
 }

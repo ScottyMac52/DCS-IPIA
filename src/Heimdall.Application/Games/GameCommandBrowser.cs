@@ -3,6 +3,7 @@ namespace Heimdall.Application.Games
     /// <summary>Reusable native-independent command filtering and stable display ordering.</summary>
     public static class GameCommandBrowser
     {
+        #region BEGIN Public
         /// <summary>Lists display categories for the selected activity, regardless of other filters.</summary>
         public static IReadOnlyList<string> Categories(IEnumerable<GameCommandEntry> entries, string? section = null) =>
             entries.Where(x => section is null || x.Section == section).Select(x => x.Category)
@@ -20,6 +21,8 @@ namespace Heimdall.Application.Games
                 .ThenBy(x => x.Command.DisplayName, StringComparer.Ordinal)
                 .ThenBy(x => x.Command.Id, StringComparer.Ordinal).ToArray();
         }
+        #endregion END Public
+        #region BEGIN private helpers
         private static bool InScope(GameCommandEntry entry, GameCommandQuery query) =>
             (query.Section is null || entry.Section == query.Section) &&
             (query.Category is null || entry.Category == query.Category) &&
@@ -37,5 +40,6 @@ namespace Heimdall.Application.Games
             GameCommandAssignmentStatus.AssignedAnywhere => owners.Count > 0,
             _ => true
         };
+        #endregion END private helpers
     }
 }
