@@ -42,7 +42,7 @@ namespace Heimdall.App.Smoke
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.5");
                 setup.IsExpanded = true; Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device;
                 Box<Button>(window, "LinkControllerButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); setup.IsExpanded = false;
-                if (grid.Items.Count != 2 || grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Verified device input" || x.Section != "Flight"))
+                if (grid.Items.Count != 2 || grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Supported physical input (slot unconfirmed)" || x.Section != "Flight"))
                     throw new InvalidOperationException("Normal flight view included incompatible, unverified or menu records.");
                 foreach (var (width, height) in new[] { (1200d, 810d), (900d, 620d) })
                 {
@@ -58,7 +58,7 @@ namespace Heimdall.App.Smoke
                 if (((DataGridTextColumn)grid.Columns[0]).ElementStyle.Setters.OfType<Setter>().All(x => x.Property != TextBlock.TextWrappingProperty || !Equals(x.Value, TextWrapping.Wrap)))
                     throw new InvalidOperationException("Long command names cannot wrap.");
                 review.IsChecked = false;
-                if (grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Verified device input")) throw new InvalidOperationException("Leaving review retained raw incompatible records.");
+                if (grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Supported physical input (slot unconfirmed)")) throw new InvalidOperationException("Leaving review retained raw incompatible records.");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 if (grid.Items.Count != 0 || Box<StackPanel>(window, "AssignmentEditor").IsVisible)
                     throw new InvalidOperationException("An unlinked controller showed raw controls or an empty editor.");
