@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using Heimdall.Domain.MultiSim;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
@@ -19,10 +21,17 @@ namespace Heimdall.App.Games
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private readonly Func<GameControllerChange, bool>? _reviewChange;
         private readonly GameControllerIdentification _identification;
+        private readonly GameAssignmentSelection _selection = new();
+        private readonly GameControllerReordering _reordering;
+        private readonly HardwareDiagramPresenter _drawingPresenter;
+        private readonly DiagramViewport _drawingViewport;
+        private Point? _commandDragStart;
+        private IReadOnlyList<WorkspaceHardware> _drawings = [];
         private GameProfileSession? _session;
         private string? _revision;
         private string? _sourceDirectory;
         private IReadOnlyList<SquadronsWorkspaceRow> _rows = [];
+        private string? _focusedConcept;
         private IReadOnlyList<ControllerObservation> _controllerInputs = [];
         private int _inputScan;
         private bool _scanningInputs;
@@ -31,16 +40,72 @@ namespace Heimdall.App.Games
         private bool _allowClose;
         /// <summary>Opens an explicitly chosen Squadrons workspace without importing active settings automatically.</summary>
         public SquadronsWorkspaceWindow(GameWorkspaceServices services, Guid? initial = null, Func<MessageBoxResult>? pendingChoice = null,
-            Func<GameControllerChange, bool>? reviewChange = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? identificationFactory = null)
+            Func<GameControllerChange, bool>? reviewChange = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? identificationFactory = null,
+            IReadOnlyList<WorkspaceHardware>? drawings = null)
         {
             EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
             _services = services; _pendingChoice = pendingChoice; _reviewChange = reviewChange;
+            _drawings = drawings ?? [];
             InitializeComponent(); AppearanceManager.Attach(this);
+            _drawingPresenter = new(DrawingCanvas);
+            _drawingViewport = new(DrawingScroll, DrawingCanvas, DrawingZoom, "squadrons.diagram");
+            _drawingViewport.EnablePanning();
+            // Any drawing-area drop outside a verified callout must be explained.
+            DrawingCanvas.AllowDrop = true;
+            DrawingCanvas.DragOver += (_, e) =>
+            {
+                if (!e.Handled && e.Data.GetDataPresent(SquadronsCommandDragFormat))
+                {
+                    e.Effects = DragDropEffects.None;
+                    e.Handled = true;
+                }
+            };
+            DrawingCanvas.Drop += (_, e) =>
+            {
+                if (!e.Handled && e.Data.GetDataPresent(SquadronsCommandDragFormat))
+                {
+                    DrawingDropFeedback.Text = "Drop onto an outlined control callout, not the drawing background.";
+                    StatusText.Text = DrawingDropFeedback.Text;
+                    e.Handled = true;
+                }
+            };
+            _reordering = new(DevicePicker, (source, target, after) =>
+            {
+                if (!source.StartsWith("squadrons.joystick.", StringComparison.Ordinal) ||
+                    !target.StartsWith("squadrons.joystick.", StringComparison.Ordinal)) return;
+                Run(() => ReviewNativeChange(_session!.PreviewMoveCapturedSlot(source, target, after)));
+            }, id => id.StartsWith("squadrons.joystick.", StringComparison.Ordinal));
             _identification = new(this, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
             GamePicker.SelectedIndex = 2;
             SectionPicker.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" }; SectionPicker.SelectedIndex = 1;
             TypePicker.ItemsSource = new[] { "All inputs", "Supported physical inputs", "Axes", "Buttons and hats", "Preserved inputs" }; TypePicker.SelectedIndex = 0;
-            Loaded += async (_, _) => await RefreshControllerInputsAsync();
+            CommandBrowser.Configure(
+                [new("All types", null), new("Axes", CommandType.Axis), new("Buttons and hats", CommandType.Button), new("Unknown / unbound", CommandType.Other)],
+                [new("All", GameCommandAssignmentStatus.All), new("Assigned to selected controller", GameCommandAssignmentStatus.AssignedToController), new("Not assigned to selected controller", GameCommandAssignmentStatus.NotAssignedToController), new("Assigned anywhere", GameCommandAssignmentStatus.AssignedAnywhere), new("Unassigned everywhere", GameCommandAssignmentStatus.UnassignedEverywhere)]);
+            CommandContextFilter.SelectionChanged += CommandFiltersChanged;
+            CommandInputFilter.SelectionChanged += CommandFiltersChanged;
+            CommandStatusFilter.SelectionChanged += CommandFiltersChanged;
+            CommandSearch.TextChanged += CommandSearchChanged;
+            CommandBrowser.ClearCommandFiltersButton.Click += ResetCommandFiltersClicked;
+            CommandPicker.SelectionChanged += CommandChanged;
+            CommandPicker.PreviewMouseLeftButtonDown += CommandListDragPressed;
+            CommandPicker.PreviewMouseMove += DragCapturedCommand;
+            CommandContextFilter.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" };
+            CommandContextFilter.SelectedIndex = CommandInputFilter.SelectedIndex = CommandStatusFilter.SelectedIndex = 0;
+            Loaded += async (_, _) =>
+            {
+                await RefreshControllerInputsAsync();
+                try
+                {
+                    _drawings = drawings ?? await GameWorkspaceServices.HardwareAsync();
+                    if (!_disposed)
+                    {
+                        _session?.SetDrawingCatalog(_drawings.Select(x => x.DeviceId).ToArray());
+                        Run(RenderDrawing);
+                    }
+                }
+                catch (Exception error) { if (!_disposed) DrawingHint.Text = "Shared drawing catalog unavailable: " + error.Message; }
+            };
             Closing += ConfirmClose;
             Closed += (_, _) => Dispose();
             _refreshing = false;
@@ -51,7 +116,7 @@ namespace Heimdall.App.Games
         }
         #region BEGIN Public
         /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
-        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _identification.Dispose(); GC.SuppressFinalize(this); }
+        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _identification.Dispose(); _reordering.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Refreshes capability evidence asynchronously; failed, obsolete or closed-window scans cannot enable assignments.</summary>
         internal async Task RefreshControllerInputsAsync()
         {
@@ -63,7 +128,7 @@ namespace Heimdall.App.Games
                 var inputs = await _services.DiscoverInputsAsync();
                 if (scan != _inputScan || _disposed) return;
                 _controllerInputs = inputs;
-                StatusText.Text = "Controller inputs inspected. Captured records are marked separately from verified device inputs.";
+                StatusText.Text = "Controller inputs inspected. Physical input support does not establish Squadrons slot identity.";
             }
             catch (Exception error) { if (scan == _inputScan && !_disposed) StatusText.Text = "Controller input verification unavailable: " + error.Message; }
             finally { if (scan == _inputScan && !_disposed) { _scanningInputs = false; Run(() => Refresh(false)); } }
@@ -74,6 +139,10 @@ namespace Heimdall.App.Games
         internal GameProfileSession? Session => _session;
         /// <summary>Samples the shared identification boundary deterministically in Windows smoke tests.</summary>
         internal void SampleIdentification() => _identification.Sample();
+        /// <summary>Exposes the same typed native commands installed on the shared presenter for deterministic smoke checks.</summary>
+        internal HardwareDiagramInteractions DrawingInteractions() =>
+            new(SelectDrawingInput, DropDrawingCommand, CanClearDrawingInput, ClearDrawingInput,
+                DragFormat: SquadronsCommandDragFormat);
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
         {
@@ -85,6 +154,10 @@ namespace Heimdall.App.Games
             while (existing.Contains(name)) name = "Squadrons Controls " + number++;
             var workspace = new GameWorkspace(1, Guid.NewGuid(), name, profile, new());
             var opened = CreateSession(workspace);
+            _selection.Reset();
+            _focusedConcept = null;
+            CommandPicker.SelectedItem = null;
+            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             _session = opened; _revision = null; _sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(path));
             _services.Remember(_services.Recent() with { BackendId = _backend.SimId, WorkspaceId = null, DisplayName = "" });
             ReloadChoices(); Refresh(); StatusText.Text = "Controls imported. Save this profile before exporting.";
@@ -98,6 +171,7 @@ namespace Heimdall.App.Games
                 _session.Rename(ProfileName.Text);
                 _revision = _services.Store.Save(_session.Snapshot, _revision);
                 _session.AcceptSaved(); Remember(); ReloadChoices(); Refresh();
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
                 StatusText.Text = "Squadrons profile saved."; return true;
             }
             catch (Exception error) { StatusText.Text = "Unable to save: " + error.Message; UpdateAvailability(); return false; }
@@ -120,12 +194,16 @@ namespace Heimdall.App.Games
         private GameProfileSession CreateSession(GameWorkspace workspace)
         {
             if (workspace.Profile.BackendId != _backend.SimId) throw new InvalidDataException("This is not a Squadrons profile.");
-            return new(_backend, workspace, EditionAccess.Policy, [], _services.Discover, controllerInputs: () => _controllerInputs);
+            return new(_backend, workspace, EditionAccess.Policy, _drawings.Select(x => x.DeviceId).ToArray(), _services.Discover, controllerInputs: () => _controllerInputs);
         }
         private void LoadProfile(Guid id)
         {
             _identification.Stop();
             var saved = _services.Store.Load(id); var opened = CreateSession(saved.Workspace);
+            _selection.Reset();
+            _focusedConcept = null;
+            CommandPicker.SelectedItem = null;
+            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             _session = opened; _revision = saved.Revision; _sourceDirectory = null;
             Remember(); ReloadChoices(); Refresh();
         }
@@ -150,15 +228,24 @@ namespace Heimdall.App.Games
             var snapshot = _session?.Snapshot;
             if (resetName) ProfileName.Text = snapshot?.Name ?? "";
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
-            DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }.Concat(devices).ToArray();
+            var systemDevices = new[]
+            {
+                new GameDeviceChoice("system.0", "Mouse · read-only"),
+                new GameDeviceChoice("system.2", "Keyboard · read-only"),
+                new GameDeviceChoice("system.1", "Gamepad · read-only")
+            };
+            DevicePicker.ItemsSource = new[] { new GameDeviceChoice("all", "All devices and inputs") }
+                .Concat(devices).Concat(snapshot is null ? [] : systemDevices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
+            RefreshCommandCatalog(snapshot);
+            if (snapshot is null) _focusedConcept = null;
             TargetDevice.ItemsSource = devices;
             var verified = new Dictionary<string, IReadOnlyCollection<string>>();
             if (snapshot is not null)
                 foreach (var (id, pin) in snapshot.Hardware)
                     if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs) is { } keys) verified[id] = keys;
             _rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
-            _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability();
+            _refreshing = false; RefreshRows(); UpdateAvailability(); UpdateControllerAvailability(); RenderDrawing();
         }
         private void RefreshRows()
         {
@@ -168,17 +255,25 @@ namespace Heimdall.App.Games
             var section = SectionPicker.SelectedItem as string ?? "Flight";
             var rows = SquadronsWorkspaceProjection.Filter(_rows, SectionPicker.SelectedItem as string ?? "All", TypePicker.SelectedItem as string ?? "All inputs", Search.Text,
                 (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all", includeUnverified: review);
+            if (_focusedConcept is not null) rows = rows.Where(row => row.Native.Concept == _focusedConcept).ToArray();
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
             ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
-            ControllerColumn.Visibility = review || SelectedController is null ? Visibility.Visible : Visibility.Collapsed;
+            ControllerColumn.Visibility = review || (DevicePicker.SelectedItem is GameDeviceChoice { Id: "all" })
+                ? Visibility.Visible : Visibility.Collapsed;
             HardwareColumn.Visibility = BindingColumn.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
-            CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs not on linked hardware" :
-                rows.Count + " compatible assignments · " + section + ". Hardware compatibility does not confirm in-game slot ownership.";
+            CountText.Text = review ? rows.Count + " captured records · " + rows.Count(x => x.HardwareStatus == "Input absent on linked device") + " inputs absent on linked hardware" :
+                rows.Count + " captured joystick assignments · " + section + ". Check hardware status in advanced review; saved slot ownership is not physical identity.";
+            if (_focusedConcept is not null)
+                CountText.Text = "Command: " + _focusedConcept + " · " + rows.Count + " matching captured bindings. " +
+                    "Unassigned commands remain selectable in the command browser.";
             EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             EmptyState.Text = _session is null ? "Import a Squadrons controls file to get started." : review ? "No matching captured records. Change the context, input filter or search." :
-                _scanningInputs ? "Inspecting controller inputs…" : "No compatible assignments match these filters. Open Controller setup to link and rescan hardware, change the context, or enable Review captured records to inspect and repair the capture.";
+                _scanningInputs ? "Inspecting controller inputs…" : "No captured joystick assignments match these filters. Change the context or input filter, or enable advanced review for preserved native records.";
+            if (_focusedConcept is not null && rows.Count == 0)
+                EmptyState.Text = "This command has no assignments matching the current controller and input filters. The command is still available in the catalog.";
             UpdateEditor();
+            if (DrawingPanel.IsExpanded == true) Run(RenderDrawing);
         }
         private void UpdateEditor()
         {
@@ -217,7 +312,11 @@ namespace Heimdall.App.Games
             ProfileName.IsEnabled = _session is not null;
             SaveState.Text = Chrome.Status;
         }
-        private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice { Id: not "all" } device ? device.Id : null;
+        /// <summary>Only native joystick slots support physical linking and slot diagnostics.</summary>
+        private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice choice &&
+            choice.Id.StartsWith("squadrons.joystick.", StringComparison.Ordinal) ? choice.Id : null;
+        /// <summary>The catalog filters any selected native source, including read-only system devices.</summary>
+        private string? SelectedAssignmentSource => (DevicePicker.SelectedItem as GameDeviceChoice)?.Id;
         private void RescanControllers()
         {
             _identification.Stop();
@@ -238,10 +337,17 @@ namespace Heimdall.App.Games
             CancelIdentificationButton.IsEnabled = running;
             LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
+            RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
+            ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
-            ControllerSummary.Text = selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
+            if (selected is not null && _session is not null)
+                LinkStatus.Text += "\n" + SquadronsWorkspaceProjection.SlotDiagnostic(_session.Snapshot.Profile, _rows, selected);
+            var systemSelection = DevicePicker.SelectedItem is GameDeviceChoice { Id: var systemId }
+                && systemId.StartsWith("system.", StringComparison.Ordinal);
+            ControllerSummary.Text = systemSelection ? "Native system assignments · read-only. Codes are shown exactly as captured." :
+                selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
                 pin.Device.Name + (GameInputReadiness.Ready(pin, _services.Discover()) ? " · Connected" : " · Unavailable");
         }
         private void CaptureReviewChanged(object sender, RoutedEventArgs e) { if (!_refreshing) RefreshRows(); }
@@ -275,6 +381,29 @@ namespace Heimdall.App.Games
         {
             if (UnlinkControllerButton.IsEnabled && SelectedController is { } id) ReviewLink(_session!.PreviewCapturedDeviceUnlink(id));
         });
+        private void ReviewNativeChange(GameControllerChange change)
+        {
+            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
+            _session!.ApplyControllerChange(change);
+            Refresh(false);
+            if (change.ResultDeviceId is { } id)
+                DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == id);
+            StatusText.Text = "Native Squadrons assignments / slots updated in the draft. Save before exporting a review copy.";
+        }
+        private void ClearSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (ClearSlotButton.IsEnabled && SelectedController is { } id)
+                ReviewNativeChange(_session!.PreviewClearCapturedAssignments(id));
+        });
+        private void RemoveUnusedSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!RemoveUnusedSlotButton.IsEnabled || SelectedController is not { } id) return;
+            var change = _session!.PreviewRemoveUnusedCapturedDevice(id);
+            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
+            _session.ApplyControllerChange(change);
+            Refresh(false);
+            StatusText.Text = "Unused slot removed from staged profile. Save before exporting.";
+        });
         private void IdentifyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (!IdentifyControllerButton.IsEnabled) return;
@@ -288,12 +417,69 @@ namespace Heimdall.App.Games
             Run(RescanControllers); await RefreshControllerInputsAsync();
         }
         private void ConnectedChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateControllerAvailability); }
+        private void CommandChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            var command = CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
+            if (_selection.CommandId != command?.Id) SelectionEditor.AssignmentDraftStatus.Text = "";
+            _selection.SelectCommand(command?.Id);
+            SelectionEditor.ShowCommand(command);
+            ShowCommandButton.IsEnabled = command is not null;
+            if (command is null || _session is null)
+            {
+                CommandHint.Text = "Choose a command to inspect its saved binding records.";
+                return;
+            }
+            var plan = SquadronsAssignmentPlanner.For(_backend, _session.Snapshot.Profile,
+                command.Metadata["squadrons.concept"]);
+            CommandHint.Text = plan.CapturedRecords + " captured records · " + plan.EditableRecords + " editable.";
+        }
+        private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return;
+            SectionPicker.SelectedItem = command.Category;
+            ReviewCaptured.IsChecked = true;
+            _focusedConcept = command.Metadata["squadrons.concept"];
+            RefreshRows();
+            var match = _rows.FirstOrDefault(row => row.Native.Concept == _focusedConcept
+                && (SelectedController is null || row.DeviceId == SelectedController));
+            if (match is not null)
+                BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
+                    .FirstOrDefault(row => row.RecordId == match.RecordId);
+            if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
+            else CommandHint.Text = "No captured assignment matches this command and controller. No new native records were written.";
+        });
+        private void RecordContextOpening(object sender, ContextMenuEventArgs e)
+        {
+            var row = BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
+            EditNativeRecordItem.IsEnabled = row?.Editable == true;
+            ClearNativeRecordItem.Visibility = row?.Native.Type == 3 && _session?.AccessMessage.Length == 0
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+        private void RecordRightClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is DependencyObject element &&
+                ItemsControl.ContainerFromElement(BindingsGrid, element) is DataGridRow row)
+                BindingsGrid.SelectedItem = row.Item;
+        }
+        private void EditSelectedClicked(object sender, RoutedEventArgs e)
+        {
+            if (BindingsGrid.SelectedItem is SquadronsWorkspaceRow)
+                UpdateEditor();
+        }
+        private void ClearSelectedClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Native.Type: 3 } row)
+                throw new InvalidOperationException("Choose an existing joystick assignment to clear.");
+            ReviewNativeChange(_session!.PreviewClearCapturedRecord(row.RecordId));
+        });
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Editable: true } row || TargetDevice.SelectedItem is not GameDeviceChoice device || InputPicker.SelectedItem is not SquadronsInput input)
                 throw new InvalidOperationException("Choose an editable binding, captured controller and input.");
             _session!.RebindNative(row.RecordId, device.Id, input.Key, input.Type, input.Direction);
-            Refresh(false); StatusText.Text = "Assignment staged. Save before exporting.";
+            Refresh(false);
+            SelectionEditor.AssignmentDraftStatus.Text = StatusText.Text = "Assignment staged. Save before exporting.";
         });
         private void ImportClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -310,6 +496,8 @@ namespace Heimdall.App.Games
         {
             _identification.Stop();
             _session?.Discard(); Refresh();
+            StatusText.Text = "Draft changes discarded.";
+            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             if (_revision is null) { _session = null; Refresh(); }
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
@@ -339,13 +527,279 @@ namespace Heimdall.App.Games
         private void FilterChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
-            if (ReferenceEquals(sender, DevicePicker)) { _identification.Stop(); Run(UpdateControllerAvailability); }
+            if (ReferenceEquals(sender, DevicePicker))
+            {
+                _identification.Stop();
+                DrawingDropFeedback.Text = "";
+                SelectionEditor.AssignmentDraftStatus.Text = "";
+                BindingsGrid.SelectedItem = null;
+                if (DevicePicker.SelectedItem is GameDeviceChoice { Id: var id } &&
+                    id.StartsWith("system.", StringComparison.Ordinal))
+                {
+                    SectionPicker.SelectedItem = "All";
+                    TypePicker.SelectedItem = "All inputs";
+                    ControllerSetup.IsExpanded = false;
+                }
+                Run(UpdateControllerAvailability);
+                RefreshCommandCatalog(_session?.Snapshot);
+                Run(RenderDrawing);
+            }
+            if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
+                _focusedConcept = null;
             RefreshRows();
         }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) RefreshRows(); }
         private void BindingChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) UpdateEditor(); }
         private void NameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) UpdateAvailability(); }
         private void Run(Action action) { try { action(); } catch (Exception error) { StatusText.Text = error.Message; } }
+        /// <summary>Refreshes the command catalog independently of the captured-binding table.</summary>
+        private void RefreshCommandCatalog(GameWorkspace? snapshot)
+        {
+            var selected = (CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
+            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> all = snapshot is null ? [] : _backend.GetCatalog(snapshot.Profile).Commands;
+            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> filtered = snapshot is null ? [] : SquadronsCommandFilter.Apply(all,
+                _backend.ReadBindings(snapshot.Profile),
+                CommandContextFilter.SelectedItem as string ?? "All",
+                (CommandInputFilter.SelectedItem as GameCommandTypeOption)?.Label ?? "All types",
+                (CommandStatusFilter.SelectedItem as GameCommandStatusOption)?.Label ?? "All",
+                CommandSearch.Text, SelectedAssignmentSource);
+            var wasRefreshing = _refreshing;
+            _refreshing = true;
+            try
+            {
+                _selection.Refresh(SelectedAssignmentSource, filtered, selected, selectFirst: false);
+                CommandPicker.ItemsSource = filtered;
+                CommandPicker.SelectedItem = filtered.FirstOrDefault(x => x.Id == _selection.CommandId);
+            }
+            finally { _refreshing = wasRefreshing; }
+            CommandFilterCount.Text = filtered.Count + " of " + all.Count +
+                " known/imported commands · assignment status includes all native input records.";
+            SelectionEditor.ShowCommand(CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand);
+            if (_selection.CommandId is null) CommandHint.Text = "Choose a command, then click or drag onto a drawing callout.";
+            CommandBrowser.CommandEmptyHint.Visibility = filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ShowCommandButton.IsEnabled = CommandPicker.SelectedItem is not null;
+        }
+        private void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_refreshing) RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private void CommandSearchChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_refreshing) RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private void ResetCommandFiltersClicked(object sender, RoutedEventArgs e)
+        {
+            _refreshing = true;
+            try
+            {
+                CommandContextFilter.SelectedIndex = 0;
+                CommandInputFilter.SelectedIndex = 0;
+                CommandStatusFilter.SelectedIndex = 0;
+                CommandSearch.Clear();
+            }
+            finally { _refreshing = false; }
+            RefreshCommandCatalog(_session?.Snapshot);
+        }
+        private const string SquadronsCommandDragFormat = "heimdall.squadrons.command";
+
+        /// <summary>Renders only the explicitly pinned shared drawing for a selected joystick slot.</summary>
+        private void RenderDrawing()
+        {
+            DrawingCanvas.Children.Clear();
+            _drawingPresenter.Regions.Clear();
+            DrawingCanvas.Width = 600; DrawingCanvas.Height = 200;
+            DrawingHint.Visibility = Visibility.Visible;
+            var snapshot = _session?.Snapshot;
+            var slot = SelectedController;
+            var pin = slot is null ? null : snapshot?.Hardware.GetValueOrDefault(slot);
+            // A native physical link does not imply an artwork catalog identity.
+            var oldRefreshing = _refreshing;
+            _refreshing = true;
+            try
+            {
+                DrawingPicker.ItemsSource = _drawings.Where(x => !string.IsNullOrWhiteSpace(x.Diagram.Svg))
+                    .OrderBy(x => x.Title, StringComparer.OrdinalIgnoreCase).ToArray();
+                DrawingPicker.SelectedItem = pin?.DrawingHidden == true ? null : _drawings.FirstOrDefault(x => x.DeviceId == pin?.HardwareId);
+            }
+            finally { _refreshing = oldRefreshing; }
+            DrawingPicker.IsEnabled = ClearDrawingButton.IsEnabled = pin is not null && _drawings.Count > 0;
+            if (DrawingPanel.IsExpanded != true) return;
+            if (slot is null || pin is null)
+            {
+                DrawingHint.Text = "Select a linked joystick controller before choosing its hardware drawing.";
+                return;
+            }
+            if (pin.DrawingHidden)
+            {
+                DrawingHint.Text = "Drawing hidden. Select a hardware drawing to show it again.";
+                return;
+            }
+            if (string.IsNullOrEmpty(pin.HardwareId))
+            {
+                DrawingHint.Text = "This controller is linked, but no hardware drawing is selected. Choose a matching shared drawing above.";
+                return;
+            }
+            var hardware = _drawings.FirstOrDefault(x => x.DeviceId == pin.HardwareId);
+            if (hardware is null || string.IsNullOrWhiteSpace(hardware.Diagram.Svg))
+            {
+                DrawingHint.Text = "The selected hardware drawing is not available in the current shared catalog.";
+                return;
+            }
+            var diagram = hardware.Diagram;
+            var section = SectionPicker.SelectedItem as string ?? "All";
+            var page = SquadronsDrawingProjection.Diagram(snapshot!.Name, diagram, _rows, slot, section);
+            // Clearing a specific native record requires a disambiguated record selection.
+            // Do not advertise a context-menu clear action that only displays a message.
+            _drawingPresenter.Show(diagram, page,
+                DrawingInteractions(),
+                AppearanceManager.ArtworkOpacityFor(this),
+                control => control.Label + " · " + control.InputKey + "\n" +
+                    SquadronsDrawingProjection.AssignmentSummary(control, _rows, slot, section));
+            DrawingHint.Visibility = Visibility.Collapsed;
+        }
+        private void DrawingChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing || _session is null || SelectedController is not { } slot ||
+                DrawingPicker.SelectedItem is not WorkspaceHardware drawing) return;
+            Run(() =>
+            {
+                _session.ChangeDrawing(slot, drawing.DeviceId);
+                Refresh(false);
+                StatusText.Text = "Shared drawing selected. Save profile to retain this choice.";
+            });
+        }
+        private void ClearDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (_session is null || SelectedController is not { } slot) return;
+            _session.ChangeDrawing(slot, null);
+            Refresh(false);
+            StatusText.Text = "Drawing hidden. Save profile to retain this choice.";
+        });
+        private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
+        // The Expander may be larger than the pane's arranged row. Clamp the scroll
+        // host to the actual resizable row so WPF registers clipped drawing content
+        // as scrollable extent instead of simply hiding it behind the window edge.
+        private bool _drawingBoundsQueued;
+        private void DrawingPanelSizeChanged(object sender, SizeChangedEventArgs e) => QueueDrawingBounds();
+
+        private void QueueDrawingBounds()
+        {
+            if (_drawingBoundsQueued || DrawingPanel is null || DrawingScroll is null) return;
+            _drawingBoundsQueued = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+            {
+                _drawingBoundsQueued = false;
+                if (!DrawingPanel.IsExpanded || DrawingPanel.ActualHeight <= 0) return;
+                var top = DrawingScroll.TranslatePoint(new Point(0, 0), DrawingPanel).Y;
+                var maximum = Math.Max(24, DrawingPanel.ActualHeight - top - 4);
+                if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
+                    DrawingScroll.MaxHeight = maximum;
+            }));
+        }
+
+        private void DrawingExpanded(object sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
+            DrawingSplitter.Visibility = Visibility.Visible;
+            QueueDrawingBounds();
+            if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
+        }
+        private void DrawingCollapsed(object sender, RoutedEventArgs e)
+        {
+            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
+            DrawingSplitter.Visibility = Visibility.Collapsed;
+            DrawingScroll.MaxHeight = double.PositiveInfinity;
+        }
+        private void SelectDrawingInput(HardwareGraphicControl control)
+        {
+            if (CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand command)
+            {
+                DropDrawingCommand(control, command.Id);
+                return;
+            }
+            if (SelectedController is not { } slot) return;
+            var section = SectionPicker.SelectedItem as string ?? "All";
+            var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
+            if (matches.Count > 0)
+            {
+                BindingsGrid.SelectedItem = BindingsGrid.Items.Cast<SquadronsWorkspaceRow>()
+                    .FirstOrDefault(row => row.RecordId == matches[0].RecordId);
+                if (BindingsGrid.SelectedItem is not null) BindingsGrid.ScrollIntoView(BindingsGrid.SelectedItem);
+            }
+            DrawingDropFeedback.Text = control.Label + ": " +
+                SquadronsDrawingProjection.AssignmentSummary(control, _rows, slot, section)
+                    .Replace("\n", " · ", StringComparison.Ordinal);
+        }
+        private void DropDrawingCommand(HardwareGraphicControl control, string commandId)
+        {
+            try
+            {
+                if (_session is null || SelectedController is not { } slot)
+                    throw new InvalidOperationException("Select a linked joystick slot.");
+                if (_scanningInputs || _identification.Running)
+                    throw new InvalidOperationException("Finish controller scanning or identification before assigning.");
+                _selection.SelectInput(control.InputKey);
+                var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
+                    commandId, slot, control.InputKey, control.IsAxis);
+                if (plan.NegativeRecordId is not null)
+                    _session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
+                else if (plan.RecordId is not null)
+                    _session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+                else
+                    _session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+                Refresh(false);
+                StatusText.Text = plan.NegativeRecordId is null
+                    ? "Squadrons assignment staged. Save before exporting."
+                    : "Both directions of the Squadrons axis staged. Save before exporting.";
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = StatusText.Text;
+            }
+            catch (Exception error)
+            {
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "Assignment not applied: " + error.Message;
+                StatusText.Text = DrawingDropFeedback.Text;
+            }
+        }
+        private void CommandListDragPressed(object sender, MouseButtonEventArgs e)
+        {
+            _commandDragStart = e.GetPosition(CommandPicker);
+        }
+        private void DragCapturedCommand(object sender, MouseEventArgs e)
+        {
+            if (!ReferenceEquals(sender, CommandPicker) || _commandDragStart is not { } start ||
+                e.LeftButton != MouseButtonState.Pressed ||
+                CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
+                _session is null || _session.AccessMessage.Length != 0)
+            {
+                if (e.LeftButton != MouseButtonState.Pressed) _commandDragStart = null;
+                return;
+            }
+            var at = e.GetPosition(CommandPicker);
+            if (Math.Abs(at.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(at.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            _commandDragStart = null;
+            DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.";
+            var effect = DragDrop.DoDragDrop(CommandPicker,
+                new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
+            if (effect == DragDropEffects.None &&
+                !DrawingDropFeedback.Text.StartsWith("Drop onto ", StringComparison.Ordinal))
+                DrawingDropFeedback.Text = "Drop canceled or outside a supported callout. Aim for an outlined input on the drawing.";
+        }
+        private bool CanClearDrawingInput(HardwareGraphicControl control) =>
+            !_scanningInputs && !_identification.Running && _session?.AccessMessage.Length == 0 &&
+            SelectedController is { } slot &&
+            SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All").Count == 1;
+        private void ClearDrawingInput(HardwareGraphicControl control) => Run(() =>
+        {
+            if (!CanClearDrawingInput(control) || SelectedController is not { } slot) return;
+            var row = SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All").Single();
+            ReviewNativeChange(_session!.PreviewClearCapturedRecord(row.RecordId));
+        });
+        private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;
+        private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;
+        private ComboBox CommandStatusFilter => CommandBrowser.AssignmentStatusPicker;
+        private TextBox CommandSearch => CommandBrowser.CommandSearch;
+        private ListBox CommandPicker => CommandBrowser.CommandsList;
+        private TextBlock CommandFilterCount => CommandBrowser.CommandCount;
         #endregion END private helpers
     }
 }

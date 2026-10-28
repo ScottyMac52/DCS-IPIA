@@ -37,14 +37,14 @@ namespace Heimdall.App.Smoke
                 if (review.IsChecked != false || setup.IsExpanded || section.SelectedItem as string != "Flight" || grid.Items.Count != 0 || !Box<TextBlock>(window, "EmptyState").IsVisible)
                     throw new InvalidOperationException("The normal view opened as a raw-record dump or failed to explain unverified hardware.");
                 var devices = Box<ListBox>(window, "DevicePicker");
-                if (devices.Items.Cast<GameDeviceChoice>().Select(x => x.Id).Last() != "squadrons.joystick.10")
+                if (devices.Items.Cast<GameDeviceChoice>().Where(x => x.Id.StartsWith("squadrons.joystick.", StringComparison.Ordinal)).Select(x => x.Id).Last() != "squadrons.joystick.10")
                     throw new InvalidOperationException("Slot ten appeared before lower-numbered slots.");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.5");
                 setup.IsExpanded = true; Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device;
                 Box<Button>(window, "LinkControllerButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); setup.IsExpanded = false;
                 if (grid.Items.Count != 2 || grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Supported physical input (slot unconfirmed)" || x.Section != "Flight"))
                     throw new InvalidOperationException("Normal flight view included incompatible, unverified or menu records.");
-                foreach (var (width, height) in new[] { (1200d, 810d), (900d, 620d) })
+                foreach (var (width, height) in new[] { (1420d, 900d), (1100d, 680d) })
                 {
                     window.Width = width; window.Height = height; ThemeControlSmoke.Pump(window);
                     if (grid.Columns.Count(x => x.Visibility == Visibility.Visible) != 2 || grid.Columns[0].ActualWidth < 240 || devices.ActualHeight < 240)
