@@ -116,8 +116,13 @@ namespace Heimdall.App.Smoke
         }
         private static void AssertStopped(FrameworkElement window, IdentificationInputSource input)
         {
-            if (!input.Disposed || Box<Button>(window, "ConfirmIdentificationButton").IsEnabled || Box<TextBlock>(window, "IdentificationStatus").Text.Length != 0)
-                throw new InvalidOperationException("Stopping identification retained native handles or a stale confirmation.");
+            var confirmationEnabled = Box<Button>(window, "ConfirmIdentificationButton").IsEnabled;
+            var identificationStatus = Box<TextBlock>(window, "IdentificationStatus").Text;
+            if (!input.Disposed || confirmationEnabled || identificationStatus.Length != 0)
+                throw new InvalidOperationException(
+                    "Stopping identification retained native handles or a stale confirmation. " +
+                    "Disposed=" + input.Disposed + ", ConfirmEnabled=" + confirmationEnabled +
+                    ", IdentificationStatus=" + System.Text.Json.JsonSerializer.Serialize(identificationStatus));
         }
         private static T Box<T>(FrameworkElement window, string name) where T : FrameworkElement => (T)window.FindName(name);
         private static void Click(FrameworkElement window, string name) => Box<Button>(window, name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

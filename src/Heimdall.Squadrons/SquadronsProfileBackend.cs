@@ -87,33 +87,8 @@ namespace Heimdall.Squadrons
             var document = new SquadronsNativeDocument(evidence.Text);
             var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
             var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
-            if (positive is null || negative is null || positive.RecordId == negative.RecordId ||
-                positive.Concept != negative.Concept || positive.Type != 3 || negative.Type != 3 ||
-                positive.Fields.Count != 8 || negative.Fields.Count != 8 ||
-                positive.Fields["modifier"] != 0 || negative.Fields["modifier"] != 0 ||
-                positive.Fields["altbutton"] != 0 || negative.Fields["altbutton"] != 0 ||
-                positive.Input is not { Type: CommandType.Axis, Direction: 1 } ||
-                negative.Input is not { Type: CommandType.Axis, Direction: -1 } ||
-                slot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + slot, out var name) ||
-                string.IsNullOrWhiteSpace(name))
-                throw new InvalidOperationException("Both editable directional records are required to assign this axis.");
-            // A complete physical axis may not silently acquire an unrelated command.
-            // Reject the collision before writing either directional native record.
-            // Keep the old source-axis bindings untouched; the user must explicitly
-            // reassign or clear the conflicting command through a validated workflow.
-            var collisions = document.Bindings.Where(row =>
-                row.RecordId != positiveRecordId && row.RecordId != negativeRecordId &&
-                row.Type == 3 && row.DeviceId == slot - 1 &&
-                row.Input is { Type: CommandType.Axis } existing &&
-                existing.PhysicalKey == SquadronsInputCodec.PhysicalKey(physicalAxisKey) &&
-                row.Concept != positive.Concept)
-                .Select(row => row.Concept).Distinct(StringComparer.Ordinal).ToArray();
-            if (collisions.Length > 0)
-                throw new InvalidOperationException(
-                    "This physical axis already has another Squadrons command: " +
-                    string.Join(", ", collisions.Select(x => x[(x.LastIndexOf('.') + 1)..]
-                        .Replace("Concept", "", StringComparison.Ordinal))) +
-                    ". Choose a different axis or explicitly clear/reassign the existing command.");
+            ValidateAxisPair(document, positive, negative, slot);
+            RejectAxisCollision(document, positiveRecordId, negativeRecordId, slot, physicalAxisKey, positive!.Concept);
             var plus = new SquadronsInput(physicalAxisKey, CommandType.Axis, 1);
             var minus = new SquadronsInput(physicalAxisKey, CommandType.Axis, -1);
             var (plusAxis, plusButton) = SquadronsInputCodec.Encode(plus);
@@ -121,7 +96,7 @@ namespace Heimdall.Squadrons
             var changes = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var (record, axis, button) in new[]
             {
-                (positive, plusAxis, plusButton), (negative, minusAxis, minusButton)
+                (positive!, plusAxis, plusButton), (negative!, minusAxis, minusButton)
             })
             {
                 var prefix = "GstKeyBinding." + record.RecordId + ".";
@@ -131,17 +106,7 @@ namespace Heimdall.Squadrons
             }
             var text = document.ReplaceValues(changes);
             var written = new SquadronsNativeDocument(text);
-            if (written.Bindings.Count != document.Bindings.Count ||
-                written.Bindings.Single(x => x.RecordId == positiveRecordId).Input != plus ||
-                written.Bindings.Single(x => x.RecordId == negativeRecordId).Input != minus ||
-                written.Bindings.Where(x => x.RecordId == positiveRecordId || x.RecordId == negativeRecordId)
-                    .Any(x => x.DeviceId != slot - 1) ||
-                document.Bindings.Any(old => !written.Bindings.Any(updated =>
-                    updated.RecordId == old.RecordId && old.Fields.All(field =>
-                        updated.Fields.TryGetValue(field.Key, out var value) &&
-                        (changes.ContainsKey("GstKeyBinding." + old.RecordId + "." + field.Key) ||
-                         value == field.Value)))))
-                throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
+            ValidateAxisPairWrite(document, written, positiveRecordId, negativeRecordId, slot, plus, minus, changes);
             return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
         }
         /// <summary>Resolves an explicitly selected captured device and delegates to the native record editor.</summary>
@@ -273,6 +238,58 @@ namespace Heimdall.Squadrons
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidateAxisPair(SquadronsNativeDocument document,
+            SquadronsBindingRow? positive, SquadronsBindingRow? negative, int slot)
+        {
+            if (positive is null || negative is null || positive.RecordId == negative.RecordId ||
+                positive.Concept != negative.Concept || positive.Type != 3 || negative.Type != 3 ||
+                positive.Fields.Count != 8 || negative.Fields.Count != 8 ||
+                positive.Fields["modifier"] != 0 || negative.Fields["modifier"] != 0 ||
+                positive.Fields["altbutton"] != 0 || negative.Fields["altbutton"] != 0 ||
+                positive.Input is not { Type: CommandType.Axis, Direction: 1 } ||
+                negative.Input is not { Type: CommandType.Axis, Direction: -1 } ||
+                slot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + slot, out var name) ||
+                string.IsNullOrWhiteSpace(name))
+                throw new InvalidOperationException("Both editable directional records are required to assign this axis.");
+        }
+        private static void RejectAxisCollision(SquadronsNativeDocument document,
+            string positiveRecordId, string negativeRecordId, int slot, string physicalAxisKey, string concept)
+        {
+            // A complete physical axis may not silently acquire an unrelated command.
+            // Reject the collision before writing either directional native record.
+            // Keep the old source-axis bindings untouched; the user must explicitly
+            // reassign or clear the conflicting command through a validated workflow.
+            var collisions = document.Bindings.Where(row =>
+                row.RecordId != positiveRecordId && row.RecordId != negativeRecordId &&
+                row.Type == 3 && row.DeviceId == slot - 1 &&
+                row.Input is { Type: CommandType.Axis } existing &&
+                existing.PhysicalKey == SquadronsInputCodec.PhysicalKey(physicalAxisKey) &&
+                row.Concept != concept)
+                .Select(row => row.Concept).Distinct(StringComparer.Ordinal).ToArray();
+            if (collisions.Length > 0)
+                throw new InvalidOperationException(
+                    "This physical axis already has another Squadrons command: " +
+                    string.Join(", ", collisions.Select(x => x[(x.LastIndexOf('.') + 1)..]
+                        .Replace("Concept", "", StringComparison.Ordinal))) +
+                    ". Choose a different axis or explicitly clear/reassign the existing command.");
+        }
+        private static void ValidateAxisPairWrite(SquadronsNativeDocument document, SquadronsNativeDocument written,
+            string positiveRecordId, string negativeRecordId, int slot, SquadronsInput plus, SquadronsInput minus,
+            Dictionary<string, int> changes)
+        {
+            if (written.Bindings.Count != document.Bindings.Count ||
+                written.Bindings.Single(x => x.RecordId == positiveRecordId).Input != plus ||
+                written.Bindings.Single(x => x.RecordId == negativeRecordId).Input != minus ||
+                written.Bindings.Where(x => x.RecordId == positiveRecordId || x.RecordId == negativeRecordId)
+                    .Any(x => x.DeviceId != slot - 1) ||
+                document.Bindings.Any(old => !written.Bindings.Any(updated =>
+                    updated.RecordId == old.RecordId && old.Fields.All(field =>
+                        updated.Fields.TryGetValue(field.Key, out var value) &&
+                        (changes.ContainsKey("GstKeyBinding." + old.RecordId + "." + field.Key) ||
+                         value == field.Value)))))
+                throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
+        }
+
         private SquadronsNativeEvidence Evidence(ProfileDocument profile)
         {
             ArgumentNullException.ThrowIfNull(profile);

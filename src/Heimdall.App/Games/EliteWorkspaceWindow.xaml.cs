@@ -28,7 +28,7 @@ namespace Heimdall.App.Games
         private readonly DependencyPropertyDescriptor _inputTextProperty = DependencyPropertyDescriptor.FromProperty(ComboBox.TextProperty, typeof(ComboBox))!;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
-        private readonly EliteDiagramPresenter _diagram;
+        private readonly HardwareDiagramPresenter _diagram;
         private readonly DiagramViewport _viewport;
         private readonly EliteInputFeedback _input;
         private readonly GameControllerIdentification _identification;
@@ -508,13 +508,50 @@ namespace Heimdall.App.Games
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
             _devicesView.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(this));
-            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this),
+            _diagram.Show(hardware.Diagram, page, DiagramInteractions(),
+                AppearanceManager.ArtworkOpacityFor(this),
                 control => control.Label + " · " + (EliteInputKeys.FromDiagram(hardware.Diagram, control) ?? control.InputKey) + "\n" +
                     string.Join("\n", rows.Where(x => x.Input == EliteInputKeys.FromDiagram(hardware.Diagram, control) && (Section == "All" || x.Section == Section))
                         .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))));
             _assignmentsView.DiagramHint.Visibility = Visibility.Collapsed;
             UpdateInputActivityVisibility();
         }
+        /// <summary>Builds actions for the pointed native assignment independently of prior command selection.</summary>
+        internal HardwareDiagramInteractions DiagramInteractions() => new(
+            Select: SelectControl, Drop: DropCommand,
+            CanClear: CanEditControl, Clear: ClearControl,
+            CanTune: control => control.IsAxis && CanEditControl(control) && AssignmentForControl(control)?.IsAxis == true,
+            Tune: TuneControl);
+        /// <summary>Allows deterministic review of the real Elite tuning form in Windows smoke tests.</summary>
+        internal Func<EliteAxisTuningWindow, bool?>? AxisTuningReview { get; set; }
+        private EliteAssignmentRow? AssignmentForControl(HardwareGraphicControl control)
+        {
+            var key = DrawingKey(control);
+            if (key is null) return null;
+            var rows = _rows.Where(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
+            return rows.FirstOrDefault(x => x.CommandId == Command?.Id && x.Slot == Slot) ?? rows.FirstOrDefault();
+        }
+        private bool CanEditControl(HardwareGraphicControl control) =>
+            _session?.AccessMessage.Length == 0 && !_busy && !_input.Running &&
+            FeaturePicker.SelectedIndex == 1 && AssignmentForControl(control) is not null;
+        private void ClearControl(HardwareGraphicControl control) => Run(() =>
+        {
+            if (!CanEditControl(control) || AssignmentForControl(control) is not { } row) return;
+            SelectRow(row);
+            ClearClicked(this, new());
+        });
+        private void TuneControl(HardwareGraphicControl control) => Run(() =>
+        {
+            if (!control.IsAxis || !CanEditControl(control) || AssignmentForControl(control) is not { IsAxis: true } row) return;
+            SelectRow(row);
+            var dialog = new EliteAxisTuningWindow(this, row.CommandName, row.Invert, row.Deadzone);
+            var accepted = AxisTuningReview is { } review ? review(dialog) : dialog.ShowDialog();
+            if (accepted == true && dialog.TryRead(out var invert, out var deadzone) && CanEditControl(control))
+            {
+                _session!.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone);
+                Status("Axis tuning staged. Save before exporting.");
+            }
+        });
         private void SelectControl(HardwareGraphicControl control)
         {
             var key = DrawingKey(control);
