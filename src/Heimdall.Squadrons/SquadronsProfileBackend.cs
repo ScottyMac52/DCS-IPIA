@@ -275,7 +275,7 @@ namespace Heimdall.Squadrons
         }
         private static void ValidateAxisPairWrite(SquadronsNativeDocument document, SquadronsNativeDocument written,
             string positiveRecordId, string negativeRecordId, int slot, SquadronsInput plus, SquadronsInput minus,
-            IReadOnlyDictionary<string, int> changes)
+            Dictionary<string, int> changes)
         {
             if (written.Bindings.Count != document.Bindings.Count ||
                 written.Bindings.Single(x => x.RecordId == positiveRecordId).Input != plus ||
