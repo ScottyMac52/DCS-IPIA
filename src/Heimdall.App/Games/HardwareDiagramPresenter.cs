@@ -45,7 +45,7 @@ namespace Heimdall.App.Games
                 if (actions.Clear is not null || actions.Tune is not null)
                 {
                     var menu = new ContextMenu();
-                    menu.Opened += (_, _) =>
+                    border.ContextMenuOpening += (_, e) =>
                     {
                         menu.Items.Clear();
                         if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
@@ -61,7 +61,7 @@ namespace Heimdall.App.Games
                             tune.Click += (_, _) => actions.Tune(control);
                             menu.Items.Add(tune);
                         }
-                        if (menu.Items.Count == 0) menu.IsOpen = false;
+                        if (menu.Items.Count == 0) e.Handled = true;
                     };
                     // Place the popup by the mouse, not centered across a wide
                     // authored hit region; do not obscure the control artwork.
