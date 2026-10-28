@@ -64,7 +64,7 @@ namespace Heimdall.Tests
             Assert.All(original, row => Assert.Contains(rows, next =>
                 next.RecordId == row.RecordId && next.Fields.Count == row.Fields.Count &&
                 row.Fields.All(field => next.Fields.TryGetValue(field.Key, out var value) && value == field.Value)));
-            var added = Assert.Single(rows.Where(x => original.All(old => old.RecordId != x.RecordId)));
+            var added = Assert.Single(rows, x => original.All(old => old.RecordId != x.RecordId));
             Assert.Equal("IncomStarshipInputConcepts.ConceptMenu", added.Concept);
             Assert.Equal(2, added.DeviceId);
             Assert.Equal(new SquadronsInput("JOY_BTN1", CommandType.Button, 0), added.Input);
