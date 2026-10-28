@@ -1,4 +1,4 @@
-using Heimdall.Rendering;
+using Heimdall.Application;
 
 namespace Heimdall.App.Games
 {
