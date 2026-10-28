@@ -67,10 +67,10 @@ namespace Heimdall.Tests
         [Fact]
         public void CommentsAndQuotedStringsSurviveNativeRoundTrip()
         {
-            const string capture = "// preserve this\\r\\nroot{ /* comment */ label:s=\\\"Quoted text\\\"; value:r=1.25; }";
+            const string capture = "// preserve this\r\nroot{ /* comment */ label:s=\"Quoted text\"; value:r=1.25; }";
             var document = WarThunderBlkDocument.Parse(capture);
             Assert.Equal(capture, document.SerializeUnchanged());
-            Assert.Contains(document.Scalars, x => x.Path == "root/label" && x.Value == "\\"Quoted text\\"");
+            Assert.Contains(document.Scalars, x => x.Path == "root/label" && x.Value == "\"Quoted text\"");
             Assert.Equal(capture.Replace("value:r=1.25", "value:r=2.5", StringComparison.Ordinal),
                 document.ReplaceScalar("root/value", "2.5"));
             Assert.Throws<ArgumentException>(() => document.ReplaceScalar("root/label", "unquoted"));
