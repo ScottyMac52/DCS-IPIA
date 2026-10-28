@@ -44,6 +44,8 @@ namespace Heimdall.App.Smoke
             SolRHardwareSmoke.Verify();
             Console.WriteLine("Smoke: game selection and Elite profile authoring.");
             GameWorkspaceSmoke.Verify();
+            SharedConsumerHostSmoke.Verify();
+            DcsConsumerMigrationSmoke.Verify();
             Console.WriteLine("Smoke: Squadrons selection, native authoring and saved profiles.");
             SquadronsWorkspaceSmoke.Verify();
             SquadronsDeviceLinkSmoke.Verify();

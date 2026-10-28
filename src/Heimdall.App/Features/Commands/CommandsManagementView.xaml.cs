@@ -1,4 +1,6 @@
 using Heimdall.Application;
+using Heimdall.Application.Games;
+using CommandType = Heimdall.Domain.MultiSim.CommandType;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.App;
@@ -18,7 +20,10 @@ namespace Heimdall.App.Features.Commands
 
         private UIElement? _previewHost;
         private IModuleWorkspaceContext? _context;
-        private CommandPaletteEntry? _selected;
+        private readonly GameAssignmentSelection _selection = new();
+        private CommandPaletteEntry? _selected => CurrentPalette().FirstOrDefault(x => x.Id == _selection.CommandId);
+        private Guid? _assignmentDeviceId;
+        private CommandPaletteEntry? _displayedCommand;
         private bool _updatingFilters;
         private bool _refreshing;
         private AssignmentLayer? _assignmentScope;
@@ -50,6 +55,7 @@ namespace Heimdall.App.Features.Commands
             if (ReferenceEquals(_context, context)) return;
             if (_context is not null) _context.StateChanged -= WorkspaceStateChanged;
             _context = context;
+            _selection.Reset();
             _context.StateChanged += WorkspaceStateChanged;
             Refresh();
         }
@@ -65,6 +71,13 @@ namespace Heimdall.App.Features.Commands
             CatalogFields.IsEnabled = scope == AssignmentLayer.Module;
             foreach (var caption in CatalogActions)
                 if (ActionBar.FindButton(this, caption) is { } button) button.IsEnabled = scope == AssignmentLayer.Module;
+            Refresh();
+        }
+        /// <summary>Limits assignment ownership filters to the controller currently selected in the workspace rail.</summary>
+        public void UseAssignmentController(Guid? profileId)
+        {
+            if (_assignmentDeviceId == profileId) return;
+            _assignmentDeviceId = profileId;
             Refresh();
         }
         #endregion END Public
@@ -90,6 +103,7 @@ namespace Heimdall.App.Features.Commands
                 CommandTypeFilter is null || CommandStateFilter is null)
             {
                 StatusText.Text = "No working snapshot";
+                _selection.Reset();
                 if (Commands is not null) Commands.ItemsSource = null;
                 return;
             }
@@ -107,51 +121,31 @@ namespace Heimdall.App.Features.Commands
                 ? selectedCategory : "All";
             _updatingFilters = false;
 
-            var search = CommandSearch.Text;
             var category = CommandCategoryFilter.SelectedItem as string;
-            var filtered = all.Where(x =>
-                (string.IsNullOrWhiteSpace(search) ||
-                 x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                 x.Id.Contains(search, StringComparison.OrdinalIgnoreCase)) &&
-                (category is null || category == "All" || x.Category == category) &&
-                (CommandTypeFilter.SelectedIndex == 0 || (CommandTypeFilter.SelectedIndex == 2) == x.IsAxis))
-                .ToArray();
-
+            var scope = _assignmentScope ?? AssignmentLayer.Module;
             var assignments = (_context.Draft?.Snapshot ?? _context.Working.Assignments)
-                .Where(x => _assignmentScope is null || x.Slot.Layer == _assignmentScope).ToArray();
+                .Where(x => x.Slot.Layer == scope).ToArray();
             var devices = WorkspaceStructureEditor.Describe(_context.Working).Devices
-                .Where(x => _assignmentScope is null || x.Layer == _assignmentScope);
-            var deviceCount = devices.Select(d => d.ProfileId).Distinct().Count();
-            var usage = assignments.GroupBy(a => a.Command.Id, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Select(a => a.Slot.ProfileId).Distinct().Count(), StringComparer.Ordinal);
+                .Where(x => x.Layer == scope)
+                .Select(x => x.ProfileId).Distinct().ToArray();
             var bound = assignments.GroupBy(a => a.Command.Id, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
-
-            var state = (CommandStateFilter.SelectedItem as ComboBoxItem)?.Content as string ?? "All";
-            filtered = filtered.Where(x =>
-            {
-                var usedOn = usage.GetValueOrDefault(x.Id);
-                return state switch
-                {
-                    "Assigned on this device/layer" => usedOn > 0,
-                    "Unassigned on this device/layer" => usedOn == 0,
-                    "Assigned on every device" => usedOn == deviceCount && deviceCount > 0,
-                    "Unassigned on every device" => usedOn == 0,
-                    _ => true
-                };
-            }).ToArray();
-
+            var filtered = DcsCommandBrowser.Filter(all, assignments, scope, _assignmentDeviceId, devices,
+                category is null or "All" ? null : category,
+                CommandTypeFilter.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null },
+                CommandSearch.Text, (DcsCommandAssignmentStatus)Math.Max(0, CommandStateFilter.SelectedIndex));
+            _selection.Refresh(_assignmentDeviceId?.ToString("D"), filtered.Select(DcsCommandBrowser.Describe).ToArray(), selectedId, selectFirst: false);
             var rows = filtered.Select(x => new { x.Id, x.Name, x.Category, x.IsAxis, Bound = bound.GetValueOrDefault(x.Id) }).ToArray();
             Commands.ItemsSource = rows;
-            Commands.SelectedItem = rows.FirstOrDefault(x => x.Id == selectedId);
-            var selected = filtered.FirstOrDefault(x => x.Id == selectedId);
-            if (_selected != selected)
+            Commands.SelectedItem = rows.FirstOrDefault(x => x.Id == _selection.CommandId);
+            var selected = filtered.FirstOrDefault(x => x.Id == _selection.CommandId);
+            if (_displayedCommand != selected)
             {
                 _refreshing = false;
                 try { CommandSelected(Commands, null!); }
                 finally { _refreshing = true; }
             }
-            StatusText.Text = $"{filtered.Length} of {all.Count} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
+            StatusText.Text = $"{filtered.Count} of {all.Count} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
         }
 
         private void FiltersChanged(object sender, EventArgs e) { if (!_updatingFilters) Refresh(); }
@@ -163,7 +157,7 @@ namespace Heimdall.App.Features.Commands
         {
             if (_refreshing) return;
             var id = (Commands.SelectedItem as dynamic)?.Id as string;
-            _selected = id is null ? null : CurrentPalette().FirstOrDefault(x => x.Id == id);
+            _selection.SelectCommand(id);
             if (_selected is null)
             {
                 CommandId.Text = ""; CommandName.Text = ""; CommandCategory.Text = "";
@@ -175,6 +169,7 @@ namespace Heimdall.App.Features.Commands
                 CommandCategory.Text = _selected.Category; CommandIsAxis.IsChecked = _selected.IsAxis;
                 CommandId.IsReadOnly = true;
             }
+            _displayedCommand = _selected;
             SelectedCommandChanged?.Invoke(this, _selected);
         }
 
@@ -208,7 +203,7 @@ namespace Heimdall.App.Features.Commands
             try
             {
                 _context.RunStructureEdit(w => ModuleCommandCatalogEditor.Remove(w, _selected));
-                StatusText.Text = "Command removed and staged."; _selected = null;
+                StatusText.Text = "Command removed and staged."; _selection.SelectCommand(null);
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
         }

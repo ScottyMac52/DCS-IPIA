@@ -22,6 +22,7 @@ namespace Heimdall.App.Games
     public sealed partial class EliteWorkspaceWindow : Window, IDisposable
     {
         private readonly EliteDevicesView _devicesView = new();
+        private readonly GameWorkspaceFeatureHost _featureHost;
         private readonly EliteAssignmentsView _assignmentsView = new();
         private readonly EliteReferenceSheetsView _referenceView = new();
         private readonly EliteControllerReordering _reordering;
@@ -72,6 +73,7 @@ namespace Heimdall.App.Games
             _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _reviewControllerChange = controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true);
             InitializeComponent();
+            _featureHost = new(FeatureContent, FeatureActions, StopLiveInput);
             _assignmentsView.ConfigureBrowser(EliteCommandBrowser.InputTypes, EliteCommandBrowser.AssignmentStatuses);
             RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
             _devicesView.IdentifyControllerButton.Click += IdentifyControllerClicked;
@@ -149,7 +151,7 @@ namespace Heimdall.App.Games
         {
             _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
             _inputTextProperty.RemoveValueChanged(_assignmentsView.InputKey, InputTextChanged);
-            FeatureActions.ClearActions(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
@@ -978,9 +980,8 @@ namespace Heimdall.App.Games
         private void FeatureChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_input is null || _identification is null) return;
-            StopLiveInput();
             UserControl view = FeaturePicker.SelectedIndex switch { 1 => _assignmentsView, 2 => _referenceView, _ => _devicesView };
-            FeatureContent.Content = view; FeatureActions.ShowActions(view); UpdateAvailability();
+            _featureHost.Show(view); UpdateAvailability();
         }
         private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
         private void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
