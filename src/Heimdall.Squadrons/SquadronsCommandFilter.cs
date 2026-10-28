@@ -42,7 +42,7 @@ namespace Heimdall.Squadrons
                 _ => true
             };
         }
-        private static bool MatchesAssignment(IReadOnlyList<SquadronsBindingRow> native, Source selection, string status)
+        private static bool MatchesAssignment(SquadronsBindingRow[] native, Source selection, string status)
         {
             var onController = native.Any(x => selection.Kind switch
             {
@@ -55,8 +55,8 @@ namespace Heimdall.Squadrons
             {
                 "Assigned to selected controller" => onController,
                 "Not assigned to selected controller" => !onController,
-                "Assigned anywhere" => native.Count > 0,
-                "Unassigned everywhere" => native.Count == 0,
+                "Assigned anywhere" => native.Length > 0,
+                "Unassigned everywhere" => native.Length == 0,
                 _ => true
             };
         }
