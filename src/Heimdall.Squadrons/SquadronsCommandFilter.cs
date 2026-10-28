@@ -22,28 +22,43 @@ namespace Heimdall.Squadrons
                 if (category != "All" && command.Category != category) return false;
                 if (!command.Metadata.TryGetValue("squadrons.concept", out var concept)) return false;
                 var native = rows[concept].ToArray();
-                // An unbound command has unknown type: never classify it as an axis/button by guessing.
-                var joystick = native.Where(x => x.Type == 3 && x.Input is not null).ToArray();
-                if (inputType == "Axes" && !joystick.Any(x => x.Input!.Type == CommandType.Axis)) return false;
-                if (inputType == "Buttons and hats" && !joystick.Any(x => x.Input!.Type is CommandType.Button or CommandType.Hat)) return false;
-                if (inputType == "Unknown / unbound" && joystick.Length > 0) return false;
-                var any = native.Length > 0;
-                var onController = native.Any(x => selection.Kind switch
-                {
-                    SourceKind.All => true,
-                    SourceKind.Joystick => x.Type == 3 && x.DeviceId == selection.Index,
-                    SourceKind.System => x.Type == selection.Index,
-                    _ => false
-                });
-                if (assignmentStatus == "Assigned to selected controller" && !onController) return false;
-                if (assignmentStatus == "Not assigned to selected controller" && onController) return false;
-                if (assignmentStatus == "Assigned anywhere" && !any) return false;
-                if (assignmentStatus == "Unassigned everywhere" && any) return false;
+                if (!MatchesInputType(native, inputType)) return false;
+                if (!MatchesAssignment(native, selection, assignmentStatus)) return false;
                 return command.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                     || concept.Contains(query, StringComparison.OrdinalIgnoreCase)
                     || command.Category.Contains(query, StringComparison.OrdinalIgnoreCase);
             }).OrderBy(x => x.Category, StringComparer.Ordinal)
                 .ThenBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+        }
+        // Unbound commands retain unknown type; their names never imply an axis or button.
+        private static bool MatchesInputType(IReadOnlyList<SquadronsBindingRow> native, string inputType)
+        {
+            var joystick = native.Where(x => x.Type == 3 && x.Input is not null).ToArray();
+            return inputType switch
+            {
+                "Axes" => joystick.Any(x => x.Input!.Type == CommandType.Axis),
+                "Buttons and hats" => joystick.Any(x => x.Input!.Type is CommandType.Button or CommandType.Hat),
+                "Unknown / unbound" => joystick.Length == 0,
+                _ => true
+            };
+        }
+        private static bool MatchesAssignment(IReadOnlyList<SquadronsBindingRow> native, Source selection, string status)
+        {
+            var onController = native.Any(x => selection.Kind switch
+            {
+                SourceKind.All => true,
+                SourceKind.Joystick => x.Type == 3 && x.DeviceId == selection.Index,
+                SourceKind.System => x.Type == selection.Index,
+                _ => false
+            });
+            return status switch
+            {
+                "Assigned to selected controller" => onController,
+                "Not assigned to selected controller" => !onController,
+                "Assigned anywhere" => native.Count > 0,
+                "Unassigned everywhere" => native.Count == 0,
+                _ => true
+            };
         }
         private enum SourceKind { All, Joystick, System }
         private readonly record struct Source(SourceKind Kind, int Index);
