@@ -40,26 +40,34 @@ namespace Heimdall.App.Games
                     border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(actions.DragFormat) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
                     border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id) actions.Drop!(control, id); e.Handled = true; };
                 }
-                var menu = new ContextMenu();
-                if (availability.Select)
+                // A left click already selects the input. A right-click menu
+                // advertises only actual native operations; no phantom Select/Tune.
+                if (actions.Clear is not null || actions.Tune is not null)
                 {
-                    var select = new MenuItem { Header = "Select input for assignment" };
-                    select.Click += (_, _) => actions.Select!(control);
-                    menu.Items.Add(select);
+                    var menu = new ContextMenu();
+                    menu.Opened += (_, _) =>
+                    {
+                        menu.Items.Clear();
+                        if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
+                        {
+                            var clear = new MenuItem { Header = "Clear assignment" };
+                            clear.Click += (_, _) => actions.Clear(control);
+                            menu.Items.Add(clear);
+                        }
+                        if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)
+                        {
+                            if (menu.Items.Count > 0) menu.Items.Add(new Separator());
+                            var tune = new MenuItem { Header = "Tune axis…" };
+                            tune.Click += (_, _) => actions.Tune(control);
+                            menu.Items.Add(tune);
+                        }
+                        if (menu.Items.Count == 0) menu.IsOpen = false;
+                    };
+                    // Place the popup by the mouse, not centered across a wide
+                    // authored hit region; do not obscure the control artwork.
+                    menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+                    border.ContextMenu = menu;
                 }
-                if (availability.Tune)
-                {
-                    var tune = new MenuItem { Header = "Tune axis" };
-                    tune.Click += (_, _) => actions.Tune!(control);
-                    menu.Items.Add(tune);
-                }
-                if (availability.Clear)
-                {
-                    var remove = new MenuItem { Header = "Clear selected assignment" };
-                    remove.Click += (_, _) => actions.Clear!(control);
-                    menu.Items.Add(remove);
-                }
-                if (menu.Items.Count > 0) border.ContextMenu = menu;
                 canvas.Children.Add(border); Regions.Add((control, border));
             }
         }
