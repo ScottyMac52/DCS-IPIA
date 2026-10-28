@@ -26,6 +26,7 @@ namespace Heimdall.Tests
             " joysticks{stick{deviceName:t=\"Captured Device\";}}\r\n" +
             " }\r\n" +
             "}\r\n";
+        private static readonly int[] expectedActivationCodes = new[] { 3, 9 };
 
         [Fact]
         public void ImportAndNoOpExportPreserveEveryCharacter()
@@ -95,7 +96,7 @@ namespace Heimdall.Tests
         {
             const string capture = "content{controls{hotkeys{fire{activationType:i=9;}zoom{activationType:i=3;}}axes{pitch{range:r=0.9;}}joysticks{one{deviceId:i=2;}}}}";
             var controls = new WarThunderControls(capture);
-            Assert.Equal(new[] { 3, 9 }, controls.ActivationCodes());
+            Assert.Equal(expectedActivationCodes, controls.ActivationCodes());
             Assert.Single(controls.Axes);
             Assert.Single(controls.Joysticks);
             Assert.Contains(controls.Hotkeys, x => x.Value == "9");
