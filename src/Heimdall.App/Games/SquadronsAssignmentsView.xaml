@@ -1,0 +1,86 @@
+<UserControl x:Class="Heimdall.App.Games.SquadronsAssignmentsView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games">
+ <UserControl.Resources><Style x:Key="SquadronsCellText" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style></UserControl.Resources>
+<DockPanel>
+ <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+<Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" Margin="8,0,0,0" ToolTip="Fit controller drawing to the available pane"/>
+<Button x:Name="ApplyButton" Style="{StaticResource ToolbarActionButton}" Content="Apply assignment" Margin="8,0,0,0"/>
+<Button x:Name="StartInputButton" Style="{StaticResource ToolbarActionButton}" Content="Start input test"/>
+<Button x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
+ </pres:ActionBar>
+   <Grid pres:WorkspaceLayout.Key="squadrons.assignments.split">
+    <Grid.ColumnDefinitions><ColumnDefinition Width=".38*" MinWidth="230"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".62*" MinWidth="300"/></Grid.ColumnDefinitions>
+    <DockPanel Grid.Column="0" Margin="0,0,6,0">
+     <StackPanel DockPanel.Dock="Bottom">
+      <Button x:Name="ShowCommandButton" Style="{StaticResource ToolbarActionButton}" Content="Show saved assignments"/>
+      <TextBlock x:Name="CommandHint" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+      <Expander Header="Captured record filters" IsExpanded="False">
+       <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto"><StackPanel>
+        <ComboBox x:Name="SectionPicker" Style="{StaticResource AppComboBox}" AutomationProperties.Name="Squadrons captured context"/>
+        <ComboBox x:Name="TypePicker" Style="{StaticResource AppComboBox}" AutomationProperties.Name="Squadrons captured input type"/>
+        <TextBox x:Name="Search" Style="{StaticResource AppTextBox}" AutomationProperties.Name="Search Squadrons captured records"/>
+        <CheckBox x:Name="ReviewCaptured" Content="Review captured records (advanced)" Style="{StaticResource AppCheckBox}" IsChecked="False"/>
+       </StackPanel></ScrollViewer>
+      </Expander>
+      <TextBlock x:Name="CountText" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+     </StackPanel>
+     <games:GameCommandBrowserView x:Name="CommandBrowser" ToolTip="Select a command, then click an outlined control to assign. Dragging also works."/>
+    </DockPanel>
+    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" ToolTip="Resize Commands and Assignment workspace"/>
+    <Grid Grid.Column="2" Margin="6,0,0,0">
+     <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="180"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Expander x:Name="CapturedAssignments" Grid.Row="1" Header="Captured assignments and diagnostics" IsExpanded="False" pres:WorkspaceLayout.Key="squadrons.assignments.table"><Grid MaxHeight="170">
+    <DataGrid x:Name="BindingsGrid"  AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" AutomationProperties.Name="Squadrons assignments">
+     <DataGrid.ContextMenu>
+      <ContextMenu>
+       <MenuItem x:Name="EditNativeRecordItem" Header="Edit selected assignment"/>
+       <MenuItem x:Name="ClearNativeRecordItem" Header="Clear selected assignment…"/>
+      </ContextMenu>
+     </DataGrid.ContextMenu>
+     <DataGrid.Columns>
+      <DataGridTextColumn Header="Command" Binding="{Binding CommandName}" Width="2*" MinWidth="260" ElementStyle="{StaticResource SquadronsCellText}"/>
+      <DataGridTextColumn x:Name="ContextColumn" Header="Context" Binding="{Binding Section}" Width="180" Visibility="Collapsed" ElementStyle="{StaticResource SquadronsCellText}"/>
+      <DataGridTextColumn x:Name="HardwareColumn" Header="Hardware check" Binding="{Binding HardwareStatus}" Width="220" Visibility="Collapsed" ElementStyle="{StaticResource SquadronsCellText}"/>
+      <DataGridTextColumn x:Name="ControllerColumn" Header="Controller" Binding="{Binding DeviceLabel}" Width="210" ElementStyle="{StaticResource SquadronsCellText}"/>
+      <DataGridTextColumn Header="Input" Binding="{Binding InputLabel}" Width="190" ElementStyle="{StaticResource SquadronsCellText}"/>
+      <DataGridTextColumn x:Name="BindingColumn" Header="Binding" Binding="{Binding BindingLabel}" Width="85" Visibility="Collapsed"/>
+     </DataGrid.Columns>
+    </DataGrid>
+    <TextBlock x:Name="EmptyState"  Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
+    </Grid></Expander>
+    <Expander x:Name="DrawingPanel" Grid.Row="0" Header="Controller drawing" IsExpanded="True" Margin="0,8,0,0">
+     <Grid Margin="0,6,0,0" MinHeight="0" ClipToBounds="True">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
+      <WrapPanel Grid.Row="0" Margin="0,0,0,6">
+       <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" Margin="12,0,8,0"/>
+       <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
+
+       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Select a command, then click or drag onto a control to assign."/>
+      </WrapPanel>
+      <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
+           between them can mask the vertically transformed content extent. -->
+      <Grid Grid.Row="1" MinHeight="0" ClipToBounds="True">
+       <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="False" Focusable="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
+        <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+       </ScrollViewer>
+       <TextBox x:Name="InputActivity" Style="{StaticResource AppTextBox}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="12,70,12,12" AutomationProperties.Name="Live controller input activity"/>
+       <TextBlock x:Name="DrawingHint" Text="On Devices, link the selected controller and choose a hardware drawing. Start input test to see raw activity without a drawing." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap" IsHitTestVisible="False"/>
+      </Grid>
+     </Grid>
+    </Expander>
+    <games:GameAssignmentEditorView x:Name="SelectionEditor" Grid.Row="2"><games:GameAssignmentEditorView.NativeEditor>
+    <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0" Visibility="Collapsed">
+     <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
+     <WrapPanel Margin="0,8,0,0">
+      <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" AutomationProperties.Name="Squadrons assignment controller"/>
+      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" AutomationProperties.Name="Squadrons assignment input"/>
+
+     </WrapPanel>
+    </StackPanel>
+    </games:GameAssignmentEditorView.NativeEditor></games:GameAssignmentEditorView>
+   </Grid>
+  </Grid>
+
+</DockPanel>
+</UserControl>

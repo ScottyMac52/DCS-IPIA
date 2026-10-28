@@ -31,7 +31,7 @@ namespace Heimdall.App.Games
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly HardwareDiagramPresenter _diagram;
         private readonly DiagramViewport _viewport;
-        private readonly EliteInputFeedback _input;
+        private readonly HardwareInputFeedback _input;
         private readonly GameControllerIdentification _identification;
         private DetectedDcsDevice? _identifiedController;
         private readonly Func<string?>? _importPicker;

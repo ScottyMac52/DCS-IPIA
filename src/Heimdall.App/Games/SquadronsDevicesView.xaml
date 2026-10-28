@@ -1,0 +1,39 @@
+<UserControl x:Class="Heimdall.App.Games.SquadronsDevicesView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games">
+
+<DockPanel>
+ <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+<Button x:Name="RescanControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Rescan"/>
+<Button x:Name="IdentifyControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Identify…"/>
+<Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
+<Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link / replace…"/>
+<Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink…"/>
+<Button x:Name="ClearSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Clear assignments…"/>
+<Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Remove unused slot…"/>
+<Button x:Name="ClearDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Hide drawing"/>
+ </pres:ActionBar>
+ <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+ <TextBlock Style="{StaticResource SectionTitle}" Text="Devices"/>
+ <TextBlock Style="{StaticResource Hint}" Text="Select a captured controller on the left, identify and link its physical hardware, then choose a drawing." TextWrapping="Wrap"/>
+     <Expander x:Name="ControllerSetup" Header="Controller setup" IsExpanded="True" Foreground="{DynamicResource PrimaryTextBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="440" Margin="0,8,0,0">
+     <StackPanel>
+      <TextBlock x:Name="LinkStatus" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Physical controller" Margin="0,8,0,4"/>
+      <ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Squadrons physical controller">
+       <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock x:Name="IdentificationStatus" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,4" AutomationProperties.LiveSetting="Polite"/>
+      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Select a captured slot first. Identify finds the physical unit; verify its slot in Squadrons before linking. For another slot, bind an input on that device in Squadrons and import a fresh capture."/>
+     </StackPanel>
+    </ScrollViewer>
+     </Expander>
+ <TextBlock Style="{StaticResource AppLabel}" Text="Hardware drawing" Margin="0,14,0,6"/>
+       <ComboBox x:Name="DrawingPicker" Style="{StaticResource AppComboBox}" Width="340" DisplayMemberPath="Title" AutomationProperties.Name="Squadrons shared hardware drawing"/>
+
+
+ <TextBlock Style="{StaticResource Hint}" Text="Drawing choice does not change the native slot or its assignments. Assignments and live input testing are on the Assignments &amp; Testing tab." TextWrapping="Wrap"/>
+ </StackPanel></ScrollViewer>
+</DockPanel>
+</UserControl>

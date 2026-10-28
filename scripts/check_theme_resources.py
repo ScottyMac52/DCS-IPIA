@@ -51,7 +51,7 @@ else:
 styles.update(keys(ROOT / "Themes" / "Controls.xaml"))
 # Migrated Squadrons surfaces use named styles resolved at runtime, which the
 # WPF compiler does not validate. Check their shared and local resource keys too.
-for filename in ("Games/SquadronsWorkspaceWindow.xaml", "Games/GameCommandBrowserView.xaml"):
+for filename in ("Games/SquadronsWorkspaceWindow.xaml", "Games/GameCommandBrowserView.xaml", "Games/SquadronsDevicesView.xaml", "Games/SquadronsAssignmentsView.xaml"):
     path = ROOT / filename
     text = path.read_text(encoding="utf-8-sig")
     references = set(re.findall(r"\{StaticResource ([A-Za-z_]\w*)\}", text))

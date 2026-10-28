@@ -36,6 +36,29 @@ directions share the callout. All clears use the review boundary. Squadrons axis
 tuning is unsupported and is not advertised as an action. Unknown native record
 creation still fails through the adapter's existing verified-template validation.
 
+## Shared navigation correction
+
+The initial PR 5 UI retained too much of the standalone Squadrons layout. The
+revised consumer uses the same profile chrome, horizontal feature navigation,
+`GameWorkspaceFeatureHost` and `FeatureActionBar` as Elite. Devices opens first;
+its cached `SquadronsDevicesView` owns physical linking, native slot review and
+drawing choice. `SquadronsAssignmentsView` owns Assignments & Testing, using the
+shared command browser and editor around a large drawing. Native captured records
+are available in a collapsed diagnostic panel below the drawing.
+
+Actions are routed from the active feature through the common toolbar. Input
+feedback is the existing Elite implementation generalized to `HardwareInputFeedback`,
+with the same exact-instance readiness, entitlement, native disposal and focus-loss
+behavior. Without a drawing it displays raw activity text. Navigating features or
+changing controllers/profiles stops acquisition and clears stale feedback; testing
+does not edit native bindings. Reference-sheet generation is not implemented for
+Squadrons and is not advertised as a working feature.
+
+A new Windows smoke verifies the actual mounted views, device and assignment action
+sets, cached filters, toolbar execution, live text fallback, native disposal on
+navigation/controller/focus changes, and unchanged native exports. Existing smoke
+navigates to the assignment feature before testing its layout and authoring.
+
 ## Verification
 
 - New native-plan regression tests cover whole axes, partial-axis rejection,
@@ -44,7 +67,7 @@ creation still fails through the adapter's existing verified-template validation
   verified hardware, captured slot edits, save/reopen/discard and lossless export.
 - Windows smoke adds real shared-presenter click routing, drop routing, paired-axis
   editing, pointed clear independent of command selection, saved drawing reopen,
-  controller-switch isolation and measured scroll extents at 1420×900 and 1100×680.
+  controller-switch isolation and measured scroll extents at 1340×860 and 1050×650.
 - Existing layout smoke now recognizes explicit read-only system sources and uses
   the migrated workspace's minimum size; verified-hardware filtering stays intact.
 

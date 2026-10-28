@@ -39,6 +39,7 @@ namespace Heimdall.App.Smoke
                 var devices = Box<ListBox>(window, "DevicePicker");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device; Click(window, "LinkControllerButton");
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 var grid = Box<DataGrid>(window, "BindingsGrid");
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.RecordId.EndsWith("ConceptFire.2", StringComparison.Ordinal));
                 var row = (SquadronsWorkspaceRow)grid.SelectedItem;

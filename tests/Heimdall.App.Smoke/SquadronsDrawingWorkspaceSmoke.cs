@@ -54,6 +54,8 @@ namespace Heimdall.App.Smoke
                 Box<Expander>(window, "ControllerSetup").IsExpanded = false;
                 Box<ComboBox>(window, "DrawingPicker").SelectedItem = hardware;
                 if (!window.SaveProfile()) throw new InvalidOperationException("Drawing profile did not save.");
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
+                ThemeControlSmoke.Pump(window);
                 var source = window.Session!.Export().Files[SquadronsProfileBackend.FileName];
                 var id = window.Session.Snapshot.Id;
                 var browser = Box<GameCommandBrowserView>(window, "CommandBrowser");
@@ -104,7 +106,7 @@ namespace Heimdall.App.Smoke
                 if (JsonSerializer.Serialize(window.Session.Snapshot) != frozen)
                     throw new InvalidOperationException("Controller selection changed native source or drawing pins.");
                 SelectDevice(devices, "squadrons.joystick.3");
-                foreach (var (width, height) in new[] { (1420d, 900d), (1100d, 680d) })
+                foreach (var (width, height) in new[] { (1340d, 860d), (1050d, 650d) })
                 {
                     window.Width = width; window.Height = height;
                     Box<Slider>(window, "DrawingZoom").Value = 2;
@@ -118,6 +120,7 @@ namespace Heimdall.App.Smoke
                     if (scroll.VerticalOffset <= 0 || scroll.HorizontalOffset <= 0)
                         throw new InvalidOperationException("Drawing content could not be reached by scrolling.");
                 }
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
                 Click(window, "ClearDrawingButton");
                 if (Box<Canvas>(window, "DrawingCanvas").Children.Count != 0 || Box<ComboBox>(window, "DrawingPicker").SelectedItem is not null)
                     throw new InvalidOperationException("Hiding a drawing left stale controls or prevented reselecting the same drawing.");
@@ -126,6 +129,7 @@ namespace Heimdall.App.Smoke
                 window.Close();
                 using var reopened = new SquadronsWorkspaceWindow(services, id, () => MessageBoxResult.No, drawings: [hardware]);
                 reopened.Show(); ThemeControlSmoke.Pump(reopened);
+                Box<ListBox>(reopened, "FeaturePicker").SelectedIndex = 1;
                 SelectDevice(Box<ListBox>(reopened, "DevicePicker"), "squadrons.joystick.3");
                 if (Box<Canvas>(reopened, "DrawingCanvas").Children.OfType<Border>().Count() != drawing.Controls.Count ||
                     reopened.Session!.Export().Files[SquadronsProfileBackend.FileName] != source)
