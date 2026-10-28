@@ -460,7 +460,7 @@ namespace Heimdall.App.Games
         }
         private void ReviewLink(GameControllerChange change)
         {
-            StopLiveInput();
+            StopSamplingForReview();
             if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
             _session!.ApplyControllerChange(change); Refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
         }
@@ -475,7 +475,7 @@ namespace Heimdall.App.Games
         });
         private void ReviewNativeChange(GameControllerChange change)
         {
-            StopLiveInput();
+            StopSamplingForReview();
             if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
             _session!.ApplyControllerChange(change);
             Refresh(false);
@@ -906,6 +906,11 @@ namespace Heimdall.App.Games
             if (_featureHost is null || _input is null) return;
             _featureHost.Show(FeaturePicker.SelectedIndex == 1 ? _assignmentsView : _devicesView);
             Run(() => { RenderDrawing(); UpdateAvailability(); });
+        }
+        private void StopSamplingForReview()
+        {
+            _input.Stop();
+            if (_identification.Running) _identification.Stop();
         }
         private void StopLiveInput()
         {

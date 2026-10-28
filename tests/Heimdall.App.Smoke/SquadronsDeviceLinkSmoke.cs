@@ -48,6 +48,9 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Identification failed to select and release the exact unit.");
                 Click(window, "LinkControllerButton");
                 if (window.Session.Snapshot.Hardware.Count != 0 || reviewed is null) throw new InvalidOperationException("Canceled link review staged changes.");
+                if ((picker.SelectedItem as DetectedDcsDevice)?.PhysicalGuid != first.PhysicalGuid ||
+                    !Box<Button>(window, "LinkControllerButton").IsEnabled || !input.Disposed)
+                    throw new InvalidOperationException("Canceled link review discarded the chosen physical unit or retained identification handles.");
                 accept = true; Click(window, "LinkControllerButton");
                 if (window.Session.Snapshot.Hardware["squadrons.joystick.5"].Device.PhysicalGuid != first.PhysicalGuid || !window.SaveProfile())
                     throw new InvalidOperationException("Reviewed physical link failed to save.");
