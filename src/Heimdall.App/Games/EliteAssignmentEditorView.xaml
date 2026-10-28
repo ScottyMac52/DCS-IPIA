@@ -2,11 +2,6 @@
  xmlns:pres="clr-namespace:Heimdall.App">
 <ScrollViewer x:Name="AssignmentInspectorScroll" VerticalScrollBarVisibility="Auto" MaxHeight="240"><StackPanel>
        <StackPanel x:Name="AssignmentEditor" Margin="0,4,0,0">
-        <DockPanel Margin="0,0,0,4">
-         <TextBlock Style="{StaticResource AppLabel}" Text="Assignment" FontSize="18" FontWeight="SemiBold" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-         <TextBlock Style="{StaticResource AppLabel}" x:Name="AssignmentCommand" TextWrapping="Wrap" Text="No command selected."
-                   AutomationProperties.Name="Elite assignment command" AutomationProperties.LiveSetting="Polite"/>
-        </DockPanel>
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
          <TextBlock Style="{StaticResource AppLabel}" Text="Input" VerticalAlignment="Center" Margin="0,0,8,0"/>
         <ComboBox Style="{StaticResource AppComboBox}" x:Name="InputKey" Grid.Column="1" IsEditable="True" DisplayMemberPath="DisplayName" SelectedValuePath="Key"
@@ -19,7 +14,6 @@
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="SlotPicker" Width="145" AutomationProperties.Name="Elite command binding slot" ToolTip="Primary and Secondary are shared across all devices. Choose the other slot to keep an existing binding."><ComboBoxItem Content="Primary"/><ComboBoxItem Content="Secondary"/></ComboBox>
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModePicker" Width="145" Margin="8,0,0,0"><ComboBoxItem Content="Press"/><ComboBoxItem Content="Hold"/></ComboBox>
         </WrapPanel>
-        <TextBlock Style="{StaticResource Hint}" x:Name="AssignmentDraftStatus" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>
         <StackPanel x:Name="AxisTools" Margin="0,8,0,0"><CheckBox Style="{StaticResource AppCheckBox}" x:Name="InvertAxis" Content="Invert axis"/><TextBlock Style="{StaticResource AppLabel}" Text="Deadzone (%)" Margin="0,6,0,3"/><TextBox Style="{StaticResource AppTextBox}" x:Name="AxisDeadzone" Text="0"/></StackPanel>
         <Expander x:Name="ModifierTools" Header="Button combination (optional)" Margin="0,8,0,0"><StackPanel>
          <ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierDevicePicker" DisplayMemberPath="Name" Margin="0,4,0,4"/>
