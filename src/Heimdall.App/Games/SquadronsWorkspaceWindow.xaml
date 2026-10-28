@@ -22,7 +22,7 @@
    <Setter Property="VerticalAlignment" Value="Center"/>
    <Setter Property="Margin" Value="0,0,8,0"/>
   </Style>
-  <Style x:Key="SquadronsFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource ToolbarComboBox}">
+  <Style x:Key="SquadronsFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource AppComboBox}">
    <Setter Property="Width" Value="Auto"/>
    <Setter Property="HorizontalAlignment" Value="Stretch"/>
    <Setter Property="Margin" Value="0,0,12,0"/>
@@ -36,7 +36,7 @@
  <games:GameWorkspaceShell Margin="16">
   <StackPanel>
    <WrapPanel>
-    <ComboBox x:Name="GamePicker" Style="{StaticResource ToolbarComboBox}" VerticalAlignment="Center" Width="200" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection">
+    <ComboBox x:Name="GamePicker" Style="{StaticResource AppComboBox}" VerticalAlignment="Center" Width="200" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection">
      <ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/>
     </ComboBox>
     <Button x:Name="ImportButton" Style="{StaticResource SquadronsActionButton}" Content="Import controls…" Click="ImportClicked"/>
@@ -46,7 +46,7 @@
    </WrapPanel>
    <WrapPanel Margin="0,8,0,8">
     <TextBlock Style="{StaticResource AppLabel}" Text="Saved profile" VerticalAlignment="Center" Margin="0,0,8,0"/>
-    <ComboBox x:Name="ProfilePicker" Style="{StaticResource ToolbarComboBox}" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" AutomationProperties.Name="Squadrons saved profile"/>
+    <ComboBox x:Name="ProfilePicker" Style="{StaticResource AppComboBox}" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" AutomationProperties.Name="Squadrons saved profile"/>
     <TextBlock Style="{StaticResource AppLabel}" Text="Name" VerticalAlignment="Center" Margin="16,0,8,0"/>
     <TextBox x:Name="ProfileName" Style="{StaticResource SquadronsFilterTextBox}" Width="220" Margin="0" MaxLength="100" TextChanged="NameChanged" AutomationProperties.Name="Squadrons configuration name"/>
     <TextBlock x:Name="SaveState" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
@@ -133,7 +133,7 @@
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
       <WrapPanel Grid.Row="0" Margin="0,0,0,6">
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Hardware drawing"/>
-       <ComboBox x:Name="DrawingPicker" Style="{StaticResource ToolbarComboBox}" Width="340" DisplayMemberPath="Title" SelectionChanged="DrawingChanged" AutomationProperties.Name="Squadrons shared hardware drawing"/>
+       <ComboBox x:Name="DrawingPicker" Style="{StaticResource AppComboBox}" Width="340" DisplayMemberPath="Title" SelectionChanged="DrawingChanged" AutomationProperties.Name="Squadrons shared hardware drawing"/>
        <Button x:Name="ClearDrawingButton" Style="{StaticResource SquadronsActionButton}" Content="Hide drawing" Click="ClearDrawingClicked"/>
        <TextBlock Style="{StaticResource SquadronsFilterLabel}" Text="Zoom" Margin="12,0,8,0"/>
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
@@ -154,8 +154,8 @@
     <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0" Visibility="Collapsed">
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
-      <ComboBox x:Name="TargetDevice" Style="{StaticResource ToolbarComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
-      <ComboBox x:Name="InputPicker" Style="{StaticResource ToolbarComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="InputChanged" AutomationProperties.Name="Squadrons assignment input"/>
+      <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" SelectionChanged="TargetChanged" AutomationProperties.Name="Squadrons assignment controller"/>
+      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="InputChanged" AutomationProperties.Name="Squadrons assignment input"/>
       <Button x:Name="ApplyButton" Style="{StaticResource SquadronsActionButton}" Content="Apply assignment" Margin="8,0,0,0" Click="ApplyClicked"/>
      </WrapPanel>
     </StackPanel>
