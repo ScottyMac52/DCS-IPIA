@@ -57,6 +57,7 @@ namespace Heimdall.App.Games
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
         private IReadOnlyList<SimCommand> _commands = [];
+        private readonly GameAssignmentSelection _selection = new();
         private ReferenceSheetDocument? _referenceSheets;
         private bool _referenceDirty = true;
         private bool _renderingReference;
@@ -71,6 +72,7 @@ namespace Heimdall.App.Games
             _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _reviewControllerChange = controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true);
             InitializeComponent();
+            _assignmentsView.ConfigureBrowser(EliteCommandBrowser.InputTypes, EliteCommandBrowser.AssignmentStatuses);
             RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
             _devicesView.IdentifyControllerButton.Click += IdentifyControllerClicked;
             _devicesView.CancelIdentificationButton.Click += CancelIdentificationClicked;
@@ -127,9 +129,9 @@ namespace Heimdall.App.Games
             _bindingsDirectoryOverride = _services.Recent().EliteBindingsDirectory;
             BindingsDirectoryText.Text = BindingsDirectory;
             ExportToReviewFolder.IsChecked = _exportPicker is not null;
-            _assignmentsView.AssignmentStatusPicker.SelectedIndex = 0;
+            _assignmentsView.AssignmentStatusPicker.SelectedItem = EliteCommandBrowser.AssignmentStatuses.Single(x => x.Status == GameCommandAssignmentStatus.All);
             GamePicker.SelectedIndex = 1; SectionPicker.SelectedIndex = 0; _assignmentsView.SlotPicker.SelectedIndex = 0; _assignmentsView.ModePicker.SelectedIndex = 0;
-            _assignmentsView.CommandCategoryPicker.ItemsSource = new[] { "All categories" }; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0;
+            _assignmentsView.CommandCategoryPicker.ItemsSource = new[] { "All categories" }; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedItem = EliteCommandBrowser.InputTypes.Single(x => x.Type is null);
             _referenceView.ReferenceLayoutPicker.SelectedIndex = 0; _referenceView.ReferencePaperPicker.SelectedIndex = 0; _referenceView.ReferenceOrientationPicker.SelectedIndex = 0;
             _devicesView.HardwarePicker.ItemsSource = hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)).ToArray();
             _refreshing = false;
@@ -290,6 +292,8 @@ namespace Heimdall.App.Games
             _assignmentsView.CommandsList.ItemsSource = null; _assignmentsView.AssignmentsGrid.ItemsSource = null; _refreshing = false;
             _assignmentsView.ModifierDevicePicker.ItemsSource = null; RefreshCombinationInputs();
             _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear();
+            _selection.Reset(); _assignmentsView.Selection.ShowCommand(null);
+            _assignmentsView.AssignmentDraftStatus.Text = "Choose a configuration.";
             _rows = []; _commands = []; _referenceSheets = null; _referenceDirty = true;
             _referenceView.ReferencePreview.Source = null; _referenceView.ReferencePageLabel.Text = "No preview";
             ReloadChoices(null);
@@ -331,24 +335,29 @@ namespace Heimdall.App.Games
         private void InputTextChanged(object? sender, EventArgs e) => DraftChanged();
         private void AssignmentModeChanged(object sender, SelectionChangedEventArgs e) => DraftChanged();
         private void AssignmentOptionChanged(object sender, RoutedEventArgs e) => DraftChanged();
-        private void DraftChanged() { if (!_refreshing && !_loadingAssignment && _session is not null) UpdateAvailability(); }
+        private void DraftChanged()
+        {
+            if (_refreshing || _loadingAssignment || _session is null) return;
+            _selection.SelectInput(NativeInput(_assignmentsView.InputKey));
+            UpdateAvailability();
+        }
         private GameAssignmentEdit? Draft()
         {
             if (_session is null || Device is null || Command is null) return null;
             var axis = Command.Type == CommandType.Axis;
             if (axis && !float.TryParse(_assignmentsView.AxisDeadzone.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out _)) return null;
             var deadzone = axis ? float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture) : 0;
-            return new(Device.Id, Command.Id, Slot, NativeInput(_assignmentsView.InputKey), axis,
+            return new(Device.Id, Command.Id, Slot, _selection.InputKey ?? "", axis,
                 _assignmentsView.InvertAxis.IsChecked == true, deadzone,
                 _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
                 _modifiers.Select(x => x.Modifier).ToArray(), _assignmentsView.CommandToggle.Visibility == Visibility.Visible ? _assignmentsView.CommandToggle.IsChecked == true : null);
         }
         private string Section => (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
         private string? CommandCategory => _assignmentsView.CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
-        private CommandType? InputType => _assignmentsView.CommandTypePicker.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null };
+        private CommandType? InputType => (_assignmentsView.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Type;
         private GameDeviceChoice? Device => DevicePicker.SelectedItem as GameDeviceChoice;
-        private SimCommand? Command => _assignmentsView.CommandsList.SelectedItem as SimCommand;
-        private string Slot => Command?.Type == CommandType.Axis ? "Binding" : _assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary";
+        private SimCommand? Command => _commands.FirstOrDefault(x => x.Id == _selection.CommandId);
+        private string Slot => _selection.Slot;
         private GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(_session, _revision, ProfileName.Text.Trim(), _busy);
         private bool Pending => Chrome.Pending;
         private void Status(string message) => WorkspaceStatus.Text = message;
@@ -408,7 +417,7 @@ namespace Heimdall.App.Games
         private void Run(Action action) { try { action(); } catch (Exception error) { Status(error.Message); } }
         private void OpenSession(GameWorkspace workspace, string? revision)
         {
-            StopLiveInput(); _referenceDirty = true;
+            StopLiveInput(); _selection.Reset(); _referenceDirty = true;
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
@@ -466,14 +475,18 @@ namespace Heimdall.App.Games
             _refreshing = true;
             _assignmentsView.CommandCategoryPicker.ItemsSource = categories;
             _assignmentsView.CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
-            var commands = EliteCommandBrowser.Filter(_commands, Section, CommandCategory, InputType, _assignmentsView.CommandSearch.Text,
-                _rows, Device?.Id, (EliteAssignmentStatus)Math.Max(0, _assignmentsView.AssignmentStatusPicker.SelectedIndex));
+            var query = new GameCommandQuery(Section == "All" ? null : Section, CommandCategory, InputType,
+                _assignmentsView.CommandSearch.Text,
+                (_assignmentsView.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All);
+            var commands = GameCommandBrowser.Filter(EliteCommandBrowser.Entries(_commands, _rows), query, Device?.Id)
+                .Select(x => x.Command).ToArray();
+            _selection.Refresh(Device?.Id, commands, selected);
             var view = new ListCollectionView(commands.ToList());
             view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
             _assignmentsView.CommandsList.ItemsSource = view;
-            _assignmentsView.CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == selected) ?? (commands.Count > 0 ? commands[0] : null); _refreshing = false;
-            _assignmentsView.CommandCount.Text = commands.Count + " of " + _commands.Count + " commands";
-            _assignmentsView.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            _assignmentsView.CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == _selection.CommandId); _refreshing = false;
+            _assignmentsView.CommandCount.Text = commands.Length + " of " + _commands.Count + " commands";
+            _assignmentsView.CommandEmptyHint.Visibility = commands.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
             LoadAssignment(); UpdateAvailability();
         }
@@ -556,7 +569,7 @@ namespace Heimdall.App.Games
         {
             var key = DrawingKey(control);
             if (key is null) { Status("This drawing input has no verified Elite key. Choose an explicit native input key instead."); return; }
-            var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.Input == key && (Section == "All" || x.Section == Section));
+            var row = AssignmentForControl(control);
             if (row is not null) SelectRow(row);
             SelectInput(key); _assignmentsView.InputKey.Focus();
         }
@@ -577,7 +590,9 @@ namespace Heimdall.App.Games
         {
             if (_refreshing || _session is null) return;
             _loadingAssignment = true;
+            _assignmentsView.Selection.ShowCommand(Command);
             var axis = Command?.Type == CommandType.Axis;
+            _selection.SelectSlot(axis ? "Binding" : _assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary");
             _assignmentsView.AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.SlotPicker.IsEnabled = _assignmentsView.ModePicker.IsEnabled = !axis;
@@ -660,15 +675,16 @@ namespace Heimdall.App.Games
             var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
             var ready = opened && EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
             _lastReady = ready;
-            _actions = GameAssignmentActions.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
-                review.Valid, review.Changed, assigned, ready, _input?.Running == true, _busy);
+            var deviceNames = DevicePicker.Items.Cast<GameDeviceChoice>().ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);
+            var editor = GameAssignmentEditorState.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
+                review, assigned, ready, _input?.Running == true, _busy,
+                Command is null ? "" : EliteCommandSlots.Replacement(_rows, Command.Id, Slot, deviceNames));
+            _actions = editor.Actions;
             _assignmentsView.ApplyAssignmentButton.IsEnabled = _actions.Apply;
             _assignmentsView.ClearAssignmentButton.IsEnabled = _actions.Clear;
             _assignmentsView.StopInputButton.IsEnabled = _actions.Stop;
-            var deviceNames = DevicePicker.Items.Cast<GameDeviceChoice>().ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);
             _assignmentsView.CommandSlotSummary.Text = Command is null ? "" : EliteCommandSlots.Summary(_rows, Command.Id, Command.Type == CommandType.Axis, deviceNames);
-            _assignmentsView.AssignmentDraftStatus.Text = _input?.Running == true ? "Stop input testing to apply or clear assignments."
-                : !review.Valid ? review.Message : review.Changed ? EliteCommandSlots.Replacement(_rows, Command!.Id, Slot, deviceNames) : "Assignment unchanged.";
+            _assignmentsView.AssignmentDraftStatus.Text = editor.Feedback;
             _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
             _assignmentsView.StartInputButton.IsEnabled = _actions.Start;
             _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;
@@ -703,6 +719,7 @@ namespace Heimdall.App.Games
             var choice = _assignmentsView.InputKey.Items.Cast<EliteInputChoice>().FirstOrDefault(x => x.Key == key);
             _assignmentsView.InputKey.SelectedItem = choice;
             _assignmentsView.InputKey.Text = choice?.DisplayName ?? key;
+            _selection.SelectInput(key);
         }
         private IReadOnlyList<EliteInputChoice> DeviceInputs(string deviceId, bool axes = false)
         {
@@ -948,7 +965,16 @@ namespace Heimdall.App.Games
         }
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _referenceDirty = true; UpdateAvailability(); } }
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; FilterCommands(); RenderDevice(); }); }
-        private void DeviceChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _referenceDirty = true; _devicesView.DrawingTools.Visibility = Visibility.Collapsed; FilterCommands(Command?.Id); RenderDevice(); }); }
+        private void DeviceChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing || _session is null) return;
+            Run(() =>
+            {
+                _referenceDirty = true; _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
+                FilterCommands(Command?.Id); RenderDevice();
+                Status("Selected controller: " + (Device?.Name ?? "none"));
+            });
+        }
         private void FeatureChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_input is null || _identification is null) return;
@@ -961,11 +987,16 @@ namespace Heimdall.App.Games
         private void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);
         private void ClearCommandFilters(string? selected)
         {
-            _refreshing = true; _assignmentsView.AssignmentStatusPicker.SelectedIndex = 0; _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedIndex = 0; _assignmentsView.CommandSearch.Clear(); _refreshing = false;
+            _refreshing = true; _assignmentsView.AssignmentStatusPicker.SelectedItem = EliteCommandBrowser.AssignmentStatuses.Single(x => x.Status == GameCommandAssignmentStatus.All); _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedItem = EliteCommandBrowser.InputTypes.Single(x => x.Type is null); _assignmentsView.CommandSearch.Clear(); _refreshing = false;
             FilterCommands(selected);
         }
-        private void CommandChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
-        private void SlotChanged(object sender, SelectionChangedEventArgs e) => LoadAssignment();
+        private void CommandChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            _selection.SelectCommand((_assignmentsView.CommandsList.SelectedItem as SimCommand)?.Id);
+            LoadAssignment();
+        }
+        private void SlotChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) LoadAssignment(); }
         private void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _assignmentsView.AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }
         private void SelectRow(EliteAssignmentRow row)
         {
@@ -974,6 +1005,7 @@ namespace Heimdall.App.Games
                 ClearCommandFilters(row.CommandId);
                 Status("Command filters cleared to show the selected assignment.");
             }
+            _selection.SelectCommand(row.CommandId);
             _refreshing = true; _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); _assignmentsView.SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
             LoadAssignment();
         }

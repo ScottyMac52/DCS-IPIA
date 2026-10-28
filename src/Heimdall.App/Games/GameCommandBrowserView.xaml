@@ -1,24 +1,21 @@
-<UserControl x:Class="Heimdall.App.Games.EliteCommandBrowserView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+<UserControl x:Class="Heimdall.App.Games.GameCommandBrowserView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:pres="clr-namespace:Heimdall.App">
 <DockPanel><ScrollViewer DockPanel.Dock="Top" MaxHeight="270" VerticalScrollBarVisibility="Auto"><StackPanel>       <TextBlock Style="{StaticResource AppLabel}" Text="Commands" FontSize="20" FontWeight="SemiBold"/>
        <TextBlock Style="{StaticResource AppLabel}" Text="Category" Margin="0,8,0,3"/>
-       <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandCategoryPicker" AutomationProperties.Name="Elite command category"/>
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandCategoryPicker" AutomationProperties.Name="Command category"/>
        <WrapPanel Margin="0,6,0,0"><TextBlock Style="{StaticResource AppLabel}" Text="Input type" VerticalAlignment="Center" Margin="0,0,8,0"/>
-        <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandTypePicker" Width="150" AutomationProperties.Name="Elite command input type">
-         <ComboBoxItem Content="All types"/><ComboBoxItem Content="Buttons"/><ComboBoxItem Content="Axes"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandTypePicker" DisplayMemberPath="Label" Width="150" AutomationProperties.Name="Command input type">
         </ComboBox>
         <Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearCommandFiltersButton" Content="Clear filters"/>
        </WrapPanel>
        <TextBlock Style="{StaticResource AppLabel}" Text="Assignment status" Margin="0,8,0,3"/>
-       <ComboBox Style="{StaticResource AppComboBox}" x:Name="AssignmentStatusPicker" AutomationProperties.Name="Elite command assignment status"
-                 ToolTip="Assigned Only / Not Assigned refer to the selected controller. Any includes every controller, keyboard and mouse.">
-        <ComboBoxItem Content="All"/><ComboBoxItem Content="Assigned Only"/><ComboBoxItem Content="Not Assigned"/>
-        <ComboBoxItem Content="Not Assigned by Any"/><ComboBoxItem Content="Assigned by Any"/>
+       <ComboBox Style="{StaticResource AppComboBox}" x:Name="AssignmentStatusPicker" DisplayMemberPath="Label" AutomationProperties.Name="Command assignment status"
+                 ToolTip="Ownership filters refer to the selected controller or the entire profile.">
        </ComboBox>
-       <TextBox Style="{StaticResource AppTextBox}" x:Name="CommandSearch" ToolTip="Search names, native IDs or categories" Margin="0,8,0,4" AutomationProperties.Name="Search Elite commands"/>
+       <TextBox Style="{StaticResource AppTextBox}" x:Name="CommandSearch" ToolTip="Search names, native IDs or categories" Margin="0,8,0,4" AutomationProperties.Name="Search Commands"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandCount" Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandEmptyHint" Text="No matching commands. Clear filters or choose another section." TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,4"/>
-</StackPanel></ScrollViewer>       <ListBox x:Name="CommandsList" AutomationProperties.Name="Elite command catalog">
+</StackPanel></ScrollViewer>       <ListBox x:Name="CommandsList" AutomationProperties.Name="Command catalog">
         <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding DisplayName}" TextWrapping="Wrap" ToolTip="{Binding Id}"/></DataTemplate></ListBox.ItemTemplate>
         <ListBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate>
          <TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" FontWeight="SemiBold" Margin="2,8,0,4"/>

@@ -1,5 +1,5 @@
 using System.Windows.Controls;
-using System.Windows.Data;
+using Heimdall.Application.Games;
 
 namespace Heimdall.App.Games
 {
@@ -11,13 +11,15 @@ namespace Heimdall.App.Games
         public EliteAssignmentsView()
         {
             InitializeComponent();
-            Editor.AssignmentCommand.SetBinding(TextBlock.TextProperty, new Binding("SelectedItem.DisplayName")
-            {
-                Source = CommandBrowser.CommandsList, TargetNullValue = "No command selected.", FallbackValue = "No command selected."
-            });
+            SelectionEditor.SetEditor(_editor);
         }
         #endregion END Public
 
+        /// <summary>Configures the shared browser using adapter-owned capabilities.</summary>
+        internal void ConfigureBrowser(IReadOnlyList<GameCommandTypeOption> inputTypes, IReadOnlyList<GameCommandStatusOption> statuses) =>
+            CommandBrowser.Configure(inputTypes, statuses);
+        internal GameAssignmentEditorView Selection => SelectionEditor;
+        private readonly EliteAssignmentEditorView _editor = new();
         #region BEGIN private helpers
         internal ComboBox CommandCategoryPicker => CommandBrowser.CommandCategoryPicker;
         internal ComboBox CommandTypePicker => CommandBrowser.CommandTypePicker;
@@ -27,24 +29,24 @@ namespace Heimdall.App.Games
         internal TextBlock CommandCount => CommandBrowser.CommandCount;
         internal TextBlock CommandEmptyHint => CommandBrowser.CommandEmptyHint;
         internal ListBox CommandsList => CommandBrowser.CommandsList;
-        internal TextBlock AssignmentDraftStatus => Editor.AssignmentDraftStatus;
-        internal StackPanel AssignmentEditor => Editor.AssignmentEditor;
-        internal TextBlock AssignmentCommand => Editor.AssignmentCommand;
-        internal ComboBox InputKey => Editor.InputKey;
-        internal TextBlock CommandSlotSummary => Editor.CommandSlotSummary;
-        internal TextBlock AxisSlotLabel => Editor.AxisSlotLabel;
-        internal ComboBox SlotPicker => Editor.SlotPicker;
-        internal ComboBox ModePicker => Editor.ModePicker;
-        internal StackPanel AxisTools => Editor.AxisTools;
-        internal CheckBox InvertAxis => Editor.InvertAxis;
-        internal TextBox AxisDeadzone => Editor.AxisDeadzone;
-        internal Expander ModifierTools => Editor.ModifierTools;
-        internal ComboBox ModifierDevicePicker => Editor.ModifierDevicePicker;
-        internal ComboBox ModifierKey => Editor.ModifierKey;
-        internal Button AddCombinationButton => Editor.AddCombinationButton;
-        internal Button RemoveCombinationButton => Editor.RemoveCombinationButton;
-        internal ListBox ModifiersList => Editor.ModifiersList;
-        internal CheckBox CommandToggle => Editor.CommandToggle;
+        internal TextBlock AssignmentDraftStatus => SelectionEditor.AssignmentDraftStatus;
+        internal StackPanel AssignmentEditor => _editor.AssignmentEditor;
+        internal TextBlock AssignmentCommand => SelectionEditor.AssignmentCommand;
+        internal ComboBox InputKey => _editor.InputKey;
+        internal TextBlock CommandSlotSummary => _editor.CommandSlotSummary;
+        internal TextBlock AxisSlotLabel => _editor.AxisSlotLabel;
+        internal ComboBox SlotPicker => _editor.SlotPicker;
+        internal ComboBox ModePicker => _editor.ModePicker;
+        internal StackPanel AxisTools => _editor.AxisTools;
+        internal CheckBox InvertAxis => _editor.InvertAxis;
+        internal TextBox AxisDeadzone => _editor.AxisDeadzone;
+        internal Expander ModifierTools => _editor.ModifierTools;
+        internal ComboBox ModifierDevicePicker => _editor.ModifierDevicePicker;
+        internal ComboBox ModifierKey => _editor.ModifierKey;
+        internal Button AddCombinationButton => _editor.AddCombinationButton;
+        internal Button RemoveCombinationButton => _editor.RemoveCombinationButton;
+        internal ListBox ModifiersList => _editor.ModifiersList;
+        internal CheckBox CommandToggle => _editor.CommandToggle;
         internal Button ExportSheetButton => Artwork.ExportSheetButton;
         internal Slider DiagramZoom => Artwork.DiagramZoom;
         internal TextBlock InputActivityHint => Artwork.InputActivityHint;

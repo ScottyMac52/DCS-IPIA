@@ -155,6 +155,9 @@ namespace Heimdall.App.Smoke
                 || picker.Items.Cast<EliteInputChoice>().Any(x => x.Key.StartsWith("Joy_", StringComparison.Ordinal)))
                 throw new InvalidOperationException("Changing assignment devices retained stale joystick choices or a pending input.");
             devices.SelectedItem = selected;
+            if (Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire" ||
+                (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Joy_9")
+                throw new InvalidOperationException("Controller switching did not refresh the authoritative command/input selection.");
         }
         private static void VerifyControllerAddition(string root, WorkspaceHardware[] hardware)
         {
@@ -225,6 +228,9 @@ namespace Heimdall.App.Smoke
         {
             var types = Box<ComboBox>(window, "CommandTypePicker");
             var categories = Box<ComboBox>(window, "CommandCategoryPicker");
+            if (types.Items.Cast<object>().Any(x => x is not GameCommandTypeOption) ||
+                Box<ComboBox>(window, "AssignmentStatusPicker").Items.Cast<object>().Any(x => x is not GameCommandStatusOption))
+                throw new InvalidOperationException("The shared browser is not using adapter-supplied filter descriptors.");
             var commands = Box<ListBox>(window, "CommandsList");
             types.SelectedIndex = 2;
             if (commands.Items.Count != 2 || commands.Items.Cast<SimCommand>().Any(x => x.Type != CommandType.Axis))
