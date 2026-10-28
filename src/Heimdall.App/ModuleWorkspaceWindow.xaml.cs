@@ -1,4 +1,6 @@
 using Heimdall.Application;
+using Heimdall.Application.Games;
+using Heimdall.App.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.App.Features.Assignments;
@@ -22,6 +24,7 @@ namespace Heimdall.App
     public partial class ModuleWorkspaceWindow : Window
     {
         private bool _changingSelection;
+        private readonly GameWorkspaceFeatureHost _featureHost;
         private readonly DcsControllerSelection _controllerSelection;
         private readonly WindowContext _context;
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
@@ -91,6 +94,7 @@ namespace Heimdall.App
             foreach (var pair in viewModel.Labels)
                 _labels[pair.Key] = pair.Value;
             InitializeComponent();
+            _featureHost = new(FeatureContent, FeatureActions);
             _controllerSelection = new(ControllerPicker, () => _working);
             _changingSelection = true;
             WorkspaceGamePicker.SelectedIndex = 0;
@@ -113,7 +117,7 @@ namespace Heimdall.App
             SetDraft(_draft);
             Closed += (_, _) =>
             {
-                FeatureActions.ClearActions();
+                _featureHost.Clear();
                 SetDraft(null);
             };
             _navigation.CurrentFeatureChanged += (_, _) => LoadCurrentView();
@@ -140,16 +144,21 @@ namespace Heimdall.App
             if (await ConfirmWorkspaceSwitch()) { RequestedModule = choice.Id; Close(); }
             else { _changingSelection = true; WorkspaceProfilePicker.SelectedItem = WorkspaceProfilePicker.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id); _changingSelection = false; }
         }
-        private async Task<bool> ConfirmWorkspaceSwitch()
-        {
-            if (!HasPendingChanges()) return true;
-            var choice = ThemeMessageBox.Show(this, "Save pending edits before switching? Yes saves, No discards, Cancel stays here.", "Switch workspace", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
-            if (choice == MessageBoxResult.Cancel) return false;
-            if (choice == MessageBoxResult.No) { DiscardClicked(this, new()); return true; }
-            if (_repository is null) return false;
-            try { await SaveWorkspaceAsync(); return !HasPendingChanges(); }
-            catch (Exception error) { EditorMessage.Text = "Unable to save before switching: " + error.Message; return false; }
-        }
+        private Task<bool> ConfirmWorkspaceSwitch() => GameWorkspaceLeaveGuard.ConfirmAsync(HasPendingChanges(),
+            () => ThemeMessageBox.Show(this, "Save pending edits before switching? Yes saves, No discards, Cancel stays here.",
+                "Switch workspace", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) switch
+            {
+                MessageBoxResult.Yes => GameWorkspaceLeaveDecision.Save,
+                MessageBoxResult.No => GameWorkspaceLeaveDecision.Discard,
+                _ => GameWorkspaceLeaveDecision.Cancel
+            },
+            async () =>
+            {
+                if (_repository is null) return false;
+                try { await SaveWorkspaceAsync(); return !HasPendingChanges(); }
+                catch (Exception error) { EditorMessage.Text = "Unable to save before switching: " + error.Message; return false; }
+            },
+            () => DiscardClicked(this, new()));
         private void AssignmentModeClicked(object sender, RoutedEventArgs e)
         {
             if (sender is not RadioButton { Tag: string key }) return;
@@ -188,17 +197,15 @@ namespace Heimdall.App
             if (!FeatureContent.IsEnabled) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
             if (key == "InputTest" && !EditionAccess.AllowsInputTest(_context))
             {
-                FeatureContent.Content = new TextBlock { Text = "Live input testing is reserved for Premium. Availability and pricing TBA.", TextWrapping = TextWrapping.Wrap };
-                FeatureActions.ClearActions(); return;
+                _featureHost.Show(new TextBlock { Text = "Live input testing is reserved for Premium. Availability and pricing TBA.", TextWrapping = TextWrapping.Wrap });
+                return;
             }
             if (_views.TryGetValue(key, out var cached))
             {
-                FeatureContent.Content = cached;
-                _controllerSelection.Link(cached);
-                FeatureActions.ShowActions(cached);
+                _featureHost.Show(cached, _controllerSelection.Link);
                 return;
             }
-            FeatureContent.Content = key switch
+            UserControl? feature = key switch
             {
                 "Devices" => CreateDevicesView(),
                 "Modifiers" => CreateModifiersView(),
@@ -210,14 +217,13 @@ namespace Heimdall.App
                 "Documentation" => CreateDocumentationView(),
                 _ => null
             };
-            if (FeatureContent.Content is UserControl view)
+            if (feature is UserControl view)
             {
                 WorkspaceLayout.SetPersistenceEnabled(view, WorkspaceLayout.GetPersistenceEnabled(WorkspaceRoot));
                 _views[key] = view;
-                _controllerSelection.Link(view);
-                FeatureActions.ShowActions(view);
+                _featureHost.Show(view, _controllerSelection.Link);
             }
-            else FeatureActions.ClearActions();
+            else _featureHost.Clear();
         }
 
         private DevicesView CreateDevicesView()

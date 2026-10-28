@@ -18,12 +18,12 @@ namespace Heimdall.Application.Games
 
         /// <summary>Preserves a visible command by identity, otherwise selects the first visible command.
         /// Controller changes invalidate pending input even when the command remains selected.</summary>
-        public void Refresh(string? controllerId, IReadOnlyList<SimCommand> commands, string? preferredCommandId = null)
+        public void Refresh(string? controllerId, IReadOnlyList<SimCommand> commands, string? preferredCommandId = null, bool selectFirst = true)
         {
             if (ControllerId != controllerId) InputKey = null;
             ControllerId = controllerId;
             var wanted = preferredCommandId ?? CommandId;
-            SelectCommand(commands.FirstOrDefault(x => x.Id == wanted)?.Id ?? (commands.Count > 0 ? commands[0].Id : null));
+            SelectCommand(commands.FirstOrDefault(x => x.Id == wanted)?.Id ?? (selectFirst && commands.Count > 0 ? commands[0].Id : null));
         }
         /// <summary>Selects a command; a different command cannot inherit stale pending input.</summary>
         public void SelectCommand(string? commandId)

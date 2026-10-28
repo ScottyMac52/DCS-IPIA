@@ -11,6 +11,16 @@ namespace Heimdall.App.Games
         internal TextBlock AssignmentDraftStatus { get; } = new() { Name = "AssignmentDraftStatus", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
         private readonly ContentControl _nativeEditor = new();
         #region BEGIN Public
+        /// <summary>Identifies the native editor content supplied by a simulator view.</summary>
+        public static readonly DependencyProperty NativeEditorProperty = DependencyProperty.Register(
+            nameof(NativeEditor), typeof(UIElement), typeof(GameAssignmentEditorView),
+            new PropertyMetadata(null, (owner, args) => ((GameAssignmentEditorView)owner)._nativeEditor.Content = args.NewValue));
+        /// <summary>Gets or sets native editor fields while retaining the common command/feedback frame.</summary>
+        public UIElement? NativeEditor
+        {
+            get => (UIElement?)GetValue(NativeEditorProperty);
+            set => SetValue(NativeEditorProperty, value);
+        }
         /// <summary>Creates the shared command readout and adjacent feedback surface.</summary>
         public GameAssignmentEditorView()
         {
@@ -25,9 +35,11 @@ namespace Heimdall.App.Games
             Content = layout;
         }
         /// <summary>Hosts native fields without exposing simulator rules to the shared editor frame.</summary>
-        public void SetEditor(UIElement editor) => _nativeEditor.Content = editor;
+        public void SetEditor(UIElement editor) => NativeEditor = editor;
         /// <summary>Refreshes the command readout from the authoritative selection state.</summary>
-        public void ShowCommand(SimCommand? command) => AssignmentCommand.Text = command?.DisplayName ?? "No command selected.";
+        public void ShowCommand(SimCommand? command) => ShowCommandLabel(command?.DisplayName);
+        /// <summary>Accepts an adapter-native command label without requiring conversion of its editing model.</summary>
+        public void ShowCommandLabel(string? label) => AssignmentCommand.Text = label ?? "No command selected.";
         #endregion END Public
     }
 }

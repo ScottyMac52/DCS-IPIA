@@ -23,6 +23,7 @@ namespace Heimdall.App.Features.Assignments
     {
 
         private IModuleWorkspaceContext? _context;
+        private TextBlock SelectedCallout => SelectionEditor.AssignmentDraftStatus;
         private bool _refreshingChoices;
         private Point? _calloutDragStart;
         private HardwareGraphicControl? _calloutDragControl;
@@ -62,6 +63,8 @@ namespace Heimdall.App.Features.Assignments
         {
             AppearanceManager.ObserveArtwork(this, RefreshDiagram);
             InitializeComponent();
+            RegisterName("SelectedCallout", SelectedCallout);
+            CommandManager.SelectedCommandChanged += (_, command) => SelectionEditor.ShowCommandLabel(command?.Name);
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "assignments.zoom");
         }
 
@@ -144,6 +147,7 @@ namespace Heimdall.App.Features.Assignments
                 Layers.SelectedItem = choices.Contains(selectedLayer) ? selectedLayer : selectedLayer is not null && selectedLayer != "Base" && choices.Length > 1 ? choices[1] : choices[0];
             }
 
+            CommandManager.UseAssignmentController(_selectedDeviceId);
             StatusText.Text = $"{devices.Length} devices · layer {Layers.SelectedItem}";
             RefreshDiagram();
         }
@@ -152,8 +156,21 @@ namespace Heimdall.App.Features.Assignments
         {
             if (_refreshingChoices) return;
             if (DeviceChoice.SelectedItem is UiLayerDiagram d)
+            {
+                if (_selectedDeviceId != d.ProfileId) ClearSelectedControl();
                 _selectedDeviceId = d.ProfileId;
+            }
             RefreshChoices();
+        }
+        private void ClearSelectedControl()
+        {
+            _selected = null; _selectedInputKey = null;
+            SelectedCallout.Text = "Select a callout and a command.";
+            InspectorDetails.Text = "";
+            _updatingLabel = true; LabelEditor.Text = ""; _updatingLabel = false;
+            LabelEditor.IsEnabled = false;
+            if (AssignButton is { } assign) assign.IsEnabled = false;
+            if (TuneAxisButton is { } tune) tune.IsEnabled = false;
         }
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -196,6 +213,7 @@ namespace Heimdall.App.Features.Assignments
             }
 
             DeviceTitle.Text = diagram.Title;
+            if (_selectedInputKey is not null && !diagram.Controls.Any(x => x.InputKey == _selectedInputKey)) ClearSelectedControl();
             try
             {
                 var snapshot = _context.Draft?.Snapshot ?? _context.Working.Assignments;
@@ -364,6 +382,7 @@ namespace Heimdall.App.Features.Assignments
                         clearAssignment.IsEnabled = currentAssignment is not null;
                         tuneAxis.IsEnabled = !protectedInput && control.IsAxis && currentAssignment is not null;
                     };
+                    if (_selectedInputKey == control.InputKey) SelectCallout();
                     border.PreviewMouseMove += (_, args) =>
                     {
                         if (_calloutDragStart is not Point start || _calloutDragControl != control || args.LeftButton != MouseButtonState.Pressed)
@@ -375,22 +394,6 @@ namespace Heimdall.App.Features.Assignments
                         _calloutDragStart = null;
                         CalloutDrag(border, control, args);
                     };
-                }
-                if (_selectedInputKey is not null)
-                {
-                    var match = diagram.Controls.FirstOrDefault(x => x.InputKey == _selectedInputKey);
-                    if (match is not null)
-                    {
-                        _selected = match;
-                        // re-apply the same selection UI you already have
-                        var currentReservation = Reserved(diagram, match.InputKey);
-                        SelectedCallout.Text = currentReservation.Count > 0
-                            ? $"{match.Label} · {match.InputKey} · MODIFIER (reserved)"
-                            : $"{match.Label} · {match.InputKey}";
-                        if (AssignButton is { } assignButton) assignButton.IsEnabled = currentReservation.Count == 0;
-                        LabelEditor.IsEnabled = currentReservation.Count == 0;
-                        GenericControlName.Text = diagram.GenericCapabilities is not null ? match.Label : "";
-                    }
                 }
             }
             catch (Exception ex)
