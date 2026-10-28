@@ -23,8 +23,8 @@ namespace Heimdall.App.Smoke
             try
             {
                 var module = new DcsModule(Guid.NewGuid(), "CONSUMERS", "Consumer parity");
-                var left = new DeviceProfile(Guid.NewGuid(), "test", null, "Left", "Left.diff.lua");
-                var right = new DeviceProfile(Guid.NewGuid(), "test", null, "Right", "Right.diff.lua");
+                var left = new DeviceProfile(Guid.NewGuid(), "test", "left", "Left", "Left.diff.lua");
+                var right = new DeviceProfile(Guid.NewGuid(), "test", "right", "Right", "Right.diff.lua");
                 var workspace = new EditorWorkspaceSnapshot(new(module, [left, right], [], [], "Smoke"), [], [],
                     [Diagram(left), Diagram(right)],
                     [new("left", "Left action", "Buttons", false), new("right", "Right action", "Buttons", false)], [],
