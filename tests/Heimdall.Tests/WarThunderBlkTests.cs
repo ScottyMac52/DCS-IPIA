@@ -65,6 +65,44 @@ namespace Heimdall.Tests
         }
 
         [Fact]
+        public void CommentsAndQuotedStringsSurviveNativeRoundTrip()
+        {
+            const string capture = "// preserve this\\r\\nroot{ /* comment */ label:s=\\\"Quoted text\\\"; value:r=1.25; }";
+            var document = WarThunderBlkDocument.Parse(capture);
+            Assert.Equal(capture, document.SerializeUnchanged());
+            Assert.Contains(document.Scalars, x => x.Path == "root/label" && x.Value == "\\"Quoted text\\"");
+            Assert.Equal(capture.Replace("value:r=1.25", "value:r=2.5", StringComparison.Ordinal),
+                document.ReplaceScalar("root/value", "2.5"));
+            Assert.Throws<ArgumentException>(() => document.ReplaceScalar("root/label", "unquoted"));
+            Assert.Throws<ArgumentException>(() => document.ReplaceScalar("root/value", "not-a-real"));
+        }
+
+        [Fact]
+        public void RejectedReplacementsNeverChangeOriginalCapture()
+        {
+            const string capture = "group{count:i=3;flag:b=1;}";
+            var doc = WarThunderBlkDocument.Parse(capture);
+            Assert.Throws<ArgumentException>(() => doc.ReplaceScalar("group/count", "bad"));
+            Assert.Throws<ArgumentException>(() => doc.ReplaceScalar("group/count", "4\\nother:i=1"));
+            Assert.Throws<ArgumentException>(() => doc.ReplaceScalar("group/flag", "on"));
+            Assert.Throws<InvalidOperationException>(() => doc.ReplaceScalar("group/missing", "1"));
+            Assert.Equal(capture, doc.SerializeUnchanged());
+            Assert.Equal("group{count:i=7;flag:b=1;}", doc.ReplaceScalar("group/count", "7"));
+        }
+
+        [Fact]
+        public void InventoryDoesNotInterpretUnknownActivationCodesOrHardwareOwnership()
+        {
+            const string capture = "content{controls{hotkeys{fire{activationType:i=9;}zoom{activationType:i=3;}}axes{pitch{range:r=0.9;}}joysticks{one{deviceId:i=2;}}}}";
+            var controls = new WarThunderControls(capture);
+            Assert.Equal(new[] { 3, 9 }, controls.ActivationCodes());
+            Assert.Single(controls.Axes);
+            Assert.Single(controls.Joysticks);
+            Assert.Contains(controls.Hotkeys, x => x.Value == "9");
+            Assert.Equal(capture, controls.Document.SerializeUnchanged());
+        }
+
+        [Fact]
         public void RejectsBrokenStructureAndBinaryContent()
         {
             Assert.Throws<InvalidDataException>(() => WarThunderBlkDocument.Parse("content{"));
