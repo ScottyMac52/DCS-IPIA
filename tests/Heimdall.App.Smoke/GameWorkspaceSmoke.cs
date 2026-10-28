@@ -87,6 +87,7 @@ namespace Heimdall.App.Smoke
                 if (!window.Session!.HasChanges || !window.SaveProfile()) throw new InvalidOperationException("ED authoring did not save.");
                 var saved = window.Session.Snapshot;
                 VerifyAssignmentSelection(window);
+                EliteDiagramContextSmoke.Verify(window);
                 Click(window, "ExportPresetButton");
                 var exported = Directory.GetFiles(Path.Combine(root, "Review"), "*.binds", SearchOption.AllDirectories).Single();
                 var native = services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });

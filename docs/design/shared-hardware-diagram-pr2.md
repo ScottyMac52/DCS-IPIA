@@ -12,8 +12,8 @@ The host supplies `HardwareDiagramInteractions` with **typed callbacks** for Sel
 
 - Elite assigns and selects with unchanged existing native session actions.
 - Left-click selects the input directly; the right-click menu does not repeat this selection action. The former `Tune / assign axis` phantom has been removed (it only selected).
-- `Clear assignment` appears only if Elite reports that the currently selected command/slot is backed by a matching input on the displayed device and the existing action state permits clear. Its availability is evaluated when opening the menu, not frozen when the artwork was rendered.
-- No `Tune axis` action is supplied by Elite yet because its diagram had no tune action; the existing axis editor remains accessible through the assignment editor. Empty context menus are suppressed. Menu popups use mouse-point placement to avoid blocking wide hit regions. DCS retains its real Change label / Clear assignment / Tune axis context menu.
+- Right-click resolves the native assignment under the pointer without requiring a prior left-click. Clear availability follows that target and the host's edit/test/busy state. If several assignments share an input, the matching selected command/slot is preferred; otherwise the first visible assignment is used, consistently with callout selection.
+- Assigned native axes offer `Tune axis…`, opening an Elite-specific form for inversion and a finite 0–100 percent deadzone. Apply stages the targeted native axis through the existing session; Cancel leaves bindings unchanged. Empty context menus are suppressed. Menu popups use mouse-point placement. DCS retains its existing context actions.
 - Existing tooltip projection, drawing regions, activity outlines, drag payload and `DiagramViewport` are unchanged.
 - The shared presenter does not know Elite/Squadrons/War Thunder native record IDs, pairing formats, or unsupported BLK semantics.
 
@@ -32,8 +32,8 @@ The host supplies `HardwareDiagramInteractions` with **typed callbacks** for Sel
 - [ ] 80% line, 80% branch, CRAP <= 50 gates
 - [ ] `tests/smoke-tests.ps1`
 - [ ] Elite drawing select, drag/drop and tooltip outline unchanged
-- [ ] Elite right click has **no** redundant Select or misleading Tune/assign axis entry; Clear only for a genuinely matching clearable current assignment, and no menu when no action exists
-- [ ] Existing axis editor still provides axis value/inversion/deadzone controls; no faux tuning from diagram
+- [ ] Elite right click has **no** redundant Select or misleading Tune/assign axis entry; Clear targets the pointed assignment without a prior left-click, and no menu appears when no action exists
+- [ ] Right-click an assigned axis with another command selected; Tune axis opens native inversion/deadzone editing, Cancel preserves bindings, and Apply survives export
 - [ ] Ctrl wheel zoom under pointer, Shift wheel horizontal, wheel vertical; DCS assignments unaffected
 - [ ] No drawing / text / table fallback unchanged; Squadrons native import/export and War Thunder parser round trip unchanged
 
