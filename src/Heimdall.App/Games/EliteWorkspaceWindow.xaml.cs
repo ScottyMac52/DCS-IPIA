@@ -28,7 +28,7 @@ namespace Heimdall.App.Games
         private readonly DependencyPropertyDescriptor _inputTextProperty = DependencyPropertyDescriptor.FromProperty(ComboBox.TextProperty, typeof(ComboBox))!;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
-        private readonly EliteDiagramPresenter _diagram;
+        private readonly HardwareDiagramPresenter _diagram;
         private readonly DiagramViewport _viewport;
         private readonly EliteInputFeedback _input;
         private readonly GameControllerIdentification _identification;
@@ -508,7 +508,13 @@ namespace Heimdall.App.Games
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
             _devicesView.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(this));
-            _diagram.Show(hardware.Diagram, page, SelectControl, DropCommand, () => ClearClicked(this, new()), AppearanceManager.ArtworkOpacityFor(this),
+            _diagram.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
+                Select: SelectControl, Drop: DropCommand,
+                CanClear: control => Command is not null && Device is not null && _actions.Clear &&
+                    _rows.Any(x => x.DeviceId == Device.Id && x.Input == DrawingKey(control) &&
+                                   x.CommandId == Command.Id && x.Slot == Slot),
+                Clear: control => { SelectControl(control); ClearClicked(this, new()); }),
+                AppearanceManager.ArtworkOpacityFor(this),
                 control => control.Label + " · " + (EliteInputKeys.FromDiagram(hardware.Diagram, control) ?? control.InputKey) + "\n" +
                     string.Join("\n", rows.Where(x => x.Input == EliteInputKeys.FromDiagram(hardware.Diagram, control) && (Section == "All" || x.Section == Section))
                         .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))));
