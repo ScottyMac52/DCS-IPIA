@@ -36,6 +36,7 @@ namespace Heimdall.App.Games
         private string? _sourceDirectory;
         private IReadOnlyList<SquadronsWorkspaceRow> _rows = [];
         private string? _focusedConcept;
+        private HardwareGraphicControl? _inspectedControl;
         private IReadOnlyList<ControllerObservation> _controllerInputs = [];
         private int _inputScan;
         private bool _scanningInputs;
@@ -231,7 +232,7 @@ namespace Heimdall.App.Games
         /// <summary>Exposes the same typed native commands installed on the shared presenter for deterministic smoke checks.</summary>
         internal HardwareDiagramInteractions DrawingInteractions() =>
             new(SelectDrawingInput, DropDrawingCommand, CanClearDrawingInput, ClearDrawingInput,
-                DragFormat: SquadronsCommandDragFormat);
+                DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignments…", Inspect: InspectDrawingInput);
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
         {
@@ -245,6 +246,7 @@ namespace Heimdall.App.Games
             var opened = CreateSession(workspace);
             _selection.Reset();
             _focusedConcept = null;
+            _inspectedControl = null;
             CommandPicker.SelectedItem = null;
             SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             _session = opened; _revision = null; _sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(path));
@@ -291,6 +293,7 @@ namespace Heimdall.App.Games
             var saved = _services.Store.Load(id); var opened = CreateSession(saved.Workspace);
             _selection.Reset();
             _focusedConcept = null;
+            _inspectedControl = null;
             CommandPicker.SelectedItem = null;
             SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             _session = opened; _revision = saved.Revision; _sourceDirectory = null;
@@ -327,7 +330,7 @@ namespace Heimdall.App.Games
                 .Concat(devices).Concat(snapshot is null ? [] : systemDevices).ToArray();
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == selected) ?? DevicePicker.Items[0];
             RefreshCommandCatalog(snapshot);
-            if (snapshot is null) _focusedConcept = null;
+            if (snapshot is null) { _focusedConcept = null; _inspectedControl = null; }
             TargetDevice.ItemsSource = devices;
             var verified = new Dictionary<string, IReadOnlyCollection<string>>();
             if (snapshot is not null)
@@ -345,6 +348,8 @@ namespace Heimdall.App.Games
             var rows = SquadronsWorkspaceProjection.Filter(_rows, SectionPicker.SelectedItem as string ?? "All", TypePicker.SelectedItem as string ?? "All inputs", Search.Text,
                 (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all", includeUnverified: review);
             if (_focusedConcept is not null) rows = rows.Where(row => row.Native.Concept == _focusedConcept).ToArray();
+            if (_inspectedControl is not null && SelectedController is { } inspectedSlot)
+                rows = SquadronsDrawingProjection.ForControl(_inspectedControl, _rows, inspectedSlot, section);
             BindingsGrid.ItemsSource = rows;
             BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
             ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
@@ -361,6 +366,11 @@ namespace Heimdall.App.Games
                 _scanningInputs ? "Inspecting controller inputs…" : "No captured joystick assignments match these filters. Change the context or input filter, or enable advanced review for preserved native records.";
             if (_focusedConcept is not null && rows.Count == 0)
                 EmptyState.Text = "This command has no assignments matching the current controller and input filters. The command is still available in the catalog.";
+            if (_inspectedControl is not null)
+            {
+                CountText.Text = _inspectedControl.Label + " · " + rows.Count + " captured assignments · " + section + ".";
+                if (rows.Count == 0) EmptyState.Text = "No captured assignments on this control in the current context.";
+            }
             UpdateEditor();
             if (DrawingPanel.IsExpanded == true) Run(RenderDrawing);
         }
@@ -441,7 +451,12 @@ namespace Heimdall.App.Games
                 pin.Device.Name + (GameInputReadiness.Ready(pin, _services.Discover()) ? " · Connected" : " · Unavailable");
             UpdateInputAvailability();
         }
-        private void CaptureReviewChanged(object sender, RoutedEventArgs e) { if (!_refreshing) RefreshRows(); }
+        private void CaptureReviewChanged(object sender, RoutedEventArgs e)
+        {
+            if (_refreshing) return;
+            if (ReviewCaptured.IsChecked != true) _inspectedControl = null;
+            RefreshRows();
+        }
         private void SetupCollapsed(object sender, RoutedEventArgs e) { if (!_refreshing && ReferenceEquals(e.OriginalSource, ControllerSetup)) StopLiveInput(); }
         private void ClearIdentification()
         {
@@ -530,6 +545,7 @@ namespace Heimdall.App.Games
         private void ShowCommandClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return;
+            _inspectedControl = null;
             SectionPicker.SelectedItem = command.Category;
             ReviewCaptured.IsChecked = true;
             CapturedAssignments.IsExpanded = true;
@@ -626,6 +642,7 @@ namespace Heimdall.App.Games
             if (ReferenceEquals(sender, DevicePicker))
             {
                 StopLiveInput();
+                _inspectedControl = null;
                 DrawingDropFeedback.Text = "";
                 SelectionEditor.AssignmentDraftStatus.Text = "";
                 BindingsGrid.SelectedItem = null;
@@ -641,10 +658,13 @@ namespace Heimdall.App.Games
                 Run(RenderDrawing);
             }
             if (ReferenceEquals(sender, SectionPicker) || ReferenceEquals(sender, TypePicker))
+            {
                 _focusedConcept = null;
+                _inspectedControl = null;
+            }
             RefreshRows();
         }
-        private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) RefreshRows(); }
+        private void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) { _inspectedControl = null; RefreshRows(); } }
         private void BindingChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) UpdateEditor(); }
         private void NameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) UpdateAvailability(); }
         private void Run(Action action) { try { action(); } catch (Exception error) { StatusText.Text = error.Message; } }
@@ -747,8 +767,7 @@ namespace Heimdall.App.Games
             var diagram = hardware.Diagram;
             var section = SectionPicker.SelectedItem as string ?? "All";
             var page = SquadronsDrawingProjection.Diagram(snapshot!.Name, diagram, _rows, slot, section);
-            // Clearing a specific native record requires a disambiguated record selection.
-            // Do not advertise a context-menu clear action that only displays a message.
+            // Native clearing reviews the complete pointed-control record set, including both axis directions.
             _drawingPresenter.Show(diagram, page,
                 DrawingInteractions(),
                 AppearanceManager.ArtworkOpacityFor(this),
@@ -817,7 +836,16 @@ namespace Heimdall.App.Games
                 DropDrawingCommand(control, command.Id);
                 return;
             }
+            InspectDrawingInput(control);
+        }
+        private void InspectDrawingInput(HardwareGraphicControl control)
+        {
             if (SelectedController is not { } slot) return;
+            _focusedConcept = null;
+            _inspectedControl = control;
+            ReviewCaptured.IsChecked = true;
+            CapturedAssignments.IsExpanded = true;
+            RefreshRows();
             var section = SectionPicker.SelectedItem as string ?? "All";
             var matches = SquadronsDrawingProjection.ForControl(control, _rows, slot, section);
             if (matches.Count > 0)
@@ -888,12 +916,12 @@ namespace Heimdall.App.Games
         private bool CanClearDrawingInput(HardwareGraphicControl control) =>
             !_scanningInputs && !_identification.Running && !_input.Running && _session?.AccessMessage.Length == 0 &&
             SelectedController is { } slot &&
-            SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All").Count == 1;
+            SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All").Count > 0;
         private void ClearDrawingInput(HardwareGraphicControl control) => Run(() =>
         {
             if (!CanClearDrawingInput(control) || SelectedController is not { } slot) return;
-            var row = SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All").Single();
-            ReviewNativeChange(_session!.PreviewClearCapturedRecord(row.RecordId));
+            var records = SquadronsDrawingProjection.ForControl(control, _rows, slot, SectionPicker.SelectedItem as string ?? "All");
+            ReviewNativeChange(_session!.PreviewClearCapturedRecords(records.Select(row => row.RecordId).ToArray()));
         });
         private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;
         private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;

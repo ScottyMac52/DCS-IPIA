@@ -30,9 +30,12 @@ prior control selection and assignment confirmation. Missing drawings leave the
 native table and editor available.
 
 Right-clicking a native table row selects that row before its actions open.
-A drawing callout offers Clear only when it resolves exactly one native record;
-use the table to select a specific record when multiple commands or native axis
-directions share the callout. All clears use the review boundary. Squadrons axis
+Every drawing callout offers View assignments without assigning the selected
+command, including empty axes. A bound callout also offers Clear assignments. The
+review lists every matching record in the current controller/context, including
+both native axis directions and any colliding commands. Acceptance stages that
+explicit set atomically; cancel or validation failure leaves the draft unchanged.
+The table still supports selecting one specific native record to clear. Squadrons axis
 tuning is unsupported and is not advertised as an action. Unknown native record
 creation still fails through the adapter's existing verified-template validation.
 

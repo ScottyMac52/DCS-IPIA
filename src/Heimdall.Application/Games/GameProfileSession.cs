@@ -157,17 +157,24 @@ namespace Heimdall.Application.Games
                 "\nSave profile before export.", null);
         }
         /// <summary>Reviews removing one exact native joystick record without rewriting any other assignments.</summary>
-        public GameControllerChange PreviewClearCapturedRecord(string recordId)
+        public GameControllerChange PreviewClearCapturedRecord(string recordId) => PreviewClearCapturedRecords([recordId]);
+        /// <summary>Reviews an explicit set of native joystick records as one isolated operation.
+        /// A rejected record leaves the current draft unchanged; applying the review stages the complete set once.</summary>
+        public GameControllerChange PreviewClearCapturedRecords(IReadOnlyCollection<string> recordIds)
         {
+            ArgumentNullException.ThrowIfNull(recordIds);
+            if (recordIds.Count == 0 || recordIds.Distinct(StringComparer.Ordinal).Count() != recordIds.Count)
+                throw new ArgumentException("Choose at least one distinct native record to clear.", nameof(recordIds));
             _policy.RequireSimulator(_backend.SimId);
             if (_backend is not ISimCapturedDeviceLinks adapter)
                 throw new InvalidOperationException("Native record clearing is unavailable for this simulator.");
             var candidate = Snapshot;
-            candidate = candidate with { Profile = adapter.ClearCapturedRecord(candidate.Profile, recordId) };
+            foreach (var recordId in recordIds)
+                candidate = candidate with { Profile = adapter.ClearCapturedRecord(candidate.Profile, recordId) };
             ValidateControllerCandidate(candidate);
             return new(this, JsonSerializer.Serialize(_current), candidate,
-                "Clear selected Squadrons native binding: " + recordId +
-                "\nOther native records, devices, and physical links remain unchanged." +
+                "Clear " + recordIds.Count + " selected native joystick record(s):\n" + string.Join("\n", recordIds) +
+                "\nOnly these records will be removed. Other native records, devices and physical links remain unchanged." +
                 "\nSave the profile before exporting a separate review copy.", null);
         }
         /// <summary>Reviews clearing all native joystick records belonging to one captured slot.</summary>

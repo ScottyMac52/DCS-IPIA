@@ -42,25 +42,12 @@ namespace Heimdall.App.Games
                 }
                 // A left click already selects the input. A right-click menu
                 // advertises only actual native operations; no phantom Select/Tune.
-                if (actions.Clear is not null || actions.Tune is not null)
+                if (actions.Clear is not null || actions.Tune is not null || actions.Inspect is not null)
                 {
                     var menu = new ContextMenu();
                     border.ContextMenuOpening += (_, e) =>
                     {
-                        menu.Items.Clear();
-                        if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
-                        {
-                            var clear = new MenuItem { Header = "Clear assignment" };
-                            clear.Click += (_, _) => actions.Clear(control);
-                            menu.Items.Add(clear);
-                        }
-                        if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)
-                        {
-                            if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-                            var tune = new MenuItem { Header = "Tune axis…" };
-                            tune.Click += (_, _) => actions.Tune(control);
-                            menu.Items.Add(tune);
-                        }
+                        RefreshMenu(menu, control, actions);
                         if (menu.Items.Count == 0) e.Handled = true;
                     };
                     // Place the popup by the mouse, not centered across a wide
@@ -69,6 +56,31 @@ namespace Heimdall.App.Games
                     border.ContextMenu = menu;
                 }
                 canvas.Children.Add(border); Regions.Add((control, border));
+            }
+        }
+        /// <summary>Refreshes real pointed-control actions at menu opening, independently of left-click selection.</summary>
+        internal static void RefreshMenu(ContextMenu menu, HardwareGraphicControl control, HardwareDiagramInteractions actions)
+        {
+            menu.Items.Clear();
+            if (actions.Inspect is not null)
+            {
+                var inspect = new MenuItem { Header = "View assignments" };
+                inspect.Click += (_, _) => actions.Inspect(control);
+                menu.Items.Add(inspect);
+            }
+            if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
+            {
+                if (menu.Items.Count > 0) menu.Items.Add(new Separator());
+                var clear = new MenuItem { Header = actions.ClearLabel };
+                clear.Click += (_, _) => actions.Clear(control);
+                menu.Items.Add(clear);
+            }
+            if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)
+            {
+                if (menu.Items.Count > 0) menu.Items.Add(new Separator());
+                var tune = new MenuItem { Header = "Tune axis…" };
+                tune.Click += (_, _) => actions.Tune(control);
+                menu.Items.Add(tune);
             }
         }
         /// <summary>Decodes a frozen bitmap with no retained stream handle.</summary>

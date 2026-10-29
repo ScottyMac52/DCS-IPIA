@@ -37,7 +37,8 @@ namespace Heimdall.App.Smoke
                     Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"1600\" viewBox=\"0 0 1200 1600\"><rect width=\"1200\" height=\"1600\" fill=\"white\"/></svg>",
                     Controls = [new("trigger", "Trigger", "JOY_BTN1", 20, 40, 140, 60),
                         new("button2", "Button 2", "JOY_BTN2", 20, 300, 140, 60),
-                        new("axis", "Y axis", "JOY_Y", 20, 1400, 140, 60, true)]
+                        new("axis", "Y axis", "JOY_Y", 20, 1400, 140, 60, true),
+                        new("empty", "X axis", "JOY_X", 600, 900, 140, 60, true)]
                 };
                 var hardware = new WorkspaceHardware("synthetic", "Synthetic drawing", "fixture.lua", drawing);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
@@ -84,6 +85,39 @@ namespace Heimdall.App.Smoke
                 var axis = backend.ReadBindings(window.Session.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).ToArray();
                 if (axis.Length != 2 || axis.Any(x => x.DeviceId != 2 || x.Input?.Key != "JOY_Y") || axis.Select(x => x.Input!.Direction).Distinct().Count() != 2)
                     throw new InvalidOperationException("Drawing authoring lost one native axis direction.");
+                commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.Id == fire.Id);
+                if (actions.CanClear?.Invoke(drawing.Controls[2]) != true)
+                    throw new InvalidOperationException("A paired native axis had no pointed-control clear action.");
+                var axisBorder = canvas.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl { Control: "axis" });
+                var axisMenu = axisBorder.ContextMenu ?? throw new InvalidOperationException("Axis callout has no context menu.");
+                HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
+                var beforeInspect = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 2 ||
+                    window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeInspect)
+                    throw new InvalidOperationException("Right-click inspection assigned the selected command or lost an axis direction.");
+                var emptyMenu = new ContextMenu();
+                HardwareDiagramPresenter.RefreshMenu(emptyMenu, drawing.Controls[3], actions);
+                if (emptyMenu.Items.OfType<MenuItem>().Any(x => x.Header as string == "Clear assignments…"))
+                    throw new InvalidOperationException("An empty callout offered a clear action.");
+                emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 0 ||
+                    window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeInspect)
+                    throw new InvalidOperationException("Inspecting an empty axis changed native assignments.");
+                var clearAxis = axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignments…");
+                var axisSource = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                acceptReview = false;
+                clearAxis.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != axisSource)
+                    throw new InvalidOperationException("Canceling axis callout clear changed native records.");
+                acceptReview = true;
+                clearAxis.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if (backend.ReadBindings(window.Session.Snapshot.Profile).Any(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Axis context clear retained a native direction record.");
+                if (!backend.ReadBindings(window.Session.Snapshot.Profile).Any(x => x.Concept.EndsWith("ConceptFire", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Axis context clear affected an unrelated control.");
                 window.Session.Discard();
                 acceptReview = false;
                 actions.Clear!(drawing.Controls[0]);
@@ -97,8 +131,8 @@ namespace Heimdall.App.Smoke
                 if (actions.Tune is not null) throw new InvalidOperationException("Squadrons advertised unimplemented axis tuning.");
                 var frozen = JsonSerializer.Serialize(window.Session.Snapshot);
                 SelectDevice(devices, "squadrons.joystick.5");
-                if (actions.CanClear?.Invoke(new("z", "Z axis", "JOY_Z", 0, 0, 10, 10, true)) != false)
-                    throw new InvalidOperationException("An ambiguous paired-axis callout advertised a single-record clear.");
+                if (actions.CanClear?.Invoke(new("z", "Z axis", "JOY_Z", 0, 0, 10, 10, true)) != true)
+                    throw new InvalidOperationException("A paired-axis callout did not offer reviewed whole-control clear.");
                 SelectDevice(devices, "squadrons.joystick.3");
                 SelectDevice(devices, "squadrons.joystick.5");
                 if (Box<DataGrid>(window, "BindingsGrid").SelectedItem is not null || Box<TextBlock>(window, "DrawingDropFeedback").Text.Length != 0 || canvas.Children.Count != 0)
