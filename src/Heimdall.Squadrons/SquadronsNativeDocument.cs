@@ -14,7 +14,7 @@ namespace Heimdall.Squadrons
         public IReadOnlyDictionary<string, string> Values { get; }
         /// <summary>Gets every captured record, including records not projected into portable assignments.</summary>
         public IReadOnlyList<SquadronsBindingRow> Bindings { get; }
-        /// <summary>Validates native version four settings before projecting or editing them.</summary>
+        /// <summary>Validates native version four settings or a fresh input configuration with no binding table.</summary>
         public SquadronsNativeDocument(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024 || text.Contains('\0'))
@@ -29,7 +29,10 @@ namespace Heimdall.Squadrons
                 if (split <= 0 || !values.TryAdd(clean[..split], clean[(split + 1)..]))
                     throw new InvalidOperationException("Malformed or duplicate Squadrons setting.");
             }
-            if (values.GetValueOrDefault("GstKeyBinding.InputDataVersion") != "4")
+            if (values.GetValueOrDefault("GstKeyBinding.InputDataVersion") != "4" &&
+                !(values.GetValueOrDefault("GstKeyBinding.InputDataVersion") is null &&
+                  values.Keys.Any(x => x.StartsWith("GstInput.", StringComparison.Ordinal)) &&
+                  !values.Keys.Any(x => x.StartsWith(BindingPrefix, StringComparison.Ordinal))))
                 throw new InvalidOperationException("Only captured Squadrons input data version 4 is supported.");
             Values = values; Bindings = ReadBindings(values);
         }

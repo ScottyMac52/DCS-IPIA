@@ -83,7 +83,7 @@ namespace Heimdall.Tests
             var device = Device(); var session = Session(backend, old, issuer.Policy, device);
             var pins = JsonSerializer.Serialize(session.Snapshot.Hardware);
             var command = backend.GetCatalog(old).Commands.Single(x => x.Metadata["squadrons.concept"] == concept);
-            Assert.Throws<InvalidOperationException>(() => SquadronsDrawingAssignment.For(backend, old, command.Id, Slot, "JOY_RY", true));
+            Assert.NotNull(SquadronsDrawingAssignment.For(backend, old, command.Id, Slot, "JOY_RY", true).NegativeRecordId);
             session.ImportAssignmentTemplates(new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
             Assert.Equal(native[SquadronsProfileBackend.FileName], session.Export().Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(pins, JsonSerializer.Serialize(session.Snapshot.Hardware));

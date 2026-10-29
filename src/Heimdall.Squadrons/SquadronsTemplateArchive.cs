@@ -31,7 +31,8 @@ namespace Heimdall.Squadrons
             var missing = Read(archive).Where(x => ids.Contains(x.RecordId) && !present.Contains(x.RecordId)).ToArray();
             if (missing.Length == 0) return document;
             var separator = document.Text.EndsWith('\n') ? "" : "\n";
-            return new(document.Text + separator + string.Join("", missing.Select(Serialize)));
+            var version = document.Values.ContainsKey("GstKeyBinding.InputDataVersion") ? "" : "GstKeyBinding.InputDataVersion 4\n";
+            return new(document.Text + separator + version + string.Join("", missing.Select(Serialize)));
         }
         #endregion END Public
         #region BEGIN private helpers

@@ -30,7 +30,7 @@ namespace Heimdall.Squadrons
                 var positive = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input with { Direction = 1 }, slot - 1);
                 var negative = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input with { Direction = -1 }, slot - 1);
                 if (positive is null || negative is null)
-                    throw new InvalidOperationException("This command needs a captured joystick record for each axis direction. Import assignment templates from an original capture under Configuration and export settings, or capture the axis in Squadrons first.");
+                    throw new InvalidOperationException("This command has incomplete or ambiguous joystick axis metadata. Select a specific saved assignment for review.");
                 return new(concept, input, positive.RecordId, negative.RecordId);
             }
             var record = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input, slot - 1);

@@ -94,6 +94,44 @@ Regression tests cover real distinct identifiers, Pitch/Roll/Yaw/Throttle and an
 unknown renamed concept, button restoration, old-file recovery, actual file-store
 reopen, discard, collisions, missing hardware and malformed archive evidence.
 
+## First assignment from a fresh game
+
+A game-generated Steam reset capture contains `GstInput` settings and controller
+slots but no `GstKeyBinding` rows or input-version marker. Import accepts this
+specific empty-table state without modifying its text; versioned tables must still
+be version four and complete. The first explicit assignment adds the version-four
+marker and only the requested joystick record(s).
+
+The adapter embeds 95 joystick record templates extracted from the complete table
+written by Squadrons after the first Sol-R Pitch assignment. The source captures
+were supplied on 2026-10-29: the fresh 1,951-byte file and `SOL-R.PITCH`. Pitch's
+identifiers agree with the earlier independent capture despite moving from slot
+three to slot seven. The embedded data contains no personal settings or controller
+names; template device references are normalized and always replaced by the
+explicitly selected, verified target. This is command metadata, not active default
+assignments. Unknown identifiers are not calculated or borrowed across concepts.
+
+Captured records and workspace archives take precedence. Adapter templates are
+offered only for concepts with no existing joystick records; incomplete captured
+pairs and occupied native addresses still fail without a partial write. The same
+native/session validation path handles fresh creation and captured reassignment.
+Digital button and POV controls can replace each other through this path.
+Import, catalog inspection and hardware enumeration never materialize assignments.
+
+A user need not configure controls in Squadrons or import a personal template file
+before assigning a supported command. Hardware enumeration provides valid physical
+inputs; explicit workspace links associate the intended device with its native
+slot. The catalog and templates remain simulator-owned and independent of hardware
+names and ordering. This does not claim that every known command has verified
+creation metadata; unsupported or ambiguous commands remain unavailable.
+
+Regression tests cover nine distinct flight/hangar/spectator axis concepts, digital
+buttons and POVs, exact Pitch identifiers, untouched native settings, file-store
+reopen, discard and malformed/version/address rejection. Windows smoke uses the
+actual shared workspace drop route from an empty table and verifies save/reopen.
+Actual game acceptance of minimally materialized exported records remains a manual
+check; unit tests and a WPF cross-build do not establish game acceptance.
+
 ## Verification
 
 - New native-plan regression tests cover whole axes, partial-axis rejection,
@@ -114,6 +152,7 @@ C# layout diagnostics and unavailable format/CI checks are reported separately.
 
 - [ ] Run `dotnet build -c Release` and `tests/smoke-tests.ps1`.
 - [ ] Run `tests/coverage-test-gates.ps1`, `tests/crap-tests.ps1`, then `tests/generate-test-reports.ps1`.
+- [ ] Import a fresh game capture with no binding table; link a declared slot, choose a drawing, and assign an axis without importing templates. Save/reopen/export and validate both directions in Squadrons.
 - [ ] Import a real Squadrons capture and link the correct captured slot to physical hardware.
 - [ ] Choose a shared drawing; save/reopen; hide/show; confirm a slot without drawing remains usable in the table.
 - [ ] Select a command and assign by callout click, then drag; verify errors for unsupported controls and unknown creation templates.

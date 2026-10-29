@@ -19,7 +19,7 @@ namespace Heimdall.Squadrons
         public string PhysicalInputKey(string key) => SquadronsInputCodec.PhysicalKey(key);
         /// <summary>Declares initial semantics; unsupported chord/tuning edits are retained as native evidence only.</summary>
         public SimBackendCapabilities Capabilities => new(1, [BindingMode.Press], false, false, false);
-        /// <summary>Imports one captured version four settings file and retains its exact source.</summary>
+        /// <summary>Imports one version-four or fresh empty-table settings file and retains its exact source.</summary>
         public ProfileDocument Import(string contextId, IReadOnlyDictionary<string, string> sources, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested(); ArgumentException.ThrowIfNullOrWhiteSpace(contextId); ArgumentNullException.ThrowIfNull(sources);
@@ -50,18 +50,11 @@ namespace Heimdall.Squadrons
         public ICommandCatalog GetCatalog(ProfileDocument profile)
         {
             var evidence = Evidence(profile);
-            var archive = SquadronsTemplateArchive.Read(evidence.Templates);
-            return new SquadronsCommandCatalog(evidence.ContextId, SquadronsTemplateArchive.Restore(new(evidence.Text), evidence.Templates,
-                archive.Select(x => x.RecordId).ToArray()));
+            return new SquadronsCommandCatalog(evidence.ContextId, AssignmentDocument(evidence,
+                AssignableBindings(evidence).Where(x => x.Type == 3).Select(x => x.RecordId).ToArray()));
         }
-        /// <summary>Gets active records plus retained missing templates for authoring, never for assignment display.</summary>
-        public IReadOnlyList<SquadronsBindingRow> ReadAssignableBindings(ProfileDocument profile)
-        {
-            var evidence = Evidence(profile);
-            var document = new SquadronsNativeDocument(evidence.Text);
-            return document.Bindings.Concat(SquadronsTemplateArchive.Read(evidence.Templates)
-                .ExceptBy(document.Bindings.Select(x => x.RecordId), x => x.RecordId)).ToArray();
-        }
+        /// <summary>Gets active, retained and adapter-supplied records for authoring, never for assignment display.</summary>
+        public IReadOnlyList<SquadronsBindingRow> ReadAssignableBindings(ProfileDocument profile) => AssignableBindings(Evidence(profile));
         /// <summary>Recovers templates from an explicit native capture without changing active bindings or controller declarations.</summary>
         public ProfileDocument ImportAssignmentTemplates(ProfileDocument profile, IReadOnlyDictionary<string, string> sources)
         {
@@ -76,7 +69,7 @@ namespace Heimdall.Squadrons
         public ProfileDocument RebindJoystick(ProfileDocument profile, string recordId, int targetSlot, SquadronsInput input)
         {
             var evidence = Evidence(profile);
-            var document = SquadronsTemplateArchive.Restore(new(evidence.Text), evidence.Templates, [recordId]);
+            var document = AssignmentDocument(evidence, [recordId]);
             var row = document.Bindings.SingleOrDefault(x => x.RecordId == recordId);
             if (row is null || row.Type != 3 || row.Fields.Count != 8 || row.Fields["modifier"] != 0 || row.Fields["altbutton"] != 0
                 || targetSlot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + targetSlot, out var name) || string.IsNullOrWhiteSpace(name))
@@ -105,7 +98,7 @@ namespace Heimdall.Squadrons
                 ?? throw new InvalidOperationException("Select a captured Squadrons controller slot.");
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"],
                 System.Globalization.CultureInfo.InvariantCulture);
-            var document = SquadronsTemplateArchive.Restore(new(evidence.Text), evidence.Templates, [positiveRecordId, negativeRecordId]);
+            var document = AssignmentDocument(evidence, [positiveRecordId, negativeRecordId]);
             var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
             var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
             ValidateAxisPair(document, positive, negative, slot);
@@ -310,6 +303,17 @@ namespace Heimdall.Squadrons
                          value == field.Value)))))
                 throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
         }
+
+        private static IReadOnlyList<SquadronsBindingRow> AssignableBindings(SquadronsNativeEvidence evidence)
+        {
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var captured = document.Bindings.Concat(SquadronsTemplateArchive.Read(evidence.Templates)
+                .ExceptBy(document.Bindings.Select(x => x.RecordId), x => x.RecordId));
+            return SquadronsBuiltInTemplates.Complete(captured);
+        }
+        private static SquadronsNativeDocument AssignmentDocument(SquadronsNativeEvidence evidence, IReadOnlyCollection<string> ids) =>
+            SquadronsTemplateArchive.Restore(new(evidence.Text),
+                SquadronsTemplateArchive.Capture(null, AssignableBindings(evidence)), ids);
 
         private ProfileDocument Edited(SquadronsNativeEvidence evidence, string text)
         {

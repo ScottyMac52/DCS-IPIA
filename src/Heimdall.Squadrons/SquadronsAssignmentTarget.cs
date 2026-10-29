@@ -4,6 +4,7 @@ namespace Heimdall.Squadrons
     /// positive and negative axis declarations with separate physical controls.</summary>
     public static class SquadronsAssignmentTarget
     {
+        #region BEGIN Public
         /// <summary>Returns the unique matching captured record or null when creation is needed.
         /// An ambiguous match never silently overwrites another controller's binding.</summary>
         public static SquadronsBindingRow? Find(IEnumerable<SquadronsBindingRow> records,
@@ -13,7 +14,9 @@ namespace Heimdall.Squadrons
             ArgumentNullException.ThrowIfNull(editableIds);
             ArgumentNullException.ThrowIfNull(input);
             var eligible = records.Where(row => editableIds.Contains(row.RecordId) &&
-                row.Input?.Type == input.Type &&
+                (row.Input?.Type == input.Type ||
+                 input.Type is Heimdall.Domain.MultiSim.CommandType.Button or Heimdall.Domain.MultiSim.CommandType.Hat &&
+                 row.Input?.Type is Heimdall.Domain.MultiSim.CommandType.Button or Heimdall.Domain.MultiSim.CommandType.Hat) &&
                 (input.Type != Heimdall.Domain.MultiSim.CommandType.Axis ||
                  row.Input.Direction == input.Direction)).ToArray();
             if (eligible.Length == 1) return eligible[0];
@@ -23,5 +26,6 @@ namespace Heimdall.Squadrons
             throw new InvalidOperationException(
                 "Multiple native records match this input. Select a specific saved assignment to replace.");
         }
+        #endregion END Public
     }
 }

@@ -349,7 +349,9 @@ namespace Heimdall.Tests
             Assert.True(commands.Count >= 125);
             var planner = SquadronsAssignmentPlanner.For(backend, cleared, "IncomStarshipInputConcepts.ConceptYaw");
             Assert.Equal(0, planner.CapturedRecords);
-            Assert.True(planner.RequiresNewNativeRecord);
+            Assert.False(planner.RequiresNewNativeRecord);
+            Assert.True(planner.CanReplaceCapturedRecord);
+            Assert.Equal(2, planner.EditableRecords);
             Assert.Equal(source, backend.Export(original).Files[SquadronsProfileBackend.FileName]);
         }
         /// <summary>Catalog filters preserve unbound native commands while distinguishing native ownership and input type.</summary>
