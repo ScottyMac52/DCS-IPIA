@@ -31,6 +31,7 @@ namespace Heimdall.Tests
             Assert.Equal(reverse, SquadronsInputCodec.FromDrawing(key, true, reverse));
         }
 
+        /// <summary>Drawing mapping retains digital input kinds and rejects axis/button mismatches.</summary>
         [Fact]
         public void Drawing_drop_keeps_button_and_hat_inputs_distinct_and_rejects_mismatched_control_type()
         {
@@ -323,7 +324,9 @@ namespace Heimdall.Tests
             var unassigned = SquadronsAssignmentPlanner.For(backend, cleared,
                 "IncomStarshipInputConcepts.ConceptThrottle");
             Assert.Equal(0, unassigned.CapturedRecords);
-            Assert.True(unassigned.RequiresNewNativeRecord);
+            Assert.False(unassigned.RequiresNewNativeRecord);
+            Assert.True(unassigned.CanReplaceCapturedRecord);
+            Assert.Equal(throttle.EditableRecordIds, unassigned.EditableRecordIds);
             Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, profile,
                 "IncomStarshipInputConcepts.ConceptNotCaptured"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);

@@ -253,6 +253,16 @@ namespace Heimdall.App.Games
             _services.Remember(_services.Recent() with { BackendId = _backend.SimId, WorkspaceId = null, DisplayName = "" });
             ReloadChoices(); Refresh(); StatusText.Text = "Controls imported. Save this profile before exporting.";
         }
+        /// <summary>Recovers captured templates without replacing current native assignments or controller associations.</summary>
+        internal void ImportTemplatesFile(string path)
+        {
+            if (_session is null) throw new InvalidOperationException("Open a Squadrons configuration before importing templates.");
+            if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException("Squadrons controls exceed the 4 MiB import limit.");
+            StopLiveInput();
+            _session.ImportAssignmentTemplates(new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = File.ReadAllText(path) });
+            Refresh(false);
+            StatusText.Text = "Assignment templates imported. Current bindings and physical links are unchanged. Save to retain the templates.";
+        }
         /// <summary>Saves through the shared optimistic revision boundary; failures retain pending edits.</summary>
         internal bool SaveProfile()
         {
@@ -409,6 +419,7 @@ namespace Heimdall.App.Games
             UpdateInputAvailability();
             SaveButton.IsEnabled = Chrome.CanSave; DiscardButton.IsEnabled = Chrome.CanDiscard;
             ExportButton.IsEnabled = Chrome.CanExport;
+            ImportTemplatesButton.IsEnabled = _session is not null && _session.AccessMessage.Length == 0;
             ProfileName.IsEnabled = _session is not null;
             SaveState.Text = Chrome.Status;
         }
@@ -592,6 +603,11 @@ namespace Heimdall.App.Games
             _session!.RebindNative(row.RecordId, device.Id, input.Key, input.Type, input.Direction);
             Refresh(false);
             SelectionEditor.AssignmentDraftStatus.Text = StatusText.Text = "Assignment staged. Save before exporting.";
+        });
+        private void ImportTemplatesClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            var dialog = new OpenFileDialog { Title = "Import assignment templates from an original Squadrons capture", Filter = "Squadrons controls|ProfileOptions_profile_synced|All files|*.*" };
+            if (dialog.ShowDialog(this) == true) ImportTemplatesFile(dialog.FileName);
         });
         private void ImportClicked(object sender, RoutedEventArgs e) => Run(() =>
         {

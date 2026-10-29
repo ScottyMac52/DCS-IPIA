@@ -61,10 +61,7 @@ namespace Heimdall.Application.Games
             if (!GameInputReadiness.Ready(pin, _observed()) || keys?.Contains(editor.PhysicalInputKey(key), StringComparer.Ordinal) != true)
                 throw new InvalidOperationException("Choose an input verified on this linked controller. Link its captured slot and rescan connected hardware; buttons and hats absent from the device cannot be assigned.");
             var profile = editor.RebindNative(Snapshot.Profile, recordId, logicalDeviceId, key, type, direction);
-            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
-                throw new InvalidOperationException("The native edit changed the owning game or profile identity.");
-            ValidateProfile(profile);
-            _current = GameWorkspaceContract.Clone(_current with { Profile = profile }); Changed?.Invoke(this, EventArgs.Empty);
+            StageNativeProfile(profile, "The native edit changed the owning game or profile identity.");
         }
         /// <summary>Atomically stages both native directions of a single analog control,
         /// applying the same physical link and verified-input checks as normal edits.</summary>
@@ -81,13 +78,7 @@ namespace Heimdall.Application.Games
                 throw new InvalidOperationException("Link and verify this physical axis before assigning it.");
             var profile = editor.RebindAxisPair(Snapshot.Profile, positiveRecordId,
                 negativeRecordId, logicalDeviceId, axisKey);
-            if (profile.BackendId != _backend.SimId ||
-                profile.ContextId != _current.Profile.ContextId ||
-                profile.ProfileId != _current.Profile.ProfileId)
-                throw new InvalidOperationException("The native axis edit changed the owning game or profile identity.");
-            ValidateProfile(profile);
-            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
-            Changed?.Invoke(this, EventArgs.Empty);
+            StageNativeProfile(profile, "The native axis edit changed the owning game or profile identity.");
         }
         /// <summary>Stages a new captured Squadrons record only after the same physical
         /// device and verified key checks used for edits to existing records.</summary>
@@ -103,12 +94,16 @@ namespace Heimdall.Application.Games
                 keys?.Contains(backend.PhysicalInputKey(key), StringComparer.Ordinal) != true)
                 throw new InvalidOperationException("Choose an input verified on this linked controller before creating the record.");
             var profile = backend.AddNativeBinding(Snapshot.Profile, concept, logicalDeviceId, key, type, direction);
-            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId ||
-                profile.ProfileId != _current.Profile.ProfileId)
-                throw new InvalidOperationException("Native creation changed game or profile identity.");
-            ValidateProfile(profile);
-            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
-            Changed?.Invoke(this, EventArgs.Empty);
+            StageNativeProfile(profile, "Native creation changed game or profile identity.");
+        }
+        /// <summary>Recovers native authoring templates without replacing active bindings or physical links.</summary>
+        public void ImportAssignmentTemplates(IReadOnlyDictionary<string, string> sources)
+        {
+            RequireAccess();
+            if (_backend is not INativeAssignmentTemplates editor)
+                throw new InvalidOperationException("This game does not support native assignment templates.");
+            StageNativeProfile(editor.ImportAssignmentTemplates(Snapshot.Profile, sources),
+                "Native templates changed game or profile identity.");
         }
         /// <summary>Stages a configuration display name independently of immutable native source metadata.</summary>
         public void Rename(string name)
@@ -421,6 +416,15 @@ namespace Heimdall.Application.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)
+        {
+            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException(identityError);
+            ValidateProfile(profile);
+            _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
         private void RequireCapturedDevice(string logicalId)
         {
             RequireAccess();

@@ -13,7 +13,8 @@
   </WrapPanel>
   <Expander Grid.Row="1" Header="Configuration and export settings" Margin="0,0,0,6" pres:WorkspaceLayout.Key="squadrons.configuration">
    <StackPanel Margin="0,6,0,0">
-    <WrapPanel><Button x:Name="ImportButton" Style="{StaticResource ToolbarActionButton}" Content="Add / Import…" Click="ImportClicked"/>
+    <WrapPanel><Button x:Name="ImportTemplatesButton" Style="{StaticResource ToolbarActionButton}" Content="Import templates…" Click="ImportTemplatesClicked" ToolTip="Recover cleared-command metadata from an original Squadrons capture without replacing this configuration’s bindings or controller links."/>
+    <Button x:Name="ImportButton" Style="{StaticResource ToolbarActionButton}" Content="Add / Import…" Click="ImportClicked"/>
      <TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="8,0"/>
      <TextBox x:Name="ProfileName" Style="{StaticResource AppTextBox}" Width="250" MaxLength="100" TextChanged="NameChanged" AutomationProperties.Name="Squadrons configuration name"/>
     </WrapPanel>

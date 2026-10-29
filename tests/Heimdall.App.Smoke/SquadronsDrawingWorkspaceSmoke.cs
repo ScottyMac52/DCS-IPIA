@@ -54,6 +54,12 @@ namespace Heimdall.App.Smoke
                 Click(window, "LinkControllerButton");
                 Box<Expander>(window, "ControllerSetup").IsExpanded = false;
                 Box<ComboBox>(window, "DrawingPicker").SelectedItem = hardware;
+                var beforeTemplates = window.Session!.Export().Files[SquadronsProfileBackend.FileName];
+                var beforePins = JsonSerializer.Serialize(window.Session.Snapshot.Hardware);
+                window.ImportTemplatesFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeTemplates ||
+                    JsonSerializer.Serialize(window.Session.Snapshot.Hardware) != beforePins)
+                    throw new InvalidOperationException("Template recovery replaced active native bindings or hardware links.");
                 if (!window.SaveProfile()) throw new InvalidOperationException("Drawing profile did not save.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 ThemeControlSmoke.Pump(window);
@@ -118,6 +124,9 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Axis context clear retained a native direction record.");
                 if (!backend.ReadBindings(window.Session.Snapshot.Profile).Any(x => x.Concept.EndsWith("ConceptFire", StringComparison.Ordinal)))
                     throw new InvalidOperationException("Axis context clear affected an unrelated control.");
+                actions.Drop!(drawing.Controls[2], throttle.Id);
+                if (backend.ReadBindings(window.Session.Snapshot.Profile).Count(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)) != 2)
+                    throw new InvalidOperationException("Clearing an axis made subsequent drawing reassignment impossible.");
                 window.Session.Discard();
                 acceptReview = false;
                 actions.Clear!(drawing.Controls[0]);

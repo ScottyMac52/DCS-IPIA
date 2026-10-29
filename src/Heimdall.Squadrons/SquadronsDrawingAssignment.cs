@@ -24,13 +24,13 @@ namespace Heimdall.Squadrons
             var concept = command.Metadata["squadrons.concept"];
             var plan = SquadronsAssignmentPlanner.For(backend, profile, concept);
             var input = SquadronsInputCodec.FromDrawing(physicalKey, isAxis);
-            var records = backend.ReadBindings(profile);
+            var records = backend.ReadAssignableBindings(profile);
             if (input.Type == CommandType.Axis)
             {
                 var positive = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input with { Direction = 1 }, slot - 1);
                 var negative = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input with { Direction = -1 }, slot - 1);
                 if (positive is null || negative is null)
-                    throw new InvalidOperationException("This command requires both editable native direction records to assign a whole physical axis.");
+                    throw new InvalidOperationException("This command needs a captured joystick record for each axis direction. Import assignment templates from an original capture under Configuration and export settings, or capture the axis in Squadrons first.");
                 return new(concept, input, positive.RecordId, negative.RecordId);
             }
             var record = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input, slot - 1);

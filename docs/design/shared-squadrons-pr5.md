@@ -62,6 +62,38 @@ sets, cached filters, toolbar execution, live text fallback, native disposal on
 navigation/controller/focus changes, and unchanged native exports. Existing smoke
 navigates to the assignment feature before testing its layout and authoring.
 
+## Generic clear and reassignment
+
+Native joystick records retain their own identifiers, negate values and original
+addresses. Clearing now retains a simulator-owned template archive in HEIMDALL's
+native evidence. This archive is persisted with the workspace, survives unrelated
+edits and slot operations, and is excluded from the game's exported settings.
+Assignment planning considers retained templates as authoring candidates, while
+assignment rows/status/export use active records only. Both axis directions are
+restored and rebound together through the existing verified session operation;
+button records use the same restoration path. No command names, identifiers or
+physical slot numbers are hard-coded by this mechanism.
+
+For configurations cleared by older versions, open **Configuration and export
+settings → Import templates…** and choose the original Squadrons
+capture that still contains the joystick assignments. This imports authoring
+metadata only: current native bindings, controller declarations and physical links
+remain unchanged. Save the configuration, then retry the assignment. A native file
+that already lost the records cannot recover their unknown identifiers on its own.
+
+Templates must contain actual captured joystick metadata. An axis with missing,
+unsupported or ambiguous directional evidence is still rejected; keyboard or
+mouse identifiers are never reused as guessed joystick identifiers. Existing
+hardware enumeration, collision, edition, identity and atomicity checks apply to
+restored records. The shared session now stages native edits through one identity
+and validation helper, including the optional template-import adapter port.
+
+The directional fixture retains only five control concepts from the supplied
+capture, with synthetic controller declarations and no personal scalar settings.
+Regression tests cover real distinct identifiers, Pitch/Roll/Yaw/Throttle and an
+unknown renamed concept, button restoration, old-file recovery, actual file-store
+reopen, discard, collisions, missing hardware and malformed archive evidence.
+
 ## Verification
 
 - New native-plan regression tests cover whole axes, partial-axis rejection,
