@@ -34,7 +34,9 @@ namespace Heimdall.App.Smoke
                 };
                 var hardware = new WorkspaceHardware("fresh", "Fresh drawing", "fixture.lua", drawing);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
-                using var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No, drawings: [hardware]);
+                var reviews = 0;
+                using var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No,
+                    reviewChange: _ => { reviews++; return true; }, drawings: [hardware]);
                 window.Show(); ThemeControlSmoke.Pump(window);
                 window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Fresh_profile_synced"));
                 var backend = new SquadronsProfileBackend();
@@ -45,6 +47,8 @@ namespace Heimdall.App.Smoke
                 picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == slot);
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device;
                 Box<Button>(window, "LinkControllerButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (reviews != 1 || window.Session.Snapshot.Hardware.GetValueOrDefault(slot)?.Device.PhysicalGuid != device.PhysicalGuid)
+                    throw new InvalidOperationException("Fresh assignment smoke did not review and stage the physical link unattended.");
                 Box<ComboBox>(window, "DrawingPicker").SelectedItem = hardware;
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 ThemeControlSmoke.Pump(window);
