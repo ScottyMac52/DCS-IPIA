@@ -107,6 +107,44 @@ namespace Heimdall.Tests
             Assert.Equal(before, JsonSerializer.Serialize(profile));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Visible device order defines native slots while blank declarations trail the devices and links follow them.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Reordering_fresh_devices_preserves_blank_slots_links_and_bindings(bool assigned)
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var backend = new SquadronsProfileBackend();
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = Fresh() });
+            const string concept = "IncomStarshipInputConcepts.ConceptPitch";
+            if (assigned)
+            {
+                var plan = SquadronsDrawingAssignment.For(backend, profile, "controls/" + concept, Slot, "JOY_Y", true);
+                profile = backend.RebindAxisPair(profile, plan.RecordId!, plan.NegativeRecordId!, Slot, "JOY_Y");
+            }
+            var device = new DetectedDcsDevice(Guid.NewGuid(), "Linked throttle", true, ProductGuid: Guid.NewGuid());
+            var workspace = new GameWorkspace(1, Guid.NewGuid(), "Ordered", profile, new() { [Slot] = new(null, device) });
+            var session = new GameProfileSession(backend, workspace, issuer.Policy, [], () => [device]);
+            var before = session.Export().Files[SquadronsProfileBackend.FileName];
+            var move = session.PreviewMoveCapturedSlot(Slot, "squadrons.joystick.1");
+            Assert.Equal(before, session.Export().Files[SquadronsProfileBackend.FileName]);
+            session.ApplyControllerChange(move);
+            var text = session.Export().Files[SquadronsProfileBackend.FileName];
+            Assert.Contains("GstInput.JoystickDevice1 Synthetic throttle\n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice2 Synthetic stick\n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice3 \n", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("GstInput.JoystickDevice10", text, StringComparison.Ordinal);
+            Assert.Equal(device.PhysicalGuid, session.Snapshot.Hardware["squadrons.joystick.1"].Device.PhysicalGuid);
+            Assert.Equal(2, session.Snapshot.Profile.Devices.Count);
+            var rows = backend.ReadBindings(session.Snapshot.Profile);
+            Assert.Equal(assigned ? 2 : 0, rows.Count);
+            Assert.All(rows, row => Assert.Equal(0, row.DeviceId));
+            var reopened = JsonSerializer.Deserialize<GameWorkspace>(JsonSerializer.Serialize(session.Snapshot))!;
+            Assert.Equal(text, backend.Export(reopened.Profile).Files[SquadronsProfileBackend.FileName]);
+            session.Discard();
+            Assert.Equal(before, session.Export().Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(device.PhysicalGuid, session.Snapshot.Hardware[Slot].Device.PhysicalGuid);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static string Fresh() => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Fresh_profile_synced"));

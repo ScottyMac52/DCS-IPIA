@@ -230,9 +230,13 @@ namespace Heimdall.Squadrons
         public ProfileDocument ReorderCapturedSlots(ProfileDocument profile, IReadOnlyList<string> order)
         {
             var evidence = Evidence(profile);
-            var slots = order.Select(id => profile.Devices.Single(x => x.LogicalId == id))
-                .Select(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             var document = new SquadronsNativeDocument(evidence.Text);
+            var emptySlots = document.Values.Where(x => x.Key.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(x.Value)).Select(x => int.Parse(x.Key["GstInput.JoystickDevice".Length..],
+                    System.Globalization.CultureInfo.InvariantCulture)).Order();
+            var slots = order.Select(id => profile.Devices.Single(x => x.LogicalId == id))
+                .Select(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture))
+                .Concat(emptySlots).ToArray();
             var updated = new SquadronsNativeDocument(document.ReorderJoystickSlots(slots));
             if (updated.Bindings.Count != document.Bindings.Count ||
                 document.Bindings.Any(row => !updated.Bindings.Any(other =>

@@ -132,6 +132,18 @@ actual shared workspace drop route from an empty table and verifies save/reopen.
 Actual game acceptance of minimally materialized exported records remains a manual
 check; unit tests and a WPF cross-build do not establish game acceptance.
 
+## Device order owns exported slots
+
+Dragging a named controller in HEIMDALL determines the contiguous native device
+order on export. Slot declarations, all joystick `deviceid` references, physical
+links and drawing pins move together after review. Bindings stay with their
+controllers; moving a device does not adopt another device's default bindings.
+Blank native declarations are appended after named devices instead of being
+required in the visible device list. This also permits reordering a fresh profile
+with no binding table. The adapter supports slots 1–10; the captures do not prove
+that ten is the game's absolute hardware limit or that all slots are usable in
+its menus simultaneously.
+
 ## Verification
 
 - New native-plan regression tests cover whole axes, partial-axis rejection,
