@@ -36,7 +36,12 @@ namespace Heimdall.App.Smoke
                 discovery.Inputs[throttle.PhysicalGuid] = ControllerCapabilityMapper.Map([new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 2u, "Z axis")]);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
                 var choice = MessageBoxResult.Cancel;
-                var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced");
+                var capture = Path.Combine(root, "Capture"); Directory.CreateDirectory(capture);
+                var source = Path.Combine(capture, SquadronsProfileBackend.FileName);
+                var sourceText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+                sourceText = sourceText.Replace("GstInput.JoystickDevice5 Smoke Throttle 1\r\n", "", StringComparison.Ordinal)
+                    .Replace("GstInput.JoystickDevice5 Smoke Throttle 1\n", "", StringComparison.Ordinal);
+                File.WriteAllText(source, sourceText.TrimEnd() + "\nGstInput.JoystickDevice5 Viper TQS\n");
                 var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true);
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
                 Box<CheckBox>(window, "ReviewCaptured").IsChecked = true;
@@ -64,7 +69,17 @@ namespace Heimdall.App.Smoke
                 Box<TextBox>(window, "ProfileName").Text = "Smoke Space Controls";
                 if (!window.SaveProfile()) throw new InvalidOperationException("Squadrons profile did not save.");
                 var id = window.Session.Snapshot.Id;
+                var capturedBeforeExport = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 var exported = window.ExportReview(root);
+                var reviewText = File.ReadAllText(Path.Combine(exported, SquadronsProfileBackend.FileName));
+                var lines = reviewText.Split('\n');
+                var declarations = lines.Select((line, index) => (line, index))
+                    .Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
+                if (declarations[^1].index - declarations[0].index + 1 != declarations.Length ||
+                    declarations[^1].index >= Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)) ||
+                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS 1", StringComparison.Ordinal) ||
+                    window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
+                    throw new InvalidOperationException("Review export scattered controller declarations, lost the TQS occurrence or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
                 Box<TextBox>(window, "ProfileName").Text = "Pending name";
                 Box<ComboBox>(window, "GamePicker").SelectedIndex = 1;

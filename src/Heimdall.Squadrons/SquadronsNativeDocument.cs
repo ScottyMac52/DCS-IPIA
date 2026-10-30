@@ -168,6 +168,8 @@ namespace Heimdall.Squadrons
             }));
             return new SquadronsNativeDocument(text).GroupJoystickDevices();
         }
+        /// <summary>Groups every declared slot before binding records, without changing other native lines.</summary>
+        public string PrepareReviewExport(Dictionary<string, string> names) => GroupJoystickDevices(names);
         #endregion END Public
         #region BEGIN private helpers
         private void ValidateJoystickName(string name, string? currentKey)
@@ -184,6 +186,7 @@ namespace Heimdall.Squadrons
             const string prefix = "GstInput.JoystickDevice";
             var devices = Values.Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
             if (changes is not null) foreach (var pair in changes) devices[pair.Key] = pair.Value;
+            if (devices.Count == 0) return Text;
             var parts = Text.Split('\n');
             var lines = parts.Select((line, index) => line + (index < parts.Length - 1 ? "\n" : "")).ToArray();
             var first = Math.Max(Array.FindIndex(lines, line => line.StartsWith(prefix, StringComparison.Ordinal)), 0);
@@ -192,7 +195,7 @@ namespace Heimdall.Squadrons
             var before = string.Concat(lines.Take(first));
             var after = string.Concat(lines.Skip(first).Where(line => !line.StartsWith(prefix, StringComparison.Ordinal)));
             var newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-            var block = devices.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key + " " + x.Value);
+            var block = devices.OrderBy(x => int.Parse(x.Key[prefix.Length..], CultureInfo.InvariantCulture)).Select(x => x.Key + " " + x.Value);
             return before + string.Join(newline, block) + newline + after;
         }
         private static List<SquadronsBindingRow> ReadBindings(Dictionary<string, string> values)

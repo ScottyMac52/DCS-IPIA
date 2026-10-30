@@ -146,6 +146,53 @@ namespace Heimdall.Tests
             Assert.False(session.CanRenameNativeControllers);
             Assert.Throws<InvalidOperationException>(() => session.PreviewRenameNativeController("missing", "Name 1"));
         }
+        /// <summary>Review export repairs a scattered TQS declaration even when no edit reruns the grouping helper.</summary>
+        [Theory]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        public void Review_export_groups_all_slots_repairs_bare_TQS_and_preserves_bindings(string newline)
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = Scattered(newline).Replace("Existing 1", "F16 MFD 3 1", StringComparison.Ordinal);
+            var profile = Import(backend, source);
+            var before = JsonSerializer.Serialize(profile);
+            var plan = backend.ExportReview(profile);
+            Assert.True(plan.Succeeded);
+            var text = plan.Files[SquadronsProfileBackend.FileName];
+            AssertGrouped(text);
+            Assert.Contains("GstInput.JoystickDevice2 Viper TQS 1" + newline, text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice10 " + newline, text, StringComparison.Ordinal);
+            Assert.Equal(WithoutDevices(source), WithoutDevices(text));
+            Assert.Equal(JsonSerializer.Serialize(backend.ReadBindings(profile)),
+                JsonSerializer.Serialize(backend.ReadBindings(Import(backend, text))));
+            Assert.Equal(before, JsonSerializer.Serialize(profile));
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(text, backend.ExportReview(Import(backend, text)).Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Export preparation does not introduce whitespace when the profile has no controller declarations.</summary>
+        [Fact]
+        public void Review_export_without_controllers_preserves_exact_native_settings()
+        {
+            var backend = new SquadronsProfileBackend();
+            const string source = "GstInput.DeadzoneCenter 0.220000\r\nGstKeyBinding.InputDataVersion 4";
+            Assert.Equal(source, backend.ExportReview(Import(backend, source)).Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Reported model numbers are retained and existing native occurrence numbers avoid collisions.</summary>
+        [Fact]
+        public void Review_names_use_explicit_link_evidence_for_numeric_model_names_and_avoid_taken_occurrences()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = "GstInput.JoystickDevice1 F16 MFD 3\nGstInput.JoystickDevice2 Viper TQS\n" +
+                "GstInput.JoystickDevice3 Viper TQS 1\nGstKeyBinding.InputDataVersion 4\n";
+            var profile = Import(backend, source);
+            var text = backend.ExportReview(profile, new Dictionary<string, string> { ["squadrons.joystick.1"] = "F16 MFD 3" })
+                .Files[SquadronsProfileBackend.FileName];
+            Assert.Contains("GstInput.JoystickDevice1 F16 MFD 3 1\n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice2 Viper TQS 2\n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice3 Viper TQS 1\n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice1 F16 MFD 3\n",
+                backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName], StringComparison.Ordinal);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static Heimdall.Domain.MultiSim.ProfileDocument Import(SquadronsProfileBackend backend, string source) =>
@@ -168,7 +215,7 @@ namespace Heimdall.Tests
             var rows = lines.Select((line, index) => (line, index)).Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
             Assert.Equal(rows.Length, rows[^1].index - rows[0].index + 1);
             var keys = rows.Select(x => x.line[..x.line.IndexOf(' ')]).ToArray();
-            Assert.Equal(keys.Order(StringComparer.Ordinal), keys);
+            Assert.Equal(keys.OrderBy(key => int.Parse(key["GstInput.JoystickDevice".Length..], System.Globalization.CultureInfo.InvariantCulture)), keys);
             Assert.True(rows[^1].index < Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)));
         }
         #endregion END private helpers

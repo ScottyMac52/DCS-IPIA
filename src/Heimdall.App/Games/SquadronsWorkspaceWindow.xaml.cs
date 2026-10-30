@@ -292,8 +292,12 @@ namespace Heimdall.App.Games
             var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var roots = new List<string> { Path.Combine(documents, "STAR WARS Squadrons", "settings"), Path.Combine(documents, "STAR WARS Squadrons Steam", "settings") };
             if (_sourceDirectory is not null) roots.Add(_sourceDirectory);
-            var directory = GameReviewExport.Write(parent, _session.Export().Files, roots, backendId: _backend.SimId);
-            StatusText.Text = "Review copy exported to " + directory + ". Close Squadrons and back up its settings before manually installing this copy.";
+            _session.Export(); // Retain the session's edition and native-document validation boundary.
+            var snapshot = _session.Snapshot;
+            var plan = _backend.ExportReview(snapshot.Profile, snapshot.Hardware.ToDictionary(x => x.Key, x => x.Value.Device.Name));
+            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
+            var directory = GameReviewExport.Write(parent, plan.Files, roots, backendId: _backend.SimId);
+            StatusText.Text = "Review copy with grouped controller declarations and occurrence names exported to " + directory + ". Close Squadrons and back up its settings before manually installing this copy.";
             return directory;
         }
         #endregion END Public

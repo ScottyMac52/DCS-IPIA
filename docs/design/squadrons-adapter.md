@@ -208,3 +208,9 @@ Presentation regressions cover compatible-only authoring, explicit raw-record
 review, numeric controller ordering and unchanged native output. Windows smoke
 checks the selected-controller layout at 1200×810 and 900×620, including command
 width, wrapping, collapsed setup, empty state and diagnostic column visibility.
+
+### Review export controller declarations
+
+The desktop Export action prepares a review copy independently of the exact retained capture. It gathers every `GstInput.JoystickDeviceN` declaration into one block before all binding records and orders slots numerically, including slot 10 and empty declarations. A TQS declaration embedded among bindings is included even when a saved workspace has had no Add/Rename/Reorder operation.
+
+Bare names without an occurrence suffix receive the first unused positive occurrence. A numeric model name is repaired only when an explicit physical link supplies the same full reported name; otherwise existing numeric suffixes remain unchanged. Existing occurrence-qualified names remain stable, and every binding field, slot number, unrelated setting and line ending is preserved. The original saved capture and source-preserving adapter Export remain unchanged. Review export is idempotent; the UI reports that the exported copy has grouped declarations and occurrence names.
