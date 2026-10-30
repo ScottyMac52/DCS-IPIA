@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks, INativeAssignmentTemplates, INativeControllerCreator
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks, INativeAssignmentTemplates, INativeControllerCreator, INativeControllerNames
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -168,6 +168,22 @@ namespace Heimdall.Squadrons
         {
             var evidence = Evidence(profile);
             return Edited(evidence, new SquadronsNativeDocument(evidence.Text).AddJoystickDevice(nativeName));
+        }
+        /// <summary>Suggests the game occurrence name separately from physical instance identity and native slot number.</summary>
+        public string SuggestNativeControllerName(ProfileDocument profile, string reportedName, string? logicalDeviceId = null)
+        {
+            var evidence = Evidence(profile);
+            var names = new SquadronsNativeDocument(evidence.Text).Values.Where(x => x.Key.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).Select(x => x.Value);
+            var current = logicalDeviceId is null ? null : profile.Devices.Single(x => x.LogicalId == logicalDeviceId).Identity!.WindowsName;
+            return SquadronsControllerName.Suggest(reportedName, names, current);
+        }
+        /// <summary>Repairs an existing declaration while preserving its bindings, physical link and native address.</summary>
+        public ProfileDocument RenameNativeController(ProfileDocument profile, string logicalDeviceId, string nativeName)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            return Edited(evidence, new SquadronsNativeDocument(evidence.Text).RenameJoystickDevice(slot, nativeName));
         }
         /// <summary>Allows explicit workspace-only links to named captured slots without inferring hardware from their names.</summary>
         public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)

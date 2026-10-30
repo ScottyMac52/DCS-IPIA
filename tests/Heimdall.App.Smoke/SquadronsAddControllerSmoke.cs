@@ -22,7 +22,7 @@ namespace Heimdall.App.Smoke
             try
             {
                 EditionAccess.SetForTests(issuer.Policy);
-                var device = new DetectedDcsDevice(Guid.NewGuid(), "Viper TQS 1", true, ProductGuid: Guid.NewGuid());
+                var device = new DetectedDcsDevice(Guid.NewGuid(), "Viper TQS", true, ProductGuid: Guid.NewGuid());
                 var discovery = new GameSmokeDiscovery(device);
                 discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map(
                     [new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 2u, "Y axis")]);
@@ -42,7 +42,7 @@ namespace Heimdall.App.Smoke
                 if (!physical.IsEnabled) throw new InvalidOperationException("Adding hardware required selecting an existing captured slot.");
                 physical.SelectedItem = device;
                 if (Box<TextBox>(window, "NativeControllerName").Text != "Viper TQS 1")
-                    throw new InvalidOperationException("The new controller name was not available for review.");
+                    throw new InvalidOperationException("The new controller occurrence name was not available for review.");
                 var toolbar = Box<FeatureActionBar>(window, "FeatureActions");
                 var add = toolbar.Actions.Single(x => x.Id == "AddControllerButton").Command;
                 if (!add.CanExecute(null)) throw new InvalidOperationException("The missing-controller action was unavailable.");
@@ -68,11 +68,30 @@ namespace Heimdall.App.Smoke
                 if (rows.Count != 2 || rows.Any(x => x.DeviceId != 9 || x.Input?.Key != "JOY_Y"))
                     throw new InvalidOperationException("The added throttle could not receive a verified axis assignment.");
                 if (!window.SaveProfile()) throw new InvalidOperationException("The added controller could not be saved.");
-                var id = window.Session.Snapshot.Id; window.Close();
-                using var reopened = new SquadronsWorkspaceWindow(services, id, () => MessageBoxResult.No, _ => true);
-                if (reopened.Session!.Snapshot.Hardware[slot].Device.PhysicalGuid != device.PhysicalGuid ||
+                var id = window.Session.Snapshot.Id;
+                window.Session.ApplyControllerChange(window.Session.PreviewRenameNativeController(slot, "Viper TQS"));
+                if (!window.SaveProfile()) throw new InvalidOperationException("The legacy bare-name fixture could not be saved.");
+                window.Close();
+                var repair = false;
+                using var reopened = new SquadronsWorkspaceWindow(services, id, () => MessageBoxResult.No, _ => repair);
+                reopened.Show(); ThemeControlSmoke.Pump(reopened);
+                var reopenedPicker = Box<ListBox>(reopened, "DevicePicker");
+                reopenedPicker.SelectedItem = reopenedPicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == slot);
+                if (Box<TextBox>(reopened, "NativeControllerName").Text != "Viper TQS 1")
+                    throw new InvalidOperationException("A previously saved bare name had no occurrence-name repair suggestion.");
+                var rename = Box<FeatureActionBar>(reopened, "FeatureActions").Actions.Single(x => x.Id == "RenameControllerButton").Command;
+                if (!rename.CanExecute(null)) throw new InvalidOperationException("The existing native name could not be repaired.");
+                var bare = reopened.Session!.Export().Files[SquadronsProfileBackend.FileName];
+                rename.Execute(null);
+                if (reopened.Session.Export().Files[SquadronsProfileBackend.FileName] != bare)
+                    throw new InvalidOperationException("Canceling a native name update changed the draft.");
+                repair = true; rename.Execute(null);
+                if (reopened.Session.Snapshot.Profile.Devices.Single(x => x.LogicalId == slot).Identity!.WindowsName != "Viper TQS 1" ||
+                    reopened.Session.Snapshot.Hardware[slot].Device.PhysicalGuid != device.PhysicalGuid ||
                     backend.ReadBindings(reopened.Session.Snapshot.Profile).Count != 2)
-                    throw new InvalidOperationException("The added controller or assignment did not survive reopen.");
+                    throw new InvalidOperationException("Native name repair changed the physical link or assignments.");
+                if (!reopened.SaveProfile()) throw new InvalidOperationException("The repaired native name could not be saved.");
+                reopened.Close();
             }
             finally { EditionAccess.SetForTests(previous); Directory.Delete(root, true); }
         }

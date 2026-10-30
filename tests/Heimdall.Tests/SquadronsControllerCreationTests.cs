@@ -100,7 +100,9 @@ namespace Heimdall.Tests
             Assert.Equal("squadrons.joystick.2", Assert.Single(created.Devices).LogicalId);
             Assert.Equal(0, Assert.Single(backend.ReadBindings(created)).DeviceId);
             Assert.Empty(created.Devices[0].Buttons);
-            Assert.StartsWith(source, backend.Export(created).Files[SquadronsProfileBackend.FileName], StringComparison.Ordinal);
+            var exported = backend.Export(created).Files[SquadronsProfileBackend.FileName];
+            foreach (var line in source.Split('\n')) Assert.Contains(line, exported, StringComparison.Ordinal);
+            Assert.True(exported.IndexOf("GstInput.JoystickDevice2 ", StringComparison.Ordinal) < exported.IndexOf("Future.Setting", StringComparison.Ordinal));
         }
         /// <summary>Controller creation preserves a file without a trailing newline.</summary>
         [Fact]
@@ -108,7 +110,9 @@ namespace Heimdall.Tests
         {
             var backend = new SquadronsProfileBackend(); var workspace = Workspace(backend, Source(false).TrimEnd('\r', '\n'));
             var created = backend.AddNativeController(workspace.Profile, "Viper TQS 1");
-            Assert.Contains("Future.Setting retained\r\nGstInput.JoystickDevice10 Viper TQS 1\r\n", backend.Export(created).Files[SquadronsProfileBackend.FileName], StringComparison.Ordinal);
+            var exported = backend.Export(created).Files[SquadronsProfileBackend.FileName];
+            Assert.Contains("GstInput.JoystickDevice10 Viper TQS 1\r\n", exported, StringComparison.Ordinal);
+            Assert.EndsWith("Future.Setting retained", exported, StringComparison.Ordinal);
         }
         /// <summary>Live controller changes invalidate approval; a stale review never stages a native slot.</summary>
         [Theory]

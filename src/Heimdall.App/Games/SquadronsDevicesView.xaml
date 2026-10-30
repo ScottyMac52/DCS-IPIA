@@ -9,6 +9,7 @@
 <Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
 <Button x:Name="AddControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Add controller…"/>
 <Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link / replace…"/>
+<Button x:Name="RenameControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Update game name…"/>
 <Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink…"/>
 <Button x:Name="ClearSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Clear assignments…"/>
 <Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Remove unused slot…"/>
@@ -25,11 +26,11 @@
       <ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Squadrons physical controller">
        <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
-      <TextBlock Style="{StaticResource AppLabel}" Text="Game device name for a new controller" Margin="0,8,0,4"/>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Game device name" Margin="0,8,0,4"/>
       <TextBox x:Name="NativeControllerName" Style="{StaticResource AppTextBox}" MaxLength="256" AutomationProperties.Name="Squadrons new controller name"
-       ToolTip="Starts with the exact name reported by Windows. Adjust only if Squadrons uses a different device-instance name."/>
+       ToolTip="Squadrons uses a reported device name plus an occurrence number. Review the suggestion before adding or updating a controller."/>
       <TextBlock x:Name="IdentificationStatus" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,4" AutomationProperties.LiveSetting="Polite"/>
-      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="For a missing controller, select its physical hardware, review its game device name and choose Add controller. For an existing slot, identify and link the physical unit. Native slot changes take effect in the exported profile."/>
+      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="For a missing controller, select its physical hardware, review its game device name and choose Add controller. For an existing slot, identify and link the physical unit. Use Update game name to repair an existing name. Save accepted changes before exporting."/>
      </StackPanel>
     </ScrollViewer>
      </Expander>

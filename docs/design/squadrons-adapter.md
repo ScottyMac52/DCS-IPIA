@@ -138,9 +138,12 @@ HEIMDALL workspace metadata and do not establish game acquisition.
 
 To add a controller omitted by Squadrons, open **Devices**, choose its connected
 physical hardware and select **Add controller…**. An existing captured slot need
-not be selected. The game device name starts with the exact Windows/DirectInput
-instance name, without a catalog-brand prefix or an automatically appended suffix.
-Adjust that field only if the game uses a different device-instance name.
+not be selected. The suggested game name combines the Windows/DirectInput name with the first
+unused occurrence suffix seen in the native naming convention, for example
+`Viper TQS 1` or `F16 MFD 1 1`. A product/model number remains part of the base
+name. Existing complete game names are retained; occurrence numbers are separate
+from the exported slot numbers. Review or adjust the proposal if game-side
+instance enumeration differs.
 
 The review stages one unused native declaration and links the exact physical
 instance in one operation. Blank or absent slots can be used within the supported
@@ -150,6 +153,17 @@ already-linked physical instances, full capacity, stale reviews and missing or
 changed hardware are rejected. Cancel keeps the draft unchanged. Save persists the
 new slot/link, and export produces the native declaration for game testing. Choose
 a drawing and assign verified inputs normally after adding the controller.
+
+For an existing bare name, select its linked slot on **Devices**, review the
+suggested **Game device name**, and choose **Update game name…**. This stages the
+name change without recreating the device or its assignments. The same action can
+regroup declarations even when the name is already correct. Cancel leaves the
+saved state intact; Save persists the repair before export.
+
+Add, Update game name and native Reorder group all `GstInput.JoystickDeviceN`
+declarations together at the existing device block, before binding records. Keys
+are sorted lexically like game-generated captures (`1`, `10`, `2`, …). Other
+settings, binding records and their raw line endings are preserved.
 
 Game-side name matching, recognition and retention after restart require manual
 validation. Reimporting a fresh game capture remains an alternative reconciliation

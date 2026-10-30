@@ -147,10 +147,10 @@ its menus simultaneously.
 ## Add a controller omitted by the game
 
 The Devices toolbar includes **Add controller…**. Connected hardware selection and
-identification are available without choosing an existing captured slot. Its game
-name is initially the exact Windows/DirectInput instance name; HEIMDALL does not
-add a manufacturer label or occurrence suffix. The name remains editable for
-native game-name differences.
+identification are available without choosing an existing captured slot. The game
+name proposal combines the Windows/DirectInput base name with the first unused
+occurrence suffix, preserving model numbers and existing complete native names.
+It remains editable because native game-instance ordering requires validation.
 
 The optional `INativeControllerCreator` adapter port creates one native declaration;
 `GameProfileSession.PreviewAddNativeController` combines it with a reviewed exact
@@ -167,6 +167,32 @@ identity failures, stale review and unsupported adapters. An unattended Windows
 smoke uses the real shared toolbar from All devices and verifies cancellation,
 creation, verified axis assignment and saved reopening. Actual game recognition
 remains a manual acceptance check.
+
+## Native controller names and declaration layout
+
+Observed game captures use occurrence-qualified names such as `Viper TQS 1` and
+`F16 MFD 1 1`. The base model number, occurrence number and native slot number are
+separate. Suggestions preserve complete captured names; an existing bare name can
+be repaired explicitly through **Devices → Update game name…** without recreating
+its controller, physical link, drawing or assignments. The optional
+`INativeControllerNames` port uses the shared reviewed session boundary and
+identity guard. Cancellation, stale reviews and duplicate names remain guarded.
+
+Add, Rename and Reorder write a contiguous native device declaration block at the
+existing block location, or before binding records if the declarations were all
+appended later. Keys follow the lexical ordering seen in game-generated captures.
+Only the reviewed name and declaration layout change; all non-device lines retain
+their exact bytes and relative order, including unknown settings and LF/CRLF.
+Unedited imports still export their original text exactly. Update game name can
+also normalize a scattered block when the existing name is already correct.
+
+Regressions use a sanitized version of the reported shape: a bare TQS declaration
+after an existing two-direction throttle pair. They cover occurrence/model names,
+existing-name stability, grouped keys, binding/physical-link retention, actual
+file-store persistence, discard, newline handling, entitlement and stale reviews.
+The unattended Windows addition smoke also opens and repairs a saved bare name,
+cancels then accepts review, and checks that the axis pair and link survive.
+Real-game name matching and acceptance remain manual checks.
 
 ## Verification
 
@@ -188,6 +214,7 @@ C# layout diagnostics and unavailable format/CI checks are reported separately.
 
 - [ ] Run `dotnet build -c Release` and `tests/smoke-tests.ps1`.
 - [ ] Run `tests/coverage-test-gates.ps1`, `tests/crap-tests.ps1`, then `tests/generate-test-reports.ps1`.
+- [ ] Open a previously saved bare-name TQS profile, select the TQS in Devices, apply Update game name, save/reopen/export and inspect its grouped declaration and unchanged assignments.
 - [ ] From Devices / All devices, select an omitted connected controller, cancel then accept Add controller, choose a drawing, assign an axis, save/reopen and export. Validate the native name and acquisition in Squadrons.
 - [ ] Import a fresh game capture with no binding table; link a declared slot, choose a drawing, and assign an axis without importing templates. Save/reopen/export and validate both directions in Squadrons.
 - [ ] Import a real Squadrons capture and link the correct captured slot to physical hardware.

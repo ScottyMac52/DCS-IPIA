@@ -138,6 +138,24 @@ namespace Heimdall.Application.Games
                 "\n\nCreates one native device declaration and links this exact physical unit. Existing devices and assignments are retained." +
                 "\nSave and export the profile, then verify the device name and recognition in Squadrons.", added.LogicalId, observed);
         }
+        /// <summary>Gets whether native controller names can be updated explicitly.</summary>
+        public bool CanRenameNativeControllers => _backend is INativeControllerNames;
+        /// <summary>Reviews a game-name correction without changing physical ownership or binding addresses.</summary>
+        public GameControllerChange PreviewRenameNativeController(string logicalId, string nativeName)
+        {
+            RequireAccess();
+            var editor = _backend as INativeControllerNames ?? throw new InvalidOperationException("This game cannot update native controller names.");
+            var candidate = Snapshot;
+            var previous = candidate.Profile.Devices.Single(x => x.LogicalId == logicalId).Identity!.WindowsName;
+            var profile = editor.RenameNativeController(candidate.Profile, logicalId, nativeName);
+            RequireProfileIdentity(profile, "Native controller rename changed the owning game or profile identity.");
+            candidate = candidate with { Profile = profile };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Update game device name on " + logicalId + "\nPrevious: " + previous + "\nNew: " + nativeName +
+                "\n\nThe native slot, assignments, physical link and drawing stay with this controller." +
+                "\nDevice declarations are grouped in the settings block. Save and export, then verify recognition in Squadrons.", logicalId);
+        }
         /// <summary>Reviews a new or replacement physical link without altering native slots or bindings.</summary>
         public GameControllerChange PreviewCapturedDeviceLink(string logicalId, Guid physicalGuid)
         {
