@@ -57,6 +57,8 @@ namespace Heimdall.App.Games
             RegisterName("IdentifyControllerButton", IdentifyControllerButton);
             RegisterName("CancelIdentificationButton", CancelIdentificationButton);
             RegisterName("LinkControllerButton", LinkControllerButton);
+            RegisterName("AddControllerButton", AddControllerButton);
+            RegisterName("NativeControllerName", NativeControllerName);
             RegisterName("UnlinkControllerButton", UnlinkControllerButton);
             RegisterName("ClearSlotButton", ClearSlotButton);
             RegisterName("RemoveUnusedSlotButton", RemoveUnusedSlotButton);
@@ -103,6 +105,8 @@ namespace Heimdall.App.Games
             IdentifyControllerButton.Click += IdentifyClicked;
             CancelIdentificationButton.Click += StopIdentificationClicked;
             LinkControllerButton.Click += LinkClicked;
+            AddControllerButton.Click += AddControllerClicked;
+            NativeControllerName.TextChanged += (_, _) => { if (!_refreshing) UpdateControllerAvailability(); };
             UnlinkControllerButton.Click += UnlinkClicked;
             ClearSlotButton.Click += ClearSlotClicked;
             RemoveUnusedSlotButton.Click += RemoveUnusedSlotClicked;
@@ -439,18 +443,23 @@ namespace Heimdall.App.Games
         private void UpdateControllerAvailability()
         {
             var selected = SelectedController;
-            var ready = selected is not null && !_scanningInputs && _session?.CanLinkCapturedDevices == true && _session.AccessMessage.Length == 0;
+            var workspaceReady = !_scanningInputs && _session?.CanLinkCapturedDevices == true && _session.AccessMessage.Length == 0;
+            var ready = selected is not null && workspaceReady;
             var running = _identification.Running || (_input?.Running ?? false);
             var pin = selected is null ? null : _session?.Snapshot.Hardware.GetValueOrDefault(selected);
             RescanControllerButton.IsEnabled = !running && !_scanningInputs;
-            ConnectedPicker.IsEnabled = ready && !running;
-            IdentifyControllerButton.IsEnabled = ready && !running && ConnectedPicker.Items.Count > 0;
+            ConnectedPicker.IsEnabled = workspaceReady && !running;
+            NativeControllerName.IsEnabled = workspaceReady && !running;
+            IdentifyControllerButton.IsEnabled = workspaceReady && !running && ConnectedPicker.Items.Count > 0;
+            AddControllerButton.IsEnabled = workspaceReady && !running && _session?.CanAddNativeControllers == true &&
+                ConnectedPicker.SelectedItem is DetectedDcsDevice candidate && !string.IsNullOrWhiteSpace(NativeControllerName.Text) &&
+                !_session.Snapshot.Hardware.Values.Any(x => x.Device.PhysicalGuid == candidate.PhysicalGuid);
             CancelIdentificationButton.IsEnabled = running;
             LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
             UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
             RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
             ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
-            LinkStatus.Text = selected is null ? "Select a captured slot to manage its physical link." : pin is null ? "Unlinked captured slot" :
+            LinkStatus.Text = selected is null ? "Select connected hardware to add a controller, or select an existing slot to manage its link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
                 (GameInputReadiness.Ready(pin, _services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
             if (selected is not null && _session is not null)
@@ -535,7 +544,17 @@ namespace Heimdall.App.Games
             if (!RescanControllerButton.IsEnabled) return;
             Run(RescanControllers); await RefreshControllerInputsAsync();
         }
-        private void ConnectedChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateControllerAvailability); }
+        private void ConnectedChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            NativeControllerName.Text = ConnectedPicker.SelectedItem is DetectedDcsDevice device ? device.Name : "";
+            Run(UpdateControllerAvailability);
+        }
+        private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!AddControllerButton.IsEnabled || ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return;
+            ReviewNativeChange(_session!.PreviewAddNativeController(device.PhysicalGuid, NativeControllerName.Text));
+        });
         private void CommandChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
@@ -992,6 +1011,8 @@ namespace Heimdall.App.Games
         private Button RescanControllerButton => _devicesView.RescanControllerButton;
         private Button IdentifyControllerButton => _devicesView.IdentifyControllerButton;
         private Button CancelIdentificationButton => _devicesView.CancelIdentificationButton;
+        private Button AddControllerButton => _devicesView.AddControllerButton;
+        private TextBox NativeControllerName => _devicesView.NativeControllerName;
         private Button LinkControllerButton => _devicesView.LinkControllerButton;
         private Button UnlinkControllerButton => _devicesView.UnlinkControllerButton;
         private Button ClearSlotButton => _devicesView.ClearSlotButton;

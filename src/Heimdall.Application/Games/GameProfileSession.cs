@@ -113,6 +113,31 @@ namespace Heimdall.Application.Games
         }
         /// <summary>Gets whether the adapter supports reviewed physical links to captured slots without native identity inference.</summary>
         public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinks;
+        /// <summary>Gets whether the adapter can add a native controller without a prior captured slot.</summary>
+        public bool CanAddNativeControllers => _backend is INativeControllerCreator;
+        /// <summary>Reviews native slot creation and an exact physical link as one isolated change.</summary>
+        public GameControllerChange PreviewAddNativeController(Guid physicalGuid, string nativeName)
+        {
+            RequireAccess();
+            var creator = _backend as INativeControllerCreator ?? throw new InvalidOperationException("This game cannot create native controller slots.");
+            var observed = Observed(physicalGuid, _observed());
+            if (observed.ProductGuid == Guid.Empty || _current.Hardware.Values.Any(x => x.Device.PhysicalGuid == physicalGuid))
+                throw new InvalidOperationException("Choose an unlinked connected controller with a verified product identity.");
+            var candidate = Snapshot;
+            var profile = creator.AddNativeController(candidate.Profile, nativeName);
+            RequireProfileIdentity(profile, "Native controller creation changed the owning game or profile identity.");
+            var added = profile.Devices.ExceptBy(_current.Profile.Devices.Select(x => x.LogicalId), x => x.LogicalId).Single();
+            candidate = candidate with { Profile = profile };
+            candidate.Hardware.Add(added.LogicalId, new(null, observed));
+            candidate = candidate with { ControllerOrder = GameControllerOrder.For(candidate).ToList() };
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Add controller: " + nativeName + "\nNative slot: " + added.LogicalId +
+                "\nPhysical unit: " + observed.Name + " · " + observed.PhysicalGuid +
+                "\nProduct: " + observed.ProductGuid +
+                "\n\nCreates one native device declaration and links this exact physical unit. Existing devices and assignments are retained." +
+                "\nSave and export the profile, then verify the device name and recognition in Squadrons.", added.LogicalId, observed);
+        }
         /// <summary>Reviews a new or replacement physical link without altering native slots or bindings.</summary>
         public GameControllerChange PreviewCapturedDeviceLink(string logicalId, Guid physicalGuid)
         {
@@ -418,11 +443,16 @@ namespace Heimdall.Application.Games
         #region BEGIN private helpers
         private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)
         {
-            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
-                throw new InvalidOperationException(identityError);
+            RequireProfileIdentity(profile, identityError);
             ValidateProfile(profile);
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
             Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void RequireProfileIdentity(ProfileDocument profile, string message)
+        {
+            if (profile.BackendId != _backend.SimId || profile.ContextId != _current.Profile.ContextId || profile.ProfileId != _current.Profile.ProfileId)
+                throw new InvalidOperationException(message);
         }
 
         private void RequireCapturedDevice(string logicalId)

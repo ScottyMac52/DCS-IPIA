@@ -144,6 +144,30 @@ with no binding table. The adapter supports slots 1–10; the captures do not pr
 that ten is the game's absolute hardware limit or that all slots are usable in
 its menus simultaneously.
 
+## Add a controller omitted by the game
+
+The Devices toolbar includes **Add controller…**. Connected hardware selection and
+identification are available without choosing an existing captured slot. Its game
+name is initially the exact Windows/DirectInput instance name; HEIMDALL does not
+add a manufacturer label or occurrence suffix. The name remains editable for
+native game-name differences.
+
+The optional `INativeControllerCreator` adapter port creates one native declaration;
+`GameProfileSession.PreviewAddNativeController` combines it with a reviewed exact
+physical link. The normal stale-review, entitlement, product identity, save,
+reopen, discard and native export validation apply. The identity guard is shared
+with other native session writes. No command assignments are invented by addition.
+
+Squadrons selects the first blank or absent unreferenced slot in its supported
+1–10 range. Referenced blank slots remain reserved. Invalid/multiline names,
+duplicate game names, already-linked physical units and full capacity fail before
+publication. Regression tests cover omitted slot ten with CRLF/LF, cancel/accept,
+axis assignment, file-store reopen, slot reorder, discard, native line retention,
+identity failures, stale review and unsupported adapters. An unattended Windows
+smoke uses the real shared toolbar from All devices and verifies cancellation,
+creation, verified axis assignment and saved reopening. Actual game recognition
+remains a manual acceptance check.
+
 ## Verification
 
 - New native-plan regression tests cover whole axes, partial-axis rejection,
@@ -164,6 +188,7 @@ C# layout diagnostics and unavailable format/CI checks are reported separately.
 
 - [ ] Run `dotnet build -c Release` and `tests/smoke-tests.ps1`.
 - [ ] Run `tests/coverage-test-gates.ps1`, `tests/crap-tests.ps1`, then `tests/generate-test-reports.ps1`.
+- [ ] From Devices / All devices, select an omitted connected controller, cancel then accept Add controller, choose a drawing, assign an axis, save/reopen and export. Validate the native name and acquisition in Squadrons.
 - [ ] Import a fresh game capture with no binding table; link a declared slot, choose a drawing, and assign an axis without importing templates. Save/reopen/export and validate both directions in Squadrons.
 - [ ] Import a real Squadrons capture and link the correct captured slot to physical hardware.
 - [ ] Choose a shared drawing; save/reopen; hide/show; confirm a slot without drawing remains usable in the table.

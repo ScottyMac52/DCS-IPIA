@@ -133,13 +133,27 @@ different owner for those records. New edits require verified destination contro
 through the application session as well as the UI. Missing, failed or obsolete
 scans never fall back to the generic joystick input list. A disconnected or changed
 instance/product blocks application even if an older capability scan succeeded.
-Native exports contain the same captured slot names and binding records; links are
-HEIMDALL workspace metadata and never repair game acquisition by themselves.
+Physical linking alone retains the native names and bindings; the links are
+HEIMDALL workspace metadata and do not establish game acquisition.
 
-To add another native slot, bind an input on that device in Squadrons and import a
-fresh capture. This creates a separate workspace with no inherited physical links;
-review slot ownership again. Native slot add/remove, binding transfer and capture
-reconciliation remain separate work because saved names cannot establish identity.
+To add a controller omitted by Squadrons, open **Devices**, choose its connected
+physical hardware and select **Add controller…**. An existing captured slot need
+not be selected. The game device name starts with the exact Windows/DirectInput
+instance name, without a catalog-brand prefix or an automatically appended suffix.
+Adjust that field only if the game uses a different device-instance name.
+
+The review stages one unused native declaration and links the exact physical
+instance in one operation. Blank or absent slots can be used within the supported
+1–10 range; a slot referenced by any joystick record is reserved even if its name
+is blank. Existing device names and bindings are retained. Duplicate native names,
+already-linked physical instances, full capacity, stale reviews and missing or
+changed hardware are rejected. Cancel keeps the draft unchanged. Save persists the
+new slot/link, and export produces the native declaration for game testing. Choose
+a drawing and assign verified inputs normally after adding the controller.
+
+Game-side name matching, recognition and retention after restart require manual
+validation. Reimporting a fresh game capture remains an alternative reconciliation
+workflow and creates a separate workspace with no inherited physical links.
 
 ## Remaining increments
 

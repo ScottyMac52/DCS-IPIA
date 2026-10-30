@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks, INativeAssignmentTemplates
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks, INativeAssignmentTemplates, INativeControllerCreator
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -163,12 +163,18 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Native record creation failed round-trip validation.");
             return Edited(evidence, written.Text);
         }
+        /// <summary>Adds one explicitly named native slot without creating or moving any assignments.</summary>
+        public ProfileDocument AddNativeController(ProfileDocument profile, string nativeName)
+        {
+            var evidence = Evidence(profile);
+            return Edited(evidence, new SquadronsNativeDocument(evidence.Text).AddJoystickDevice(nativeName));
+        }
         /// <summary>Allows explicit workspace-only links to named captured slots without inferring hardware from their names.</summary>
         public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)
         {
             Evidence(profile);
             if (!profile.Devices.Any(x => x.LogicalId == logicalDeviceId))
-                throw new InvalidOperationException("Choose a named captured Squadrons slot. To add another slot, bind an input on that device in Squadrons and import a fresh capture.");
+                throw new InvalidOperationException("Choose an existing Squadrons slot, or use Add controller to create one from connected hardware.");
         }
         /// <summary>Removes an unreferenced slot without reindexing or deleting any bindings.</summary>
         public ProfileDocument RemoveUnusedCapturedDevice(ProfileDocument profile, string logicalDeviceId)

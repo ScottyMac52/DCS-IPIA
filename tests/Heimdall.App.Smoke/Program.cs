@@ -53,6 +53,7 @@ namespace Heimdall.App.Smoke
             SquadronsAssignmentViewSmoke.Verify();
             SquadronsDrawingWorkspaceSmoke.Verify();
             SquadronsFreshAssignmentSmoke.Verify();
+            SquadronsAddControllerSmoke.Verify();
             SquadronsFeatureNavigationSmoke.Verify();
             var defaultsWindow = new SharedUiLayerWorkspaceWindow(new SharedUiLayerWorkspace(1, new string('a', 40),
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));

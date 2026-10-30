@@ -84,6 +84,25 @@ namespace Heimdall.Squadrons
             var separator = Text.EndsWith('\n') ? "" : newline;
             return Text + separator + string.Join(newline, lines) + newline;
         }
+        /// <summary>Creates a named declaration in the first blank or absent unreferenced slot.</summary>
+        public string AddJoystickDevice(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            if (name.Length > 256 || name != name.Trim() || name.Any(char.IsControl))
+                throw new InvalidOperationException("Use a single-line game device name of at most 256 characters.");
+            const string prefix = "GstInput.JoystickDevice";
+            if (Values.Any(x => x.Key.StartsWith(prefix, StringComparison.Ordinal) && string.Equals(x.Value, name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("That game device name already has a slot. Link the existing slot, or use the correct distinct device name.");
+            var slot = Enumerable.Range(1, 10).FirstOrDefault(number =>
+                string.IsNullOrWhiteSpace(Values.GetValueOrDefault(prefix + number)) &&
+                !Bindings.Any(row => row.Type == 3 && row.DeviceId == number - 1));
+            if (slot == 0) throw new InvalidOperationException("No unused Squadrons joystick slot is available in the supported 1–10 range. Remove an unused controller first.");
+            var key = prefix + slot;
+            var newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            if (!Values.ContainsKey(key)) return Text + (Text.EndsWith('\n') ? "" : newline) + key + " " + name + newline;
+            return string.Join("\n", Text.Split('\n').Select(line => line.StartsWith(key + " ", StringComparison.Ordinal)
+                ? key + " " + name + (line.EndsWith('\r') ? "\r" : "") : line));
+        }
         /// <summary>Removes exactly one scalar setting without changing unrelated native lines.</summary>
         public string RemoveSetting(string key)
         {

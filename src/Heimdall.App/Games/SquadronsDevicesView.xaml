@@ -7,6 +7,7 @@
 <Button x:Name="RescanControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Rescan"/>
 <Button x:Name="IdentifyControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Identify…"/>
 <Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
+<Button x:Name="AddControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Add controller…"/>
 <Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link / replace…"/>
 <Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink…"/>
 <Button x:Name="ClearSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Clear assignments…"/>
@@ -15,7 +16,7 @@
  </pres:ActionBar>
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
  <TextBlock Style="{StaticResource SectionTitle}" Text="Devices"/>
- <TextBlock Style="{StaticResource Hint}" Text="Select a captured controller on the left, identify and link its physical hardware, then choose a drawing." TextWrapping="Wrap"/>
+ <TextBlock Style="{StaticResource Hint}" Text="Select connected hardware to add a missing controller, or select an existing slot to link it. Then choose a drawing." TextWrapping="Wrap"/>
      <Expander x:Name="ControllerSetup" Header="Controller setup" IsExpanded="True" Foreground="{DynamicResource PrimaryTextBrush}">
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="440" Margin="0,8,0,0">
      <StackPanel>
@@ -24,8 +25,11 @@
       <ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Squadrons physical controller">
        <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
+      <TextBlock Style="{StaticResource AppLabel}" Text="Game device name for a new controller" Margin="0,8,0,4"/>
+      <TextBox x:Name="NativeControllerName" Style="{StaticResource AppTextBox}" MaxLength="256" AutomationProperties.Name="Squadrons new controller name"
+       ToolTip="Starts with the exact name reported by Windows. Adjust only if Squadrons uses a different device-instance name."/>
       <TextBlock x:Name="IdentificationStatus" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,4" AutomationProperties.LiveSetting="Polite"/>
-      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Select a captured slot first. Identify finds the physical unit; verify its slot in Squadrons before linking. For another slot, bind an input on that device in Squadrons and import a fresh capture."/>
+      <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="For a missing controller, select its physical hardware, review its game device name and choose Add controller. For an existing slot, identify and link the physical unit. Native slot changes take effect in the exported profile."/>
      </StackPanel>
     </ScrollViewer>
      </Expander>
