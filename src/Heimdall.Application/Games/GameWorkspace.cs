@@ -14,6 +14,8 @@ namespace Heimdall.Application.Games
         #region BEGIN Public
         /// <summary>Gets presentation order only; native devices and ED indices retain their original order.</summary>
         public List<string> ControllerOrder { get; init; } = [];
+        /// <summary>Retains independent drawing links while their physical controller is explicitly unlinked.</summary>
+        public Dictionary<string, string> UnlinkedDrawings { get; init; } = new();
         #endregion END Public
     }
 }

@@ -168,6 +168,35 @@ namespace Heimdall.Tests
             }
             finally { File.Delete(root); }
         }
+        /// <summary>Physical/drawing unlink are independent, preserve authored state and survive serialization.</summary>
+        [Fact]
+        public void Explicit_unlink_preserves_bindings_and_requires_a_new_physical_link_before_export()
+        {
+            var workspace = WorkspaceStructureEditor.AddDevice(Workspace(), Hardware(), AssignmentLayer.Module,
+                new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
+            workspace = WorkspaceStructureEditor.AddDevice(workspace, Hardware(), AssignmentLayer.UiLayer,
+                new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
+            var device = WorkspaceStructureEditor.Describe(workspace).Devices.First();
+            workspace = workspace with { Assignments = [new(new(workspace.Configuration.Module.Id, device.ProfileId,
+                AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""),
+                new("d3001pnilu3001cdnilvd1vpnilvunil", "Test", false, AssignmentLayer.Module))] };
+            var original = JsonSerializer.Serialize(workspace);
+            var unlinked = WorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device);
+            Assert.All(WorkspaceStructureEditor.Describe(unlinked).Devices, x => Assert.Null(x.PhysicalGuid));
+            Assert.Equal(workspace.Assignments, unlinked.Assignments);
+            Assert.Equal(workspace.Diagrams, unlinked.Diagrams);
+            Assert.Throws<InvalidDataException>(() => ModulePhysicalBindingReview.Validate(unlinked));
+            var detachedDrawing = WorkspaceStructureEditor.SetDrawingLinked(unlinked, device.ProfileId, false);
+            var reopened = JsonSerializer.Deserialize<EditorWorkspaceSnapshot>(JsonSerializer.Serialize(detachedDrawing))!;
+            Assert.True(reopened.Diagrams.Single().DrawingUnlinked);
+            var current = WorkspaceStructureEditor.Describe(reopened).Devices.First();
+            var relinked = WorkspaceStructureEditor.RebindDevice(reopened, current,
+                new DetectedDcsDevice(Second, "F16 MFD 3", true).FileName, null, null);
+            Assert.All(WorkspaceStructureEditor.Describe(relinked).Devices, x => Assert.Equal(Second, x.PhysicalGuid));
+            Assert.True(relinked.Diagrams.Single().DrawingUnlinked);
+            Assert.False(WorkspaceStructureEditor.SetDrawingLinked(relinked, device.ProfileId, true).Diagrams.Single().DrawingUnlinked);
+            Assert.Equal(original, JsonSerializer.Serialize(workspace));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static WorkspaceHardware Hardware() => new("tm-mfd", "MFD", new DetectedDcsDevice(First, "F16 MFD 3", false).FileName,
@@ -177,5 +206,3 @@ namespace Heimdall.Tests
         #endregion END private helpers
     }
 }
-
-

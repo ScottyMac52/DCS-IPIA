@@ -90,6 +90,8 @@ namespace Heimdall.App.Smoke
                 Pump(editor, () => choices.Items.Count == 1);
                 choices.SelectedIndex = 0;
                 ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
+                Click((Button)WorkspaceUi.Find(editor, "UnlinkDrawingButton")!);
+                choices.SelectedIndex = 0;
                 Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
                 if (!((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")!).Text.Contains("staged", StringComparison.Ordinal))
                     throw new InvalidOperationException("Custom mapping adoption was not staged.");
@@ -97,6 +99,8 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Staged mapping silently changed saved module data.");
                 Click((Button)WorkspaceUi.Find(editor, "DiscardAuthoringButton")!);
                 choices.SelectedIndex = 0; ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
+                Click((Button)WorkspaceUi.Find(editor, "UnlinkDrawingButton")!);
+                choices.SelectedIndex = 0;
                 Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
                 Click((Button)WorkspaceUi.Find(editor, "SaveAuthoringButton")!);
                 Pump(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "PendingSummary")!).Text == "No pending assignment changes");
@@ -239,4 +243,3 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
-

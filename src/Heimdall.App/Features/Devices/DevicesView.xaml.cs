@@ -13,6 +13,7 @@ namespace Heimdall.App.Features.Devices
     public partial class DevicesView : UserControl
     {
         private IModuleWorkspaceContext? _context;
+        private bool _showingSavedLink;
         private AssignmentLayer _layer = AssignmentLayer.Module;
 
         #region BEGIN Public
@@ -63,10 +64,10 @@ namespace Heimdall.App.Features.Devices
             var selectedId = (ManagedDevices.SelectedItem as WorkspaceDevice)?.ProfileId;
             var state = WorkspaceStructureEditor.Describe(_context.Working);
             var devices = state.Devices.Where(x => x.Layer == _layer).ToArray();
+            ManagedHardware.ItemsSource = EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working), EditionAccess.Training(_context)).ToArray();
             ManagedDevices.ItemsSource = devices;
             ManagedDevices.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId);
             StatusText.Text = $"{devices.Length} devices in {_layer}";
-            ManagedHardware.ItemsSource = _context.Working is null ? null : EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working), EditionAccess.Training(_context)).ToArray();
         }
 
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
@@ -79,6 +80,7 @@ namespace Heimdall.App.Features.Devices
                 ManagedRole.Text = "";
                 ManagedHardware.SelectedItem = null;
                 DetectedDevice.SelectedItem = null;
+                ApplyLinkState(null);
                 return;
             }
 
@@ -103,12 +105,55 @@ namespace Heimdall.App.Features.Devices
             ManagedKneeboardTitle.Text = page.Title;
             ManagedKneeboardSubtitle.Text = page.Kicker;
 
-            var guid = DcsPhysicalIdentity.FromFileName(device.FileName);
-            DetectedDevice.SelectedItem = (DetectedDevice.ItemsSource as IEnumerable<DetectedDcsDevice>)?
-                .FirstOrDefault(x => x.PhysicalGuid == guid);
+            var revisions = (CustomMappingRevisions.ItemsSource as IEnumerable<UserMappingRevision> ?? []).ToList();
+            if (diagram.CustomMapping is { } savedMapping && !revisions.Any(x => x.Id == savedMapping.Id)) revisions.Add(savedMapping);
+            CustomMappingRevisions.ItemsSource = revisions;
+            if (!diagram.DrawingUnlinked) CustomMappingRevisions.SelectedItem = revisions.FirstOrDefault(x => x.Id == diagram.CustomMapping?.Id);
+            var guid = device.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(device.FileName);
+            _showingSavedLink = true;
+            try
+            {
+                var observed = (DetectedDevice.ItemsSource as IEnumerable<DetectedDcsDevice> ?? []).ToList();
+                if (guid is { } saved && !observed.Any(x => x.PhysicalGuid == saved))
+                    observed.Add(new(saved, DcsPhysicalIdentity.NameFromFileName(device.FileName), false, device.FileName));
+                DetectedDevice.ItemsSource = observed;
+                DetectedDevice.SelectedItem = observed.FirstOrDefault(x => x.PhysicalGuid == guid);
+            }
+            finally { _showingSavedLink = false; }
+            ApplyLinkState(device);
             UpdateMfdVisibility(ManagedDevices.SelectedItem as WorkspaceDevice);
         }
 
+        private void ApplyLinkState(WorkspaceDevice? device)
+        {
+            var diagram = device is null ? null : _context?.Working?.Diagrams.FirstOrDefault(x => x.ProfileId == device.ProfileId);
+            var linked = device is not null && (device.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(device.FileName)) is not null;
+            var state = ControllerLinkState.For(linked, diagram is { DrawingUnlinked: false }, _context?.Working is not null, false);
+            DetectedDevice.IsEnabled = state.SelectPhysical;
+            ManagedFileName.IsReadOnly = linked;
+            ManagedHardware.IsEnabled = device is null;
+            UnlinkPhysicalButton.IsEnabled = state.UnlinkPhysical;
+            UnlinkDrawingButton.IsEnabled = state.UnlinkDrawing;
+            CustomMappingRevisions.IsEnabled = diagram?.DrawingUnlinked == true;
+            ApplyCustomDrawingButton.IsEnabled = diagram?.DrawingUnlinked == true;
+            UseRetainedDrawingButton.IsEnabled = diagram?.DrawingUnlinked == true;
+        }
+        private void UnlinkPhysicalClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context is null || !UnlinkPhysicalButton.IsEnabled || ManagedDevices.SelectedItem is not WorkspaceDevice device) return;
+            _context.RunStructureEdit(workspace => WorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device));
+            StatusMessage.Text = "Physical controller unlinked in both scopes. Assignments and drawing retained. Link a unit before exporting to DCS.";
+        }
+        private void UnlinkDrawingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context is null || !UnlinkDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not WorkspaceDevice device) return;
+            _context.RunStructureEdit(workspace => WorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, false));
+        }
+        private void UseRetainedDrawingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context is null || !UseRetainedDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not WorkspaceDevice device) return;
+            _context.RunStructureEdit(workspace => WorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, true));
+        }
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || ManagedDevices.SelectedItem is not WorkspaceDevice device)
@@ -256,6 +301,7 @@ namespace Heimdall.App.Features.Devices
                 StatusMessage.Text = "Reading connected controllers…";
                 var connected = await Task.Run(() => _context.DeviceDiscovery.Discover());
                 DetectedDevice.ItemsSource = connected.Where(device => EditionAccess.Policy.AllowsDevice(device)).ToArray();
+                ManagedDeviceSelected(this, new SelectionChangedEventArgs(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
                 StatusMessage.Text = $"{connected.Count} connected device(s).";
             }
             catch (Exception ex)
@@ -266,7 +312,7 @@ namespace Heimdall.App.Features.Devices
 
         private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (DetectedDevice.SelectedItem is DetectedDcsDevice device)
+            if (!_showingSavedLink && DetectedDevice.IsEnabled && DetectedDevice.SelectedItem is DetectedDcsDevice device)
                 ManagedFileName.Text = device.FileName;
         }
 
@@ -278,6 +324,11 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
+            if (!DetectedDevice.IsEnabled && ManagedFileName.Text != device.FileName)
+            {
+                StatusMessage.Text = "Unlink the physical controller before choosing another unit.";
+                return;
+            }
             var result = ThemeMessageBox.Show(
                 Window.GetWindow(this),
                 "Rebind this profile in both aircraft and UI Layer scopes?\n\n" + device.FileName +
@@ -382,6 +433,7 @@ namespace Heimdall.App.Features.Devices
                     .DistinctBy(x => x.Id)
                     .OrderBy(x => x.Title, StringComparer.Ordinal)
                     .ToArray();
+                ManagedDeviceSelected(this, new SelectionChangedEventArgs(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
             }
             catch (Exception ex)
             {
@@ -401,6 +453,7 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
+            if (!ApplyCustomDrawingButton.IsEnabled) { StatusMessage.Text = "Unlink drawing before choosing another drawing."; return; }
             try
             {
                 var review = MappingRevisionReview.Create(

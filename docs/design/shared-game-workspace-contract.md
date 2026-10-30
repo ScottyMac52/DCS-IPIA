@@ -83,3 +83,13 @@ No Windows GUI tests were run as part of authoring this document. CI success, me
 - **PR 6:** obsolete-code cleanup, full cross-game regression, War Thunder readiness audit.
 
 Each PR must follow the repository's **80% line / 80% branch per measured assembly and CRAP ≤ 50** quality gates plus applicable Windows smoke. No PR may claim GUI verification from source inspection alone. War Thunder UI work remains outside this program until the common shell and capabilities are proven.
+
+## Explicit device link ownership
+
+Devices shows the saved physical controller and drawing, with each selector locked while its own link exists. Connection loss does not unlock or replace a saved physical identity; an offline entry remains visible. Unlink physical controller and Unlink drawing are separate actions. Neither clears native assignments. Physical unlink retains the drawing for a later physical link. New controllers remain addable without disturbing existing links.
+
+Elite and Squadrons enforce physical replacement and drawing replacement prerequisites in GameProfileSession, using ControllerLinkState for availability and ControllerLinkPresentation for saved/offline selections. Independent drawing links survive physical unlink, persistence, relink and native slot reordering. Native reference replacement remains a separately reviewed operation after physical unlink.
+
+DCS uses the same selector policy. Physical unlink stages an unqualified `Unlinked-<profile-id>.diff.lua` membership in both scopes, retains assignments and artwork, and requires linking a physical unit before native export. Drawing unlink retains verified source and controls with a persisted DrawingUnlinked flag, hides the illustration and allows an explicitly reviewed replacement or restoring the retained drawing. Save/Discard owns all changes.
+
+Regression additions cover offline replacement rejection, independent unlink, native export preservation, serialization/reopen and discard in both game adapters, plus DCS scope identities and detached drawing persistence. Windows smoke checks saved/offline selections remain displayed and locked, and explicit unlink enables replacement. These .NET/Windows checks require execution on a supported runner.

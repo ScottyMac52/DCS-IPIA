@@ -26,7 +26,7 @@ namespace Heimdall.Rendering
                 return GenericKneeboardRenderer.RenderPages(diagram, page, footer, transparent: transparent)[0];
             ValidateGlyphs(page, footer);
             var device = CanonicalSvgRenderer.RenderCompleteScaled(
-                PreviewArtwork.Prepare(GraphicWithoutDynamicText(diagram.Svg), artworkOpacity), diagram.Width, diagram.Height,
+                PreviewArtwork.Prepare(GraphicWithoutDynamicText(diagram.DrawingUnlinked ? EmptyDrawing(diagram) : diagram.Svg), artworkOpacity), diagram.Width, diagram.Height,
                 Math.Min(2, (int)Math.Floor(4096 / Math.Max(diagram.Width, diagram.Height))));
             using var deviceImage = SKImage.FromEncodedData(device) ??
                                     throw new InvalidDataException("Could not decode the authored device image.");
@@ -94,6 +94,7 @@ namespace Heimdall.Rendering
         {
             ArgumentNullException.ThrowIfNull(diagram);
             ArgumentNullException.ThrowIfNull(page);
+            if (diagram.DrawingUnlinked) return EmptyDrawing(diagram);
             using var reader = XmlReader.Create(new StringReader(diagram.Svg), new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -125,6 +126,10 @@ namespace Heimdall.Rendering
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static string EmptyDrawing(UiLayerDiagram diagram) =>
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 " + diagram.Width.ToString(CultureInfo.InvariantCulture) + " " +
+            diagram.Height.ToString(CultureInfo.InvariantCulture) + "\"></svg>";
+
         private static void ApplyControlLabel(XElement label, string id, KneeboardComposite page)
         {
             var control = id["lbl-".Length..];
@@ -521,5 +526,3 @@ namespace Heimdall.Rendering
         #endregion END private helpers
     }
 }
-
-

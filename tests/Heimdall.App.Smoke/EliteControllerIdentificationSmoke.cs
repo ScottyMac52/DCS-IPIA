@@ -95,7 +95,9 @@ namespace Heimdall.App.Smoke
                 || JsonSerializer.Serialize(window.Session.Snapshot.Profile) != profile)
                 throw new InvalidOperationException("Confirmed discovery changed native assignments or linked the wrong unit.");
             Box<ComboBox>(window, "ConnectedPicker").SelectedItem = target;
-            AssertActions(window, true, false, false, false, false, true, true, true);
+            if (Box<ComboBox>(window, "ConnectedPicker").IsEnabled || Box<Button>(window, "IdentifyControllerButton").IsEnabled
+                || !Box<Button>(window, "UnlinkControllerButton").IsEnabled)
+                throw new InvalidOperationException("Confirmed physical link is not displayed and locked until unlink.");
             Click(window, "IdentifyControllerButton"); acquired = input!;
             window.Close();
             if (!acquired.Disposed) throw new InvalidOperationException("Closing identification retained controller handles.");

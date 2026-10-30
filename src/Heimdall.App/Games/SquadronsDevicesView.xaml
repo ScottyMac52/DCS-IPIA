@@ -8,12 +8,12 @@
 <Button x:Name="IdentifyControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Identify…"/>
 <Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
 <Button x:Name="AddControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Add controller…"/>
-<Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link / replace…"/>
+<Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link physical controller…"/>
 <Button x:Name="RenameControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Update game name…"/>
-<Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink…"/>
+<Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink physical controller…"/>
 <Button x:Name="ClearSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Clear assignments…"/>
 <Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Remove unused slot…"/>
-<Button x:Name="ClearDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Hide drawing"/>
+<Button x:Name="ClearDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink drawing"/>
  </pres:ActionBar>
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
  <TextBlock Style="{StaticResource SectionTitle}" Text="Devices"/>

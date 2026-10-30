@@ -43,7 +43,7 @@ namespace Heimdall.App
         {
             if (!IsVisible || !_dirty || _diagram is null || _page is null) return;
             _dirty = false;
-            if (string.IsNullOrWhiteSpace(_diagram.Svg)) { Clear("No drawing available for this controller. Assignments remain available."); return; }
+            if (_diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(_diagram.Svg)) { Clear("No drawing available for this controller. Assignments remain available."); return; }
             try
             {
                 var svg = PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(_diagram, _page), _opacity);

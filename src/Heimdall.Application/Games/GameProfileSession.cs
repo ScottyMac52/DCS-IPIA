@@ -161,22 +161,37 @@ namespace Heimdall.Application.Games
         {
             RequireCapturedDevice(logicalId);
             var observed = Observed(physicalGuid, _observed());
+            if (_current.Hardware.TryGetValue(logicalId, out var linked) &&
+                (linked.Device.PhysicalGuid != physicalGuid || linked.Device.ProductGuid != observed.ProductGuid))
+                throw new InvalidOperationException("Unlink the physical controller before choosing another unit.");
             if (observed.ProductGuid == Guid.Empty) throw new InvalidOperationException("Rescan this controller to obtain its native product identity.");
             if (_current.Hardware.Any(x => x.Key != logicalId && x.Value.Device.PhysicalGuid == physicalGuid))
                 throw new InvalidOperationException("This physical controller is already linked to another captured slot. Unlink that slot first.");
             var candidate = Snapshot;
             var previous = candidate.Hardware.GetValueOrDefault(logicalId);
             candidate.Hardware[logicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid && previous.Device.ProductGuid == observed.ProductGuid
-                ? previous with { Device = observed } : new(null, observed);
+                ? previous with { Device = observed } : new(candidate.UnlinkedDrawings.GetValueOrDefault(logicalId), observed);
+            candidate.UnlinkedDrawings.Remove(logicalId);
             return CapturedDeviceChange(logicalId, candidate, observed);
         }
         /// <summary>Reviews removal of the physical association while retaining the captured slot and all native assignments.</summary>
         public GameControllerChange PreviewCapturedDeviceUnlink(string logicalId)
         {
             RequireCapturedDevice(logicalId);
+            return PreviewUnlinkController(logicalId);
+        }
+        /// <summary>Reviews unlinking physical ownership for any game without changing its native reference, bindings or drawing.</summary>
+        public GameControllerChange PreviewUnlinkController(string logicalId)
+        {
+            RequireAccess();
             var candidate = Snapshot;
-            if (!candidate.Hardware.Remove(logicalId)) throw new InvalidOperationException("This captured slot has no physical link to remove.");
-            return CapturedDeviceChange(logicalId, candidate, null);
+            if (!candidate.Hardware.Remove(logicalId, out var pin))
+                throw new InvalidOperationException("This controller has no physical link to remove.");
+            if (!pin.DrawingHidden && pin.HardwareId is { } drawing) candidate.UnlinkedDrawings[logicalId] = drawing;
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate,
+                "Unlink physical controller: " + pin.Device.Name + " · " + pin.Device.PhysicalGuid +
+                "\nNative slots and bindings are unchanged. The drawing link is retained. Save to keep this change.", logicalId);
         }
         /// <summary>Reviews removal of an unused and unlinked captured slot.</summary>
         public GameControllerChange PreviewRemoveUnusedCapturedDevice(string logicalId)
@@ -186,6 +201,7 @@ namespace Heimdall.Application.Games
                 throw new InvalidOperationException("Unlink this physical controller before removing its captured slot.");
             var editor = (ISimCapturedDeviceLinks)_backend;
             var candidate = Snapshot;
+            candidate.UnlinkedDrawings.Remove(logicalId);
             candidate = candidate with { Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
                 ControllerOrder = candidate.ControllerOrder.Where(x => x != logicalId).ToList() };
             ValidateControllerCandidate(candidate);
@@ -250,6 +266,7 @@ namespace Heimdall.Application.Games
             var profile = adapter.ReorderCapturedSlots(candidate.Profile, order);
             var pins = candidate.Hardware.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal);
             candidate = candidate with { Profile = profile, Hardware = pins,
+                UnlinkedDrawings = candidate.UnlinkedDrawings.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal),
                 ControllerOrder = order.Select(id => oldSlots[id]).ToList() };
             ValidateControllerCandidate(candidate);
             var moves = order.Select((id, index) => id + " → Slot " + (index + 1));
@@ -303,6 +320,12 @@ namespace Heimdall.Application.Games
                 reference = candidate.Profile.Devices.Single(x => !_current.Profile.Devices.Any(old => old.LogicalId == x.LogicalId));
             }
             ValidateLink(candidate, reference, observed, observations);
+            if (candidate.Hardware.TryGetValue(reference.LogicalId, out var existingPin))
+            {
+                hardwareId = existingPin.HardwareId;
+            }
+            hardwareId = candidate.UnlinkedDrawings.GetValueOrDefault(reference.LogicalId) ?? hardwareId;
+            candidate.UnlinkedDrawings.Remove(reference.LogicalId);
             var hidden = candidate.Hardware.TryGetValue(reference.LogicalId, out var previous) && previous.HardwareId == hardwareId && previous.DrawingHidden;
             candidate.Hardware[reference.LogicalId] = new(hardwareId, observed) { DrawingHidden = hidden };
             GameWorkspaceContract.Validate(candidate); ValidateProfile(candidate.Profile);
@@ -317,6 +340,7 @@ namespace Heimdall.Application.Games
             var candidate = GameWorkspaceContract.Clone(_current);
             candidate = candidate with { Profile = DeviceEditor().RemoveDevice(candidate.Profile, logicalId) };
             candidate.Hardware.Remove(logicalId);
+            candidate.UnlinkedDrawings.Remove(logicalId);
             candidate = candidate with { ControllerOrder = GameControllerOrder.For(candidate).ToList() };
             ValidateControllerCandidate(candidate);
             return new(this, baseline, candidate,
@@ -327,6 +351,8 @@ namespace Heimdall.Application.Games
             Func<IReadOnlyCollection<string>> nativeInputs, string? targetLogicalId = null, string? hardwareId = null)
         {
             _policy.RequirePremium();
+            if (_current.Hardware.ContainsKey(logicalId))
+                throw new InvalidOperationException("Unlink the physical controller before replacing its native reference.");
             var baseline = JsonSerializer.Serialize(_current);
             ArgumentNullException.ThrowIfNull(nativeInputs);
             _policy.RequireSimulator(_backend.SimId);
@@ -353,6 +379,9 @@ namespace Heimdall.Application.Games
                 .Where(id => id != target.LogicalId || id == logicalId)
                 .Select(id => id == logicalId ? target.LogicalId : id).ToList() };
             var previous = candidate.Hardware.GetValueOrDefault(target.LogicalId);
+            hardwareId = candidate.UnlinkedDrawings.GetValueOrDefault(logicalId) ?? candidate.UnlinkedDrawings.GetValueOrDefault(target.LogicalId) ?? hardwareId;
+            candidate.UnlinkedDrawings.Remove(logicalId);
+            candidate.UnlinkedDrawings.Remove(target.LogicalId);
             if (logicalId != target.LogicalId) candidate.Hardware.Remove(logicalId);
             candidate.Hardware[target.LogicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid
                 ? previous with { Device = observed } : new(hardwareId, observed);
@@ -397,11 +426,22 @@ namespace Heimdall.Application.Games
         {
             _policy.RequireSimulator(_backend.SimId);
             RequireDrawing(hardwareId);
-            if (!_current.Hardware.TryGetValue(logicalId, out var pin)) throw new InvalidOperationException("Connect this controller before choosing its drawing.");
+            var existing = DrawingId(logicalId);
+            if (existing is not null && hardwareId is not null && existing != hardwareId)
+                throw new InvalidOperationException("Unlink the drawing before choosing another drawing.");
             var candidate = GameWorkspaceContract.Clone(_current);
-            candidate.Hardware[logicalId] = pin with { HardwareId = hardwareId ?? pin.HardwareId, DrawingHidden = hardwareId is null };
+            if (candidate.Hardware.TryGetValue(logicalId, out var pin))
+                candidate.Hardware[logicalId] = pin with { HardwareId = hardwareId ?? pin.HardwareId, DrawingHidden = hardwareId is null };
+            else if (hardwareId is null)
+            {
+                if (!candidate.UnlinkedDrawings.Remove(logicalId)) throw new InvalidOperationException("This controller has no drawing link.");
+            }
+            else throw new InvalidOperationException("Connect this controller before choosing its drawing.");
             GameWorkspaceContract.Validate(candidate); _current = candidate; Changed?.Invoke(this, EventArgs.Empty);
         }
+        /// <summary>Gets the saved drawing association independently of physical connection or link state.</summary>
+        public string? DrawingId(string logicalId) => _current.Hardware.TryGetValue(logicalId, out var pin)
+            ? pin.DrawingHidden ? null : pin.HardwareId : _current.UnlinkedDrawings.GetValueOrDefault(logicalId);
         /// <summary>Reviews a complete draft with the authoritative adapter without publishing edits or events.</summary>
         public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft)
         {
@@ -553,9 +593,9 @@ namespace Heimdall.Application.Games
         }
         private static void ValidateLink(GameWorkspace candidate, LogicalDevice reference, DetectedDcsDevice observed, IReadOnlyList<DetectedDcsDevice> observations)
         {
-            if (candidate.Hardware.TryGetValue(reference.LogicalId, out var old) && old.Device.PhysicalGuid != observed.PhysicalGuid
-                && observations.Any(x => x.Connected && x.PhysicalGuid == old.Device.PhysicalGuid))
-                throw new InvalidOperationException("That ED reference is already linked to another connected controller. Choose a different captured reference.");
+            if (candidate.Hardware.TryGetValue(reference.LogicalId, out var old) &&
+                (old.Device.PhysicalGuid != observed.PhysicalGuid || old.Device.ProductGuid != observed.ProductGuid))
+                throw new InvalidOperationException("Unlink this physical controller before choosing another unit, including when the saved unit is disconnected.");
             if (observations.Count(x => x.Connected && x.ProductGuid == observed.ProductGuid) > 1
                 && !reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"))
                 throw new InvalidOperationException("ED's reference has no DeviceIndex for these identical controllers. Bind each controller in Elite and reimport its indexed references first.");
@@ -613,4 +653,3 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
-

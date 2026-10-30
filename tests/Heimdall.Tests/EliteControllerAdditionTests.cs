@@ -189,6 +189,32 @@ namespace Heimdall.Tests
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
+        /// <summary>Offline ownership stays locked; separate unlink preserves the native profile and drawing.</summary>
+        [Fact]
+        public void Offline_link_requires_unlink_and_retains_drawing_across_save_and_relink()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var first = Device(); var second = first with { PhysicalGuid = Guid.NewGuid() };
+            IReadOnlyList<DetectedDcsDevice> observed = [first];
+            var session = new GameProfileSession(new EliteDangerousProfileBackend(), Workspace("06A30BAC"), issuer.Policy,
+                ["tm-mfd", "other-drawing"], () => observed, new EliteDeviceReferenceMatcher());
+            var id = session.ConnectController(first.PhysicalGuid, "tm-mfd");
+            var native = session.Export().Files.Values.Single();
+            session.AcceptSaved(); observed = [second];
+            Assert.Throws<InvalidOperationException>(() => session.ConnectController(second.PhysicalGuid, logicalId: id));
+            Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing(id, "other-drawing"));
+            Assert.False(session.HasChanges);
+            session.ApplyControllerChange(session.PreviewUnlinkController(id));
+            Assert.Empty(session.Snapshot.Hardware); Assert.Equal("tm-mfd", session.DrawingId(id));
+            var reopened = new GameProfileSession(new EliteDangerousProfileBackend(), GameWorkspaceContract.Clone(session.Snapshot), issuer.Policy,
+                ["tm-mfd", "other-drawing"], () => observed, new EliteDeviceReferenceMatcher());
+            reopened.ConnectController(second.PhysicalGuid, logicalId: id);
+            Assert.Equal("tm-mfd", reopened.DrawingId(id));
+            reopened.ChangeDrawing(id, null); reopened.ChangeDrawing(id, "other-drawing");
+            Assert.Equal(second.PhysicalGuid, reopened.Snapshot.Hardware[id].Device.PhysicalGuid);
+            Assert.Equal(native, reopened.Export().Files.Values.Single());
+            session.Discard(); Assert.Equal(first.PhysicalGuid, session.Snapshot.Hardware[id].Device.PhysicalGuid);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static DetectedDcsDevice Device(string product = "0bac06a3-0000-0000-0000-504944564944") => new(Guid.NewGuid(), "Controller", true, ProductGuid: Guid.Parse(product));

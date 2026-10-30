@@ -478,17 +478,24 @@ namespace Heimdall.App.Games
             var running = _identification.Running || (_input?.Running ?? false);
             var pin = selected is null ? null : _session?.Snapshot.Hardware.GetValueOrDefault(selected);
             RescanControllerButton.IsEnabled = !running && !_scanningInputs;
-            ConnectedPicker.IsEnabled = workspaceReady && !running;
+            var links = ControllerLinkState.For(pin is not null, selected is not null && _session?.DrawingId(selected) is not null, workspaceReady, running);
+            var refreshing = _refreshing;
+            _refreshing = true;
+            try { ControllerLinkPresentation.ShowPhysical(ConnectedPicker, pin?.Device,
+                _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x))); }
+            finally { _refreshing = refreshing; }
+            ConnectedPicker.IsEnabled = links.SelectPhysical;
+            ConnectedPicker.ToolTip = pin is null ? "Choose a physical controller to link." : "Unlink physical controller before choosing another unit.";
             NativeControllerName.IsEnabled = workspaceReady && !running;
-            IdentifyControllerButton.IsEnabled = workspaceReady && !running && ConnectedPicker.Items.Count > 0;
+            IdentifyControllerButton.IsEnabled = links.SelectPhysical && ConnectedPicker.Items.Count > 0;
             AddControllerButton.IsEnabled = workspaceReady && !running && _session?.CanAddNativeControllers == true &&
                 ConnectedPicker.SelectedItem is DetectedDcsDevice candidate && !string.IsNullOrWhiteSpace(NativeControllerName.Text) &&
                 !_session.Snapshot.Hardware.Values.Any(x => x.Device.PhysicalGuid == candidate.PhysicalGuid);
             RenameControllerButton.IsEnabled = ready && !running && _session?.CanRenameNativeControllers == true &&
                 !string.IsNullOrWhiteSpace(NativeControllerName.Text);
             CancelIdentificationButton.IsEnabled = running;
-            LinkControllerButton.IsEnabled = ready && !running && ConnectedPicker.SelectedItem is DetectedDcsDevice;
-            UnlinkControllerButton.IsEnabled = ready && !running && pin is not null;
+            LinkControllerButton.IsEnabled = ready && links.SelectPhysical && ConnectedPicker.SelectedItem is DetectedDcsDevice { Connected: true };
+            UnlinkControllerButton.IsEnabled = ready && links.UnlinkPhysical;
             RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
             ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             LinkStatus.Text = selected is null ? "Select connected hardware to add a controller, or select an existing slot to manage its link." : pin is null ? "Unlinked captured slot" :
@@ -908,10 +915,14 @@ namespace Heimdall.App.Games
             {
                 DrawingPicker.ItemsSource = _drawings.Where(x => !string.IsNullOrWhiteSpace(x.Diagram.Svg))
                     .OrderBy(x => x.Title, StringComparer.OrdinalIgnoreCase).ToArray();
-                DrawingPicker.SelectedItem = pin?.DrawingHidden == true ? null : _drawings.FirstOrDefault(x => x.DeviceId == pin?.HardwareId);
+                DrawingPicker.SelectedItem = _drawings.FirstOrDefault(x => x.DeviceId == (slot is null ? null : _session?.DrawingId(slot)));
             }
             finally { _refreshing = oldRefreshing; }
-            DrawingPicker.IsEnabled = ClearDrawingButton.IsEnabled = pin is not null && _drawings.Count > 0;
+            var links = ControllerLinkState.For(pin is not null, slot is not null && _session?.DrawingId(slot) is not null,
+                snapshot is not null && _session?.AccessMessage.Length == 0, _identification.Running || (_input?.Running ?? false) || _scanningInputs);
+            DrawingPicker.IsEnabled = links.SelectDrawing && _drawings.Count > 0;
+            ClearDrawingButton.IsEnabled = links.UnlinkDrawing;
+            DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
             if (DrawingPanel.IsExpanded != true) return;
             if (slot is null || pin is null)
             {
@@ -949,7 +960,7 @@ namespace Heimdall.App.Games
         }
         private void DrawingChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_refreshing || _session is null || SelectedController is not { } slot ||
+            if (_refreshing || !DrawingPicker.IsEnabled || _session is null || SelectedController is not { } slot ||
                 DrawingPicker.SelectedItem is not WorkspaceHardware drawing) return;
             Run(() =>
             {
@@ -960,10 +971,10 @@ namespace Heimdall.App.Games
         }
         private void ClearDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (_session is null || SelectedController is not { } slot) return;
+            if (!ClearDrawingButton.IsEnabled || _session is null || SelectedController is not { } slot) return;
             _session.ChangeDrawing(slot, null);
             Refresh(false);
-            StatusText.Text = "Drawing hidden. Save profile to retain this choice.";
+            StatusText.Text = "Drawing unlinked. Choose another drawing or save this change.";
         });
         private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
         // The Expander may be larger than the pane's arranged row. Clamp the scroll

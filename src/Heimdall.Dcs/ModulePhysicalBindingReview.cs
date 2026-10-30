@@ -28,6 +28,8 @@ namespace Heimdall.Dcs
         /// <param name="workspace">Saved or frozen module.</param>
         public static void Validate(EditorWorkspaceSnapshot workspace)
         {
+            if (WorkspaceStructureEditor.Describe(workspace).Devices.Any(x => x.FileName.StartsWith("Unlinked-", StringComparison.Ordinal)))
+                throw new InvalidDataException("Link unlinked physical controllers in Devices before exporting to DCS.");
             if (workspace.Sources?.ContainsKey("config/ipia-created-module.json") != true) return;
             var confirmed = Read(workspace);
             var unresolved = WorkspaceStructureEditor.Describe(workspace).Devices.Where(x =>

@@ -65,9 +65,13 @@ namespace Heimdall.App.Smoke
                 connected.SelectedItem = connected.Items.Cast<DetectedDcsDevice>().Single(x => x.PhysicalGuid == physical.PhysicalGuid);
                 Click(window, "AddControllerButton");
                 if (!session.Snapshot.Hardware.ContainsKey(stick.LogicalId)) throw new InvalidOperationException("Adding a controller did not reuse its matching captured reference.");
+                if (Box<Button>(window, "NoDrawingButton").IsEnabled) Click(window, "NoDrawingButton");
                 Click(window, "ChangeDrawingButton");
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 Click(window, "UseDrawingButton");
+                if (Box<ComboBox>(window, "HardwarePicker").IsEnabled || !Box<Button>(window, "NoDrawingButton").IsEnabled
+                    || Box<ComboBox>(window, "HardwarePicker").SelectedItem is not WorkspaceHardware)
+                    throw new InvalidOperationException("Saved drawing is not displayed and locked until explicit unlink.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 SelectCommand(window, "Primary Fire");
                 var inputPicker = Box<ComboBox>(window, "InputKey");
@@ -352,4 +356,3 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
-
