@@ -176,7 +176,7 @@ namespace Heimdall.Tests
                 new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
             workspace = WorkspaceStructureEditor.AddDevice(workspace, Hardware(), AssignmentLayer.UiLayer,
                 new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
-            var device = WorkspaceStructureEditor.Describe(workspace).Devices.First();
+            var device = WorkspaceStructureEditor.Describe(workspace).Devices[0];
             workspace = workspace with { Assignments = [new(new(workspace.Configuration.Module.Id, device.ProfileId,
                 AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""),
                 new("d3001pnilu3001cdnilvd1vpnilvunil", "Test", false, AssignmentLayer.Module))] };
@@ -189,7 +189,7 @@ namespace Heimdall.Tests
             var detachedDrawing = WorkspaceStructureEditor.SetDrawingLinked(unlinked, device.ProfileId, false);
             var reopened = JsonSerializer.Deserialize<EditorWorkspaceSnapshot>(JsonSerializer.Serialize(detachedDrawing))!;
             Assert.True(reopened.Diagrams.Single().DrawingUnlinked);
-            var current = WorkspaceStructureEditor.Describe(reopened).Devices.First();
+            var current = WorkspaceStructureEditor.Describe(reopened).Devices[0];
             var relinked = WorkspaceStructureEditor.RebindDevice(reopened, current,
                 new DetectedDcsDevice(Second, "F16 MFD 3", true).FileName, null, null);
             Assert.All(WorkspaceStructureEditor.Describe(relinked).Devices, x => Assert.Equal(Second, x.PhysicalGuid));

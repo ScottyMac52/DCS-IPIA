@@ -40,7 +40,7 @@ namespace Heimdall.Squadrons
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static IReadOnlyList<SquadronsBindingRow> FactoryRecords(IEnumerable<SquadronsBindingRow> records, bool axis)
+        private static SquadronsBindingRow[] FactoryRecords(IEnumerable<SquadronsBindingRow> records, bool axis)
         {
             if (!axis)
                 return records.Where(row => row.Input?.Type is CommandType.Button or CommandType.Hat)
