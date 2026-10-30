@@ -114,6 +114,11 @@ namespace Heimdall.Tests
             session.MoveController(ids[0], ids[2], after: true);
             session.ApplyControllerChange(session.PreviewReplaceController(ids[0], device.PhysicalGuid, () => ["Joy_1", "Joy_2", "Joy_3"], ids[1]));
             Assert.Equal(new[] { ids[2], ids[1] }, GameControllerOrder.For(session.Snapshot));
+            var linked = JsonSerializer.Serialize(session.Snapshot);
+            Assert.Throws<InvalidOperationException>(() => session.PreviewReplaceController(ids[1], device.PhysicalGuid,
+                () => ["Joy_1", "Joy_2", "Joy_3"], ids[1]));
+            Assert.Equal(linked, JsonSerializer.Serialize(session.Snapshot));
+            session.ApplyControllerChange(session.PreviewUnlinkController(ids[1]));
             session.ApplyControllerChange(session.PreviewReplaceController(ids[1], device.PhysicalGuid, () => ["Joy_1", "Joy_2", "Joy_3"], ids[1]));
             Assert.Equal(new[] { ids[2], ids[1] }, GameControllerOrder.For(session.Snapshot));
         }

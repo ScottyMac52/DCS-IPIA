@@ -187,7 +187,11 @@ namespace Heimdall.Tests
             Assert.Equal(workspace.Diagrams, unlinked.Diagrams);
             Assert.Throws<InvalidDataException>(() => ModulePhysicalBindingReview.Validate(unlinked));
             var detachedDrawing = WorkspaceStructureEditor.SetDrawingLinked(unlinked, device.ProfileId, false);
-            var reopened = JsonSerializer.Deserialize<EditorWorkspaceSnapshot>(JsonSerializer.Serialize(detachedDrawing))!;
+            var frozen = EditorSnapshotSerializer.Serialize(detachedDrawing);
+            var reopened = EditorSnapshotSerializer.Deserialize(frozen);
+            Assert.Equal(frozen, EditorSnapshotSerializer.Serialize(reopened));
+            Assert.Equal(detachedDrawing.Assignments, reopened.Assignments);
+            Assert.All(WorkspaceStructureEditor.Describe(reopened).Devices, x => Assert.Null(x.PhysicalGuid));
             Assert.True(reopened.Diagrams.Single().DrawingUnlinked);
             var current = WorkspaceStructureEditor.Describe(reopened).Devices[0];
             var relinked = WorkspaceStructureEditor.RebindDevice(reopened, current,
