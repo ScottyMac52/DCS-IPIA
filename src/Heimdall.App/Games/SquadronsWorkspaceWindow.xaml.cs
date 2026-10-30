@@ -609,7 +609,8 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             var command = CommandPicker.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
-            if (_selection.CommandId != command?.Id) SelectionEditor.AssignmentDraftStatus.Text = "";
+            if (_selection.CommandId != command?.Id)
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
             _selection.SelectCommand(command?.Id);
             _focusedConcept = null;
             _inspectedControl = null;

@@ -55,6 +55,13 @@ namespace Heimdall.Squadrons
         }
         /// <summary>Gets active, retained and adapter-supplied records for authoring, never for assignment display.</summary>
         public IReadOnlyList<SquadronsBindingRow> ReadAssignableBindings(ProfileDocument profile) => AssignableBindings(Evidence(profile));
+        /// <summary>Distinguishes user binding evidence from factory authoring defaults, including cleared archived records.</summary>
+        internal bool HasCapturedJoystickConcept(ProfileDocument profile, string concept)
+        {
+            var evidence = Evidence(profile);
+            return new SquadronsNativeDocument(evidence.Text).Bindings.Concat(SquadronsTemplateArchive.Read(evidence.Templates))
+                .Any(row => row.Type == 3 && row.Concept == concept);
+        }
         /// <summary>Recovers templates from an explicit native capture without changing active bindings or controller declarations.</summary>
         public ProfileDocument ImportAssignmentTemplates(ProfileDocument profile, IReadOnlyDictionary<string, string> sources)
         {

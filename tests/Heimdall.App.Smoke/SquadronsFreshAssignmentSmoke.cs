@@ -14,7 +14,7 @@ namespace Heimdall.App.Smoke
     internal static class SquadronsFreshAssignmentSmoke
     {
         #region BEGIN Public
-        /// <summary>Uses the real workspace drop route and verifies isolated, persisted paired-axis creation.</summary>
+        /// <summary>Creates Shield Front and a paired axis through real drops from an empty table, then saves and reopens.</summary>
         internal static void Verify()
         {
             var root = Path.Combine(Path.GetTempPath(), "squadrons-fresh-smoke-" + Guid.NewGuid().ToString("N"));
@@ -25,12 +25,14 @@ namespace Heimdall.App.Smoke
                 var device = new DetectedDcsDevice(Guid.NewGuid(), "Fresh stick", true, ProductGuid: Guid.NewGuid());
                 var discovery = new GameSmokeDiscovery(device);
                 discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map(
-                    [new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 2u, "Y axis")]);
+                    [new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 2u, "Y axis"),
+                     new(Guid.NewGuid(), 4u | (4u << 8), "Button 5")]);
                 var axis = new HardwareGraphicControl("axis", "Y axis", "JOY_Y", 10, 10, 100, 40, true);
+                var button = new HardwareGraphicControl("button5", "Button 5", "JOY_BTN5", 10, 70, 100, 40);
                 var drawing = new UiLayerDiagram("Synthetic", null, "fixture", 200, 200, [], [])
                 {
                     Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"/>",
-                    Controls = [axis]
+                    Controls = [axis, button]
                 };
                 var hardware = new WorkspaceHardware("fresh", "Fresh drawing", "fixture.lua", drawing);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
@@ -54,15 +56,22 @@ namespace Heimdall.App.Smoke
                 ThemeControlSmoke.Pump(window);
                 var commands = (ListBox)Box<GameCommandBrowserView>(window, "CommandBrowser").FindName("CommandsList");
                 var pitch = commands.Items.Cast<SimCommand>().Single(x => x.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptPitch");
+                var shield = commands.Items.Cast<SimCommand>().Single(x => x.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptShieldFront");
+                window.DrawingInteractions().Drop!(button, shield.Id);
+                var first = backend.ReadBindings(window.Session.Snapshot.Profile);
+                if (first.Count != 1 || first[0].Concept != shield.Metadata["squadrons.concept"] ||
+                    first[0].Input?.Key != "JOY_BTN5" || first[0].Fields["identifier"] != 0 || first[0].DeviceId != 1)
+                    throw new InvalidOperationException("Blank-slate Shield Front assignment required a prepared game binding or failed to retain its custom record.");
                 window.DrawingInteractions().Drop!(axis, pitch.Id);
                 var rows = backend.ReadBindings(window.Session.Snapshot.Profile);
-                if (rows.Count != 2 || rows.Any(x => x.Concept != pitch.Metadata["squadrons.concept"] || x.DeviceId != 1 || x.Input?.Key != "JOY_Y"))
+                var pitchRows = rows.Where(x => x.Concept == pitch.Metadata["squadrons.concept"]).ToArray();
+                if (rows.Count != 3 || pitchRows.Length != 2 || pitchRows.Any(x => x.DeviceId != 1 || x.Input?.Key != "JOY_Y"))
                     throw new InvalidOperationException("Fresh drawing drop failed to create the requested axis pair.");
                 if (!window.SaveProfile()) throw new InvalidOperationException("Fresh axis assignment could not be saved.");
                 var id = window.Session.Snapshot.Id;
                 window.Close();
                 using var reopened = new SquadronsWorkspaceWindow(services, id, () => MessageBoxResult.No, drawings: [hardware]);
-                if (backend.ReadBindings(reopened.Session!.Snapshot.Profile).Count != 2)
+                if (backend.ReadBindings(reopened.Session!.Snapshot.Profile).Count != 3)
                     throw new InvalidOperationException("Fresh axis assignment did not survive workspace reopen.");
             }
             finally { EditionAccess.SetForTests(previous); if (Directory.Exists(root)) Directory.Delete(root, true); }

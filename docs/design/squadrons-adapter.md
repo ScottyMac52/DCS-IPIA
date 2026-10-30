@@ -94,6 +94,16 @@ The desktop shows decoded inputs (including continuous Z-axis directions), captu
 slot ownership and individual indexed records. It does not claim that a saved slot
 was detected by Squadrons or that every connected device can be acquired together.
 
+## Blank-slate command creation
+
+A fresh profile with declared controllers and no binding rows supports every
+known catalog command directly in HEIMDALL, including Shield Front/Back/Balance.
+No game-side seed binding or personal template import is required. The adapter
+supplies 149 native descriptors for the 125 known concepts and materializes only
+the explicitly requested assignment. Existing/archived user evidence takes
+precedence over factory alternatives. See
+[descriptor provenance and game-validation limits](squadrons-custom-record-provenance.md).
+
 ## Physical controller links
 
 1. Select a numbered captured slot under **Captured controllers**. **All devices and

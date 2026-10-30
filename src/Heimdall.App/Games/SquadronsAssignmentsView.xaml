@@ -31,7 +31,8 @@
     <Grid Grid.Column="2" Margin="6,0,0,0">
      <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="180"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Expander x:Name="CapturedAssignments" Grid.Row="1" Header="Captured assignments and diagnostics" IsExpanded="False" pres:WorkspaceLayout.Key="squadrons.assignments.table"><Grid MaxHeight="170">
-    <DataGrid x:Name="BindingsGrid"  AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" AutomationProperties.Name="Squadrons assignments">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <DataGrid x:Name="BindingsGrid" MaxHeight="170" AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" AutomationProperties.Name="Squadrons assignments">
      <DataGrid.ContextMenu>
       <ContextMenu>
        <MenuItem x:Name="EditNativeRecordItem" Header="Select command and input"/>
@@ -48,7 +49,7 @@
       <DataGridTextColumn x:Name="BindingColumn" Header="Binding" Binding="{Binding BindingLabel}" Width="85" Visibility="Collapsed"/>
      </DataGrid.Columns>
     </DataGrid>
-    <TextBlock x:Name="EmptyState"  Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460"/>
+    <TextBlock x:Name="EmptyState" Grid.Row="1" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" HorizontalAlignment="Center" MaxWidth="460"/>
     </Grid></Expander>
     <Expander x:Name="DrawingPanel" Grid.Row="0" Header="Controller drawing" IsExpanded="True" Margin="0,8,0,0">
      <Grid Margin="0,6,0,0" MinHeight="0" ClipToBounds="True">

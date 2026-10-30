@@ -131,14 +131,19 @@ specific empty-table state without modifying its text; versioned tables must sti
 be version four and complete. The first explicit assignment adds the version-four
 marker and only the requested joystick record(s).
 
-The adapter embeds 95 joystick record templates extracted from the complete table
-written by Squadrons after the first Sol-R Pitch assignment. The source captures
-were supplied on 2026-10-29: the fresh 1,951-byte file and `SOL-R.PITCH`. Pitch's
-identifiers agree with the earlier independent capture despite moving from slot
-three to slot seven. The embedded data contains no personal settings or controller
-names; template device references are normalized and always replaced by the
-explicitly selected, verified target. This is command metadata, not active default
-assignments. Unknown identifiers are not calculated or borrowed across concepts.
+The adapter embeds 149 joystick descriptors covering every one of the 125 known
+catalog concepts. The original 95 factory records retain their identifiers and
+negate fields. The supplement includes observed zero-identifier custom records,
+including Shield Front, plus custom descriptors for the remaining known digital
+concepts. See [custom-record provenance](squadrons-custom-record-provenance.md) for
+the exact evidence, the generalized format and pending real-game acceptance.
+Template device references and physical inputs are replaced by the explicitly
+selected, verified target; descriptors are not active default assignments.
+
+When factory metadata offers multiple alternatives, fresh authoring chooses one
+canonical digital record or complete axis family. This preference never applies
+to existing or archived user joystick records. A blank-slate regression now walks
+the full catalog rather than checking only a few commands.
 
 Captured records and workspace archives take precedence. Adapter templates are
 offered only for concepts with no existing joystick records; incomplete captured
@@ -148,7 +153,7 @@ Digital button and POV controls can replace each other through this path.
 Import, catalog inspection and hardware enumeration never materialize assignments.
 
 A user need not configure controls in Squadrons or import a personal template file
-before assigning a supported command. Hardware enumeration provides valid physical
+before assigning any of the 125 known commands. Hardware enumeration provides valid physical
 inputs; explicit workspace links associate the intended device with its native
 slot. The catalog and templates remain simulator-owned and independent of hardware
 names and ordering. This does not claim that every known command has verified

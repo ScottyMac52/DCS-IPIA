@@ -25,6 +25,8 @@ namespace Heimdall.Squadrons
             var plan = SquadronsAssignmentPlanner.For(backend, profile, concept);
             var input = SquadronsInputCodec.FromDrawing(physicalKey, isAxis);
             var records = backend.ReadAssignableBindings(profile);
+            if (!backend.HasCapturedJoystickConcept(profile, concept))
+                records = FactoryRecords(records.Where(row => row.Concept == concept), input.Type == CommandType.Axis);
             if (input.Type == CommandType.Axis)
             {
                 var positive = SquadronsAssignmentTarget.Find(records, plan.EditableRecordIds, input with { Direction = 1 }, slot - 1);
@@ -37,5 +39,20 @@ namespace Heimdall.Squadrons
             return new(concept, input, record?.RecordId);
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static IReadOnlyList<SquadronsBindingRow> FactoryRecords(IEnumerable<SquadronsBindingRow> records, bool axis)
+        {
+            if (!axis)
+                return records.Where(row => row.Input?.Type is CommandType.Button or CommandType.Hat)
+                    .OrderBy(row => row.Fields["negate"]).ThenBy(row => row.Index).Take(1).ToArray();
+            // Factory alternatives describe possible defaults, not multiple user assignments.
+            // Choose one complete native physical-axis family, retaining both original identifiers.
+            return records.Where(row => row.Input?.Type == CommandType.Axis)
+                .GroupBy(row => row.Input!.PhysicalKey, StringComparer.Ordinal)
+                .Where(group => group.Count(row => row.Input!.Direction == 1) == 1 &&
+                    group.Count(row => row.Input!.Direction == -1) == 1)
+                .OrderBy(group => group.Min(row => row.Index)).FirstOrDefault()?.ToArray() ?? [];
+        }
+        #endregion END private helpers
     }
 }

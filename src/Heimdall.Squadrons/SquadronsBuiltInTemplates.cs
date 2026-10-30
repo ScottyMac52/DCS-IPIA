@@ -11,7 +11,23 @@ namespace Heimdall.Squadrons
             var rows = captured.ToArray();
             var concepts = rows.Where(x => x.Type == 3).Select(x => x.Concept).ToHashSet(StringComparer.Ordinal);
             var addresses = rows.Select(x => x.RecordId).ToHashSet(StringComparer.Ordinal);
-            return rows.Concat(Records.Where(x => !concepts.Contains(x.Concept) && !addresses.Contains(x.RecordId))).ToArray();
+            var result = rows.ToList();
+            foreach (var template in Records.Where(x => !concepts.Contains(x.Concept)))
+            {
+                var row = template;
+                if (addresses.Contains(row.RecordId))
+                {
+                    // Identifier zero is the native custom-record form. Append it
+                    // after occupied system addresses instead of replacing them.
+                    // Fixed factory identifiers retain their exact native address.
+                    if (row.Fields["identifier"] != 0) continue;
+                    var index = result.Where(x => x.Concept == row.Concept).Select(x => x.Index).DefaultIfEmpty(-1).Max() + 1;
+                    if (index >= 128) continue;
+                    row = row with { Index = index };
+                }
+                if (addresses.Add(row.RecordId)) result.Add(row);
+            }
+            return result;
         }
         #endregion END Public
         #region BEGIN private helpers

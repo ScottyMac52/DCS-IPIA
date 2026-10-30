@@ -13,7 +13,7 @@ namespace Heimdall.App.Smoke
     public static class SquadronsAssignmentViewSmoke
     {
         #region BEGIN Public
-        /// <summary>Verifies clean flight defaults, accessible raw records, numeric slot order, full command space and unchanged exports.</summary>
+        /// <summary>Verifies clean defaults, explicit flight filtering, accessible raw records, numeric slot order and unchanged exports.</summary>
         public static void Verify()
         {
             var root = Path.Combine(Path.GetTempPath(), "squadrons-layout-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
@@ -37,8 +37,13 @@ namespace Heimdall.App.Smoke
                 ThemeControlSmoke.Pump(window);
                 var review = Box<CheckBox>(window, "ReviewCaptured"); var setup = Box<Expander>(window, "ControllerSetup");
                 var section = Box<ComboBox>(window, "SectionPicker"); var grid = Box<DataGrid>(window, "BindingsGrid");
-                if (review.IsChecked != false || section.SelectedItem as string != "Flight" || grid.Items.Count != 0 || !Box<TextBlock>(window, "EmptyState").IsVisible)
+                if (review.IsChecked != false || section.SelectedItem as string != "All" || grid.Items.Count != 0 || !Box<TextBlock>(window, "EmptyState").IsVisible)
                     throw new InvalidOperationException("The normal view opened as a raw-record dump or failed to explain unverified hardware.");
+                var empty = Box<TextBlock>(window, "EmptyState");
+                var panel = (UIElement)(grid.Parent ?? throw new InvalidOperationException("The assignment table has no layout parent."));
+                if (empty.TranslatePoint(new Point(0, 0), panel).Y <
+                    grid.TranslatePoint(new Point(0, grid.ActualHeight), panel).Y)
+                    throw new InvalidOperationException("The empty assignment message overlapped the table or its column headings.");
                 var devices = Box<ListBox>(window, "DevicePicker");
                 if (devices.Items.Cast<GameDeviceChoice>().Where(x => x.Id.StartsWith("squadrons.joystick.", StringComparison.Ordinal)).Select(x => x.Id).Last() != "squadrons.joystick.10")
                     throw new InvalidOperationException("Slot ten appeared before lower-numbered slots.");
@@ -47,6 +52,7 @@ namespace Heimdall.App.Smoke
                 setup.IsExpanded = true; Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device;
                 Box<Button>(window, "LinkControllerButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); setup.IsExpanded = false;
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
+                section.SelectedItem = "Flight";
                 ThemeControlSmoke.Pump(window);
                 if (grid.Items.Count != 2 || grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Supported physical input (slot unconfirmed)" || x.Section != "Flight"))
                     throw new InvalidOperationException("Normal flight view included incompatible, unverified or menu records.");
@@ -66,8 +72,8 @@ namespace Heimdall.App.Smoke
                 review.IsChecked = false;
                 if (grid.Items.Cast<SquadronsWorkspaceRow>().Any(x => x.HardwareStatus != "Supported physical input (slot unconfirmed)")) throw new InvalidOperationException("Leaving review retained raw incompatible records.");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
-                if (grid.Items.Count != 0 || Box<StackPanel>(window, "AssignmentEditor").IsVisible)
-                    throw new InvalidOperationException("An unlinked controller showed raw controls or an empty editor.");
+                if (grid.Items.Count != 0 || Box<ComboBox>(window, "InputPicker").IsEnabled || Box<Button>(window, "ApplyButton").IsEnabled)
+                    throw new InvalidOperationException("An unlinked controller exposed raw assignments or enabled unverified authoring.");
                 if (window.Session!.Export().Files[SquadronsProfileBackend.FileName] != source) throw new InvalidOperationException("Presentation filtering changed native records.");
                 window.Close();
             }
