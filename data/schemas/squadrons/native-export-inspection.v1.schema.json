@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Squadrons native file inspection model v1",
+  "description": "Parsed view of native text. Schema validity does not prove Squadrons acceptance. Native game exports remain text, not JSON.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "inputDataVersion",
+    "settings",
+    "devices",
+    "bindings"
+  ],
+  "properties": {
+    "format": {
+      "const": "squadrons-native-inspection-v1"
+    },
+    "inputDataVersion": {
+      "enum": [
+        4,
+        null
+      ]
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[^\\r\\n\\u0000]*$"
+      }
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot",
+          "name"
+        ],
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Current adapter range; not a verified game limit."
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[^\\r\\n\\u0000]*$"
+          }
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "concept",
+          "index",
+          "fields"
+        ],
+        "properties": {
+          "concept": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\s]+$"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "fields": {
+            "type": "object",
+            "required": [
+              "altbutton",
+              "axis",
+              "button",
+              "deviceid",
+              "identifier",
+              "modifier",
+              "negate",
+              "type"
+            ],
+            "properties": {
+              "altbutton": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "axis": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "button": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "deviceid": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "identifier": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "modifier": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "negate": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              },
+              "type": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              }
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "inputDataVersion": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bindings": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

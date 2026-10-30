@@ -1,0 +1,3796 @@
+{
+  "schemaVersion": 1,
+  "scope": "Current HEIMDALL catalog; not a claim of complete game coverage.",
+  "source": "src/Heimdall.Squadrons/Data/JoystickTemplates_v4",
+  "sourceSha256": "7f1fefc8aca74cfa9b133f3922bd670901a6111d9029c323fdc716e116ea27b9",
+  "catalogSha256": "06afdebd1062ea2c7975e0fc466db792c500f42c520a28a1f8ee48f8937bd092",
+  "codecSha256": "e45d0b8b5c91fa98805886170eb409beca75d03cce9f3883e02b4694a8fab025",
+  "commandCount": 125,
+  "recordCount": 149,
+  "gameAcceptance": "unverified",
+  "commands": [
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptActivate",
+      "displayName": "Activate",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -1683348837,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptButtonSelect",
+      "displayName": "Button Select",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 29,
+            "deviceid": 0,
+            "identifier": 1196017396,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN8",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptButtonStart",
+      "displayName": "Button Start",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 32,
+            "deviceid": 0,
+            "identifier": -435720898,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN11",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptConversationSkip",
+      "displayName": "Conversation Skip",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": -642499389,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptDeactivate",
+      "displayName": "Deactivate",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 23,
+            "deviceid": 0,
+            "identifier": 764589415,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN2",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptEdit",
+      "displayName": "Edit",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 24,
+            "deviceid": 0,
+            "identifier": -1434121357,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN3",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptLegend",
+      "displayName": "Legend",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 30,
+            "deviceid": 0,
+            "identifier": 444330796,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN9",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMenu",
+      "displayName": "Menu",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMenuDigitalLeft",
+      "displayName": "Menu Digital Left",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 31,
+            "deviceid": 0,
+            "identifier": -1396011426,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN10",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMenuDigitalRight",
+      "displayName": "Menu Digital Right",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 32,
+            "deviceid": 0,
+            "identifier": -1878336071,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN11",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMenuExit",
+      "displayName": "Menu Exit",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 23,
+            "deviceid": 0,
+            "identifier": 344739942,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN2",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMoveBackward",
+      "displayName": "Move Backward",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 638567299,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMoveForward",
+      "displayName": "Move Forward",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -2130634748,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMoveLeft",
+      "displayName": "Move Left",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": 83398727,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptMoveRight",
+      "displayName": "Move Right",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": 48561519,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptPageLeft",
+      "displayName": "Page Left",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 31,
+            "deviceid": 0,
+            "identifier": 991249319,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN10",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptParentNavigateLeft",
+      "displayName": "Parent Navigate Left",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 26,
+            "deviceid": 0,
+            "identifier": 1255980401,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN5",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptParentNavigateRight",
+      "displayName": "Parent Navigate Right",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 27,
+            "deviceid": 0,
+            "identifier": 226234139,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN6",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptPushTalk",
+      "displayName": "Push Talk",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 27,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN6",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptReady",
+      "displayName": "Ready",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 33,
+            "deviceid": 0,
+            "identifier": 2082667952,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN12",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptScrollDown",
+      "displayName": "Scroll Down",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptScrollUp",
+      "displayName": "Scroll Up",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraFOVChange",
+      "displayName": "Spectator Camera FOVChange",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 27,
+            "deviceid": 0,
+            "identifier": -2144052360,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN6",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": -1829474185,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraMovementZ",
+      "displayName": "Spectator Camera Movement Z",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 27,
+            "deviceid": 0,
+            "identifier": 1269415344,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN6",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": -1361299829,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraPitch",
+      "displayName": "Spectator Camera Pitch",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 9,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -916314198,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 11,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -103442765,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraReset",
+      "displayName": "Spectator Camera Reset",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 3,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 30,
+            "deviceid": 0,
+            "identifier": -2003102189,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN9",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraRoll",
+      "displayName": "Spectator Camera Roll",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 46,
+            "deviceid": 0,
+            "identifier": -1622871729,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 47,
+            "deviceid": 0,
+            "identifier": 2106438104,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraRollActivate",
+      "displayName": "Spectator Camera Roll Activate",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 29,
+            "deviceid": 0,
+            "identifier": -157683014,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN8",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraSwapPlayerMode",
+      "displayName": "Spectator Camera Swap Player Mode",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 3,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 26,
+            "deviceid": 0,
+            "identifier": -1602788356,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN5",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorCameraYaw",
+      "displayName": "Spectator Camera Yaw",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 8,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -767360497,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_X +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 10,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -1444485031,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_X -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorChangeCategory",
+      "displayName": "Spectator Change Category",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 24,
+            "deviceid": 0,
+            "identifier": -1232516067,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN3",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorChangeRestriction",
+      "displayName": "Spectator Change Restriction",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": -477223914,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": -614556604,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorHudVisibility",
+      "displayName": "Spectator Hud Visibility",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 28,
+            "deviceid": 0,
+            "identifier": -1473630546,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN7",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorLookAt",
+      "displayName": "Spectator Look At",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -911788865,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorNextPOI",
+      "displayName": "Spectator Next POI",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 3,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": -1271706812,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptSpectatorPreviousPOI",
+      "displayName": "Spectator Previous POI",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 3,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -1565581809,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptStatusBar",
+      "displayName": "Status Bar",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 28,
+            "deviceid": 0,
+            "identifier": 904521415,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN7",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptTeamChat",
+      "displayName": "Team Chat",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptToggleChat",
+      "displayName": "Toggle Chat",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptVRRecenterCamera",
+      "displayName": "VRRecenter Camera",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomDefaultInputConcepts.ConceptView",
+      "displayName": "View",
+      "context": "IncomDefaultInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": 974522711,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptCameraPitch",
+      "displayName": "Camera Pitch",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 8,
+          "fields": {
+            "altbutton": 0,
+            "axis": 9,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -2058414910,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 9,
+          "fields": {
+            "altbutton": 0,
+            "axis": 11,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -234493193,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptCameraYaw",
+      "displayName": "Camera Yaw",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 8,
+          "fields": {
+            "altbutton": 0,
+            "axis": 8,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -1643113159,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_X +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 9,
+          "fields": {
+            "altbutton": 0,
+            "axis": 10,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": 1762963109,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_X -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 10,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 46,
+            "deviceid": 0,
+            "identifier": -1127451812,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 11,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 47,
+            "deviceid": 0,
+            "identifier": -866719655,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptCommMenuX",
+      "displayName": "Comm Menu X",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": -876334308,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": 834444096,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptCommMenuY",
+      "displayName": "Comm Menu Y",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -718970769,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": -1674479850,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptEmoteWheel",
+      "displayName": "Emote Wheel",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 29,
+            "deviceid": 0,
+            "identifier": 817517482,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN8",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomSoldierInputConcepts.ConceptInteract",
+      "displayName": "Interact",
+      "context": "IncomSoldierInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 1526769820,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptAfterburner",
+      "displayName": "Afterburner",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 30,
+            "deviceid": 0,
+            "identifier": 64865361,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN9",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCameraPitch",
+      "displayName": "Camera Pitch",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 9,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": 513486345,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 11,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -62905996,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCameraYaw",
+      "displayName": "Camera Yaw",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 8,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": 1734474325,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_X +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 10,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": 1276771707,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_X -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenu",
+      "displayName": "Comm Menu",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 29,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN8",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuBattleCry",
+      "displayName": "Comm Menu Battle Cry",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuBoo",
+      "displayName": "Comm Menu Boo",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuBrag",
+      "displayName": "Comm Menu Brag",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuCheer",
+      "displayName": "Comm Menu Cheer",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuHelpMe",
+      "displayName": "Comm Menu Help Me",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuPraise",
+      "displayName": "Comm Menu Praise",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuRegroup",
+      "displayName": "Comm Menu Regroup",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuSelect",
+      "displayName": "Comm Menu Select",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 787464996,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuThank",
+      "displayName": "Comm Menu Thank",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuX",
+      "displayName": "Comm Menu X",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": 1924735743,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": -1130268336,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommMenuY",
+      "displayName": "Comm Menu Y",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -1045254055,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 4887157,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptCommunication",
+      "displayName": "Communication",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 29,
+            "deviceid": 0,
+            "identifier": -1489294568,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN8",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptContextualInteraction",
+      "displayName": "Contextual Interaction",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -1942879182,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptControlBalancePower",
+      "displayName": "Control Balance Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 65428435,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptControlEnginePower",
+      "displayName": "Control Engine Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": -1312003061,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptControlShieldPower",
+      "displayName": "Control Shield Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": 387166947,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptControlWeaponPower",
+      "displayName": "Control Weapon Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -1407674097,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptDrift",
+      "displayName": "Drift",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptEmergencyPowerTransferBalance",
+      "displayName": "Emergency Power Transfer Balance",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptEmergencyPowerTransferEngine",
+      "displayName": "Emergency Power Transfer Engine",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 76,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN31",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptEmergencyPowerTransferWeapon",
+      "displayName": "Emergency Power Transfer Weapon",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 75,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN30",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFire",
+      "displayName": "Fire",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -187024414,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponOneDoubleTap",
+      "displayName": "Fire Auxiliary Weapon One Double Tap",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponOneMain",
+      "displayName": "Fire Auxiliary Weapon One Main",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 0,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 24,
+            "deviceid": 0,
+            "identifier": 908351374,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN3",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponTwoDoubleTap",
+      "displayName": "Fire Auxiliary Weapon Two Double Tap",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponTwoMain",
+      "displayName": "Fire Auxiliary Weapon Two Main",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 25,
+            "deviceid": 0,
+            "identifier": 211804420,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN4",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFireCountermeasure",
+      "displayName": "Fire Countermeasure",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 27,
+            "deviceid": 0,
+            "identifier": -1264367051,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN6",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLook",
+      "displayName": "Free Look",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 0,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 33,
+            "deviceid": 0,
+            "identifier": 1530351974,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN12",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLookCameraDown",
+      "displayName": "Free Look Camera Down",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 71,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN26",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLookCameraLeft",
+      "displayName": "Free Look Camera Left",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 72,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN27",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLookCameraRight",
+      "displayName": "Free Look Camera Right",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 70,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN25",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLookCameraUp",
+      "displayName": "Free Look Camera Up",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 69,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN24",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptFreeLookTrigger",
+      "displayName": "Free Look Trigger",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptIncreaseEnginePower",
+      "displayName": "Increase Engine Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptIncreaseShieldPower",
+      "displayName": "Increase Shield Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptIncreaseWeaponPower",
+      "displayName": "Increase Weapon Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptMaximizeEnginePower",
+      "displayName": "Maximize Engine Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptMaximizeShieldPower",
+      "displayName": "Maximize Shield Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptMaximizeWeaponPower",
+      "displayName": "Maximize Weapon Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptMouseRecenter",
+      "displayName": "Mouse Recenter",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPingSelf",
+      "displayName": "Ping Self",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 30,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN9",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPitch",
+      "displayName": "Pitch",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 11,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": 1573114849,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 9,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -743371054,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_Y -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPowerTransfer",
+      "displayName": "Power Transfer",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 28,
+            "deviceid": 0,
+            "identifier": 548533166,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN7",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPowerTransferMenuSelect",
+      "displayName": "Power Transfer Menu Select",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -1648477946,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPowerTransferMenuX",
+      "displayName": "Power Transfer Menu X",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": -1032783050,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": 1210935307,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptPowerTransferMenuY",
+      "displayName": "Power Transfer Menu Y",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": 1633069106,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 151637546,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptResetSystemsPower",
+      "displayName": "Reset Systems Power",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptRoll",
+      "displayName": "Roll",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 46,
+            "deviceid": 0,
+            "identifier": -1956034971,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 47,
+            "deviceid": 0,
+            "identifier": 2085148532,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_RZ -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptScoreboard",
+      "displayName": "Scoreboard",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 23,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN2",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptShieldBack",
+      "displayName": "Shield Back",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 73,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN28",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptShieldBalance",
+      "displayName": "Shield Balance",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 26,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN5",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptShieldFront",
+      "displayName": "Shield Front",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 74,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN29",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetCycle",
+      "displayName": "Target Cycle",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 26,
+            "deviceid": 0,
+            "identifier": -1408842,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN5",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetCycleNext",
+      "displayName": "Target Cycle Next",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetHighestThreat",
+      "displayName": "Target Highest Threat",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetPing",
+      "displayName": "Target Ping",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 28,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN7",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetSelect",
+      "displayName": "Target Select",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 23,
+            "deviceid": 0,
+            "identifier": -123319776,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN2",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargeting",
+      "displayName": "Targeting",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenu",
+      "displayName": "Targeting Menu",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 31,
+            "deviceid": 0,
+            "identifier": -1026585835,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN10",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleAllAllies",
+      "displayName": "Targeting Menu Cycle All Allies",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleAllEnemies",
+      "displayName": "Targeting Menu Cycle All Enemies",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 86,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN41",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleEnemyAI",
+      "displayName": "Targeting Menu Cycle Enemy AI",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleEnemySquadron",
+      "displayName": "Targeting Menu Cycle Enemy Squadron",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleFlagshipSystems",
+      "displayName": "Targeting Menu Cycle Flagship Systems",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleLastAttackers",
+      "displayName": "Targeting Menu Cycle Last Attackers",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleMissiles",
+      "displayName": "Targeting Menu Cycle Missiles",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleMySquadron",
+      "displayName": "Targeting Menu Cycle My Squadron",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleObjectives",
+      "displayName": "Targeting Menu Cycle Objectives",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuCycleTargetAttackers",
+      "displayName": "Targeting Menu Cycle Target Attackers",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 1,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": 0,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-zero-identifier-mixed-observed-and-generalized",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuSelectTargetingMethod",
+      "displayName": "Targeting Menu Select Targeting Method",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Button"
+      ],
+      "records": [
+        {
+          "index": 2,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 22,
+            "deviceid": 0,
+            "identifier": -481496825,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_BTN1",
+          "adapterType": "Button",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuX",
+      "displayName": "Targeting Menu X",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 51,
+            "deviceid": 0,
+            "identifier": -295781848,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_R",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 50,
+            "deviceid": 0,
+            "identifier": 1703690200,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_L",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptTargetingMenuY",
+      "displayName": "Targeting Menu Y",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Hat"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 48,
+            "deviceid": 0,
+            "identifier": -2112138904,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_U",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 49,
+            "deviceid": 0,
+            "identifier": 1474946904,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_POV1_D",
+          "adapterType": "Hat",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptThrottle",
+      "displayName": "Throttle",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 4,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 15,
+            "deviceid": 0,
+            "identifier": -453871199,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_SLIDER1 -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 5,
+          "fields": {
+            "altbutton": 0,
+            "axis": 26,
+            "button": 14,
+            "deviceid": 0,
+            "identifier": 973687430,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_SLIDER1 +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    },
+    {
+      "concept": "IncomStarshipInputConcepts.ConceptYaw",
+      "displayName": "Yaw",
+      "context": "IncomStarshipInputConcepts",
+      "adapterTypes": [
+        "Axis"
+      ],
+      "records": [
+        {
+          "index": 6,
+          "fields": {
+            "altbutton": 0,
+            "axis": 8,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -550690360,
+            "modifier": 0,
+            "negate": 0,
+            "type": 3
+          },
+          "adapterInput": "JOY_X +",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        },
+        {
+          "index": 7,
+          "fields": {
+            "altbutton": 0,
+            "axis": 10,
+            "button": 174,
+            "deviceid": 0,
+            "identifier": -109675461,
+            "modifier": 0,
+            "negate": 1,
+            "type": 3
+          },
+          "adapterInput": "JOY_X -",
+          "adapterType": "Axis",
+          "evidenceClass": "bundled-nonzero-identifier",
+          "gameAcceptance": "unverified"
+        }
+      ]
+    }
+  ]
+}
