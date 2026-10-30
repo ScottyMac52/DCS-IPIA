@@ -16,7 +16,7 @@ presenter, command browser, lifecycle code or viewport implementation.
 | Known and imported command catalog, including unbound commands | `GameCommandBrowserView`, native `SquadronsCommandFilter`, shared `GameAssignmentSelection` |
 | Explicit drawing choice for a physically linked captured slot | Installed shared catalog; persisted `GameProfileSession.ChangeDrawing` pin; hide and table-only fallback |
 | Drawing labels, partial native axes and collisions | Existing simulator-owned `SquadronsDrawingProjection`; common `HardwareDiagramPresenter` |
-| Click and drag native authoring | One `SquadronsDrawingAssignment` plan in the simulator adapter; verified isolated session operations |
+| Click selection, Apply and drag authoring | Clicking selects without writing. Apply and drag share one `SquadronsDrawingAssignment` plan and verified session operation |
 | Whole analog axis | Both unambiguous native direction records required; one atomic `RebindNativeAxisPair`; identifier and negate remain native |
 | Reviewed clear and native slot renumbering/removal | Existing preview/apply session boundary; shared `GameControllerReordering` with joystick-only eligibility |
 | Native record inspector | Existing verified device/input fields inside `GameAssignmentEditorView`; read-only system input inspection |
@@ -38,6 +38,35 @@ explicit set atomically; cancel or validation failure leaves the draft unchanged
 The table still supports selecting one specific native record to clear. Squadrons axis
 tuning is unsupported and is not advertised as an action. Unknown native record
 creation still fails through the adapter's existing verified-template validation.
+
+## Consistent assignment behavior
+
+Pitch, Roll, Yaw, Throttle and imported analog concepts use the same presentation:
+a complete physical axis has one catalog label in the command browser, record
+command column, drawing and tooltip. An incomplete axis explicitly shows
+`(+ only)` or `(- only)` on both the callout and tooltip. Distinct digital throttle
+Increase/Decrease actions retain their own names. The native direction, identifier
+and negate fields remain unchanged by presentation.
+
+A drawing click selects an input and, when bound, its matching command without
+writing to the draft. **Apply assignment** and dragging a command onto a control
+use the same native plan; normal analog assignment always stages the complete
+pair. Normal input pickers offer one entry per verified physical control.
+Advanced record inspection synchronizes the command browser and editor heading.
+**Apply input to this native record only** and **Clear this native record…** are
+explicit advanced record actions; the former retains that record's axis direction.
+
+The visible command category owns drawing labels, inspection and clear scope.
+The collapsed captured-record context/type/search filters affect only the table.
+A hidden Flight diagnostic filter cannot hide a Hangar assignment from the drawing.
+Selecting a new controller clears pending input and the old destination.
+
+Regression coverage includes generic axis names, partial pairs, digital throttle
+actions, one physical picker entry per axis, non-writing clicks, whole-pair Apply,
+filtered inspection with another command selected, explicit one-record editing and
+Hangar drawing visibility with the diagnostic context set to Flight. The latest
+consistency changes require a fresh .NET build, unit/quality gates and Windows
+smoke run; earlier PR validation does not validate this revision.
 
 ## Shared navigation correction
 
@@ -219,7 +248,7 @@ C# layout diagnostics and unavailable format/CI checks are reported separately.
 - [ ] Import a fresh game capture with no binding table; link a declared slot, choose a drawing, and assign an axis without importing templates. Save/reopen/export and validate both directions in Squadrons.
 - [ ] Import a real Squadrons capture and link the correct captured slot to physical hardware.
 - [ ] Choose a shared drawing; save/reopen; hide/show; confirm a slot without drawing remains usable in the table.
-- [ ] Select a command and assign by callout click, then drag; verify errors for unsupported controls and unknown creation templates.
+- [ ] Select a command, click a callout without changing native bytes, then Apply; repeat by drag; verify errors for unsupported controls and unknown creation templates.
 - [ ] Reassign a full axis and inspect both native direction records; reject a collision without changing the draft.
 - [ ] Change controller with a command selected; confirm callouts, rows and feedback belong to the selected slot.
 - [ ] Review/cancel/accept clear-record and clear-slot operations, reorder slots, and discard to restore source.

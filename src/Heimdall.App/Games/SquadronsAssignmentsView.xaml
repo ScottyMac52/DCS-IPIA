@@ -4,10 +4,10 @@
  <UserControl.Resources><Style x:Key="SquadronsCellText" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style></UserControl.Resources>
 <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" Margin="8,0,0,0" ToolTip="Fit controller drawing to the available pane"/>
 <Button x:Name="ApplyButton" Style="{StaticResource ToolbarActionButton}" Content="Apply assignment" Margin="8,0,0,0"/>
 <Button x:Name="StartInputButton" Style="{StaticResource ToolbarActionButton}" Content="Start input test"/>
 <Button x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
+<Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" ToolTip="Fit controller drawing to the available pane"/>
  </pres:ActionBar>
    <Grid pres:WorkspaceLayout.Key="squadrons.assignments.split">
     <Grid.ColumnDefinitions><ColumnDefinition Width=".38*" MinWidth="230"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".62*" MinWidth="300"/></Grid.ColumnDefinitions>
@@ -25,7 +25,7 @@
       </Expander>
       <TextBlock x:Name="CountText" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
      </StackPanel>
-     <games:GameCommandBrowserView x:Name="CommandBrowser" ToolTip="Select a command, then click an outlined control to assign. Dragging also works."/>
+     <games:GameCommandBrowserView x:Name="CommandBrowser" ToolTip="Click a control to select it, then Apply assignment. Drag a command onto a control to assign directly."/>
     </DockPanel>
     <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" ToolTip="Resize Commands and Assignment workspace"/>
     <Grid Grid.Column="2" Margin="6,0,0,0">
@@ -34,8 +34,9 @@
     <DataGrid x:Name="BindingsGrid"  AutoGenerateColumns="False" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" AutomationProperties.Name="Squadrons assignments">
      <DataGrid.ContextMenu>
       <ContextMenu>
-       <MenuItem x:Name="EditNativeRecordItem" Header="Edit selected assignment"/>
-       <MenuItem x:Name="ClearNativeRecordItem" Header="Clear selected assignment…"/>
+       <MenuItem x:Name="EditNativeRecordItem" Header="Select command and input"/>
+       <MenuItem x:Name="ApplyNativeRecordItem" Header="Apply input to this native record only"/>
+       <MenuItem x:Name="ClearNativeRecordItem" Header="Clear this native record…"/>
       </ContextMenu>
      </DataGrid.ContextMenu>
      <DataGrid.Columns>
@@ -56,7 +57,7 @@
        <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" Margin="12,0,8,0"/>
        <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
 
-       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Select a command, then click or drag onto a control to assign."/>
+       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Click a control to select it, then Apply assignment; or drag a command onto a control."/>
       </WrapPanel>
       <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
            between them can mask the vertically transformed content extent. -->
@@ -74,7 +75,7 @@
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
       <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" AutomationProperties.Name="Squadrons assignment controller"/>
-      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" AutomationProperties.Name="Squadrons assignment input"/>
+      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="PhysicalDisplayName" AutomationProperties.Name="Squadrons assignment input"/>
 
      </WrapPanel>
     </StackPanel>

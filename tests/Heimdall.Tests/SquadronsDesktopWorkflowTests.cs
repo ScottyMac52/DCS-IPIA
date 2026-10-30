@@ -62,8 +62,8 @@ namespace Heimdall.Tests
             var backend = new SquadronsProfileBackend();
             var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
             var rows = SquadronsWorkspaceProjection.Rows(profile);
-            Assert.Contains(rows, x => x.CommandName == "Throttle Increase");
-            Assert.Contains(rows, x => x.CommandName == "Throttle Decrease");
+            Assert.Equal(2, rows.Count(x => x.CommandName == "Throttle"));
+            Assert.All(rows.Where(x => x.Native.Input?.Type == CommandType.Axis), x => Assert.Equal(x.ConceptName, x.CommandName));
             Assert.Equal(2, SquadronsWorkspaceProjection.Filter(rows, "All", "Axes", "", "all").Count);
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "Buttons and hats", "", "all"));
             var preserved = Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "All", "Preserved inputs", "", "all"));

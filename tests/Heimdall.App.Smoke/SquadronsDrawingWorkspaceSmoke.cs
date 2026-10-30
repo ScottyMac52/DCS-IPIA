@@ -30,6 +30,7 @@ namespace Heimdall.App.Smoke
                 discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map(
                 [
                     new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 2u, "Y axis"),
+                    new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2u | (1u << 8), "X axis"),
                     new(Guid.NewGuid(), 4u, "Button 1"), new(Guid.NewGuid(), 4u | (1u << 8), "Button 2")
                 ]);
                 var drawing = new UiLayerDiagram("Synthetic", null, "fixture", 1200, 1600, [], [])
@@ -79,8 +80,12 @@ namespace Heimdall.App.Smoke
                 var border = canvas.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl { Control: "button2" });
                 border.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
                 var backend = new SquadronsProfileBackend();
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != source ||
+                    Box<ComboBox>(window, "InputPicker").SelectedItem is not SquadronsInput { Key: "JOY_BTN2" })
+                    throw new InvalidOperationException("A callout click edited the profile instead of selecting its physical input.");
+                Click(window, "ApplyButton");
                 if (backend.ReadBindings(window.Session.Snapshot.Profile).Single(x => x.Concept.EndsWith("ConceptFire", StringComparison.Ordinal)).Input?.Key != "JOY_BTN2")
-                    throw new InvalidOperationException("Clicking a shared callout failed to stage the selected command.");
+                    throw new InvalidOperationException("Click then Apply did not stage the selected command.");
                 window.Session.Discard();
                 actions.Drop!(button, fire.Id);
                 if (backend.ReadBindings(window.Session.Snapshot.Profile).Single(x => x.Concept.EndsWith("ConceptFire", StringComparison.Ordinal)).Input?.Key != "JOY_BTN2")
@@ -101,8 +106,15 @@ namespace Heimdall.App.Smoke
                 axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 2 ||
+                    editor.AssignmentCommand.Text != "Throttle" ||
+                    (commands.SelectedItem as SimCommand)?.Id != throttle.Id ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeInspect)
-                    throw new InvalidOperationException("Right-click inspection assigned the selected command or lost an axis direction.");
+                    throw new InvalidOperationException("Inspection did not synchronize the command heading, selected record and action target without editing.");
+                VerifyApplyAndContext(window, drawing, actions, backend, throttle, fire, editor);
+                // The checks restore the same Y-axis assignment used by the remaining clear/layout smoke.
+                axisBorder = canvas.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl { Control: "axis" });
+                axisMenu = axisBorder.ContextMenu!;
+                HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
                 var emptyMenu = new ContextMenu();
                 HardwareDiagramPresenter.RefreshMenu(emptyMenu, drawing.Controls[3], actions);
                 if (emptyMenu.Items.OfType<MenuItem>().Any(x => x.Header as string == "Clear assignments…"))
@@ -183,6 +195,56 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        /// <summary>Checks whole-axis Apply, explicit record editing, filtered inspection and visible category ownership.</summary>
+        private static void VerifyApplyAndContext(SquadronsWorkspaceWindow window, UiLayerDiagram drawing,
+            HardwareDiagramInteractions actions, SquadronsProfileBackend backend, SimCommand throttle, SimCommand fire,
+            GameAssignmentEditorView editor)
+        {
+            var browser = Box<GameCommandBrowserView>(window, "CommandBrowser");
+            var commands = (ListBox)browser.FindName("CommandsList");
+            var inputs = Box<ComboBox>(window, "InputPicker");
+            inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_X");
+            Click(window, "ApplyButton");
+            var rows = backend.ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).ToArray();
+            if (rows.Length != 2 || rows.Any(x => x.Input?.Key != "JOY_X" || x.DeviceId != 2) ||
+                rows.Select(x => x.Input!.Direction).Distinct().Count() != 2)
+                throw new InvalidOperationException("Normal Apply split the native axis pair or edited the previously selected Fire command.");
+            window.Session.Discard();
+            actions.Drop!(drawing.Controls[2], throttle.Id);
+
+            commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.Id == fire.Id);
+            browser.CommandSearch.Text = "Fire";
+            var before = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+            actions.Inspect!(drawing.Controls[2]);
+            if (editor.AssignmentCommand.Text != "Throttle" || (commands.SelectedItem as SimCommand)?.Id != throttle.Id ||
+                Box<DataGrid>(window, "BindingsGrid").SelectedItem is not SquadronsWorkspaceRow selected ||
+                selected.Native.Concept != "IncomStarshipInputConcepts.ConceptThrottle" ||
+                window.Session.Export().Files[SquadronsProfileBackend.FileName] != before)
+                throw new InvalidOperationException("Filtered inspection retained another command heading or changed native assignments.");
+            inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_X");
+            Box<MenuItem>(window, "ApplyNativeRecordItem").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            rows = backend.ReadBindings(window.Session.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).ToArray();
+            if (rows.Count(x => x.Input?.Key == "JOY_X") != 1 || rows.Count(x => x.Input?.Key == "JOY_Y") != 1)
+                throw new InvalidOperationException("The explicitly record-scoped advanced action did not retain the other direction.");
+            window.Session.Discard();
+            actions.Drop!(drawing.Controls[2], throttle.Id);
+
+            Box<ComboBox>(window, "SectionPicker").SelectedItem = "Flight";
+            browser.CommandCategoryPicker.SelectedItem = "Hangar & Briefing Room";
+            var camera = commands.Items.Cast<SimCommand>().Single(x => x.Metadata["squadrons.concept"] == "IncomSoldierInputConcepts.ConceptCameraPitch");
+            actions.Drop!(drawing.Controls[3], camera.Id);
+            var canvas = Box<Canvas>(window, "DrawingCanvas");
+            var cameraBorder = canvas.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl { Control: "empty" });
+            if (actions.CanClear!(drawing.Controls[3]) != true ||
+                cameraBorder.ToolTip is not string tooltip || !tooltip.Contains("Camera Pitch", StringComparison.Ordinal))
+                throw new InvalidOperationException("A hidden Flight diagnostic filter hid the Hangar drawing assignment or clear action.");
+            actions.Inspect!(drawing.Controls[3]);
+            if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 2 || editor.AssignmentCommand.Text != camera.DisplayName)
+                throw new InvalidOperationException("Hangar inspection used a hidden diagnostic context instead of the visible command context.");
+            window.Session.Discard();
+            browser.CommandCategoryPicker.SelectedItem = "All";
+            actions.Drop!(drawing.Controls[2], throttle.Id);
+        }
         private static T Box<T>(FrameworkElement window, string name) where T : FrameworkElement => (T)window.FindName(name);
         private static void Click(FrameworkElement window, string name) => Box<Button>(window, name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         private static void SelectDevice(ListBox picker, string id) => picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);

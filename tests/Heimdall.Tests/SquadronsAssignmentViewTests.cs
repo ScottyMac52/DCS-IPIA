@@ -488,8 +488,8 @@ namespace Heimdall.Tests
                 ]
             };
             var throttle = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.5", "Flight");
-            Assert.Equal(2, throttle.Labels["throttle"].Count);
-            Assert.All(throttle.Labels["throttle"], label => Assert.Contains("Throttle", label.Text));
+            Assert.Equal("Throttle", Assert.Single(throttle.Labels["throttle"]).Text);
+            Assert.Equal("Throttle", SquadronsDrawingProjection.AssignmentSummary(drawing.Controls[0], rows, "squadrons.joystick.5", "Flight"));
             Assert.Empty(throttle.Labels["trigger"]);
             Assert.Empty(throttle.Labels["empty"]);
             var trigger = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.3", "Flight");

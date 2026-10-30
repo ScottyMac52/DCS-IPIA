@@ -11,6 +11,14 @@ namespace Heimdall.Squadrons
         public static string PhysicalKey(string key) => key.Replace("JOY_POV", "JOY_BTN_POV", StringComparison.Ordinal);
         /// <summary>Gets independent supported inputs for a desktop picker.</summary>
         public static IReadOnlyList<SquadronsInput> Choices => Inputs.Values.ToArray();
+        /// <summary>Offers each verified physical control once; whole-axis assignment owns both native directions.</summary>
+        public static IReadOnlyList<SquadronsInput> PhysicalChoices(IReadOnlyCollection<string> verifiedKeys)
+        {
+            ArgumentNullException.ThrowIfNull(verifiedKeys);
+            return Choices.Where(x => verifiedKeys.Contains(x.PhysicalKey, StringComparer.Ordinal))
+                .GroupBy(x => x.PhysicalKey, StringComparer.Ordinal)
+                .Select(group => group.OrderByDescending(x => x.Direction).First()).ToArray();
+        }
         /// <summary>Resolves one physical drawing callout to its native input without exposing
         /// codec direction variants as separate physical controls. Existing axis direction
         /// is preserved when rebinding the same physical axis; new axes use the canonical

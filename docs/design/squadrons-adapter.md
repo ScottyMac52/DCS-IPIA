@@ -63,23 +63,23 @@ in-game hardware test, and there is no established device-count limit from these
    Premium and cannot open the workspace or edit/export through session APIs.
 2. Choose **Import controls** and select a captured settings file. Imports are
    bounded, and a failed import retains the current workspace.
-3. Choose a controller, then use context, input-type and search filters to find
-   an assignment. The default **Flight** view shows only inputs compatible with
-   verified linked hardware. A selected controller needs only **Command** and
-   **Input** columns; command names wrap instead of being truncated. Controller
-   choices use numeric slot order and retain slot numbers for duplicate names.
-   **Controller setup** is collapsed until needed for linking/identification.
-   **Review captured records (advanced)** exposes preserved, unverified and
-   incompatible records plus hardware/slot/binding diagnostics. Context and search
-   still apply; select **All** contexts to inspect the full capture. Unlinked or
-   empty views explain how to link/rescan or open capture review. The assignment
-   editor appears after selecting a record.
-4. Select an editable joystick record, its destination captured controller and
-   physical input/direction, then **Apply assignment**. The destination must have
-   an explicit connected physical link and verified input enumeration; the input
-   picker offers only controls actually enumerated on that device. This changes only that
-   native record. Keyboard/mouse/gamepad and unsupported combinations remain
-   visible as preserved records with editing disabled.
+3. On **Devices**, select a controller, identify/link its physical hardware and
+   choose an optional drawing. On **Assignments & Testing**, use the shared
+   command browser to select a command. The visible command category also controls
+   the drawing, its inspection and its clear actions. **Captured assignments and
+   diagnostics** and its record filters are separate advanced disclosures; their
+   filters affect the native record table only. Selecting a record synchronizes
+   its command with the editor heading.
+4. Click a drawing control or choose a verified physical input, then **Apply
+   assignment**. Clicking selects without writing; dragging a command onto a
+   control assigns directly. Apply and drag use the same native plan and update
+   both directions of an analog axis atomically. The normal picker offers each
+   physical axis once. Complete axes use one command label (Pitch, Roll, Yaw,
+   Throttle, or the imported catalog name); incomplete axes keep an explicit
+   direction suffix. Keyboard/mouse/gamepad and unsupported combinations remain
+   read-only. Individual native edits are explicitly named in the advanced record
+   menu: **Apply input to this native record only** preserves its native direction,
+   while **Clear this native record…** removes only that record.
 5. Name and **Save profile**. **Discard changes** restores the saved baseline;
    saved profiles appear in the profile selector and **Continue** reopens the recent
    Squadrons workspace. Save uses the shared optimistic revision check.

@@ -56,7 +56,7 @@ namespace Heimdall.App.Smoke
                 var targets = Box<ComboBox>(window, "TargetDevice"); targets.SelectedItem = targets.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
                 var inputs = Box<ComboBox>(window, "InputPicker"); inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_Z" && x.Direction == 1);
                 Click(window, "ApplyButton");
-                if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Single(x => x.RecordId.EndsWith("Throttle.4", StringComparison.Ordinal)).DeviceId != 9)
+                if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).Any(x => x.DeviceId != 9))
                     throw new InvalidOperationException("The UI did not stage the explicit native controller assignment.");
                 Box<ComboBox>(window, "TypePicker").SelectedItem = "Axes";
                 Box<TextBox>(window, "Search").Text = "Throttle";
