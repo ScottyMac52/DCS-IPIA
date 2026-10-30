@@ -81,6 +81,11 @@ namespace Heimdall.App.Smoke
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
                     throw new InvalidOperationException("Review export scattered controller declarations, lost the TQS occurrence or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
+                var reviewedProfile = new SquadronsProfileBackend().Import("controls", new Dictionary<string, string>
+                    { [SquadronsProfileBackend.FileName] = reviewText });
+                foreach (var group in new SquadronsProfileBackend().ReadBindings(reviewedProfile).GroupBy(row => row.Concept))
+                    if (!group.Select(row => row.Index).Order().SequenceEqual(Enumerable.Range(0, group.Max(row => row.Index) + 1)))
+                        throw new InvalidOperationException("Review export left gaps in a native binding array.");
                 Box<TextBox>(window, "ProfileName").Text = "Pending name";
                 Box<ComboBox>(window, "GamePicker").SelectedIndex = 1;
                 if (window.RequestedGame is not null || !window.IsVisible || Box<ComboBox>(window, "GamePicker").SelectedIndex != 2)

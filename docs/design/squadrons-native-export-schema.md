@@ -21,7 +21,7 @@ GstKeyBinding.<concept>.<index>.<field> <signed 32-bit integer>
 <other setting key> <raw setting value>
 ```
 
-The first ASCII space separates key and value. Device names and other values can contain spaces; an empty value is distinct from a missing declaration. Blank lines and LF/CRLF endings are retained by the production source document. Duplicate setting keys and incomplete indexed records are invalid. Native record indices are nonnegative signed 32-bit values; the adapter currently limits newly appended indices to below 128, which is **not a verified native format limit**.
+The first ASCII space separates key and value. Device names and other values can contain spaces; an empty value is distinct from a missing declaration. Blank lines and LF/CRLF endings are retained by the production source document. Duplicate setting keys and incomplete indexed records are invalid. Review export now also completes missing lower record indices with disabled entries; the rationale and limits are below. Native record indices are nonnegative signed 32-bit values; the adapter currently limits newly appended indices to below 128, which is **not a verified native format limit**.
 
 `InputDataVersion 4` is required when binding records exist. The adapter also accepts fresh `GstInput` settings without a version or binding table. This exception supports blank-slate authoring; it does not establish that a game export without the version will be accepted.
 
@@ -90,3 +90,16 @@ python -m unittest discover -s tests/ci -p 'test_*.py'
 ```
 
 The CLI's success message explicitly states that game acceptance is unverified. No structural check should be reported as an in-game pass.
+
+
+## Sparse-array correction under game validation
+
+Comparison of two earlier native version-four captures (125 concepts each) and the independent published version-two reference (117 concepts) found contiguous indices starting at zero for every concept. The failing reduced file has only 22 concepts; 20 contain gaps. Its 26 active joystick records omit 37 lower-index entries present in the version-four references. All 37 are system-input records in those references. Merely retaining records such as Pitch.6/.7 and Throttle.4/.5 does not reproduce the complete native array shape.
+
+Review export now fills missing lower indices using an inactive record form based on a captured v4 cleared entry: `altbutton=0, axis=26, button=174, deviceid=-1, identifier=0, modifier=0, negate=0, type=-1`. It preserves every existing record address and field, including existing system records and unknown numeric fields. New disabled entries do not create joystick assignments or copy user keyboard/mouse/gamepad mappings. Completion runs only in the review copy, is idempotent and orders record groups by concept/index. The original saved capture stays exact. Sparse arrays above index 127 produce a diagnostic rather than unbounded filler allocation.
+
+This corrects a concrete structural mismatch with the reference files. **The inference that sparse arrays cause the in-game rejection, and that this completion is sufficient for game acceptance, still require an actual-game test.** Do not label this correction a verified fix for every reported controller failure.
+
+The inspector now reports sparse arrays; `--strict-arrays` makes them errors. This closes an inspection gap: the previously reported structural pass did not check array completeness.
+
+The TQS declaration is absent from the earlier native Pitch capture as well as the failing post-run capture. Export cannot establish game acquisition of a missing device merely by writing its name. That separate recognition issue remains unresolved; the intended TQS slot must be checked against the game's device selection/recognition result. No device roster is guessed from Windows discovery in this correction.

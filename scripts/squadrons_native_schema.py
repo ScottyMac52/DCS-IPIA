@@ -59,11 +59,21 @@ def inspect_native(text):
             'settings': settings, 'devices': sorted(devices, key=lambda d: d['slot']), 'bindings': bindings}, unresolved
 
 
+def sparse_arrays(model):
+    """Report absent lower indices without guessing how the game will fill them."""
+    groups = {}
+    for row in model['bindings']:
+        groups.setdefault(row['concept'], set()).add(row['index'])
+    return {concept: sorted(set(range(max(indices) + 1)) - indices)
+            for concept, indices in groups.items() if max(indices) < 128 and len(indices) != max(indices) + 1}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('file', type=Path)
     parser.add_argument('--json', action='store_true', help='Print the parsed inspection model, not a game export.')
     parser.add_argument('--strict-links', action='store_true', help='Fail for joystick references without named declarations.')
+    parser.add_argument('--strict-arrays', action='store_true', help='Fail when native record arrays have missing lower indices.')
     args = parser.parse_args()
     try:
         model, warnings = inspect_native(args.file.read_text(encoding='utf-8-sig'))
@@ -75,7 +85,10 @@ def main():
         print(f"Structure valid: {len(model['devices'])} declarations, {len(model['bindings'])} records. Game acceptance UNVERIFIED.")
     for warning in warnings:
         print('Unresolved reference: ' + warning)
-    if args.strict_links and warnings:
+    gaps = sparse_arrays(model)
+    for concept, indices in gaps.items():
+        print(f'Sparse native array: {concept}; missing indices {indices}')
+    if (args.strict_links and warnings) or (args.strict_arrays and gaps):
         parser.exit(1)
 
 

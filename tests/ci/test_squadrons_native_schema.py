@@ -72,6 +72,13 @@ class SquadronsNativeSchemaTests(unittest.TestCase):
         _, unresolved = SCHEMA.inspect_native(record(1, 'GstInput.JoystickDevice2 Unrelated Panel 1\n'))
         self.assertEqual([], unresolved)
 
+    def test_sparse_record_arrays_are_detected_even_when_device_links_resolve(self):
+        model, unresolved = SCHEMA.inspect_native(record(0, 'GstInput.JoystickDevice1 Stick 1\n'))
+        self.assertEqual([], unresolved)
+        self.assertEqual({'Example.ConceptFire': [0]}, SCHEMA.sparse_arrays(model))
+        dense, _ = SCHEMA.inspect_native(record(0, 'GstInput.JoystickDevice1 Stick 1\n').replace('.1.', '.0.'))
+        self.assertEqual({}, SCHEMA.sparse_arrays(dense))
+
     def test_fresh_controller_only_document_needs_no_prior_assignment(self):
         model, unresolved = SCHEMA.inspect_native('GstInput.JoystickDevice1 Stick 1\n')
         self.assertIsNone(model['inputDataVersion'])

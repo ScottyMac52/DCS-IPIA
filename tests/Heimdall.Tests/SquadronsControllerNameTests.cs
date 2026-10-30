@@ -162,9 +162,15 @@ namespace Heimdall.Tests
             AssertGrouped(text);
             Assert.Contains("GstInput.JoystickDevice2 Viper TQS 1" + newline, text, StringComparison.Ordinal);
             Assert.Contains("GstInput.JoystickDevice10 " + newline, text, StringComparison.Ordinal);
-            Assert.Equal(WithoutDevices(source), WithoutDevices(text));
+            var reviewedRows = backend.ReadBindings(Import(backend, text));
             Assert.Equal(JsonSerializer.Serialize(backend.ReadBindings(profile)),
-                JsonSerializer.Serialize(backend.ReadBindings(Import(backend, text))));
+                JsonSerializer.Serialize(reviewedRows.Where(row => row.Type == 3)));
+            Assert.All(reviewedRows.Where(row => row.Type != 3), row =>
+            {
+                Assert.Equal(-1, row.Type); Assert.Equal(-1, row.DeviceId);
+                Assert.Equal(0, row.Fields["identifier"]); Assert.Equal(174, row.Fields["button"]);
+            });
+            Assert.Equal(Enumerable.Range(0, 6), reviewedRows.Select(row => row.Index).Order());
             Assert.Equal(before, JsonSerializer.Serialize(profile));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(text, backend.ExportReview(Import(backend, text)).Files[SquadronsProfileBackend.FileName]);
@@ -192,6 +198,30 @@ namespace Heimdall.Tests
             Assert.Contains("GstInput.JoystickDevice3 Viper TQS 1\n", text, StringComparison.Ordinal);
             Assert.Contains("GstInput.JoystickDevice1 F16 MFD 3\n",
                 backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName], StringComparison.Ordinal);
+        }
+        /// <summary>Completing sparse arrays retains system records, unknown fields, native identifiers and both axis directions.</summary>
+        [Fact]
+        public void Review_export_fills_only_missing_indices_and_does_not_invent_active_bindings()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = Scattered("\n") + "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.future 99\n";
+            var keyboard = new Dictionary<string, int> { ["altbutton"] = 0, ["axis"] = 0, ["button"] = 17,
+                ["deviceid"] = -1, ["identifier"] = 1396582217, ["modifier"] = 255, ["negate"] = 0, ["type"] = 2 };
+            source += string.Join("\n", keyboard.Select(field => "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.0." + field.Key + " " + field.Value)) + "\n";
+            var profile = Import(backend, source);
+            var output = backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName];
+            var rows = backend.ReadBindings(Import(backend, output));
+            Assert.Equal(6, rows.Count); Assert.Equal(2, rows.Count(row => row.Type == 3));
+            Assert.Equal(3, rows.Count(row => row.Type == -1));
+            Assert.Equal(2, rows.Single(row => row.Index == 0).Type);
+            foreach (var row in backend.ReadBindings(profile))
+            {
+                var retained = rows.Single(other => other.RecordId == row.RecordId);
+                Assert.Equal(row.Fields.OrderBy(x => x.Key), retained.Fields.OrderBy(x => x.Key));
+            }
+            Assert.Equal(99, rows.Single(row => row.Index == 4).Fields["future"]);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(output, backend.ExportReview(Import(backend, output)).Files[SquadronsProfileBackend.FileName]);
         }
         #endregion END Public
         #region BEGIN private helpers
