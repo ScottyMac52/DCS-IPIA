@@ -178,7 +178,10 @@ namespace Heimdall.Tests
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Menus & General", "All inputs", "", "all", includeUnverified: false));
             Assert.NotEmpty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "all", includeUnverified: true));
-            Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Increase", "all", includeUnverified: false));
+            var throttle = SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Throttle", "all", includeUnverified: false);
+            Assert.Equal(2, throttle.Count);
+            Assert.All(throttle, row => Assert.Equal("Throttle", row.CommandName));
+            Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Increase", "all", includeUnverified: false));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.DoesNotContain(rows, x => x.HardwareStatus == "Verified device input");
             Assert.Contains(rows, x => x.HardwareStatus == "Input absent on linked device" || x.HardwareStatus == "Hardware unverified");
