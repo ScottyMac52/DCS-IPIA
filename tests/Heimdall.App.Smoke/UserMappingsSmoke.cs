@@ -88,20 +88,11 @@ namespace Heimdall.App.Smoke
                 editor.Show();
                 var choices = (ComboBox)WorkspaceUi.Find(editor, "CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
-                choices.SelectedIndex = 0;
-                ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
-                Click((Button)WorkspaceUi.Find(editor, "UnlinkDrawingButton")!);
-                choices.SelectedIndex = 0;
-                Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
-                if (!((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")!).Text.Contains("staged", StringComparison.Ordinal))
-                    throw new InvalidOperationException("Custom mapping adoption was not staged.");
+                StageMapping(editor, workspace.Diagrams.Single().ProfileId, revision.Id);
                 if (repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!.Diagrams.Any(x => x.CustomMapping is not null))
                     throw new InvalidOperationException("Staged mapping silently changed saved module data.");
                 Click((Button)WorkspaceUi.Find(editor, "DiscardAuthoringButton")!);
-                choices.SelectedIndex = 0; ((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).SelectedIndex = 0;
-                Click((Button)WorkspaceUi.Find(editor, "UnlinkDrawingButton")!);
-                choices.SelectedIndex = 0;
-                Click((Button)WorkspaceUi.Find(editor, "AdoptCustomMappingButton")!);
+                StageMapping(editor, workspace.Diagrams.Single().ProfileId, revision.Id);
                 Click((Button)WorkspaceUi.Find(editor, "SaveAuthoringButton")!);
                 Pump(editor, () => ((TextBlock)WorkspaceUi.Find(editor, "PendingSummary")!).Text == "No pending assignment changes");
                 editor.Close();
@@ -224,6 +215,28 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void StageMapping(ModuleWorkspaceWindow editor, Guid profileId, string revisionId)
+        {
+            var view = WorkspaceUi.Navigate(editor, "Devices");
+            var devices = (DataGrid)view.FindName("ManagedDevices");
+            devices.SelectedItem = devices.Items.Cast<WorkspaceDevice>().Single(device => device.ProfileId == profileId);
+            var unlink = (Button)view.FindName("UnlinkDrawingButton");
+            var apply = (Button)view.FindName("ApplyCustomDrawingButton");
+            var status = (TextBlock)view.FindName("StatusMessage");
+            if (!unlink.IsEnabled || apply.IsEnabled)
+                throw new InvalidOperationException("The selected controller must start with its drawing linked. " + status.Text);
+            Click(unlink);
+            if (!apply.IsEnabled || unlink.IsEnabled || editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId).DrawingUnlinked != true)
+                throw new InvalidOperationException("Drawing unlink did not enable reviewed replacement. " + status.Text);
+            var revisions = (ComboBox)view.FindName("CustomMappingRevisions");
+            revisions.SelectedItem = revisions.Items.Cast<UserMappingRevision>().Single(revision => revision.Id == revisionId);
+            Click(apply);
+            var staged = editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
+            if (staged.CustomMapping?.Id != revisionId || staged.DrawingUnlinked || !status.Text.Contains("staged", StringComparison.Ordinal))
+                throw new InvalidOperationException("Custom mapping adoption was not staged. " + status.Text);
+            if (apply.IsEnabled || !unlink.IsEnabled)
+                throw new InvalidOperationException("Adopted drawing did not restore the linked selector state. " + status.Text);
+        }
         private static void Click(Button button)
         {
             var previous = SynchronizationContext.Current;
