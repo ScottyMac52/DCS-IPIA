@@ -74,6 +74,24 @@ namespace Heimdall.App.Smoke
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 if (grid.Items.Count != 0 || Box<ComboBox>(window, "InputPicker").IsEnabled || Box<Button>(window, "ApplyButton").IsEnabled)
                     throw new InvalidOperationException("An unlinked controller exposed raw assignments or enabled unverified authoring.");
+                Box<Expander>(window, "DrawingPanel").IsExpanded = true;
+                foreach (var id in new[] { "system.2", "system.0", "system.1" })
+                {
+                    devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);
+                    ThemeControlSmoke.Pump(window);
+                    var canvas = Box<Canvas>(window, "DrawingCanvas");
+                    if (!Box<ScrollViewer>(window, "DrawingScroll").IsVisible || canvas.Children.Count < 6 ||
+                        !Box<Button>(window, "FitDrawingButton").IsEnabled || Box<Button>(window, "ApplyButton").IsEnabled ||
+                        Box<ComboBox>(window, "DrawingPicker").IsEnabled || Box<Button>(window, "StartInputButton").IsEnabled)
+                        throw new InvalidOperationException("System artwork was absent or enabled hardware/edit operations: " + id);
+                    var region = canvas.Children.OfType<Border>().First();
+                    region.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice,
+                        Environment.TickCount, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+                    if (!Box<TextBlock>(window, "CountText").Text.Contains("read-only", StringComparison.Ordinal) ||
+                        Box<Button>(window, "ApplyButton").IsEnabled)
+                        throw new InvalidOperationException("Selecting a system control failed read-only inspection: " + id);
+                    ThemeControlSmoke.SaveImage(window, "squadrons-" + id.Replace('.', '-'));
+                }
                 if (window.Session!.Export().Files[SquadronsProfileBackend.FileName] != source) throw new InvalidOperationException("Presentation filtering changed native records.");
                 window.Close();
             }
@@ -85,3 +103,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

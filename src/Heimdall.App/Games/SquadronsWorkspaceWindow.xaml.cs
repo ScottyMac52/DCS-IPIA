@@ -998,6 +998,12 @@ namespace Heimdall.App.Games
             ClearDrawingButton.IsEnabled = links.UnlinkDrawing;
             DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
             if (DrawingPanel.IsExpanded != true) return;
+            if (snapshot is not null && DevicePicker.SelectedItem is GameDeviceChoice system &&
+                SquadronsSystemInputDrawings.Create(system.Id, _rows) is { } systemDiagram)
+            {
+                ShowSystemDrawing(snapshot.Name, system.Id, systemDiagram);
+                return;
+            }
             if (slot is null || pin is null)
             {
                 DrawingHint.Text = "Select a linked joystick controller before choosing its hardware drawing.";
@@ -1028,6 +1034,29 @@ namespace Heimdall.App.Games
                 AppearanceManager.ArtworkOpacityFor(this),
                 control => control.Label + " · " + control.InputKey + "\n" +
                     SquadronsDrawingProjection.AssignmentSummary(control, _rows, slot, section));
+            DrawingHint.Visibility = InputActivity.Visibility = Visibility.Collapsed;
+            DrawingScroll.Visibility = Visibility.Visible;
+            FitDrawingButton.IsEnabled = true;
+        }
+        private void ShowSystemDrawing(string title, string deviceId, UiLayerDiagram diagram)
+        {
+            void Select(HardwareGraphicControl control)
+            {
+                var rows = SquadronsSystemInputDrawings.ForControl(control, _rows, deviceId, DrawingSection);
+                BindingsGrid.ItemsSource = rows;
+                BindingsGrid.SelectedItem = rows.FirstOrDefault();
+                CountText.Text = control.Label + " · " + rows.Count + " captured assignments · read-only.";
+                EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                EmptyState.Text = "No captured assignments on this input in the current context.";
+                UpdateEditor();
+            }
+            _drawingPresenter.Show(diagram, SquadronsSystemInputDrawings.Diagram(title, diagram, _rows, deviceId, DrawingSection),
+                new HardwareDiagramInteractions(Select, Inspect: Select), AppearanceManager.ArtworkOpacityFor(this),
+                control => control.Label + " · read-only\n" + string.Join("\n",
+                    SquadronsSystemInputDrawings.ForControl(control, _rows, deviceId, DrawingSection)
+                        .Select(row => row.CommandName + " · " + row.InputLabel + "\n" +
+                            string.Join(", ", row.Native.Fields.OrderBy(field => field.Key, StringComparer.Ordinal)
+                                .Select(field => field.Key + "=" + field.Value)))));
             DrawingHint.Visibility = InputActivity.Visibility = Visibility.Collapsed;
             DrawingScroll.Visibility = Visibility.Visible;
             FitDrawingButton.IsEnabled = true;
