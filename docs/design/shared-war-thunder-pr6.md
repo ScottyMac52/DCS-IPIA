@@ -75,3 +75,9 @@ dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj -c Release --filter "Full
 ```
 
 GitHub Actions results are outside this local review. Before subsequent desktop activation, #333 must supply a representative native schema/fixture contract and #334 must exercise real shared assignment actions, save/discard/reopen, device switching, review export preservation and in-game recognition.
+
+## #333 implementation added to PR6
+
+PR6 now also implements the native backend requested in #333. The earlier readiness matrix records the audit baseline; the implemented backend supersedes its missing-backend/occurrence-address/catalog rows. See the [current native contract](war-thunder-native-contract.md) for the exact supported operations and remaining boundaries. Native-backed portable profiles, occurrence-specific edits, captured catalogs, explicit instance resolution, range checks, per-record capabilities, inspection schema and atomic text export are implemented. Physical control translation, full inherited preset coverage, blank-profile generation and unsupported native capabilities remain unclaimed. Desktop registration stays in #334.
+
+GitHub Actions must not run for subsequent updates; commits use `[skip ci]`. Local .NET and Windows checks remain unrun in this environment.
