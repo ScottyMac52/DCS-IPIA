@@ -25,9 +25,10 @@ namespace Heimdall.Squadrons
                 var label = row.Type == 3 ? "Slot " + (row.DeviceId + 1) + " · " + (devices.GetValueOrDefault(id)?.Identity?.WindowsName ?? "Unresolved")
                     : row.Type switch { 0 => "Mouse", 1 => "Gamepad", 2 => "Keyboard", _ => "Unassigned / preserved" };
                 var command = commands[row.Concept];
-                var name = row.Concept.EndsWith(".ConceptThrottle", StringComparison.Ordinal) ? row.Fields["negate"] switch
+                var name = row.Input?.Type != CommandType.Axis && row.Concept.EndsWith(".ConceptThrottle", StringComparison.Ordinal) ? row.Fields["negate"] switch
                 { 0 => "Throttle Increase", 1 => "Throttle Decrease", _ => command.DisplayName } : command.DisplayName;
-                return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label);
+                return new SquadronsWorkspaceRow(row, name, command.Category, row.Type == 3 ? id : "system." + row.Type, label)
+                    { ConceptName = command.DisplayName };
             }).ToArray();
         }
         /// <summary>Summarizes one native slot using the shared controller-enumeration review without treating a saved name as physical identity.</summary>

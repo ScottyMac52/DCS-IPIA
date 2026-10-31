@@ -26,6 +26,8 @@ namespace Heimdall.Squadrons
                 if (!MatchesAssignment(native, selection, assignmentStatus)) return false;
                 return command.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                     || concept.Contains(query, StringComparison.OrdinalIgnoreCase)
+                    || (command.Metadata.TryGetValue("squadrons.native-display-name", out var nativeName)
+                        && nativeName.Contains(query, StringComparison.OrdinalIgnoreCase))
                     || command.Category.Contains(query, StringComparison.OrdinalIgnoreCase);
             }).OrderBy(x => x.Category, StringComparer.Ordinal)
                 .ThenBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();

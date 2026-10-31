@@ -48,6 +48,9 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Identification failed to select and release the exact unit.");
                 Click(window, "LinkControllerButton");
                 if (window.Session.Snapshot.Hardware.Count != 0 || reviewed is null) throw new InvalidOperationException("Canceled link review staged changes.");
+                if ((picker.SelectedItem as DetectedDcsDevice)?.PhysicalGuid != first.PhysicalGuid ||
+                    !Box<Button>(window, "LinkControllerButton").IsEnabled || !input.Disposed)
+                    throw new InvalidOperationException("Canceled link review discarded the chosen physical unit or retained identification handles.");
                 accept = true; Click(window, "LinkControllerButton");
                 if (window.Session.Snapshot.Hardware["squadrons.joystick.5"].Device.PhysicalGuid != first.PhysicalGuid || !window.SaveProfile())
                     throw new InvalidOperationException("Reviewed physical link failed to save.");
@@ -59,27 +62,34 @@ namespace Heimdall.App.Smoke
                 SelectSlot(window, 10); accept = false; Click(window, "UnlinkControllerButton");
                 if (window.Session.Snapshot.Hardware.Count != 2) throw new InvalidOperationException("Canceled unlink removed a physical link.");
                 accept = true; Click(window, "UnlinkControllerButton");
-                SelectSlot(window, 5); picker.SelectedItem = second; Click(window, "LinkControllerButton");
+                SelectSlot(window, 5);
+                if (picker.IsEnabled || (picker.SelectedItem as DetectedDcsDevice)?.PhysicalGuid != first.PhysicalGuid)
+                    throw new InvalidOperationException("Saved physical link is not displayed and locked.");
+                Click(window, "UnlinkControllerButton");
+                if (!picker.IsEnabled) throw new InvalidOperationException("Explicit unlink did not unlock the physical selector.");
+                picker.SelectedItem = second; Click(window, "LinkControllerButton");
                 if (window.Session.Snapshot.Hardware["squadrons.joystick.5"].Device.PhysicalGuid != second.PhysicalGuid
-                    || !reviewed!.Summary.Contains(first.PhysicalGuid.ToString(), StringComparison.Ordinal)
                     || window.Session.Export().Files[SquadronsProfileBackend.FileName] != native)
                     throw new InvalidOperationException("Replacement lost review identity or changed native bindings.");
                 Click(window, "DiscardButton");
                 if (window.Session.Snapshot.Hardware["squadrons.joystick.5"].Device.PhysicalGuid != first.PhysicalGuid)
                     throw new InvalidOperationException("Discard failed to restore the saved association.");
-                SelectSlot(window, 5); Click(window, "IdentifyControllerButton");
+                SelectSlot(window, 10); Click(window, "IdentifyControllerButton");
                 window.Hide(); ThemeControlSmoke.Pump(window);
                 if (!input!.Disposed) throw new InvalidOperationException("Focus loss retained controller handles.");
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
-                Click(window, "IdentifyControllerButton"); SelectSlot(window, 10);
+                Click(window, "IdentifyControllerButton"); SelectSlot(window, 5);
                 if (!input!.Disposed) throw new InvalidOperationException("Slot switching retained controller handles.");
-                SelectSlot(window, 5); Click(window, "IdentifyControllerButton"); window.Close();
+                SelectSlot(window, 10); Click(window, "IdentifyControllerButton"); window.Close();
                 if (!input!.Disposed) throw new InvalidOperationException("Closing retained controller handles.");
                 var reopened = new SquadronsWorkspaceWindow(services, window.Session.Snapshot.Id, () => MessageBoxResult.No, _ => true);
                 reopened.Show(); ThemeControlSmoke.Pump(reopened); SelectSlot(reopened, 5);
                 discovery.Devices = []; Click(reopened, "RescanControllerButton");
                 if (!Box<TextBlock>(reopened, "LinkStatus").Text.Contains("Unavailable", StringComparison.Ordinal) || Box<Button>(reopened, "IdentifyControllerButton").IsEnabled)
                     throw new InvalidOperationException("Disconnected hardware was presented as ready.");
+                var savedPicker = Box<ComboBox>(reopened, "ConnectedPicker");
+                if (savedPicker.IsEnabled || (savedPicker.SelectedItem as DetectedDcsDevice)?.PhysicalGuid != first.PhysicalGuid)
+                    throw new InvalidOperationException("Offline saved identity was cleared or unlocked.");
                 Click(reopened, "UnlinkControllerButton");
                 if (reopened.Session!.Snapshot.Hardware.Count != 0 || reopened.Session.Export().Files[SquadronsProfileBackend.FileName] != native)
                     throw new InvalidOperationException("Offline unlink deleted assignments or failed to remove the association.");

@@ -4,6 +4,13 @@ namespace Heimdall.Squadrons
     /// This is a command-only reference, never a substitute for native binding records.</summary>
     internal static class SquadronsKnownConcepts
     {
+        /// <summary>Flight camera labels reported by the game UI; native concept identities remain unchanged.</summary>
+        internal static IReadOnlyDictionary<string, string> DisplayNames { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["IncomStarshipInputConcepts.ConceptCameraPitch"] = "Free Look - Camera Pitch Up / Down (axis)",
+            ["IncomStarshipInputConcepts.ConceptCameraYaw"] = "Free Look - Camera Yaw Left / Right (axis)"
+        };
+
         /// <summary>Retains commands when the user clears their final native binding record.</summary>
         internal static IReadOnlyCollection<string> All { get; } = Build();
 

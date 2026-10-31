@@ -31,6 +31,7 @@ namespace Heimdall.Tests
             Assert.Equal(reverse, SquadronsInputCodec.FromDrawing(key, true, reverse));
         }
 
+        /// <summary>Drawing mapping retains digital input kinds and rejects axis/button mismatches.</summary>
         [Fact]
         public void Drawing_drop_keeps_button_and_hat_inputs_distinct_and_rejects_mismatched_control_type()
         {
@@ -177,7 +178,10 @@ namespace Heimdall.Tests
             Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Menus & General", "All inputs", "", "all", includeUnverified: false));
             Assert.NotEmpty(SquadronsWorkspaceProjection.Filter(rows, "All", "All inputs", "", "all", includeUnverified: true));
-            Assert.Single(SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Increase", "all", includeUnverified: false));
+            var throttle = SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Throttle", "all", includeUnverified: false);
+            Assert.Equal(2, throttle.Count);
+            Assert.All(throttle, row => Assert.Equal("Throttle", row.CommandName));
+            Assert.Empty(SquadronsWorkspaceProjection.Filter(rows, "Flight", "Axes", "Increase", "all", includeUnverified: false));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.DoesNotContain(rows, x => x.HardwareStatus == "Verified device input");
             Assert.Contains(rows, x => x.HardwareStatus == "Input absent on linked device" || x.HardwareStatus == "Hardware unverified");
@@ -323,7 +327,9 @@ namespace Heimdall.Tests
             var unassigned = SquadronsAssignmentPlanner.For(backend, cleared,
                 "IncomStarshipInputConcepts.ConceptThrottle");
             Assert.Equal(0, unassigned.CapturedRecords);
-            Assert.True(unassigned.RequiresNewNativeRecord);
+            Assert.False(unassigned.RequiresNewNativeRecord);
+            Assert.True(unassigned.CanReplaceCapturedRecord);
+            Assert.Equal(throttle.EditableRecordIds, unassigned.EditableRecordIds);
             Assert.Throws<InvalidOperationException>(() => SquadronsAssignmentPlanner.For(backend, profile,
                 "IncomStarshipInputConcepts.ConceptNotCaptured"));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
@@ -346,7 +352,9 @@ namespace Heimdall.Tests
             Assert.True(commands.Count >= 125);
             var planner = SquadronsAssignmentPlanner.For(backend, cleared, "IncomStarshipInputConcepts.ConceptYaw");
             Assert.Equal(0, planner.CapturedRecords);
-            Assert.True(planner.RequiresNewNativeRecord);
+            Assert.False(planner.RequiresNewNativeRecord);
+            Assert.True(planner.CanReplaceCapturedRecord);
+            Assert.Equal(2, planner.EditableRecords);
             Assert.Equal(source, backend.Export(original).Files[SquadronsProfileBackend.FileName]);
         }
         /// <summary>Catalog filters preserve unbound native commands while distinguishing native ownership and input type.</summary>
@@ -483,8 +491,8 @@ namespace Heimdall.Tests
                 ]
             };
             var throttle = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.5", "Flight");
-            Assert.Equal(2, throttle.Labels["throttle"].Count);
-            Assert.All(throttle.Labels["throttle"], label => Assert.Contains("Throttle", label.Text));
+            Assert.Equal("Throttle", Assert.Single(throttle.Labels["throttle"]).Text);
+            Assert.Equal("Throttle", SquadronsDrawingProjection.AssignmentSummary(drawing.Controls[0], rows, "squadrons.joystick.5", "Flight"));
             Assert.Empty(throttle.Labels["trigger"]);
             Assert.Empty(throttle.Labels["empty"]);
             var trigger = SquadronsDrawingProjection.Diagram("Test", drawing, rows, "squadrons.joystick.3", "Flight");

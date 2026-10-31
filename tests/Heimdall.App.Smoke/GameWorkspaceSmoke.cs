@@ -65,9 +65,13 @@ namespace Heimdall.App.Smoke
                 connected.SelectedItem = connected.Items.Cast<DetectedDcsDevice>().Single(x => x.PhysicalGuid == physical.PhysicalGuid);
                 Click(window, "AddControllerButton");
                 if (!session.Snapshot.Hardware.ContainsKey(stick.LogicalId)) throw new InvalidOperationException("Adding a controller did not reuse its matching captured reference.");
+                if (Box<Button>(window, "NoDrawingButton").IsEnabled) Click(window, "NoDrawingButton");
                 Click(window, "ChangeDrawingButton");
                 Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware.Single(x => x.DeviceId == "tm-sol-r-ava-r-buttons");
                 Click(window, "UseDrawingButton");
+                if (Box<ComboBox>(window, "HardwarePicker").IsEnabled || !Box<Button>(window, "NoDrawingButton").IsEnabled
+                    || Box<ComboBox>(window, "HardwarePicker").SelectedItem is not WorkspaceHardware)
+                    throw new InvalidOperationException("Saved drawing is not displayed and locked until explicit unlink.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 SelectCommand(window, "Primary Fire");
                 var inputPicker = Box<ComboBox>(window, "InputKey");
@@ -219,9 +223,22 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Identical controllers were assigned an inferred ED ordinal.");
             picker.SelectedIndex = 1; var id = ((GameDeviceChoice)picker.SelectedItem!).Id; Click(window, "LinkReferenceButton");
             if (window.Session!.Snapshot.Hardware[id].Device.PhysicalGuid != b.PhysicalGuid) throw new InvalidOperationException("The explicit indexed ED reference linked to a different unit.");
-            Box<ComboBox>(window, "ConnectedPicker").SelectedItem = a; Click(window, "AddControllerButton");
-            if (window.Session.Snapshot.Hardware.Count != 2 || window.Session.Snapshot.Profile.Devices.Count != 2)
-                throw new InvalidOperationException("Adding the second identical controller duplicated or replaced a native reference.");
+            var connected = Box<ComboBox>(window, "ConnectedPicker");
+            var beforeAdd = window.Session.Export().Files.Values.Single();
+            if (connected.IsEnabled || connected.SelectedItem is not DetectedDcsDevice saved || saved.PhysicalGuid != b.PhysicalGuid)
+                throw new InvalidOperationException("The linked controller picker did not retain and lock controller B.");
+            Click(window, "AddControllerButton");
+            if (!connected.IsEnabled || connected.SelectedItem is not null ||
+                window.Session.Snapshot.Hardware.Count != 1 || window.Session.Snapshot.Hardware[id].Device.PhysicalGuid != b.PhysicalGuid ||
+                window.Session.Export().Files.Values.Single() != beforeAdd)
+                throw new InvalidOperationException("Starting Add controller changed the existing link or native assignments.");
+            connected.SelectedItem = a; Click(window, "AddControllerButton");
+            var added = window.Session.Snapshot;
+            if (added.Hardware.Count != 2 || added.Profile.Devices.Count != 2 ||
+                added.Hardware[id].Device.PhysicalGuid != b.PhysicalGuid ||
+                added.Hardware.Single(x => x.Key != id).Value.Device.PhysicalGuid != a.PhysicalGuid ||
+                window.Session.Export().Files.Values.Single() != beforeAdd)
+                throw new InvalidOperationException("Adding controller A did not reuse the remaining native reference while preserving controller B and all bindings.");
             window.Close();
         }
         private static void VerifyCommandFilters(EliteWorkspaceWindow window)
@@ -352,4 +369,3 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
-

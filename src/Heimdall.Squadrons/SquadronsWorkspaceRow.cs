@@ -9,6 +9,8 @@ namespace Heimdall.Squadrons
     public sealed record SquadronsWorkspaceRow(SquadronsBindingRow Native, string CommandName, string Section, string DeviceId, string DeviceLabel)
     {
         #region BEGIN Public
+        /// <summary>Gets the catalog name shared by both native directions of one analog command.</summary>
+        public string ConceptName { get; init; } = CommandName;
         /// <summary>Gets presentation-only capability review; native slot references are never rewritten by hardware inspection.</summary>
         public string HardwareStatus { get; init; } = "Hardware unverified";
         /// <summary>Gets the exact address used by the native edit boundary.</summary>

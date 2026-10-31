@@ -7,7 +7,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.Squadrons
 {
     /// <summary>Provides lossless Squadrons import/export and explicit edits to existing captured joystick records.</summary>
-    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks
+    public sealed class SquadronsProfileBackend : ISimProfileBackend, INativeRecordCreator, INativeAxisPairEditor, ISimCapturedDeviceLinks, INativeAssignmentTemplates, INativeControllerCreator, INativeControllerNames
     {
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
@@ -19,7 +19,7 @@ namespace Heimdall.Squadrons
         public string PhysicalInputKey(string key) => SquadronsInputCodec.PhysicalKey(key);
         /// <summary>Declares initial semantics; unsupported chord/tuning edits are retained as native evidence only.</summary>
         public SimBackendCapabilities Capabilities => new(1, [BindingMode.Press], false, false, false);
-        /// <summary>Imports one captured version four settings file and retains its exact source.</summary>
+        /// <summary>Imports one version-four or fresh empty-table settings file and retains its exact source.</summary>
         public ProfileDocument Import(string contextId, IReadOnlyDictionary<string, string> sources, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested(); ArgumentException.ThrowIfNullOrWhiteSpace(contextId); ArgumentNullException.ThrowIfNull(sources);
@@ -44,18 +44,70 @@ namespace Heimdall.Squadrons
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
             { return new(new Dictionary<string, string>(), [new("squadrons.export.blocked", error.Message, true)]); }
         }
+        /// <summary>Groups controller declarations in the review copy while retaining every native name and record.
+        /// Export does not infer occurrence suffixes, disabled fillers or native defaults.</summary>
+        public SimProfileExportPlan ExportReview(ProfileDocument profile, IReadOnlyDictionary<string, string>? linkedNames = null)
+        {
+            try
+            {
+                var document = new SquadronsNativeDocument(Evidence(profile).Text);
+                var issues = SquadronsControllerExportReview.Review(profile, linkedNames);
+                if (issues.Count > 0) return new(new Dictionary<string, string>(), issues);
+                return new(new Dictionary<string, string> { [FileName] = document.PrepareReviewExport() }, []);
+            }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
+            { return new(new Dictionary<string, string>(), [new("squadrons.export.blocked", error.Message, true)]); }
+        }
+        /// <summary>Creates an unassigned joystick profile from native settings without inheriting personal assignment templates.
+        /// Keyboard, mouse, gamepad, controller declarations and unrelated settings remain unchanged.</summary>
+        public ProfileDocument CreateUnassignedProfile(ProfileDocument profile)
+        {
+            var evidence = Evidence(profile);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var removedKeys = document.Bindings.Where(row => row.Type == 3)
+                .SelectMany(row => row.Fields.Keys.Select(field => "GstKeyBinding." + row.RecordId + "." + field))
+                .ToHashSet(StringComparer.Ordinal);
+            var text = string.Join("\n", document.Text.Split('\n').Where(line =>
+            {
+                var separator = line.IndexOf(' ');
+                return separator <= 0 || !removedKeys.Contains(line[..separator]);
+            }));
+            // Import a new evidence envelope instead of Edited(), which archives removed user records.
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+        }
         /// <summary>Gets all native records, including keyboard/mouse/gamepad, unassigned and unsupported encodings.</summary>
         public IReadOnlyList<SquadronsBindingRow> ReadBindings(ProfileDocument profile) => new SquadronsNativeDocument(Evidence(profile).Text).Bindings;
         /// <summary>Gets concepts scoped to this captured profile, with native context categories.</summary>
         public ICommandCatalog GetCatalog(ProfileDocument profile)
         {
             var evidence = Evidence(profile);
-            return new SquadronsCommandCatalog(evidence.ContextId, new(evidence.Text));
+            return new SquadronsCommandCatalog(evidence.ContextId, AssignmentDocument(evidence,
+                AssignableBindings(evidence).Where(x => x.Type == 3).Select(x => x.RecordId).ToArray()));
+        }
+        /// <summary>Gets active, retained and adapter-supplied records for authoring, never for assignment display.</summary>
+        public IReadOnlyList<SquadronsBindingRow> ReadAssignableBindings(ProfileDocument profile) => AssignableBindings(Evidence(profile));
+        /// <summary>Distinguishes user binding evidence from factory authoring defaults, including cleared archived records.</summary>
+        internal bool HasCapturedJoystickConcept(ProfileDocument profile, string concept)
+        {
+            var evidence = Evidence(profile);
+            return new SquadronsNativeDocument(evidence.Text).Bindings.Concat(SquadronsTemplateArchive.Read(evidence.Templates))
+                .Any(row => row.Type == 3 && row.Concept == concept);
+        }
+        /// <summary>Recovers templates from an explicit native capture without changing active bindings or controller declarations.</summary>
+        public ProfileDocument ImportAssignmentTemplates(ProfileDocument profile, IReadOnlyDictionary<string, string> sources)
+        {
+            var evidence = Evidence(profile);
+            var captured = Import(evidence.ContextId, sources);
+            var archive = SquadronsTemplateArchive.Capture(evidence.Templates, ReadBindings(captured));
+            var result = Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = evidence.Text });
+            result.NativeData["squadrons.v1"] = JsonSerializer.SerializeToElement(evidence with { Templates = archive });
+            return result;
         }
         /// <summary>Rebinds an existing unchorded joystick record to an explicit captured slot; game acquisition is not implied.</summary>
         public ProfileDocument RebindJoystick(ProfileDocument profile, string recordId, int targetSlot, SquadronsInput input)
         {
-            var evidence = Evidence(profile); var document = new SquadronsNativeDocument(evidence.Text);
+            var evidence = Evidence(profile);
+            var document = AssignmentDocument(evidence, [recordId]);
             var row = document.Bindings.SingleOrDefault(x => x.RecordId == recordId);
             if (row is null || row.Type != 3 || row.Fields.Count != 8 || row.Fields["modifier"] != 0 || row.Fields["altbutton"] != 0
                 || targetSlot is < 1 or > 10 || !document.Values.TryGetValue("GstInput.JoystickDevice" + targetSlot, out var name) || string.IsNullOrWhiteSpace(name))
@@ -72,7 +124,7 @@ namespace Heimdall.Squadrons
                         && candidate.Fields.Count == original.Fields.Count
                         && original.Fields.All(field => candidate.Fields.TryGetValue(field.Key, out var value) && value == field.Value))))
                 throw new InvalidOperationException("Squadrons native binding validation failed; no profile changes were applied.");
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+            return Edited(evidence, text);
         }
         /// <summary>Rebinds both captured axis directions together without changing their
         /// independent identifiers, negate values or unrelated native records.</summary>
@@ -84,7 +136,7 @@ namespace Heimdall.Squadrons
                 ?? throw new InvalidOperationException("Select a captured Squadrons controller slot.");
             var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"],
                 System.Globalization.CultureInfo.InvariantCulture);
-            var document = new SquadronsNativeDocument(evidence.Text);
+            var document = AssignmentDocument(evidence, [positiveRecordId, negativeRecordId]);
             var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
             var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
             ValidateAxisPair(document, positive, negative, slot);
@@ -107,7 +159,33 @@ namespace Heimdall.Squadrons
             var text = document.ReplaceValues(changes);
             var written = new SquadronsNativeDocument(text);
             ValidateAxisPairWrite(document, written, positiveRecordId, negativeRecordId, slot, plus, minus, changes);
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+            return Edited(evidence, text);
+        }
+        /// <summary>Swaps the two captured directional encodings while preserving controller, identifiers and negate fields.</summary>
+        public ProfileDocument ReverseAxisPair(ProfileDocument profile, string positiveRecordId,
+            string negativeRecordId, string logicalDeviceId, string physicalAxisKey)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.SingleOrDefault(x => x.LogicalId == logicalDeviceId)
+                ?? throw new InvalidOperationException("Select the controller that owns this axis.");
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
+            var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
+            ValidateAxisPair(document, positive, negative, slot);
+            if (positive!.DeviceId != slot - 1 || negative!.DeviceId != slot - 1 ||
+                positive.Input!.Key != physicalAxisKey || negative.Input!.Key != physicalAxisKey)
+                throw new InvalidOperationException("Reverse requires both existing directions of the selected axis on this controller.");
+            var plus = positive!;
+            var minus = negative!;
+            var changes = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (target, source) in new[] { (plus, minus), (minus, plus) })
+                foreach (var field in new[] { "axis", "button" })
+                    changes["GstKeyBinding." + target.RecordId + "." + field] = source.Fields[field];
+            var text = document.ReplaceValues(changes);
+            ValidateAxisPairWrite(document, new SquadronsNativeDocument(text), positiveRecordId,
+                negativeRecordId, slot, minus.Input!, plus.Input!, changes);
+            return Edited(evidence, text);
         }
         /// <summary>Resolves an explicitly selected captured device and delegates to the native record editor.</summary>
         public ProfileDocument RebindNative(ProfileDocument profile, string recordId, string logicalDeviceId, string key, CommandType type, int direction)
@@ -147,14 +225,36 @@ namespace Heimdall.Squadrons
                     .SingleOrDefault() is not { } added ||
                 added.Concept != concept || added.Type != 3 || added.DeviceId != slot - 1 || added.Input != input)
                 throw new InvalidOperationException("Native record creation failed round-trip validation.");
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = written.Text });
+            return Edited(evidence, written.Text);
+        }
+        /// <summary>Adds one explicitly named native slot without creating or moving any assignments.</summary>
+        public ProfileDocument AddNativeController(ProfileDocument profile, string nativeName)
+        {
+            var evidence = Evidence(profile);
+            return Edited(evidence, new SquadronsNativeDocument(evidence.Text).AddJoystickDevice(nativeName));
+        }
+        /// <summary>Suggests the game occurrence name separately from physical instance identity and native slot number.</summary>
+        public string SuggestNativeControllerName(ProfileDocument profile, string reportedName, string? logicalDeviceId = null)
+        {
+            var evidence = Evidence(profile);
+            var names = new SquadronsNativeDocument(evidence.Text).Values.Where(x => x.Key.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).Select(x => x.Value);
+            var current = logicalDeviceId is null ? null : profile.Devices.Single(x => x.LogicalId == logicalDeviceId).Identity!.WindowsName;
+            return SquadronsControllerName.Suggest(reportedName, names, current);
+        }
+        /// <summary>Repairs an existing declaration while preserving its bindings, physical link and native address.</summary>
+        public ProfileDocument RenameNativeController(ProfileDocument profile, string logicalDeviceId, string nativeName)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.Single(x => x.LogicalId == logicalDeviceId);
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            return Edited(evidence, new SquadronsNativeDocument(evidence.Text).RenameJoystickDevice(slot, nativeName));
         }
         /// <summary>Allows explicit workspace-only links to named captured slots without inferring hardware from their names.</summary>
         public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)
         {
             Evidence(profile);
             if (!profile.Devices.Any(x => x.LogicalId == logicalDeviceId))
-                throw new InvalidOperationException("Choose a named captured Squadrons slot. To add another slot, bind an input on that device in Squadrons and import a fresh capture.");
+                throw new InvalidOperationException("Choose an existing Squadrons slot, or use Add controller to create one from connected hardware.");
         }
         /// <summary>Removes an unreferenced slot without reindexing or deleting any bindings.</summary>
         public ProfileDocument RemoveUnusedCapturedDevice(ProfileDocument profile, string logicalDeviceId)
@@ -195,7 +295,7 @@ namespace Heimdall.Squadrons
                     && other.Fields.Count == row.Fields.Count
                     && row.Fields.All(f => other.Fields.TryGetValue(f.Key, out var v) && v == f.Value))))
                 throw new InvalidOperationException("Single native assignment clear failed validation.");
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+            return Edited(evidence, updated.Text);
         }
         /// <summary>Clears every native joystick binding owned by the captured slot, preserving all other settings.</summary>
         public ProfileDocument ClearCapturedAssignments(ProfileDocument profile, string logicalDeviceId)
@@ -210,15 +310,19 @@ namespace Heimdall.Squadrons
                 other.RecordId == row.RecordId && row.Fields.Count == other.Fields.Count
                 && row.Fields.All(field => other.Fields.TryGetValue(field.Key, out var number) && number == field.Value))))
                 throw new InvalidOperationException("Native assignment clearing failed validation.");
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+            return Edited(evidence, updated.Text);
         }
         /// <summary>Reindexes every captured slot and joystick binding atomically without changing input codes.</summary>
         public ProfileDocument ReorderCapturedSlots(ProfileDocument profile, IReadOnlyList<string> order)
         {
             var evidence = Evidence(profile);
-            var slots = order.Select(id => profile.Devices.Single(x => x.LogicalId == id))
-                .Select(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             var document = new SquadronsNativeDocument(evidence.Text);
+            var emptySlots = document.Values.Where(x => x.Key.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(x.Value)).Select(x => int.Parse(x.Key["GstInput.JoystickDevice".Length..],
+                    System.Globalization.CultureInfo.InvariantCulture)).Order();
+            var slots = order.Select(id => profile.Devices.Single(x => x.LogicalId == id))
+                .Select(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture))
+                .Concat(emptySlots).ToArray();
             var updated = new SquadronsNativeDocument(document.ReorderJoystickSlots(slots));
             if (updated.Bindings.Count != document.Bindings.Count ||
                 document.Bindings.Any(row => !updated.Bindings.Any(other =>
@@ -226,7 +330,7 @@ namespace Heimdall.Squadrons
                     && row.Fields.All(field => other.Fields.TryGetValue(field.Key, out var value) &&
                         value == (field.Key == "deviceid" && row.Type == 3 ? Array.IndexOf(slots, row.DeviceId + 1) : field.Value)))))
                 throw new InvalidOperationException("Native slot permutation failed validation.");
-            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = updated.Text });
+            return Edited(evidence, updated.Text);
         }
         /// <summary>Resolves explicit physical instance identity only; saved names, duplicates and ordinals never imply a connection.</summary>
         public SimDeviceResolution ResolveDevice(PhysicalDeviceIdentity identity, IReadOnlyList<PhysicalDeviceIdentity> connected)
@@ -290,6 +394,24 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Bidirectional native axis validation failed; nothing was staged.");
         }
 
+        private static IReadOnlyList<SquadronsBindingRow> AssignableBindings(SquadronsNativeEvidence evidence)
+        {
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var captured = document.Bindings.Concat(SquadronsTemplateArchive.Read(evidence.Templates)
+                .ExceptBy(document.Bindings.Select(x => x.RecordId), x => x.RecordId));
+            return SquadronsBuiltInTemplates.Complete(captured);
+        }
+        private static SquadronsNativeDocument AssignmentDocument(SquadronsNativeEvidence evidence, IReadOnlyCollection<string> ids) =>
+            SquadronsTemplateArchive.Restore(new(evidence.Text),
+                SquadronsTemplateArchive.Capture(null, AssignableBindings(evidence)), ids);
+
+        private ProfileDocument Edited(SquadronsNativeEvidence evidence, string text)
+        {
+            var archive = SquadronsTemplateArchive.Capture(evidence.Templates, new SquadronsNativeDocument(evidence.Text).Bindings);
+            var result = Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+            result.NativeData["squadrons.v1"] = JsonSerializer.SerializeToElement(new SquadronsNativeEvidence(evidence.ContextId, text, archive));
+            return result;
+        }
         private SquadronsNativeEvidence Evidence(ProfileDocument profile)
         {
             ArgumentNullException.ThrowIfNull(profile);
@@ -298,7 +420,9 @@ namespace Heimdall.Squadrons
                 throw new InvalidOperationException("Missing, foreign or unsupported Squadrons native evidence.");
             var evidence = element.Deserialize<SquadronsNativeEvidence>(EvidenceOptions)
                 ?? throw new InvalidOperationException("Missing Squadrons source evidence.");
+            SquadronsTemplateArchive.Read(evidence.Templates);
             var baseline = Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = evidence.Text });
+            baseline.NativeData["squadrons.v1"] = JsonSerializer.SerializeToElement(evidence);
             if (JsonSerializer.Serialize(profile) != JsonSerializer.Serialize(baseline))
                 throw new InvalidOperationException("Direct portable edits are not supported yet. Use the reviewed Squadrons native record editor.");
             return evidence;

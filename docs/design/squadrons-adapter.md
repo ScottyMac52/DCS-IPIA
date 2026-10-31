@@ -63,23 +63,23 @@ in-game hardware test, and there is no established device-count limit from these
    Premium and cannot open the workspace or edit/export through session APIs.
 2. Choose **Import controls** and select a captured settings file. Imports are
    bounded, and a failed import retains the current workspace.
-3. Choose a controller, then use context, input-type and search filters to find
-   an assignment. The default **Flight** view shows only inputs compatible with
-   verified linked hardware. A selected controller needs only **Command** and
-   **Input** columns; command names wrap instead of being truncated. Controller
-   choices use numeric slot order and retain slot numbers for duplicate names.
-   **Controller setup** is collapsed until needed for linking/identification.
-   **Review captured records (advanced)** exposes preserved, unverified and
-   incompatible records plus hardware/slot/binding diagnostics. Context and search
-   still apply; select **All** contexts to inspect the full capture. Unlinked or
-   empty views explain how to link/rescan or open capture review. The assignment
-   editor appears after selecting a record.
-4. Select an editable joystick record, its destination captured controller and
-   physical input/direction, then **Apply assignment**. The destination must have
-   an explicit connected physical link and verified input enumeration; the input
-   picker offers only controls actually enumerated on that device. This changes only that
-   native record. Keyboard/mouse/gamepad and unsupported combinations remain
-   visible as preserved records with editing disabled.
+3. On **Devices**, select a controller, identify/link its physical hardware and
+   choose an optional drawing. On **Assignments & Testing**, use the shared
+   command browser to select a command. The visible command category also controls
+   the drawing, its inspection and its clear actions. **Captured assignments and
+   diagnostics** and its record filters are separate advanced disclosures; their
+   filters affect the native record table only. Selecting a record synchronizes
+   its command with the editor heading.
+4. Click a drawing control or choose a verified physical input, then **Apply
+   assignment**. Clicking selects without writing; dragging a command onto a
+   control assigns directly. Apply and drag use the same native plan and update
+   both directions of an analog axis atomically. The normal picker offers each
+   physical axis once. Complete axes use one command label (Pitch, Roll, Yaw,
+   Throttle, or the imported catalog name); incomplete axes keep an explicit
+   direction suffix. Keyboard/mouse/gamepad and unsupported combinations remain
+   read-only. Individual native edits are explicitly named in the advanced record
+   menu: **Apply input to this native record only** preserves its native direction,
+   while **Clear this native record…** removes only that record.
 5. Name and **Save profile**. **Discard changes** restores the saved baseline;
    saved profiles appear in the profile selector and **Continue** reopens the recent
    Squadrons workspace. Save uses the shared optimistic revision check.
@@ -93,6 +93,16 @@ in-game hardware test, and there is no established device-count limit from these
 The desktop shows decoded inputs (including continuous Z-axis directions), captured
 slot ownership and individual indexed records. It does not claim that a saved slot
 was detected by Squadrons or that every connected device can be acquired together.
+
+## Blank-slate command creation
+
+A fresh profile with declared controllers and no binding rows supports every
+known catalog command directly in HEIMDALL, including Shield Front/Back/Balance.
+No game-side seed binding or personal template import is required. The adapter
+supplies 149 native descriptors for the 125 known concepts and materializes only
+the explicitly requested assignment. Existing/archived user evidence takes
+precedence over factory alternatives. See
+[descriptor provenance and game-validation limits](squadrons-custom-record-provenance.md).
 
 ## Physical controller links
 
@@ -133,13 +143,41 @@ different owner for those records. New edits require verified destination contro
 through the application session as well as the UI. Missing, failed or obsolete
 scans never fall back to the generic joystick input list. A disconnected or changed
 instance/product blocks application even if an older capability scan succeeded.
-Native exports contain the same captured slot names and binding records; links are
-HEIMDALL workspace metadata and never repair game acquisition by themselves.
+Physical linking alone retains the native names and bindings; the links are
+HEIMDALL workspace metadata and do not establish game acquisition.
 
-To add another native slot, bind an input on that device in Squadrons and import a
-fresh capture. This creates a separate workspace with no inherited physical links;
-review slot ownership again. Native slot add/remove, binding transfer and capture
-reconciliation remain separate work because saved names cannot establish identity.
+To add a controller omitted by Squadrons, open **Devices**, choose its connected
+physical hardware and select **Add controller…**. An existing captured slot need
+not be selected. The suggested game name combines the Windows/DirectInput name with the first
+unused occurrence suffix seen in the native naming convention, for example
+`Viper TQS 1` or `F16 MFD 1 1`. A product/model number remains part of the base
+name. Existing complete game names are retained; occurrence numbers are separate
+from the exported slot numbers. Review or adjust the proposal if game-side
+instance enumeration differs.
+
+The review stages one unused native declaration and links the exact physical
+instance in one operation. Blank or absent slots can be used within the supported
+1–10 range; a slot referenced by any joystick record is reserved even if its name
+is blank. Existing device names and bindings are retained. Duplicate native names,
+already-linked physical instances, full capacity, stale reviews and missing or
+changed hardware are rejected. Cancel keeps the draft unchanged. Save persists the
+new slot/link, and export produces the native declaration for game testing. Choose
+a drawing and assign verified inputs normally after adding the controller.
+
+For an existing bare name, select its linked slot on **Devices**, review the
+suggested **Game device name**, and choose **Update game name…**. This stages the
+name change without recreating the device or its assignments. The same action can
+regroup declarations even when the name is already correct. Cancel leaves the
+saved state intact; Save persists the repair before export.
+
+Add, Update game name and native Reorder group all `GstInput.JoystickDeviceN`
+declarations together at the existing device block, before binding records. Keys
+are sorted lexically like game-generated captures (`1`, `10`, `2`, …). Other
+settings, binding records and their raw line endings are preserved.
+
+Game-side name matching, recognition and retention after restart require manual
+validation. Reimporting a fresh game capture remains an alternative reconciliation
+workflow and creates a separate workspace with no inherited physical links.
 
 ## Remaining increments
 
@@ -170,3 +208,33 @@ Presentation regressions cover compatible-only authoring, explicit raw-record
 review, numeric controller ordering and unchanged native output. Windows smoke
 checks the selected-controller layout at 1200×810 and 900×620, including command
 width, wrapping, collapsed setup, empty state and diagnostic column visibility.
+
+### Review export controller declarations
+
+The desktop Export action prepares a review copy independently of the exact retained capture. It gathers every `GstInput.JoystickDeviceN` declaration into one block before all binding records and orders slots numerically, including slot 10 and empty declarations. A TQS declaration embedded among bindings is included even when a saved workspace has had no Add/Rename/Reorder operation.
+
+Review export retains every native name and binding record exactly, including sparse indices, unknown numeric fields and empty declarations. It does not infer occurrence suffixes or insert disabled fillers. The original saved capture and source-preserving adapter Export remain unchanged. Review export is idempotent; the UI reports a review copy with preserved native names and records.
+
+The failed padding experiment and isolated successful native MFD edit are documented in the [engineering evidence audit](squadrons-engineering-evidence.md). Automatic name repair and array completion were unsupported hypotheses and have been removed. Explicit reviewed Add/Rename operations remain available. General in-game export acceptance and TQS acquisition remain unresolved.
+
+### Axis reversal and linked-controller export review
+
+The selected assignment editor offers **Reverse axis** for a complete saved axis pair on the linked destination controller. It swaps only the two native input encodings, preserving identifiers, negate values, native addresses, controller ownership and every unrelated record. It is a staged edit with the same edition, connection and verified-axis checks as normal assignment, and supports discard/save/reopen. Reversing twice restores the exact original binding text. It does not populate an unassigned command from factory descriptors.
+
+Desktop review export supplies saved physical-link names to a semantic preflight. A declared panel with a saved TQS physical link is blocked instead of being treated as valid merely because its slot exists. Exact reported names and a separate positive occurrence suffix are accepted; numeric model names are retained. A mismatch produces no export files and does not rename or remap anything. Unlinked declarations cannot be checked against physical intent, and matching names still do not establish game acquisition.
+
+Review export also blocks repeated nonempty native controller names across slots, even when no physical links are saved. Such declarations cannot establish unique ownership of existing assignments. Import and exact source export remain available for inspection and recovery; no automatic deduplication, slot reassignment or binding rewrite occurs. Distinct occurrence-qualified names and multiple empty slots remain valid. This is a conservative review policy, not proof that a particular connected-device count or runtime mapping is supported.
+
+### New joystick profile
+
+After importing native game settings or opening a saved Squadrons profile, **New profile…** creates a separate named saved profile. It uses the shared configuration naming dialog, clone contract and workspace store. Existing controller links, drawings, native settings and keyboard/mouse/gamepad records are retained. All joystick records, including unsupported joystick encodings, are removed, and the personal assignment archive is discarded. Subsequent joystick authoring uses bundled adapter metadata without importing assignment templates. The original profile and active game files are untouched. Canceling the name prompt creates nothing; pending edits use the existing Save/Discard/Cancel guard.
+
+This is an unassigned joystick profile based on the current native settings, not a fabricated replacement for the game's system-input defaults. New is unavailable until a native baseline has been imported or a saved profile opened. In-game blank-profile acceptance remains a separate test.
+
+### Read-only system diagrams
+
+Selecting Keyboard, Mouse or Gamepad in Assignments & Testing automatically displays built-in vector artwork. These drawings require no physical controller link or drawing selection. Keyboard and mouse geometry is shared with Elite; the generic gamepad uses the same renderer. Captured command labels follow the command browser context, and clicking a control shows its native records. Tooltips retain all native fields. Unknown codes appear as additional exact-name controls; ambiguous mouse button codes are not guessed onto physical left/right buttons. All three system sources remain read-only: no assignment drops, clearing, tuning, physical input acquisition or native export changes.
+
+### Game-facing free-look camera labels
+
+The Flight command catalog displays native `ConceptCameraPitch` as **Free Look - Camera Pitch Up / Down (axis)** and `ConceptCameraYaw` as **Free Look - Camera Yaw Left / Right (axis)**. These labels describe the game-facing directional controls while retaining each native axis pair as one command. The independently stored `ConceptFreeLookCameraUp/Down/Left/Right` records remain distinct; finding keyboard records under those identifiers does not establish that the game's joystick UI uses those same identifiers. `ConceptFreeLook` remains the independent activation button. Native identifiers, values, assignments and export bytes are unchanged. The catalog retains searchable native display names, and Hangar/spectator camera names remain scoped to their original context.

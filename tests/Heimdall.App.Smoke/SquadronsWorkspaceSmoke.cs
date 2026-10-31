@@ -36,7 +36,12 @@ namespace Heimdall.App.Smoke
                 discovery.Inputs[throttle.PhysicalGuid] = ControllerCapabilityMapper.Map([new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 2u, "Z axis")]);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
                 var choice = MessageBoxResult.Cancel;
-                var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced");
+                var capture = Path.Combine(root, "Capture"); Directory.CreateDirectory(capture);
+                var source = Path.Combine(capture, SquadronsProfileBackend.FileName);
+                var sourceText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+                sourceText = sourceText.Replace("GstInput.JoystickDevice5 Smoke Throttle 1\r\n", "", StringComparison.Ordinal)
+                    .Replace("GstInput.JoystickDevice5 Smoke Throttle 1\n", "", StringComparison.Ordinal);
+                File.WriteAllText(source, sourceText.TrimEnd() + "\nGstInput.JoystickDevice5 Viper TQS\n");
                 var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true);
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
                 Box<CheckBox>(window, "ReviewCaptured").IsChecked = true;
@@ -47,6 +52,7 @@ namespace Heimdall.App.Smoke
                 var devices = Box<ListBox>(window, "DevicePicker");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = throttle; Click(window, "LinkControllerButton");
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 devices.SelectedIndex = 0;
                 var grid = Box<DataGrid>(window, "BindingsGrid");
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.Native.Type == 2);
@@ -55,16 +61,40 @@ namespace Heimdall.App.Smoke
                 var targets = Box<ComboBox>(window, "TargetDevice"); targets.SelectedItem = targets.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
                 var inputs = Box<ComboBox>(window, "InputPicker"); inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_Z" && x.Direction == 1);
                 Click(window, "ApplyButton");
-                if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Single(x => x.RecordId.EndsWith("Throttle.4", StringComparison.Ordinal)).DeviceId != 9)
+                if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).Any(x => x.DeviceId != 9))
                     throw new InvalidOperationException("The UI did not stage the explicit native controller assignment.");
+                var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                if (!Box<Button>(window, "ReverseAxisButton").IsEnabled)
+                    throw new InvalidOperationException("A verified complete saved axis cannot be reversed.");
+                Click(window, "ReverseAxisButton");
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] == beforeReverse)
+                    throw new InvalidOperationException("The Reverse axis action did not change the directional encodings.");
+                Click(window, "ReverseAxisButton");
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeReverse)
+                    throw new InvalidOperationException("Reversing twice did not restore the exact native axis assignment.");
                 Box<ComboBox>(window, "TypePicker").SelectedItem = "Axes";
                 Box<TextBox>(window, "Search").Text = "Throttle";
                 if (grid.Items.Count != 2) throw new InvalidOperationException("Axis/search filters lost native direction records.");
                 Box<TextBox>(window, "ProfileName").Text = "Smoke Space Controls";
                 if (!window.SaveProfile()) throw new InvalidOperationException("Squadrons profile did not save.");
                 var id = window.Session.Snapshot.Id;
+                var capturedBeforeExport = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 var exported = window.ExportReview(root);
+                var reviewText = File.ReadAllText(Path.Combine(exported, SquadronsProfileBackend.FileName));
+                var lines = reviewText.Split('\n');
+                var declarations = lines.Select((line, index) => (line, index))
+                    .Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
+                if (declarations[^1].index - declarations[0].index + 1 != declarations.Length ||
+                    declarations[^1].index >= Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)) ||
+                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS\n", StringComparison.Ordinal) ||
+                    window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
+                    throw new InvalidOperationException("Review export scattered controller declarations, changed the native TQS name or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
+                var backend = new SquadronsProfileBackend();
+                var reviewedProfile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = reviewText });
+                if (System.Text.Json.JsonSerializer.Serialize(backend.ReadBindings(reviewedProfile)) !=
+                    System.Text.Json.JsonSerializer.Serialize(backend.ReadBindings(window.Session.Snapshot.Profile)))
+                    throw new InvalidOperationException("Review export invented or changed native binding records.");
                 Box<TextBox>(window, "ProfileName").Text = "Pending name";
                 Box<ComboBox>(window, "GamePicker").SelectedIndex = 1;
                 if (window.RequestedGame is not null || !window.IsVisible || Box<ComboBox>(window, "GamePicker").SelectedIndex != 2)

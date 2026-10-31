@@ -3,7 +3,7 @@ using System.Windows.Controls;
 
 namespace Heimdall.App.Games
 {
-    /// <summary>Switches composed native feature views and their real action bars for DCS and Elite.</summary>
+    /// <summary>Switches composed native feature views and their real action bars for simulator workspaces.</summary>
     public sealed class GameWorkspaceFeatureHost(ContentControl content, FeatureActionBar actions, Action? stopLiveInput = null)
     {
         #region BEGIN Public

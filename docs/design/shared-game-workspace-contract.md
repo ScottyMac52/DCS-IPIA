@@ -36,7 +36,7 @@ Current app code-behind is **not** a shared contract. UI event handlers may medi
 3. **Safe native evidence.** Imports preserve unrecognized native records and settings. A display filter must never delete, normalize, or infer data. Exports must round-trip unchanged when authoring has not explicitly modified those native fields.
 4. **Whole physical input.** An analog axis is one physical control even where a simulator represents its +/- motions in separate native records. Native adapters decide whether both are required, how to stage them atomically and which negate/identifier fields must remain unchanged.
 5. **Real commands only.** Selecting a menu action must call an implemented operation. Unsupported tune/clear/creation must not masquerade as working interactions. A presenter may expose typed commands only when the owning application capability is available.
-6. **One interaction model.** Command selection, controller selection, input selection, action staging and feedback must be consistent across games; click and drag should use the same command path and validation.
+6. **One interaction model.** Command selection, controller selection, input selection, action staging and feedback must be consistent across games; a control click selects without writing, while Apply and drag share the same command path and validation. The displayed command, selected input and action target must agree. Whole-axis labels use one catalog name across devices and tooltips; native direction details belong in explicit advanced record actions.
 7. **Optional surfaces.** Simulator capabilities may enable/disable Devices, Assignments, Input Testing, Reference Sheets, modifiers, tuning, or no-drawing fallback without introducing another entire workspace window.
 8. **Accessibility and visual feedback.** Resize and scroll operations preserve hit-test alignment; errors are adjacent to the attempted action; pending state is derived from session state rather than stale status text.
 
@@ -63,7 +63,7 @@ These tests intentionally cover established **mainline** behavior. They do **not
 | --- | --- | --- | --- | --- |
 | Load / change / save / discard profile | Pending | Pending | Pending | Saved/unsaved state follows current profile |
 | Change controller while a command is selected | Pending | Pending | Pending | Callout/rows/tooltip switch to matching device; no native mutation |
-| Select control, assign via click and drag | Pending | Pending | Pending | Both paths share one validated command |
+| Select control without writing; assign via Apply or drag | Pending | Pending | Pending | Both paths share one validated command |
 | Clear selected binding via context menu | Pending | Pending | Pending | Actual clear or action absent if unsupported |
 | Tune axis via context menu | Pending | Pending | Pending | Real tuning, or no tune item |
 | Drawing zoom, fit, scroll, pan and resize | Pending | Pending | Pending | No clipped unreachable controls; aligned hit regions |
@@ -83,3 +83,13 @@ No Windows GUI tests were run as part of authoring this document. CI success, me
 - **PR 6:** obsolete-code cleanup, full cross-game regression, War Thunder readiness audit.
 
 Each PR must follow the repository's **80% line / 80% branch per measured assembly and CRAP ≤ 50** quality gates plus applicable Windows smoke. No PR may claim GUI verification from source inspection alone. War Thunder UI work remains outside this program until the common shell and capabilities are proven.
+
+## Explicit device link ownership
+
+Devices shows the saved physical controller and drawing, with each selector locked while its own link exists. Connection loss does not unlock or replace a saved physical identity; an offline entry remains visible. Unlink physical controller and Unlink drawing are separate actions. Neither clears native assignments. Physical unlink retains the drawing for a later physical link. New controllers remain addable without disturbing existing links.
+
+Elite and Squadrons enforce physical replacement and drawing replacement prerequisites in GameProfileSession, using ControllerLinkState for availability and ControllerLinkPresentation for saved/offline selections. Independent drawing links survive physical unlink, persistence, relink and native slot reordering. Native reference replacement remains a separately reviewed operation after physical unlink.
+
+DCS uses the same selector policy. Physical unlink stages an unqualified `Unlinked-<profile-id>.diff.lua` membership in both scopes, retains assignments and artwork, and requires linking a physical unit before native export. Drawing unlink retains verified source and controls with a persisted DrawingUnlinked flag, hides the illustration and allows an explicitly reviewed replacement or restoring the retained drawing. Save/Discard owns all changes.
+
+Regression additions cover offline replacement rejection, independent unlink, native export preservation, serialization/reopen and discard in both game adapters, plus DCS scope identities and detached drawing persistence. Windows smoke checks saved/offline selections remain displayed and locked, and explicit unlink enables replacement. These .NET/Windows checks require execution on a supported runner.

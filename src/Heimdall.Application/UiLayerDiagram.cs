@@ -16,6 +16,9 @@ namespace Heimdall.Application
         public string Title => DcsDeviceDisplay.Label(Device, Instance);
         /// <summary>Gets the exact validated draw.io-generated SVG from the committed shared repository.</summary>
         public string Svg { get; init; } = string.Empty;
+        /// <summary>Explicitly detaches illustration while retaining its source, verified controls and assignment data.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public bool DrawingUnlinked { get; init; }
         /// <summary>Gets the imported device profile identity; never inferred from a Saved Games filename.</summary>
         public Guid ProfileId { get; init; }
         /// <summary>Gets the exact pinned canonical UI Layer profile path, when uniquely resolved.</summary>

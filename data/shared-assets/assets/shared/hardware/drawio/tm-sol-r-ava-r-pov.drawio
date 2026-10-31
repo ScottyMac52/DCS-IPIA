@@ -410,6 +410,24 @@
         <mxCell id="label-JOY_BTN21" parent="1" vertex="1" inputKey="JOY_BTN21" value="Button 21" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;">
           <mxGeometry x="1045" y="1620" width="285" height="38" as="geometry" />
         </mxCell>
+        <mxCell id="label-JOY_RX" value="RX  |  Mini-stick horizontal" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;verticalAlign=middle;" parent="1" vertex="1" inputKey="JOY_RX">
+          <mxGeometry x="990" y="735" width="370" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="anchor-JOY_RX" value="" style="fillColor=#00bfff;strokeColor=#0f172a;strokeWidth=1.5;" parent="1" vertex="1">
+          <mxGeometry x="695" y="250" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="connector-JOY_RX" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#00bfff;strokeWidth=1.5;dashed=1;endArrow=none;" parent="1" edge="1" source="label-JOY_RX" target="anchor-JOY_RX">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-JOY_RY" value="RY  |  Mini-stick vertical" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;verticalAlign=middle;" parent="1" vertex="1" inputKey="JOY_RY">
+          <mxGeometry x="990" y="785" width="370" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="anchor-JOY_RY" value="" style="fillColor=#00bfff;strokeColor=#0f172a;strokeWidth=1.5;" parent="1" vertex="1">
+          <mxGeometry x="695" y="250" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="connector-JOY_RY" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#00bfff;strokeWidth=1.5;dashed=1;endArrow=none;" parent="1" edge="1" source="label-JOY_RY" target="anchor-JOY_RY">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

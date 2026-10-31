@@ -25,6 +25,8 @@ return {
     { id = "JOY_BTN15", key = "JOY_BTN15", type = "button", hardwareLabel = "B15  |  Scroll wheel down" },
     { id = "JOY_X", key = "JOY_X", type = "axis", hardwareLabel = "X  |  AVA roll" },
     { id = "JOY_Y", key = "JOY_Y", type = "axis", hardwareLabel = "Y  |  AVA pitch" },
+    { id = "JOY_RX", key = "JOY_RX", type = "axis", hardwareLabel = "RX  |  Mini-stick horizontal" },
+    { id = "JOY_RY", key = "JOY_RY", type = "axis", hardwareLabel = "RY  |  Mini-stick vertical" },
     { id = "JOY_RZ", key = "JOY_RZ", type = "axis", hardwareLabel = "RZ  |  Grip twist" },
     { id = "JOY_BTN3", key = "JOY_BTN3", type = "button", hardwareLabel = "B03  |  Upper trigger input" },
     { id = "JOY_BTN4", key = "JOY_BTN4", type = "button", hardwareLabel = "B04  |  Upper trigger input" },

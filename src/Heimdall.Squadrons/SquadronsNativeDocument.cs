@@ -14,7 +14,7 @@ namespace Heimdall.Squadrons
         public IReadOnlyDictionary<string, string> Values { get; }
         /// <summary>Gets every captured record, including records not projected into portable assignments.</summary>
         public IReadOnlyList<SquadronsBindingRow> Bindings { get; }
-        /// <summary>Validates native version four settings before projecting or editing them.</summary>
+        /// <summary>Validates native version four settings or a fresh input configuration with no binding table.</summary>
         public SquadronsNativeDocument(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024 || text.Contains('\0'))
@@ -29,7 +29,10 @@ namespace Heimdall.Squadrons
                 if (split <= 0 || !values.TryAdd(clean[..split], clean[(split + 1)..]))
                     throw new InvalidOperationException("Malformed or duplicate Squadrons setting.");
             }
-            if (values.GetValueOrDefault("GstKeyBinding.InputDataVersion") != "4")
+            if (values.GetValueOrDefault("GstKeyBinding.InputDataVersion") != "4" &&
+                !(values.GetValueOrDefault("GstKeyBinding.InputDataVersion") is null &&
+                  values.Keys.Any(x => x.StartsWith("GstInput.", StringComparison.Ordinal)) &&
+                  !values.Keys.Any(x => x.StartsWith(BindingPrefix, StringComparison.Ordinal))))
                 throw new InvalidOperationException("Only captured Squadrons input data version 4 is supported.");
             Values = values; Bindings = ReadBindings(values);
         }
@@ -81,6 +84,26 @@ namespace Heimdall.Squadrons
             var separator = Text.EndsWith('\n') ? "" : newline;
             return Text + separator + string.Join(newline, lines) + newline;
         }
+        /// <summary>Creates a named declaration in the first blank or absent unreferenced slot.</summary>
+        public string AddJoystickDevice(string name)
+        {
+            ValidateJoystickName(name, null);
+            const string prefix = "GstInput.JoystickDevice";
+            var slot = Enumerable.Range(1, 10).FirstOrDefault(number =>
+                string.IsNullOrWhiteSpace(Values.GetValueOrDefault(prefix + number)) &&
+                !Bindings.Any(row => row.Type == 3 && row.DeviceId == number - 1));
+            if (slot == 0) throw new InvalidOperationException("No unused Squadrons joystick slot is available in the supported 1–10 range. Remove an unused controller first.");
+            return GroupJoystickDevices(new Dictionary<string, string> { [prefix + slot] = name });
+        }
+        /// <summary>Changes one existing declaration and groups device names in the game-generated settings block.</summary>
+        public string RenameJoystickDevice(int slot, string name)
+        {
+            var key = "GstInput.JoystickDevice" + slot;
+            if (!Values.TryGetValue(key, out var previous) || string.IsNullOrWhiteSpace(previous))
+                throw new InvalidOperationException("Choose an existing named Squadrons controller slot.");
+            ValidateJoystickName(name, key);
+            return GroupJoystickDevices(new Dictionary<string, string> { [key] = name });
+        }
         /// <summary>Removes exactly one scalar setting without changing unrelated native lines.</summary>
         public string RemoveSetting(string key)
         {
@@ -129,7 +152,7 @@ namespace Heimdall.Squadrons
             var deviceKeys = Values.Keys.Where(x => x.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
             var bindingKeys = Bindings.Where(x => x.Type == 3).Select(x => BindingPrefix + x.RecordId + ".deviceid").ToDictionary(
                 key => key, key => map[int.Parse(Values[key], CultureInfo.InvariantCulture) + 1] - 1, StringComparer.Ordinal);
-            return string.Join("\n", Text.Split('\n').Select(line =>
+            var text = string.Join("\n", Text.Split('\n').Select(line =>
             {
                 var delimiter = line.IndexOf(' ');
                 if (delimiter < 0) return line;
@@ -143,9 +166,38 @@ namespace Heimdall.Squadrons
                     return key + " " + deviceId.ToString(CultureInfo.InvariantCulture) + (line.EndsWith('\r') ? "\r" : "");
                 return line;
             }));
+            return new SquadronsNativeDocument(text).GroupJoystickDevices();
         }
+        /// <summary>Groups controller declarations without inventing names or binding records.</summary>
+        public string PrepareReviewExport() => GroupJoystickDevices();
         #endregion END Public
         #region BEGIN private helpers
+        private void ValidateJoystickName(string name, string? currentKey)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            if (name.Length > 256 || name != name.Trim() || name.Any(char.IsControl))
+                throw new InvalidOperationException("Use a single-line game device name of at most 256 characters.");
+            if (Values.Any(x => x.Key != currentKey && x.Key.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal) &&
+                string.Equals(x.Value, name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("That game device name already has a slot. Link the existing slot, or use the correct distinct device name.");
+        }
+        private string GroupJoystickDevices(Dictionary<string, string>? changes = null)
+        {
+            const string prefix = "GstInput.JoystickDevice";
+            var devices = Values.Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
+            if (changes is not null) foreach (var pair in changes) devices[pair.Key] = pair.Value;
+            if (devices.Count == 0) return Text;
+            var parts = Text.Split('\n');
+            var lines = parts.Select((line, index) => line + (index < parts.Length - 1 ? "\n" : "")).ToArray();
+            var first = Math.Max(Array.FindIndex(lines, line => line.StartsWith(prefix, StringComparison.Ordinal)), 0);
+            var bindings = Array.FindIndex(lines, line => line.StartsWith(BindingPrefix, StringComparison.Ordinal));
+            if (bindings >= 0) first = Math.Min(first, bindings);
+            var before = string.Concat(lines.Take(first));
+            var after = string.Concat(lines.Skip(first).Where(line => !line.StartsWith(prefix, StringComparison.Ordinal)));
+            var newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            var block = devices.OrderBy(x => int.Parse(x.Key[prefix.Length..], CultureInfo.InvariantCulture)).Select(x => x.Key + " " + x.Value);
+            return before + string.Join(newline, block) + newline + after;
+        }
         private static List<SquadronsBindingRow> ReadBindings(Dictionary<string, string> values)
         {
             var records = new Dictionary<(string Concept, int Index), Dictionary<string, int>>();
