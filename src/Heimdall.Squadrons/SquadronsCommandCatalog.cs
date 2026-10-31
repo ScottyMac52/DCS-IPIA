@@ -21,9 +21,9 @@ namespace Heimdall.Squadrons
                     .Select(concept => new SimCommand
                     {
                         Id = context + "/" + concept, Context = context,
-                        DisplayName = Display(concept), Category = Category(concept),
+                        DisplayName = SquadronsKnownConcepts.DisplayNames.GetValueOrDefault(concept) ?? Display(concept), Category = Category(concept),
                         Type = captured.TryGetValue(concept, out var rows) ? InputType(rows) : CommandType.Other,
-                        Metadata = new() { ["squadrons.concept"] = concept }
+                        Metadata = new() { ["squadrons.concept"] = concept, ["squadrons.native-display-name"] = Display(concept) }
                     }).ToArray();
             }
         }

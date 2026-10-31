@@ -32,11 +32,12 @@ for b in model['bindings']:
               'adapterType':'Axis' if decode(b['fields']).endswith((' +',' -')) else 'Hat' if 'POV' in decode(b['fields']) else 'Button' if 'BTN' in decode(b['fields']) else 'Unknown',
               'evidenceClass':'bundled-nonzero-identifier' if b['fields']['identifier'] else 'bundled-zero-identifier-mixed-observed-and-generalized',
               'gameAcceptance':'unverified'})
+labels=dict(re.findall(r'\["([^"\n]+)"\]\s*=\s*"([^"\n]+)"',known))
 commands=[]
 for c in sorted(concepts):
  rs=[r for r in rows if r['concept']==c]
  name=re.sub(r'(?<=[a-z])(?=[A-Z])',' ',c.split('.Concept',1)[1])
- commands.append({'concept':c,'displayName':name,'context':c.split('.')[0],
+ commands.append({'concept':c,'displayName':labels.get(c,name),'context':c.split('.')[0],
                   'adapterTypes':sorted({r['adapterType'] for r in rs}),
                   'records':[{'index':r['index'],'fields':{k:r[k] for k in FIELDS},'adapterInput':r['adapterInput'],'adapterType':r['adapterType'],
                               'evidenceClass':r['evidenceClass'],'gameAcceptance':r['gameAcceptance']} for r in rs]})

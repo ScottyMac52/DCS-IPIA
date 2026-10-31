@@ -3,13 +3,13 @@ using Xunit;
 
 namespace Heimdall.Tests
 {
-    /// <summary>Distinguishes analog camera motion from the separate digital free-look commands.</summary>
+    /// <summary>Maps game-facing free-look labels to native camera concepts without changing assignments.</summary>
     public sealed class SquadronsFreeLookTests
     {
         #region BEGIN Public
-        /// <summary>Import retains the independent press, both mini-stick axes and keyboard-only directional concepts.</summary>
+        /// <summary>Import retains the independent press, both mini-stick axes and the separately stored directional concepts.</summary>
         [Fact]
-        public void Import_preserves_camera_axes_and_does_not_relabel_them_as_digital_commands()
+        public void Import_preserves_camera_axes_and_exposes_game_facing_free_look_labels()
         {
             var source = "GstKeyBinding.InputDataVersion 4\nGstInput.JoystickDevice1 Smoke Stick 1\n";
             source += Record("FreeLook", 0, 3, 26, 27, 0);
@@ -25,12 +25,23 @@ namespace Heimdall.Tests
             Assert.Equal("JOY_BTN6", Assert.Single(records, row => row.Concept.EndsWith(".ConceptFreeLook", StringComparison.Ordinal)).Input!.Key);
             Assert.Equal(2, records.Count(row => row.Input?.PhysicalKey == "JOY_RX"));
             Assert.Equal(2, records.Count(row => row.Input?.PhysicalKey == "JOY_RY"));
-            Assert.Contains(rows, row => row.CommandName == "Camera Pitch" && row.Native.Input?.PhysicalKey == "JOY_RY");
-            Assert.Contains(rows, row => row.CommandName == "Camera Yaw" && row.Native.Input?.PhysicalKey == "JOY_RX");
+            Assert.Contains(rows, row => row.CommandName == "Free Look Camera Up / Down (axis)" && row.Native.Input?.PhysicalKey == "JOY_RY");
+            Assert.Contains(rows, row => row.CommandName == "Free Look Camera Left / Right (axis)" && row.Native.Input?.PhysicalKey == "JOY_RX");
             var commands = SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
                 "Flight", "All types", "All", "FreeLookCamera", "squadrons.joystick.1");
             Assert.Equal(4, commands.Count);
             Assert.All(commands, command => Assert.All(records.Where(row => row.Concept == command.Metadata["squadrons.concept"]), row => Assert.Equal(2, row.Type)));
+            var camera = SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
+                "Flight", "Axes", "Assigned to selected controller", "Free Look Camera", "squadrons.joystick.1");
+            Assert.Equal(2, camera.Count);
+            Assert.Contains(camera, command => command.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptCameraPitch"
+                && command.DisplayName == "Free Look Camera Up / Down (axis)");
+            Assert.Contains(camera, command => command.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptCameraYaw"
+                && command.DisplayName == "Free Look Camera Left / Right (axis)");
+            Assert.Single(SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
+                "Flight", "Axes", "All", "Camera Pitch", "squadrons.joystick.1"));
+            Assert.Equal("Camera Pitch", backend.GetCatalog(profile).Commands.Single(command =>
+                command.Metadata["squadrons.concept"] == "IncomSoldierInputConcepts.ConceptCameraPitch").DisplayName);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
         #endregion END Public
