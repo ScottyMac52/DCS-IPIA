@@ -80,6 +80,22 @@ namespace Heimdall.Application.Games
                 negativeRecordId, logicalDeviceId, axisKey);
             StageNativeProfile(profile, "The native axis edit changed the owning game or profile identity.");
         }
+        /// <summary>Reverses an existing axis pair atomically after checking its linked physical input.</summary>
+        public void ReverseNativeAxisPair(string positiveRecordId, string negativeRecordId,
+            string logicalDeviceId, string axisKey)
+        {
+            RequireAccess();
+            if (_backend is not INativeAxisPairEditor editor)
+                throw new InvalidOperationException("This game does not support bidirectional native axis editing.");
+            var pin = _current.Hardware.GetValueOrDefault(logicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(editor.PhysicalInputKey(axisKey), StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Link and verify this physical axis before reversing it.");
+            var profile = editor.ReverseAxisPair(Snapshot.Profile, positiveRecordId,
+                negativeRecordId, logicalDeviceId, axisKey);
+            StageNativeProfile(profile, "The native axis reversal changed the owning game or profile identity.");
+        }
         /// <summary>Stages a new captured Squadrons record only after the same physical
         /// device and verified key checks used for edits to existing records.</summary>
         public void AddSquadronsNativeBinding(string concept, string logicalDeviceId,

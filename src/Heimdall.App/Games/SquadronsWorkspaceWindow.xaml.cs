@@ -103,6 +103,7 @@ namespace Heimdall.App.Games
             RegisterName("AssignmentHint", AssignmentHint);
             RegisterName("TargetDevice", TargetDevice);
             RegisterName("InputPicker", InputPicker);
+            RegisterName("ReverseAxisButton", ReverseAxisButton);
             RescanControllerButton.Click += RescanClicked;
             IdentifyControllerButton.Click += IdentifyClicked;
             CancelIdentificationButton.Click += StopIdentificationClicked;
@@ -119,6 +120,7 @@ namespace Heimdall.App.Games
             DrawingPicker.SelectionChanged += DrawingChanged;
             FitDrawingButton.Click += FitDrawingClicked;
             ApplyButton.Click += ApplyClicked;
+            ReverseAxisButton.Click += ReverseAxisClicked;
             ShowCommandButton.Click += ShowCommandClicked;
             SectionPicker.SelectionChanged += FilterChanged;
             TypePicker.SelectionChanged += FilterChanged;
@@ -294,7 +296,7 @@ namespace Heimdall.App.Games
             if (_sourceDirectory is not null) roots.Add(_sourceDirectory);
             _session.Export(); // Retain the session's edition and native-document validation boundary.
             var snapshot = _session.Snapshot;
-            var plan = _backend.ExportReview(snapshot.Profile);
+            var plan = _backend.ExportReview(snapshot.Profile, snapshot.Hardware.ToDictionary(x => x.Key, x => x.Value.Device.Name));
             if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
             var directory = GameReviewExport.Write(parent, plan.Files, roots, backendId: _backend.SimId);
             StatusText.Text = "Review copy with preserved native names and records exported to " + directory + ". Close Squadrons and back up its settings before manually installing this copy.";
@@ -439,11 +441,26 @@ namespace Heimdall.App.Games
                 : "Select an input, then Apply assignment. Analog axes update both directions together. Individual native-record edits are available explicitly in the advanced record menu.";
             UpdateApplyAvailability();
         }
-        private void UpdateApplyAvailability() => ApplyButton.IsEnabled = !(_input?.Running ?? false) &&
-            !_scanningInputs && !(_identification?.Running ?? false) &&
-            CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand &&
-            TargetDevice.SelectedItem is GameDeviceChoice && InputPicker.IsEnabled &&
-            InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
+        private void UpdateApplyAvailability()
+        {
+            ApplyButton.IsEnabled = !(_input?.Running ?? false) &&
+                !_scanningInputs && !(_identification?.Running ?? false) &&
+                CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand &&
+                TargetDevice.SelectedItem is GameDeviceChoice && InputPicker.IsEnabled &&
+                InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
+            ReverseAxisButton.IsEnabled = ApplyButton.IsEnabled && CanReverseSelectedAxis();
+        }
+        private bool CanReverseSelectedAxis()
+        {
+            if (_session is null || CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
+                TargetDevice.SelectedItem is not GameDeviceChoice device ||
+                InputPicker.SelectedItem is not SquadronsInput { Type: CommandType.Axis } input) return false;
+            var rows = _backend.ReadBindings(_session.Snapshot.Profile).Where(row => row.Type == 3 &&
+                row.Concept == command.Metadata["squadrons.concept"] &&
+                "squadrons.joystick." + (row.DeviceId + 1) == device.Id && row.Input?.PhysicalKey == input.PhysicalKey).ToArray();
+            return rows.Length == 2 && rows.Count(row => row.Input!.Direction == 1) == 1 &&
+                rows.Count(row => row.Input!.Direction == -1) == 1;
+        }
         private void TargetChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateInputChoices); }
         private void InputChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -697,6 +714,20 @@ namespace Heimdall.App.Games
                 TargetDevice.SelectedItem is not GameDeviceChoice device || InputPicker.SelectedItem is not SquadronsInput input)
                 return;
             StageAssignment(command.Id, device.Id, input);
+        });
+        private void ReverseAxisClicked(object sender, RoutedEventArgs e) => RunAssignment(() =>
+        {
+            if (!ReverseAxisButton.IsEnabled || _session is null ||
+                CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
+                TargetDevice.SelectedItem is not GameDeviceChoice device ||
+                InputPicker.SelectedItem is not SquadronsInput { Type: CommandType.Axis } input) return;
+            var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
+                command.Id, device.Id, input.PhysicalKey, true);
+            if (plan.RecordId is null || plan.NegativeRecordId is null)
+                throw new InvalidOperationException("Select a complete saved axis assignment to reverse.");
+            _session.ReverseNativeAxisPair(plan.RecordId, plan.NegativeRecordId, device.Id, input.Key);
+            Refresh(false);
+            SelectionEditor.AssignmentDraftStatus.Text = StatusText.Text = "Axis reversed. Save before exporting.";
         });
         private void ApplyNativeRecordClicked(object sender, RoutedEventArgs e) => RunAssignment(() =>
         {
@@ -1227,6 +1258,7 @@ namespace Heimdall.App.Games
         private Canvas DrawingCanvas => _assignmentsView.DrawingCanvas;
         private TextBox InputActivity => _assignmentsView.InputActivity;
         private TextBlock DrawingHint => _assignmentsView.DrawingHint;
+        private Button ReverseAxisButton => _assignmentsView.ReverseAxisButton;
         private GameAssignmentEditorView SelectionEditor => _assignmentsView.SelectionEditor;
         private StackPanel AssignmentEditor => _assignmentsView.AssignmentEditor;
         private TextBlock AssignmentHint => _assignmentsView.AssignmentHint;

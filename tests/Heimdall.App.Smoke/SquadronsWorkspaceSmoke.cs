@@ -63,6 +63,15 @@ namespace Heimdall.App.Smoke
                 Click(window, "ApplyButton");
                 if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).Any(x => x.DeviceId != 9))
                     throw new InvalidOperationException("The UI did not stage the explicit native controller assignment.");
+                var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                if (!Box<Button>(window, "ReverseAxisButton").IsEnabled)
+                    throw new InvalidOperationException("A verified complete saved axis cannot be reversed.");
+                Click(window, "ReverseAxisButton");
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] == beforeReverse)
+                    throw new InvalidOperationException("The Reverse axis action did not change the directional encodings.");
+                Click(window, "ReverseAxisButton");
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeReverse)
+                    throw new InvalidOperationException("Reversing twice did not restore the exact native axis assignment.");
                 Box<ComboBox>(window, "TypePicker").SelectedItem = "Axes";
                 Box<TextBox>(window, "Search").Text = "Throttle";
                 if (grid.Items.Count != 2) throw new InvalidOperationException("Axis/search filters lost native direction records.");

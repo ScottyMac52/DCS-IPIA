@@ -46,11 +46,13 @@ namespace Heimdall.Squadrons
         }
         /// <summary>Groups controller declarations in the review copy while retaining every native name and record.
         /// Export does not infer occurrence suffixes, disabled fillers or native defaults.</summary>
-        public SimProfileExportPlan ExportReview(ProfileDocument profile)
+        public SimProfileExportPlan ExportReview(ProfileDocument profile, IReadOnlyDictionary<string, string>? linkedNames = null)
         {
             try
             {
                 var document = new SquadronsNativeDocument(Evidence(profile).Text);
+                var issues = SquadronsControllerExportReview.Review(profile, linkedNames);
+                if (issues.Count > 0) return new(new Dictionary<string, string>(), issues);
                 return new(new Dictionary<string, string> { [FileName] = document.PrepareReviewExport() }, []);
             }
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
@@ -140,6 +142,32 @@ namespace Heimdall.Squadrons
             var text = document.ReplaceValues(changes);
             var written = new SquadronsNativeDocument(text);
             ValidateAxisPairWrite(document, written, positiveRecordId, negativeRecordId, slot, plus, minus, changes);
+            return Edited(evidence, text);
+        }
+        /// <summary>Swaps the two captured directional encodings while preserving controller, identifiers and negate fields.</summary>
+        public ProfileDocument ReverseAxisPair(ProfileDocument profile, string positiveRecordId,
+            string negativeRecordId, string logicalDeviceId, string physicalAxisKey)
+        {
+            var evidence = Evidence(profile);
+            var device = profile.Devices.SingleOrDefault(x => x.LogicalId == logicalDeviceId)
+                ?? throw new InvalidOperationException("Select the controller that owns this axis.");
+            var slot = int.Parse(device.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var positive = document.Bindings.SingleOrDefault(x => x.RecordId == positiveRecordId);
+            var negative = document.Bindings.SingleOrDefault(x => x.RecordId == negativeRecordId);
+            ValidateAxisPair(document, positive, negative, slot);
+            if (positive!.DeviceId != slot - 1 || negative!.DeviceId != slot - 1 ||
+                positive.Input!.Key != physicalAxisKey || negative.Input!.Key != physicalAxisKey)
+                throw new InvalidOperationException("Reverse requires both existing directions of the selected axis on this controller.");
+            var plus = positive!;
+            var minus = negative!;
+            var changes = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (target, source) in new[] { (plus, minus), (minus, plus) })
+                foreach (var field in new[] { "axis", "button" })
+                    changes["GstKeyBinding." + target.RecordId + "." + field] = source.Fields[field];
+            var text = document.ReplaceValues(changes);
+            ValidateAxisPairWrite(document, new SquadronsNativeDocument(text), positiveRecordId,
+                negativeRecordId, slot, minus.Input!, plus.Input!, changes);
             return Edited(evidence, text);
         }
         /// <summary>Resolves an explicitly selected captured device and delegates to the native record editor.</summary>

@@ -67,3 +67,11 @@ The audit tool can be reproduced against privately held sources without publishi
 python scripts/audit_squadrons_evidence.py --capture A=path/to/before --capture B=path/to/after --dictionary A B --compare A:B --output audit.json
 python -m unittest discover -s tests/ci -p 'test_*.py'
 ```
+
+## Later working-controls capture and targeted correction
+
+The later supplied capture contains 376 records across the same 125 concepts. The user reports working MFD bindings, MFD 1 Button 3 selecting the target, TPR yaw, SOL-R roll, and SOL-R pitch with reversed desired direction. Its target-select record uses `deviceid=3, button=24`. Pitch uses SOL-R device 0 and axis codes 9/11 at indices 6/7. Both throttle records use `deviceid=1`, whose declaration now names the ICP. TQS has no declaration; slot 10 is empty. These observations establish a wrong destination for the intended TQS throttle, not the cause of the game's roster changes.
+
+A separate review candidate retains all 376 records and changes exactly five native lines: fill empty declaration 10 with the exact TQS name present in V4-A; set both throttle device IDs to 9; swap pitch axis codes 9/11 between their existing records. All identifiers, negate fields, other bindings and scalar settings remain exact. The user's original upload is untouched. This candidate repairs the intended references and reverses the encoded pitch pair; TQS runtime acquisition and the resulting pitch direction remain unverified until observed in the game. It does not add missing TQS button assignments.
+
+The application now provides atomic **Reverse axis** and blocks review export when a saved physical link conflicts with its native name. The check cannot infer an unlinked controller's intended identity. These changes address explicit editor/validation gaps; they do not claim to solve the still-unknown game device-acquisition rules.

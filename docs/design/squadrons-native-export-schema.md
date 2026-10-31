@@ -62,6 +62,8 @@ The supplied post-run capture retained all 26 binding records while changing the
 
 Controller slot numbers and `(concept, index)` addresses must be unique. Every native key must be unique before parsing. A joystick reference should resolve to a nonempty declaration; the inspector reports unresolved references, and `--strict-links` makes them errors. JSON Schema alone cannot enforce these relational rules or prove that a name refers to the intended connected hardware. Matching an unrelated panel at the same slot is structurally valid and semantically wrong.
 
+Desktop review export also checks saved physical-link names against native declarations. A mismatch blocks output without changing either name; a resolved integer slot alone is insufficient. This comparison is available only for saved links and cannot prove game recognition.
+
 The inspection model separates scalar `settings`, `devices`, and `bindings`. It is an analysis representation, not a lossless serialization envelope: use the original native source to preserve whitespace, ordering and unknown lines when editing/exporting. Do not generate a replacement game file by simply serializing this JSON.
 
 ## Evidence and acceptance work remaining

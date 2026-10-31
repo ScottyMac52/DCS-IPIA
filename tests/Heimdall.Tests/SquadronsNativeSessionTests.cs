@@ -45,6 +45,36 @@ namespace Heimdall.Tests
             Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
         }
 
+        /// <summary>Axis reversal uses the verified session boundary and can be discarded without touching the saved capture.</summary>
+        [Fact]
+        public void Verified_reversal_is_atomic_and_discardable()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var (session, backend, source) = Open(issuer.Policy, true, true);
+            session.RebindNativeAxisPair(Throttle + "5", Throttle + "4", Slot, "JOY_Y");
+            var before = session.Export().Files[SquadronsProfileBackend.FileName];
+            var notifications = 0;
+            session.Changed += (_, _) => notifications++;
+            session.ReverseNativeAxisPair(Throttle + "5", Throttle + "4", Slot, "JOY_Y");
+            Assert.Equal(1, notifications);
+            Assert.Equal(-1, backend.ReadBindings(session.Snapshot.Profile).Single(x => x.RecordId == Throttle + "5").Input!.Direction);
+            session.ReverseNativeAxisPair(Throttle + "4", Throttle + "5", Slot, "JOY_Y");
+            Assert.Equal(before, session.Export().Files[SquadronsProfileBackend.FileName]);
+            session.Discard();
+            Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Offline or unverified inputs cannot bypass capability checks through the reversal action.</summary>
+        [Theory]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        public void Unready_axis_reversal_preserves_the_session(bool connected, bool verified)
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var (session, _, source) = Open(issuer.Policy, connected, verified);
+            Assert.Throws<InvalidOperationException>(() => session.ReverseNativeAxisPair(Throttle + "5", Throttle + "4", Slot, "JOY_Y"));
+            Assert.False(session.HasChanges);
+            Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
+        }
         [Fact]
         public void Verified_native_creation_keeps_the_original_keyboard_and_joystick_records()
         {

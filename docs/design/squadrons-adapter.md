@@ -216,3 +216,9 @@ The desktop Export action prepares a review copy independently of the exact reta
 Review export retains every native name and binding record exactly, including sparse indices, unknown numeric fields and empty declarations. It does not infer occurrence suffixes or insert disabled fillers. The original saved capture and source-preserving adapter Export remain unchanged. Review export is idempotent; the UI reports a review copy with preserved native names and records.
 
 The failed padding experiment and isolated successful native MFD edit are documented in the [engineering evidence audit](squadrons-engineering-evidence.md). Automatic name repair and array completion were unsupported hypotheses and have been removed. Explicit reviewed Add/Rename operations remain available. General in-game export acceptance and TQS acquisition remain unresolved.
+
+### Axis reversal and linked-controller export review
+
+The selected assignment editor offers **Reverse axis** for a complete saved axis pair on the linked destination controller. It swaps only the two native input encodings, preserving identifiers, negate values, native addresses, controller ownership and every unrelated record. It is a staged edit with the same edition, connection and verified-axis checks as normal assignment, and supports discard/save/reopen. Reversing twice restores the exact original binding text. It does not populate an unassigned command from factory descriptors.
+
+Desktop review export supplies saved physical-link names to a semantic preflight. A declared panel with a saved TQS physical link is blocked instead of being treated as valid merely because its slot exists. Exact reported names and a separate positive occurrence suffix are accepted; numeric model names are retained. A mismatch produces no export files and does not rename or remap anything. Unlinked declarations cannot be checked against physical intent, and matching names still do not establish game acquisition.
