@@ -35,7 +35,7 @@ namespace Heimdall.App
         public void ShowActions(DependencyObject view)
         {
             ArgumentNullException.ThrowIfNull(view);
-            var buttons = FindSources(view).ToArray();
+            var buttons = FindSources(view).OrderBy(button => (button.Parent as ActionBar)?.FeatureOrder ?? 0).ToArray();
             var commands = buttons.Select(button => new FeatureActionCommand(button)).ToArray();
             var next = buttons.Select((button, index) => new FeatureAction(
                 button.Name.Length > 0 ? button.Name : "action-" + index,

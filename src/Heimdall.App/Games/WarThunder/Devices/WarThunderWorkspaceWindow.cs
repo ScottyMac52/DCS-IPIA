@@ -77,8 +77,11 @@ namespace Heimdall.App.Games
                 var page = new KneeboardComposite(hardware.Label, "Physical controls · native assignment mapping unverified",
                     new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(), new Dictionary<string, string>(), []);
                 _presenter.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
-                    control => _assignments.Activity.Text = "Physical input: " + control.InputKey + " · " + control.Label), AppearanceManager.ArtworkOpacityFor(this));
+                    control => _assignments.Artwork.Feedback.Text = "Physical input: " + control.InputKey + " · " + control.Label), AppearanceManager.ArtworkOpacityFor(this));
             }
+            _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;
+            _assignments.Artwork.Hint.Visibility = hardware is null ? Visibility.Visible : Visibility.Collapsed;
+            _assignments.Activity.Visibility = hardware is null ? Visibility.Visible : Visibility.Collapsed;
             RefreshInputState();
         }
         #endregion END private helpers

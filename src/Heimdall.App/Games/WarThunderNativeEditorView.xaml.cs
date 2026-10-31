@@ -41,7 +41,7 @@ namespace Heimdall.App.Games
             var capabilities = _capabilities = row is null || session is null ? null : WarThunderProfileBackend.GetBindingCapabilities(session.Snapshot.Profile, row.RecordId);
             Parameter.ItemsSource = row?.Binding.Fields.Where(scalar => capabilities!.EditableParameterAddresses.Contains(scalar.Address)).ToArray() ?? [];
             Parameter.SelectedIndex = 0;
-            Inverse.IsChecked = row?.Binding.Fields.Any(scalar => WarThunderWorkspaceProjection.FieldName(scalar) == "inverse" && scalar.Value is "yes" or "1") == true;
+            Inverse.IsChecked = row is not null && WarThunderWorkspaceProjection.IsInverted(row.Binding);
             Frame.AssignmentDraftStatus.Text = busy ? "Stop input testing before editing." : session is null ? "Import a controls BLK capture to begin."
                 : capabilities is null ? "Select a captured native record."
                 : !capabilities.RebindNativeInputs && !capabilities.AddNativeInput && !capabilities.ClearJoystickAlternative
@@ -73,14 +73,11 @@ namespace Heimdall.App.Games
         private void SelectInput()
         {
             if (_session is null || Input.SelectedItem is not WarThunderBlkScalar scalar || _command is null) { UpdateActions(); return; }
-            if (int.TryParse(scalar.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var global))
+            var target = WarThunderWorkspaceProjection.InputTarget(_session.Snapshot.Profile, scalar, _command.Type);
+            if (target is not null)
             {
-                var owners = WarThunderProfileBackend.ResolveNativeInput(_session.Snapshot.Profile, _command.Type, global);
-                if (owners.Count == 1)
-                {
-                    Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().Single(device => device.Id == owners[0].Id);
-                    Index.Text = (global - (_command.Type == CommandType.Axis ? owners[0].AxesOffset : owners[0].ButtonsOffset)).ToString(CultureInfo.InvariantCulture);
-                }
+                Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().Single(device => device.Id == target.DeviceId);
+                Index.Text = target.Index.ToString(CultureInfo.InvariantCulture);
             }
             UpdateActions();
         }

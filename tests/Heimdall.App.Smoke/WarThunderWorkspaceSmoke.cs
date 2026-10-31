@@ -52,7 +52,7 @@ namespace Heimdall.App.Smoke
                 if (devices.Drawing.IsEnabled || !devices.UnlinkDrawing.IsEnabled) throw new InvalidOperationException("Drawing link was not locked.");
                 Click(devices.UnlinkDrawing); devices.Drawing.SelectedItem = drawings[1];
                 if (window.Session!.DrawingId("war-thunder.joystick.0") != "drawing-b") throw new InvalidOperationException("Reviewed drawing replacement failed.");
-                Click(Box<Button>(window, "AssignmentsTab")); ThemeControlSmoke.Pump(window);
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 var assignments = window.AssignmentView;
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
@@ -60,9 +60,9 @@ namespace Heimdall.App.Smoke
                 if (input is null || input.Disposed) throw new InvalidOperationException("Shared input test did not acquire the explicit controller.");
                 input.Values[device.PhysicalGuid]["JOY_BTN1"] = 1; window.SampleInput();
                 if (!assignments.Activity.Text.Contains("JOY_BTN1", StringComparison.Ordinal)) throw new InvalidOperationException("Raw input activity was not displayed.");
-                Click(Box<Button>(window, "DevicesTab"));
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
                 if (!input.Disposed || assignments.Activity.Text.Length > 0) throw new InvalidOperationException("Navigation retained native input handles.");
-                Click(devices.UnlinkDrawing); Click(Box<Button>(window, "AssignmentsTab")); ThemeControlSmoke.Pump(window);
+                Click(devices.UnlinkDrawing); Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count != 0 || !assignments.Start.IsEnabled) throw new InvalidOperationException("No-drawing input fallback is unavailable.");
                 Click(assignments.Start);
                 var foreground = new Window { Width = 150, Height = 100, ShowInTaskbar = false }; foreground.Show(); foreground.Activate(); ThemeControlSmoke.Pump(foreground); foreground.Close();
@@ -72,6 +72,7 @@ namespace Heimdall.App.Smoke
                 browser.CommandSearch.Text = "pitch";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 assignments.Editor.Inverse.IsChecked = true; assignments.Editor.Submit(WarThunderEditKind.Inverse);
+                assignments.Editor.NativeDetails.IsExpanded = true;
                 assignments.Editor.Parameter.SelectedItem = assignments.Editor.Parameter.Items.Cast<WarThunderBlkScalar>().Single(scalar => scalar.Path.EndsWith("/kMul", StringComparison.Ordinal));
                 assignments.Editor.Literal.Text = "1.5"; Click(assignments.Editor.SetParameter);
                 AssertNative(window, "kMul:r=1.5");
@@ -81,6 +82,7 @@ namespace Heimdall.App.Smoke
                 if (AssertNative(window, "inverse:b=no") != original) throw new InvalidOperationException("Discard did not restore exact native text.");
                 browser.CommandSearch.Text = "FIRE";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
+                assignments.CapturedAssignments.IsExpanded = true;
                 assignments.Records.SelectedItem = assignments.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Binding.Fields.Any(scalar => scalar.Path.EndsWith("/joyButton", StringComparison.Ordinal)));
                 assignments.Editor.Index.Text = "3"; Click(assignments.Editor.Apply);
                 AssertNative(window, "joyButton:i=3");
@@ -109,7 +111,7 @@ namespace Heimdall.App.Smoke
                 Box<ComboBox>(window, "GamePicker").SelectedIndex = 1;
                 if (!window.IsVisible || window.RequestedGame is not null || Box<ComboBox>(window, "GamePicker").SelectedIndex != 3) throw new InvalidOperationException("Cancel lost a pending War Thunder draft.");
                 Click(Box<Button>(window, "Discard"));
-                Click(Box<Button>(window, "ReferencesTab")); ThemeControlSmoke.Pump(window);
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2; ThemeControlSmoke.Pump(window);
                 if (Box<ContentControl>(window, "FeatureContent").Content is not WarThunderReferenceView) throw new InvalidOperationException("Reference sheet was not mounted.");
                 window.Close();
                 using var reopened = new WarThunderWorkspaceWindow(services, id, () => MessageBoxResult.No, drawings: []);

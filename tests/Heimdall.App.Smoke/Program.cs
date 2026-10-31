@@ -62,6 +62,7 @@ namespace Heimdall.App.Smoke
             UserGuideCapture.Save(defaultsWindow, "shared-ui-layer");
             Console.WriteLine("Smoke: War Thunder native workspace and preserved review export.");
             WarThunderWorkspaceSmoke.Verify();
+            SharedWorkspacePresentationSmoke.Verify();
             Console.WriteLine("Smoke: rendered theme control states and dropdown keyboard behavior.");
             ThemeControlSmoke.Verify();
             MainWindowThemeSmoke.Verify();

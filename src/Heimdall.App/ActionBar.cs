@@ -13,6 +13,9 @@ namespace Heimdall.App
         /// <summary>Marks the view-owned action group for workspace presentation.</summary>
         public bool IsFeatureActions { get; set; }
 
+        /// <summary>Orders composed action groups in the shared feature bar; equal priorities retain view order.</summary>
+        public int FeatureOrder { get; set; }
+
         /// <summary>Finds a button by its displayed caption within a visual tree.</summary>
         public static Button? FindButton(DependencyObject root, string content)
         {

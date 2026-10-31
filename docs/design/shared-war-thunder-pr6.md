@@ -50,3 +50,16 @@ dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj -c Release --filter "Full
 ```
 
 GitHub Actions must not run for these updates; commits use `[skip ci]`. The authoring environment has no .NET SDK or Windows runtime. Python/source checks do not substitute for the commands above. After they pass, import a real game export, edit a supported native binding, save/export a review copy, load that copy explicitly in War Thunder and verify the intended command and unrelated settings in-game.
+
+## Shared presentation correction
+
+The first desktop implementation reused primitives but introduced a divergent War Thunder layout. The correction centralizes the actual presentation:
+
+- `GameWorkspaceSplit` owns the assignment-pane geometry and accessible divider for DCS, Elite, Squadrons and War Thunder. `GameControllerWorkspace` owns the game controller sidebar geometry.
+- `GameFeatureNavigation` supplies the same selectable feature tabs to all three game windows; War Thunder no longer implements navigation as independent buttons.
+- `GameDrawingView` supplies the same zoom controls, direct canvas scroll surface, drawing hint and read-only raw-input fallback to Elite, Squadrons and War Thunder. Existing simulator drawing interactions and lifecycle ownership remain in their consumers.
+- `GameControllerSetup` supplies the common setup disclosure used by Squadrons and War Thunder. Native setup fields remain capability-specific.
+- War Thunder now follows the existing profile toolbar/settings disclosure, drawing-first assignment view, adjacent shared selection editor and collapsed captured diagnostics. Native assignment actions route through the existing feature action bar, including stable ordering for composed action groups.
+- Native input ownership, offset arithmetic and inverse-flag interpretation live in `Heimdall.WarThunder`, rather than the WPF editor.
+
+`SharedWorkspacePresentationSmoke` checks actual component reuse across the four assignment consumers, shared drawing viewport contracts, native editor slots, collapsed War Thunder diagnostics and feature-action routing/order. The existing Windows simulator smoke remains required; this environment cannot run WPF or .NET checks.

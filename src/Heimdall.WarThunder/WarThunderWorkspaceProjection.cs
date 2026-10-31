@@ -47,6 +47,17 @@ namespace Heimdall.WarThunder
                     GameCommandAssignmentStatus.UnassignedEverywhere => !rows.Any(row => row.Command.Id == command.Id && Assigned(row.Binding)),
                     _ => true
                 })).ToArray();
+        /// <summary>Resolves a captured input for native editing without exposing offset arithmetic to desktop controls.</summary>
+        public static WarThunderNativeInputTarget? InputTarget(ProfileDocument profile, WarThunderBlkScalar scalar, CommandType type)
+        {
+            if (scalar.Type != 'i' || type is not (CommandType.Axis or CommandType.Button)
+                || FieldName(scalar) != (type == CommandType.Axis ? "axisId" : "joyButton")
+                || !int.TryParse(scalar.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var global)) return null;
+            var owners = WarThunderProfileBackend.ResolveNativeInput(profile, type, global);
+            return owners.Count == 1 ? new(owners[0].Id, global - (type == CommandType.Axis ? owners[0].AxesOffset : owners[0].ButtonsOffset)) : null;
+        }
+        /// <summary>Reads the captured inverse flag using native boolean spellings.</summary>
+        public static bool IsInverted(WarThunderBinding binding) => binding.Fields.Any(scalar => scalar.Type == 'b' && FieldName(scalar) == "inverse" && scalar.Value is "yes" or "1");
         /// <summary>Gets explicit native joystick input scalar occurrences.</summary>
         public static IReadOnlyList<WarThunderBlkScalar> InputFields(WarThunderBinding binding) => binding.Fields
             .Where(scalar => scalar.Type == 'i' && FieldName(scalar) is "joyButton" or "axisId").ToArray();

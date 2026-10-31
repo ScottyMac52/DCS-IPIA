@@ -76,6 +76,12 @@ namespace Heimdall.App.Games
             _featureHost = new(FeatureContent, FeatureActions, StopLiveInput);
             _assignmentsView.ConfigureBrowser(EliteCommandBrowser.InputTypes, EliteCommandBrowser.AssignmentStatuses);
             RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
+            RegisterName("DiagramZoom", _assignmentsView.DiagramZoom);
+            RegisterName("InputActivityHint", _assignmentsView.InputActivityHint);
+            RegisterName("InputActivity", _assignmentsView.InputActivity);
+            RegisterName("DiagramHint", _assignmentsView.DiagramHint);
+            RegisterName("DiagramScroll", _assignmentsView.DiagramScroll);
+            RegisterName("DiagramCanvas", _assignmentsView.DiagramCanvas);
             _devicesView.IdentifyControllerButton.Click += IdentifyControllerClicked;
             _devicesView.CancelIdentificationButton.Click += CancelIdentificationClicked;
             _devicesView.ConfirmIdentificationButton.Click += ConfirmIdentificationClicked;
@@ -235,6 +241,7 @@ namespace Heimdall.App.Games
         private void RegisterFeatureNames(DependencyObject root)
         {
             if (root is FrameworkElement { Name.Length: > 0 } element) RegisterName(element.Name, element);
+            if (root is GameDrawingView) return;
             foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) RegisterFeatureNames(child);
         }
         private string? ChooseConfigurationName(string action, string initial)

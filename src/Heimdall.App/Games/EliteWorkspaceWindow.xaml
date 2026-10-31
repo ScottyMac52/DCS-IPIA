@@ -48,14 +48,12 @@
   </StackPanel>
   <Grid Grid.Row="2">
    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-   <ListBox x:Name="FeaturePicker" SelectionChanged="FeatureChanged" AutomationProperties.Name="Game feature navigation"
-            ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-    <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+   <games:GameFeatureNavigation x:Name="FeaturePicker" SelectionChanged="FeatureChanged">
     <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments &amp; Testing"/><ListBoxItem Content="Reference Sheets"/>
-   </ListBox>
+   </games:GameFeatureNavigation>
    <pres:FeatureActionBar ButtonStyle="{StaticResource ToolbarActionButton}" x:Name="FeatureActions" Grid.Row="1" Margin="0,6,0,8"/>
-   <Grid Grid.Row="2" x:Name="ControllerPanes" pres:WorkspaceLayout.Key="elite.controllers.split">
-    <Grid.ColumnDefinitions><ColumnDefinition Width=".18*" MinWidth="160"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".82*" MinWidth="540"/></Grid.ColumnDefinitions>
+   <games:GameControllerWorkspace Grid.Row="2" x:Name="ControllerPanes" pres:WorkspaceLayout.Key="elite.controllers.split">
+
     <DockPanel Margin="0,0,10,0">
      <StackPanel DockPanel.Dock="Top">
       <TextBlock Style="{StaticResource AppLabel}" Text="Controllers in profile" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6"/>
@@ -70,9 +68,8 @@
       <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
      </ListBox>
     </DockPanel>
-    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Controllers and workspace divider"/>
     <ContentControl x:Name="FeatureContent" Margin="6,0,0,0" Grid.Column="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-   </Grid>
+   </games:GameControllerWorkspace>
   </Grid>
   <StackPanel Grid.Row="3">
    <Expander Header="Export status and installation details" Margin="0,5,0,0"><ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">

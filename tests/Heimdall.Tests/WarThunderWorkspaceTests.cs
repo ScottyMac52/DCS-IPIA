@@ -112,6 +112,12 @@ namespace Heimdall.Tests
             var backend = new WarThunderProfileBackend(); var profile = WarThunderBackendFixture.Import(backend);
             var catalog = backend.GetCatalog(profile).Commands; var rows = WarThunderWorkspaceProjection.Rows(profile, catalog);
             Assert.Equal(WarThunderProfileBackend.ReadBindings(profile).Count, rows.Count);
+            var pitch = WarThunderBackendFixture.Binding(profile, "pitch"); var input = WarThunderBackendFixture.Field(pitch, "axisId");
+            Assert.Equal(new WarThunderNativeInputTarget("war-thunder.joystick.0", 1), WarThunderWorkspaceProjection.InputTarget(profile, input, CommandType.Axis));
+            Assert.Null(WarThunderWorkspaceProjection.InputTarget(profile, input, CommandType.Button));
+            Assert.Null(WarThunderWorkspaceProjection.InputTarget(profile, input with { Value = "invalid" }, CommandType.Axis));
+            Assert.False(WarThunderWorkspaceProjection.IsInverted(pitch));
+            Assert.True(WarThunderWorkspaceProjection.IsInverted(WarThunderBackendFixture.Binding(WarThunderProfileBackend.SetAxisInverse(profile, pitch.Id, true), "pitch")));
             Assert.Contains(rows, row => row.Inputs.Contains("native Axis 1", StringComparison.Ordinal));
             Assert.Contains(rows, row => row.Inputs == "System / other native fields");
             var filter = WarThunderWorkspaceProjection.Filter(catalog, rows, "war-thunder.joystick.1", "", null, CommandType.Axis, GameCommandAssignmentStatus.AssignedToController);
@@ -130,6 +136,7 @@ namespace Heimdall.Tests
             var profile = WarThunderBackendFixture.Import(backend, source); var catalog = backend.GetCatalog(profile).Commands;
             var rows = WarThunderWorkspaceProjection.Rows(profile, catalog);
             var pitch = Assert.Single(rows, row => row.Binding.Command == "pitch");
+            Assert.Null(WarThunderWorkspaceProjection.InputTarget(profile, WarThunderBackendFixture.Field(pitch.Binding, "axisId"), CommandType.Axis));
             Assert.Empty(pitch.DeviceIds); Assert.Contains("Unresolved native Axis", pitch.Inputs, StringComparison.Ordinal);
             var unassigned = WarThunderWorkspaceProjection.Filter(catalog, rows, null, "", "Native axes", CommandType.Axis, GameCommandAssignmentStatus.UnassignedEverywhere);
             Assert.Equal("empty axis", Assert.Single(unassigned).DisplayName);

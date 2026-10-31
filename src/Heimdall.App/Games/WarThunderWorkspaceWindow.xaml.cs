@@ -47,9 +47,12 @@ namespace Heimdall.App.Games
             _input = new(this, _presenter, text => Status.Text = text, text => _assignments.Activity.Text = text, inputFactory);
             _host = new(FeatureContent, FeatureActions, _input.Stop);
             WireDevices(); WireAssignments();
-            DevicesTab.Click += (_, _) => _host.Show(_devices);
-            AssignmentsTab.Click += (_, _) => { _host.Show(_assignments); ShowDrawing(); };
-            ReferencesTab.Click += (_, _) => _host.Show(_references);
+            FeaturePicker.SelectionChanged += (_, _) =>
+            {
+                if (_refreshing) return;
+                _host.Show(FeaturePicker.SelectedIndex switch { 1 => _assignments, 2 => _references, _ => (System.Windows.UIElement)_devices });
+                if (FeaturePicker.SelectedIndex == 1) ShowDrawing();
+            };
             Import.Click += (_, _) => Run(() => { var picker = new OpenFileDialog { Filter = "War Thunder controls (*.blk)|*.blk" }; if (picker.ShowDialog(this) == true) ImportFile(picker.FileName); });
             Save.Click += (_, _) => SaveCurrent();
             Discard.Click += (_, _) => { _input.Stop(); _session?.Discard(); if (_session is not null) ProfileName.Text = _session.Snapshot.Name; Refresh(); };
@@ -79,6 +82,7 @@ namespace Heimdall.App.Games
                     if (_disposed) return;
                     _observed = _services.Discover();
                     if (initial is { } id) LoadWorkspace(id); else { RefreshEntries(); Refresh(); }
+                    FeaturePicker.SelectedIndex = 0;
                     _host.Show(_devices);
                 }
                 catch (Exception error) { Status.Text = error.Message; }
