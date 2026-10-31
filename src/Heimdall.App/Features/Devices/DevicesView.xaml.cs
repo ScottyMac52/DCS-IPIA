@@ -14,6 +14,7 @@ namespace Heimdall.App.Features.Devices
     {
         private IModuleWorkspaceContext? _context;
         private bool _showingSavedLink;
+        private bool _refreshingDeviceList;
         private AssignmentLayer _layer = AssignmentLayer.Module;
 
         #region BEGIN Public
@@ -64,13 +65,26 @@ namespace Heimdall.App.Features.Devices
             var selectedId = (ManagedDevices.SelectedItem as WorkspaceDevice)?.ProfileId;
             var state = WorkspaceStructureEditor.Describe(_context.Working);
             var devices = state.Devices.Where(x => x.Layer == _layer).ToArray();
-            ManagedHardware.ItemsSource = EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working), EditionAccess.Training(_context)).ToArray();
-            ManagedDevices.ItemsSource = devices;
-            ManagedDevices.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId);
+            _refreshingDeviceList = true;
+            try
+            {
+                ManagedHardware.ItemsSource = EditionAccess.Hardware(WorkspaceStructureEditor.Hardware(_context.Working), EditionAccess.Training(_context)).ToArray();
+                ManagedDevices.ItemsSource = devices;
+                ManagedDevices.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId);
+            }
+            finally { _refreshingDeviceList = false; }
+            // Diagram/link state can change while the selected membership remains equal.
+            // Refresh details explicitly rather than depending on SelectionChanged.
+            RefreshSelectedDevice();
             StatusText.Text = $"{devices.Length} devices in {_layer}";
         }
 
         private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_refreshingDeviceList) RefreshSelectedDevice();
+        }
+
+        private void RefreshSelectedDevice()
         {
             if (_context?.Working is null || ManagedDevices.SelectedItem is not WorkspaceDevice device)
             {
@@ -301,7 +315,7 @@ namespace Heimdall.App.Features.Devices
                 StatusMessage.Text = "Reading connected controllers…";
                 var connected = await Task.Run(() => _context.DeviceDiscovery.Discover());
                 DetectedDevice.ItemsSource = connected.Where(device => EditionAccess.Policy.AllowsDevice(device)).ToArray();
-                ManagedDeviceSelected(this, new SelectionChangedEventArgs(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
+                RefreshSelectedDevice();
                 StatusMessage.Text = $"{connected.Count} connected device(s).";
             }
             catch (Exception ex)
@@ -433,7 +447,7 @@ namespace Heimdall.App.Features.Devices
                     .DistinctBy(x => x.Id)
                     .OrderBy(x => x.Title, StringComparer.Ordinal)
                     .ToArray();
-                ManagedDeviceSelected(this, new SelectionChangedEventArgs(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, Array.Empty<object>(), Array.Empty<object>()));
+                RefreshSelectedDevice();
             }
             catch (Exception ex)
             {

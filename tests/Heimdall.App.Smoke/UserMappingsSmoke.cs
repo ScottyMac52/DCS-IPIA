@@ -84,7 +84,7 @@ namespace Heimdall.App.Smoke
                 workspace = InventoryHardwareAuthoring.Add(workspace, new(new(Guid.NewGuid(), "Panel", definition.Id, "Panel", "", true, []), definition), AssignmentLayer.Module);
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, userMappings: library, mappingReviewConfirmation: _ => true);
+                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new GameSmokeDiscovery(), userMappings: library, mappingReviewConfirmation: _ => true);
                 editor.Show();
                 var choices = (ComboBox)WorkspaceUi.Find(editor, "CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
@@ -225,9 +225,21 @@ namespace Heimdall.App.Smoke
             var status = (TextBlock)view.FindName("StatusMessage");
             if (!unlink.IsEnabled || apply.IsEnabled)
                 throw new InvalidOperationException("The selected controller must start with its drawing linked. " + status.Text);
+            var fileName = (TextBox)view.FindName("ManagedFileName");
+            var physicalPicker = (ComboBox)view.FindName("DetectedDevice");
+            var physicalReadOnly = fileName.IsReadOnly;
+            var physicalEnabled = physicalPicker.IsEnabled;
+            var assignments = JsonSerializer.Serialize(editor._working!.Assignments);
             Click(unlink);
-            if (!apply.IsEnabled || unlink.IsEnabled || editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId).DrawingUnlinked != true)
-                throw new InvalidOperationException("Drawing unlink did not enable reviewed replacement. " + status.Text);
+            VerifyDrawingLinkState(editor, view, profileId, linked: false);
+            var retained = (Button)view.FindName("UseRetainedDrawingButton");
+            Click(retained);
+            VerifyDrawingLinkState(editor, view, profileId, linked: true);
+            Click(unlink);
+            VerifyDrawingLinkState(editor, view, profileId, linked: false);
+            if (fileName.IsReadOnly != physicalReadOnly || physicalPicker.IsEnabled != physicalEnabled ||
+                JsonSerializer.Serialize(editor._working!.Assignments) != assignments)
+                throw new InvalidOperationException("Drawing unlink/relink changed physical ownership or assignments.");
             var revisions = (ComboBox)view.FindName("CustomMappingRevisions");
             revisions.SelectedItem = revisions.Items.Cast<UserMappingRevision>().Single(revision => revision.Id == revisionId);
             Click(apply);
@@ -236,6 +248,21 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Custom mapping adoption was not staged. " + status.Text);
             if (apply.IsEnabled || !unlink.IsEnabled)
                 throw new InvalidOperationException("Adopted drawing did not restore the linked selector state. " + status.Text);
+        }
+        private static void VerifyDrawingLinkState(ModuleWorkspaceWindow editor, UserControl view, Guid profileId, bool linked)
+        {
+            var model = editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
+            var devices = (DataGrid)view.FindName("ManagedDevices");
+            var apply = (Button)view.FindName("ApplyCustomDrawingButton");
+            var unlink = (Button)view.FindName("UnlinkDrawingButton");
+            var retained = (Button)view.FindName("UseRetainedDrawingButton");
+            if (model.DrawingUnlinked != !linked || apply.IsEnabled != !linked ||
+                unlink.IsEnabled != linked || retained.IsEnabled != !linked ||
+                devices.SelectedItem is not WorkspaceDevice selected || selected.ProfileId != profileId)
+                throw new InvalidOperationException("Drawing link refresh failed: linked=" + linked +
+                    ", modelUnlinked=" + model.DrawingUnlinked + ", apply=" + apply.IsEnabled +
+                    ", unlink=" + unlink.IsEnabled + ", retained=" + retained.IsEnabled + ". " +
+                    ((TextBlock)view.FindName("StatusMessage")).Text);
         }
         private static void Click(Button button)
         {
