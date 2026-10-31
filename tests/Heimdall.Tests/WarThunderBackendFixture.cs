@@ -37,8 +37,8 @@ namespace Heimdall.Tests
         internal static ProfileDocument Import(WarThunderProfileBackend backend, string? source = null) =>
             backend.Import("test-context", new Dictionary<string, string> { ["Test controls.blk"] = source ?? Source });
         /// <summary>Gets one explicitly selected command block from the native inventory.</summary>
-        internal static WarThunderBinding Binding(WarThunderProfileBackend backend, ProfileDocument profile, string command, int occurrence = 0) =>
-            backend.ReadBindings(profile).Where(binding => binding.Command == command).ElementAt(occurrence);
+        internal static WarThunderBinding Binding(ProfileDocument profile, string command, int occurrence = 0) =>
+            WarThunderProfileBackend.ReadBindings(profile).Where(binding => binding.Command == command).ElementAt(occurrence);
         /// <summary>Gets one direct scalar occurrence without relying on native path uniqueness.</summary>
         internal static WarThunderBlkScalar Field(WarThunderBinding binding, string name, int occurrence = 0) =>
             binding.Fields.Where(field => field.Path.EndsWith("/" + name, StringComparison.Ordinal)).ElementAt(occurrence);

@@ -25,8 +25,8 @@ namespace Heimdall.WarThunder
                     ["war-thunder.command"] = group.First().Command,
                     ["war-thunder.catalog-coverage"] = "captured",
                     ["war-thunder.parameter-types"] = JsonSerializer.Serialize(group.SelectMany(binding => binding.Fields)
-                        .GroupBy(field => WarThunderNativeProfile.Name(field.Path), StringComparer.Ordinal)
-                        .ToDictionary(fields => fields.Key, fields => fields.Select(field => field.Type.ToString()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(), StringComparer.Ordinal))
+                        .GroupBy(scalar => WarThunderNativeProfile.Name(scalar.Path), StringComparer.Ordinal)
+                        .ToDictionary(fields => fields.Key, fields => fields.Select(scalar => scalar.Type.ToString()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(), StringComparer.Ordinal))
                 }
             }).ToArray();
         /// <summary>Finds an exact context-scoped command without alias or product-name guessing.</summary>

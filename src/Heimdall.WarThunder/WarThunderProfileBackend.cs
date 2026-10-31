@@ -60,14 +60,14 @@ namespace Heimdall.WarThunder
             return new(matches.Length switch { 0 => "disconnected", 1 => "resolved", _ => "ambiguous" }, matches);
         }
         /// <summary>Reads saved range declarations without claiming they are currently connected controllers.</summary>
-        public IReadOnlyList<WarThunderDevice> ReadDevices(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Devices;
+        public static IReadOnlyList<WarThunderDevice> ReadDevices(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Devices;
         /// <summary>Reads every native command block, including empty, keyboard/mouse, mixed and unsupported records.</summary>
-        public IReadOnlyList<WarThunderBinding> ReadBindings(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Bindings;
+        public static IReadOnlyList<WarThunderBinding> ReadBindings(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Bindings;
         /// <summary>Reports all saved owners of a global native index. Zero or multiple matches remain unresolved.</summary>
-        public IReadOnlyList<WarThunderDevice> ResolveNativeInput(ProfileDocument profile, CommandType type, int globalIndex) =>
+        public static IReadOnlyList<WarThunderDevice> ResolveNativeInput(ProfileDocument profile, CommandType type, int globalIndex) =>
             new WarThunderNativeProfile(Evidence(profile).Text).Owners(type, globalIndex);
         /// <summary>Rebinds one explicit joystick scalar occurrence, preserving every other member of a chord or mixed record.</summary>
-        public ProfileDocument RebindInput(ProfileDocument profile, string recordId, string fieldAddress, string deviceId, CommandType type, int nativeLocalIndex)
+        public static ProfileDocument RebindInput(ProfileDocument profile, string recordId, string fieldAddress, string deviceId, CommandType type, int nativeLocalIndex)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
@@ -84,7 +84,7 @@ namespace Heimdall.WarThunder
             return Edited(evidence, native.Document.ReplaceOccurrences(new Dictionary<string, string> { [field.Address] = input }));
         }
         /// <summary>Adds a basic joystick binding to a captured hotkey command, or an axis input to an existing unassigned axis block.</summary>
-        public ProfileDocument AddBinding(ProfileDocument profile, string commandId, string deviceId, CommandType type, int nativeLocalIndex)
+        public static ProfileDocument AddBinding(ProfileDocument profile, string commandId, string deviceId, CommandType type, int nativeLocalIndex)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var command = new WarThunderCommandCatalog(evidence.ContextId, native, new(evidence.CatalogText)).Find(commandId)
@@ -109,7 +109,7 @@ namespace Heimdall.WarThunder
                 new Dictionary<string, (char Type, string Value)> { ["joyButton"] = ('i', input) }));
         }
         /// <summary>Clears one joystick-only hotkey record to an explicit empty block, preserving occurrence identities and other alternatives.</summary>
-        public ProfileDocument ClearBinding(ProfileDocument profile, string recordId)
+        public static ProfileDocument ClearBinding(ProfileDocument profile, string recordId)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
@@ -119,7 +119,7 @@ namespace Heimdall.WarThunder
             return Edited(evidence, native.Document.EmptyBlock(binding.Id));
         }
         /// <summary>Changes a captured axis parameter literal without guessing portable curve, range or unit conversions.</summary>
-        public ProfileDocument EditAxisParameter(ProfileDocument profile, string recordId, string fieldAddress, string nativeValue)
+        public static ProfileDocument EditAxisParameter(ProfileDocument profile, string recordId, string fieldAddress, string nativeValue)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
@@ -130,7 +130,7 @@ namespace Heimdall.WarThunder
             return Edited(evidence, native.Document.ReplaceOccurrences(new Dictionary<string, string> { [field.Address] = nativeValue }));
         }
         /// <summary>Reports only native operations valid for this record's current captured shape.</summary>
-        public WarThunderBindingCapabilities GetBindingCapabilities(ProfileDocument profile, string recordId)
+        public static WarThunderBindingCapabilities GetBindingCapabilities(ProfileDocument profile, string recordId)
         {
             var native = new WarThunderNativeProfile(Evidence(profile).Text);
             var binding = native.Bindings.SingleOrDefault(candidate => candidate.Id == recordId)
@@ -152,7 +152,7 @@ namespace Heimdall.WarThunder
                 parameters);
         }
         /// <summary>Sets the known native inverse flag on an assigned axis; no polarity or portable curve inference is involved.</summary>
-        public ProfileDocument SetAxisInverse(ProfileDocument profile, string recordId, bool inverted)
+        public static ProfileDocument SetAxisInverse(ProfileDocument profile, string recordId, bool inverted)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
@@ -165,7 +165,7 @@ namespace Heimdall.WarThunder
                 : native.Document.ReplaceOccurrences(new Dictionary<string, string> { [flags[0].Address] = value }));
         }
         /// <summary>Builds a typed inspection model; it is documentation of captured data, not a generative native file format.</summary>
-        public JsonElement Inspect(ProfileDocument profile)
+        public static JsonElement Inspect(ProfileDocument profile)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             return JsonSerializer.SerializeToElement(new

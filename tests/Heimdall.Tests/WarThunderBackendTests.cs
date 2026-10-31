@@ -22,12 +22,12 @@ namespace Heimdall.Tests
             Assert.Equal(source, WarThunderBackendFixture.Export(backend, reopened));
             Assert.Equal("Test controls.blk", Assert.Single(backend.Export(reopened).Files).Key);
             Assert.Equal(2, profile.Devices.Count);
-            Assert.Equal(8, backend.ReadBindings(profile).Count);
+            Assert.Equal(8, WarThunderProfileBackend.ReadBindings(profile).Count);
             Assert.All(profile.Devices, device => { Assert.Empty(device.Axes); Assert.Empty(device.Buttons); Assert.Null(device.Identity!.InstanceId); });
             Assert.Empty(backend.Capabilities.ButtonModes);
             Assert.False(backend.Capabilities.ModifierChords || backend.Capabilities.NativeAxisFilters || backend.Capabilities.DeploysToGame);
             Assert.Contains(backend.Export(profile).Diagnostics, diagnostic => diagnostic.Code == "war-thunder.catalog.inherited" && !diagnostic.IsError);
-            var inspection = backend.Inspect(profile);
+            var inspection = WarThunderProfileBackend.Inspect(profile);
             Assert.Equal("war-thunder-native-inspection-v1", inspection.GetProperty("format").GetString());
             Assert.Equal(2, inspection.GetProperty("devices").GetArrayLength());
             Assert.Equal(8, inspection.GetProperty("bindings").GetArrayLength());
@@ -61,11 +61,11 @@ namespace Heimdall.Tests
         public void Native_offsets_resolve_to_saved_mapping_occurrences(CommandType type, int index, int device)
         {
             var backend = new WarThunderProfileBackend(); var profile = WarThunderBackendFixture.Import(backend);
-            Assert.Equal("war-thunder.joystick." + device, Assert.Single(backend.ResolveNativeInput(profile, type, index)).Id);
-            Assert.Empty(backend.ResolveNativeInput(profile, CommandType.Button, 8));
-            Assert.Empty(backend.ResolveNativeInput(profile, CommandType.Axis, 4));
-            Assert.Empty(backend.ResolveNativeInput(profile, type, -1));
-            Assert.Empty(backend.ResolveNativeInput(profile, CommandType.Hat, 0));
+            Assert.Equal("war-thunder.joystick." + device, Assert.Single(WarThunderProfileBackend.ResolveNativeInput(profile, type, index)).Id);
+            Assert.Empty(WarThunderProfileBackend.ResolveNativeInput(profile, CommandType.Button, 8));
+            Assert.Empty(WarThunderProfileBackend.ResolveNativeInput(profile, CommandType.Axis, 4));
+            Assert.Empty(WarThunderProfileBackend.ResolveNativeInput(profile, type, -1));
+            Assert.Empty(WarThunderProfileBackend.ResolveNativeInput(profile, CommandType.Hat, 0));
         }
         /// <summary>Physical identity resolution requires an explicit instance, including repeated identical units.</summary>
         [Fact]
@@ -149,9 +149,9 @@ namespace Heimdall.Tests
             var profile = WarThunderBackendFixture.Import(backend, source);
             Assert.Equal(source, WarThunderBackendFixture.Export(backend, profile));
             Assert.Contains(backend.Export(profile).Diagnostics, diagnostic => diagnostic.Code == "war-thunder.syntax.opaque" && !diagnostic.IsError);
-            var record = WarThunderBackendFixture.Binding(backend, profile, "pitch");
-            Assert.False(backend.GetBindingCapabilities(profile, record.Id).RebindNativeInputs);
-            Assert.Throws<InvalidOperationException>(() => backend.EditAxisParameter(profile, record.Id, WarThunderBackendFixture.Field(record, "kMul").Address, "2"));
+            var record = WarThunderBackendFixture.Binding(profile, "pitch");
+            Assert.False(WarThunderProfileBackend.GetBindingCapabilities(profile, record.Id).RebindNativeInputs);
+            Assert.Throws<InvalidOperationException>(() => WarThunderProfileBackend.EditAxisParameter(profile, record.Id, WarThunderBackendFixture.Field(record, "kMul").Address, "2"));
         }
         /// <summary>Empty native exports retain no fabricated devices or assignments and do not claim a full inherited catalog.</summary>
         [Fact]
@@ -159,7 +159,7 @@ namespace Heimdall.Tests
         {
             var backend = new WarThunderProfileBackend(); const string source = "controls{version:i=5;}";
             var profile = WarThunderBackendFixture.Import(backend, source);
-            Assert.Empty(profile.Devices); Assert.Empty(backend.ReadBindings(profile)); Assert.Empty(backend.GetCatalog(profile).Commands);
+            Assert.Empty(profile.Devices); Assert.Empty(WarThunderProfileBackend.ReadBindings(profile)); Assert.Empty(backend.GetCatalog(profile).Commands);
             Assert.Equal(source, WarThunderBackendFixture.Export(backend, profile));
         }
         #endregion END Public

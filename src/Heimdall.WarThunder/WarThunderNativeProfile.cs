@@ -59,7 +59,7 @@ namespace Heimdall.WarThunder
             ? literal[1..^1].Replace("\\\"", "\"", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal) : literal;
         #endregion END Public
         #region BEGIN private helpers
-        private IReadOnlyList<WarThunderDevice> ReadDevices()
+        private List<WarThunderDevice> ReadDevices()
         {
             var mappings = Children(Controls.Address, "deviceMapping");
             var result = new List<WarThunderDevice>();
@@ -86,7 +86,7 @@ namespace Heimdall.WarThunder
                 }
             return result;
         }
-        private IReadOnlyList<WarThunderBinding> ReadBindings()
+        private List<WarThunderBinding> ReadBindings()
         {
             var result = new List<WarThunderBinding>();
             foreach (var section in _children[Controls.Address].Where(block => Name(block.Path) is "hotkeys" or "axes"))
