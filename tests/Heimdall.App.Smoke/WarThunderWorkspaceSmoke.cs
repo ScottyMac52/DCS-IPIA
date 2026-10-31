@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.App.Games;
 using Heimdall.Application;
 using Heimdall.Domain.MultiSim;
@@ -33,15 +34,16 @@ namespace Heimdall.App.Smoke
                 var path = Path.Combine(capture, "Synthetic.blk");
                 File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WarThunder", "Synthetic.blk"), path);
                 var original = File.ReadAllText(path);
-                var diagram = new UiLayerDiagram("Synthetic", null, "", 300, 180, [], [])
+                var diagram = new UiLayerDiagram("Synthetic", null, "", 1200, 1600, [], [])
                 {
-                    Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"180\" viewBox=\"0 0 300 180\"><rect x=\"10\" y=\"10\" width=\"280\" height=\"160\" fill=\"#304050\"/></svg>",
+                    Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"1600\" viewBox=\"0 0 1200 1600\"><rect x=\"10\" y=\"10\" width=\"1180\" height=\"1580\" fill=\"#304050\"/></svg>",
                     Controls = [new("button", "Button", "JOY_BTN1", 20, 20, 100, 30)]
                 };
                 WorkspaceHardware[] drawings = [new("drawing-a", "Drawing A", "a.diff.lua", diagram), new("drawing-b", "Drawing B", "b.diff.lua", diagram)];
                 IdentificationInputSource? input = null; var choice = MessageBoxResult.Cancel;
                 using var window = new WarThunderWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true,
                     drawings: drawings, inputFactory: (_, ids) => input = new(ids));
+                WorkspaceLayout.SetPersistenceEnabled(window, false);
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window); window.ImportFile(path);
                 if (!Box<Button>(window, "Save").IsEnabled || Box<Button>(window, "Export").IsEnabled) throw new InvalidOperationException("Import did not become an unsaved draft.");
                 var controllers = Box<ListBox>(window, "Controllers"); controllers.SelectedIndex = 1;
@@ -56,6 +58,26 @@ namespace Heimdall.App.Smoke
                 var assignments = window.AssignmentView;
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
+                foreach (var (width, height) in new[] { (1340d, 860d), (1050d, 650d) })
+                {
+                    window.Width = width; window.Height = height; assignments.Zoom.Value = 2;
+                    ThemeControlSmoke.Pump(window);
+                    var scroll = assignments.DrawingScroll;
+                    if (scroll.ViewportHeight <= 0 || scroll.ScrollableHeight <= 0 || scroll.ScrollableWidth <= 0)
+                        throw new InvalidOperationException("War Thunder drawing has clipped content without reachable scroll extent.");
+                    scroll.ScrollToTop(); ThemeControlSmoke.Pump(window);
+                    var down = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) { RoutedEvent = Mouse.PreviewMouseWheelEvent };
+                    assignments.DrawingCanvas.RaiseEvent(down); ThemeControlSmoke.Pump(window);
+                    var afterDown = scroll.VerticalOffset;
+                    if (!down.Handled || afterDown <= 0)
+                        throw new InvalidOperationException("Plain wheel did not scroll the loaded War Thunder drawing down.");
+                    var up = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, 120) { RoutedEvent = Mouse.PreviewMouseWheelEvent };
+                    assignments.DrawingCanvas.RaiseEvent(up); ThemeControlSmoke.Pump(window);
+                    if (!up.Handled || scroll.VerticalOffset >= afterDown)
+                        throw new InvalidOperationException("Plain wheel did not scroll the loaded War Thunder drawing up.");
+                    scroll.ScrollToRightEnd(); ThemeControlSmoke.Pump(window);
+                    if (scroll.HorizontalOffset <= 0) throw new InvalidOperationException("Height bounds removed horizontal drawing extent.");
+                }
                 Click(assignments.Start);
                 if (input is null || input.Disposed) throw new InvalidOperationException("Shared input test did not acquire the explicit controller.");
                 input.Values[device.PhysicalGuid]["JOY_BTN1"] = 1; window.SampleInput();

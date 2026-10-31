@@ -63,3 +63,7 @@ The first desktop implementation reused primitives but introduced a divergent Wa
 - Native input ownership, offset arithmetic and inverse-flag interpretation live in `Heimdall.WarThunder`, rather than the WPF editor.
 
 `SharedWorkspacePresentationSmoke` checks actual component reuse across the four assignment consumers, shared drawing viewport contracts, native editor slots, collapsed War Thunder diagnostics and feature-action routing/order. The existing Windows simulator smoke remains required; this environment cannot run WPF or .NET checks.
+
+### Drawing wheel regression
+
+The shared drawing view now bounds its scroll host to the arranged drawing pane, including when hosted in an Expander. Without this bound, excess image height could be clipped without becoming vertical scroll extent. This replaces the Squadrons-window-only bound and gives War Thunder the same behavior without a separate wheel implementation. The existing Ctrl zoom / Shift horizontal / plain vertical gesture handler is unchanged. War Thunder smoke uses an oversized drawing and checks actual routed wheel movement down/up at normal and minimum window sizes, plus reachable horizontal extent. Local Windows execution remains required.
