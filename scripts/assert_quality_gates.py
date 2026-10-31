@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from publish_test_results import cell, read_metrics
 
 ASSEMBLIES = tuple("Heimdall." + name for name in
-                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Squadrons", "Rendering", "Packaging"))
+                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Squadrons", "WarThunder", "Rendering", "Packaging"))
 
 
 def coverage_rows(report, assemblies=ASSEMBLIES, line_threshold=80, branch_threshold=80):
@@ -79,7 +79,7 @@ def publish_gate(report, raw, output, summary, ceiling=50):
     lines.extend("| " + " | ".join(cell(value) for value in row) + " |" for row in rows)
     lines.extend(["", f"## Method CRAP gate (maximum {ceiling:g})", "",
                   "CRAP = complexity² × (1 − method line coverage fraction)³ + complexity.",
-                  "All measured methods in the seven gated assemblies are included, including compiler-generated methods.",
+                  "All measured methods in the expected production assemblies are included, including compiler-generated methods.",
                   f"Measured methods: {len(metrics)}. Gate: **{'FAIL' if failures else 'PASS'}**.", ""])
     if failures:
         lines.extend("- " + cell(failure) for failure in failures)
