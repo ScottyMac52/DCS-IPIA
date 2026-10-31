@@ -29,7 +29,8 @@ namespace Heimdall.Tests
             var text = backend.Export(fresh).Files[SquadronsProfileBackend.FileName];
             Assert.Contains("Future.Setting preserved", text, StringComparison.Ordinal);
             Assert.False(fresh.NativeData["squadrons.v1"].TryGetProperty("Templates", out _));
-            Assert.Equal(125, backend.GetCatalog(fresh).Commands.Count);
+            Assert.Equal(backend.GetCatalog(profile).Commands.Select(command => command.Id).OrderBy(id => id, StringComparer.Ordinal),
+                backend.GetCatalog(fresh).Commands.Select(command => command.Id).OrderBy(id => id, StringComparer.Ordinal));
             Assert.Equal(text, backend.Export(backend.CreateUnassignedProfile(fresh)).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(text, backend.Export(backend.Import("controls",
@@ -49,7 +50,8 @@ namespace Heimdall.Tests
             Assert.False(fresh.NativeData["squadrons.v1"].TryGetProperty("Templates", out _));
             Assert.DoesNotContain(backend.ReadBindings(fresh), row => row.Type == 3);
             Assert.DoesNotContain(backend.ReadAssignableBindings(fresh), row => row.Type == 3 && row.Fields["identifier"] == 123);
-            Assert.Equal(125, backend.GetCatalog(fresh).Commands.Count);
+            Assert.Equal(backend.GetCatalog(archived).Commands.Select(command => command.Id).OrderBy(id => id, StringComparer.Ordinal),
+                backend.GetCatalog(fresh).Commands.Select(command => command.Id).OrderBy(id => id, StringComparer.Ordinal));
         }
         #endregion END Public
     }
