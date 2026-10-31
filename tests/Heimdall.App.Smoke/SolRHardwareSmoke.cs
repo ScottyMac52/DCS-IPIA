@@ -1,15 +1,15 @@
-using System;
-using System.Linq;
-using System.Text.Json;
 using Heimdall.Application;
 using Heimdall.Dcs;
 using Heimdall.Rendering;
+using System.Text.Json;
 
 namespace Heimdall.App.Smoke
 {
     /// <summary>Checks that the installed application carries reusable Sol-R hardware without user imports.</summary>
     public static class SolRHardwareSmoke
     {
+        private static readonly string[] sourceArray = ["JOY_RX", "JOY_RY"];
+
         #region BEGIN Public
         /// <summary>Loads the packaged catalog and renders every Sol-R grip layout.</summary>
         public static void Verify()
@@ -23,7 +23,7 @@ namespace Heimdall.App.Smoke
             {
                 var right = layout.DeviceId.StartsWith("tm-sol-r-ava-r-", StringComparison.Ordinal);
                 if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != (right ? 34 : 32) ||
-                    (right && new[] { "JOY_RX", "JOY_RY" }.Any(key => !layout.Diagram.Controls.Any(x => x.InputKey == key && x.IsAxis))) ||
+                    (right && sourceArray.Any(key => !layout.Diagram.Controls.Any(x => x.InputKey == key && x.IsAxis))) ||
                     !layout.Diagram.Controls.Any(x => x.InputKey == "JOY_RZ" && x.IsAxis) ||
                     CanonicalSvgRenderer.RenderComplete(layout.Diagram.Svg!, layout.Diagram.Width, layout.Diagram.Height).Length < 1000)
                     throw new InvalidOperationException("Sol-R built-in layout is incomplete: " + layout.DeviceId);
