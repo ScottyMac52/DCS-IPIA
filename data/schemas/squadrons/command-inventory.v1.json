@@ -3,7 +3,7 @@
   "scope": "Current HEIMDALL catalog; not a claim of complete game coverage.",
   "source": "src/Heimdall.Squadrons/Data/JoystickTemplates_v4",
   "sourceSha256": "7f1fefc8aca74cfa9b133f3922bd670901a6111d9029c323fdc716e116ea27b9",
-  "catalogSha256": "22f2cb65aab2d01540db7f9da29ca66718fb9b11e6a37d0a6f63299ecd7dbf2a",
+  "catalogSha256": "72c2d4d5edc8fa278eca986cf7cb6fd15a7fdb3031ce167cd6863092991ad86b",
   "codecSha256": "e45d0b8b5c91fa98805886170eb409beca75d03cce9f3883e02b4694a8fab025",
   "commandCount": 125,
   "recordCount": 149,
@@ -1511,7 +1511,7 @@
     },
     {
       "concept": "IncomStarshipInputConcepts.ConceptCameraPitch",
-      "displayName": "Free Look Camera Up / Down (axis)",
+      "displayName": "Free Look - Camera Pitch Up / Down (axis)",
       "context": "IncomStarshipInputConcepts",
       "adapterTypes": [
         "Axis"
@@ -1555,7 +1555,7 @@
     },
     {
       "concept": "IncomStarshipInputConcepts.ConceptCameraYaw",
-      "displayName": "Free Look Camera Left / Right (axis)",
+      "displayName": "Free Look - Camera Yaw Left / Right (axis)",
       "context": "IncomStarshipInputConcepts",
       "adapterTypes": [
         "Axis"

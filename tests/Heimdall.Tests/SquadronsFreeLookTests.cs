@@ -25,19 +25,19 @@ namespace Heimdall.Tests
             Assert.Equal("JOY_BTN6", Assert.Single(records, row => row.Concept.EndsWith(".ConceptFreeLook", StringComparison.Ordinal)).Input!.Key);
             Assert.Equal(2, records.Count(row => row.Input?.PhysicalKey == "JOY_RX"));
             Assert.Equal(2, records.Count(row => row.Input?.PhysicalKey == "JOY_RY"));
-            Assert.Contains(rows, row => row.CommandName == "Free Look Camera Up / Down (axis)" && row.Native.Input?.PhysicalKey == "JOY_RY");
-            Assert.Contains(rows, row => row.CommandName == "Free Look Camera Left / Right (axis)" && row.Native.Input?.PhysicalKey == "JOY_RX");
+            Assert.Contains(rows, row => row.CommandName == "Free Look - Camera Pitch Up / Down (axis)" && row.Native.Input?.PhysicalKey == "JOY_RY");
+            Assert.Contains(rows, row => row.CommandName == "Free Look - Camera Yaw Left / Right (axis)" && row.Native.Input?.PhysicalKey == "JOY_RX");
             var commands = SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
                 "Flight", "All types", "All", "FreeLookCamera", "squadrons.joystick.1");
             Assert.Equal(4, commands.Count);
             Assert.All(commands, command => Assert.All(records.Where(row => row.Concept == command.Metadata["squadrons.concept"]), row => Assert.Equal(2, row.Type)));
             var camera = SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
-                "Flight", "Axes", "Assigned to selected controller", "Free Look Camera", "squadrons.joystick.1");
+                "Flight", "Axes", "Assigned to selected controller", "Free Look", "squadrons.joystick.1");
             Assert.Equal(2, camera.Count);
             Assert.Contains(camera, command => command.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptCameraPitch"
-                && command.DisplayName == "Free Look Camera Up / Down (axis)");
+                && command.DisplayName == "Free Look - Camera Pitch Up / Down (axis)");
             Assert.Contains(camera, command => command.Metadata["squadrons.concept"] == "IncomStarshipInputConcepts.ConceptCameraYaw"
-                && command.DisplayName == "Free Look Camera Left / Right (axis)");
+                && command.DisplayName == "Free Look - Camera Yaw Left / Right (axis)");
             Assert.Single(SquadronsCommandFilter.Apply(backend.GetCatalog(profile).Commands, records,
                 "Flight", "Axes", "All", "Camera Pitch", "squadrons.joystick.1"));
             Assert.Equal("Camera Pitch", backend.GetCatalog(profile).Commands.Single(command =>
