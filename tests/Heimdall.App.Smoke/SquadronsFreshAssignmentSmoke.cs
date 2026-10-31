@@ -69,6 +69,27 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Fresh drawing drop failed to create the requested axis pair.");
                 if (!window.SaveProfile()) throw new InvalidOperationException("Fresh axis assignment could not be saved.");
                 var id = window.Session.Snapshot.Id;
+                var original = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                window.ConfigurationNamePicker = (_, _) => null;
+                Box<Button>(window, "NewProfileButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (window.Session.Snapshot.Id != id || services.Store.List().Count != 1)
+                    throw new InvalidOperationException("Canceling New profile changed or saved a configuration.");
+                window.ConfigurationNamePicker = (_, _) => "Blank Controls";
+                Box<Button>(window, "NewProfileButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var blank = window.Session.Snapshot;
+                if (blank.Id == id || blank.Name != "Blank Controls" || backend.ReadBindings(blank.Profile).Count != 0 ||
+                    blank.Profile.NativeData["squadrons.v1"].TryGetProperty("Templates", out _) ||
+                    blank.Hardware[slot].Device.PhysicalGuid != device.PhysicalGuid || blank.Hardware[slot].HardwareId != hardware.DeviceId ||
+                    services.Store.List().Count != 2 ||
+                    backend.Export(services.Store.Load(id).Workspace.Profile).Files[SquadronsProfileBackend.FileName] != original)
+                    throw new InvalidOperationException("New profile did not preserve the original, controller setup or template-free empty state.");
+                var savedBlank = services.Store.Load(blank.Id).Workspace;
+                if (backend.ReadBindings(savedBlank.Profile).Count != 0)
+                    throw new InvalidOperationException("New profile was not independently saved with no joystick assignments.");
+                picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(choice => choice.Id == slot);
+                window.DrawingInteractions().Drop!(button, shield.Id);
+                if (backend.ReadBindings(window.Session.Snapshot.Profile).Count != 1 || !window.SaveProfile())
+                    throw new InvalidOperationException("A new profile could not author and save a binding from bundled metadata.");
                 window.Close();
                 using var reopened = new SquadronsWorkspaceWindow(services, id, () => MessageBoxResult.No, drawings: [hardware]);
                 if (backend.ReadBindings(reopened.Session!.Snapshot.Profile).Count != 3)
@@ -82,3 +103,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

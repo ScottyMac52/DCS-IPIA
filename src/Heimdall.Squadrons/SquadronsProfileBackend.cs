@@ -58,6 +58,23 @@ namespace Heimdall.Squadrons
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
             { return new(new Dictionary<string, string>(), [new("squadrons.export.blocked", error.Message, true)]); }
         }
+        /// <summary>Creates an unassigned joystick profile from native settings without inheriting personal assignment templates.
+        /// Keyboard, mouse, gamepad, controller declarations and unrelated settings remain unchanged.</summary>
+        public ProfileDocument CreateUnassignedProfile(ProfileDocument profile)
+        {
+            var evidence = Evidence(profile);
+            var document = new SquadronsNativeDocument(evidence.Text);
+            var removedKeys = document.Bindings.Where(row => row.Type == 3)
+                .SelectMany(row => row.Fields.Keys.Select(field => "GstKeyBinding." + row.RecordId + "." + field))
+                .ToHashSet(StringComparer.Ordinal);
+            var text = string.Join("\n", document.Text.Split('\n').Where(line =>
+            {
+                var separator = line.IndexOf(' ');
+                return separator <= 0 || !removedKeys.Contains(line[..separator]);
+            }));
+            // Import a new evidence envelope instead of Edited(), which archives removed user records.
+            return Import(evidence.ContextId, new Dictionary<string, string> { [FileName] = text });
+        }
         /// <summary>Gets all native records, including keyboard/mouse/gamepad, unassigned and unsupported encodings.</summary>
         public IReadOnlyList<SquadronsBindingRow> ReadBindings(ProfileDocument profile) => new SquadronsNativeDocument(Evidence(profile).Text).Bindings;
         /// <summary>Gets concepts scoped to this captured profile, with native context categories.</summary>

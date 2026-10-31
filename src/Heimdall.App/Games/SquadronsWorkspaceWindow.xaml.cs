@@ -212,6 +212,8 @@ namespace Heimdall.App.Games
             FeaturePicker.SelectedIndex = 0;
         }
         #region BEGIN Public
+        /// <summary>Supplies the shared name prompt in unattended workspace smoke tests.</summary>
+        internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
         public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _input.Dispose(); _identification.Dispose(); _reordering.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Refreshes capability evidence asynchronously; failed, obsolete or closed-window scans cannot enable assignments.</summary>
@@ -272,6 +274,29 @@ namespace Heimdall.App.Games
             _session.ImportAssignmentTemplates(new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = File.ReadAllText(path) });
             Refresh(false);
             StatusText.Text = "Assignment templates imported. Current bindings and physical links are unchanged. Save to retain the templates.";
+        }
+        /// <summary>Creates a separate saved profile with empty joystick assignments and no inherited assignment archive.</summary>
+        internal bool NewProfile(string name)
+        {
+            if (_session is null) throw new InvalidOperationException("Import native Squadrons settings or open a saved profile first.");
+            GameConfigurationName.Validate(name);
+            if (_services.Store.List().Any(entry => entry.BackendId == _backend.SimId &&
+                string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("A Squadrons profile with that name already exists.");
+            if (!ConfirmLeave()) return false;
+            StopLiveInput();
+            _session.Export(); // Require the existing session's edition and native validation boundary.
+            var source = _session.Snapshot;
+            var workspace = GameConfigurations.Create(source, name, false) with
+            {
+                Profile = _backend.CreateUnassignedProfile(source.Profile)
+            };
+            var sourceDirectory = _sourceDirectory;
+            _services.Store.Save(workspace, null);
+            LoadProfile(workspace.Id);
+            _sourceDirectory = sourceDirectory;
+            StatusText.Text = "New profile saved with no joystick assignments or imported assignment templates. Controller setup and native game settings retained.";
+            return true;
         }
         /// <summary>Saves through the shared optimistic revision boundary; failures retain pending edits.</summary>
         internal bool SaveProfile()
@@ -475,6 +500,7 @@ namespace Heimdall.App.Games
             SaveButton.IsEnabled = Chrome.CanSave; DiscardButton.IsEnabled = Chrome.CanDiscard;
             ExportButton.IsEnabled = Chrome.CanExport;
             ImportTemplatesButton.IsEnabled = _session is not null && _session.AccessMessage.Length == 0;
+            NewProfileButton.IsEnabled = _session is not null && _session.AccessMessage.Length == 0 && !_scanningInputs;
             ProfileName.IsEnabled = _session is not null;
             SaveState.Text = Chrome.Status;
         }
@@ -757,6 +783,19 @@ namespace Heimdall.App.Games
         {
             var dialog = new OpenFolderDialog { Title = "Choose a folder for a separate Squadrons review copy" };
             if (dialog.ShowDialog(this) == true) ExportReview(dialog.FolderName);
+        });
+        private void NewProfileClicked(object sender, RoutedEventArgs e) => Run(() =>
+        {
+            if (!NewProfileButton.IsEnabled) return;
+            StopLiveInput();
+            string? name;
+            if (ConfigurationNamePicker is not null) name = ConfigurationNamePicker("New", "New Controls");
+            else
+            {
+                var dialog = new GameConfigurationNameWindow(this, "New", "New Controls");
+                name = dialog.ShowDialog() == true ? dialog.ConfigurationName : null;
+            }
+            if (name is not null) NewProfile(name);
         });
         private void SaveClicked(object sender, RoutedEventArgs e) => SaveProfile();
         private void DiscardClicked(object sender, RoutedEventArgs e)
