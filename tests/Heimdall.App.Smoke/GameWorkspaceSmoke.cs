@@ -291,8 +291,8 @@ namespace Heimdall.App.Smoke
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
-            if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 3)
-                throw new InvalidOperationException("DCS must offer all three game choices.");
+            if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 4)
+                throw new InvalidOperationException("DCS must offer all four game choices.");
             var squadronsWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             squadronsWindow.Show(); ThemeControlSmoke.Pump(squadronsWindow);

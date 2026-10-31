@@ -1,0 +1,20 @@
+<Window x:Class="Heimdall.App.Games.WarThunderWorkspaceWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:games="clr-namespace:Heimdall.App.Games" xmlns:pres="clr-namespace:Heimdall.App"
+ Title="HEIMDALL — War Thunder" Width="1420" Height="900" MinWidth="1000" MinHeight="640" Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
+ <games:GameWorkspaceShell SeparateFeatureActions="True" Margin="8">
+  <StackPanel Grid.Row="0"><WrapPanel>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="185" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/><ComboBoxItem Content="War Thunder" Tag="war-thunder"/></ComboBox>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Profiles" Width="240" DisplayMemberPath="Name" AutomationProperties.Name="Saved War Thunder profiles" Margin="8,0"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Import" Content="Import controls BLK…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Duplicate" Content="Duplicate…"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Save" Content="Save"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Discard" Content="Discard"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Export" Content="Export review copy…"/>
+  </WrapPanel><WrapPanel Margin="0,6"><TextBlock Style="{StaticResource AppLabel}" Text="Profile name" VerticalAlignment="Center"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="300" MaxLength="100" Margin="8,0" AutomationProperties.Name="Profile name"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="SavedState" VerticalAlignment="Center"/></WrapPanel>
+  </StackPanel>
+  <WrapPanel Grid.Row="1"><Button Style="{StaticResource ToolbarActionButton}" x:Name="DevicesTab" Content="Devices"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="AssignmentsTab" Content="Assignments &amp; Testing"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="ReferencesTab" Content="Reference sheet"/></WrapPanel>
+  <pres:FeatureActionBar ButtonStyle="{StaticResource ToolbarActionButton}" x:Name="FeatureActions" Grid.Row="2"/>
+  <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <DockPanel><TextBlock Style="{StaticResource AppLabel}" Text="Saved native mappings" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="4,10"/><ListBox x:Name="Controllers" AutomationProperties.Name="Native controllers"/></DockPanel>
+   <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/><ContentControl x:Name="FeatureContent" Grid.Column="2"/>
+  </Grid>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="Status" Grid.Row="4" Text="Import an exported controls BLK file to begin." TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>
+ </games:GameWorkspaceShell>
+</Window>

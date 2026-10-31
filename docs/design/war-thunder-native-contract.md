@@ -58,3 +58,7 @@ The inspection model is described by [native-inspection.v1.schema.json](../../da
 C# regressions cover both newline styles, JSON persistence, unknown data and empty blocks, exact/ambiguous instance resolution, native range edges/overlaps/overflow, duplicate products, occurrence identity, isolated chord/axis edits, immutable failure, creation, clear, inversion, parameter types, cancellation, unsafe filenames, malformed envelopes and out-of-band mutation rejection. Existing parser tests remain.
 
 .NET build/tests and measured 80/80/50 gates require execution on the maintainer's .NET 10 environment; Windows smoke remains required before desktop integration. The authoring environment lacks that runtime. #334 retains the UI/game-selection work; this change does not register a War Thunder game tile.
+
+## Shared desktop consumer
+
+War Thunder desktop integration is included in PR6 (#334). `WarThunderNativeEdit` stages adapter-owned operations through the shared session, while `WarThunderWorkspaceProjection` supplies native occurrence rows and reference output. Physical links use a narrow captured-device validator and explicit VID/PID-compatible instance selection; they never rewrite native mapping offsets. Desktop assignments use zero-based native indices until physical control translation is verified. See [desktop behavior and local acceptance](shared-war-thunder-pr6.md).

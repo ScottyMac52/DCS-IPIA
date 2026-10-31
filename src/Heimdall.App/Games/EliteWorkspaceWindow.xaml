@@ -4,7 +4,7 @@
  Width="1340" Height="860" MinWidth="1050" MinHeight="650" WindowStartupLocation="CenterOwner">
  <games:GameWorkspaceShell x:Name="WorkspaceRoot" Margin="10">
   <WrapPanel Margin="0,0,0,10">
-   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/></ComboBox>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/><ComboBoxItem Content="War Thunder" Tag="war-thunder"/></ComboBox>
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePicker" Width="220" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" Margin="8,0" AutomationProperties.Name="Elite controls profile"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="SaveProfileButton" Content="Save" Click="SaveClicked"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="DiscardProfileButton" Content="Discard" Click="DiscardClicked"/>
@@ -83,4 +83,3 @@
   </StackPanel>
  </games:GameWorkspaceShell>
 </Window>
-

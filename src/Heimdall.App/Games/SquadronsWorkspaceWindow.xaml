@@ -4,7 +4,7 @@
  Width="1340" Height="860" MinWidth="1050" MinHeight="650" WindowStartupLocation="CenterOwner">
  <games:GameWorkspaceShell x:Name="WorkspaceRoot" Margin="10">
   <WrapPanel Margin="0,0,0,10">
-   <ComboBox x:Name="GamePicker" Style="{StaticResource AppComboBox}" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/></ComboBox>
+   <ComboBox x:Name="GamePicker" Style="{StaticResource AppComboBox}" Width="180" SelectionChanged="GameChanged" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/><ComboBoxItem Content="War Thunder" Tag="war-thunder"/></ComboBox>
    <ComboBox x:Name="ProfilePicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0" DisplayMemberPath="Name" SelectionChanged="ProfileChanged" AutomationProperties.Name="Squadrons saved profile"/>
    <Button x:Name="NewProfileButton" Style="{StaticResource ToolbarActionButton}" Content="New profile…" Click="NewProfileClicked" ToolTip="Create an independent profile with no joystick assignments, using the current controller setup and native game settings."/>
    <Button x:Name="SaveButton" Style="{StaticResource ToolbarActionButton}" Content="Save" Click="SaveClicked"/>
@@ -41,4 +41,3 @@
   <TextBlock x:Name="StatusText" Grid.Row="3" Style="{StaticResource AppLabel}" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
  </games:GameWorkspaceShell>
 </Window>
-

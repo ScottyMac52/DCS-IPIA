@@ -8,7 +8,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.WarThunder
 {
     /// <summary>Imports portable native-backed controls, validates native edits and exports exact reviewed text without deployment.</summary>
-    public sealed class WarThunderProfileBackend : ISimProfileBackend
+    public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator
     {
         private const string EvidenceKey = "war-thunder.v1";
         private static readonly HashSet<string> AxisParameters = new(StringComparer.Ordinal)
@@ -58,6 +58,12 @@ namespace Heimdall.WarThunder
             if (string.IsNullOrWhiteSpace(identity.InstanceId)) return new("unresolved", []);
             var matches = connected.Where(candidate => string.Equals(candidate.InstanceId, identity.InstanceId, StringComparison.OrdinalIgnoreCase)).ToArray();
             return new(matches.Length switch { 0 => "disconnected", 1 => "resolved", _ => "ambiguous" }, matches);
+        }
+        /// <summary>Validates a saved range before an explicit workspace-only physical association.</summary>
+        public void ValidateCapturedDeviceLink(ProfileDocument profile, string logicalDeviceId)
+        {
+            if (profile.BackendId != SimId || !ReadDevices(profile).Any(device => device.Id == logicalDeviceId && device.Valid))
+                throw new InvalidOperationException("Choose a valid saved War Thunder device mapping.");
         }
         /// <summary>Reads saved range declarations without claiming they are currently connected controllers.</summary>
         public static IReadOnlyList<WarThunderDevice> ReadDevices(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Devices;
@@ -146,7 +152,8 @@ namespace Heimdall.WarThunder
                 .Select(group => group.Single().Address).ToArray() : [];
             return new((axis ? inputs.Length == 1 : inputs.Length > 0) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid),
                 !axis && inputs.Length > 0 && binding.Fields.All(field => WarThunderNativeProfile.Name(field.Path) is "joyButton" or "activationType"),
-                (binding.Empty || (axis && !binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) == "axisId"))) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid),
+                (!axis || !binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) == "axisId")) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid)
+                    && !native.Bindings.Any(other => other.Section == binding.Section && other.Command == binding.Command && other.HasChildren),
                 axis && inputs.Length == 1 && binding.Fields.Count(field => WarThunderNativeProfile.Name(field.Path) == "inverse") <= 1
                     && binding.Fields.Where(field => WarThunderNativeProfile.Name(field.Path) == "inverse").All(field => field.Type == 'b'),
                 parameters);

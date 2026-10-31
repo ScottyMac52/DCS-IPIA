@@ -78,7 +78,7 @@
       <StackPanel>
         <WrapPanel><TextBlock FontSize="26" FontWeight="Bold" Text="HEIMDALL" Margin="0,0,14,0"/>
         <ComboBox x:Name="LandingGamePicker" Width="170" SelectionChanged="LandingGameChanged" AutomationProperties.Name="Landing game selection">
-         <ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/>
+         <ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/><ComboBoxItem Content="War Thunder"/>
         </ComboBox><Button Content="Games…" Click="ShowGamesClicked" Margin="8,0,0,0"/>
         </WrapPanel>
         <TextBlock Text="{x:Static local:ApplicationBranding.Descriptor}" Margin="0,0,14,0" VerticalAlignment="Center"/><TextBlock x:Name="EditionStatus" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>

@@ -1,6 +1,6 @@
-# War Thunder adapter — native foundation and readiness
+# War Thunder adapter and shared workspace
 
-War Thunder now has an `ISimProfileBackend` implementation with native-backed portable profiles, a captured command/parameter catalog, saved device ranges, occurrence-addressed edits and exact native text export. It is not yet registered as a desktop game. Physical input translation and desktop workflows remain #334.
+War Thunder now has an `ISimProfileBackend` implementation with native-backed portable profiles, a captured command/parameter catalog, saved device ranges, occurrence-addressed edits and exact native text export. The desktop consumer is now registered in PR6 (#334), with captured native-index editing, explicit physical links, drawings/live feedback, saved workspaces and isolated review export. Physical control translation and real-game acceptance remain explicit boundaries.
 
 PR1B integrated the protected `feature/war-thunder-adapter-foundation` parser into the shared .NET 10 solution. PR6 of #323 audits it against the shared contracts accepted through Squadrons PR5 and strengthens the scalar-edit boundary. See the [PR6 readiness report](design/shared-war-thunder-pr6.md) for the component reuse map, findings, capability matrix and local acceptance commands.
 
@@ -18,11 +18,11 @@ PR1B integrated the protected `feature/war-thunder-adapter-foundation` parser in
 
 ## Integration boundaries
 
-The project is already referenced by `HEIMDALL.sln` and `Heimdall.Tests`. War Thunder joins the expected production assemblies for the independent 80/80 coverage and CRAP <=50 gates in PR6. A desktop consumer must reuse the shared lifecycle, command browser/editor, drawing interactions, link policy and input feedback; native interpretation remains in `Heimdall.WarThunder`.
+The project is already referenced by `HEIMDALL.sln` and `Heimdall.Tests`. War Thunder joins the expected production assemblies for the independent 80/80 coverage and CRAP <=50 gates in PR6. The desktop consumer reuses the shared lifecycle, command browser/editor, diagram presentation, link policy and input feedback; native interpretation remains in `Heimdall.WarThunder`.
 
 A privately reviewed game export establishes the basic controls/device-mapping shape and native boolean spelling. Repository tests use generic authored examples. Occurrence-aware addresses, captured command/parameter metadata, native range validation and guarded source edits are implemented in #333. Physical index translation, complete inherited command coverage and in-game acceptance of newly generated bindings remain explicit integration requirements.
 
 - [#333: verify the native binding contract and implement the profile backend](https://github.com/ScottyMac52/DCS-IPIA/issues/333).
 - [#334: connect the verified adapter to the shared game workspace](https://github.com/ScottyMac52/DCS-IPIA/issues/334).
 
-The old feature branch is retained. Existing DCS, Elite and Squadrons workflows remain registered. Any future export uses a separate reviewed copy; this foundation does not write active game settings.
+The old feature branch is retained. Existing DCS, Elite and Squadrons workflows remain registered. Export uses a separate reviewed copy; the adapter and workspace do not write active game settings.
