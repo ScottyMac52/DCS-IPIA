@@ -146,82 +146,58 @@ namespace Heimdall.Tests
             Assert.False(session.CanRenameNativeControllers);
             Assert.Throws<InvalidOperationException>(() => session.PreviewRenameNativeController("missing", "Name 1"));
         }
-        /// <summary>Review export repairs a scattered TQS declaration even when no edit reruns the grouping helper.</summary>
+        /// <summary>Review export preserves names and all binding fields, including sparse indices and unknown fields.</summary>
         [Theory]
         [InlineData("\n")]
         [InlineData("\r\n")]
-        public void Review_export_groups_all_slots_repairs_bare_TQS_and_preserves_bindings(string newline)
+        public void Review_export_groups_declarations_without_inventing_native_data(string newline)
         {
             var backend = new SquadronsProfileBackend();
-            var source = Scattered(newline).Replace("Existing 1", "F16 MFD 3 1", StringComparison.Ordinal);
+            var source = Scattered(newline) + "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.future 9" + newline;
             var profile = Import(backend, source);
-            var before = JsonSerializer.Serialize(profile);
-            var plan = backend.ExportReview(profile);
-            Assert.True(plan.Succeeded);
-            var text = plan.Files[SquadronsProfileBackend.FileName];
+            var text = backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName];
             AssertGrouped(text);
-            Assert.Contains("GstInput.JoystickDevice2 Viper TQS 1" + newline, text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice2 Viper TQS" + newline, text, StringComparison.Ordinal);
             Assert.Contains("GstInput.JoystickDevice10 " + newline, text, StringComparison.Ordinal);
-            var reviewedRows = backend.ReadBindings(Import(backend, text));
+            Assert.Equal(WithoutDevices(source), WithoutDevices(text));
             Assert.Equal(JsonSerializer.Serialize(backend.ReadBindings(profile)),
-                JsonSerializer.Serialize(reviewedRows.Where(row => row.Type == 3)));
-            Assert.All(reviewedRows.Where(row => row.Type != 3), row =>
-            {
-                Assert.Equal(-1, row.Type); Assert.Equal(-1, row.DeviceId);
-                Assert.Equal(0, row.Fields["identifier"]); Assert.Equal(174, row.Fields["button"]);
-            });
-            Assert.Equal(Enumerable.Range(0, 6), reviewedRows.Select(row => row.Index).Order());
-            Assert.Equal(before, JsonSerializer.Serialize(profile));
+                JsonSerializer.Serialize(backend.ReadBindings(Import(backend, text))));
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(text, backend.ExportReview(Import(backend, text)).Files[SquadronsProfileBackend.FileName]);
         }
-        /// <summary>Export preparation does not introduce whitespace when the profile has no controller declarations.</summary>
+        /// <summary>Export never derives occurrence suffixes or introduces whitespace in a controller-free capture.</summary>
         [Fact]
-        public void Review_export_without_controllers_preserves_exact_native_settings()
+        public void Review_export_preserves_declared_names_and_controller_free_settings()
         {
             var backend = new SquadronsProfileBackend();
-            const string source = "GstInput.DeadzoneCenter 0.220000\r\nGstKeyBinding.InputDataVersion 4";
-            Assert.Equal(source, backend.ExportReview(Import(backend, source)).Files[SquadronsProfileBackend.FileName]);
-        }
-        /// <summary>Reported model numbers are retained and existing native occurrence numbers avoid collisions.</summary>
-        [Fact]
-        public void Review_names_use_explicit_link_evidence_for_numeric_model_names_and_avoid_taken_occurrences()
-        {
-            var backend = new SquadronsProfileBackend();
-            var source = "GstInput.JoystickDevice1 F16 MFD 3\nGstInput.JoystickDevice2 Viper TQS\n" +
+            const string source = "GstInput.JoystickDevice1 F16 MFD 3\nGstInput.JoystickDevice2 Viper TQS\n" +
                 "GstInput.JoystickDevice3 Viper TQS 1\nGstKeyBinding.InputDataVersion 4\n";
-            var profile = Import(backend, source);
-            var text = backend.ExportReview(profile, new Dictionary<string, string> { ["squadrons.joystick.1"] = "F16 MFD 3" })
-                .Files[SquadronsProfileBackend.FileName];
-            Assert.Contains("GstInput.JoystickDevice1 F16 MFD 3 1\n", text, StringComparison.Ordinal);
-            Assert.Contains("GstInput.JoystickDevice2 Viper TQS 2\n", text, StringComparison.Ordinal);
-            Assert.Contains("GstInput.JoystickDevice3 Viper TQS 1\n", text, StringComparison.Ordinal);
-            Assert.Contains("GstInput.JoystickDevice1 F16 MFD 3\n",
-                backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName], StringComparison.Ordinal);
+            Assert.Equal(source, backend.ExportReview(Import(backend, source)).Files[SquadronsProfileBackend.FileName]);
+            const string empty = "GstInput.DeadzoneCenter 0.220000\r\nGstKeyBinding.InputDataVersion 4";
+            Assert.Equal(empty, backend.ExportReview(Import(backend, empty)).Files[SquadronsProfileBackend.FileName]);
         }
-        /// <summary>Completing sparse arrays retains system records, unknown fields, native identifiers and both axis directions.</summary>
-        [Fact]
-        public void Review_export_fills_only_missing_indices_and_does_not_invent_active_bindings()
+        /// <summary>The native MFD target-select edit changes only its button field, retaining its stable identifier and context.</summary>
+        [Theory]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        public void Native_MFD_target_select_edit_matches_the_successful_one_field_probe(string newline)
         {
             var backend = new SquadronsProfileBackend();
-            var source = Scattered("\n") + "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.4.future 99\n";
-            var keyboard = new Dictionary<string, int> { ["altbutton"] = 0, ["axis"] = 0, ["button"] = 17,
-                ["deviceid"] = -1, ["identifier"] = 1396582217, ["modifier"] = 255, ["negate"] = 0, ["type"] = 2 };
-            source += string.Join("\n", keyboard.Select(field => "GstKeyBinding.IncomStarshipInputConcepts.ConceptThrottle.0." + field.Key + " " + field.Value)) + "\n";
+            const string concept = "IncomStarshipInputConcepts.ConceptTargetSelect";
+            var lines = new List<string> { "GstInput.JoystickDevice4 F16 MFD 1 1", "Future.Setting  keep exactly", "GstKeyBinding.InputDataVersion 4" };
+            var keyboard = new Dictionary<string, int> { ["altbutton"] = 0, ["axis"] = 0, ["button"] = 20,
+                ["deviceid"] = -1, ["identifier"] = 536714740, ["modifier"] = 255, ["negate"] = 0, ["type"] = 2 };
+            var joystick = new Dictionary<string, int> { ["altbutton"] = 0, ["axis"] = 26, ["button"] = 22,
+                ["deviceid"] = 3, ["identifier"] = -123319776, ["modifier"] = 0, ["negate"] = 0, ["type"] = 3 };
+            lines.AddRange(keyboard.Select(field => "GstKeyBinding." + concept + ".0." + field.Key + " " + field.Value));
+            lines.AddRange(joystick.Select(field => "GstKeyBinding." + concept + ".1." + field.Key + " " + field.Value));
+            var source = string.Join(newline, lines) + newline;
             var profile = Import(backend, source);
-            var output = backend.ExportReview(profile).Files[SquadronsProfileBackend.FileName];
-            var rows = backend.ReadBindings(Import(backend, output));
-            Assert.Equal(6, rows.Count); Assert.Equal(2, rows.Count(row => row.Type == 3));
-            Assert.Equal(3, rows.Count(row => row.Type == -1));
-            Assert.Equal(2, rows.Single(row => row.Index == 0).Type);
-            foreach (var row in backend.ReadBindings(profile))
-            {
-                var retained = rows.Single(other => other.RecordId == row.RecordId);
-                Assert.Equal(row.Fields.OrderBy(x => x.Key), retained.Fields.OrderBy(x => x.Key));
-            }
-            Assert.Equal(99, rows.Single(row => row.Index == 4).Fields["future"]);
+            var changed = backend.RebindNative(profile, concept + ".1", "squadrons.joystick.4", "JOY_BTN2", Heimdall.Domain.MultiSim.CommandType.Button, 0);
+            var expected = source.Replace(concept + ".1.button 22", concept + ".1.button 23", StringComparison.Ordinal);
+            Assert.Equal(expected, backend.Export(changed).Files[SquadronsProfileBackend.FileName]);
+            Assert.Equal(expected, backend.ExportReview(changed).Files[SquadronsProfileBackend.FileName]);
             Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
-            Assert.Equal(output, backend.ExportReview(Import(backend, output)).Files[SquadronsProfileBackend.FileName]);
         }
         #endregion END Public
         #region BEGIN private helpers

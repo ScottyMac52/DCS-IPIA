@@ -44,29 +44,14 @@ namespace Heimdall.Squadrons
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
             { return new(new Dictionary<string, string>(), [new("squadrons.export.blocked", error.Message, true)]); }
         }
-        /// <summary>Prepares the user-facing review copy with grouped numeric slots and repaired bare occurrence names.
-        /// Exact capture export and the saved profile remain unchanged; reported names must come from explicit physical links.</summary>
-        public SimProfileExportPlan ExportReview(ProfileDocument profile, IReadOnlyDictionary<string, string>? reportedNames = null)
+        /// <summary>Groups controller declarations in the review copy while retaining every native name and record.
+        /// Export does not infer occurrence suffixes, disabled fillers or native defaults.</summary>
+        public SimProfileExportPlan ExportReview(ProfileDocument profile)
         {
             try
             {
                 var document = new SquadronsNativeDocument(Evidence(profile).Text);
-                var names = profile.Devices.Select(x => x.Identity!.WindowsName!).ToList();
-                var changes = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var device in profile.Devices.OrderBy(x => int.Parse(x.Identity!.SimSpecificIds["squadrons.slot"], System.Globalization.CultureInfo.InvariantCulture)))
-                {
-                    var current = device.Identity!.WindowsName!;
-                    var split = current.LastIndexOf(' ');
-                    var hasOccurrence = split > 0 && int.TryParse(current[(split + 1)..],
-                        System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var occurrence) && occurrence > 0;
-                    var bareReportedName = reportedNames is not null && reportedNames.TryGetValue(device.LogicalId, out var reported) &&
-                        string.Equals(current, reported, StringComparison.OrdinalIgnoreCase);
-                    if (hasOccurrence && !bareReportedName) continue;
-                    var repaired = SquadronsControllerName.Suggest(current, names, current);
-                    changes["GstInput.JoystickDevice" + device.Identity.SimSpecificIds["squadrons.slot"]] = repaired;
-                    names.Remove(current); names.Add(repaired);
-                }
-                return new(new Dictionary<string, string> { [FileName] = document.PrepareReviewExport(changes) }, []);
+                return new(new Dictionary<string, string> { [FileName] = document.PrepareReviewExport() }, []);
             }
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or JsonException)
             { return new(new Dictionary<string, string>(), [new("squadrons.export.blocked", error.Message, true)]); }

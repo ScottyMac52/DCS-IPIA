@@ -168,47 +168,10 @@ namespace Heimdall.Squadrons
             }));
             return new SquadronsNativeDocument(text).GroupJoystickDevices();
         }
-        /// <summary>Completes sparse native record arrays with disabled entries and groups declared controllers.
-        /// Active record addresses and every field remain unchanged; completion affects the review copy only.</summary>
-        public string PrepareReviewExport(Dictionary<string, string> names) =>
-            new SquadronsNativeDocument(CompleteReviewBindingArrays()).GroupJoystickDevices(names);
+        /// <summary>Groups controller declarations without inventing names or binding records.</summary>
+        public string PrepareReviewExport() => GroupJoystickDevices();
         #endregion END Public
         #region BEGIN private helpers
-        private string CompleteReviewBindingArrays()
-        {
-            var records = Bindings.ToList();
-            foreach (var group in Bindings.GroupBy(row => row.Concept, StringComparer.Ordinal))
-            {
-                var indices = group.Select(row => row.Index).ToHashSet();
-                var maximum = indices.Max();
-                if (indices.Count == maximum + 1) continue;
-                if (maximum >= 128) throw new InvalidOperationException("Cannot complete a sparse native binding array above index 127.");
-                for (var index = 0; index <= maximum; index++)
-                {
-                    if (indices.Contains(index)) continue;
-                    // Native v4 cleared-record form: type -1, no physical target and no active input.
-                    records.Add(new(group.Key, index, new Dictionary<string, int>(StringComparer.Ordinal)
-                    {
-                        ["altbutton"] = 0, ["axis"] = 26, ["button"] = 174, ["deviceid"] = -1,
-                        ["identifier"] = 0, ["modifier"] = 0, ["negate"] = 0, ["type"] = -1
-                    }));
-                }
-            }
-            if (records.Count == Bindings.Count) return Text;
-            var newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-            var parts = Text.Split('\n');
-            var lines = parts.Select((line, index) => line + (index < parts.Length - 1 ? "\n" : "")).ToArray();
-            bool RecordLine(string line) => line.StartsWith(BindingPrefix, StringComparison.Ordinal) &&
-                !line.StartsWith(BindingPrefix + "InputDataVersion ", StringComparison.Ordinal);
-            var first = Array.FindIndex(lines, RecordLine);
-            var before = string.Concat(lines.Take(first));
-            if (before.Length > 0 && !before.EndsWith('\n')) before += newline;
-            var block = records.OrderBy(row => row.Concept, StringComparer.Ordinal).ThenBy(row => row.Index)
-                .SelectMany(row => row.Fields.OrderBy(field => field.Key, StringComparer.Ordinal).Select(field =>
-                    BindingPrefix + row.RecordId + "." + field.Key + " " + field.Value.ToString(CultureInfo.InvariantCulture)));
-            var after = string.Concat(lines.Skip(first).Where(line => !RecordLine(line)));
-            return before + string.Join(newline, block) + newline + after;
-        }
         private void ValidateJoystickName(string name, string? currentKey)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);

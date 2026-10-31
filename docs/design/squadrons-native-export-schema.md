@@ -8,6 +8,7 @@
 - [Machine-readable inventory](../../data/schemas/squadrons/command-inventory.v1.json): full concept names, contexts, record indices, parameter objects, current adapter input labels and evidence status.
 - [Flat CSV](../../data/schemas/squadrons/command-parameters.v1.csv): one row per variant; no axis direction or alternative record is collapsed.
 - [JSON Schema](../../data/schemas/squadrons/native-export-inspection.v1.schema.json): schema for the parsed inspection model. **Squadrons consumes native text, not this JSON.**
+- [Independent native evidence audit](squadrons-engineering-evidence.md): observed parameter dictionary, failed hypotheses and the isolated successful MFD edit.
 - [Native inspector](../../scripts/squadrons_native_schema.py): checks text grammar, completeness, duplicate addresses, numeric fields and unresolved joystick references. It does not deploy or modify files.
 
 This list covers the current adapter catalog, not every command implemented by every game version. The bundled variants cover joystick authoring. Complete keyboard, mouse and gamepad defaults have not been established; captured records in those families must remain intact. Unknown concepts and additional numeric record fields are preserved for inspection, rather than relabeled as verified support.
@@ -21,7 +22,7 @@ GstKeyBinding.<concept>.<index>.<field> <signed 32-bit integer>
 <other setting key> <raw setting value>
 ```
 
-The first ASCII space separates key and value. Device names and other values can contain spaces; an empty value is distinct from a missing declaration. Blank lines and LF/CRLF endings are retained by the production source document. Duplicate setting keys and incomplete indexed records are invalid. Review export now also completes missing lower record indices with disabled entries; the rationale and limits are below. Native record indices are nonnegative signed 32-bit values; the adapter currently limits newly appended indices to below 128, which is **not a verified native format limit**.
+The first ASCII space separates key and value. Device names and other values can contain spaces; an empty value is distinct from a missing declaration. Blank lines and LF/CRLF endings are retained by the production source document. Duplicate setting keys and incomplete indexed records are invalid. Review export preserves record indices and never fills missing entries; sparse-array findings are diagnostic observations. Native record indices are nonnegative signed 32-bit values; the adapter currently limits newly appended indices to below 128, which is **not a verified native format limit**.
 
 `InputDataVersion 4` is required when binding records exist. The adapter also accepts fresh `GstInput` settings without a version or binding table. This exception supports blank-slate authoring; it does not establish that a game export without the version will be accepted.
 
@@ -49,7 +50,7 @@ A record address is `(concept, index)`. The index is not a command ID, device sl
 | Controller declarations | Preserve every captured declaration, including empty slots. The adapter range is 1–10; this is not a verified game capacity. |
 | Presentation order | The current review exporter groups declarations before binding records and sorts slot numbers numerically. That is an output convention, not evidence that native line order caused the in-game failure. |
 | Native identities | Use the identity the game actually recognizes. A matching Windows display name, guessed suffix or successful HEIMDALL link is insufficient evidence of game recognition. |
-| Occurrence suffix | Current code appends occurrence suffixes under certain conditions. Whether that transformation is valid for every device is unresolved; automatic suffix repair must not be treated as schema-proven identity resolution. |
+| Occurrence suffix | Review export preserves captured names. Explicit Add/Rename actions offer reviewed suggestions; no suffix transformation is established as a universal native identity rule. |
 | Record ownership | When slots are intentionally changed, every affected joystick `deviceid` must move atomically with its intended controller. Other input families retain their native values. |
 | Non-binding settings | Preserve unknown scalar settings, native versions and unrelated values. They must not disappear because they are absent from the command catalog. |
 | Blank slate | No active assignments may be materialized merely by browsing the catalog. A user's explicit assignment must produce the correct native record(s) from proven adapter metadata, without requiring prior game-side bindings. |
@@ -71,7 +72,7 @@ The inspection model separates scalar `settings`, `devices`, and `bindings`. It 
 | Bundled | Descriptor fields exist in the shipped metadata. |
 | Observed | Exact fields were captured; source/version and whether the game generated or merely retained them must be recorded. |
 | Structurally valid | Grammar, eight required fields, integer bounds and references pass inspection. |
-| Game accepted | The game retains the intended device association and the requested control invokes the intended command. **Currently unverified for the inventory.** |
+| Game accepted | The game retains the intended device association and the requested control invokes the intended command. **Unverified for the inventory as a whole; one isolated MFD edit has a user-reported success.** |
 
 The 95 bundled nonzero-identifier records and 54 zero-identifier records are listed without claiming per-record acceptance. The zero-identifier set mixes observed and generalized metadata; a per-record independent provenance map is still required. See [existing provenance notes](squadrons-custom-record-provenance.md).
 
@@ -92,14 +93,8 @@ python -m unittest discover -s tests/ci -p 'test_*.py'
 The CLI's success message explicitly states that game acceptance is unverified. No structural check should be reported as an in-game pass.
 
 
-## Sparse-array correction under game validation
+## Retired sparse-array hypothesis
 
-Comparison of two earlier native version-four captures (125 concepts each) and the independent published version-two reference (117 concepts) found contiguous indices starting at zero for every concept. The failing reduced file has only 22 concepts; 20 contain gaps. Its 26 active joystick records omit 37 lower-index entries present in the version-four references. All 37 are system-input records in those references. Merely retaining records such as Pitch.6/.7 and Throttle.4/.5 does not reproduce the complete native array shape.
+Native references have contiguous arrays. Filling 37 lower-index gaps with inactive records did not fix the reported in-game failure. The subsequent game-written capture changed all 37 fillers and 14 originally active joystick records. Automatic completion is removed from review export. The inspector still reports gaps, and `--strict-arrays` can enforce that optional investigation policy; it is not a verified native acceptance constraint.
 
-Review export now fills missing lower indices using an inactive record form based on a captured v4 cleared entry: `altbutton=0, axis=26, button=174, deviceid=-1, identifier=0, modifier=0, negate=0, type=-1`. It preserves every existing record address and field, including existing system records and unknown numeric fields. New disabled entries do not create joystick assignments or copy user keyboard/mouse/gamepad mappings. Completion runs only in the review copy, is idempotent and orders record groups by concept/index. The original saved capture stays exact. Sparse arrays above index 127 produce a diagnostic rather than unbounded filler allocation.
-
-This corrects a concrete structural mismatch with the reference files. **The inference that sparse arrays cause the in-game rejection, and that this completion is sufficient for game acceptance, still require an actual-game test.** Do not label this correction a verified fix for every reported controller failure.
-
-The inspector now reports sparse arrays; `--strict-arrays` makes them errors. This closes an inspection gap: the previously reported structural pass did not check array completeness.
-
-The TQS declaration is absent from the earlier native Pitch capture as well as the failing post-run capture. Export cannot establish game acquisition of a missing device merely by writing its name. That separate recognition issue remains unresolved; the intended TQS slot must be checked against the game's device selection/recognition result. No device roster is guessed from Windows discovery in this correction.
+The [engineering evidence matrix](squadrons-engineering-evidence.md) records this failed experiment, the independent observation dictionary and the one-field MFD edit that the user reported working. It separates those results from unresolved identifier, envelope and device-acquisition rules. No raw user profiles are committed.

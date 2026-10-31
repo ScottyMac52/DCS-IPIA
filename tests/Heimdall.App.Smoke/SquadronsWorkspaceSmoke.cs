@@ -77,15 +77,15 @@ namespace Heimdall.App.Smoke
                     .Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
                 if (declarations[^1].index - declarations[0].index + 1 != declarations.Length ||
                     declarations[^1].index >= Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)) ||
-                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS 1", StringComparison.Ordinal) ||
+                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS\n", StringComparison.Ordinal) ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
-                    throw new InvalidOperationException("Review export scattered controller declarations, lost the TQS occurrence or mutated the saved capture.");
+                    throw new InvalidOperationException("Review export scattered controller declarations, changed the native TQS name or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
-                var reviewedProfile = new SquadronsProfileBackend().Import("controls", new Dictionary<string, string>
-                    { [SquadronsProfileBackend.FileName] = reviewText });
-                foreach (var group in new SquadronsProfileBackend().ReadBindings(reviewedProfile).GroupBy(row => row.Concept))
-                    if (!group.Select(row => row.Index).Order().SequenceEqual(Enumerable.Range(0, group.Max(row => row.Index) + 1)))
-                        throw new InvalidOperationException("Review export left gaps in a native binding array.");
+                var backend = new SquadronsProfileBackend();
+                var reviewedProfile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = reviewText });
+                if (System.Text.Json.JsonSerializer.Serialize(backend.ReadBindings(reviewedProfile)) !=
+                    System.Text.Json.JsonSerializer.Serialize(backend.ReadBindings(window.Session.Snapshot.Profile)))
+                    throw new InvalidOperationException("Review export invented or changed native binding records.");
                 Box<TextBox>(window, "ProfileName").Text = "Pending name";
                 Box<ComboBox>(window, "GamePicker").SelectedIndex = 1;
                 if (window.RequestedGame is not null || !window.IsVisible || Box<ComboBox>(window, "GamePicker").SelectedIndex != 2)
