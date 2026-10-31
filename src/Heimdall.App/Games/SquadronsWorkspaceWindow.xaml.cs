@@ -1043,8 +1043,16 @@ namespace Heimdall.App.Games
             void Select(HardwareGraphicControl control)
             {
                 var rows = SquadronsSystemInputDrawings.ForControl(control, _rows, deviceId, DrawingSection);
-                BindingsGrid.ItemsSource = rows;
-                BindingsGrid.SelectedItem = rows.FirstOrDefault();
+                var selected = rows.Count == 0 ? null : rows[0];
+                var oldRefreshing = _refreshing;
+                _refreshing = true;
+                try
+                {
+                    BindingsGrid.SelectedItem = null;
+                    BindingsGrid.ItemsSource = rows;
+                    BindingsGrid.SelectedItem = selected;
+                }
+                finally { _refreshing = oldRefreshing; }
                 CountText.Text = control.Label + " · " + rows.Count + " captured assignments · read-only.";
                 EmptyState.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
                 EmptyState.Text = "No captured assignments on this input in the current context.";

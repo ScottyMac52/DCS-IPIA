@@ -84,12 +84,21 @@ namespace Heimdall.App.Smoke
                         !Box<Button>(window, "FitDrawingButton").IsEnabled || Box<Button>(window, "ApplyButton").IsEnabled ||
                         Box<ComboBox>(window, "DrawingPicker").IsEnabled || Box<Button>(window, "StartInputButton").IsEnabled)
                         throw new InvalidOperationException("System artwork was absent or enabled hardware/edit operations: " + id);
-                    var region = canvas.Children.OfType<Border>().First();
-                    region.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice,
-                        Environment.TickCount, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-                    if (!Box<TextBlock>(window, "CountText").Text.Contains("read-only", StringComparison.Ordinal) ||
-                        Box<Button>(window, "ApplyButton").IsEnabled)
-                        throw new InvalidOperationException("Selecting a system control failed read-only inspection: " + id);
+                    var regions = canvas.Children.OfType<Border>().ToArray();
+                    var clicks = id == "system.2"
+                        ? new[] { regions.Single(region => ((HardwareGraphicControl)region.Tag).InputKey == "Key_Space"), regions[0] }
+                        : new[] { regions[0] };
+                    foreach (var region in clicks)
+                    {
+                        var expected = id == "system.2" && ((HardwareGraphicControl)region.Tag).InputKey == "Key_Space" ? 1 : 0;
+                        region.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice,
+                            Environment.TickCount, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+                        if (grid.Items.Count != expected || (grid.SelectedItem is null) != (expected == 0) ||
+                            Box<TextBlock>(window, "EmptyState").IsVisible != (expected == 0) ||
+                            !Box<TextBlock>(window, "CountText").Text.Contains("read-only", StringComparison.Ordinal) ||
+                            Box<Button>(window, "ApplyButton").IsEnabled)
+                            throw new InvalidOperationException("System control inspection failed for " + id + " / " + ((HardwareGraphicControl)region.Tag).InputKey);
+                    }
                     ThemeControlSmoke.SaveImage(window, "squadrons-" + id.Replace('.', '-'));
                 }
                 if (window.Session!.Export().Files[SquadronsProfileBackend.FileName] != source) throw new InvalidOperationException("Presentation filtering changed native records.");
