@@ -18,9 +18,9 @@ namespace Heimdall.WarThunder
         public WarThunderControls(string machineBlk)
         {
             Document = WarThunderBlkDocument.Parse(machineBlk);
-            Hotkeys = Document.Scalars.Where(x => x.Path.Contains("/controls/hotkeys/", StringComparison.Ordinal)).ToList().AsReadOnly();
-            Axes = Document.Scalars.Where(x => x.Path.Contains("/controls/axes/", StringComparison.Ordinal)).ToList().AsReadOnly();
-            Joysticks = Document.Scalars.Where(x => x.Path.Contains("/controls/joysticks/", StringComparison.Ordinal)).ToList().AsReadOnly();
+            Hotkeys = Document.Scalars.Where(x => InSection(x.Path, "hotkeys")).ToList().AsReadOnly();
+            Axes = Document.Scalars.Where(x => InSection(x.Path, "axes")).ToList().AsReadOnly();
+            Joysticks = Document.Scalars.Where(x => InSection(x.Path, "joysticks") || InSection(x.Path, "deviceMapping/joystick")).ToList().AsReadOnly();
         }
         /// <summary>Gets uniquely addressed values eligible for reviewed scalar edits; this does not authorize hardware bindings.</summary>
         public IReadOnlyList<WarThunderBlkScalar> EditableSettings => Document.HasOpaqueSyntax ? [] :
@@ -37,5 +37,10 @@ namespace Heimdall.WarThunder
         /// <summary>Changes one reviewed native scalar; physical association and command creation are outside this capability.</summary>
         public string ReplaceReviewedSetting(string path, string nativeValue) => Document.ReplaceScalar(path, nativeValue);
         #endregion END Public
+        #region BEGIN private helpers
+        private static bool InSection(string path, string section) =>
+            path.StartsWith("controls/" + section + "/", StringComparison.Ordinal)
+                || path.Contains("/controls/" + section + "/", StringComparison.Ordinal);
+        #endregion END private helpers
     }
 }

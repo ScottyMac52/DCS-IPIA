@@ -53,7 +53,8 @@ namespace Heimdall.WarThunder
             return type switch
             {
                 's' or 't' => match.Groups["quoted"].Success,
-                'i' or 'b' => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
+                'i' => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
+                'b' => value is "yes" or "no" or "0" or "1",
                 'r' => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && double.IsFinite(number),
                 _ => false
             };

@@ -24,9 +24,11 @@ The generic `SimBackendCapabilities` record does not grant every operation. Exis
 
 ## Native foundation findings and fixes
 
-The foundation has only synthetic parser fixtures. It is not an `ISimProfileBackend` implementation and has no verified command catalog, joystick ownership mapping or binding creation contract. A successful BLK parse is not proof that a game profile can be authored.
+Repository fixtures are generic authored examples. A privately reviewed game export establishes root-level `controls`, repeated hotkey blocks, `controls/deviceMapping/joystick` records and native `yes`/`no` booleans; the capture itself is not published. It is not an `ISimProfileBackend` implementation and has no verified command catalog, joystick ownership mapping or binding creation contract. A successful BLK parse is not proof that a game profile can be authored.
 
 PR6 fixes these concrete capture/edit problems:
+
+- Exported root-level `controls/hotkeys` and `controls/axes` now populate their inventories, alongside the older wrapped shape. Saved devices under `controls/deviceMapping/joystick` are included without flattening repeated records or treating them as physical identities. Native `yes`/`no` flags parse and edit without normalization.
 
 - `:t` text previously bypassed string validation; `:s` accepted merely starting/ending quotes. Both now require exactly one complete quoted token, including correct escapes. Quoted punctuation stays inside that token.
 - Comments immediately after `=` could be captured as the value. Trivia is now skipped, and the scalar span points to the real value. Replacements preserve the comment and all surrounding text.
@@ -36,7 +38,7 @@ PR6 fixes these concrete capture/edit problems:
 - Scalar/block inventories now expose read-only collections, so callers cannot forge editable source spans.
 - Invalid captured activation values remain available for inspection; numeric inventory skips unparseable values without assigning tap/hold meanings.
 
-`EditableSettings` means eligibility for a reviewed literal scalar change. It does not imply command creation, physical association, modifier support or axis tuning. The current editable subset is bounded 32-bit `i`/integer-form `b`, finite `r`, and quoted `s`/`t`. Other boolean spellings, compound/vector types and additional BLK forms require native contract work; they are not silently normalized.
+`EditableSettings` means eligibility for a reviewed literal scalar change. It does not imply command creation, physical association, modifier support or axis tuning. The current editable subset is bounded 32-bit `i`, `yes`/`no` and `0`/`1` booleans, finite `r`, and quoted `s`/`t`. Additional boolean spellings, compound/vector types and additional BLK forms require native contract work; they are not silently normalized.
 
 ## Readiness decision
 
