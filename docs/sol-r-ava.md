@@ -38,8 +38,10 @@ and the full remaining acceptance checklist are tracked separately in #282.
 5. Choose the presentation matching your POV setting. Verify all inputs in the
    input tester and preview/export the kneeboard before using it in DCS.
 
-The layouts retain all 21 numbered buttons, X/Y/RZ, and eight POV directions
-(32 native keys). Controls replaced by the active POV/button setting are listed
+The layouts retain all 21 numbered buttons, X/Y/RZ, and eight POV directions.
+The right-hand layouts also include RX/RY for the mini-stick horizontal/vertical
+axes alongside its independent Button 6 press (34 native keys; left-hand layouts
+retain their existing 32-key definition). Controls replaced by the active POV/button setting are listed
 in an **Alternate mode inputs** area. They are retained as alternative native
 inputs, not a claim that the driver emits both representations simultaneously.
 The Windows name distinguishes handedness but does not identify the POV setting;

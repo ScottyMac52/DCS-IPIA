@@ -122,6 +122,16 @@
   <circle cx="696" cy="1336" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1310" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN5" x="1175" y="1332" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B05  |  Lower grip button</text>
+  <!-- callout:JOY_RX -->
+  <line x1="700" y1="255" x2="1175" y2="735" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="700" cy="255" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="735" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RX" x="1175" y="757" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RX  |  Mini-stick horizontal</text>
+  <!-- callout:JOY_RY -->
+  <line x1="700" y1="255" x2="1175" y2="785" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="700" cy="255" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="785" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RY" x="1175" y="807" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RY  |  Mini-stick vertical</text>
   <!-- box:JOY_BTN_POV1_U -->
   <rect x="70" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN_POV1_U" x="212.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV U</text>

@@ -21,7 +21,9 @@ namespace Heimdall.App.Smoke
             new EditionPolicy().RequireHardware(hardware.Select(x => x.DeviceId));
             foreach (var layout in hardware)
             {
-                if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != 32 ||
+                var right = layout.DeviceId.StartsWith("tm-sol-r-ava-r-", StringComparison.Ordinal);
+                if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != (right ? 34 : 32) ||
+                    (right && new[] { "JOY_RX", "JOY_RY" }.Any(key => !layout.Diagram.Controls.Any(x => x.InputKey == key && x.IsAxis))) ||
                     !layout.Diagram.Controls.Any(x => x.InputKey == "JOY_RZ" && x.IsAxis) ||
                     CanonicalSvgRenderer.RenderComplete(layout.Diagram.Svg!, layout.Diagram.Width, layout.Diagram.Height).Length < 1000)
                     throw new InvalidOperationException("Sol-R built-in layout is incomplete: " + layout.DeviceId);

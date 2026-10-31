@@ -24,7 +24,7 @@ namespace Heimdall.Tests
             var choices = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
             var id = "tm-sol-r-ava-" + hand + "-" + mode;
             var hardware = Assert.Single(choices, x => x.DeviceId == id);
-            var definition = Definition();
+            var definition = Definition(hand == "r");
             var native = new DetectedDcsDevice(Guid.NewGuid(), "AVA [" + hand.ToUpperInvariant() + "] Sol-R", true);
             var candidates = BundledHardwareCapabilityMatcher.Candidates(sources, new(native, definition.Capabilities));
             Assert.Equal(2, candidates.Count);
@@ -33,7 +33,10 @@ namespace Heimdall.Tests
             Assert.All(candidates, x => Assert.StartsWith("tm-sol-r-ava-" + hand + "-", x, StringComparison.Ordinal));
             Assert.True(definition.Capabilities.DcsKeys.ToHashSet(StringComparer.Ordinal)
                 .SetEquals(hardware.Diagram.Controls.Select(x => x.InputKey)));
-            Assert.Equal(32, hardware.Diagram.Controls.Count);
+            Assert.Equal(hand == "r" ? 34 : 32, hardware.Diagram.Controls.Count);
+            if (hand == "r")
+                foreach (var key in new[] { "JOY_RX", "JOY_RY" })
+                    Assert.Contains(hardware.Diagram.Controls, control => control.InputKey == key && control.IsAxis);
             Assert.Null(hardware.Diagram.CustomMapping);
             Assert.Contains(hardware.Diagram.Controls, x => x.InputKey == "JOY_RZ" && x.IsAxis);
             Assert.Contains(hardware.Diagram.Controls, x => x.InputKey == "JOY_BTN_POV1_UR");
@@ -41,7 +44,7 @@ namespace Heimdall.Tests
             var path = "assets/shared/hardware/drawio/" + id + ".drawio";
             var revision = DrawioMappingImporter.Import(await BundledSharedCatalog.ReadTextAsync(path), definition, id + ".drawio", "test");
             DrawioMappingImporter.Validate(revision);
-            Assert.Equal(32, revision.MappedInputs.Count);
+            Assert.Equal(hand == "r" ? 34 : 32, revision.MappedInputs.Count);
 
             var instance = new HardwareInventoryInstance(native.PhysicalGuid, native.Name, definition.Id,
                 "Sol-R", "Stick", true, candidates);
@@ -94,7 +97,7 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static HardwareDefinition Definition()
+        private static HardwareDefinition Definition(bool miniStickAxes = false)
         {
             var objects = Enumerable.Range(0, 21).Select(i => new ControllerObject(
                 Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12u | ((uint)i << 8), "Button " + (i + 1))).ToList();
@@ -102,6 +105,11 @@ namespace Heimdall.Tests
             objects.Add(new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 258, "Y"));
             objects.Add(new(Guid.Parse("a36d02e3-c9f3-11cf-bfc7-444553540000"), 514, "RZ"));
             objects.Add(new(Guid.Parse("a36d02f2-c9f3-11cf-bfc7-444553540000"), 16, "POV 1"));
+            if (miniStickAxes)
+            {
+                objects.Add(new(Guid.Parse("a36d02f4-c9f3-11cf-bfc7-444553540000"), 770, "RX"));
+                objects.Add(new(Guid.Parse("a36d02f5-c9f3-11cf-bfc7-444553540000"), 1026, "RY"));
+            }
             var capabilities = ControllerCapabilityMapper.Map(objects);
             return new(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities);
         }
