@@ -1,3 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup><ProjectReference Include="../Heimdall.Application/Heimdall.Application.csproj" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Data/JoystickTemplates_v4" LogicalName="Squadrons.JoystickTemplates.v4" /></ItemGroup>
 </Project>

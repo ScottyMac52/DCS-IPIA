@@ -206,7 +206,7 @@ namespace Heimdall.App.Features.Assignments
         {
             Diagram.Children.Clear();
             if (_context?.Working is null || DeviceChoice.SelectedItem is not UiLayerDiagram diagram ||
-                string.IsNullOrWhiteSpace(diagram.Svg))
+                (diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(diagram.Svg)))
             {
                 DeviceTitle.Text = SelectDeviceText;
                 return;
@@ -1019,7 +1019,7 @@ namespace Heimdall.App.Features.Assignments
         {
             if (_context?.Working is null || _context.Draft is null ||
                 DeviceChoice.SelectedItem is not UiLayerDiagram diagram ||
-                string.IsNullOrWhiteSpace(diagram.Svg))
+                (diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(diagram.Svg)))
             {
                 SelectedCallout.Text = "Select a device with an authored graphic to render.";
                 return;

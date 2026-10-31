@@ -11,7 +11,7 @@ namespace Heimdall.Application.Games
         {
             ArgumentNullException.ThrowIfNull(workspace);
             if (workspace.SchemaVersion != 1 || workspace.Id == Guid.Empty || string.IsNullOrWhiteSpace(workspace.Name)
-                || workspace.Name.Length > 200 || workspace.Profile is null || workspace.Hardware is null || workspace.ControllerOrder is null)
+                || workspace.Name.Length > 200 || workspace.Profile is null || workspace.Hardware is null || workspace.ControllerOrder is null || workspace.UnlinkedDrawings is null)
                 throw new InvalidDataException("Invalid game workspace identity, name or schema.");
             if (workspace.Profile.BackendId is not "elite-dangerous" and not "star-wars-squadrons" || workspace.Profile.Devices is null
                 || workspace.Profile.Devices.Any(x => x is null))
@@ -19,6 +19,9 @@ namespace Heimdall.Application.Games
             if (workspace.ControllerOrder.Any(string.IsNullOrWhiteSpace)
                 || workspace.ControllerOrder.Distinct(StringComparer.Ordinal).Count() != workspace.ControllerOrder.Count)
                 throw new InvalidDataException("Invalid controller display order.");
+            if (workspace.UnlinkedDrawings.Any(x => string.IsNullOrWhiteSpace(x.Value) || workspace.Hardware.ContainsKey(x.Key)
+                || !workspace.Profile.Devices.Any(d => d.LogicalId == x.Key)))
+                throw new InvalidDataException("Invalid independent drawing association.");
             foreach (var (id, pin) in workspace.Hardware)
             {
                 if (!workspace.Profile.Devices.Any(x => x.LogicalId == id) || pin?.Device is null

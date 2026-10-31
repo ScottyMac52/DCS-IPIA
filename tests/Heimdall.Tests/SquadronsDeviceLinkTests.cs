@@ -34,6 +34,8 @@ namespace Heimdall.Tests
             session.ApplyControllerChange(session.PreviewCapturedDeviceLink("squadrons.joystick.5", first.PhysicalGuid));
             Assert.False(session.HasChanges);
             session.ApplyControllerChange(session.PreviewCapturedDeviceUnlink("squadrons.joystick.10"));
+            Assert.Throws<InvalidOperationException>(() => session.PreviewCapturedDeviceLink("squadrons.joystick.5", second.PhysicalGuid));
+            session.ApplyControllerChange(session.PreviewCapturedDeviceUnlink("squadrons.joystick.5"));
             session.ApplyControllerChange(session.PreviewCapturedDeviceLink("squadrons.joystick.5", second.PhysicalGuid));
             Assert.Contains(first.PhysicalGuid.ToString(), review.Summary, StringComparison.Ordinal);
             Assert.Single(session.Snapshot.Hardware); Assert.Equal(native, session.Export().Files[SquadronsProfileBackend.FileName]);
@@ -159,6 +161,34 @@ namespace Heimdall.Tests
             workspace.Hardware["squadrons.joystick.5"] = new(null, device);
             workspace.Hardware["squadrons.joystick.10"] = new(null, device);
             Assert.Throws<InvalidDataException>(() => new GameProfileSession(backend, workspace, issuer.Policy, [], () => [device]));
+        }
+        /// <summary>Disconnected physical links stay owned; drawing and physical unlink preserve native bytes independently.</summary>
+        [Fact]
+        public void Offline_replacement_requires_unlink_and_retains_independent_drawing()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var first = Device("TQS"); var second = first with { PhysicalGuid = Guid.NewGuid() };
+            IReadOnlyList<DetectedDcsDevice> observed = [first];
+            var session = new GameProfileSession(new SquadronsProfileBackend(), Workspace(new()), issuer.Policy,
+                ["drawing-a", "drawing-b"], () => observed);
+            const string id = "squadrons.joystick.5";
+            session.ApplyControllerChange(session.PreviewCapturedDeviceLink(id, first.PhysicalGuid));
+            session.ChangeDrawing(id, "drawing-a"); session.AcceptSaved();
+            var native = session.Export().Files[SquadronsProfileBackend.FileName];
+            observed = [second];
+            Assert.Throws<InvalidOperationException>(() => session.PreviewCapturedDeviceLink(id, second.PhysicalGuid));
+            Assert.Throws<InvalidOperationException>(() => session.ChangeDrawing(id, "drawing-b"));
+            Assert.False(session.HasChanges);
+            session.ApplyControllerChange(session.PreviewCapturedDeviceUnlink(id));
+            Assert.Equal("drawing-a", session.DrawingId(id));
+            var reopened = new GameProfileSession(new SquadronsProfileBackend(), GameWorkspaceContract.Clone(session.Snapshot), issuer.Policy,
+                ["drawing-a", "drawing-b"], () => observed);
+            reopened.ApplyControllerChange(reopened.PreviewCapturedDeviceLink(id, second.PhysicalGuid));
+            Assert.Equal("drawing-a", reopened.DrawingId(id));
+            reopened.ChangeDrawing(id, null); reopened.ChangeDrawing(id, "drawing-b");
+            Assert.Equal(second.PhysicalGuid, reopened.Snapshot.Hardware[id].Device.PhysicalGuid);
+            Assert.Equal(native, reopened.Export().Files[SquadronsProfileBackend.FileName]);
+            session.Discard(); Assert.Equal(first.PhysicalGuid, session.Snapshot.Hardware[id].Device.PhysicalGuid);
         }
         #endregion END Public
         #region BEGIN private helpers

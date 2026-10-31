@@ -8,5 +8,8 @@ namespace Heimdall.Application.Interfaces
     {
         ProfileDocument RebindAxisPair(ProfileDocument profile, string positiveRecordId,
             string negativeRecordId, string logicalDeviceId, string physicalAxisKey);
+        /// <summary>Reverses an existing complete physical axis without moving it or changing record identity.</summary>
+        ProfileDocument ReverseAxisPair(ProfileDocument profile, string positiveRecordId,
+            string negativeRecordId, string logicalDeviceId, string physicalAxisKey);
     }
 }

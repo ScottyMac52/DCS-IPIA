@@ -39,11 +39,12 @@ namespace Heimdall.App.Smoke
                 var devices = Box<ListBox>(window, "DevicePicker");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device; Click(window, "LinkControllerButton");
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 var grid = Box<DataGrid>(window, "BindingsGrid");
                 grid.SelectedItem = grid.Items.Cast<SquadronsWorkspaceRow>().Single(x => x.RecordId.EndsWith("ConceptFire.2", StringComparison.Ordinal));
                 var row = (SquadronsWorkspaceRow)grid.SelectedItem;
                 var inputs = Box<ComboBox>(window, "InputPicker");
-                if (row.HardwareStatus != "Input absent on linked device" || inputs.Items.Count != 6
+                if (row.HardwareStatus != "Input absent on linked device" || inputs.Items.Count != 3
                     || inputs.Items.Cast<SquadronsInput>().Any(x => x.Type != CommandType.Axis) || Box<Button>(window, "ApplyButton").IsEnabled)
                     throw new InvalidOperationException("Pedals exposed buttons/hats or presented a captured button as a verified control.");
                 var targets = Box<ComboBox>(window, "TargetDevice");
@@ -65,7 +66,7 @@ namespace Heimdall.App.Smoke
                 discovery.InputScan = () => old.Task; var pending = window.RefreshControllerInputsAsync();
                 discovery.InputScan = null; window.RefreshControllerInputsAsync().GetAwaiter().GetResult();
                 old.SetResult([]); ThemeControlSmoke.Pump(window); pending.GetAwaiter().GetResult();
-                if (inputs.Items.Count != 6 || window.Session.HasChanges) throw new InvalidOperationException("An obsolete scan replaced newer capabilities or dirtied the profile.");
+                if (inputs.Items.Count != 3 || window.Session.HasChanges) throw new InvalidOperationException("An obsolete scan replaced newer capabilities or dirtied the profile.");
                 ThemeControlSmoke.SaveImage(window, "squadrons-pedals-input-review");
                 var closing = new TaskCompletionSource<IReadOnlyList<ControllerObservation>>();
                 discovery.InputScan = () => closing.Task; var finishing = window.RefreshControllerInputsAsync();

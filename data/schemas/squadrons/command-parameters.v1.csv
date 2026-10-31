@@ -1,0 +1,150 @@
+concept,index,altbutton,axis,button,deviceid,identifier,modifier,negate,type,adapterInput,adapterType,evidenceClass,gameAcceptance
+IncomDefaultInputConcepts.ConceptActivate,2,0,26,22,0,-1683348837,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptButtonSelect,1,0,26,29,0,1196017396,0,0,3,JOY_BTN8,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptButtonStart,1,0,26,32,0,-435720898,0,0,3,JOY_BTN11,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptConversationSkip,2,0,26,25,0,-642499389,0,0,3,JOY_BTN4,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptDeactivate,2,0,26,23,0,764589415,0,0,3,JOY_BTN2,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptEdit,2,0,26,24,0,-1434121357,0,0,3,JOY_BTN3,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptLegend,2,0,26,30,0,444330796,0,0,3,JOY_BTN9,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMenu,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptMenuDigitalLeft,2,0,26,31,0,-1396011426,0,0,3,JOY_BTN10,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMenuDigitalRight,2,0,26,32,0,-1878336071,0,0,3,JOY_BTN11,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMenuExit,2,0,26,23,0,344739942,0,0,3,JOY_BTN2,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMoveBackward,2,0,26,49,0,638567299,0,0,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMoveForward,2,0,26,48,0,-2130634748,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMoveLeft,2,0,26,50,0,83398727,0,0,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptMoveRight,2,0,26,51,0,48561519,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptPageLeft,2,0,26,31,0,991249319,0,0,3,JOY_BTN10,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptParentNavigateLeft,2,0,26,26,0,1255980401,0,0,3,JOY_BTN5,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptParentNavigateRight,2,0,26,27,0,226234139,0,0,3,JOY_BTN6,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptPushTalk,1,0,26,27,0,0,0,0,3,JOY_BTN6,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptReady,2,0,26,33,0,2082667952,0,0,3,JOY_BTN12,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptScrollDown,2,0,26,49,0,0,0,0,3,JOY_POV1_D,Hat,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptScrollUp,2,0,26,48,0,0,0,0,3,JOY_POV1_U,Hat,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraFOVChange,4,0,26,27,0,-2144052360,0,0,3,JOY_BTN6,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraFOVChange,5,0,26,25,0,-1829474185,0,1,3,JOY_BTN4,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraMovementZ,6,0,26,27,0,1269415344,0,0,3,JOY_BTN6,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraMovementZ,7,0,26,25,0,-1361299829,0,1,3,JOY_BTN4,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraPitch,6,0,9,174,0,-916314198,0,0,3,JOY_Y -,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraPitch,7,0,11,174,0,-103442765,0,1,3,JOY_Y +,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraReset,3,0,26,30,0,-2003102189,0,0,3,JOY_BTN9,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraRoll,4,0,26,46,0,-1622871729,0,0,3,JOY_RZ +,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraRoll,5,0,26,47,0,2106438104,0,1,3,JOY_RZ -,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraRollActivate,2,0,26,29,0,-157683014,0,0,3,JOY_BTN8,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraSwapPlayerMode,3,0,26,26,0,-1602788356,0,0,3,JOY_BTN5,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraYaw,6,0,8,174,0,-767360497,0,0,3,JOY_X +,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorCameraYaw,7,0,10,174,0,-1444485031,0,1,3,JOY_X -,Axis,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorChangeCategory,2,0,26,24,0,-1232516067,0,0,3,JOY_BTN3,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorChangeRestriction,2,0,26,51,0,-477223914,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorChangeRestriction,5,0,26,50,0,-614556604,0,0,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorHudVisibility,1,0,26,28,0,-1473630546,0,0,3,JOY_BTN7,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorLookAt,1,0,26,22,0,-911788865,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorNextPOI,3,0,26,49,0,-1271706812,0,0,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptSpectatorPreviousPOI,3,0,26,48,0,-1565581809,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptStatusBar,2,0,26,28,0,904521415,0,0,3,JOY_BTN7,Button,bundled-nonzero-identifier,unverified
+IncomDefaultInputConcepts.ConceptTeamChat,2,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptToggleChat,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptVRRecenterCamera,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomDefaultInputConcepts.ConceptView,2,0,26,25,0,974522711,0,0,3,JOY_BTN4,Button,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraPitch,8,0,9,174,0,-2058414910,0,1,3,JOY_Y -,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraPitch,9,0,11,174,0,-234493193,0,0,3,JOY_Y +,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraYaw,8,0,8,174,0,-1643113159,0,0,3,JOY_X +,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraYaw,9,0,10,174,0,1762963109,0,1,3,JOY_X -,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraYaw,10,0,26,46,0,-1127451812,0,0,3,JOY_RZ +,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCameraYaw,11,0,26,47,0,-866719655,0,1,3,JOY_RZ -,Axis,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCommMenuX,4,0,26,51,0,-876334308,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCommMenuX,5,0,26,50,0,834444096,0,1,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCommMenuY,4,0,26,48,0,-718970769,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptCommMenuY,5,0,26,49,0,-1674479850,0,1,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptEmoteWheel,2,0,26,29,0,817517482,0,0,3,JOY_BTN8,Button,bundled-nonzero-identifier,unverified
+IncomSoldierInputConcepts.ConceptInteract,1,0,26,22,0,1526769820,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptAfterburner,2,0,26,30,0,64865361,0,0,3,JOY_BTN9,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCameraPitch,6,0,9,174,0,513486345,0,0,3,JOY_Y -,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCameraPitch,7,0,11,174,0,-62905996,0,1,3,JOY_Y +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCameraYaw,6,0,8,174,0,1734474325,0,1,3,JOY_X +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCameraYaw,7,0,10,174,0,1276771707,0,0,3,JOY_X -,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommMenu,1,0,26,29,0,0,0,0,3,JOY_BTN8,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuBattleCry,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuBoo,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuBrag,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuCheer,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuHelpMe,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuPraise,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuRegroup,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuSelect,2,0,26,22,0,787464996,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommMenuThank,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptCommMenuX,4,0,26,51,0,1924735743,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommMenuX,5,0,26,50,0,-1130268336,0,1,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommMenuY,4,0,26,48,0,-1045254055,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommMenuY,5,0,26,49,0,4887157,0,1,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptCommunication,1,0,26,29,0,-1489294568,0,0,3,JOY_BTN8,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptContextualInteraction,1,0,26,22,0,-1942879182,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptControlBalancePower,1,0,26,49,0,65428435,0,0,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptControlEnginePower,1,0,26,50,0,-1312003061,0,0,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptControlShieldPower,1,0,26,51,0,387166947,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptControlWeaponPower,1,0,26,48,0,-1407674097,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptDrift,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptEmergencyPowerTransferBalance,1,0,26,25,0,0,0,0,3,JOY_BTN4,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptEmergencyPowerTransferEngine,1,0,26,76,0,0,0,0,3,JOY_BTN31,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptEmergencyPowerTransferWeapon,1,0,26,75,0,0,0,0,3,JOY_BTN30,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFire,2,0,26,22,0,-187024414,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponOneDoubleTap,2,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponOneMain,0,0,26,24,0,908351374,0,0,3,JOY_BTN3,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponTwoDoubleTap,2,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFireAuxiliaryWeaponTwoMain,1,0,26,25,0,211804420,0,0,3,JOY_BTN4,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptFireCountermeasure,1,0,26,27,0,-1264367051,0,0,3,JOY_BTN6,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptFreeLook,0,0,26,33,0,1530351974,0,0,3,JOY_BTN12,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptFreeLookCameraDown,1,0,26,71,0,0,0,0,3,JOY_BTN26,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFreeLookCameraLeft,1,0,26,72,0,0,0,0,3,JOY_BTN27,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFreeLookCameraRight,1,0,26,70,0,0,0,0,3,JOY_BTN25,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFreeLookCameraUp,1,0,26,69,0,0,0,0,3,JOY_BTN24,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptFreeLookTrigger,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptIncreaseEnginePower,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptIncreaseShieldPower,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptIncreaseWeaponPower,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptMaximizeEnginePower,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptMaximizeShieldPower,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptMaximizeWeaponPower,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptMouseRecenter,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptPingSelf,1,0,26,30,0,0,0,0,3,JOY_BTN9,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptPitch,6,0,11,174,0,1573114849,0,1,3,JOY_Y +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPitch,7,0,9,174,0,-743371054,0,0,3,JOY_Y -,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransfer,1,0,26,28,0,548533166,0,0,3,JOY_BTN7,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransferMenuSelect,2,0,26,22,0,-1648477946,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransferMenuX,4,0,26,51,0,-1032783050,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransferMenuX,5,0,26,50,0,1210935307,0,1,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransferMenuY,4,0,26,48,0,1633069106,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptPowerTransferMenuY,5,0,26,49,0,151637546,0,1,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptResetSystemsPower,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptRoll,4,0,26,46,0,-1956034971,0,0,3,JOY_RZ +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptRoll,5,0,26,47,0,2085148532,0,1,3,JOY_RZ -,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptScoreboard,2,0,26,23,0,0,0,0,3,JOY_BTN2,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptShieldBack,1,0,26,73,0,0,0,0,3,JOY_BTN28,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptShieldBalance,1,0,26,26,0,0,0,0,3,JOY_BTN5,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptShieldFront,1,0,26,74,0,0,0,0,3,JOY_BTN29,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetCycle,1,0,26,26,0,-1408842,0,0,3,JOY_BTN5,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetCycleNext,1,0,26,50,0,0,0,0,3,JOY_POV1_L,Hat,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetHighestThreat,1,0,26,51,0,0,0,0,3,JOY_POV1_R,Hat,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetPing,1,0,26,28,0,0,0,0,3,JOY_BTN7,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetSelect,1,0,26,23,0,-123319776,0,0,3,JOY_BTN2,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargeting,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenu,1,0,26,31,0,-1026585835,0,0,3,JOY_BTN10,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleAllAllies,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleAllEnemies,1,0,26,86,0,0,0,0,3,JOY_BTN41,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleEnemyAI,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleEnemySquadron,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleFlagshipSystems,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleLastAttackers,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleMissiles,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleMySquadron,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleObjectives,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuCycleTargetAttackers,1,0,26,22,0,0,0,0,3,JOY_BTN1,Button,bundled-zero-identifier-mixed-observed-and-generalized,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuSelectTargetingMethod,2,0,26,22,0,-481496825,0,0,3,JOY_BTN1,Button,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuX,4,0,26,51,0,-295781848,0,0,3,JOY_POV1_R,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuX,5,0,26,50,0,1703690200,0,1,3,JOY_POV1_L,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuY,4,0,26,48,0,-2112138904,0,0,3,JOY_POV1_U,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptTargetingMenuY,5,0,26,49,0,1474946904,0,1,3,JOY_POV1_D,Hat,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptThrottle,4,0,26,15,0,-453871199,0,0,3,JOY_SLIDER1 -,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptThrottle,5,0,26,14,0,973687430,0,1,3,JOY_SLIDER1 +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptYaw,6,0,8,174,0,-550690360,0,0,3,JOY_X +,Axis,bundled-nonzero-identifier,unverified
+IncomStarshipInputConcepts.ConceptYaw,7,0,10,174,0,-109675461,0,1,3,JOY_X -,Axis,bundled-nonzero-identifier,unverified

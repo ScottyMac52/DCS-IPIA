@@ -252,7 +252,7 @@ namespace Heimdall.App.Features.InputTest
             if (snapshot is null || FeedbackDevice.SelectedItem is not WorkspaceDevice device) return;
 
             var diagram = snapshot.Diagrams.FirstOrDefault(x => x.ProfileId == device.ProfileId);
-            if (diagram is null || string.IsNullOrWhiteSpace(diagram.Svg)) return;
+            if (diagram is null || (diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(diagram.Svg))) return;
 
             DeviceTitle.Text = diagram.Title;
             var model = InputTestDiagramComposer.Compose(

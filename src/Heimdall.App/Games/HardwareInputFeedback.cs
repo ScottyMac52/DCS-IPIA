@@ -8,8 +8,8 @@ using Heimdall.Application.Games;
 
 namespace Heimdall.App.Games
 {
-    /// <summary>Foreground-only raw hardware feedback; it does not emulate native Elite command execution.</summary>
-    internal sealed class EliteInputFeedback : IDisposable
+    /// <summary>Foreground-only raw hardware feedback; it does not emulate native game command execution.</summary>
+    internal sealed class HardwareInputFeedback : IDisposable
     {
         private readonly Window _owner;
         private readonly HardwareDiagramPresenter _diagram;
@@ -22,7 +22,7 @@ namespace Heimdall.App.Games
         private Dictionary<string, double> _previous = new(StringComparer.Ordinal);
         private readonly Dictionary<string, DateTime> _axisUntil = new(StringComparer.Ordinal);
         private Guid _physical;
-        internal EliteInputFeedback(Window owner, HardwareDiagramPresenter diagram, Action<string> status, Action<string> activity,
+        internal HardwareInputFeedback(Window owner, HardwareDiagramPresenter diagram, Action<string> status, Action<string> activity,
             Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
         {
             _owner = owner; _diagram = diagram; _status = status; _activity = activity;

@@ -7,6 +7,7 @@ namespace Heimdall.Squadrons
     /// Presentation-only: does not infer native slot identity or modify native assignments.</summary>
     public static class SquadronsDrawingProjection
     {
+        #region BEGIN Public
         /// <summary>Builds callout labels for the selected captured slot, including multiple commands per physical control.</summary>
         public static KneeboardComposite Diagram(string title, UiLayerDiagram diagram,
             IEnumerable<SquadronsWorkspaceRow> rows, string logicalDeviceId, string section)
@@ -20,19 +21,7 @@ namespace Heimdall.Squadrons
                 var key = SquadronsInputCodec.PhysicalKey(control.InputKey);
                 var inputs = assigned.Where(row =>
                     string.Equals(row.Native.Input!.PhysicalKey, key, StringComparison.Ordinal)).ToArray();
-                return (IReadOnlyList<KneeboardLabelVariant>)inputs
-                    .GroupBy(row => (row.Native.Concept, row.CommandName))
-                    .SelectMany(group =>
-                    {
-                        if (group.All(row => row.Native.Input!.Type == CommandType.Axis) &&
-                            group.Any(row => row.Native.Input!.Direction == 1) &&
-                            group.Any(row => row.Native.Input!.Direction == -1))
-                            return new[] { group.First().CommandName };
-                        return group.Select(row => row.CommandName +
-                            (row.Native.Input!.Type == CommandType.Axis
-                                ? " (" + (row.Native.Input.Direction > 0 ? "+" : "-") + ")" : ""));
-                    })
-                    .Distinct(StringComparer.Ordinal)
+                return (IReadOnlyList<KneeboardLabelVariant>)Names(inputs)
                     .Select(name => new KneeboardLabelVariant(
                         name, KneeboardStateColors.Base, AssignmentLayer.Module, "")).ToArray();
             }, StringComparer.Ordinal);
@@ -49,18 +38,9 @@ namespace Heimdall.Squadrons
             var matches = ForControl(control, rows, logicalDeviceId, section);
             if (matches.Count == 0) return "No captured assignments";
             var concepts = matches.GroupBy(x => x.Native.Concept, StringComparer.Ordinal).ToArray();
-            var names = concepts.Select(group =>
-            {
-                var directions = group.Where(x => x.Native.Input?.Type == CommandType.Axis)
-                    .Select(x => x.Native.Input!.Direction).Distinct().ToArray();
-                var suffix = directions.Length == 1
-                    ? directions[0] > 0 ? " (+ only)" : " (- only)"
-                    : "";
-                return group.First().CommandName + suffix;
-            }).Distinct(StringComparer.Ordinal).ToArray();
             return (control.IsAxis && concepts.Length > 1
                 ? "⚠ Shared axis: multiple commands assigned\n" : "")
-                + string.Join("\n", names);
+                + string.Join("\n", Names(matches));
         }
 
         /// <summary>Returns assignments underlying a drawing control for tooltips and selection.</summary>
@@ -74,5 +54,20 @@ namespace Heimdall.Squadrons
                 row.Native.Input is not null && row.Native.Input.PhysicalKey == key &&
                 (section == "All" || row.Section == section)).ToArray();
         }
+
+        #endregion END Public
+        #region BEGIN private helpers
+        private static IEnumerable<string> Names(IEnumerable<SquadronsWorkspaceRow> rows) => rows
+            .GroupBy(row => row.Native.Concept, StringComparer.Ordinal)
+            .SelectMany(group =>
+            {
+                if (!group.All(row => row.Native.Input?.Type == CommandType.Axis))
+                    return group.Select(row => row.CommandName);
+                var directions = group.Select(row => row.Native.Input!.Direction).Distinct().ToArray();
+                var suffix = directions.Length == 1
+                    ? directions[0] > 0 ? " (+ only)" : " (- only)" : "";
+                return new[] { group.First().ConceptName + suffix };
+            }).Distinct(StringComparer.Ordinal);
+        #endregion END private helpers
     }
 }

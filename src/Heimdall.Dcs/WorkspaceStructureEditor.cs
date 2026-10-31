@@ -161,6 +161,24 @@ namespace Heimdall.Dcs
             workspace = SetDevicePageText(workspace, profile.Id, device.Layer, kneeboardTitle, kneeboardSubtitle);
             return workspace;
         }
+        /// <summary>Detaches physical identity in both scopes, retaining authored controls, assignments and drawing.</summary>
+        public static EditorWorkspaceSnapshot UnlinkPhysicalDevice(EditorWorkspaceSnapshot workspace, WorkspaceDevice device)
+        {
+            workspace = Prepare(workspace);
+            var state = Describe(workspace);
+            if (!state.Devices.Contains(device)) throw new InvalidOperationException("Select the current device before unlinking.");
+            var file = "Unlinked-" + device.ProfileId.ToString("N") + ".diff.lua";
+            var profile = workspace.Configuration.Profiles.Single(x => x.Id == device.ProfileId);
+            workspace = RenameProfile(workspace, profile, file, profile.Instance, profile.Role);
+            return Store(workspace, state with
+            {
+                Devices = state.Devices.Select(x => x.ProfileId == device.ProfileId ? x with { FileName = file, PhysicalGuid = null } : x).ToArray(),
+                Modifiers = state.Modifiers.Select(x => x.ProfileId == device.ProfileId ? x with { NativeDevice = Native(file) } : x).ToArray()
+            });
+        }
+        /// <summary>Explicitly unlinks/restores illustration independently of physical ownership and assignments.</summary>
+        public static EditorWorkspaceSnapshot SetDrawingLinked(EditorWorkspaceSnapshot workspace, Guid profileId, bool linked) =>
+            workspace with { Diagrams = workspace.Diagrams.Select(x => x.ProfileId == profileId ? x with { DrawingUnlinked = !linked } : x).ToArray(), Images = [] };
         /// <summary>Explicitly rebinds both scopes to another physical unit while retaining all authored profile data.</summary>
         /// <param name="workspace">Current staged workspace.</param>
         /// <param name="device">Reviewed membership to rebind.</param>

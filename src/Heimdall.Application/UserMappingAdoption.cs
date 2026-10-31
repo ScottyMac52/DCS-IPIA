@@ -25,6 +25,7 @@ namespace Heimdall.Application
                 Background = [],
                 Svg = revision.Svg,
                 CustomMapping = revision,
+                DrawingUnlinked = false,
                 MappingHistory = History(current, revision),
                 OriginalDrawing = current.OriginalDrawing ?? (current.CustomMapping is null && current.GenericCapabilities is null
                     ? new(current.Path, current.Width, current.Height, current.Background.ToArray(), current.Svg, current.Controls.ToArray()) : null),

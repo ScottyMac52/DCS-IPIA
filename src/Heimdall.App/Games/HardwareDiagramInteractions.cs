@@ -11,5 +11,7 @@ namespace Heimdall.App.Games
         Action<HardwareGraphicControl>? Clear = null,
         Func<HardwareGraphicControl, bool>? CanTune = null,
         Action<HardwareGraphicControl>? Tune = null,
-        string DragFormat = "heimdall.elite.command");
+        string DragFormat = "heimdall.elite.command",
+        string ClearLabel = "Clear assignment",
+        Action<HardwareGraphicControl>? Inspect = null);
 }

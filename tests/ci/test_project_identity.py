@@ -12,7 +12,14 @@ class ProjectIdentityTests(unittest.TestCase):
     def test_solution_and_all_project_references_resolve(self):
         solution = (ROOT / 'HEIMDALL.sln').read_text()
         projects = re.findall(r'"([^"\n]+\.csproj)"', solution)
-        self.assertEqual(11, len(projects))
+        expected = {
+            str(path.relative_to(ROOT)).replace('\\', '/')
+            for folder in ('src', 'tests')
+            for path in (ROOT / folder).rglob('*.csproj')
+            if 'obj' not in path.parts and 'bin' not in path.parts
+        }
+        self.assertEqual(expected, {path.replace('\\', '/') for path in projects})
+        self.assertEqual(len(expected), len(projects), 'Duplicate solution project')
         self.assertNotIn('Dcs.Ipia', solution)
         for relative in projects:
             project = ROOT / relative.replace('\\', '/')

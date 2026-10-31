@@ -18,6 +18,11 @@ namespace Heimdall.App
         private bool _fit = true;
         private bool _updating;
         private bool _restored;
+        private bool _panEnabled;
+        private bool _panning;
+        private Point _panStart;
+        private double _panHorizontal;
+        private double _panVertical;
 
         internal DiagramViewport(ScrollViewer viewport, FrameworkElement drawing, Slider zoom, string key)
         {
@@ -54,6 +59,50 @@ namespace Heimdall.App
             _fit = true;
             QueueFit();
             Save();
+        }
+
+        /// <summary>Enables middle-button panning independently of the canonical wheel policy.</summary>
+        internal void EnablePanning()
+        {
+            if (_panEnabled) return;
+            _panEnabled = true;
+            _viewport.PreviewMouseDown += BeginPan;
+            _viewport.PreviewMouseMove += MovePan;
+            _viewport.PreviewMouseUp += EndPan;
+            _viewport.LostMouseCapture += (_, _) => _panning = false;
+            _viewport.Unloaded += (_, _) => ReleasePan();
+        }
+
+        private void BeginPan(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Middle) return;
+            _panStart = e.GetPosition(_viewport);
+            _panHorizontal = _viewport.HorizontalOffset;
+            _panVertical = _viewport.VerticalOffset;
+            _panning = _viewport.CaptureMouse();
+            if (_panning) e.Handled = true;
+        }
+
+        private void MovePan(object sender, MouseEventArgs e)
+        {
+            if (!_panning) return;
+            if (e.MiddleButton != MouseButtonState.Pressed) { ReleasePan(); return; }
+            var at = e.GetPosition(_viewport);
+            _viewport.ScrollToHorizontalOffset(_panHorizontal + _panStart.X - at.X);
+            _viewport.ScrollToVerticalOffset(_panVertical + _panStart.Y - at.Y);
+            e.Handled = true;
+        }
+
+        private void EndPan(object sender, MouseButtonEventArgs e)
+        {
+            if (!_panning || e.ChangedButton != MouseButton.Middle) return;
+            ReleasePan(); e.Handled = true;
+        }
+
+        private void ReleasePan()
+        {
+            _panning = false;
+            if (_viewport.IsMouseCaptured) _viewport.ReleaseMouseCapture();
         }
 
         /// <summary>All diagram surfaces share identical wheel gestures. Handling this
