@@ -54,7 +54,7 @@ namespace Heimdall.Squadrons
         }
         private static string InputKey(SquadronsWorkspaceRow row, string token)
         {
-            var name = SquadronsSystemInputDisplay.Describe(row);
+            var name = SquadronsSystemInputDisplay.Describe(row.Native);
             name = name[(name.IndexOf(" · ", StringComparison.Ordinal) + 3)..];
             if (token == "Gamepad") return name;
             if (token == "Mouse") return name switch
