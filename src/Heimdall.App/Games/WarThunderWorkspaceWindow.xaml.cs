@@ -23,6 +23,11 @@ namespace Heimdall.App.Games
         private readonly HardwareDiagramPresenter _presenter;
         private readonly DiagramViewport _viewport;
         private readonly HardwareInputFeedback _input;
+        private readonly GameCommandDragSource _commandDrag;
+        private IReadOnlyList<ControllerObservation> _controllerInputs = [];
+        private int _hardwareScan;
+        private WarThunderPhysicalMap _physicalMap = new([], "Rescan controller inputs.");
+        private WarThunderPhysicalInput? _selectedPhysicalInput;
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private readonly Func<GameControllerChange, bool>? _review;
         private readonly IReadOnlyList<WorkspaceHardware>? _suppliedDrawings;
@@ -47,6 +52,8 @@ namespace Heimdall.App.Games
             _input = new(this, _presenter, text => Status.Text = text, text => _assignments.Activity.Text = text, inputFactory);
             _host = new(FeatureContent, FeatureActions, _input.Stop);
             WireDevices(); WireAssignments();
+            _commandDrag = new(_assignments.Browser.CommandsList, "heimdall.war-thunder.command",
+                () => _session?.AccessMessage.Length == 0 && !_input.Running && _physicalMap.Inputs.Count > 0);
             FeaturePicker.SelectionChanged += (_, _) =>
             {
                 if (_refreshing) return;
@@ -80,8 +87,9 @@ namespace Heimdall.App.Games
                 {
                     _drawings = _suppliedDrawings ?? await GameWorkspaceServices.HardwareAsync();
                     if (_disposed) return;
-                    _observed = _services.Discover();
-                    if (initial is { } id) LoadWorkspace(id); else { RefreshEntries(); Refresh(); }
+                    await RefreshHardwareAsync();
+                    if (_disposed) return;
+                    if (_session is null && initial is { } id) LoadWorkspace(id); else { RefreshEntries(); Refresh(); }
                     FeaturePicker.SelectedIndex = 0;
                     _host.Show(_devices);
                 }
@@ -134,7 +142,7 @@ namespace Heimdall.App.Games
         /// <summary>Stops acquisition and releases feature subscriptions.</summary>
         public void Dispose()
         {
-            if (_disposed) return; _disposed = true; _input.Dispose(); _host.Clear();
+            if (_disposed) return; _disposed = true; _hardwareScan++; _commandDrag.Dispose(); _input.Dispose(); _host.Clear();
             if (_session is not null) _session.Changed -= SessionChanged;
             GC.SuppressFinalize(this);
         }
@@ -144,7 +152,7 @@ namespace Heimdall.App.Games
         private string? SelectedDevice => (Controllers.SelectedItem as ListBoxItem)?.Tag as string;
         private void Open(GameWorkspace workspace, string? revision)
         {
-            _input.Stop();
+            _input.Stop(); _selectedPhysicalInput = null;
             var session = new GameProfileSession(_backend, workspace, EditionAccess.Policy, _drawings.Select(item => item.DeviceId).ToArray(),
                 () => _observed, new WarThunderDeviceReferenceMatcher());
             if (_session is not null) _session.Changed -= SessionChanged;

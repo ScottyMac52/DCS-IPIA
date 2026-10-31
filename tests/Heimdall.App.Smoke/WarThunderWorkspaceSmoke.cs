@@ -29,6 +29,11 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("War Thunder card or recent selection is unavailable.");
                 var device = new DetectedDcsDevice(Guid.NewGuid(), "Synthetic controller", true, ProductGuid: Guid.Parse("00020001-0000-0000-0000-504944564944"));
                 var discovery = new GameSmokeDiscovery(device);
+                discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map([
+                    new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 258u, "Y"),
+                    new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2u, "X"),
+                    new(Guid.NewGuid(), 4u, "Button 1"), new(Guid.NewGuid(), 260u, "Button 2"),
+                    new(Guid.NewGuid(), 516u, "Button 3"), new(Guid.NewGuid(), 772u, "Button 4")]);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
                 var capture = Path.Combine(root, "capture"); Directory.CreateDirectory(capture);
                 var path = Path.Combine(capture, "Synthetic.blk");
@@ -37,7 +42,7 @@ namespace Heimdall.App.Smoke
                 var diagram = new UiLayerDiagram("Synthetic", null, "", 1200, 1600, [], [])
                 {
                     Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"1600\" viewBox=\"0 0 1200 1600\"><rect x=\"10\" y=\"10\" width=\"1180\" height=\"1580\" fill=\"#304050\"/></svg>",
-                    Controls = [new("button", "Button", "JOY_BTN1", 20, 20, 100, 30)]
+                    Controls = [new("button", "Button 1", "JOY_BTN1", 20, 20, 100, 30), new("button2", "Button 2", "JOY_BTN2", 140, 20, 100, 30)]
                 };
                 WorkspaceHardware[] drawings = [new("drawing-a", "Drawing A", "a.diff.lua", diagram), new("drawing-b", "Drawing B", "b.diff.lua", diagram)];
                 IdentificationInputSource? input = null; var choice = MessageBoxResult.Cancel;
@@ -58,6 +63,14 @@ namespace Heimdall.App.Smoke
                 var assignments = window.AssignmentView;
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
+                var fireCommand = window.Session!.Catalog.Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
+                window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
+                AssertNative(window, "joyButton:i=0;activationType:i=9");
+                var secondControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN2");
+                secondControl.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+                var applyAction = Box<FeatureActionBar>(window, "FeatureActions").Actions.Single(action => action.Id == "Apply");
+                if (!applyAction.Command.CanExecute(null)) throw new InvalidOperationException("A verified physical input did not enable Apply assignment.");
+                applyAction.Command.Execute(null); AssertNative(window, "joyButton:i=1;activationType:i=9");
                 foreach (var (width, height) in new[] { (1340d, 860d), (1050d, 650d) })
                 {
                     window.Width = width; window.Height = height; assignments.Zoom.Value = 2;
@@ -113,7 +126,7 @@ namespace Heimdall.App.Smoke
                 Click(assignments.Editor.Add); AssertNative(window, "joyButton:i=3");
                 var keyboard = assignments.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Binding.Fields.Any(scalar => scalar.Path.EndsWith("/keyboardKey", StringComparison.Ordinal)));
                 assignments.Records.SelectedItem = keyboard;
-                if (assignments.Editor.Apply.IsEnabled || assignments.Editor.Clear.IsEnabled) throw new InvalidOperationException("A preserved system record exposed unsupported mutation.");
+                if (assignments.Editor.Clear.IsEnabled) throw new InvalidOperationException("A preserved system record exposed unsupported mutation.");
                 if (!window.SaveCurrent()) throw new InvalidOperationException("Native draft did not save.");
                 var id = window.Session.Snapshot.Id; var saved = AssertNative(window, "joyButton:i=3");
                 var other = Heimdall.Application.Games.GameConfigurations.Create(window.Session.Snapshot, "Second profile", false);

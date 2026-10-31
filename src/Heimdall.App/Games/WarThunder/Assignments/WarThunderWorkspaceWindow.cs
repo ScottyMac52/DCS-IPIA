@@ -15,6 +15,7 @@ namespace Heimdall.App.Games
         private void WireAssignments()
         {
             var browser = _assignments.Browser;
+            _assignments.ShowAssignments.Click += (_, _) => { browser.CommandsList.SelectedItem = null; _assignments.CapturedAssignments.IsExpanded = true; RefreshRecords(); };
             browser.Configure([new("All", null), new("Buttons", CommandType.Button), new("Axes", CommandType.Axis)],
                 [new("All", GameCommandAssignmentStatus.All), new("Assigned to selected mapping", GameCommandAssignmentStatus.AssignedToController),
                  new("Not assigned to selected mapping", GameCommandAssignmentStatus.NotAssignedToController),
@@ -30,8 +31,13 @@ namespace Heimdall.App.Games
                 _refreshing = true; browser.CommandSearch.Clear(); browser.CommandCategoryPicker.SelectedIndex = 0;
                 browser.CommandTypePicker.SelectedIndex = 0; browser.AssignmentStatusPicker.SelectedIndex = 0; _refreshing = false; RefreshCommands();
             };
-            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) RefreshRecords(); };
+            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; RefreshRecords(); } };
             _assignments.Records.SelectionChanged += (_, _) => { if (!_refreshing) RefreshEditor(); };
+            _assignments.Editor.PhysicalApplyRequested += (_, _) => Run(() =>
+            {
+                var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command;
+                if (command is not null && _selectedPhysicalInput is not null) ApplyPhysicalAssignment(command.Id, _selectedPhysicalInput);
+            });
             _assignments.Editor.Edited += (_, _) => { Refresh(); Status.Text = "Native edit staged. Save and export to test in War Thunder."; };
             _assignments.Start.Click += (_, _) => Run(() =>
             {
@@ -63,15 +69,18 @@ namespace Heimdall.App.Games
             var browser = _assignments.Browser;
             var selected = (browser.CommandsList.SelectedItem as SimCommand)?.Id;
             var catalog = _session?.Catalog.Commands ?? [];
+            var owned = _rows.Where(row => SelectedDevice is null || row.DeviceIds.Contains(SelectedDevice)).ToArray();
+            _assignments.AssignmentCount.Text = owned.Count(row => row.DeviceIds.Count > 0) + " captured joystick assignments · " + _rows.Count + " native records";
             var commands = WarThunderWorkspaceProjection.Filter(catalog, _rows, SelectedDevice, browser.CommandSearch.Text,
                 browser.CommandCategoryPicker.SelectedIndex > 0 ? browser.CommandCategoryPicker.SelectedItem as string : null,
                 (browser.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Type,
                 (browser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All);
             _refreshing = true;
             browser.CommandsList.ItemsSource = commands;
-            browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected);
+            browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected) ?? commands.FirstOrDefault();
             browser.CommandCount.Text = commands.Count + " captured commands";
             browser.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if ((browser.CommandsList.SelectedItem as SimCommand)?.Id != selected) _selectedPhysicalInput = null;
             _refreshing = false; RefreshRecords();
         }
         private void RefreshRecords()
@@ -88,6 +97,7 @@ namespace Heimdall.App.Games
         {
             var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
             _assignments.Editor.Show(_session, (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command, row, _input.Running);
+            if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
         }
         private void RefreshInputState()
         {

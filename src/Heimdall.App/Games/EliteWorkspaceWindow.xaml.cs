@@ -54,6 +54,7 @@ namespace Heimdall.App.Games
         internal Func<string?>? BindingsDirectoryPicker { get; set; }
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         internal Func<string, bool>? ConfirmConfigurationDeletion { get; set; }
+        private readonly GameCommandDragSource _commandDrag;
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -146,7 +147,7 @@ namespace Heimdall.App.Games
             _refreshing = false;
             ReloadChoices(initial);
             FeaturePicker.SelectedIndex = 0;
-            _assignmentsView.CommandsList.PreviewMouseMove += DragCommand;
+            _commandDrag = new(_assignmentsView.CommandsList, "heimdall.elite.command", () => _session?.AccessMessage.Length == 0);
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
             AppearanceManager.ObserveArtwork(this, () => Run(() => { RenderDevice(); InvalidateReferenceSheets(); }));
             Rescan(); UpdateAvailability();
@@ -158,7 +159,7 @@ namespace Heimdall.App.Games
         {
             _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
             _inputTextProperty.RemoveValueChanged(_assignmentsView.InputKey, InputTextChanged);
-            _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            _commandDrag.Dispose(); _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
@@ -593,11 +594,6 @@ namespace Heimdall.App.Games
             SelectInput(DrawingKey(control) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key."));
             ApplyClicked(this, new());
         });
-        private void DragCommand(object sender, MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed && Command is { } command && _session?.AccessMessage.Length == 0)
-                DragDrop.DoDragDrop(_assignmentsView.CommandsList, new DataObject("heimdall.elite.command", command.Id), DragDropEffects.Copy);
-        }
         private void LoadAssignment()
         {
             if (_refreshing || _session is null) return;

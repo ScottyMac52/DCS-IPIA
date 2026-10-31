@@ -15,24 +15,41 @@ namespace Heimdall.App.Games
         private SimCommand? _command;
         private bool _refreshing;
         private bool _busy;
+        private bool _physicalSelected;
+        private bool _physicalCompatible;
         private WarThunderBindingCapabilities? _capabilities;
         public WarThunderNativeEditorView()
         {
             InitializeComponent();
-            Apply.Click += (_, _) => Submit(WarThunderEditKind.Rebind);
+            Apply.Click += (_, _) => { if (_physicalSelected) PhysicalApplyRequested?.Invoke(this, EventArgs.Empty); else Submit(_capabilities?.RebindNativeInputs == true ? WarThunderEditKind.Rebind : WarThunderEditKind.Add); };
             Add.Click += (_, _) => Submit(WarThunderEditKind.Add);
             Clear.Click += (_, _) => Submit(WarThunderEditKind.Clear);
             Inverse.Click += (_, _) => Submit(WarThunderEditKind.Inverse);
             SetParameter.Click += (_, _) => Submit(WarThunderEditKind.Parameter);
             Input.SelectionChanged += (_, _) => { if (!_refreshing) SelectInput(); };
             Parameter.SelectionChanged += (_, _) => { if (Parameter.SelectedItem is WarThunderBlkScalar scalar) { Literal.Text = scalar.Value; Literal.ToolTip = "Native " + scalar.Type + " literal"; } };
-            Target.SelectionChanged += (_, _) => UpdateActions();
+            Target.SelectionChanged += (_, _) => { if (!_refreshing) _physicalSelected = false; UpdateActions(); };
+            Index.TextChanged += (_, _) => { if (!_refreshing) _physicalSelected = false; UpdateActions(); };
         }
         #region BEGIN Public
         internal event EventHandler? Edited;
+        internal event EventHandler? PhysicalApplyRequested;
+        internal void SelectPhysical(string deviceId, WarThunderPhysicalInput input)
+        {
+            _physicalCompatible = _session is not null && _command?.Type == input.Type;
+            if (_physicalCompatible)
+            {
+                try { _ = WarThunderDrawingProjection.Assignment(_session!.Snapshot.Profile, _command!.Id, deviceId, input); }
+                catch (InvalidOperationException) { _physicalCompatible = false; }
+            }
+            _refreshing = true;
+            Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().SingleOrDefault(device => device.Id == deviceId);
+            Index.Text = input.Index.ToString(CultureInfo.InvariantCulture);
+            _refreshing = false; _physicalSelected = true; UpdateActions();
+        }
         internal void Show(GameProfileSession? session, SimCommand? command, WarThunderWorkspaceRow? row, bool busy)
         {
-            _refreshing = true; _session = session; _row = row; _command = command; _busy = busy;
+            _refreshing = true; _physicalSelected = false; _session = session; _row = row; _command = command; _busy = busy;
             Frame.ShowCommand(command);
             var previous = (Target.SelectedItem as WarThunderDevice)?.Id;
             Target.ItemsSource = session is null ? [] : WarThunderProfileBackend.ReadDevices(session.Snapshot.Profile);
@@ -86,7 +103,7 @@ namespace Heimdall.App.Games
             if (_refreshing) return;
             var ready = _session is not null && _session.AccessMessage.Length == 0 && !_busy;
             var capabilities = _capabilities;
-            Apply.IsEnabled = ready && capabilities?.RebindNativeInputs == true && Target.SelectedItem is WarThunderDevice && Input.SelectedItem is WarThunderBlkScalar;
+            Apply.IsEnabled = ready && Target.SelectedItem is WarThunderDevice && (_physicalSelected ? _physicalCompatible : (capabilities?.RebindNativeInputs == true && Input.SelectedItem is WarThunderBlkScalar) || capabilities?.AddNativeInput == true);
             Add.IsEnabled = ready && capabilities?.AddNativeInput == true && Target.SelectedItem is WarThunderDevice;
             Clear.IsEnabled = ready && capabilities?.ClearJoystickAlternative == true;
             Inverse.IsEnabled = ready && capabilities?.SetAxisInverse == true;
