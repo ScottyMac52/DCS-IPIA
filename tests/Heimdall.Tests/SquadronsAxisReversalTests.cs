@@ -71,6 +71,36 @@ namespace Heimdall.Tests
             Assert.Equal(accepted, plan.Succeeded);
             if (accepted) Assert.Equal(source, plan.Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Duplicated declarations are inspectable but cannot silently pass review export without physical links.</summary>
+        [Theory]
+        [InlineData("Stick 1")]
+        [InlineData("stick 1")]
+        public void Duplicate_native_identity_blocks_review_and_preserves_captured_source(string repeatedName)
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = Source("\n").Replace("Panel 1\n", repeatedName + "\n", StringComparison.Ordinal);
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var plan = backend.ExportReview(profile);
+            Assert.False(plan.Succeeded);
+            Assert.Empty(plan.Files);
+            var issue = Assert.Single(plan.Diagnostics);
+            Assert.Equal("squadrons.export.duplicate-identity", issue.Code);
+            Assert.Contains("squadrons.joystick.1", issue.Message, StringComparison.Ordinal);
+            Assert.Contains("squadrons.joystick.2", issue.Message, StringComparison.Ordinal);
+            Assert.Equal(source, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
+        }
+        /// <summary>Distinct occurrence names and multiple empty declarations remain valid review data.</summary>
+        [Fact]
+        public void Distinct_occurrences_and_empty_slots_do_not_trigger_duplicate_identity()
+        {
+            var backend = new SquadronsProfileBackend();
+            var source = Source("\n").Replace("Panel 1\n", "Stick 2\n", StringComparison.Ordinal)
+                .Replace("GstInput.JoystickDevice10 \n", "GstInput.JoystickDevice9 \nGstInput.JoystickDevice10 \n", StringComparison.Ordinal);
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = source });
+            var plan = backend.ExportReview(profile);
+            Assert.True(plan.Succeeded);
+            Assert.Equal(source, plan.Files[SquadronsProfileBackend.FileName]);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static string Source(string newline)

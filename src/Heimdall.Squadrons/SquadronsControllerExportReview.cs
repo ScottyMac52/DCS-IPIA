@@ -4,17 +4,23 @@ using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.Squadrons
 {
-    /// <summary>Checks explicitly saved physical links against native names without rewriting either identity.</summary>
+    /// <summary>Checks duplicate native declarations and saved physical links without rewriting identities.</summary>
     public static class SquadronsControllerExportReview
     {
         #region BEGIN Public
-        /// <summary>Blocks review copies whose linked physical controller conflicts with the native declaration.
+        /// <summary>Blocks ambiguous native declarations and physical links that conflict with their native names.
         /// Matching names do not prove runtime recognition; unlinked slots remain captured evidence.</summary>
         public static IReadOnlyList<ImportDiagnostic> Review(ProfileDocument profile,
             IReadOnlyDictionary<string, string>? linkedNames)
         {
             ArgumentNullException.ThrowIfNull(profile);
             var issues = new List<ImportDiagnostic>();
+            foreach (var group in profile.Devices.Where(device => !string.IsNullOrWhiteSpace(device.Identity?.WindowsName))
+                .GroupBy(device => device.Identity!.WindowsName!, StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1))
+                issues.Add(new("squadrons.export.duplicate-identity",
+                    "Native controller '" + group.Key + "' is declared in multiple slots: " +
+                    string.Join(", ", group.Select(device => device.LogicalId)) +
+                    ". Review these declarations and their assignments before exporting. No slot ownership was inferred.", true));
             if (linkedNames is null) return issues;
             foreach (var (logicalId, reportedName) in linkedNames)
             {
