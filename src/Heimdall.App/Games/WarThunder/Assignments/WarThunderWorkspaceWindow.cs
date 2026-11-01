@@ -76,18 +76,23 @@ namespace Heimdall.App.Games
                 (browser.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Type,
                 (browser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All);
             _refreshing = true;
-            browser.CommandsList.ItemsSource = commands;
-            browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected) ?? commands[0];
-            browser.CommandCount.Text = commands.Count + " captured commands";
-            browser.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            if ((browser.CommandsList.SelectedItem as SimCommand)?.Id != selected) _selectedPhysicalInput = null;
-            _refreshing = false; RefreshRecords();
+            try
+            {
+                browser.CommandsList.ItemsSource = commands;
+                browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected)
+                    ?? (commands.Count > 0 ? commands[0] : null);
+                browser.CommandCount.Text = commands.Count + " captured commands";
+                browser.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                if ((browser.CommandsList.SelectedItem as SimCommand)?.Id != selected) _selectedPhysicalInput = null;
+            }
+            finally { _refreshing = false; }
+            RefreshRecords();
         }
         private void RefreshRecords()
         {
             var selected = (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.RecordId;
             var command = _assignments.Browser.CommandsList.SelectedItem as SimCommand;
-            var rows = _rows.Where(row => (command is null || row.Command.Id == command.Id)
+            var rows = _rows.Where(row => _assignments.Browser.CommandsList.Items.Count > 0 && (command is null || row.Command.Id == command.Id)
                 && (command is not null || SelectedDevice is null || row.DeviceIds.Contains(SelectedDevice) || row.Binding.Empty)).ToArray();
             _refreshing = true; _assignments.Records.ItemsSource = rows;
             _assignments.Records.SelectedItem = rows.FirstOrDefault(row => row.RecordId == selected) ?? rows.FirstOrDefault();

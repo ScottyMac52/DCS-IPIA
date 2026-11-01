@@ -79,3 +79,9 @@ Imported joystick records now label supported callouts. Command drag/drop and pi
 Native evidence: Gaijin's published [DirectInput enumeration](https://github.com/GaijinEntertainment/DagorEngine/blob/main/prog/engine/drv/hid_joystick/joy_enumdev.cpp) and [joystick decoding/counts](https://github.com/GaijinEntertainment/DagorEngine/blob/main/prog/engine/drv/hid_joystick/joy_device.cpp), observed blob IDs `60c3820c882ebae0b8c195b59635cfaab61fd5fa` and `cd455edfc197cff055a9caac4090a3b493fbb47c`. This implements the published ordinary DirectInput layout with saved-count validation; remapped gamepad layouts are not claimed. In-game acceptance remains local.
 
 `WarThunderPhysicalMappingTests` covers raw axis order, nonzero saved offsets, POV expansion, missing/changed evidence, imported labels, common assignment planning and chord/system preservation. Windows smoke exercises a physical callout drop and public Apply action. The command drag source is shared with Elite. No personal source capture is published. These .NET/Windows checks remain unrun in the authoring environment.
+
+### Empty startup/filter recovery and retained operation errors
+
+The indexed fallback selection is guarded when the captured command list is empty, and refresh suppression is restored in `finally`. An empty filter clears stale record/editor selection and can be cleared without leaving the UI stuck. This retains indexed selection for nonempty lists while handling no-profile startup normally.
+
+War Thunder input notices now have their own status line. Caught operation failures retain copyable full exception details in a separate disclosure, so focus changes cannot erase the diagnostic. Shared input feedback reports focus loss only when acquisition was actually running. Windows smoke covers empty startup, no-match search and recovery, and diagnostic retention across focus loss. Local Windows execution remains required.

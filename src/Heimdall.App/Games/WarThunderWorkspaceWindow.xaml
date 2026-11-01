@@ -23,6 +23,10 @@
     <ContentControl x:Name="FeatureContent" Grid.Column="2" Margin="6,0,0,0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
    </games:GameControllerWorkspace>
   </Grid>
-  <TextBlock Style="{StaticResource AppLabel}" x:Name="Status" Grid.Row="3" Text="Import an exported controls BLK file to begin." TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  <StackPanel Grid.Row="3">
+  <Expander x:Name="ErrorPanel" Header="Last operation error details" Visibility="Collapsed"><TextBox x:Name="ErrorDetails" Style="{StaticResource AppTextBox}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Operation error details"/></Expander>
+  <TextBlock x:Name="InputStatus" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="Status" Text="Import an exported controls BLK file to begin." TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
  </games:GameWorkspaceShell>
 </Window>

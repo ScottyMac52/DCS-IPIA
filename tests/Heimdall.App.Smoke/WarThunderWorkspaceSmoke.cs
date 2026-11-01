@@ -49,7 +49,10 @@ namespace Heimdall.App.Smoke
                 using var window = new WarThunderWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true,
                     drawings: drawings, inputFactory: (_, ids) => input = new(ids));
                 WorkspaceLayout.SetPersistenceEnabled(window, false);
-                window.Show(); window.Activate(); ThemeControlSmoke.Pump(window); window.ImportFile(path);
+                window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
+                if (Box<ContentControl>(window, "FeatureContent").Content is not WarThunderDevicesView || Box<Expander>(window, "ErrorPanel").Visibility == Visibility.Visible)
+                    throw new InvalidOperationException("Empty startup did not mount Devices without a loading error.");
+                window.ImportFile(path);
                 if (!Box<Button>(window, "Save").IsEnabled || Box<Button>(window, "Export").IsEnabled) throw new InvalidOperationException("Import did not become an unsaved draft.");
                 var controllers = Box<ListBox>(window, "Controllers"); controllers.SelectedIndex = 1;
                 var devices = window.DeviceView;
@@ -104,6 +107,19 @@ namespace Heimdall.App.Smoke
                 if (input is null || !input.Disposed) throw new InvalidOperationException("Focus loss retained native input handles.");
                 window.Activate(); controllers.SelectedIndex = 0;
                 var browser = assignments.Browser;
+                browser.CommandSearch.Text = "__no_matching_command__";
+                if (browser.CommandsList.Items.Count != 0 || assignments.Records.Items.Count != 0 || assignments.Editor.Apply.IsEnabled)
+                    throw new InvalidOperationException("An empty command filter retained a stale assignment or failed to clear selection.");
+                browser.CommandSearch.Clear();
+                if (browser.CommandsList.Items.Count == 0) throw new InvalidOperationException("Empty filtering left refresh suppression stuck.");
+                window.DropPhysicalCommand(diagram.Controls[0], "missing-command");
+                var operationError = Box<TextBlock>(window, "Status").Text;
+                var details = Box<TextBox>(window, "ErrorDetails").Text;
+                var statusWindow = new Window { Width = 150, Height = 100, ShowInTaskbar = false };
+                statusWindow.Show(); statusWindow.Activate(); ThemeControlSmoke.Pump(statusWindow); statusWindow.Close();
+                if (Box<TextBlock>(window, "Status").Text != operationError || Box<TextBox>(window, "ErrorDetails").Text != details || details.Length == 0)
+                    throw new InvalidOperationException("Focus loss replaced the operation error or its retained diagnostic details.");
+                window.Activate();
                 browser.CommandSearch.Text = "pitch";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 assignments.Editor.Inverse.IsChecked = true; assignments.Editor.Submit(WarThunderEditKind.Inverse);

@@ -104,7 +104,7 @@ namespace Heimdall.App.Games
             catch (Exception error)
             {
                 if (_disposed || scan != _hardwareScan) return;
-                _controllerInputs = []; Status.Text = "Controller input scan failed: " + error.Message;
+                _controllerInputs = []; ReportError(error, "Controller input scan failed");
             }
         }
         private void SelectPhysicalControl(HardwareGraphicControl control)

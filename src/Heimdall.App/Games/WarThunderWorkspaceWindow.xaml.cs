@@ -49,7 +49,7 @@ namespace Heimdall.App.Games
             _presenter = new(_assignments.DrawingCanvas);
             _viewport = new(_assignments.DrawingScroll, _assignments.DrawingCanvas, _assignments.Zoom, "war-thunder.diagram");
             _viewport.EnablePanning();
-            _input = new(this, _presenter, text => Status.Text = text, text => _assignments.Activity.Text = text, inputFactory);
+            _input = new(this, _presenter, text => InputStatus.Text = text, text => _assignments.Activity.Text = text, inputFactory);
             _host = new(FeatureContent, FeatureActions, _input.Stop);
             WireDevices(); WireAssignments();
             _commandDrag = new(_assignments.Browser.CommandsList, "heimdall.war-thunder.command",
@@ -93,7 +93,7 @@ namespace Heimdall.App.Games
                     FeaturePicker.SelectedIndex = 0;
                     _host.Show(_devices);
                 }
-                catch (Exception error) { Status.Text = error.Message; }
+                catch (Exception error) { ReportError(error); }
             };
             _input.StateChanged += (_, _) => { RefreshDevices(); RefreshInputState(); };
             RefreshChrome();
@@ -129,7 +129,7 @@ namespace Heimdall.App.Games
                 _revision = _services.Store.Save(_session.Snapshot, _revision); _session.AcceptSaved();
                 Remember(); RefreshEntries(); RefreshChrome(); Status.Text = "War Thunder profile saved."; return true;
             }
-            catch (Exception error) { Status.Text = "Save failed: " + error.Message; return false; }
+            catch (Exception error) { ReportError(error, "Save failed"); return false; }
         }
         internal string ExportReview(string parent)
         {
@@ -207,10 +207,16 @@ namespace Heimdall.App.Games
             if (_session is not null && _revision is not null)
                 _services.Remember(_services.Recent() with { BackendId = "war-thunder", WorkspaceId = _session.Snapshot.Id, DisplayName = _session.Snapshot.Name });
         }
+        private void ReportError(Exception error, string operation = "Operation failed")
+        {
+            Status.Text = operation + ": " + error.Message;
+            ErrorDetails.Text = operation + Environment.NewLine + error;
+            ErrorPanel.Visibility = Visibility.Visible;
+        }
         private void Run(Action action)
         {
             try { action(); }
-            catch (Exception error) { Status.Text = error.Message; }
+            catch (Exception error) { ReportError(error); }
         }
         #endregion END private helpers
     }
