@@ -76,11 +76,11 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static ProfileValidationResult Validate(string nativeJson, params ProfileValidationRule[] rules)
+        private static ProfileValidationResult Validate(string nativeJson, ProfileValidationRule rule)
         {
             var (backend, profile) = ProfileValidationFixture.Open("war-thunder");
             var native = JsonSerializer.Deserialize<JsonElement>(nativeJson);
-            return ProfileValidationEngine.Validate(backend, profile, ProfileValidationFixture.Rules(rules), () => native);
+            return ProfileValidationEngine.Validate(backend, profile, ProfileValidationFixture.Rules(rule), () => native);
         }
         #endregion END private helpers
     }

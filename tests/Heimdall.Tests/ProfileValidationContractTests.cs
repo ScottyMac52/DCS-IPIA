@@ -43,7 +43,7 @@ namespace Heimdall.Tests
                 Assert.True(backend.Validate(profile, ProfileValidationDefinitions.Parse(File.ReadAllText(path))).IsValid);
                 File.WriteAllText(path, text.Replace("[\"controls\"]", "[\"different\"]", StringComparison.Ordinal));
                 var result = backend.Validate(profile, ProfileValidationDefinitions.Parse(File.ReadAllText(path)));
-                var issue = Assert.Single(result.Issues.Where(issue => issue.IsError));
+                var issue = Assert.Single(result.Issues, issue => issue.IsError);
                 Assert.Equal("/profile/contextId", issue.Path); Assert.Contains("different", issue.Expected, StringComparison.Ordinal);
                 Assert.Contains("controls", issue.Actual, StringComparison.Ordinal); Assert.NotEmpty(result.ErrorMessage);
                 Assert.Empty(result.ExportPlan?.Files ?? new Dictionary<string, string>());
@@ -120,7 +120,7 @@ namespace Heimdall.Tests
             Assert.Throws<ArgumentNullException>(() => ProfileValidationEngine.Validate(null!, profile, definition));
             Assert.Throws<ArgumentNullException>(() => ProfileValidationEngine.Validate(backend, null!, definition));
             Assert.Throws<ArgumentNullException>(() => ProfileValidationEngine.Validate(backend, profile, null!));
-            Assert.True(ProfileValidationEngine.Validate(backend, profile, ProfileValidationFixture.Rules(new("/native", "null"))).IsValid);
+            Assert.True(ProfileValidationEngine.Validate(backend, profile, ProfileValidationFixture.Rules(new ProfileValidationRule("/native", "null"))).IsValid);
         }
         /// <summary>Typed command parameters use escaped native identities and need no command-specific validation code.</summary>
         [Fact]
@@ -143,7 +143,7 @@ namespace Heimdall.Tests
             var backend = new WarThunderProfileBackend();
             var source = WarThunderBackendFixture.Source.Replace("inverse:b=no", "inverse:b=" + literal, StringComparison.Ordinal);
             var profile = WarThunderBackendFixture.Import(backend, source);
-            var definition = ProfileValidationFixture.Rules(new("/native/commands/axes~1pitch/*/parameters/inverse/*/value", "boolean",
+            var definition = ProfileValidationFixture.Rules(new ProfileValidationRule("/native/commands/axes~1pitch/*/parameters/inverse/*/value", "boolean",
                 AllowedValues: [JsonSerializer.SerializeToElement(expected)]));
             var result = backend.Validate(profile, definition);
             Assert.True(result.IsValid, result.ErrorMessage); Assert.Equal(source, Assert.Single(result.ExportPlan!.Files).Value);
