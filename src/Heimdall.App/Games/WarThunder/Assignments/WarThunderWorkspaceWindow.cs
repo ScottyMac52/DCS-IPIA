@@ -77,7 +77,7 @@ namespace Heimdall.App.Games
                 (browser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All);
             _refreshing = true;
             browser.CommandsList.ItemsSource = commands;
-            browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected) ?? commands.FirstOrDefault();
+            browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected) ?? commands[0];
             browser.CommandCount.Text = commands.Count + " captured commands";
             browser.CommandEmptyHint.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             if ((browser.CommandsList.SelectedItem as SimCommand)?.Id != selected) _selectedPhysicalInput = null;
