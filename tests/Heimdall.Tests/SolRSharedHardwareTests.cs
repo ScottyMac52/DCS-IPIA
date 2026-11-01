@@ -20,7 +20,7 @@ namespace Heimdall.Tests
         [InlineData("l", "pov")]
         public async Task Bundled_definition_matches_inventory_and_survives_module_reopen(string hand, string mode)
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var choices = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
             var id = "tm-sol-r-ava-" + hand + "-" + mode;
             var hardware = Assert.Single(choices, x => x.DeviceId == id);
@@ -90,7 +90,7 @@ namespace Heimdall.Tests
         [InlineData("AVA [R] Viper")]
         public async Task Other_native_names_do_not_offer_sol_r_layouts(string name)
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var candidates = BundledHardwareCapabilityMatcher.Candidates(sources,
                 new(new(Guid.NewGuid(), name, true), Definition().Capabilities));
             Assert.DoesNotContain(candidates, x => x.StartsWith("tm-sol-r-", StringComparison.Ordinal));
