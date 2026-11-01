@@ -1,6 +1,7 @@
 """Enforce ProjectHope-style independent coverage and method CRAP gates."""
 import argparse
 import math
+import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -84,11 +85,13 @@ def publish_gate(report, raw, output, summary, ceiling=50):
     if failures:
         lines.extend("- " + cell(failure) for failure in failures)
     markdown = "\n".join(lines) + "\n"
-    print(markdown)
     output.mkdir(parents=True, exist_ok=True)
     (output / "QualityGateSummary.md").write_text(markdown, encoding="utf-8")
     with summary.open("a", encoding="utf-8") as stream:
         stream.write(markdown)
+    # Redirected Windows consoles may use cp1252; preserve UTF-8 artifacts and escape only unsupported console characters.
+    encoding = sys.stdout.encoding or "utf-8"
+    print(markdown.encode(encoding, errors="backslashreplace").decode(encoding))
     return 1 if failures else 0
 
 
