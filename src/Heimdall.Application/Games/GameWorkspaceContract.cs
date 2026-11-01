@@ -10,32 +10,11 @@ namespace Heimdall.Application.Games
         public static void Validate(GameWorkspace workspace)
         {
             ArgumentNullException.ThrowIfNull(workspace);
-            if (workspace.SchemaVersion != 1 || workspace.Id == Guid.Empty || string.IsNullOrWhiteSpace(workspace.Name)
-                || workspace.Name.Length > 200 || workspace.Profile is null || workspace.Hardware is null || workspace.ControllerOrder is null || workspace.UnlinkedDrawings is null)
-                throw new InvalidDataException("Invalid game workspace identity, name or schema.");
-            if (workspace.Profile.BackendId is not "elite-dangerous" and not "star-wars-squadrons" and not "war-thunder" || workspace.Profile.Devices is null
-                || workspace.Profile.Devices.Any(x => x is null))
-                throw new InvalidDataException("Unsupported game workspace backend or device collection.");
-            if (workspace.SourceDirectory is { } source && !Path.IsPathFullyQualified(source))
-                throw new InvalidDataException("The source directory must be absolute.");
-            if (workspace.ControllerOrder.Any(string.IsNullOrWhiteSpace)
-                || workspace.ControllerOrder.Distinct(StringComparer.Ordinal).Count() != workspace.ControllerOrder.Count)
-                throw new InvalidDataException("Invalid controller display order.");
-            if (workspace.UnlinkedDrawings.Any(x => string.IsNullOrWhiteSpace(x.Value) || workspace.Hardware.ContainsKey(x.Key)
-                || !workspace.Profile.Devices.Any(d => d.LogicalId == x.Key)))
-                throw new InvalidDataException("Invalid independent drawing association.");
-            foreach (var (id, pin) in workspace.Hardware)
-            {
-                if (!workspace.Profile.Devices.Any(x => x.LogicalId == id) || pin?.Device is null
-                    || pin.Device.PhysicalGuid == Guid.Empty || (pin.HardwareId is not null && string.IsNullOrWhiteSpace(pin.HardwareId)))
-                    throw new InvalidDataException("Invalid game hardware association.");
-            }
-            if (workspace.Profile.BackendId == "star-wars-squadrons" && (workspace.Hardware.Values.Any(x => x.Device.ProductGuid == Guid.Empty)
-                || workspace.Hardware.Values.Select(x => x.Device.PhysicalGuid).Distinct().Count() != workspace.Hardware.Count))
-                throw new InvalidDataException("Squadrons links require a native product identity and a different physical instance for each captured slot.");
-            if (workspace.Profile.BackendId == "war-thunder" && (workspace.Hardware.Values.Any(x => x.Device.ProductGuid == Guid.Empty)
-                || workspace.Hardware.Values.Select(x => x.Device.PhysicalGuid).Distinct().Count() != workspace.Hardware.Count))
-                throw new InvalidDataException("War Thunder links require native product identity and distinct physical instances.");
+            ValidateIdentity(workspace);
+            ValidateProfile(workspace);
+            ValidatePresentation(workspace);
+            ValidateHardware(workspace);
+            if (workspace.Profile.BackendId is "star-wars-squadrons" or "war-thunder") ValidateNativeLinks(workspace);
         }
         /// <summary>Creates an independent snapshot, including JSON-valued native extensions.</summary>
         public static GameWorkspace Clone(GameWorkspace workspace) =>
@@ -52,5 +31,47 @@ namespace Heimdall.Application.Games
                 throw new InvalidDataException("Invalid game selection.");
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static void ValidateIdentity(GameWorkspace workspace)
+        {
+            if (workspace.SchemaVersion != 1 || workspace.Id == Guid.Empty || string.IsNullOrWhiteSpace(workspace.Name)
+                || workspace.Name.Length > 200 || workspace.Profile is null || workspace.Hardware is null || workspace.ControllerOrder is null || workspace.UnlinkedDrawings is null)
+                throw new InvalidDataException("Invalid game workspace identity, name or schema.");
+        }
+        private static void ValidateProfile(GameWorkspace workspace)
+        {
+            if (workspace.Profile.BackendId is not "elite-dangerous" and not "star-wars-squadrons" and not "war-thunder" || workspace.Profile.Devices is null
+                || workspace.Profile.Devices.Any(x => x is null))
+                throw new InvalidDataException("Unsupported game workspace backend or device collection.");
+        }
+        private static void ValidatePresentation(GameWorkspace workspace)
+        {
+            if (workspace.SourceDirectory is { } source && !Path.IsPathFullyQualified(source))
+                throw new InvalidDataException("The source directory must be absolute.");
+            if (workspace.ControllerOrder.Any(string.IsNullOrWhiteSpace)
+                || workspace.ControllerOrder.Distinct(StringComparer.Ordinal).Count() != workspace.ControllerOrder.Count)
+                throw new InvalidDataException("Invalid controller display order.");
+        }
+        private static void ValidateHardware(GameWorkspace workspace)
+        {
+            if (workspace.UnlinkedDrawings.Any(x => string.IsNullOrWhiteSpace(x.Value) || workspace.Hardware.ContainsKey(x.Key)
+                || !workspace.Profile.Devices.Any(d => d.LogicalId == x.Key)))
+                throw new InvalidDataException("Invalid independent drawing association.");
+            foreach (var (id, pin) in workspace.Hardware)
+            {
+                if (!workspace.Profile.Devices.Any(x => x.LogicalId == id) || pin?.Device is null
+                    || pin.Device.PhysicalGuid == Guid.Empty || (pin.HardwareId is not null && string.IsNullOrWhiteSpace(pin.HardwareId)))
+                    throw new InvalidDataException("Invalid game hardware association.");
+            }
+        }
+        private static void ValidateNativeLinks(GameWorkspace workspace)
+        {
+            if (workspace.Hardware.Values.Any(pin => pin.Device.ProductGuid == Guid.Empty)
+                || workspace.Hardware.Values.Select(pin => pin.Device.PhysicalGuid).Distinct().Count() != workspace.Hardware.Count)
+                throw new InvalidDataException(workspace.Profile.BackendId == "star-wars-squadrons"
+                    ? "Squadrons links require a native product identity and a different physical instance for each captured slot."
+                    : "War Thunder links require native product identity and distinct physical instances.");
+        }
+        #endregion END private helpers
     }
 }

@@ -5,9 +5,11 @@ namespace Heimdall.Application
     {
         #region BEGIN Public
         /// <summary>Uses saved ownership, independently of whether the physical unit is currently connected.</summary>
-        public static ControllerLinkState For(bool physicalLinked, bool drawingLinked, bool ready, bool busy) =>
-            new(ready && !busy && !physicalLinked, ready && !busy && physicalLinked,
-                ready && !busy && physicalLinked && !drawingLinked, ready && !busy && drawingLinked);
+        public static ControllerLinkState For(bool physicalLinked, bool drawingLinked, bool ready, bool busy)
+        {
+            if (!ready || busy) return new(false, false, false, false);
+            return new(!physicalLinked, physicalLinked, physicalLinked && !drawingLinked, drawingLinked);
+        }
         #endregion END Public
     }
 }

@@ -143,17 +143,7 @@ namespace Heimdall.WarThunder
         }
         private void Scan()
         {
-            var stack = new Stack<int>();
-            var pending = new List<(string Text, int Start)>();
-            var occurrences = new Dictionary<(string Parent, string Name, bool Block), int>();
-            string Address(string parent, string name, bool block)
-            {
-                var key = (parent, name, block);
-                var index = occurrences.GetValueOrDefault(key);
-                occurrences[key] = index + 1;
-                return (block ? "b:" : "s:") + (parent.Length == 0 ? "" : parent[2..] + "/")
-                    + Uri.EscapeDataString(name) + "[" + index.ToString(CultureInfo.InvariantCulture) + "]";
-            }
+            var state = new WarThunderBlkScanState();
             var position = 0;
             while (position < _source.Length)
             {
@@ -161,55 +151,64 @@ namespace Heimdall.WarThunder
                 var match = Token.Match(_source, position);
                 if (!match.Success || match.Index != position)
                 {
-                    HasOpaqueSyntax = true; position++; pending.Clear(); continue;
+                    HasOpaqueSyntax = true; position++; state.Pending.Clear(); continue;
                 }
                 position += match.Length;
-                if (match.Groups["comment"].Success) continue;
-                switch (match.Value)
-                {
-                    case "{":
-                        if (pending.Count != 1) throw new InvalidDataException("Unrecognized BLK block header.");
-                        var parent = stack.Count == 0 ? null : _blocks[stack.Peek()];
-                        var block = new WarThunderBlkBlock((parent is null ? "" : parent.Path + "/") + pending[0].Text, match.Index)
-                        {
-                            Address = Address(parent?.Address ?? "", pending[0].Text, true), ParentAddress = parent?.Address ?? "",
-                            HeaderStart = pending[0].Start
-                        };
-                        stack.Push(_blocks.Count); _blocks.Add(block);
-                        pending.Clear();
-                        break;
-                    case "}":
-                        if (stack.Count == 0) throw new InvalidDataException("Unbalanced BLK block close.");
-                        if (pending.Count != 0) HasOpaqueSyntax = true;
-                        var closed = stack.Pop();
-                        _blocks[closed] = _blocks[closed] with { End = match.Index + match.Length };
-                        pending.Clear();
-                        break;
-                    case "=":
-                        if (pending.Count != 1) throw new InvalidDataException("Unrecognized BLK scalar header.");
-                        var header = pending[0].Text; var colon = header.LastIndexOf(':');
-                        if (colon < 1 || colon != header.Length - 2) throw new InvalidDataException("Missing or unsupported BLK scalar type.");
-                        var value = ReadValue(ref position);
-                        var owner = stack.Count == 0 ? null : _blocks[stack.Peek()];
-                        var path = (owner is null ? "" : owner.Path + "/") + header[..colon];
-                        _scalars.Add(new(path, header[^1], value.Value, value.Index, value.Index + value.Length)
-                        {
-                            Address = Address(owner?.Address ?? "", header[..colon], false), BlockAddress = owner?.Address ?? ""
-                        });
-                        if (!SupportedValue(header[^1], value.Value)) HasOpaqueSyntax = true;
-                        pending.Clear();
-                        break;
-                    case ";":
-                        if (pending.Count != 0) HasOpaqueSyntax = true;
-                        pending.Clear();
-                        break;
-                    default:
-                        pending.Add((match.Value, match.Index));
-                        break;
-                }
+                if (!match.Groups["comment"].Success) ScanToken(match, state, ref position);
             }
-            if (stack.Count != 0) throw new InvalidDataException("Unclosed BLK block.");
-            if (pending.Count != 0) HasOpaqueSyntax = true;
+            if (state.OpenBlocks.Count != 0) throw new InvalidDataException("Unclosed BLK block.");
+            DiscardPending(state);
+        }
+        private void ScanToken(Match match, WarThunderBlkScanState state, ref int position)
+        {
+            switch (match.Value)
+            {
+                case "{": OpenBlock(match, state); break;
+                case "}": CloseBlock(match, state); break;
+                case "=": ReadScalar(state, ref position); break;
+                case ";": DiscardPending(state); break;
+                default: state.Pending.Add((match.Value, match.Index)); break;
+            }
+        }
+        private void OpenBlock(Match match, WarThunderBlkScanState state)
+        {
+            if (state.Pending.Count != 1) throw new InvalidDataException("Unrecognized BLK block header.");
+            var parent = Owner(state);
+            var header = state.Pending[0];
+            var block = new WarThunderBlkBlock((parent is null ? "" : parent.Path + "/") + header.Text, match.Index)
+            {
+                Address = state.NextAddress(parent?.Address ?? "", header.Text, true), ParentAddress = parent?.Address ?? "",
+                HeaderStart = header.Start
+            };
+            state.OpenBlocks.Push(_blocks.Count); _blocks.Add(block); state.Pending.Clear();
+        }
+        private void CloseBlock(Match match, WarThunderBlkScanState state)
+        {
+            if (state.OpenBlocks.Count == 0) throw new InvalidDataException("Unbalanced BLK block close.");
+            DiscardPending(state);
+            var closed = state.OpenBlocks.Pop();
+            _blocks[closed] = _blocks[closed] with { End = match.Index + match.Length };
+        }
+        private void ReadScalar(WarThunderBlkScanState state, ref int position)
+        {
+            if (state.Pending.Count != 1) throw new InvalidDataException("Unrecognized BLK scalar header.");
+            var header = state.Pending[0].Text; var colon = header.LastIndexOf(':');
+            if (colon < 1 || colon != header.Length - 2) throw new InvalidDataException("Missing or unsupported BLK scalar type.");
+            var value = ReadValue(ref position);
+            var owner = Owner(state);
+            var path = (owner is null ? "" : owner.Path + "/") + header[..colon];
+            _scalars.Add(new(path, header[^1], value.Value, value.Index, value.Index + value.Length)
+            {
+                Address = state.NextAddress(owner?.Address ?? "", header[..colon], false), BlockAddress = owner?.Address ?? ""
+            });
+            if (!SupportedValue(header[^1], value.Value)) HasOpaqueSyntax = true;
+            state.Pending.Clear();
+        }
+        private WarThunderBlkBlock? Owner(WarThunderBlkScanState state) => state.OpenBlocks.Count == 0 ? null : _blocks[state.OpenBlocks.Peek()];
+        private void DiscardPending(WarThunderBlkScanState state)
+        {
+            if (state.Pending.Count != 0) HasOpaqueSyntax = true;
+            state.Pending.Clear();
         }
         #endregion END private helpers
     }

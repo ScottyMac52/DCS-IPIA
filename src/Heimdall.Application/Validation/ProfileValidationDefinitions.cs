@@ -76,13 +76,18 @@ namespace Heimdall.Application.Validation
         }
         private static bool ValidRule(ProfileValidationRule rule) => ValidationPaths.Valid(rule.Path)
             && rule.Type is "string" or "integer" or "number" or "boolean" or "object" or "array" or "null"
-            && (rule.Minimum is null || double.IsFinite(rule.Minimum.Value)) && (rule.Maximum is null || double.IsFinite(rule.Maximum.Value))
-            && !(rule.Minimum > rule.Maximum) && !(rule.MinimumLength < 0) && !(rule.MaximumLength < rule.MinimumLength)
-            && !(rule.MaximumLength < 0) && (rule.UniqueBy is null || rule.Type == "array" && !string.IsNullOrWhiteSpace(rule.UniqueBy))
-            && (rule.References is null || ValidationPaths.Valid(rule.References))
-            && (rule.Minimum is null && rule.Maximum is null || rule.Type is "number" or "integer")
-            && (rule.MinimumLength is null && rule.MaximumLength is null || rule.Type is "string" or "array" or "object")
+            && ValidNumericBounds(rule) && ValidLengthBounds(rule) && ValidIdentityRules(rule)
             && (rule.AllowedValues is null || rule.AllowedValues.Count <= 64 && rule.AllowedValues.All(ValidLiteral));
+        private static bool ValidNumericBounds(ProfileValidationRule rule) => Finite(rule.Minimum) && Finite(rule.Maximum)
+            && !(rule.Minimum > rule.Maximum)
+            && (rule.Minimum is null && rule.Maximum is null || rule.Type is "number" or "integer");
+        private static bool Finite(double? value) => value is null || double.IsFinite(value.Value);
+        private static bool ValidLengthBounds(ProfileValidationRule rule) => !(rule.MinimumLength < 0)
+            && !(rule.MaximumLength < 0) && !(rule.MaximumLength < rule.MinimumLength)
+            && (rule.MinimumLength is null && rule.MaximumLength is null || rule.Type is "string" or "array" or "object");
+        private static bool ValidIdentityRules(ProfileValidationRule rule) =>
+            (rule.UniqueBy is null || rule.Type == "array" && !string.IsNullOrWhiteSpace(rule.UniqueBy))
+            && (rule.References is null || ValidationPaths.Valid(rule.References));
         private static bool ValidLiteral(JsonElement value) => value.ValueKind == JsonValueKind.Number
             ? value.TryGetDouble(out var number) && double.IsFinite(number)
             : value.ValueKind is JsonValueKind.String or JsonValueKind.True or JsonValueKind.False or JsonValueKind.Null;
