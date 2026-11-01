@@ -85,3 +85,12 @@ Native evidence: Gaijin's published [DirectInput enumeration](https://github.com
 The indexed fallback selection is guarded when the captured command list is empty, and refresh suppression is restored in `finally`. An empty filter clears stale record/editor selection and can be cleared without leaving the UI stuck. This retains indexed selection for nonempty lists while handling no-profile startup normally.
 
 War Thunder input notices now have their own status line. Caught operation failures retain copyable full exception details in a separate disclosure, so focus changes cannot erase the diagnostic. Shared input feedback reports focus loss only when acquisition was actually running. Windows smoke covers empty startup, no-match search and recovery, and diagnostic retention across focus loss. Local Windows execution remains required.
+
+
+### Independent physical input groups
+
+Physical button/POV and axis/POV evidence now validate independently. An axis-count mismatch or unsupported axis no longer disables otherwise verified button assignments, drawing drops or Apply; an invalid button group likewise does not suppress verified axes. Missing identity, missing discovery evidence and ambiguous POV objects still block mapping. Saved native ranges and ownership checks remain enforced without guessing unsupported ordinals.
+
+Devices and drawing feedback show verified target counts and the exact blocked group, including saved BLK counts versus discovered axes/buttons/POVs. Discovery errors remain visible, and physical evidence can be assessed without artwork. WarThunderPhysicalMappingTests covers partial groups and native assignment preservation; the Windows workspace smoke exercises public Apply with an unsupported relative axis present. These changes still require local .NET/WPF execution and actual-device acceptance.
+
+Dragging commands onto callouts is distinct from dragging controllers to reorder the Devices roster. Native roster reordering and rewriting all affected global references remain unimplemented and disabled.

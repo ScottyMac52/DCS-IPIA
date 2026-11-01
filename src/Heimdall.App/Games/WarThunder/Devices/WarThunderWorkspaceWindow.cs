@@ -65,6 +65,8 @@ namespace Heimdall.App.Games
             _devices.NativeDetails.Text = native is null ? "Select one saved mapping to review its controller setup."
                 : string.Create(CultureInfo.InvariantCulture, $"{native.Name} · {native.Id}\nNative product: {native.Product}\nAxes: offset {native.AxesOffset}, count {native.AxesCount}. Buttons: offset {native.ButtonsOffset}, count {native.ButtonsCount}.\n")
                     + (pin is null ? "Physical controller unlinked." : "Linked: " + pin.Device.Name + " · " + pin.Device.PhysicalGuid);
+            RefreshPhysicalMap();
+            if (native is not null) _devices.NativeDetails.Text += "\n" + _physicalMap.Message;
             _refreshing = false;
         }
         private void ShowDrawing()
@@ -72,23 +74,27 @@ namespace Heimdall.App.Games
             _assignments.DrawingCanvas.Children.Clear(); _presenter.Regions.Clear();
             var drawing = SelectedDevice is { } id ? _session?.DrawingId(id) : null;
             var hardware = _drawings.FirstOrDefault(item => item.DeviceId == drawing);
+            RefreshPhysicalMap();
             if (hardware is not null)
             {
-                var observations = _session is not null && SelectedDevice is { } selected && _session.Snapshot.Hardware.TryGetValue(selected, out var pin)
-                    ? _controllerInputs.Where(observation => observation.Device.PhysicalGuid == pin.Device.PhysicalGuid && observation.Device.ProductGuid == pin.Device.ProductGuid).ToArray() : [];
-                _physicalMap = observations.Length == 1 && _session is not null && SelectedDevice is { } slot
-                    ? WarThunderPhysicalMap.Create(_session.Snapshot.Profile, slot, observations[0]) : new([], "Link the controller and rescan its inputs on Devices.");
                 var page = WarThunderDrawingProjection.Diagram(hardware.Diagram, _session!.Snapshot.Profile, SelectedDevice!, _physicalMap);
                 _presenter.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
                     SelectPhysicalControl, _physicalMap.Inputs.Count > 0 ? DropPhysicalCommand : null,
                     DragFormat: "heimdall.war-thunder.command"), AppearanceManager.ArtworkOpacityFor(this));
                 _assignments.Artwork.Feedback.Text = _physicalMap.Message;
             }
-            else _physicalMap = new([], "Choose a controller drawing on Devices.");
             _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;
             _assignments.Artwork.Hint.Visibility = hardware is null ? Visibility.Visible : Visibility.Collapsed;
             _assignments.Activity.Visibility = hardware is null ? Visibility.Visible : Visibility.Collapsed;
+            if (hardware is null) _assignments.Artwork.Hint.Text = _physicalMap.Message + " Choose a controller drawing on Devices.";
             RefreshInputState();
+        }
+        private void RefreshPhysicalMap()
+        {
+            var observations = _session is not null && SelectedDevice is { } selected && _session.Snapshot.Hardware.TryGetValue(selected, out var pin)
+                ? _controllerInputs.Where(observation => observation.Device.PhysicalGuid == pin.Device.PhysicalGuid && observation.Device.ProductGuid == pin.Device.ProductGuid).ToArray() : [];
+            _physicalMap = observations.Length == 1 && _session is not null && SelectedDevice is { } slot
+                ? WarThunderPhysicalMap.Create(_session.Snapshot.Profile, slot, observations[0]) : new([], "Link the controller and rescan its inputs on Devices.");
         }
         private async Task RefreshHardwareAsync()
         {
@@ -113,7 +119,7 @@ namespace Heimdall.App.Games
                 ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command.Type;
             _selectedPhysicalInput = _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == type);
             RefreshEditor();
-            _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping." : control.Label + " selected. Apply assignment to stage the selected command.";
+            _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping. " + _physicalMap.Message : control.Label + " selected. Apply assignment to stage the selected command.";
         }
         internal void DropPhysicalCommand(HardwareGraphicControl control, string commandId) => Run(() =>
         {

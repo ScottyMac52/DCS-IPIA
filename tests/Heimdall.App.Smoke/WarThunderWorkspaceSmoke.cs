@@ -33,7 +33,8 @@ namespace Heimdall.App.Smoke
                     new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 258u, "Y"),
                     new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2u, "X"),
                     new(Guid.NewGuid(), 4u, "Button 1"), new(Guid.NewGuid(), 260u, "Button 2"),
-                    new(Guid.NewGuid(), 516u, "Button 3"), new(Guid.NewGuid(), 772u, "Button 4")]);
+                    new(Guid.NewGuid(), 516u, "Button 3"), new(Guid.NewGuid(), 772u, "Button 4"),
+                    new(Guid.NewGuid(), 513u, "Unsupported relative axis")]);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
                 var capture = Path.Combine(root, "capture"); Directory.CreateDirectory(capture);
                 var path = Path.Combine(capture, "Synthetic.blk");
@@ -64,6 +65,9 @@ namespace Heimdall.App.Smoke
                 if (window.Session!.DrawingId("war-thunder.joystick.0") != "drawing-b") throw new InvalidOperationException("Reviewed drawing replacement failed.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 var assignments = window.AssignmentView;
+                if (!devices.NativeDetails.Text.Contains("Axis mapping blocked", StringComparison.Ordinal)
+                    || !assignments.Artwork.Feedback.Text.Contains("Verified 4 button", StringComparison.Ordinal))
+                    throw new InvalidOperationException("A mismatched axis group did not retain verified button mapping and visible diagnostics.");
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
                 var fireCommand = window.Session!.Catalog.Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");

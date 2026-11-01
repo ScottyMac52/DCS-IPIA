@@ -52,6 +52,53 @@ namespace Heimdall.Tests
             var added = WarThunderDrawingProjection.Assignment(profile, chord.Id, "war-thunder.joystick.0", new("JOY_BTN2", CommandType.Button, 1)).Apply(profile);
             Assert.Contains("joyButton:i=0;joyButton:i=2;keyboardKey:i=4", WarThunderBackendFixture.Export(backend, added), StringComparison.Ordinal);
         }
+        /// <summary>An unrelated axis-count mismatch cannot disable verified physical button assignment.</summary>
+        [Fact]
+        public void Axis_count_mismatch_retains_verified_buttons_and_native_assignment()
+        {
+            var backend = new WarThunderProfileBackend();
+            var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=3", StringComparison.Ordinal)
+                .Replace("axesOffset:i=2", "axesOffset:i=3", StringComparison.Ordinal)
+                .Replace("buttonsCount:i=4", "buttonsCount:i=6", StringComparison.Ordinal)
+                .Replace("buttonsOffset:i=4", "buttonsOffset:i=6", StringComparison.Ordinal);
+            var profile = WarThunderBackendFixture.Import(backend, source);
+            var map = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", Observe());
+            Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Button, input.Type));
+            Assert.Contains("Axis mapping blocked: BLK declares 3", map.Message, StringComparison.Ordinal);
+            var fire = backend.GetCatalog(profile).Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
+            var input = map.Inputs.Single(input => input.Key == "JOY_BTN1");
+            var changed = WarThunderDrawingProjection.Assignment(profile, fire.Id, "war-thunder.joystick.0", input).Apply(profile);
+            Assert.Contains("ID_FIRE{joyButton:i=0;activationType:i=9;}", WarThunderBackendFixture.Export(backend, changed), StringComparison.Ordinal);
+        }
+        /// <summary>A button-count mismatch cannot disable verified physical axes.</summary>
+        [Fact]
+        public void Button_count_mismatch_retains_verified_axes()
+        {
+            var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=4", StringComparison.Ordinal)
+                .Replace("axesOffset:i=2", "axesOffset:i=4", StringComparison.Ordinal)
+                .Replace("buttonsCount:i=4", "buttonsCount:i=5", StringComparison.Ordinal)
+                .Replace("buttonsOffset:i=4", "buttonsOffset:i=5", StringComparison.Ordinal);
+            var profile = WarThunderBackendFixture.Import(new(), source);
+            var map = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", Observe());
+            Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Axis, input.Type));
+            Assert.Contains("Button mapping blocked: BLK declares 5", map.Message, StringComparison.Ordinal);
+        }
+        /// <summary>Unknown axis GUIDs and failed discovery remain explicit without discarding unrelated verified buttons.</summary>
+        [Fact]
+        public void Unsupported_axis_evidence_and_discovery_errors_are_visible()
+        {
+            var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=4", StringComparison.Ordinal)
+                .Replace("axesOffset:i=2", "axesOffset:i=4", StringComparison.Ordinal)
+                .Replace("buttonsCount:i=4", "buttonsCount:i=6", StringComparison.Ordinal)
+                .Replace("buttonsOffset:i=4", "buttonsOffset:i=6", StringComparison.Ordinal);
+            var profile = WarThunderBackendFixture.Import(new(), source); var observation = Observe();
+            var objects = observation.Capabilities!.NativeObjects!.ToArray(); objects[0] = objects[0] with { ObjectGuid = Guid.NewGuid() };
+            var map = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation with { Capabilities = ControllerCapabilityMapper.Map(objects) });
+            Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Button, input.Type));
+            Assert.Contains("unsupported or ambiguous", map.Message, StringComparison.Ordinal);
+            var failed = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation with { Capabilities = null, Error = "Native scan failed" });
+            Assert.Empty(failed.Inputs); Assert.Equal("Native scan failed", failed.Message);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static ControllerObservation Observe()
