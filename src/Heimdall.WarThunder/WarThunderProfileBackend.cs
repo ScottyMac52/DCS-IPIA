@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application.Validation;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.WarThunder
@@ -15,6 +16,12 @@ namespace Heimdall.WarThunder
             { "inverse", "kMul", "innerDeadzone", "nonlinearity", "relative" };
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
+        /// <summary>Gets the versioned declarative contract packaged from the adapter's validation JSON file.</summary>
+        public ProfileValidationDefinition ValidationDefinition => ProfileValidationDefinitions.BuiltIn(SimId);
+        /// <summary>Validates without mutation using common rules plus the existing native semantic boundary.</summary>
+        public ProfileValidationResult Validate(ProfileDocument profile, ProfileValidationDefinition definition, CancellationToken cancellationToken = default) =>
+            ProfileValidationEngine.Validate(this, profile, definition, () => WarThunderValidationSnapshot.Create(profile), cancellationToken);
+
         /// <summary>Gets the owning adapter identifier.</summary>
         public string SimId => "war-thunder";
         /// <summary>Native activation codes remain opaque; portable modes, chord interpretation and portable tuning are not claimed.</summary>

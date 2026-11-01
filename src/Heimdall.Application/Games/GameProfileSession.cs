@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application.Validation;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.Application.Games
@@ -8,6 +9,7 @@ namespace Heimdall.Application.Games
     public sealed class GameProfileSession
     {
         private readonly ISimProfileBackend _backend;
+        private readonly ProfileValidationDefinition _validationDefinition;
         private readonly EditionPolicy _policy;
         private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
         private IReadOnlyCollection<string> _catalogIds;
@@ -18,9 +20,9 @@ namespace Heimdall.Application.Games
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
-            Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null)
+            Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null, ProfileValidationDefinition? validationDefinition = null)
         {
-            _backend = backend; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
+            _backend = backend; _validationDefinition = validationDefinition ?? backend.ValidationDefinition; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
             _controllerInputs = controllerInputs ?? (() => []);
             GameWorkspaceContract.Validate(workspace);
             ValidateProfile(workspace.Profile);
@@ -505,6 +507,8 @@ namespace Heimdall.Application.Games
             if (!profile.Metadata.ContainsKey(key)) throw new InvalidOperationException("This command has no native toggle setting.");
             profile.Metadata[key] = value ? "1" : "0";
         });
+        /// <summary>Reviews the loaded draft against its explicit file-backed contract without changing current or saved state.</summary>
+        public ProfileValidationResult Validate(CancellationToken cancellationToken = default) => _backend.Validate(Snapshot.Profile, _validationDefinition, cancellationToken);
         /// <summary>Creates a reviewed native payload only after edition and conversion validation.</summary>
         public SimProfileExportPlan Export() { RequireAccess(); return ValidateProfile(_current.Profile); }
         /// <summary>Reviews all output references against current hardware, independently of offline format validation.</summary>
@@ -633,9 +637,9 @@ namespace Heimdall.Application.Games
         }
         private SimProfileExportPlan ValidateProfile(ProfileDocument profile)
         {
-            var plan = _backend.Export(profile);
-            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
-            return plan;
+            var validation = _backend.Validate(profile, _validationDefinition);
+            if (!validation.IsValid) throw new InvalidOperationException(validation.ErrorMessage);
+            return validation.ExportPlan ?? throw new InvalidOperationException("Validation did not produce a native payload.");
         }
         private void Edit(Action<ProfileDocument> edit)
         {

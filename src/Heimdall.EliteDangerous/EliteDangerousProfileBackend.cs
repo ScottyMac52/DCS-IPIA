@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application.Validation;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.EliteDangerous
@@ -14,6 +15,12 @@ namespace Heimdall.EliteDangerous
         };
 
         #region BEGIN Public
+        /// <summary>Gets the versioned declarative contract packaged from the adapter's validation JSON file.</summary>
+        public ProfileValidationDefinition ValidationDefinition => ProfileValidationDefinitions.BuiltIn(SimId);
+        /// <summary>Validates without mutation using common rules plus the existing native semantic boundary.</summary>
+        public ProfileValidationResult Validate(ProfileDocument profile, ProfileValidationDefinition definition, CancellationToken cancellationToken = default) =>
+            ProfileValidationEngine.Validate(this, profile, definition, null, cancellationToken);
+
         /// <summary>Gets the backend identifier.</summary>
         public string SimId => "elite-dangerous";
 

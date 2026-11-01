@@ -37,3 +37,5 @@ The Phase 1 status, repository inventory, domain-schema-v1, configuration-snapsh
 The [workspace concept images and HTML mockups](design/workspace-layout-concepts/README.md) and [assignment editor prototype](ux/assignment-editor-approved.html) are design references, not application screenshots or complete feature specifications. Current navigation and layout are described above.
 
 War Thunder: [native foundation and readiness](war-thunder-adapter.md), [PR6 shared-contract audit](design/shared-war-thunder-pr6.md). Desktop integration follows the verified native backend contract.
+
+Shared adapters: [file-backed validation contract](design/profile-validation-contract.md).
