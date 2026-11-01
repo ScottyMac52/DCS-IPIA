@@ -6,6 +6,8 @@ namespace Heimdall.Tests
     /// <summary>Protects scanner transitions, nested ownership and repeated native occurrence identities.</summary>
     public sealed class WarThunderScannerTests
     {
+        private static readonly string[] ExpectedScalarAddresses = new[] { "s:value[0]", "s:root[0]/value[0]", "s:root[0]/nested[0]/value[0]", "s:root[0]/value[1]", "s:root[1]/value[0]" };
+        private static readonly string[] ExpectedBlockAddresses = new[] { "b:root[0]", "b:root[0]/nested[0]", "b:root[1]" };
         #region BEGIN Public
         /// <summary>Root scalars and repeated/nested blocks keep separate occurrence counters and exact source spans.</summary>
         [Fact]
@@ -14,8 +16,8 @@ namespace Heimdall.Tests
             const string source = "value:i=1; root{value:i=2;nested{value:i=3;};value:i=4;} root{value:i=5;}";
             var document = WarThunderBlkDocument.Parse(source);
             Assert.False(document.HasOpaqueSyntax); Assert.Equal(source, document.SerializeUnchanged());
-            Assert.Equal(new[] { "s:value[0]", "s:root[0]/value[0]", "s:root[0]/nested[0]/value[0]", "s:root[0]/value[1]", "s:root[1]/value[0]" }, document.Scalars.Select(scalar => scalar.Address));
-            Assert.Equal(new[] { "b:root[0]", "b:root[0]/nested[0]", "b:root[1]" }, document.Blocks.Select(block => block.Address));
+            Assert.Equal(ExpectedScalarAddresses, document.Scalars.Select(scalar => scalar.Address));
+            Assert.Equal(ExpectedBlockAddresses, document.Blocks.Select(block => block.Address));
             var changed = document.ReplaceOccurrences(new Dictionary<string, string> { ["s:root[0]/value[1]"] = "9" });
             Assert.Equal(source.Replace("value:i=4", "value:i=9", StringComparison.Ordinal), changed);
         }
