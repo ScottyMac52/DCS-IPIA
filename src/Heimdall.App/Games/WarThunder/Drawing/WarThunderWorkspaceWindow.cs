@@ -106,7 +106,7 @@ namespace Heimdall.App.Games
             {
                 _assignments.Browser.CommandsList.SelectedItem = null;
                 _assignments.Records.ItemsSource = rows;
-                _assignments.Records.SelectedItem = rows.FirstOrDefault();
+                _assignments.Records.SelectedItem = rows.Count > 0 ? rows[0] : null;
                 _assignments.CapturedAssignments.IsExpanded = true;
             }
             finally { _refreshing = false; }
