@@ -80,7 +80,9 @@ namespace Heimdall.App.Games
                 var page = WarThunderDrawingProjection.Diagram(hardware.Diagram, _session!.Snapshot.Profile, SelectedDevice!, _physicalMap);
                 _presenter.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
                     SelectPhysicalControl, _physicalMap.Inputs.Count > 0 ? DropPhysicalCommand : null,
-                    DragFormat: "heimdall.war-thunder.command"), AppearanceManager.ArtworkOpacityFor(this));
+                    CanClear: CanClearPhysicalControl, Clear: ClearPhysicalControl,
+                    CanTune: CanTunePhysicalControl, Tune: TunePhysicalControl,
+                    DragFormat: "heimdall.war-thunder.command", Inspect: InspectPhysicalControl, CanDrop: CanDropPhysicalCommand), AppearanceManager.ArtworkOpacityFor(this));
                 _assignments.Artwork.Feedback.Text = _physicalMap.Message;
             }
             _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;
@@ -91,6 +93,7 @@ namespace Heimdall.App.Games
         }
         private void RefreshPhysicalMap()
         {
+            _drawingAssignments.Clear();
             var observations = _session is not null && SelectedDevice is { } selected && _session.Snapshot.Hardware.TryGetValue(selected, out var pin)
                 ? _controllerInputs.Where(observation => observation.Device.PhysicalGuid == pin.Device.PhysicalGuid && observation.Device.ProductGuid == pin.Device.ProductGuid).ToArray() : [];
             _physicalMap = observations.Length == 1 && _session is not null && SelectedDevice is { } slot
@@ -112,31 +115,6 @@ namespace Heimdall.App.Games
                 if (_disposed || scan != _hardwareScan) return;
                 _controllerInputs = []; ReportError(error, "Controller input scan failed");
             }
-        }
-        private void SelectPhysicalControl(HardwareGraphicControl control)
-        {
-            var type = (_assignments.Browser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Type
-                ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command.Type;
-            _selectedPhysicalInput = _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == type);
-            RefreshEditor();
-            _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping. " + _physicalMap.Message : control.Label + " selected. Apply assignment to stage the selected command.";
-        }
-        internal void DropPhysicalCommand(HardwareGraphicControl control, string commandId) => Run(() =>
-        {
-            if (_session is null) return;
-            _assignments.Browser.CommandsList.SelectedItem = _assignments.Browser.CommandsList.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>().FirstOrDefault(command => command.Id == commandId);
-            var type = _session.Catalog.Find(commandId)?.Type;
-            var input = _physicalMap.Inputs.FirstOrDefault(candidate => candidate.Key == control.InputKey && candidate.Type == type)
-                ?? throw new InvalidOperationException("This physical input has no verified native mapping.");
-            ApplyPhysicalAssignment(commandId, input);
-        });
-        private void ApplyPhysicalAssignment(string commandId, WarThunderPhysicalInput input)
-        {
-            if (_session is null || SelectedDevice is not { } id || _input.Running) throw new InvalidOperationException("Select a linked controller and stop input testing before assigning.");
-            if (!_physicalMap.Inputs.Contains(input)) throw new InvalidOperationException("The physical input mapping is no longer current.");
-            _session.ApplyNativeEdit(WarThunderDrawingProjection.Assignment(_session.Snapshot.Profile, commandId, id, input));
-            _selectedPhysicalInput = null; RefreshEditor();
-            Status.Text = _assignments.Artwork.Feedback.Text = "Assignment staged. Save before exporting.";
         }
         #endregion END private helpers
     }

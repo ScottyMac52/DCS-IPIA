@@ -16,15 +16,18 @@ namespace Heimdall.WarThunder
             var labels = drawing.Controls.ToDictionary(control => control.Control, control =>
             {
                 var inputs = map.Inputs.Where(candidate => candidate.Key == control.InputKey).ToArray();
-                return (IReadOnlyList<KneeboardLabelVariant>)(inputs.Length == 0 ? [] : rows.Where(row => inputs.Any(input =>
-                    WarThunderWorkspaceProjection.InputFields(row.Binding).Any(scalar =>
-                        WarThunderWorkspaceProjection.FieldName(scalar) == (input.Type == CommandType.Axis ? "axisId" : "joyButton")
-                        && int.TryParse(scalar.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var global)
-                        && global == native.Encode(input.Type, input.Index))))
+                return (IReadOnlyList<KneeboardLabelVariant>)(inputs.Length == 0 ? [] : MatchingRows(rows, native, inputs)
                     .Select(row => row.Name).Distinct(StringComparer.Ordinal).Select(name => new KneeboardLabelVariant(name,
                         KneeboardStateColors.Base, AssignmentLayer.Module, "")).ToArray());
             }, StringComparer.Ordinal);
             return new(drawing.Title, "War Thunder", labels, new Dictionary<string, string>(), []);
+        }
+        /// <summary>Returns captured alternatives assigned to one physical callout, using the same ownership rules as its labels.</summary>
+        public static IReadOnlyList<WarThunderWorkspaceRow> Assignments(ProfileDocument profile, string deviceId, string key, WarThunderPhysicalMap map)
+        {
+            var native = WarThunderProfileBackend.ReadDevices(profile).Single(device => device.Id == deviceId);
+            var rows = WarThunderWorkspaceProjection.Rows(profile, new WarThunderProfileBackend().GetCatalog(profile).Commands);
+            return MatchingRows(rows, native, map.Inputs.Where(input => input.Key == key).ToArray()).ToArray();
         }
         /// <summary>Rebinds a simple existing alternative or adds a new one without destroying chords or keyboard alternatives.</summary>
         public static WarThunderNativeEdit Assignment(ProfileDocument profile, string commandId, string deviceId, WarThunderPhysicalInput input)
@@ -47,5 +50,13 @@ namespace Heimdall.WarThunder
             return new(WarThunderEditKind.Add, DeviceId: deviceId, CommandId: commandId, Type: input.Type, NativeIndex: input.Index);
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static IEnumerable<WarThunderWorkspaceRow> MatchingRows(IReadOnlyList<WarThunderWorkspaceRow> rows,
+            WarThunderDevice native, WarThunderPhysicalInput[] inputs) => rows.Where(row => inputs.Any(input =>
+                WarThunderWorkspaceProjection.InputFields(row.Binding).Any(scalar =>
+                    WarThunderWorkspaceProjection.FieldName(scalar) == (input.Type == CommandType.Axis ? "axisId" : "joyButton")
+                    && int.TryParse(scalar.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var global)
+                    && global == native.Encode(input.Type, input.Index))));
+        #endregion END private helpers
     }
 }

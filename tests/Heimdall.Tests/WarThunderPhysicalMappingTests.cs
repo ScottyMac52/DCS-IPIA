@@ -1,6 +1,8 @@
 using Heimdall.Application;
 using Heimdall.Domain.MultiSim;
 using Heimdall.WarThunder;
+using Heimdall.Rendering;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Heimdall.Tests
@@ -38,13 +40,27 @@ namespace Heimdall.Tests
         public void Drawing_labels_and_assignment_share_native_offset_contract()
         {
             var backend = new WarThunderProfileBackend(); var profile = WarThunderBackendFixture.Import(backend);
-            var drawing = new UiLayerDiagram("Synthetic", null, "", 300, 200, [], []) { Controls = [new("fire", "Fire", "JOY_BTN2", 0, 0, 50, 30)] };
+            var drawing = new UiLayerDiagram("Synthetic", null, "", 300, 200, [], [])
+            {
+                Svg = """<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><text id="lbl-fire" x="25" y="20" text-anchor="middle">Fire</text></svg>""",
+                Controls = [new("fire", "Fire", "JOY_BTN2", 0, 0, 50, 30)]
+            };
             var map = new WarThunderPhysicalMap([new("JOY_BTN2", CommandType.Button, 1)], "verified test evidence");
             var page = WarThunderDrawingProjection.Diagram(drawing, profile, "war-thunder.joystick.0", map);
             Assert.Equal("FIRE", Assert.Single(page.Labels["fire"]).Text);
+            var records = WarThunderDrawingProjection.Assignments(profile, "war-thunder.joystick.0", "JOY_BTN2", map);
+            Assert.Equal("ID_FIRE", Assert.Single(records).Binding.Command);
+            Assert.Empty(WarThunderDrawingProjection.Assignments(profile, "war-thunder.joystick.1", "JOY_BTN2", map));
+            Assert.Empty(WarThunderDrawingProjection.Assignments(profile, "war-thunder.joystick.0", "JOY_BTN1", map));
             var command = backend.GetCatalog(profile).Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
             var edit = WarThunderDrawingProjection.Assignment(profile, command.Id, "war-thunder.joystick.1", new("JOY_BTN2", CommandType.Button, 1));
             var changed = edit.Apply(profile); var text = WarThunderBackendFixture.Export(backend, changed);
+            Assert.Empty(WarThunderDrawingProjection.Assignments(changed, "war-thunder.joystick.0", "JOY_BTN2", map));
+            Assert.Equal("ID_FIRE", Assert.Single(WarThunderDrawingProjection.Assignments(changed, "war-thunder.joystick.1", "JOY_BTN2", map)).Binding.Command);
+            var oldPage = WarThunderDrawingProjection.Diagram(drawing, changed, "war-thunder.joystick.0", map);
+            var newPage = WarThunderDrawingProjection.Diagram(drawing, changed, "war-thunder.joystick.1", map);
+            Assert.Empty(XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(drawing, oldPage)).Descendants().Single(element => (string?)element.Attribute("id") == "lbl-fire").Value);
+            Assert.Equal("FIRE", XDocument.Parse(CompositeKneeboardRenderer.BuildDeviceSvg(drawing, newPage)).Descendants().Single(element => (string?)element.Attribute("id") == "lbl-fire").Value);
             Assert.Contains("joyButton:i=5", text, StringComparison.Ordinal); Assert.Contains("activationType:i=9", text, StringComparison.Ordinal);
             Assert.Contains("keyboardKey:i=30;keyboardKey:i=31", text, StringComparison.Ordinal);
             Assert.Throws<InvalidOperationException>(() => WarThunderDrawingProjection.Assignment(profile, command.Id, "war-thunder.joystick.0", new("JOY_X", CommandType.Axis, 0)));

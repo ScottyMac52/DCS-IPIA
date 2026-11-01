@@ -71,13 +71,30 @@ namespace Heimdall.App.Smoke
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
                 var fireCommand = window.Session!.Catalog.Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
+                if (!window.SaveCurrent() || window.Session.HasChanges) throw new InvalidOperationException("Saved baseline was not clean before the drawing edit.");
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
                 AssertNative(window, "joyButton:i=0;activationType:i=9");
+                if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
+                    throw new InvalidOperationException("A changed drawing assignment did not enable Save on a saved profile.");
+                if (!window.SaveCurrent()) throw new InvalidOperationException("Drawing assignment could not be saved.");
+                window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
+                if (window.Session.HasChanges || Box<Button>(window, "Save").IsEnabled
+                    || !Box<TextBlock>(window, "Status").Text.Contains("already set", StringComparison.Ordinal))
+                    throw new InvalidOperationException("An unchanged assignment was reported as a staged change.");
+                var firstControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1");
+                var menu = firstControl.ContextMenu ?? throw new InvalidOperationException("Assigned physical callout has no right-click menu.");
+                if (!menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Clear assignment"))
+                    throw new InvalidOperationException("A clearable physical assignment was missing its context action.");
+                menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "View assignments").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if (!assignments.CapturedAssignments.IsExpanded || assignments.Records.Items.Count == 0)
+                    throw new InvalidOperationException("The physical context action did not display its captured assignments.");
                 var secondControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN2");
                 secondControl.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
                 var applyAction = Box<FeatureActionBar>(window, "FeatureActions").Actions.Single(action => action.Id == "Apply");
                 if (!applyAction.Command.CanExecute(null)) throw new InvalidOperationException("A verified physical input did not enable Apply assignment.");
                 applyAction.Command.Execute(null); AssertNative(window, "joyButton:i=1;activationType:i=9");
+                if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
+                    throw new InvalidOperationException("Public Apply did not refresh Save after changing a saved drawing assignment.");
                 foreach (var (width, height) in new[] { (1340d, 860d), (1050d, 650d) })
                 {
                     window.Width = width; window.Height = height; assignments.Zoom.Value = 2;

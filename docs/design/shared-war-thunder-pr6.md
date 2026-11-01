@@ -94,3 +94,12 @@ Physical button/POV and axis/POV evidence now validate independently. An axis-co
 Devices and drawing feedback show verified target counts and the exact blocked group, including saved BLK counts versus discovered axes/buttons/POVs. Discovery errors remain visible, and physical evidence can be assessed without artwork. WarThunderPhysicalMappingTests covers partial groups and native assignment preservation; the Windows workspace smoke exercises public Apply with an unsupported relative axis present. These changes still require local .NET/WPF execution and actual-device acceptance.
 
 Dragging commands onto callouts is distinct from dragging controllers to reorder the Devices roster. Native roster reordering and rewriting all affected global references remain unimplemented and disabled.
+
+
+### Callout edit feedback and context actions
+
+Physical callouts now supply the shared presenter with assignment inspection, clear for an unambiguous single-input joystick alternative, and axis-settings navigation when the captured record supports it. Chords/system alternatives are preserved; ambiguous alternatives remain individually reviewable in the occurrence table. Context inspection and drawing labels share the adapter's native ownership lookup. The shared presenter advertises a drop only when an adapter-supplied compatibility predicate accepts the pointed control and command.
+
+The shared command drag source retains the command under the original pointer press instead of taking whichever command happens to be selected later. War Thunder drawing edits compare profile contents and distinguish a changed staged assignment from an already-set assignment. No-op edits do not enable Save or claim a new staged change. Changed profiles refresh through the session notification and the common Save chrome.
+
+Regression coverage now checks old/new callout SVG labels after native reassignment. Windows smoke starts with a saved profile, applies a different binding, requires Save to enable, saves it, repeats the unchanged assignment without dirtying it, invokes callout assignment inspection, checks the clear action, and changes the binding through public Apply. These new .NET/WPF checks require local execution; source checks do not establish hardware acceptance.

@@ -37,14 +37,15 @@ namespace Heimdall.App.Games
                     border.MouseLeftButtonDown += (_, e) => { actions.Select!(control); e.Handled = true; };
                 if (availability.Drop)
                 {
-                    border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(actions.DragFormat) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
-                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id) actions.Drop!(control, id); e.Handled = true; };
+                    border.DragOver += (_, e) => { e.Effects = e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
+                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true)) actions.Drop!(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
                 }
                 // A left click already selects the input. A right-click menu
                 // advertises only actual native operations; no phantom Select/Tune.
                 if (actions.Clear is not null || actions.Tune is not null || actions.Inspect is not null)
                 {
                     var menu = new ContextMenu();
+                    RefreshMenu(menu, control, actions);
                     border.ContextMenuOpening += (_, e) =>
                     {
                         RefreshMenu(menu, control, actions);
@@ -93,3 +94,4 @@ namespace Heimdall.App.Games
         #endregion END Public
     }
 }
+
