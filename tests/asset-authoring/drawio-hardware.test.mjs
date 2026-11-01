@@ -195,3 +195,24 @@ test('TM MFD visible geometry stays inside a balanced viewport', () => {
   assert.ok(image);
   assert.equal(image.x + image.width / 2, width / 2, 'TM MFD hardware image must remain centered');
 });
+
+test('left Sol-R sources retain left identity and native controls after layout edits', () => {
+  for (const mode of ['buttons', 'pov']) {
+    const id = `tm-sol-r-ava-l-${mode}`;
+    const left = readFileSync(join(hardwareRoot, 'drawio', `${id}.drawio`), 'utf8');
+    const right = readFileSync(join(hardwareRoot, 'drawio', `tm-sol-r-ava-r-${mode}.drawio`), 'utf8');
+    assert.ok(left.includes(`diagram id="${id}"`));
+    assert.ok(left.includes('AVA [L]')); assert.ok(!left.includes('AVA [R]'));
+    const graph = decodeDrawioGraph(left, id);
+    const controls = [...graph.matchAll(/id="label-([^"]+)"/g)].map(match => match[1]).sort();
+    const lua = readFileSync(join(hardwareRoot, 'lua', `${id}.lua`), 'utf8');
+    const declared = [...lua.matchAll(/\{\s*id\s*=\s*"([^"]+)"\s*,\s*key/g)].map(match => match[1]).sort();
+    assert.equal(controls.length, 32); assert.deepEqual(controls, declared);
+    assert.ok(!controls.includes('JOY_RX')); assert.ok(!controls.includes('JOY_RY'));
+    // Compare the artwork independently from text/layout metadata without dumping embedded image data.
+    const images = xml => [...xml.matchAll(/image=data:image[^;"]+/g)].map(match => match[0]);
+    const leftImages = images(graph), rightImages = images(decodeDrawioGraph(right));
+    assert.equal(leftImages.length, 2); assert.equal(rightImages.length, 2);
+    for (let index = 0; index < leftImages.length; index++) assert.ok(leftImages[index] !== rightImages[index], 'Left artwork must differ from right artwork.');
+  }
+});
