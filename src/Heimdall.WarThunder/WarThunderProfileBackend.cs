@@ -12,8 +12,6 @@ namespace Heimdall.WarThunder
     public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator, ISimControllerRemoval
     {
         private const string EvidenceKey = "war-thunder.v1";
-        private static readonly HashSet<string> AxisParameters = new(StringComparer.Ordinal)
-            { "inverse", "kMul", "innerDeadzone", "nonlinearity", "relative" };
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
         /// <summary>Gets the versioned declarative contract packaged from the adapter's validation JSON file.</summary>
@@ -146,7 +144,7 @@ namespace Heimdall.WarThunder
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
             var field = binding.Fields.SingleOrDefault(candidate => candidate.Address == fieldAddress);
-            if (binding.Section != "axes" || field is null || !AxisParameters.Contains(WarThunderNativeProfile.Name(field.Path))
+            if (binding.Section != "axes" || field is null || !WarThunderRecordCapabilities.IsAxisParameter(WarThunderNativeProfile.Name(field.Path))
                 || binding.Fields.Count(other => other.Path == field.Path) != 1)
                 throw new InvalidOperationException("Choose a captured axis parameter; use native rebind for axis ownership.");
             return Edited(evidence, native.Document.ReplaceOccurrences(new Dictionary<string, string> { [field.Address] = nativeValue }));
@@ -157,24 +155,7 @@ namespace Heimdall.WarThunder
             var native = new WarThunderNativeProfile(Evidence(profile).Text);
             var binding = native.Bindings.SingleOrDefault(candidate => candidate.Id == recordId)
                 ?? throw new InvalidOperationException("Unknown native binding occurrence.");
-            if (native.Document.HasOpaqueSyntax || binding.HasChildren || (binding.Section == "axes"
-                && native.Bindings.Count(other => other.Section == binding.Section && other.Command == binding.Command) != 1))
-                return new(false, false, false, false, []);
-            var axis = binding.Section == "axes";
-            var inputName = axis ? "axisId" : "joyButton";
-            var inputs = binding.Fields.Where(field => WarThunderNativeProfile.Name(field.Path) == inputName && field.Type == 'i').ToArray();
-            string[] parameters = axis ? binding.Fields.Where(field => AxisParameters.Contains(WarThunderNativeProfile.Name(field.Path)))
-                .GroupBy(field => field.Path, StringComparer.Ordinal).Where(group => group.Count() == 1)
-                .Select(group => group.Single().Address).ToArray() : [];
-            return new((axis ? inputs.Length == 1 : inputs.Length > 0) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid),
-                axis ? inputs.Length == 1 && binding.Fields.Count(field => WarThunderNativeProfile.Name(field.Path) == "axisId") == 1
-                    && int.TryParse(inputs[0].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var axisIndex) && axisIndex >= 0
-                    : inputs.Length > 0 && binding.Fields.All(field => WarThunderNativeProfile.Name(field.Path) is "joyButton" or "activationType"),
-                (!axis || !binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) == "axisId")) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid)
-                    && !native.Bindings.Any(other => other.Section == binding.Section && other.Command == binding.Command && other.HasChildren),
-                axis && inputs.Length == 1 && binding.Fields.Count(field => WarThunderNativeProfile.Name(field.Path) == "inverse") <= 1
-                    && binding.Fields.Where(field => WarThunderNativeProfile.Name(field.Path) == "inverse").All(field => field.Type == 'b'),
-                parameters);
+            return WarThunderRecordCapabilities.Create(native, binding);
         }
         /// <summary>Sets the known native inverse flag on an assigned axis; no polarity or portable curve inference is involved.</summary>
         public static ProfileDocument SetAxisInverse(ProfileDocument profile, string recordId, bool inverted)
