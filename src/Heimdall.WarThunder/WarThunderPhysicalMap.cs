@@ -18,7 +18,9 @@ namespace Heimdall.WarThunder
             if (!native.Valid || !observation.Device.Connected || identity is null
                 || !new WarThunderDeviceReferenceMatcher().Matches(identity, observation.Device)) return Missing("Link and connect the matching physical controller.");
             if (capabilities?.NativeObjects is null) return Missing(observation.Error ?? "Rescan to capture the controller's native input order.");
-            var axes = capabilities.NativeObjects.Where(item => (item.NativeType & 3) != 0).ToArray();
+            // Dagor accepts recognized axis GUIDs; unrecognized objects need offset evidence
+            // unavailable in this scan. Require an exact saved count before using this subset.
+            var axes = capabilities.NativeObjects.Where(IsRecognizedAxis).ToArray();
             var hats = capabilities.Inputs.Where(input => input.Kind == ControllerInputKind.Hat).OrderBy(input => Instance(input.Evidence)).ToArray();
             if (capabilities.NativeObjects.Count(item => (item.NativeType & 255) == 16) != hats.Length
                 || !hats.Select(input => Instance(input.Evidence)).SequenceEqual(Enumerable.Range(0, hats.Length)))
@@ -42,7 +44,7 @@ namespace Heimdall.WarThunder
             if (native.AxesCount != count)
             {
                 errors.Add(string.Create(CultureInfo.InvariantCulture,
-                    $"Axis mapping blocked: BLK declares {native.AxesCount}; connected controller exposes {axes.Length} axes plus {hats.Length} POV(s), totaling {count}."));
+                    $"Axis mapping blocked: BLK declares {native.AxesCount}; connected controller exposes {axes.Length} recognized axes plus {hats.Length} POV(s), totaling {count}."));
                 return [];
             }
             var inputs = new List<WarThunderPhysicalInput>();
@@ -84,6 +86,13 @@ namespace Heimdall.WarThunder
                     var index = type == CommandType.Button ? offset + hat * 4 + direction : offset + hat * 2 + (direction % 2 == 0 ? 1 : 0);
                     inputs.Add(new(hats[hat].DcsKey + "_" + directions[direction], type, index));
                 }
+        }
+        private static bool IsRecognizedAxis(ControllerObject item)
+        {
+            if ((item.NativeType & 3) == 0) return false;
+            var guid = item.ObjectGuid.ToString("D");
+            return guid.EndsWith("-c9f3-11cf-bfc7-444553540000", StringComparison.Ordinal)
+                && guid[..8] is "a36d02e0" or "a36d02e1" or "a36d02e2" or "a36d02f4" or "a36d02f5" or "a36d02e3" or "a36d02e4";
         }
         private static int Instance(ControllerObject item) => (int)((item.NativeType >> 8) & 65535);
         private static WarThunderPhysicalMap Missing(string message) => new([], message);

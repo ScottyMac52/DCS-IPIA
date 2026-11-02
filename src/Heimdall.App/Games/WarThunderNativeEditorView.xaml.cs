@@ -47,6 +47,13 @@ namespace Heimdall.App.Games
             Index.Text = input.Index.ToString(CultureInfo.InvariantCulture);
             _refreshing = false; _physicalSelected = true; UpdateActions();
         }
+        internal void BlockPhysicalSelection(string message)
+        {
+            _refreshing = true;
+            Target.SelectedItem = null; Index.Clear();
+            _refreshing = false; _physicalSelected = true; _physicalCompatible = false;
+            Frame.AssignmentDraftStatus.Text = message; UpdateActions();
+        }
         internal void Show(GameProfileSession? session, SimCommand? command, WarThunderWorkspaceRow? row, bool busy)
         {
             _refreshing = true; _physicalSelected = false; _session = session; _row = row; _command = command; _busy = busy;
@@ -69,7 +76,7 @@ namespace Heimdall.App.Games
         }
         internal void Submit(WarThunderEditKind kind)
         {
-            if (_refreshing || _session is null || _busy) return;
+            if (_refreshing || _session is null || _busy || (_physicalSelected && !_physicalCompatible)) return;
             try
             {
                 var index = 0;
@@ -101,7 +108,7 @@ namespace Heimdall.App.Games
         private void UpdateActions()
         {
             if (_refreshing) return;
-            var ready = _session is not null && _session.AccessMessage.Length == 0 && !_busy;
+            var ready = _session is not null && _session.AccessMessage.Length == 0 && !_busy && (!_physicalSelected || _physicalCompatible);
             var capabilities = _capabilities;
             Apply.IsEnabled = ready && Target.SelectedItem is WarThunderDevice && (_physicalSelected ? _physicalCompatible : (capabilities?.RebindNativeInputs == true && Input.SelectedItem is WarThunderBlkScalar) || capabilities?.AddNativeInput == true);
             Add.IsEnabled = ready && capabilities?.AddNativeInput == true && Target.SelectedItem is WarThunderDevice;

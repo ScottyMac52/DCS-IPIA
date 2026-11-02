@@ -9,7 +9,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.WarThunder
 {
     /// <summary>Imports portable native-backed controls, validates native edits and exports exact reviewed text without deployment.</summary>
-    public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator
+    public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator, ISimControllerRemoval
     {
         private const string EvidenceKey = "war-thunder.v1";
         private static readonly HashSet<string> AxisParameters = new(StringComparer.Ordinal)
@@ -71,6 +71,14 @@ namespace Heimdall.WarThunder
         {
             if (profile.BackendId != SimId || !ReadDevices(profile).Any(device => device.Id == logicalDeviceId && device.Valid))
                 throw new InvalidOperationException("Choose a valid saved War Thunder device mapping.");
+        }
+        /// <summary>Removes one saved mapping and dependent alternatives while retaining all surviving native offsets.</summary>
+        public SimControllerRemoval RemoveController(ProfileDocument profile, string logicalId)
+        {
+            var evidence = Evidence(profile);
+            var native = new WarThunderNativeProfile(evidence.Text);
+            var removal = WarThunderControllerRemoval.Create(native, logicalId);
+            return new(Edited(evidence, removal.Text), removal.RemainingIds, removal.Summary);
         }
         /// <summary>Reads saved range declarations without claiming they are currently connected controllers.</summary>
         public static IReadOnlyList<WarThunderDevice> ReadDevices(ProfileDocument profile) => new WarThunderNativeProfile(Evidence(profile).Text).Devices;

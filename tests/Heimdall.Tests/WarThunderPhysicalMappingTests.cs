@@ -111,9 +111,54 @@ namespace Heimdall.Tests
             var objects = observation.Capabilities!.NativeObjects!.ToArray(); objects[0] = objects[0] with { ObjectGuid = Guid.NewGuid() };
             var map = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation with { Capabilities = ControllerCapabilityMapper.Map(objects) });
             Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Button, input.Type));
-            Assert.Contains("unsupported or ambiguous", map.Message, StringComparison.Ordinal);
+            Assert.Contains("Axis mapping blocked", map.Message, StringComparison.Ordinal);
             var failed = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation with { Capabilities = null, Error = "Native scan failed" });
             Assert.Empty(failed.Inputs); Assert.Equal("Native scan failed", failed.Message);
+        }
+        /// <summary>Nonstandard raw axis objects do not consume Dagor ordinals when the recognized roster matches the capture.</summary>
+        [Fact]
+        public void Eight_standard_axes_and_pov_match_ten_native_axes_despite_extra_object()
+        {
+            string[] guids = ["a36d02e1", "a36d02e0", "a36d02e2", "a36d02f4", "a36d02f5", "a36d02e3", "a36d02e4", "a36d02e4"];
+            var objects = guids.Select((guid, index) => new ControllerObject(Guid.Parse(guid + "-c9f3-11cf-bfc7-444553540000"),
+                (uint)(2 + index * 256), guid)).ToList();
+            objects.Insert(1, new(Guid.NewGuid(), 2306u, "Nonstandard axis"));
+            objects.Add(new(Guid.NewGuid(), 16u, "POV"));
+            var observation = Observe() with { Capabilities = ControllerCapabilityMapper.Map(objects) };
+            var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=10", StringComparison.Ordinal)
+                .Replace("axesOffset:i=2", "axesOffset:i=10", StringComparison.Ordinal);
+            var backend = new WarThunderProfileBackend(); var profile = WarThunderBackendFixture.Import(backend, source);
+            var map = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation);
+            Assert.DoesNotContain("Axis mapping blocked", map.Message, StringComparison.Ordinal);
+            Assert.Contains(new WarThunderPhysicalInput("JOY_X", CommandType.Axis, 1), map.Inputs);
+            Assert.Contains(new WarThunderPhysicalInput("JOY_SLIDER2", CommandType.Axis, 7), map.Inputs);
+            Assert.Contains(new WarThunderPhysicalInput("JOY_BTN_POV1_R", CommandType.Axis, 8), map.Inputs);
+            var pitch = backend.GetCatalog(profile).Commands.Single(command => command.Metadata["war-thunder.command"] == "pitch");
+            var input = map.Inputs.Single(input => input.Key == "JOY_RY");
+            var changed = WarThunderDrawingProjection.Assignment(profile, pitch.Id, "war-thunder.joystick.0", input).Apply(profile);
+            var text = WarThunderBackendFixture.Export(backend, changed);
+            Assert.Contains("pitch{axisId:i=4;inverse:b=no;kMul:r=1.25;mouseAxisId:i=-1;futureParam:r=2;}", text, StringComparison.Ordinal);
+            Assert.Contains("keyboardKey:i=30;keyboardKey:i=31", text, StringComparison.Ordinal);
+            objects[1] = objects[1] with { ObjectGuid = Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), NativeType = 2305u };
+            var mismatch = WarThunderPhysicalMap.Create(profile, "war-thunder.joystick.0", observation with { Capabilities = ControllerCapabilityMapper.Map(objects) });
+            Assert.DoesNotContain(mismatch.Inputs, candidate => candidate.Type == CommandType.Axis);
+            Assert.Contains("Axis mapping blocked", mismatch.Message, StringComparison.Ordinal);
+        }
+        /// <summary>Recognized axes still consume native ordinals even when shared input testing cannot expose them.</summary>
+        [Fact]
+        public void Recognized_relative_axis_is_not_silently_dropped_to_force_a_match()
+        {
+            var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=4", StringComparison.Ordinal)
+                .Replace("axesOffset:i=2", "axesOffset:i=4", StringComparison.Ordinal)
+                .Replace("buttonsCount:i=4", "buttonsCount:i=6", StringComparison.Ordinal)
+                .Replace("buttonsOffset:i=4", "buttonsOffset:i=6", StringComparison.Ordinal);
+            var observation = Observe();
+            var objects = observation.Capabilities!.NativeObjects!.ToArray();
+            objects[0] = objects[0] with { NativeType = 257u };
+            var map = WarThunderPhysicalMap.Create(WarThunderBackendFixture.Import(new(), source), "war-thunder.joystick.0",
+                observation with { Capabilities = ControllerCapabilityMapper.Map(objects) });
+            Assert.Contains("unsupported or ambiguous", map.Message, StringComparison.Ordinal);
+            Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Button, input.Type));
         }
         #endregion END Public
         #region BEGIN private helpers

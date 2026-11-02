@@ -17,6 +17,7 @@ namespace Heimdall.App.Games
             var type = (_assignments.Browser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Type
                 ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command.Type;
             _selectedPhysicalInput = _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == type);
+            _physicalSelectionBlocked = _selectedPhysicalInput is null;
             RefreshEditor();
             _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping. " + _physicalMap.Message : control.Label + " selected. Apply assignment to stage the selected command.";
         }
@@ -51,7 +52,7 @@ namespace Heimdall.App.Games
             var before = JsonSerializer.Serialize(_session.Snapshot.Profile);
             _session.ApplyNativeEdit(edit);
             var changed = before != JsonSerializer.Serialize(_session.Snapshot.Profile);
-            _selectedPhysicalInput = null; RefreshEditor(); RefreshChrome();
+            _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshEditor(); RefreshChrome();
             Status.Text = _assignments.Artwork.Feedback.Text = changed
                 ? "Assignment changed and staged. Save before exporting."
                 : "Assignment is already set; no binding changed.";
@@ -114,7 +115,7 @@ namespace Heimdall.App.Games
         private void InspectPhysicalControl(HardwareGraphicControl control) => Run(() =>
         {
             var rows = PhysicalAssignments(control);
-            _selectedPhysicalInput = null;
+            _selectedPhysicalInput = null; _physicalSelectionBlocked = false;
             _refreshing = true;
             try
             {

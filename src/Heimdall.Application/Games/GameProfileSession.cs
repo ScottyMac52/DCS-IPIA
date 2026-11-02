@@ -364,6 +364,8 @@ namespace Heimdall.Application.Games
         /// <summary>Previews clearing a controller and every binding using it as a modifier, without changing state.</summary>
         public GameControllerChange PreviewRemoveController(string logicalId)
         {
+            RequireAccess();
+            if (_backend is ISimControllerRemoval removal) return PreviewNativeRemoval(removal, logicalId);
             var baseline = JsonSerializer.Serialize(_current);
             var candidate = GameWorkspaceContract.Clone(_current);
             candidate = candidate with { Profile = DeviceEditor().RemoveDevice(candidate.Profile, logicalId) };
@@ -529,6 +531,26 @@ namespace Heimdall.Application.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        private GameControllerChange PreviewNativeRemoval(ISimControllerRemoval adapter, string logicalId)
+        {
+            var candidate = Snapshot;
+            var result = adapter.RemoveController(candidate.Profile, logicalId);
+            var expected = candidate.Profile.Devices.Where(device => device.LogicalId != logicalId).Select(device => device.LogicalId).Order(StringComparer.Ordinal);
+            if (!expected.SequenceEqual(result.RemainingIds.Keys.Order(StringComparer.Ordinal))
+                || !result.RemainingIds.Values.Order(StringComparer.Ordinal).SequenceEqual(result.Profile.Devices.Select(device => device.LogicalId).Order(StringComparer.Ordinal)))
+                throw new InvalidOperationException("Controller removal did not preserve a unique identity for every surviving controller.");
+            candidate = candidate with
+            {
+                Profile = result.Profile,
+                Hardware = candidate.Hardware.Where(pin => pin.Key != logicalId).ToDictionary(pin => result.RemainingIds[pin.Key], pin => pin.Value, StringComparer.Ordinal),
+                UnlinkedDrawings = candidate.UnlinkedDrawings.Where(pin => pin.Key != logicalId).ToDictionary(pin => result.RemainingIds[pin.Key], pin => pin.Value, StringComparer.Ordinal),
+                ControllerOrder = GameControllerOrder.For(candidate).Where(id => id != logicalId).Select(id => result.RemainingIds[id]).ToList()
+            };
+            RequireProfileIdentity(result.Profile, "Controller removal changed profile identity.");
+            ValidateControllerCandidate(candidate);
+            return new(this, JsonSerializer.Serialize(_current), candidate, result.Summary, null);
+        }
+
         private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)
         {
             RequireProfileIdentity(profile, identityError);

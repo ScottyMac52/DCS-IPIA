@@ -18,7 +18,7 @@ namespace Heimdall.App.Games
             Controllers.SelectionChanged += (_, _) =>
             {
                 if (_refreshing) return;
-                _input.Stop(); _selectedPhysicalInput = null; RefreshDevices(); RefreshCommands(); ShowDrawing();
+                _input.Stop(); _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshDevices(); RefreshCommands(); ShowDrawing();
             };
             _devices.Rescan.Click += async (_, _) => { await RefreshHardwareAsync(); RefreshDevices(); ShowDrawing(); };
             _devices.Link.Click += (_, _) => Run(() =>
@@ -26,6 +26,7 @@ namespace Heimdall.App.Games
                 if (_session is not null && SelectedDevice is { } id && _devices.Physical.SelectedItem is DetectedDcsDevice physical)
                     Review(_session.PreviewCapturedDeviceLink(id, physical.PhysicalGuid));
             });
+            _devices.Remove.Click += (_, _) => Run(() => { if (_session is not null && SelectedDevice is { } id) Review(_session.PreviewRemoveController(id)); });
             _devices.Unlink.Click += (_, _) => Run(() => { if (_session is not null && SelectedDevice is { } id) Review(_session.PreviewUnlinkController(id)); });
             _devices.UnlinkDrawing.Click += (_, _) => Run(() => { _input.Stop(); if (_session is not null && SelectedDevice is { } id) _session.ChangeDrawing(id, null); });
             _devices.Drawing.SelectionChanged += (_, _) =>
@@ -38,7 +39,7 @@ namespace Heimdall.App.Games
         private void Review(GameControllerChange change)
         {
             _input.Stop();
-            if (_review?.Invoke(change) ?? ThemeMessageBox.Show(this, change.Summary, "Review controller link", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+            if (_review?.Invoke(change) ?? ThemeMessageBox.Show(this, change.Summary, "Review controller change", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
                 _session!.ApplyControllerChange(change);
         }
         private void RefreshDevices()
@@ -57,6 +58,7 @@ namespace Heimdall.App.Games
             _devices.Drawing.SelectedItem = drawingChoices.FirstOrDefault(item => item.DeviceId == drawing);
             var ready = native is not null && native.Valid && _session!.AccessMessage.Length == 0;
             var state = ControllerLinkState.For(pin is not null, drawing is not null, ready, _input.Running);
+            _devices.Remove.IsEnabled = ready && !_input.Running;
             _devices.Physical.IsEnabled = state.SelectPhysical;
             _devices.Link.IsEnabled = state.SelectPhysical && _devices.Physical.SelectedItem is DetectedDcsDevice;
             _devices.Unlink.IsEnabled = state.UnlinkPhysical;

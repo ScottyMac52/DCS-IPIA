@@ -31,8 +31,8 @@ namespace Heimdall.App.Games
                 _refreshing = true; browser.CommandSearch.Clear(); browser.CommandCategoryPicker.SelectedIndex = 0;
                 browser.CommandTypePicker.SelectedIndex = 0; browser.AssignmentStatusPicker.SelectedIndex = 0; _refreshing = false; RefreshCommands();
             };
-            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; RefreshRecords(); } };
-            _assignments.Records.SelectionChanged += (_, _) => { if (!_refreshing) RefreshEditor(); };
+            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshRecords(); } };
+            _assignments.Records.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelectionBlocked = false; RefreshEditor(); } };
             _assignments.Editor.PhysicalApplyRequested += (_, _) => Run(() =>
             {
                 var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command;
@@ -102,7 +102,8 @@ namespace Heimdall.App.Games
         {
             var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
             _assignments.Editor.Show(_session, (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command, row, _input.Running);
-            if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
+            if (_physicalSelectionBlocked) _assignments.Editor.BlockPhysicalSelection(_physicalMap.Message);
+            else if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
         }
         private void RefreshInputState()
         {

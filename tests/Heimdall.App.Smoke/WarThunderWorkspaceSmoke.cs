@@ -34,7 +34,7 @@ namespace Heimdall.App.Smoke
                     new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2u, "X"),
                     new(Guid.NewGuid(), 4u, "Button 1"), new(Guid.NewGuid(), 260u, "Button 2"),
                     new(Guid.NewGuid(), 516u, "Button 3"), new(Guid.NewGuid(), 772u, "Button 4"),
-                    new(Guid.NewGuid(), 513u, "Unsupported relative axis")]);
+                    new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 513u, "Recognized relative axis")]);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
                 var capture = Path.Combine(root, "capture"); Directory.CreateDirectory(capture);
                 var path = Path.Combine(capture, "Synthetic.blk");
@@ -45,7 +45,7 @@ namespace Heimdall.App.Smoke
                 var diagram = new UiLayerDiagram("Synthetic", null, "", 1200, 1600, [], [])
                 {
                     Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"1600\" viewBox=\"0 0 1200 1600\"><rect x=\"10\" y=\"10\" width=\"1180\" height=\"1580\" fill=\"#304050\"/></svg>",
-                    Controls = [new("button", "Button 1", "JOY_BTN1", 20, 20, 100, 30), new("button2", "Button 2", "JOY_BTN2", 140, 20, 100, 30)]
+                    Controls = [new("button", "Button 1", "JOY_BTN1", 20, 20, 100, 30), new("button2", "Button 2", "JOY_BTN2", 140, 20, 100, 30), new("axis", "X Axis", "JOY_X", 260, 20, 100, 30, true)]
                 };
                 WorkspaceHardware[] drawings = [new("drawing-a", "Drawing A", "a.diff.lua", diagram), new("drawing-b", "Drawing B", "b.diff.lua", diagram)];
                 IdentificationInputSource? input = null; var choice = MessageBoxResult.Cancel;
@@ -72,6 +72,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("A mismatched axis group did not retain verified button mapping and visible diagnostics.");
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");
+                VerifyBlockedAxis(window);
                 var fireCommand = window.Session!.Catalog.Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
                 if (!window.SaveCurrent() || window.Session.HasChanges) throw new InvalidOperationException("Saved baseline was not clean before the drawing edit.");
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
@@ -200,6 +201,8 @@ namespace Heimdall.App.Smoke
                 Click(Box<Button>(window, "Discard"));
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 2; ThemeControlSmoke.Pump(window);
                 if (Box<ContentControl>(window, "FeatureContent").Content is not WarThunderReferenceView) throw new InvalidOperationException("Reference sheet was not mounted.");
+                WarThunderAxisAssignmentSmoke.Verify(root, original);
+                VerifyRemoval(window);
                 window.Close();
                 using var reopened = new WarThunderWorkspaceWindow(services, id, () => MessageBoxResult.No, drawings: []);
                 reopened.Show(); ThemeControlSmoke.Pump(reopened);
@@ -211,6 +214,34 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyRemoval(WarThunderWorkspaceWindow window)
+        {
+            var before = window.Session!.Export().Files.Single().Value;
+            Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
+            Box<ListBox>(window, "Controllers").SelectedIndex = 1;
+            if (!window.DeviceView.Remove.IsEnabled) throw new InvalidOperationException("Selected native controller cannot be removed.");
+            Click(window.DeviceView.Remove);
+            if (window.Session.Snapshot.Profile.Devices.Count != 1 || !window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
+                throw new InvalidOperationException("Reviewed controller removal was not staged and saveable.");
+            Click(Box<Button>(window, "Discard"));
+            if (window.Session.Snapshot.Profile.Devices.Count != 2 || window.Session.Export().Files.Single().Value != before)
+                throw new InvalidOperationException("Discard did not restore the removed controller and its native assignments.");
+        }
+        private static void VerifyBlockedAxis(WarThunderWorkspaceWindow window)
+        {
+            var assignments = window.AssignmentView;
+            assignments.Browser.CommandsList.SelectedItem = assignments.Browser.CommandsList.Items.Cast<SimCommand>()
+                .Single(command => command.Metadata["war-thunder.command"] == "pitch");
+            if (assignments.Editor.Target.SelectedItem is not WarThunderDevice) throw new InvalidOperationException("Native axis inspection did not select its saved owner.");
+            var control = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_X");
+            control.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            if (assignments.Editor.Target.SelectedItem is not null || assignments.Editor.Index.Text.Length != 0 || assignments.Editor.Apply.IsEnabled
+                || assignments.Editor.Inverse.IsEnabled || assignments.Editor.SetParameter.IsEnabled)
+                throw new InvalidOperationException("Unmapped axis retained a stale editable native target.");
+            assignments.Records.SelectedItem = null;
+            assignments.Records.SelectedIndex = 0;
+            if (!assignments.Editor.Apply.IsEnabled) throw new InvalidOperationException("Explicit native record inspection did not recover after an unmapped axis selection.");
+        }
         private static T Box<T>(FrameworkElement element, string name) where T : FrameworkElement => (T)element.FindName(name);
         private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         private static string AssertNative(WarThunderWorkspaceWindow window, string expected)
