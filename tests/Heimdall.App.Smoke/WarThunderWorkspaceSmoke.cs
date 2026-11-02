@@ -77,6 +77,7 @@ namespace Heimdall.App.Smoke
                 if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
                     throw new InvalidOperationException("A changed drawing assignment did not enable Save on a saved profile.");
                 if (!window.SaveCurrent()) throw new InvalidOperationException("Drawing assignment could not be saved.");
+                var savedDrawingText = AssertNative(window, "joyButton:i=0;activationType:i=9");
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
                 if (window.Session.HasChanges || Box<Button>(window, "Save").IsEnabled
                     || !Box<TextBlock>(window, "Status").Text.Contains("already set", StringComparison.Ordinal))
@@ -149,9 +150,10 @@ namespace Heimdall.App.Smoke
                 assignments.Editor.Literal.Text = "1.5"; Click(assignments.Editor.SetParameter);
                 AssertNative(window, "kMul:r=1.5");
                 var edited = AssertNative(window, "inverse:b=yes");
-                if (edited == original) throw new InvalidOperationException("Native inverse action did not stage an edit.");
+                if (edited == savedDrawingText) throw new InvalidOperationException("Native inverse action did not stage an edit.");
                 Click(Box<Button>(window, "Discard"));
-                if (AssertNative(window, "inverse:b=no") != original) throw new InvalidOperationException("Discard did not restore exact native text.");
+                if (AssertNative(window, "inverse:b=no") != savedDrawingText || window.Session.HasChanges || Box<Button>(window, "Save").IsEnabled)
+                    throw new InvalidOperationException("Discard did not restore the exact latest saved native text and clean state.");
                 browser.CommandSearch.Text = "FIRE";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 assignments.CapturedAssignments.IsExpanded = true;
