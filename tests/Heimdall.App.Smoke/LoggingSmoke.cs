@@ -27,6 +27,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Checks filtering, assembly isolation, configuration reload and sink disposal.</summary>
         public static void Verify()
         {
+            ControllerEvidenceSmoke.Verify();
             var folder = Path.Combine(Path.GetTempPath(), "heimdall-logging-smoke-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             var settingsPath = Path.Combine(folder, "appsettings.json");

@@ -11,6 +11,9 @@ namespace Heimdall.Application
         /// <summary>Retains original native enumeration order for adapters whose axis indices depend on it; absent in older captures.</summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public IReadOnlyList<ControllerObject>? NativeObjects { get; init; }
+        /// <summary>Gets the complete simulator-neutral object roster, independently of the legacy supported-key projection.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public ControllerInputCatalog PhysicalInputs => ControllerInputCatalog.Create(NativeObjects);
         /// <summary>Gets the complete live-test key set, including eight directions per hat.</summary>
         public IReadOnlyCollection<string> DcsKeys => DirectInputStateDecoder.Decode(new byte[176],
             Inputs.ToDictionary(x => x.DcsKey, x => x.Offset, StringComparer.Ordinal)).Keys.ToArray();

@@ -22,6 +22,7 @@ namespace Heimdall.App
             ILogger<App>? logger = null;
             try
             {
+                if (ControllerEvidenceCommand.RunIfRequested(args) is { } evidenceExit) return evidenceExit;
                 configuration = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory)
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true).Build();
                 services = ConfigureServices(configuration).AddSingleton<App>().BuildServiceProvider();
