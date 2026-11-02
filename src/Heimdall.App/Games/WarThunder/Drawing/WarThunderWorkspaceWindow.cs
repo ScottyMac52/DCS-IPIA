@@ -66,21 +66,21 @@ namespace Heimdall.App.Games
             }
             return rows;
         }
-        private IReadOnlyList<WarThunderWorkspaceRow> ClearableAssignments(HardwareGraphicControl control)
+        private WarThunderWorkspaceRow[] ClearableAssignments(HardwareGraphicControl control)
         {
             if (_session is null || _input.Running || _session.AccessMessage.Length != 0) return [];
             return PhysicalAssignments(control).Where(row =>
                 WarThunderProfileBackend.GetBindingCapabilities(_session.Snapshot.Profile, row.RecordId).ClearJoystickAlternative).ToArray();
         }
-        private bool CanClearPhysicalControl(HardwareGraphicControl control) => ClearableAssignments(control).Count > 0;
-        private IReadOnlyList<HardwareDiagramClearChoice> ClearPhysicalChoices(HardwareGraphicControl control) =>
+        private bool CanClearPhysicalControl(HardwareGraphicControl control) => ClearableAssignments(control).Length > 0;
+        private HardwareDiagramClearChoice[] ClearPhysicalChoices(HardwareGraphicControl control) =>
             ClearableAssignments(control).Select((row, index) => new HardwareDiagramClearChoice(
                 row.Name + " · " + row.Inputs + " · " + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
                 () => Run(() => ApplyDrawingEdit(new(WarThunderEditKind.Clear, row.RecordId))))).ToArray();
         private void ClearPhysicalControl(HardwareGraphicControl control) => Run(() =>
         {
             var rows = ClearableAssignments(control);
-            if (rows.Count != 1) throw new InvalidOperationException("Choose the native alternative in the Clear Assignment submenu.");
+            if (rows.Length != 1) throw new InvalidOperationException("Choose the native alternative in the Clear Assignment submenu.");
             ApplyDrawingEdit(new(WarThunderEditKind.Clear, rows[0].RecordId));
         });
         private string ClearUnavailableReason(HardwareGraphicControl control)
