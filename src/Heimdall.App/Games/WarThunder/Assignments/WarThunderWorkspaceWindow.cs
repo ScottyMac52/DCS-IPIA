@@ -47,7 +47,7 @@ namespace Heimdall.App.Games
             _assignments.Stop.Click += (_, _) => _input.Stop();
             _assignments.Fit.Click += (_, _) => _viewport.Fit();
             var menu = new ContextMenu();
-            var clear = new MenuItem { Header = "Clear joystick alternative" };
+            var clear = new MenuItem { Header = "Clear assignment" };
             clear.Click += (_, _) => _assignments.Editor.Submit(WarThunderEditKind.Clear);
             var invert = new MenuItem { Header = "Toggle inverse axis" };
             invert.Click += (_, _) => { _assignments.Editor.Inverse.IsChecked = _assignments.Editor.Inverse.IsChecked != true; _assignments.Editor.Submit(WarThunderEditKind.Inverse); };

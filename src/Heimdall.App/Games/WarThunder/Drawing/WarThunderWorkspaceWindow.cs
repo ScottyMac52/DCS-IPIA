@@ -71,7 +71,7 @@ namespace Heimdall.App.Games
         {
             if (_session is null || _input.Running || _session.AccessMessage.Length != 0) return [];
             return PhysicalAssignments(control).Where(row =>
-                WarThunderProfileBackend.GetBindingCapabilities(_session.Snapshot.Profile, row.RecordId).ClearJoystickAlternative).ToArray();
+                WarThunderProfileBackend.GetBindingCapabilities(_session.Snapshot.Profile, row.RecordId).ClearAssignment).ToArray();
         }
         private bool CanClearPhysicalControl(HardwareGraphicControl control) => ClearableAssignments(control).Length > 0;
         private HardwareDiagramClearChoice[] ClearPhysicalChoices(HardwareGraphicControl control) =>
@@ -91,7 +91,7 @@ namespace Heimdall.App.Games
             if (_session.AccessMessage.Length != 0) return _session.AccessMessage;
             var rows = PhysicalAssignments(control);
             if (rows.Count == 0) return "No captured assignment is mapped to this physical control. " + _physicalMap.Message;
-            if (control.IsAxis) return "Native axis clearing is not implemented. Use View assignments to inspect the captured axis settings.";
+            if (control.IsAxis) return "This axis record is nested, repeated, unsupported or already unassigned. View assignments to inspect it.";
             return "These native alternatives contain system inputs, nested data or unsupported syntax. View assignments to inspect the exact records.";
         }
         private bool CanTunePhysicalControl(HardwareGraphicControl control) => _session is not null && !_input.Running

@@ -129,15 +129,16 @@ namespace Heimdall.WarThunder
             return Edited(evidence, native.Document.AppendChild(parent[0].Address, name,
                 new Dictionary<string, (char Type, string Value)> { ["joyButton"] = ('i', input) }));
         }
-        /// <summary>Clears one joystick-only hotkey record to an explicit empty block, preserving occurrence identities and other alternatives.</summary>
+        /// <summary>Clears one joystick alternative or removes the joystick axis field, preserving axis tuning and other input families.</summary>
         public static ProfileDocument ClearBinding(ProfileDocument profile, string recordId)
         {
             var evidence = Evidence(profile); var native = new WarThunderNativeProfile(evidence.Text);
             var binding = Binding(native, recordId);
-            if (binding.Section != "hotkeys" || !binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) == "joyButton")
-                || binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) is not ("joyButton" or "activationType")))
-                throw new InvalidOperationException("Only a captured joystick-only hotkey alternative can be cleared. System, mixed and axis records remain preserved.");
-            return Edited(evidence, native.Document.EmptyBlock(binding.Id));
+            if (!GetBindingCapabilities(profile, recordId).ClearAssignment)
+                throw new InvalidOperationException("Choose a supported assigned joystick axis or joystick-only hotkey alternative to clear.");
+            return Edited(evidence, binding.Section == "axes"
+                ? native.Document.RemoveScalar(binding.Fields.Single(field => WarThunderNativeProfile.Name(field.Path) == "axisId").Address)
+                : native.Document.EmptyBlock(binding.Id));
         }
         /// <summary>Changes a captured axis parameter literal without guessing portable curve, range or unit conversions.</summary>
         public static ProfileDocument EditAxisParameter(ProfileDocument profile, string recordId, string fieldAddress, string nativeValue)
@@ -166,7 +167,9 @@ namespace Heimdall.WarThunder
                 .GroupBy(field => field.Path, StringComparer.Ordinal).Where(group => group.Count() == 1)
                 .Select(group => group.Single().Address).ToArray() : [];
             return new((axis ? inputs.Length == 1 : inputs.Length > 0) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid),
-                !axis && inputs.Length > 0 && binding.Fields.All(field => WarThunderNativeProfile.Name(field.Path) is "joyButton" or "activationType"),
+                axis ? inputs.Length == 1 && binding.Fields.Count(field => WarThunderNativeProfile.Name(field.Path) == "axisId") == 1
+                    && int.TryParse(inputs[0].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var axisIndex) && axisIndex >= 0
+                    : inputs.Length > 0 && binding.Fields.All(field => WarThunderNativeProfile.Name(field.Path) is "joyButton" or "activationType"),
                 (!axis || !binding.Fields.Any(field => WarThunderNativeProfile.Name(field.Path) == "axisId")) && native.Devices.Count > 0 && native.Devices.All(device => device.Valid)
                     && !native.Bindings.Any(other => other.Section == binding.Section && other.Command == binding.Command && other.HasChildren),
                 axis && inputs.Length == 1 && binding.Fields.Count(field => WarThunderNativeProfile.Name(field.Path) == "inverse") <= 1

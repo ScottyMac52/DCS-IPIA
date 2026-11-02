@@ -31,7 +31,7 @@ namespace Heimdall.WarThunder
                 }
                 var details = string.Join("; ", binding.Fields.Select(scalar => FieldName(scalar) + ":" + scalar.Type + "=" + scalar.Value));
                 return new WarThunderWorkspaceRow(binding, command, devices.ToArray(),
-                    inputs.Count == 0 ? binding.Empty ? "Unassigned" : "System / other native fields" : string.Join(" + ", inputs), details);
+                    inputs.Count == 0 ? Assigned(binding) ? "System / other native fields" : "Unassigned" : string.Join(" + ", inputs), details);
             }).ToArray();
         }
         /// <summary>Filters captured command metadata and native ownership without physical aliases.</summary>

@@ -54,6 +54,15 @@ namespace Heimdall.WarThunder
             }
             return Write(changes);
         }
+        /// <summary>Removes one explicitly addressed scalar while preserving surrounding fields and comments.</summary>
+        public string RemoveScalar(string address)
+        {
+            RequireEditable();
+            var scalar = _scalars.SingleOrDefault(item => item.Address == address)
+                ?? throw new InvalidOperationException("Unknown native scalar occurrence.");
+            var end = scalar.End < _source.Length && _source[scalar.End] == ';' ? scalar.End + 1 : scalar.End;
+            return Write([(scalar.HeaderStart, end, "")]);
+        }
         /// <summary>Removes one complete explicitly addressed block, retaining all source outside its span.</summary>
         public string RemoveBlock(string address)
         {
@@ -199,7 +208,8 @@ namespace Heimdall.WarThunder
             var path = (owner is null ? "" : owner.Path + "/") + header[..colon];
             _scalars.Add(new(path, header[^1], value.Value, value.Index, value.Index + value.Length)
             {
-                Address = state.NextAddress(owner?.Address ?? "", header[..colon], false), BlockAddress = owner?.Address ?? ""
+                Address = state.NextAddress(owner?.Address ?? "", header[..colon], false), BlockAddress = owner?.Address ?? "",
+                HeaderStart = state.Pending[0].Start
             });
             if (!SupportedValue(header[^1], value.Value)) HasOpaqueSyntax = true;
             state.Pending.Clear();

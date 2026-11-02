@@ -4,6 +4,8 @@ namespace Heimdall.WarThunder
     public sealed record WarThunderBlkScalar(string Path, char Type, string Value, int Start, int End)
     {
         #region BEGIN Public
+        /// <summary>Gets the source offset of the typed field header.</summary>
+        public int HeaderStart { get; init; }
         /// <summary>Gets the unique scalar occurrence address, independent of byte offsets.</summary>
         public string Address { get; init; } = "";
         /// <summary>Gets the containing block occurrence address.</summary>

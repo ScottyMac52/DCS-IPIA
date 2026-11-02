@@ -68,7 +68,7 @@ namespace Heimdall.App.Games
             Inverse.IsChecked = row is not null && WarThunderWorkspaceProjection.IsInverted(row.Binding);
             Frame.AssignmentDraftStatus.Text = busy ? "Stop input testing before editing." : session is null ? "Import a controls BLK capture to begin."
                 : capabilities is null ? "Select a captured native record."
-                : !capabilities.RebindNativeInputs && !capabilities.AddNativeInput && !capabilities.ClearJoystickAlternative
+                : !capabilities.RebindNativeInputs && !capabilities.AddNativeInput && !capabilities.ClearAssignment
                     && !capabilities.SetAxisInverse && capabilities.EditableParameterAddresses.Count == 0
                     ? "This native record is preserved read-only; no supported edit is available for its captured shape."
                     : "Select a saved native mapping and zero-based index, then apply the supported operation.";
@@ -112,7 +112,7 @@ namespace Heimdall.App.Games
             var capabilities = _capabilities;
             Apply.IsEnabled = ready && Target.SelectedItem is WarThunderDevice && (_physicalSelected ? _physicalCompatible : (capabilities?.RebindNativeInputs == true && Input.SelectedItem is WarThunderBlkScalar) || capabilities?.AddNativeInput == true);
             Add.IsEnabled = ready && capabilities?.AddNativeInput == true && Target.SelectedItem is WarThunderDevice;
-            Clear.IsEnabled = ready && capabilities?.ClearJoystickAlternative == true;
+            Clear.IsEnabled = ready && capabilities?.ClearAssignment == true;
             Inverse.IsEnabled = ready && capabilities?.SetAxisInverse == true;
             SetParameter.IsEnabled = ready && capabilities?.EditableParameterAddresses.Count > 0;
             Target.IsEnabled = ready; Input.IsEnabled = ready; Index.IsEnabled = ready; Parameter.IsEnabled = ready && capabilities?.EditableParameterAddresses.Count > 0;

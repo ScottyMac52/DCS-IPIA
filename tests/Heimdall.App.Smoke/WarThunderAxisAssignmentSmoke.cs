@@ -49,12 +49,37 @@ namespace Heimdall.App.Smoke
             var apply = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Apply");
             if (!apply.Command.CanExecute(null)) throw new InvalidOperationException("Public Apply was disabled for the mapped axis.");
             apply.Command.Execute(null); RequireAxis(window, 1);
+            VerifyClear(window, true);
+            Click((Button)window.FindName("Discard"));
+            VerifyClear(window, false);
             Click((Button)window.FindName("Discard"));
             if (window.Session.Export().Files.Single().Value != baseline || window.Session.HasChanges) throw new InvalidOperationException("Axis discard did not restore exact saved text.");
             window.Close();
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyClear(WarThunderWorkspaceWindow window, bool callout)
+        {
+            var view = window.AssignmentView;
+            if (callout)
+            {
+                var control = view.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_X");
+                var clear = control.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Header as string == "Clear assignment");
+                if (!clear.IsEnabled) throw new InvalidOperationException("Assigned axis callout did not expose Clear assignment.");
+                clear.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            }
+            else
+            {
+                var clear = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Clear");
+                if (!clear.Command.CanExecute(null)) throw new InvalidOperationException("Selected axis record did not enable toolbar Clear assignment.");
+                clear.Command.Execute(null);
+            }
+            var binding = WarThunderProfileBackend.ReadBindings(window.Session!.Snapshot.Profile).Single(item => item.Command == "pitch");
+            if (binding.Fields.Any(field => WarThunderWorkspaceProjection.FieldName(field) == "axisId")
+                || !window.Session.Export().Files.Single().Value.Contains("inverse:b=no;kMul:r=1.25;mouseAxisId:i=-1;futureParam:r=2", StringComparison.Ordinal)
+                || !window.Session.HasChanges || !((Button)window.FindName("Save")).IsEnabled || view.Editor.Clear.IsEnabled)
+                throw new InvalidOperationException("Axis clear failed to preserve tuning, refresh availability or stage Save.");
+        }
         private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         private static void RequireAxis(WarThunderWorkspaceWindow window, int index)
         {

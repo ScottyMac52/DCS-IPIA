@@ -5,7 +5,7 @@
     <StackPanel Width="120" Margin="0,0,8,0"><TextBlock Style="{StaticResource AppLabel}" Text="Input (zero-based)"/><TextBox Style="{StaticResource AppTextBox}" x:Name="Index" Text="0" AutomationProperties.Name="Native local index"/></StackPanel>
 
    </WrapPanel>
-   <pres:ActionBar IsFeatureActions="True" FeatureOrder="-1" Visibility="Collapsed"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Apply" Content="Apply assignment"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" Content="Add alternative"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Clear" Content="Clear assignment" ToolTip="Clear only the selected joystick alternative; preserve other alternatives."/>
+   <pres:ActionBar IsFeatureActions="True" FeatureOrder="-1" Visibility="Collapsed"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Apply" Content="Apply assignment"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" Content="Add alternative"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Clear" Content="Clear assignment" ToolTip="Clear the selected joystick assignment; preserve axis tuning, other input families and other alternatives."/>
    </pres:ActionBar>
    <CheckBox x:Name="Inverse" Content="Invert axis" Style="{StaticResource AppCheckBox}" Margin="0,6"/>
    <Expander x:Name="NativeDetails" Header="Native record details" IsExpanded="False"><StackPanel>

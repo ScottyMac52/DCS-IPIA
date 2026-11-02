@@ -97,7 +97,6 @@ namespace Heimdall.Tests
             Assert.Equal(7, backend.GetCatalog(changed).Commands.Count);
             Assert.Throws<InvalidOperationException>(() => WarThunderProfileBackend.ClearBinding(profile, keyboard.Id));
             Assert.Throws<InvalidOperationException>(() => WarThunderProfileBackend.ClearBinding(profile, WarThunderBackendFixture.Binding(profile, "ID_CHORD").Id));
-            Assert.Throws<InvalidOperationException>(() => WarThunderProfileBackend.ClearBinding(profile, WarThunderBackendFixture.Binding(profile, "pitch").Id));
         }
         /// <summary>New known hotkey alternatives and existing empty axis blocks use native offsets without invented activation codes.</summary>
         [Fact]
@@ -158,12 +157,12 @@ namespace Heimdall.Tests
         {
             var backend = new WarThunderProfileBackend(); var profile = WarThunderBackendFixture.Import(backend);
             var fire = WarThunderProfileBackend.GetBindingCapabilities(profile, WarThunderBackendFixture.Binding(profile, "ID_FIRE").Id);
-            Assert.True(fire.RebindNativeInputs && fire.ClearJoystickAlternative);
+            Assert.True(fire.RebindNativeInputs && fire.ClearAssignment);
             var chord = WarThunderProfileBackend.GetBindingCapabilities(profile, WarThunderBackendFixture.Binding(profile, "ID_CHORD").Id);
-            Assert.True(chord.RebindNativeInputs); Assert.False(chord.ClearJoystickAlternative);
+            Assert.True(chord.RebindNativeInputs); Assert.False(chord.ClearAssignment);
             var pitch = WarThunderBackendFixture.Binding(profile, "pitch");
             var caps = WarThunderProfileBackend.GetBindingCapabilities(profile, pitch.Id);
-            Assert.True(caps.SetAxisInverse); Assert.False(caps.ClearJoystickAlternative);
+            Assert.True(caps.SetAxisInverse); Assert.True(caps.ClearAssignment);
             Assert.Contains(WarThunderBackendFixture.Field(pitch, "kMul").Address, caps.EditableParameterAddresses);
             Assert.DoesNotContain(WarThunderBackendFixture.Field(pitch, "futureParam").Address, caps.EditableParameterAddresses);
             var empty = WarThunderProfileBackend.GetBindingCapabilities(profile, WarThunderBackendFixture.Binding(profile, "ID_EMPTY").Id);
