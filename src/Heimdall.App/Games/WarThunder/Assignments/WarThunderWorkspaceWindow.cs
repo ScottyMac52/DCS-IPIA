@@ -38,7 +38,7 @@ namespace Heimdall.App.Games
                 var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command;
                 if (command is not null && _selectedPhysicalInput is not null) ApplyPhysicalAssignment(command.Id, _selectedPhysicalInput);
             });
-            _assignments.Editor.Edited += (_, _) => { Refresh(); Status.Text = "Native edit staged. Save and export to test in War Thunder."; };
+            _assignments.Editor.EditRequested += (_, edit) => Run(() => ApplyDrawingEdit(edit));
             _assignments.Start.Click += (_, _) => Run(() =>
             {
                 var pin = SelectedDevice is { } id ? _session?.Snapshot.Hardware.GetValueOrDefault(id) : null;
@@ -116,3 +116,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

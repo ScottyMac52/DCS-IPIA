@@ -595,12 +595,16 @@ namespace Heimdall.App.Games
         private void ReviewNativeChange(GameControllerChange change)
         {
             StopSamplingForReview();
-            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
-            _session!.ApplyControllerChange(change);
+            var session = _session!;
+            var result = ExecuteAssignment("", "", "", () =>
+                (_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)
+                    ? new(true, true, "") : new(false, false, "Review canceled. No assignments changed."),
+                () => session.ApplyControllerChange(change));
+            if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             Refresh(false);
             if (change.ResultDeviceId is { } id)
                 DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == id);
-            StatusText.Text = "Native Squadrons assignments / slots updated in the draft. Save before exporting a review copy.";
+            AssignmentFeedback(result);
         }
         private void ClearSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -1155,12 +1159,17 @@ namespace Heimdall.App.Games
                 throw new InvalidOperationException("Stop live input and finish controller scanning before assigning.");
             var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
                 commandId, slot, input.PhysicalKey, input.Type == CommandType.Axis);
-            if (plan.NegativeRecordId is not null)
-                _session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
-            else if (plan.RecordId is not null)
-                _session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
-            else
-                _session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+            var session = _session;
+            var result = ExecuteAssignment(commandId, input.Key, plan.RecordId ?? "", () => new(true, true, ""), () =>
+            {
+                if (plan.NegativeRecordId is not null)
+                    session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
+                else if (plan.RecordId is not null)
+                    session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+                else
+                    session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+            });
+            if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             _focusedConcept = null;
             _inspectedControl = null;
             SelectCommandConcept(plan.Concept);
@@ -1169,10 +1178,7 @@ namespace Heimdall.App.Games
             try { TargetDevice.SelectedItem = TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }
             finally { _refreshing = false; }
             Refresh(false);
-            StatusText.Text = plan.NegativeRecordId is null
-                ? "Assignment staged. Save before exporting."
-                : "Both directions of the axis staged. Save before exporting.";
-            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = StatusText.Text;
+            AssignmentFeedback(result);
         }
         private void CommandListDragPressed(object sender, MouseButtonEventArgs e)
         {
@@ -1313,3 +1319,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

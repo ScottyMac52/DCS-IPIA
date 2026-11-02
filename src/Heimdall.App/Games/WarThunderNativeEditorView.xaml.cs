@@ -32,7 +32,7 @@ namespace Heimdall.App.Games
             Index.TextChanged += (_, _) => { if (!_refreshing) _physicalSelected = false; UpdateActions(); };
         }
         #region BEGIN Public
-        internal event EventHandler? Edited;
+        internal event EventHandler<WarThunderNativeEdit>? EditRequested;
         internal event EventHandler? PhysicalApplyRequested;
         internal void SelectPhysical(string deviceId, WarThunderPhysicalInput input)
         {
@@ -83,11 +83,11 @@ namespace Heimdall.App.Games
                 if ((kind is WarThunderEditKind.Rebind or WarThunderEditKind.Add)
                     && !int.TryParse(Index.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
                     throw new InvalidOperationException("Enter a zero-based native input index.");
-                _session.ApplyNativeEdit(new WarThunderNativeEdit(kind, _row?.RecordId ?? "", (kind == WarThunderEditKind.Parameter ? Parameter.SelectedItem as WarThunderBlkScalar : Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
+                var edit = new WarThunderNativeEdit(kind, _row?.RecordId ?? "", (kind == WarThunderEditKind.Parameter ? Parameter.SelectedItem as WarThunderBlkScalar : Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
                     (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
-                    index, Inverse.IsChecked == true, Literal.Text));
-                Edited?.Invoke(this, EventArgs.Empty);
-                Frame.AssignmentDraftStatus.Text = "Native edit staged. Save to retain it, then export a review copy.";
+                    index, Inverse.IsChecked == true, Literal.Text);
+                if (EditRequested is null) throw new InvalidOperationException("The assignment editor is not connected to its workspace.");
+                EditRequested.Invoke(this, edit);
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException or System.IO.InvalidDataException or FormatException or OverflowException)
             { Show(_session, _command, _row, _busy); Frame.AssignmentDraftStatus.Text = error.Message; }
@@ -121,3 +121,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

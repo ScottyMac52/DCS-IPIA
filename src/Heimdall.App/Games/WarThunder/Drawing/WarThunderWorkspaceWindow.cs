@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Windows;
 using Heimdall.Application;
 using Heimdall.WarThunder;
@@ -49,13 +48,9 @@ namespace Heimdall.App.Games
         private void ApplyDrawingEdit(WarThunderNativeEdit edit)
         {
             if (_session is null || _input.Running) throw new InvalidOperationException("Stop input testing before editing.");
-            var before = JsonSerializer.Serialize(_session.Snapshot.Profile);
-            _session.ApplyNativeEdit(edit);
-            var changed = before != JsonSerializer.Serialize(_session.Snapshot.Profile);
+            var result = ExecuteAssignment(edit);
             _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshEditor(); RefreshChrome();
-            Status.Text = _assignments.Artwork.Feedback.Text = changed
-                ? "Assignment changed and staged. Save before exporting."
-                : "Assignment is already set; no binding changed.";
+            Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         }
         private IReadOnlyList<WarThunderWorkspaceRow> PhysicalAssignments(HardwareGraphicControl control)
         {
@@ -131,3 +126,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

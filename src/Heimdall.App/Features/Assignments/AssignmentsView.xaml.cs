@@ -454,10 +454,15 @@ namespace Heimdall.App.Features.Assignments
             var slot = KneeboardDraftProjection.SlotForControl(_context.Working!, diagram, _selected, layer, chord);
             if (slot is null) return;
 
-            var result = _context.Draft.Remove(slot);
+            var context = _context;
+            var result = ExecuteAssignment(slot, "", () =>
+            {
+                var cleared = context.Draft.Remove(slot);
+                if (cleared.Outcome == DraftOutcome.Applied) context.SetLabel(slot.Key, null);
+                return cleared;
+            });
             if (result.Outcome == DraftOutcome.Applied)
             {
-                _context.SetLabel(slot.Key, null);
                 _updatingLabel = true;
                 LabelEditor.Text = "";
                 _updatingLabel = false;
@@ -683,7 +688,10 @@ namespace Heimdall.App.Features.Assignments
             else SelectedCallout.Text = result.Message;
         }
 
-        private DraftResult AssignWithConfirmation(DraftAssignmentSlot slot, DraftCommand command)
+        private DraftResult AssignWithConfirmation(DraftAssignmentSlot slot, DraftCommand command) =>
+            ExecuteAssignment(slot, command.Id, () => AssignWithConfirmationCore(slot, command));
+
+        private DraftResult AssignWithConfirmationCore(DraftAssignmentSlot slot, DraftCommand command)
         {
             if (_context?.Draft is null)
                 return new(DraftOutcome.Blocked, "No draft.");
@@ -692,7 +700,10 @@ namespace Heimdall.App.Features.Assignments
                 ReservationError(diagram, slot.InputKey) is { } blocked)
                 return new(DraftOutcome.Blocked, blocked);
 
-            var result = _context.Draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
+            var draft = _context.Draft;
+            var scope = AssignmentContext().Scope;
+            var before = AssignmentSnapshot();
+            var result = draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
             if (result.Outcome != DraftOutcome.ConfirmationRequired)
                 return result;
 
@@ -709,7 +720,9 @@ namespace Heimdall.App.Features.Assignments
                 MessageBoxResult.No => DraftConflictChoice.Swap,
                 _ => DraftConflictChoice.Cancel
             };
-            return _context.Draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice);
+            if (AssignmentContext().Scope != scope || AssignmentSnapshot() != before)
+                return new(DraftOutcome.Blocked, "The assignment changed during confirmation. Review the current control again.");
+            return draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice);
         }
 
         private void UndoClicked(object sender, RoutedEventArgs e)
@@ -1115,3 +1128,4 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+

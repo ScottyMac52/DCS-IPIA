@@ -473,21 +473,17 @@ namespace Heimdall.Application.Games
         public string? DrawingId(string logicalId) => _current.Hardware.TryGetValue(logicalId, out var pin)
             ? pin.DrawingHidden ? null : pin.HardwareId : _current.UnlinkedDrawings.GetValueOrDefault(logicalId);
         /// <summary>Reviews a complete draft with the authoritative adapter without publishing edits or events.</summary>
-        public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft)
+        public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft) => ReviewProfile(profile =>
         {
-            try
-            {
-                RequireAccess();
-                var candidate = GameWorkspaceContract.Clone(_current);
-                ApplyDraft(candidate.Profile, draft);
-                var output = ValidateProfile(candidate.Profile);
-                var current = ValidateProfile(_current.Profile);
-                var changed = !output.Files.OrderBy(x => x.Key, StringComparer.Ordinal)
-                    .SequenceEqual(current.Files.OrderBy(x => x.Key, StringComparer.Ordinal));
-                return new(true, changed, "");
-            }
-            catch (Exception error) when (error is InvalidOperationException or ArgumentException)
-            { return new(false, false, error.Message); }
+            ApplyDraft(profile, draft);
+            return profile;
+        });
+        /// <summary>Reviews an adapter-owned native operation without publishing state or notifications.</summary>
+        public GameAssignmentReview ReviewNativeEdit(ISimNativeEdit edit)
+        {
+            ArgumentNullException.ThrowIfNull(edit);
+            return ReviewProfile(profile => edit.BackendId == _backend.SimId ? edit.Apply(profile)
+                : throw new InvalidOperationException("The native edit belongs to another game."));
         }
         /// <summary>Stages the entire reviewed draft atomically, including its toggle, with one change event.</summary>
         public void Assign(GameAssignmentEdit draft) => Edit(profile => ApplyDraft(profile, draft));
@@ -551,10 +547,27 @@ namespace Heimdall.Application.Games
             return new(this, JsonSerializer.Serialize(_current), candidate, result.Summary, null);
         }
 
+        private GameAssignmentReview ReviewProfile(Func<ProfileDocument, ProfileDocument> edit)
+        {
+            try
+            {
+                RequireAccess();
+                var candidate = edit(Snapshot.Profile);
+                RequireProfileIdentity(candidate, "Assignment review changed game or profile identity.");
+                var output = ValidateProfile(candidate);
+                var current = ValidateProfile(_current.Profile);
+                var changed = !output.Files.OrderBy(file => file.Key, StringComparer.Ordinal)
+                    .SequenceEqual(current.Files.OrderBy(file => file.Key, StringComparer.Ordinal));
+                return new(true, changed, "");
+            }
+            catch (Exception error) when (error is InvalidOperationException or ArgumentException or InvalidDataException or JsonException)
+            { return new(false, false, error.Message); }
+        }
         private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)
         {
             RequireProfileIdentity(profile, identityError);
             ValidateProfile(profile);
+            if (JsonSerializer.Serialize(profile) == JsonSerializer.Serialize(_current.Profile)) return;
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
             Changed?.Invoke(this, EventArgs.Empty);
         }
@@ -669,6 +682,7 @@ namespace Heimdall.Application.Games
             var candidate = GameWorkspaceContract.Clone(_current);
             edit(candidate.Profile);
             ValidateProfile(candidate.Profile);
+            if (JsonSerializer.Serialize(candidate.Profile) == JsonSerializer.Serialize(_current.Profile)) return;
             _current = candidate;
             Changed?.Invoke(this, EventArgs.Empty);
         }
@@ -705,3 +719,4 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
+

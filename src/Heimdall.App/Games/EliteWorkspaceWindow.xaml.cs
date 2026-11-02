@@ -718,14 +718,18 @@ namespace Heimdall.App.Games
         private void ApplyClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             UpdateAvailability();
-            if (!_actions.Apply || Draft() is not { } draft) return;
-            _session!.Assign(draft);
-            Status("Assignment staged. Save before exporting.");
+            if (_session is not { } session || Draft() is not { } draft) return;
+            AssignmentFeedback(ExecuteAssignment(draft.CommandId, draft.Key, draft.Slot,
+                () => session.ReviewAssignment(draft), () => session.Assign(draft)));
         });
         private void ClearClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             UpdateAvailability();
-            if (_actions.Clear) _session!.Clear(Command!.Id, Slot);
+            if (_session is not { } session || Command is not { } command) return;
+            var slot = Slot;
+            var assigned = _rows.Any(row => row.CommandId == command.Id && row.Slot == slot);
+            AssignmentFeedback(ExecuteAssignment(command.Id, "", slot,
+                () => new(true, assigned, ""), () => session.Clear(command.Id, slot)));
         });
         private void AddModifierClicked(object sender, RoutedEventArgs e)
         {
@@ -1134,3 +1138,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

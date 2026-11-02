@@ -130,3 +130,31 @@ Stage 2 implements the ordinary War Thunder driver layout in separate adapter-ow
 The private evidence plus published driver rules reconciled the saved axis/button counts of all ten connected devices. TQS's seventh native axis comes from an unknown-GUID object at raw offset 28; Sol-R's offset-36 extra object is excluded and its POV contributes two native axis slots. The authored regression fixtures retain only generic protocol shapes, not personal instance IDs or native configuration content.
 
 This checkpoint still requires `tests/validate-pr6.ps1` locally and actual main-throttle assignment/export validation. The shared workflow, four-consumer migration and common Tune Axis dialog remain stages 3–5, not completed work. Existing captures remain useful and do not need regeneration merely because the next evidence export has clearer schema-2 terminology.
+
+
+
+## Stage 3A: common assignment execution checkpoint
+
+The four existing workspaces now consume `WorkspaceAssignmentWorkflow`. The shared application boundary owns fresh open/read-only/busy/testing checks, immutable target scope, review followed by a scope/draft recheck, non-reentrant execution, actual snapshot change detection and one completion result. Native translation and atomic mutation remain in each adapter or the DCS draft service.
+
+Entry points migrated in this checkpoint:
+
+- War Thunder: native editor requests, callout Apply, command drop and callout/native Clear share the same operation. The native editor no longer mutates the session itself.
+- Elite: Apply and command drop, plus toolbar/callout Clear, use the common boundary and portable adapter review.
+- Squadrons: Apply/drop retains paired-axis handling inside its native operation. Reviewed record clears and controller changes execute after the shared scope/draft recheck; keyboard/mouse/gamepad remain read-only.
+- DCS: command Apply/drop and single-assignment Clear use the common boundary around the existing conflict-aware draft service. An occupied-control confirmation rechecks its scope and original draft before committing.
+
+Native session review is non-mutating, including export/schema validation. A repeated native or portable mutation that leaves its profile identical does not emit a false session Changed notification. The workflow also reports an unchanged result when a native action claims success without changing the snapshot.
+
+This is an execution checkpoint, not completion of the shared presentation refactor. Existing selection widgets, capability-dependent availability rendering, DCS callout copy/move and bulk/advanced operations, and the game-specific tuning dialogs still need migration. No native range renumbering, hardware capacity changes or export-schema changes belong to this checkpoint. Completion events describe results; the existing draft facades still own undo, persistence and atomicity.
+
+Local acceptance for this checkpoint:
+
+```powershell
+git pull
+.\tests\validate-pr6.ps1 *>&1 | Tee-Object -FilePath .\pr6-refactor-stage3-results.txt
+```
+
+For each game: assign through Apply, repeat the same assignment, assign through drag/drop, clear a single assignment, Discard and verify the original, then repeat and Save/reopen. Confirm drawings and Save state follow the draft, and export the saved profile. War Thunder acceptance includes a TQS throttle axis and SOL-R axes. Existing 80% line/80% branch per assembly and maximum method CRAP 50 gates remain unchanged. GitHub Actions must not be run.
+
+The development environment has no .NET SDK or Windows runtime. C# tests and WPF smoke behavior are pending the local run; source checks are not substitutes for those gates.

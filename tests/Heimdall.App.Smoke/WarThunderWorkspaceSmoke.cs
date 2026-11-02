@@ -51,6 +51,8 @@ namespace Heimdall.App.Smoke
                 IdentificationInputSource? input = null; var choice = MessageBoxResult.Cancel;
                 using var window = new WarThunderWorkspaceWindow(services, pendingChoice: () => choice, reviewChange: _ => true,
                     drawings: drawings, inputFactory: (_, ids) => input = new(ids));
+                var workflowCompletions = 0;
+                window.AssignmentWorkflow.Completed += (_, _) => workflowCompletions++;
                 WorkspaceLayout.SetPersistenceEnabled(window, false);
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 if (Box<ContentControl>(window, "FeatureContent").Content is not WarThunderDevicesView || Box<Expander>(window, "ErrorPanel").Visibility == Visibility.Visible)
@@ -75,7 +77,9 @@ namespace Heimdall.App.Smoke
                 VerifyBlockedAxis(window);
                 var fireCommand = window.Session!.Catalog.Commands.Single(command => command.Metadata["war-thunder.command"] == "ID_FIRE");
                 if (!window.SaveCurrent() || window.Session.HasChanges) throw new InvalidOperationException("Saved baseline was not clean before the drawing edit.");
+                var beforeDrop = workflowCompletions;
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
+                if (workflowCompletions != beforeDrop + 1) throw new InvalidOperationException("Drawing drop bypassed the shared assignment workflow.");
                 AssertNative(window, "joyButton:i=0;activationType:i=9");
                 if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
                     throw new InvalidOperationException("A changed drawing assignment did not enable Save on a saved profile.");
@@ -83,7 +87,7 @@ namespace Heimdall.App.Smoke
                 var savedDrawingText = AssertNative(window, "joyButton:i=0;activationType:i=9");
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
                 if (window.Session.HasChanges || Box<Button>(window, "Save").IsEnabled
-                    || !Box<TextBlock>(window, "Status").Text.Contains("already set", StringComparison.Ordinal))
+                    || !Box<TextBlock>(window, "Status").Text.Contains("unchanged", StringComparison.Ordinal))
                     throw new InvalidOperationException("An unchanged assignment was reported as a staged change.");
                 var firstControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1");
                 var menu = firstControl.ContextMenu ?? throw new InvalidOperationException("Assigned physical callout has no right-click menu.");
@@ -158,7 +162,9 @@ namespace Heimdall.App.Smoke
                 window.Activate();
                 browser.CommandSearch.Text = "pitch";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
+                var beforeNativeEdit = workflowCompletions;
                 assignments.Editor.Inverse.IsChecked = true; assignments.Editor.Submit(WarThunderEditKind.Inverse);
+                if (workflowCompletions != beforeNativeEdit + 1) throw new InvalidOperationException("Native editor bypassed the shared assignment workflow.");
                 assignments.Editor.NativeDetails.IsExpanded = true;
                 assignments.Editor.Parameter.SelectedItem = assignments.Editor.Parameter.Items.Cast<WarThunderBlkScalar>().Single(scalar => scalar.Path.EndsWith("/kMul", StringComparison.Ordinal));
                 assignments.Editor.Literal.Text = "1.5"; Click(assignments.Editor.SetParameter);
@@ -253,3 +259,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+
