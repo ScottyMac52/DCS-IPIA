@@ -1,7 +1,7 @@
 namespace Heimdall.Application
 {
-    /// <summary>Local physical object identity and original enumeration position, independent of drawing aliases and game ordinals.</summary>
-    public sealed record PhysicalControllerInput(string Id, int EnumerationIndex, PhysicalInputKind Kind,
+    /// <summary>Driver-declared object identity and original enumeration position, independent of drawing aliases and game ordinals; enumeration does not prove physical reachability.</summary>
+    public sealed record ReportedControllerInput(string Id, int EnumerationIndex, ReportedInputKind Kind,
         ControllerObject Evidence, bool Ambiguous)
     {
         #region BEGIN Public

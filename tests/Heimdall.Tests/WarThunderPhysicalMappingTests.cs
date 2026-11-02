@@ -121,8 +121,8 @@ namespace Heimdall.Tests
         {
             string[] guids = ["a36d02e1", "a36d02e0", "a36d02e2", "a36d02f4", "a36d02f5", "a36d02e3", "a36d02e4", "a36d02e4"];
             var objects = guids.Select((guid, index) => new ControllerObject(Guid.Parse(guid + "-c9f3-11cf-bfc7-444553540000"),
-                (uint)(2 + index * 256), guid)).ToList();
-            objects.Insert(1, new(Guid.NewGuid(), 2306u, "Nonstandard axis"));
+                (uint)(2 + index * 256), guid) { Details = new((uint)(index * 4), 256) }).ToList();
+            objects.Insert(1, new(Guid.NewGuid(), 2306u, "Nonstandard axis") { Details = new(36, 0) });
             objects.Add(new(Guid.NewGuid(), 16u, "POV"));
             var observation = Observe() with { Capabilities = ControllerCapabilityMapper.Map(objects) };
             var source = WarThunderBackendFixture.Source.Replace("axesCount:i=2", "axesCount:i=10", StringComparison.Ordinal)
@@ -157,8 +157,10 @@ namespace Heimdall.Tests
             objects[0] = objects[0] with { NativeType = 257u };
             var map = WarThunderPhysicalMap.Create(WarThunderBackendFixture.Import(new(), source), "war-thunder.joystick.0",
                 observation with { Capabilities = ControllerCapabilityMapper.Map(objects) });
-            Assert.Contains("unsupported or ambiguous", map.Message, StringComparison.Ordinal);
-            Assert.NotEmpty(map.Inputs); Assert.All(map.Inputs, input => Assert.Equal(CommandType.Button, input.Type));
+            Assert.NotNull(map.Layout); Assert.Equal(4, map.Layout.Axes.Count);
+            Assert.DoesNotContain(map.Inputs, input => input.Key == "JOY_Y");
+            Assert.Contains(new WarThunderPhysicalInput("JOY_X", CommandType.Axis, 1), map.Inputs);
+            Assert.Contains(map.Inputs, input => input.Type == CommandType.Button);
         }
         #endregion END Public
         #region BEGIN private helpers

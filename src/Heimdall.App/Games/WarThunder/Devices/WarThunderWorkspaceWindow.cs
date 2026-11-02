@@ -69,6 +69,10 @@ namespace Heimdall.App.Games
                     + (pin is null ? "Physical controller unlinked." : "Linked: " + pin.Device.Name + " · " + pin.Device.PhysicalGuid);
             RefreshPhysicalMap();
             if (native is not null) _devices.NativeDetails.Text += "\n" + _physicalMap.Message;
+            _devices.LayoutTrace.Text = _physicalMap.Layout is { } layout
+                ? string.Join(Environment.NewLine, layout.Trace.Select(item => string.Create(CultureInfo.InvariantCulture,
+                    $"Object {item.EnumerationIndex} · {item.Kind} · Native slot {item.NativeIndex?.ToString(CultureInfo.InvariantCulture) ?? "unresolved/excluded"} · {item.Detail} · {item.InputId}")))
+                : _physicalMap.Message;
             _refreshing = false;
         }
         private void ShowDrawing()

@@ -68,7 +68,7 @@ namespace Heimdall.App.Smoke
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 var assignments = window.AssignmentView;
                 if (!devices.NativeDetails.Text.Contains("Axis mapping blocked", StringComparison.Ordinal)
-                    || !assignments.Artwork.Feedback.Text.Contains("Verified 4 button", StringComparison.Ordinal))
+                    || !assignments.Artwork.Feedback.Text.Contains("Translated 4 native button slots", StringComparison.Ordinal))
                     throw new InvalidOperationException("A mismatched axis group did not retain verified button mapping and visible diagnostics.");
                 assignments.Zoom.Value = 1.4; Click(assignments.Fit); ThemeControlSmoke.Pump(window);
                 if (assignments.DrawingCanvas.Children.Count == 0) throw new InvalidOperationException("Physical drawing did not render.");

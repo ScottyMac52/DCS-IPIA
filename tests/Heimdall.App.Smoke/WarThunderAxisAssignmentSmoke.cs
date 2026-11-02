@@ -19,8 +19,8 @@ namespace Heimdall.App.Smoke
             var device = new DetectedDcsDevice(Guid.NewGuid(), "Axis controller", true, ProductGuid: Guid.Parse("00020001-0000-0000-0000-504944564944"));
             var discovery = new GameSmokeDiscovery(device);
             string[] guids = ["a36d02e1", "a36d02e0", "a36d02e2", "a36d02f4", "a36d02f5", "a36d02e3", "a36d02e4", "a36d02e4"];
-            var objects = guids.Select((guid, index) => new ControllerObject(Guid.Parse(guid + "-c9f3-11cf-bfc7-444553540000"), (uint)(2 + index * 256), guid)).ToList();
-            objects.Insert(1, new(Guid.NewGuid(), 2306u, "Nonstandard axis")); objects.Add(new(Guid.NewGuid(), 16u, "POV"));
+            var objects = guids.Select((guid, index) => new ControllerObject(Guid.Parse(guid + "-c9f3-11cf-bfc7-444553540000"), (uint)(2 + index * 256), guid) { Details = new((uint)(index * 4), 256) }).ToList();
+            objects.Insert(1, new(Guid.NewGuid(), 2306u, "Nonstandard axis") { Details = new(36, 0) }); objects.Add(new(Guid.NewGuid(), 16u, "POV"));
             discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map(objects);
             var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "axis-store")), discovery);
             var path = Path.Combine(root, "Axis.blk");
@@ -55,6 +55,7 @@ namespace Heimdall.App.Smoke
             Click((Button)window.FindName("Discard"));
             if (window.Session.Export().Files.Single().Value != baseline || window.Session.HasChanges) throw new InvalidOperationException("Axis discard did not restore exact saved text.");
             window.Close();
+            WarThunderNativeLayoutSmoke.Verify(root, original);
         }
         #endregion END Public
         #region BEGIN private helpers

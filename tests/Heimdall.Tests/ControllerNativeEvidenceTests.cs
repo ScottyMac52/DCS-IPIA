@@ -72,14 +72,19 @@ namespace Heimdall.Tests
                 new(Guid.NewGuid(), 16, "Hat") { Details = new(820, 0) },
                 new(Guid.NewGuid(), 64, "Collection") { Details = new(900, 0) }];
             var legacy = ControllerCapabilityMapper.Map(objects);
-            var catalog = legacy.PhysicalInputs;
+            var catalog = legacy.ReportedInputs;
             Assert.True(catalog.HasNativeDetails); Assert.Empty(catalog.Diagnostics);
+            Assert.Equal(new ReportedInputCounts(2, 1, 1, 1), catalog.Counts);
+            Assert.Equal(catalog, catalog with { });
+            var reported = catalog.Objects[0];
+            Assert.Equal(reported, reported with { });
+            Assert.NotEqual(reported, reported with { Ambiguous = true });
             Assert.Equal(objects, catalog.Objects.Select(input => input.Evidence));
             Assert.Equal(Enumerable.Range(0, objects.Length), catalog.Objects.Select(input => input.EnumerationIndex));
-            Assert.Equal(PhysicalInputKind.Axis, catalog.Objects[0].Kind); Assert.False(catalog.Objects[0].Relative);
+            Assert.Equal(ReportedInputKind.Axis, catalog.Objects[0].Kind); Assert.False(catalog.Objects[0].Relative);
             Assert.True(catalog.Objects[1].Relative); Assert.Null(catalog.Objects[2].Relative);
-            Assert.Equal(PhysicalInputKind.Button, catalog.Objects[2].Kind); Assert.Equal(200, catalog.Objects[2].Instance);
-            Assert.Equal(PhysicalInputKind.Hat, catalog.Objects[3].Kind); Assert.Equal(PhysicalInputKind.Other, catalog.Objects[4].Kind);
+            Assert.Equal(ReportedInputKind.Button, catalog.Objects[2].Kind); Assert.Equal(200, catalog.Objects[2].Instance);
+            Assert.Equal(ReportedInputKind.Hat, catalog.Objects[3].Kind); Assert.Equal(ReportedInputKind.Other, catalog.Objects[4].Kind);
             Assert.DoesNotContain(legacy.Inputs, input => input.Evidence == objects[0]);
             var reordered = ControllerInputCatalog.Create(objects.Reverse().Select(item => item with { Name = "Localized", Details = item.Details! with { NativeOffset = 42 } }).ToArray());
             Assert.Equal(catalog.Objects.Select(item => item.Id).Order(StringComparer.Ordinal), reordered.Objects.Select(item => item.Id).Order(StringComparer.Ordinal));
@@ -94,10 +99,10 @@ namespace Heimdall.Tests
             var legacy = JsonSerializer.Deserialize<ControllerObject>("{\"ObjectGuid\":\"a36d02e1-c9f3-11cf-bfc7-444553540000\",\"NativeType\":258,\"Name\":\"Y\"}")!;
             Assert.Null(legacy.Details);
             var before = ControllerCapabilityMapper.Map([legacy]);
-            Assert.False(before.PhysicalInputs.HasNativeDetails); Assert.Single(before.PhysicalInputs.Diagnostics);
+            Assert.False(before.ReportedInputs.HasNativeDetails); Assert.Single(before.ReportedInputs.Diagnostics);
             var fresh = ControllerCapabilityMapper.Map([legacy with { Details = new(100, 0x100, UsagePage: 1, Usage: 49) }]);
             Assert.Equal(ControllerCapabilityMapper.Fingerprint(before), ControllerCapabilityMapper.Fingerprint(fresh));
-            Assert.DoesNotContain("PhysicalInputs", JsonSerializer.Serialize(before), StringComparison.Ordinal);
+            Assert.DoesNotContain("ReportedInputs", JsonSerializer.Serialize(before), StringComparison.Ordinal);
             Assert.False(ControllerInputCatalog.Create(null).HasNativeDetails);
             Assert.False(ControllerInputCatalog.Create([]).HasNativeDetails);
             Assert.Single(ControllerInputCatalog.Create(null).Diagnostics); Assert.Single(ControllerInputCatalog.Create([]).Diagnostics);
@@ -112,14 +117,14 @@ namespace Heimdall.Tests
                 new(one with { PhysicalGuid = Guid.NewGuid() }, null, "Read failed") };
             var before = JsonSerializer.Serialize(observations);
             using var json = JsonDocument.Parse(ControllerEvidenceReport.Create(observations, DateTimeOffset.UnixEpoch));
-            Assert.Equal(1, json.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(2, json.RootElement.GetProperty("schemaVersion").GetInt32());
             var devices = json.RootElement.GetProperty("devices");
             Assert.Equal(2, devices.GetArrayLength());
-            var input = devices[0].GetProperty("physicalInputs").GetProperty("objects")[0];
+            var input = devices[0].GetProperty("reportedInputs").GetProperty("objects")[0];
             Assert.Equal("Axis", input.GetProperty("kind").GetString());
             Assert.Equal(104u, input.GetProperty("evidence").GetProperty("details").GetProperty("nativeOffset").GetUInt32());
             Assert.Equal("Read failed", devices[1].GetProperty("error").GetString());
-            Assert.False(devices[1].GetProperty("physicalInputs").GetProperty("hasNativeDetails").GetBoolean());
+            Assert.False(devices[1].GetProperty("reportedInputs").GetProperty("hasNativeDetails").GetBoolean());
             Assert.Equal(before, JsonSerializer.Serialize(observations));
             Assert.Throws<ArgumentNullException>(() => ControllerEvidenceReport.Create(null!, DateTimeOffset.UnixEpoch));
         }
@@ -135,6 +140,40 @@ namespace Heimdall.Tests
             Assert.NotEqual(details, copy with { Usage = 55 });
             Assert.Equal(details.GetHashCode(), copy.GetHashCode());
             Assert.Contains("NativeOffset = 24", details.ToString(), StringComparison.Ordinal);
+        }
+        /// <summary>A 128-slot driver declaration cannot become a claim that a stick has 128 physical buttons.</summary>
+        [Fact]
+        public void Declared_slot_count_never_establishes_physical_button_count()
+        {
+            var objects = Enumerable.Range(0, 128).Select(index => new ControllerObject(
+                Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), (uint)(4 + index * 256), "Declared button")
+                { Details = new((uint)(40 + index), 0, UsagePage: 9, Usage: (ushort)(index + 1)) }).ToList();
+            objects.Add(ControllerObjectReader.Read(NativeBytes(576)));
+            var capabilities = ControllerCapabilityMapper.Map(objects);
+            var counts = capabilities.ReportedInputs.Counts;
+            Assert.Equal(128, counts.Buttons); Assert.Equal(1, counts.Axes); Assert.Equal(0, counts.Hats); Assert.Equal(0, counts.Other);
+            var observation = new ControllerObservation(new(Guid.NewGuid(), "Synthetic declared-slot device", true), capabilities);
+            using var report = JsonDocument.Parse(ControllerEvidenceReport.Create([observation], DateTimeOffset.UnixEpoch));
+            var device = report.RootElement.GetProperty("devices")[0];
+            Assert.Equal(128, device.GetProperty("reportedInputs").GetProperty("counts").GetProperty("buttons").GetInt32());
+            Assert.Equal(JsonValueKind.Null, device.GetProperty("physicalControls").GetProperty("confirmedCount").ValueKind);
+            Assert.Equal("not performed", device.GetProperty("liveVerification").GetString());
+            Assert.False(device.TryGetProperty("physicalInputs", out _));
+            Assert.Contains("driver declarations only", report.RootElement.GetProperty("evidenceMeaning").GetString()!, StringComparison.Ordinal);
+        }
+        /// <summary>The compatibility drawing projection remains optional and cannot relabel an unsupported reported object.</summary>
+        [Fact]
+        public void Drawing_aliases_are_a_separate_downstream_projection()
+        {
+            var known = ControllerObjectReader.Read(NativeBytes(576));
+            var unknown = known with { ObjectGuid = Guid.NewGuid(), NativeType = 514 };
+            var catalog = ControllerInputCatalog.Create([known, unknown]);
+            var aliases = ControllerDrawingAliases.Create(catalog);
+            Assert.Equal(2, catalog.Objects.Count); Assert.Single(aliases);
+            Assert.Equal("JOY_Y", aliases[ControllerInputCatalog.Identify(known)]);
+            Assert.False(aliases.ContainsKey(ControllerInputCatalog.Identify(unknown)));
+            Assert.Throws<ArgumentNullException>(() => ControllerDrawingAliases.Create(null!));
+            Assert.Throws<InvalidDataException>(() => ControllerDrawingAliases.Create(new(2, [], [])));
         }
         #endregion END Public
         #region BEGIN private helpers

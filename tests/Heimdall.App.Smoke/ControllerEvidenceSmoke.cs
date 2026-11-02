@@ -30,7 +30,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Headless controller evidence was not exported.");
                 var original = File.ReadAllText(path);
                 using var report = JsonDocument.Parse(original);
-                var catalog = report.RootElement.GetProperty("devices")[0].GetProperty("physicalInputs");
+                var catalog = report.RootElement.GetProperty("devices")[0].GetProperty("reportedInputs");
                 if (catalog.GetProperty("objects").GetArrayLength() != 1 || !catalog.GetProperty("hasNativeDetails").GetBoolean())
                     throw new InvalidOperationException("Evidence export lost an axis rejected by the compatibility mapper.");
                 if (ControllerEvidenceCommand.RunIfRequested(["--controller-evidence", path], discovery) != 1 || File.ReadAllText(path) != original)

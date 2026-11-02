@@ -14,7 +14,7 @@ commit. Do not advance it. Continue implementation on
 | Boundary | Owns | Must not infer |
 |---|---|---|
 | Windows discovery | Exact physical instance/product, original object order, GUID/type, native offset, flags and available HID metadata | Game device slots, native game indices, drawing identity, command compatibility |
-| Neutral input catalog | Stable local object identities, native categories, ambiguity and missing-evidence diagnostics | DCS keys as universal identities, sorted order as native order, discarded unknown controls |
+| Neutral input catalog | Driver-declared object identities, categories, ambiguity and missing-evidence diagnostics | DCS keys as universal identities, sorted order as native order, discarded unknown controls |
 | Drawing alias bridge | Authored input key to a particular physical object or direction | Game index from the label, device name or visual position |
 | Game adapter | Physical-object to native-game translation, virtual inputs, command/alternative identity, supported operations, native serialization | WPF controls, dialogs, arbitrary UI indices as physical evidence |
 | Shared assignment workflow | Selection, compatibility, routing Apply/drop/context operations through the same transaction | Per-game native parsing or hidden edits to a different selected controller |
@@ -98,10 +98,10 @@ an acceptance requirement, not a reason to keep independent UI implementations.
 | 4 | Shared parameter descriptors and one Tune Axis dialog; migrate all four adapters | Each adapter renders only supported parameters and preserves native units/unset behavior; export checks |
 | 5 | Remove superseded handlers and duplicated forms; unify workspace composition | Consumer/architecture checks, existing Windows smoke, full local 80/80/50, real-game acceptance |
 
-Stage 1 is the first implementation checkpoint. It deliberately does not claim to
-fix War Thunder translation or complete the shared UI migration. The subsequent
-translation stage depends on the actual raw roster that was previously discarded;
-passing synthetic count examples alone is insufficient evidence.
+Stage 1 established the evidence boundary. Stage 2 now implements the native
+layout translation against the supplied raw roster, pending local validation and
+in-game acceptance. The shared workflow and UI migrations remain subsequent
+stages. Passing synthetic count examples alone is insufficient evidence.
 
 Run `tests/validate-pr6.ps1` locally after pulling a checkpoint. This retains the
 existing coverage, per-method CRAP and Windows smoke gates without exclusions or
@@ -118,3 +118,15 @@ Windows smoke invokes the real command with injected discovery and verifies that
 ordinary startup arguments are untouched and existing captures are not overwritten.
 The authoring environment has no .NET SDK or Windows desktop; local execution is
 required before progressing past this first validation gate.
+
+## Stage 2 checkpoint: declarations, authored controls and live evidence
+
+The received capture establishes what DirectInput reported, not how many physical actuators exist. The model now uses `ReportedControllerInput`, `ReportedInputKind` and `ControllerCapabilities.ReportedInputs`. The evidence report advances to schema 2, replacing `physicalInputs` with `reportedInputs`, adding declared counts, and explicitly leaving the physical control count unconfirmed and live verification unperformed. Existing saved capability payloads remain compatible: the renamed catalog is a derived, JSON-ignored projection; the retained native objects and legacy supported-input fields are unchanged.
+
+The VKB example exposes why this distinction is mandatory: native discovery declares 128 button slots and the saved game mapping reserves 128, while the shared drawing defines sixteen button aliases. The owner's joy.cpl observation of 32 is a separate UI observation; this discovery report does not measure that UI or infer the physical count from it. Raw slots must remain available for game-index translation without automatically creating physical controls or claiming reachability.
+
+Stage 2 implements the ordinary War Thunder driver layout in separate adapter-owned classes. All native slots are linked to neutral reported IDs and receive a trace. A separate compatibility bridge maps authored drawing aliases to those IDs. Native storage tags are not physical aliases: a slider's authored key can refer to a different native game slot than its driver storage name suggests. The bridge cannot shrink, reorder or renumber the saved game ranges.
+
+The private evidence plus published driver rules reconciled the saved axis/button counts of all ten connected devices. TQS's seventh native axis comes from an unknown-GUID object at raw offset 28; Sol-R's offset-36 extra object is excluded and its POV contributes two native axis slots. The authored regression fixtures retain only generic protocol shapes, not personal instance IDs or native configuration content.
+
+This checkpoint still requires `tests/validate-pr6.ps1` locally and actual main-throttle assignment/export validation. The shared workflow, four-consumer migration and common Tune Axis dialog remain stages 3–5, not completed work. Existing captures remain useful and do not need regeneration merely because the next evidence export has clearer schema-2 terminology.
