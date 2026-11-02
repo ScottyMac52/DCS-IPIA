@@ -14,6 +14,8 @@ namespace Heimdall.App.Games
         string DragFormat = "heimdall.elite.command",
         string ClearLabel = "Clear assignment",
         Action<HardwareGraphicControl>? Inspect = null,
-        Func<HardwareGraphicControl, string, bool>? CanDrop = null);
+        Func<HardwareGraphicControl, string, bool>? CanDrop = null,
+        Func<HardwareGraphicControl, IReadOnlyList<HardwareDiagramClearChoice>>? ClearChoices = null,
+        Func<HardwareGraphicControl, string>? ClearUnavailableReason = null);
 }
 

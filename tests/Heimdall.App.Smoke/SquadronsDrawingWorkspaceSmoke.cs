@@ -117,8 +117,9 @@ namespace Heimdall.App.Smoke
                 HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
                 var emptyMenu = new ContextMenu();
                 HardwareDiagramPresenter.RefreshMenu(emptyMenu, drawing.Controls[3], actions);
-                if (emptyMenu.Items.OfType<MenuItem>().Any(x => x.Header as string == "Clear assignments…"))
-                    throw new InvalidOperationException("An empty callout offered a clear action.");
+                var unavailableClear = emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignments…");
+                if (unavailableClear.IsEnabled || unavailableClear.ToolTip is null)
+                    throw new InvalidOperationException("An empty callout did not explain its disabled shared clear action.");
                 emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 0 ||
@@ -251,3 +252,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

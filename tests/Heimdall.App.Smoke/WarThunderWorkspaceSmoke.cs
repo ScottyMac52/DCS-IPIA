@@ -39,7 +39,9 @@ namespace Heimdall.App.Smoke
                 var capture = Path.Combine(root, "capture"); Directory.CreateDirectory(capture);
                 var path = Path.Combine(capture, "Synthetic.blk");
                 File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WarThunder", "Synthetic.blk"), path);
-                var original = File.ReadAllText(path);
+                var original = File.ReadAllText(path).Replace("hotkeys{",
+                    "hotkeys{ID_CLEAR_CHORD{joyButton:i=0;joyButton:i=2;}ID_CLEAR_BUTTON{joyButton:i=0;}", StringComparison.Ordinal);
+                File.WriteAllText(path, original);
                 var diagram = new UiLayerDiagram("Synthetic", null, "", 1200, 1600, [], [])
                 {
                     Svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"1600\" viewBox=\"0 0 1200 1600\"><rect x=\"10\" y=\"10\" width=\"1180\" height=\"1580\" fill=\"#304050\"/></svg>",
@@ -84,11 +86,22 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("An unchanged assignment was reported as a staged change.");
                 var firstControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1");
                 var menu = firstControl.ContextMenu ?? throw new InvalidOperationException("Assigned physical callout has no right-click menu.");
-                if (!menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Clear assignment"))
-                    throw new InvalidOperationException("A clearable physical assignment was missing its context action.");
+                var clearChoice = menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "Clear assignment");
+                if (!clearChoice.IsEnabled || clearChoice.Items.Count != 3)
+                    throw new InvalidOperationException("Shared clear did not enable choices for a joystick chord and multiple alternatives on one input.");
+                clearChoice.Items.OfType<MenuItem>().Single(item => (item.Header as string)?.StartsWith("CLEAR CHORD", StringComparison.Ordinal) == true)
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                AssertNative(window, "ID_CLEAR_CHORD{}"); AssertNative(window, "ID_CLEAR_BUTTON{joyButton:i=0;}");
+                AssertNative(window, "keyboardKey:i=30;keyboardKey:i=31");
+                if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
+                    throw new InvalidOperationException("A callout clear did not stage an independently saveable change.");
+                Click(Box<Button>(window, "Discard"));
+                if (AssertNative(window, "ID_CLEAR_CHORD{joyButton:i=0;joyButton:i=2;}") != savedDrawingText)
+                    throw new InvalidOperationException("Discard did not restore the cleared joystick chord and other saved native records.");
                 menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "View assignments").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (!assignments.CapturedAssignments.IsExpanded || assignments.Records.Items.Count == 0)
                     throw new InvalidOperationException("The physical context action did not display its captured assignments.");
+                assignments.Browser.CommandsList.SelectedItem = assignments.Browser.CommandsList.Items.Cast<SimCommand>().Single(command => command.Id == fireCommand.Id);
                 var secondControl = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN2");
                 secondControl.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
                 var applyAction = Box<FeatureActionBar>(window, "FeatureActions").Actions.Single(action => action.Id == "Apply");

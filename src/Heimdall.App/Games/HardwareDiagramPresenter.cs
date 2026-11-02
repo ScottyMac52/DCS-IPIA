@@ -69,11 +69,25 @@ namespace Heimdall.App.Games
                 inspect.Click += (_, _) => actions.Inspect(control);
                 menu.Items.Add(inspect);
             }
-            if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
+            if (actions.Clear is not null)
             {
                 if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-                var clear = new MenuItem { Header = actions.ClearLabel };
-                clear.Click += (_, _) => actions.Clear(control);
+                var enabled = actions.CanClear?.Invoke(control) == true;
+                var clear = new MenuItem { Header = actions.ClearLabel, IsEnabled = enabled };
+                if (!enabled)
+                {
+                    clear.ToolTip = actions.ClearUnavailableReason?.Invoke(control) ?? "No editable assignment on this control.";
+                    ToolTipService.SetShowOnDisabled(clear, true);
+                }
+                var choices = enabled ? actions.ClearChoices?.Invoke(control) : null;
+                if (choices is { Count: > 1 })
+                    foreach (var choice in choices)
+                    {
+                        var alternative = new MenuItem { Header = choice.Label };
+                        alternative.Click += (_, _) => choice.Execute();
+                        clear.Items.Add(alternative);
+                    }
+                else clear.Click += (_, _) => actions.Clear(control);
                 menu.Items.Add(clear);
             }
             if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)

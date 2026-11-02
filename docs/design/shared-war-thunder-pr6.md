@@ -103,3 +103,12 @@ Physical callouts now supply the shared presenter with assignment inspection, cl
 The shared command drag source retains the command under the original pointer press instead of taking whichever command happens to be selected later. War Thunder drawing edits compare profile contents and distinguish a changed staged assignment from an already-set assignment. No-op edits do not enable Save or claim a new staged change. Changed profiles refresh through the session notification and the common Save chrome.
 
 Regression coverage now checks old/new callout SVG labels after native reassignment. Windows smoke starts with a saved profile, applies a different binding, requires Save to enable, saves it, repeats the unchanged assignment without dirtying it, invokes callout assignment inspection, checks the clear action, and changes the binding through public Apply. These new .NET/WPF checks require local execution; source checks do not establish hardware acceptance.
+
+
+### Standard Clear Assignment availability
+
+The shared hardware presenter now keeps an adapter-provided Clear action visible on an unavailable callout, disabled with a tooltip explaining why. An adapter may provide named native alternatives; when more than one is clearable, Clear Assignment opens a choice submenu. This common presentation is used by the game workspaces rather than a separate War Thunder context-menu implementation.
+
+War Thunder no longer restricts physical clear to exactly one single-input record. Captured joystick-only chords and multiple joystick alternatives are offered using the existing backend clear capability. Clearing removes the selected complete native alternative; other alternatives, system inputs and unrelated records remain untouched. Mixed system/joystick records, opaque/nested syntax and native axis clearing remain unsupported and receive an explanatory disabled action. Missing physical mapping evidence is reported rather than treated as an empty binding.
+
+Windows smoke now clears a joystick chord from several alternatives sharing a physical input, checks unrelated alternatives and keyboard bindings, requires Save to enable, and verifies exact saved-state restoration through Discard. The Squadrons smoke checks the same shared disabled-action policy for an empty callout. Local Windows execution remains required for these changes.

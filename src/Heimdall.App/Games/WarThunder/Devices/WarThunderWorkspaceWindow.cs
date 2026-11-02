@@ -82,7 +82,8 @@ namespace Heimdall.App.Games
                     SelectPhysicalControl, _physicalMap.Inputs.Count > 0 ? DropPhysicalCommand : null,
                     CanClear: CanClearPhysicalControl, Clear: ClearPhysicalControl,
                     CanTune: CanTunePhysicalControl, Tune: TunePhysicalControl,
-                    DragFormat: "heimdall.war-thunder.command", Inspect: InspectPhysicalControl, CanDrop: CanDropPhysicalCommand), AppearanceManager.ArtworkOpacityFor(this));
+                    DragFormat: "heimdall.war-thunder.command", Inspect: InspectPhysicalControl, CanDrop: CanDropPhysicalCommand,
+                    ClearChoices: ClearPhysicalChoices, ClearUnavailableReason: ClearUnavailableReason), AppearanceManager.ArtworkOpacityFor(this));
                 _assignments.Artwork.Feedback.Text = _physicalMap.Message;
             }
             _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;
