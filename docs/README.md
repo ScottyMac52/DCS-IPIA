@@ -35,3 +35,7 @@ The Free release supports its explicit reviewed Thrustmaster catalog and a fixed
 The Phase 1 status, repository inventory, domain-schema-v1, configuration-snapshot-v1 and generated Common capability inventory retain their original baseline/version and evidence. Their historical pending work is not the current backlog. Do not rewrite pinned source hashes, captured consumer documents or fixture release versions to resemble the application release.
 
 The [workspace concept images and HTML mockups](design/workspace-layout-concepts/README.md) and [assignment editor prototype](ux/assignment-editor-approved.html) are design references, not application screenshots or complete feature specifications. Current navigation and layout are described above.
+
+War Thunder: [native foundation and readiness](war-thunder-adapter.md), [PR6 shared-contract audit](design/shared-war-thunder-pr6.md). Desktop integration follows the verified native backend contract.
+
+Shared adapters: [file-backed validation contract](design/profile-validation-contract.md).

@@ -134,8 +134,6 @@ namespace Heimdall.App.Games
             ClearNativeRecordItem.Click += ClearSelectedClicked;
             ApplyNativeRecordItem.Click += ApplyNativeRecordClicked;
             DrawingPanel.Expanded += DrawingExpanded;
-            DrawingPanel.Collapsed += DrawingCollapsed;
-            DrawingPanel.SizeChanged += DrawingPanelSizeChanged;
             TargetDevice.SelectionChanged += TargetChanged;
             InputPicker.SelectionChanged += InputChanged;
             _featureHost = new(FeatureContent, FeatureActions, StopLiveInput);
@@ -1088,39 +1086,11 @@ namespace Heimdall.App.Games
             StatusText.Text = "Drawing unlinked. Choose another drawing or save this change.";
         });
         private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
-        // The Expander may be larger than the pane's arranged row. Clamp the scroll
-        // host to the actual resizable row so WPF registers clipped drawing content
-        // as scrollable extent instead of simply hiding it behind the window edge.
-        private bool _drawingBoundsQueued;
-        private void DrawingPanelSizeChanged(object sender, SizeChangedEventArgs e) => QueueDrawingBounds();
-
-        private void QueueDrawingBounds()
-        {
-            if (_drawingBoundsQueued || DrawingPanel is null || DrawingScroll is null) return;
-            _drawingBoundsQueued = true;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
-            {
-                _drawingBoundsQueued = false;
-                if (!DrawingPanel.IsExpanded || DrawingPanel.ActualHeight <= 0) return;
-                var top = DrawingScroll.TranslatePoint(new Point(0, 0), DrawingPanel).Y;
-                var maximum = Math.Max(24, DrawingPanel.ActualHeight - top - 4);
-                if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
-                    DrawingScroll.MaxHeight = maximum;
-            }));
-        }
-
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
             if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
 
-            QueueDrawingBounds();
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
-        }
-        private void DrawingCollapsed(object sender, RoutedEventArgs e)
-        {
-            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
-
-            DrawingScroll.MaxHeight = double.PositiveInfinity;
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {

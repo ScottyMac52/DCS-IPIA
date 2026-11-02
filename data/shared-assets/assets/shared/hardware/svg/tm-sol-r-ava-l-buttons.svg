@@ -68,58 +68,58 @@
   <rect x="990" y="450" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN16" x="1175" y="472" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B16  |  Action button</text>
   <!-- callout:JOY_BTN13 -->
-  <polyline points="700,375 950,729 1175,735" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,375 450,520 225,510" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="375" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="735" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN13" x="1175" y="757" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
+  <rect x="40" y="510" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN13" x="225" y="532" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
   <!-- callout:JOY_BTN14 -->
-  <polyline points="700,365 950,779 1175,785" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,365 450,578 225,560" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="365" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="785" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN14" x="1175" y="807" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
+  <rect x="40" y="560" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN14" x="225" y="582" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
   <!-- callout:JOY_BTN15 -->
-  <polyline points="700,390 950,829 1175,835" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,390 460,630 225,610" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="390" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="835" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN15" x="1175" y="857" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
+  <rect x="40" y="610" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN15" x="225" y="632" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
   <!-- callout:JOY_X -->
-  <polyline points="680,715 450,899 225,905" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="680" y1="715" x2="410" y2="715" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="680" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="905" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_X" x="225" y="927" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
+  <rect x="40" y="697" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_X" x="225" y="719" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
   <!-- callout:JOY_Y -->
-  <polyline points="720,715 450,949 225,955" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="720,715 440,768 225,750" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="720" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="955" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_Y" x="225" y="977" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
+  <rect x="40" y="750" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_Y" x="225" y="772" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
   <!-- callout:JOY_RZ -->
-  <polyline points="700,860 450,999 225,1005" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="700" y1="860" x2="997" y2="733" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="860" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="1005" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_RZ" x="225" y="1027" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
+  <rect x="812" y="697" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RZ" x="997" y="719" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
   <!-- callout:JOY_BTN3 -->
-  <polyline points="807,1110 950,1098 990,1098" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="807" cy="1110" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="593,1110 950,1098 990,1098" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="593" cy="1110" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1080" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN3" x="1175" y="1102" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B03  |  Upper trigger input</text>
   <!-- callout:JOY_BTN4 -->
-  <polyline points="802,1162 950,1148 990,1148" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="802" cy="1162" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="598,1162 950,1148 990,1148" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="598" cy="1162" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1130" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN4" x="1175" y="1152" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B04  |  Upper trigger input</text>
   <!-- callout:JOY_BTN1 -->
-  <polyline points="744,1185 450,1198 410,1198" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="744" cy="1185" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="656,1185 450,1198 410,1198" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="656" cy="1185" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="1180" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN1" x="225" y="1202" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B01  |  Main trigger input</text>
   <!-- callout:JOY_BTN2 -->
-  <polyline points="732,1198 450,1224 225,1230" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="732" cy="1198" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="668,1198 450,1224 225,1230" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="668" cy="1198" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="1230" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN2" x="225" y="1252" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B02  |  Main trigger input</text>
   <!-- callout:JOY_BTN5 -->
-  <polyline points="704,1336 950,1328 990,1328" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="704" cy="1336" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="696,1336 950,1328 990,1328" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="696" cy="1336" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1310" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN5" x="1175" y="1332" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B05  |  Lower grip button</text>
   <!-- box:JOY_BTN_POV1_U -->

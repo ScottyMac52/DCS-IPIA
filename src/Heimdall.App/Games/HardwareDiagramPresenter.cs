@@ -37,14 +37,15 @@ namespace Heimdall.App.Games
                     border.MouseLeftButtonDown += (_, e) => { actions.Select!(control); e.Handled = true; };
                 if (availability.Drop)
                 {
-                    border.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(actions.DragFormat) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
-                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id) actions.Drop!(control, id); e.Handled = true; };
+                    border.DragOver += (_, e) => { e.Effects = e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
+                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true)) actions.Drop!(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
                 }
                 // A left click already selects the input. A right-click menu
                 // advertises only actual native operations; no phantom Select/Tune.
                 if (actions.Clear is not null || actions.Tune is not null || actions.Inspect is not null)
                 {
                     var menu = new ContextMenu();
+                    RefreshMenu(menu, control, actions);
                     border.ContextMenuOpening += (_, e) =>
                     {
                         RefreshMenu(menu, control, actions);
@@ -68,11 +69,25 @@ namespace Heimdall.App.Games
                 inspect.Click += (_, _) => actions.Inspect(control);
                 menu.Items.Add(inspect);
             }
-            if (actions.CanClear?.Invoke(control) == true && actions.Clear is not null)
+            if (actions.Clear is not null)
             {
                 if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-                var clear = new MenuItem { Header = actions.ClearLabel };
-                clear.Click += (_, _) => actions.Clear(control);
+                var enabled = actions.CanClear?.Invoke(control) == true;
+                var clear = new MenuItem { Header = actions.ClearLabel, IsEnabled = enabled };
+                if (!enabled)
+                {
+                    clear.ToolTip = actions.ClearUnavailableReason?.Invoke(control) ?? "No editable assignment on this control.";
+                    ToolTipService.SetShowOnDisabled(clear, true);
+                }
+                var choices = enabled ? actions.ClearChoices?.Invoke(control) : null;
+                if (choices is { Count: > 1 })
+                    foreach (var choice in choices)
+                    {
+                        var alternative = new MenuItem { Header = choice.Label };
+                        alternative.Click += (_, _) => choice.Execute();
+                        clear.Items.Add(alternative);
+                    }
+                else clear.Click += (_, _) => actions.Clear(control);
                 menu.Items.Add(clear);
             }
             if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)
@@ -93,3 +108,4 @@ namespace Heimdall.App.Games
         #endregion END Public
     }
 }
+

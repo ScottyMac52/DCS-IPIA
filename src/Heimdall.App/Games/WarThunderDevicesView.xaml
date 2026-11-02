@@ -1,0 +1,20 @@
+<UserControl x:Class="Heimdall.App.Games.WarThunderDevicesView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games">
+ <DockPanel>
+  <pres:ActionBar x:Name="Actions" IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Top">
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Rescan" Content="Rescan"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Link" Content="Link physical controller…"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Unlink" Content="Unlink physical controller…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/>
+  </pres:ActionBar>
+  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+   <TextBlock Style="{StaticResource SectionTitle}" Text="Devices"/>
+   <TextBlock Style="{StaticResource Hint}" Text="Select a controller in the profile on the left. Link its physical controller explicitly, then choose a shared drawing." TextWrapping="Wrap" Margin="0,8"/>
+   <games:GameControllerSetup><StackPanel Margin="0,8,0,0">
+   <TextBlock Style="{StaticResource Hint}" x:Name="NativeDetails" TextWrapping="Wrap" Margin="0,8"/>
+   <TextBlock Style="{StaticResource AppLabel}" Text="Physical controller"/>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Physical" DisplayMemberPath="Title" AutomationProperties.Name="Physical controller" Margin="0,6"/>
+   </StackPanel></games:GameControllerSetup>
+   <TextBlock Style="{StaticResource AppLabel}" Text="Hardware drawing" Margin="0,12,0,0"/>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Drawing" Width="340" DisplayMemberPath="Title" AutomationProperties.Name="Hardware drawing" Margin="0,6"/>
+   <TextBlock Style="{StaticResource Hint}" Text="Native mapping ranges do not identify a Windows controller. Physical and drawing links require explicit unlink before replacement. These links do not renumber the exported native inputs." TextWrapping="Wrap" Margin="0,16"/>
+  </StackPanel></ScrollViewer>
+ </DockPanel>
+</UserControl>

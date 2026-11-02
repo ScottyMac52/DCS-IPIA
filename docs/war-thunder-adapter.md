@@ -1,29 +1,28 @@
-# War Thunder adapter — Phase 1 native BLK capture
+# War Thunder adapter and shared workspace
 
-PR 1B reconciles the protected `feature/war-thunder-adapter-foundation` source into current `main` as an isolated, build-registered `Heimdall.WarThunder` project with regression tests for captured BLK inventory and conservative editing. It does **not** advertise a working game selection or device editor.
+War Thunder now has an `ISimProfileBackend` implementation with native-backed portable profiles, a captured command/parameter catalog, saved device ranges, occurrence-addressed edits and exact native text export. The desktop consumer is now registered in PR6 (#334), with captured native-index editing, explicit physical links, drawings/live feedback, saved workspaces and isolated review export. Physical control translation and real-game acceptance remain explicit boundaries.
 
-- Parse typed BLK scalars and nested blocks; preserve unchanged text exactly.
-- Inventory captured hotkey, axis and joystick fields without inferring hardware identity.
-- Expose numeric activation codes without assigning undocumented tap/hold meanings.
-- Replace a single uniquely addressed captured scalar, rejecting unknown, ambiguous or type-invalid edits.
-- Include the project in `HEIMDALL.sln` and the unit-test project; tests cover round trips, inventory, edits and malformed input.
+PR1B integrated the protected `feature/war-thunder-adapter-foundation` parser into the shared .NET 10 solution. PR6 of #323 audits it against the shared contracts accepted through Squadrons PR5 and strengthens the scalar-edit boundary. See the [PR6 readiness report](design/shared-war-thunder-pr6.md) for the component reuse map, findings, capability matrix and local acceptance commands.
 
-## PR 1B integration boundaries
+## Implemented subset
 
-- Targets the solution's shared .NET 10 configuration through `Directory.Build.props`, rather than retaining the old branch's explicit net8.0 target.
-- Includes `Heimdall.WarThunder` in `HEIMDALL.sln` and references the project from `Heimdall.Tests` without dropping the Squadrons test reference.
-- The existing BLK parser and control inventory remain native-adapter concerns. PR 2's shared presenter must consume adapter projections, never parse BLK text in WPF.
-- No WPF window, game tile, simulator selection registration, native deployment workflow, or speculative joystick mapping is exposed by this PR.
-- The original War Thunder feature branch is left unchanged. DCS, Elite and Squadrons remain as on main.
+- Capture typed scalars and nested blocks while preserving accepted source text exactly.
+- Inventory root-level or wrapped controls, including repeated hotkeys, axes and `deviceMapping/joystick` fields, without inferring hardware identity.
+- Report numeric activation codes without assigning undocumented tap/hold meanings.
+- Replace one uniquely addressed supported scalar, preserving comments and all other source spans.
+- Validate quoted `s`/`t`, 32-bit `i`, `yes`/`no` or `0`/`1` booleans, and finite `r` replacements as single tokens.
+- Keep successfully captured opaque/unsupported syntax available for unchanged export and inspection, with scalar writes blocked. Unsupported structural forms can still fail capture; this is not a complete BLK grammar.
+- Retain duplicate paths as evidence and reject ambiguous writes; expose immutable scalar/block inventories.
 
-## Verification (required before merge)
+`WarThunderControls.EditableSettings` lists supported unique literal scalar edits. It does not grant command authoring, physical input mapping or deployment. The native document is immutable. `WarThunderProfileBackend` stages independent native-backed profiles after validation; failed edits leave the original source available. See the [native backend contract](design/war-thunder-native-contract.md) for methods, capability boundaries and the inspection schema.
 
-- [ ] `dotnet build -c Release`
-- [ ] `dotnet test -c Release --no-build`
-- [ ] 80% line / 80% branch / CRAP ≤ 50 quality gates
-- [ ] `tests/smoke-tests.ps1` on Windows, ensuring all existing simulator scenarios still pass
-- [ ] Validate BLK fixture import and unchanged export; reject ambiguous/invalid native edits, including comments, numeric and string scalar types
+## Integration boundaries
 
-## Remaining work
+The project is already referenced by `HEIMDALL.sln` and `Heimdall.Tests`. War Thunder joins the expected production assemblies for the independent 80/80 coverage and CRAP <=50 gates in PR6. The desktop consumer reuses the shared lifecycle, command browser/editor, diagram presentation, link policy and input feedback; native interpretation remains in `Heimdall.WarThunder`.
 
-The parser is intentionally a conservative Phase 1 subset; validation against real War Thunder BLK fixtures and uncommon native encodings is still required. Simulator backend integration, device linking, gesture/axis tuning, game selection, and safe reviewed deployment remain follow-up phases. Do not deploy output into live game settings without a backup. Builds and tests have not been executed in the GitHub authoring environment.
+A privately reviewed game export establishes the basic controls/device-mapping shape and native boolean spelling. Repository tests use generic authored examples. Occurrence-aware addresses, captured command/parameter metadata, native range validation and guarded source edits are implemented in #333. Physical index translation, complete inherited command coverage and in-game acceptance of newly generated bindings remain explicit integration requirements.
+
+- [#333: verify the native binding contract and implement the profile backend](https://github.com/ScottyMac52/DCS-IPIA/issues/333).
+- [#334: connect the verified adapter to the shared game workspace](https://github.com/ScottyMac52/DCS-IPIA/issues/334).
+
+The old feature branch is retained. Existing DCS, Elite and Squadrons workflows remain registered. Export uses a separate reviewed copy; the adapter and workspace do not write active game settings.

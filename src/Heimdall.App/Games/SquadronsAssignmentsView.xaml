@@ -9,8 +9,8 @@
 <Button x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
 <Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" ToolTip="Fit controller drawing to the available pane"/>
  </pres:ActionBar>
-   <Grid pres:WorkspaceLayout.Key="squadrons.assignments.split">
-    <Grid.ColumnDefinitions><ColumnDefinition Width=".38*" MinWidth="230"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".62*" MinWidth="300"/></Grid.ColumnDefinitions>
+   <games:GameWorkspaceSplit pres:WorkspaceLayout.Key="squadrons.assignments.split">
+
     <DockPanel Grid.Column="0" Margin="0,0,6,0">
      <StackPanel DockPanel.Dock="Bottom">
       <Button x:Name="ShowCommandButton" Style="{StaticResource ToolbarActionButton}" Content="Show saved assignments"/>
@@ -27,7 +27,6 @@
      </StackPanel>
      <games:GameCommandBrowserView x:Name="CommandBrowser" ToolTip="Click a control to select it, then Apply assignment. Drag a command onto a control to assign directly."/>
     </DockPanel>
-    <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" ToolTip="Resize Commands and Assignment workspace"/>
     <Grid Grid.Column="2" Margin="6,0,0,0">
      <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="180"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Expander x:Name="CapturedAssignments" Grid.Row="1" Header="Captured assignments and diagnostics" IsExpanded="False" pres:WorkspaceLayout.Key="squadrons.assignments.table"><Grid MaxHeight="170">
@@ -52,24 +51,7 @@
     <TextBlock x:Name="EmptyState" Grid.Row="1" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" HorizontalAlignment="Center" MaxWidth="460"/>
     </Grid></Expander>
     <Expander x:Name="DrawingPanel" Grid.Row="0" Header="Controller drawing" IsExpanded="True" Margin="0,8,0,0">
-     <Grid Margin="0,6,0,0" MinHeight="0" ClipToBounds="True">
-      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
-      <WrapPanel Grid.Row="0" Margin="0,0,0,6">
-       <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" Margin="12,0,8,0"/>
-       <Slider x:Name="DrawingZoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Squadrons drawing zoom"/>
-
-       <TextBlock x:Name="DrawingDropFeedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400" Text="Click a control to select it, then Apply assignment; or drag a command onto a control."/>
-      </WrapPanel>
-      <!-- The ScrollViewer must measure the zoomed Canvas directly. A stretching Grid
-           between them can mask the vertically transformed content extent. -->
-      <Grid Grid.Row="1" MinHeight="0" ClipToBounds="True">
-       <ScrollViewer x:Name="DrawingScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="False" Focusable="True" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
-        <Canvas x:Name="DrawingCanvas" Background="Transparent" Width="600" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-       </ScrollViewer>
-       <TextBox x:Name="InputActivity" Style="{StaticResource AppTextBox}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="12,70,12,12" AutomationProperties.Name="Live controller input activity"/>
-       <TextBlock x:Name="DrawingHint" Text="On Devices, link the selected controller and choose a hardware drawing. Start input test to see raw activity without a drawing." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap" IsHitTestVisible="False"/>
-      </Grid>
-     </Grid>
+     <games:GameDrawingView x:Name="Artwork" Margin="0,6,0,0"/>
     </Expander>
     <games:GameAssignmentEditorView x:Name="SelectionEditor" Grid.Row="2"><games:GameAssignmentEditorView.NativeEditor>
     <StackPanel x:Name="AssignmentEditor" Margin="0,12,0,0" Visibility="Collapsed">
@@ -83,7 +65,7 @@
     </StackPanel>
     </games:GameAssignmentEditorView.NativeEditor></games:GameAssignmentEditorView>
    </Grid>
-  </Grid>
+  </games:GameWorkspaceSplit>
 
 </DockPanel>
 </UserControl>

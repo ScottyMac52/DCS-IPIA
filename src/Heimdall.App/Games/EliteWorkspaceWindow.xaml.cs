@@ -54,6 +54,7 @@ namespace Heimdall.App.Games
         internal Func<string?>? BindingsDirectoryPicker { get; set; }
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         internal Func<string, bool>? ConfirmConfigurationDeletion { get; set; }
+        private readonly GameCommandDragSource _commandDrag;
         private bool _refreshing;
         private bool _allowClose;
         private IReadOnlyList<EliteAssignmentRow> _rows = [];
@@ -76,6 +77,12 @@ namespace Heimdall.App.Games
             _featureHost = new(FeatureContent, FeatureActions, StopLiveInput);
             _assignmentsView.ConfigureBrowser(EliteCommandBrowser.InputTypes, EliteCommandBrowser.AssignmentStatuses);
             RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
+            RegisterName("DiagramZoom", _assignmentsView.DiagramZoom);
+            RegisterName("InputActivityHint", _assignmentsView.InputActivityHint);
+            RegisterName("InputActivity", _assignmentsView.InputActivity);
+            RegisterName("DiagramHint", _assignmentsView.DiagramHint);
+            RegisterName("DiagramScroll", _assignmentsView.DiagramScroll);
+            RegisterName("DiagramCanvas", _assignmentsView.DiagramCanvas);
             _devicesView.IdentifyControllerButton.Click += IdentifyControllerClicked;
             _devicesView.CancelIdentificationButton.Click += CancelIdentificationClicked;
             _devicesView.ConfirmIdentificationButton.Click += ConfirmIdentificationClicked;
@@ -140,7 +147,7 @@ namespace Heimdall.App.Games
             _refreshing = false;
             ReloadChoices(initial);
             FeaturePicker.SelectedIndex = 0;
-            _assignmentsView.CommandsList.PreviewMouseMove += DragCommand;
+            _commandDrag = new(_assignmentsView.CommandsList, "heimdall.elite.command", () => _session?.AccessMessage.Length == 0);
             Closing += ConfirmClose; Closed += (_, _) => Dispose();
             AppearanceManager.ObserveArtwork(this, () => Run(() => { RenderDevice(); InvalidateReferenceSheets(); }));
             Rescan(); UpdateAvailability();
@@ -152,12 +159,14 @@ namespace Heimdall.App.Games
         {
             _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
             _inputTextProperty.RemoveValueChanged(_assignmentsView.InputKey, InputTextChanged);
-            _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
+            _commandDrag.Dispose(); _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
         public bool DcsRequested { get; private set; }
         /// <summary>Gets an explicit guarded request for the Squadrons workspace.</summary>
         public bool SquadronsRequested { get; private set; }
+        /// <summary>Gets whether the user explicitly selected War Thunder.</summary>
+        public bool WarThunderRequested { get; private set; }
         /// <summary>Gets the current staged session for deterministic Windows interaction checks.</summary>
         internal GameProfileSession? Session => _session;
         /// <summary>Builds the same window-scoped payload used by controller drags.</summary>
@@ -233,6 +242,7 @@ namespace Heimdall.App.Games
         private void RegisterFeatureNames(DependencyObject root)
         {
             if (root is FrameworkElement { Name.Length: > 0 } element) RegisterName(element.Name, element);
+            if (root is GameDrawingView) return;
             foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) RegisterFeatureNames(child);
         }
         private string? ChooseConfigurationName(string action, string initial)
@@ -584,11 +594,6 @@ namespace Heimdall.App.Games
             SelectInput(DrawingKey(control) ?? throw new InvalidOperationException("Unsupported drawing input; choose an explicit native key."));
             ApplyClicked(this, new());
         });
-        private void DragCommand(object sender, MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed && Command is { } command && _session?.AccessMessage.Length == 0)
-                DragDrop.DoDragDrop(_assignmentsView.CommandsList, new DataObject("heimdall.elite.command", command.Id), DragDropEffects.Copy);
-        }
         private void LoadAssignment()
         {
             if (_refreshing || _session is null) return;
@@ -981,9 +986,9 @@ namespace Heimdall.App.Games
         private void ConfirmClose(object? sender, CancelEventArgs e) { if (!_allowClose) e.Cancel = !ConfirmLeave(); }
         private void GameChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_refreshing || GamePicker.SelectedIndex is not 0 and not 2) return;
+            if (_refreshing || GamePicker.SelectedIndex is not 0 and not 2 and not 3) return;
             if (!ConfirmLeave()) { _refreshing = true; GamePicker.SelectedIndex = 1; _refreshing = false; return; }
-            DcsRequested = GamePicker.SelectedIndex == 0; SquadronsRequested = GamePicker.SelectedIndex == 2; _allowClose = true; Close();
+            DcsRequested = GamePicker.SelectedIndex == 0; SquadronsRequested = GamePicker.SelectedIndex == 2; WarThunderRequested = GamePicker.SelectedIndex == 3; _allowClose = true; Close();
         }
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {

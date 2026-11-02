@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application.Validation;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.Application.Games
@@ -8,6 +9,7 @@ namespace Heimdall.Application.Games
     public sealed class GameProfileSession
     {
         private readonly ISimProfileBackend _backend;
+        private readonly ProfileValidationDefinition _validationDefinition;
         private readonly EditionPolicy _policy;
         private readonly ISimDeviceReferenceMatcher? _referenceMatcher;
         private IReadOnlyCollection<string> _catalogIds;
@@ -18,9 +20,9 @@ namespace Heimdall.Application.Games
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
-            Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null)
+            Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null, ProfileValidationDefinition? validationDefinition = null)
         {
-            _backend = backend; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
+            _backend = backend; _validationDefinition = validationDefinition ?? backend.ValidationDefinition; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
             _controllerInputs = controllerInputs ?? (() => []);
             GameWorkspaceContract.Validate(workspace);
             ValidateProfile(workspace.Profile);
@@ -49,6 +51,13 @@ namespace Heimdall.Application.Games
         public void AcceptSaved() { _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
         /// <summary>Restores the exact saved document and associations.</summary>
         public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }
+        /// <summary>Stages an adapter-owned operation atomically, preserving identity and validating its exported result.</summary>
+        public void ApplyNativeEdit(ISimNativeEdit edit)
+        {
+            RequireAccess(); ArgumentNullException.ThrowIfNull(edit);
+            if (edit.BackendId != _backend.SimId) throw new InvalidOperationException("The native edit belongs to another game.");
+            StageNativeProfile(edit.Apply(Snapshot.Profile), "The native edit changed game or profile identity.");
+        }
         /// <summary>Gets whether native indexed-record editing is implemented by the active adapter.</summary>
         public bool CanEditNativeRecords => _backend is INativeRecordEditor;
         /// <summary>Stages one validated native record edit atomically; foreign backend/context results are rejected.</summary>
@@ -128,7 +137,7 @@ namespace Heimdall.Application.Games
             _current = _current with { Name = name }; Changed?.Invoke(this, EventArgs.Empty);
         }
         /// <summary>Gets whether the adapter supports reviewed physical links to captured slots without native identity inference.</summary>
-        public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinks;
+        public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinkValidator;
         /// <summary>Gets whether the adapter can add a native controller without a prior captured slot.</summary>
         public bool CanAddNativeControllers => _backend is INativeControllerCreator;
         /// <summary>Reviews native slot creation and an exact physical link as one isolated change.</summary>
@@ -183,6 +192,9 @@ namespace Heimdall.Application.Games
             if (observed.ProductGuid == Guid.Empty) throw new InvalidOperationException("Rescan this controller to obtain its native product identity.");
             if (_current.Hardware.Any(x => x.Key != logicalId && x.Value.Device.PhysicalGuid == physicalGuid))
                 throw new InvalidOperationException("This physical controller is already linked to another captured slot. Unlink that slot first.");
+            if (_referenceMatcher is not null && !(_current.Profile.Devices.Single(x => x.LogicalId == logicalId).Identity is { } identity
+                && _referenceMatcher.Matches(identity, observed)))
+                throw new InvalidOperationException("This physical product does not match the saved native device reference.");
             var candidate = Snapshot;
             var previous = candidate.Hardware.GetValueOrDefault(logicalId);
             candidate.Hardware[logicalId] = previous is not null && previous.Device.PhysicalGuid == physicalGuid && previous.Device.ProductGuid == observed.ProductGuid
@@ -215,7 +227,7 @@ namespace Heimdall.Application.Games
             RequireCapturedDevice(logicalId);
             if (_current.Hardware.ContainsKey(logicalId))
                 throw new InvalidOperationException("Unlink this physical controller before removing its captured slot.");
-            var editor = (ISimCapturedDeviceLinks)_backend;
+            var editor = _backend as ISimCapturedDeviceLinks ?? throw new InvalidOperationException("This adapter cannot change the captured device roster.");
             var candidate = Snapshot;
             candidate.UnlinkedDrawings.Remove(logicalId);
             candidate = candidate with { Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
@@ -495,6 +507,8 @@ namespace Heimdall.Application.Games
             if (!profile.Metadata.ContainsKey(key)) throw new InvalidOperationException("This command has no native toggle setting.");
             profile.Metadata[key] = value ? "1" : "0";
         });
+        /// <summary>Reviews the loaded draft against its explicit file-backed contract without changing current or saved state.</summary>
+        public ProfileValidationResult Validate(CancellationToken cancellationToken = default) => _backend.Validate(Snapshot.Profile, _validationDefinition, cancellationToken);
         /// <summary>Creates a reviewed native payload only after edition and conversion validation.</summary>
         public SimProfileExportPlan Export() { RequireAccess(); return ValidateProfile(_current.Profile); }
         /// <summary>Reviews all output references against current hardware, independently of offline format validation.</summary>
@@ -532,7 +546,7 @@ namespace Heimdall.Application.Games
         private void RequireCapturedDevice(string logicalId)
         {
             RequireAccess();
-            var links = _backend as ISimCapturedDeviceLinks ?? throw new InvalidOperationException("This adapter does not support captured-slot physical links.");
+            var links = _backend as ISimCapturedDeviceLinkValidator ?? throw new InvalidOperationException("This adapter does not support captured-slot physical links.");
             links.ValidateCapturedDeviceLink(Snapshot.Profile, logicalId);
         }
         private GameControllerChange CapturedDeviceChange(string logicalId, GameWorkspace candidate, DetectedDcsDevice? target)
@@ -623,9 +637,9 @@ namespace Heimdall.Application.Games
         }
         private SimProfileExportPlan ValidateProfile(ProfileDocument profile)
         {
-            var plan = _backend.Export(profile);
-            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
-            return plan;
+            var validation = _backend.Validate(profile, _validationDefinition);
+            if (!validation.IsValid) throw new InvalidOperationException(validation.ErrorMessage);
+            return validation.ExportPlan ?? throw new InvalidOperationException("Validation did not produce a native payload.");
         }
         private void Edit(Action<ProfileDocument> edit)
         {

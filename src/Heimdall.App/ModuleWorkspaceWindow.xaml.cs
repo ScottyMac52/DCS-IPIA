@@ -100,6 +100,7 @@ namespace Heimdall.App
             WorkspaceGamePicker.SelectedIndex = 0;
             ((ComboBoxItem)WorkspaceGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");
             ((ComboBoxItem)WorkspaceGamePicker.Items[2]).IsEnabled = EditionAccess.Policy.AllowsSimulator("star-wars-squadrons");
+            ((ComboBoxItem)WorkspaceGamePicker.Items[3]).IsEnabled = EditionAccess.Policy.AllowsSimulator("war-thunder");
             WorkspaceProfilePicker.ItemsSource = moduleChoices ?? [];
             WorkspaceProfilePicker.SelectedItem = moduleChoices?.FirstOrDefault(x => x.Id == _saved?.Configuration.Module.Id);
             GameWorkspaceSelectors.Visibility = allowGameSwitch && training is null ? Visibility.Visible : Visibility.Collapsed;
@@ -133,7 +134,7 @@ namespace Heimdall.App
 
         private async void WorkspaceGameChanged(object sender, SelectionChangedEventArgs e)
         {
-            var game = WorkspaceGamePicker.SelectedIndex switch { 1 => "elite-dangerous", 2 => "star-wars-squadrons", _ => null };
+            var game = WorkspaceGamePicker.SelectedIndex switch { 1 => "elite-dangerous", 2 => "star-wars-squadrons", 3 => "war-thunder", _ => null };
             if (_changingSelection || game is null || !EditionAccess.Policy.AllowsSimulator(game)) return;
             if (await ConfirmWorkspaceSwitch()) { RequestedGame = game; Close(); }
             else { _changingSelection = true; WorkspaceGamePicker.SelectedIndex = 0; _changingSelection = false; }

@@ -144,10 +144,11 @@ namespace Heimdall.App
         }
         private void ShowGamesClicked(object sender, RoutedEventArgs e) => ShowGameSelection();
         private void LandingGameChanged(object sender, SelectionChangedEventArgs e)
-        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); else if (!_changingGame && LandingGamePicker.SelectedIndex == 2) OpenSquadrons(); }
+        { if (!_changingGame && LandingGamePicker.SelectedIndex == 1) OpenElite(); else if (!_changingGame && LandingGamePicker.SelectedIndex == 2) OpenSquadrons(); else if (!_changingGame && LandingGamePicker.SelectedIndex == 3) OpenWarThunder(); }
         private void SelectGame(string game)
         {
             if (game == "elite-dangerous") { OpenElite(); return; }
+            if (game == "war-thunder") { OpenWarThunder(); return; }
             if (game == "star-wars-squadrons") { OpenSquadrons(); return; }
             GameSelection.Visibility = Visibility.Collapsed; DcsLandingPanel.Visibility = Visibility.Visible;
             _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false;
@@ -167,6 +168,7 @@ namespace Heimdall.App
             {
                 var selection = _games.Recent();
                 if (selection.BackendId == "elite-dangerous") OpenElite();
+                else if (selection.BackendId == "war-thunder") OpenWarThunder();
                 else if (selection.BackendId == "star-wars-squadrons") OpenSquadrons();
                 else { SelectGame("dcs"); if (selection.DcsModuleId is not null) OpenSaved_Click(this, new RoutedEventArgs()); }
             }
@@ -184,11 +186,30 @@ namespace Heimdall.App
                 _games.Remember(selection with { BackendId = "elite-dangerous", WorkspaceId = selection.BackendId == "elite-dangerous" ? selection.WorkspaceId : null, DisplayName = selection.BackendId == "elite-dangerous" ? selection.DisplayName : "" });
                 var window = new EliteWorkspaceWindow(_games, hardware, selection.BackendId == "elite-dangerous" ? selection.WorkspaceId : null) { Owner = this };
                 window.ShowDialog();
-                if (window.SquadronsRequested) _ = Dispatcher.BeginInvoke(new Action(OpenSquadrons));
+                if (window.WarThunderRequested) _ = Dispatcher.BeginInvoke(new Action(OpenWarThunder));
+                else if (window.SquadronsRequested) _ = Dispatcher.BeginInvoke(new Action(OpenSquadrons));
                 else if (window.DcsRequested) SelectGame("dcs"); else ShowGameSelection();
             }
             catch (Exception error) { ShowImportError("Unable to open Elite workspace: " + error.Message); }
             finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); if (DcsLandingPanel.Visibility == Visibility.Visible) OfferHardwareSetup(); }
+        }
+        private void OpenWarThunder()
+        {
+            if (_games is null || _moduleOperationBusy) return;
+            SetModuleOperationBusy(true);
+            try
+            {
+                EditionAccess.Policy.RequireSimulator("war-thunder");
+                var selection = _games.Recent();
+                var initial = selection.BackendId == "war-thunder" ? selection.WorkspaceId : null;
+                _games.Remember(selection with { BackendId = "war-thunder", WorkspaceId = initial, DisplayName = initial is null ? "" : selection.DisplayName });
+                var window = new WarThunderWorkspaceWindow(_games, initial) { Owner = this };
+                window.ShowDialog();
+                if (window.RequestedGame is { } game) _ = Dispatcher.BeginInvoke(new Action(() => SelectGame(game)));
+                else ShowGameSelection();
+            }
+            catch (Exception error) { ShowImportError("Unable to open War Thunder workspace: " + error.Message); }
+            finally { _changingGame = true; LandingGamePicker.SelectedIndex = 0; _changingGame = false; SetModuleOperationBusy(false); }
         }
         private void OpenSquadrons()
         {
@@ -796,6 +817,7 @@ namespace Heimdall.App
                 RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);
             window.ShowDialog();
             if (window.RequestedGame == "elite-dangerous") OpenElite();
+            else if (window.RequestedGame == "war-thunder") OpenWarThunder();
             else if (window.RequestedGame == "star-wars-squadrons") OpenSquadrons();
             else if (window.RequestedModule is { } id)
             {

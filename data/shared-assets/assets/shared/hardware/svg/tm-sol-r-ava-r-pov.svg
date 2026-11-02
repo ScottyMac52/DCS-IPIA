@@ -88,35 +88,35 @@
   <rect x="990" y="670" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN16" x="1175" y="692" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B16  |  Action button</text>
   <!-- callout:JOY_BTN13 -->
-  <polyline points="700,375 450,729 225,735" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,375 480,532 225,514" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="375" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="735" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN13" x="225" y="757" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
+  <rect x="40" y="514" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN13" x="225" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
   <!-- callout:JOY_BTN14 -->
-  <polyline points="700,365 450,779 225,785" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,365 450,580 225,564" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="365" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="785" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN14" x="225" y="807" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
+  <rect x="40" y="564" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN14" x="225" y="586" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
   <!-- callout:JOY_BTN15 -->
-  <polyline points="700,390 450,829 225,835" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,390 460,620 225,610" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="390" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="835" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN15" x="225" y="857" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
+  <rect x="40" y="610" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN15" x="225" y="632" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
   <!-- callout:JOY_X -->
-  <polyline points="680,715 450,899 225,905" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="680" y1="715" x2="420" y2="724" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="680" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="905" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_X" x="225" y="927" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
+  <rect x="50" y="706" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_X" x="235" y="728" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
   <!-- callout:JOY_Y -->
-  <polyline points="720,715 450,949 225,955" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="720,715 440,778 235,760" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="720" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="955" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_Y" x="225" y="977" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
+  <rect x="50" y="760" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_Y" x="235" y="782" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
   <!-- callout:JOY_RZ -->
-  <polyline points="700,860 450,999 225,1005" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="700" y1="860" x2="880" y2="860" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="860" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="1005" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_RZ" x="225" y="1027" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
+  <rect x="880" y="842" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RZ" x="1065" y="864" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
   <!-- callout:JOY_BTN3 -->
   <polyline points="593,1110 950,1098 990,1098" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="593" cy="1110" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
@@ -143,15 +143,15 @@
   <rect x="990" y="1310" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN5" x="1175" y="1332" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B05  |  Lower grip button</text>
   <!-- callout:JOY_RX -->
-  <line x1="700" y1="255" x2="1175" y2="735" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="700" y1="255" x2="345" y2="156" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="255" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="735" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_RX" x="1175" y="757" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RX  |  Mini-stick horizontal</text>
+  <rect x="160" y="120" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RX" x="345" y="142" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RX  |  Mini-stick horizontal</text>
   <!-- callout:JOY_RY -->
-  <line x1="700" y1="255" x2="1175" y2="785" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="700" y1="255" x2="1055" y2="156" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="255" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="785" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_RY" x="1175" y="807" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RY  |  Mini-stick vertical</text>
+  <rect x="870" y="120" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RY" x="1055" y="142" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RY  |  Mini-stick vertical</text>
   <!-- box:JOY_BTN18 -->
   <rect x="70" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN18" x="212.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 18</text>

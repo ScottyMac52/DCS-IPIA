@@ -15,7 +15,7 @@ namespace Heimdall.App.Games
             SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
             var panel = new StackPanel { Margin = new Thickness(18) };
-            var label = new TextBlock { Text = "Configuration and exported ED preset name:" };
+            var label = new TextBlock { Text = "Configuration name:" };
             label.Style = (Style)FindResource("AppLabel"); panel.Children.Add(label);
             var name = new TextBox { Text = initial, MaxLength = 100, Margin = new Thickness(0, 8, 0, 8) };
             name.Style = (Style)FindResource("AppTextBox"); panel.Children.Add(name);

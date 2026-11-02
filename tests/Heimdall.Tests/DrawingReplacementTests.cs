@@ -244,7 +244,7 @@ namespace Heimdall.Tests
         [MemberData(nameof(BundledDrawingImportTests.Drawings), MemberType = typeof(BundledDrawingImportTests))]
         public async Task Shipped_built_in_drawings_adopt_and_restore(string path)
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!
                 .First(x => Path.GetFileNameWithoutExtension(x.Diagram.Path) == Path.GetFileNameWithoutExtension(path));
             var definition = BundledDrawingImportTests.Definition(hardware.Diagram.Controls.Select(x => x.InputKey));

@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 
-EXPECTED = {"drawio-source.mjs", "drawio-svg.mjs", "hardware-export.mjs", "export-hardware.mjs"}
+EXPECTED = {"drawio-source.mjs", "drawio-svg.mjs", "hardware-export.mjs", "export-hardware.mjs", "refresh-hardware-bundle.mjs"}
 
 
 def check(text):
