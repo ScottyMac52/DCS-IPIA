@@ -31,8 +31,8 @@ namespace Heimdall.App.Games
                 _refreshing = true; browser.CommandSearch.Clear(); browser.CommandCategoryPicker.SelectedIndex = 0;
                 browser.CommandTypePicker.SelectedIndex = 0; browser.AssignmentStatusPicker.SelectedIndex = 0; _refreshing = false; RefreshCommands();
             };
-            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshRecords(); } };
-            _assignments.Records.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelectionBlocked = false; RefreshEditor(); } };
+            browser.CommandsList.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; _selection.SelectCommand((browser.CommandsList.SelectedItem as SimCommand)?.Id); RefreshRecords(); } };
+            _assignments.Records.SelectionChanged += (_, _) => { if (!_refreshing) { _selectedPhysicalInput = null; _selection.SelectInput(null); _selection.SelectAlternative((_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.RecordId); RefreshEditor(); } };
             _assignments.Editor.PhysicalApplyRequested += (_, _) => Run(() =>
             {
                 var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command;
@@ -49,24 +49,29 @@ namespace Heimdall.App.Games
             var menu = new ContextMenu();
             var clear = new MenuItem { Header = "Clear assignment" };
             clear.Click += (_, _) => _assignments.Editor.Submit(WarThunderEditKind.Clear);
-            var invert = new MenuItem { Header = "Toggle inverse axis" };
+            var invert = new MenuItem { Header = "Reverse axis" };
             invert.Click += (_, _) => { _assignments.Editor.Inverse.IsChecked = _assignments.Editor.Inverse.IsChecked != true; _assignments.Editor.Submit(WarThunderEditKind.Inverse); };
             menu.Items.Add(clear); menu.Items.Add(invert); _assignments.Records.ContextMenu = menu;
             _assignments.Records.PreviewMouseRightButtonDown += (_, args) =>
             {
                 var row = args.OriginalSource is DependencyObject origin ? ItemsControl.ContainerFromElement(_assignments.Records, origin) as DataGridRow : null;
+                _selectedPhysicalInput = null; _selection.SelectInput(null);
                 if (row is not null) row.IsSelected = true; else _assignments.Records.SelectedItem = null;
+                RefreshEditor();
             };
             _assignments.Records.ContextMenuOpening += (_, args) =>
             {
-                clear.Visibility = _assignments.Editor.Clear.IsEnabled ? Visibility.Visible : Visibility.Collapsed;
-                invert.Visibility = _assignments.Editor.Inverse.IsEnabled ? Visibility.Visible : Visibility.Collapsed;
+                AssignmentActionPresentation.Show(clear, _assignments.Editor.ActionState(WorkspaceAssignmentAction.Clear));
+                AssignmentActionPresentation.Show(invert, _assignments.Editor.ActionState(WorkspaceAssignmentAction.ReverseAxis));
                 if (clear.Visibility != Visibility.Visible && invert.Visibility != Visibility.Visible) args.Handled = true;
             };
         }
         private void RefreshCommands()
         {
             var browser = _assignments.Browser;
+            var scope = (_session?.Snapshot.Id.ToString("N") ?? "") + ":" + SelectedDevice + ":" + browser.CommandCategoryPicker.SelectedItem + ":" + browser.CommandTypePicker.SelectedIndex;
+            if (_selection.Scope != scope) _selectedPhysicalInput = null;
+            _selection.SelectScope(scope);
             var selected = (browser.CommandsList.SelectedItem as SimCommand)?.Id;
             var catalog = _session?.Catalog.Commands ?? [];
             var owned = _rows.Where(row => SelectedDevice is null || row.DeviceIds.Contains(SelectedDevice)).ToArray();
@@ -78,6 +83,7 @@ namespace Heimdall.App.Games
             _refreshing = true;
             try
             {
+                _selection.Refresh(SelectedDevice, commands, selected);
                 browser.CommandsList.ItemsSource = commands;
                 browser.CommandsList.SelectedItem = commands.FirstOrDefault(command => command.Id == selected)
                     ?? (commands.Count > 0 ? commands[0] : null);
@@ -101,15 +107,20 @@ namespace Heimdall.App.Games
         private void RefreshEditor()
         {
             var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
-            _assignments.Editor.Show(_session, (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command, row, _input.Running);
-            if (_physicalSelectionBlocked) _assignments.Editor.BlockPhysicalSelection(_physicalMap.Message);
+            var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command;
+            if (_selection.CommandId != command?.Id || _selection.AlternativeId != row?.RecordId) _selectedPhysicalInput = null;
+            _selection.SelectCommand(command?.Id); _selection.SelectAlternative(row?.RecordId);
+            var blocked = _selection.InputBlockedReason;
+            _assignments.Editor.Show(_session, command, row, _input.Running, _selection);
+            if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
             else if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
         }
         private void RefreshInputState()
         {
             var pin = SelectedDevice is { } id ? _session?.Snapshot.Hardware.GetValueOrDefault(id) : null;
-            _assignments.Start.IsEnabled = !_input.Running && pin is not null && GameInputReadiness.Ready(pin, _observed);
-            _assignments.Stop.IsEnabled = _input.Running;
+            AssignmentActionPresentation.Show(_assignments.Start, AssignmentAction(WorkspaceAssignmentAction.StartInput,
+                pin is not null && GameInputReadiness.Ready(pin, _observed), "Select one linked, connected controller for input testing."));
+            AssignmentActionPresentation.Show(_assignments.Stop, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
             _assignments.Fit.IsEnabled = _presenter.Regions.Count > 0;
             RefreshChrome(); RefreshEditor();
         }

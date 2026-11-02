@@ -1,4 +1,5 @@
 using Heimdall.Application;
+using Heimdall.Application.Games;
 
 namespace Heimdall.App.Games
 {
@@ -16,6 +17,7 @@ namespace Heimdall.App.Games
         Action<HardwareGraphicControl>? Inspect = null,
         Func<HardwareGraphicControl, string, bool>? CanDrop = null,
         Func<HardwareGraphicControl, IReadOnlyList<HardwareDiagramClearChoice>>? ClearChoices = null,
-        Func<HardwareGraphicControl, string>? ClearUnavailableReason = null);
+        Func<HardwareGraphicControl, string>? ClearUnavailableReason = null,
+        Func<HardwareGraphicControl, WorkspaceAssignmentAction, WorkspaceAssignmentActionState>? ActionState = null);
 }
 

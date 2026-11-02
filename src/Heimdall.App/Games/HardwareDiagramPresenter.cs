@@ -37,8 +37,8 @@ namespace Heimdall.App.Games
                     border.MouseLeftButtonDown += (_, e) => { actions.Select!(control); e.Handled = true; };
                 if (availability.Drop)
                 {
-                    border.DragOver += (_, e) => { e.Effects = e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
-                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (actions.CanDrop?.Invoke(control, id) ?? true)) actions.Drop!(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
+                    border.DragOver += (_, e) => { e.Effects = e.Data.GetData(actions.DragFormat) is string id && (State(actions, control, WorkspaceAssignmentAction.Apply, true).Enabled && (actions.CanDrop?.Invoke(control, id) ?? true)) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
+                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (State(actions, control, WorkspaceAssignmentAction.Apply, true).Enabled && (actions.CanDrop?.Invoke(control, id) ?? true))) actions.Drop!(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
                 }
                 // A left click already selects the input. A right-click menu
                 // advertises only actual native operations; no phantom Select/Tune.
@@ -66,17 +66,21 @@ namespace Heimdall.App.Games
             if (actions.Inspect is not null)
             {
                 var inspect = new MenuItem { Header = "View assignments" };
+                AssignmentActionPresentation.Show(inspect, State(actions, control, WorkspaceAssignmentAction.Inspect, true));
                 inspect.Click += (_, _) => actions.Inspect(control);
                 menu.Items.Add(inspect);
             }
             if (actions.Clear is not null)
             {
                 if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-                var enabled = actions.CanClear?.Invoke(control) == true;
-                var clear = new MenuItem { Header = actions.ClearLabel, IsEnabled = enabled };
+                var state = State(actions, control, WorkspaceAssignmentAction.Clear, actions.CanClear?.Invoke(control) == true,
+                    actions.ClearUnavailableReason?.Invoke(control) ?? "No editable assignment on this control.");
+                var enabled = state.Enabled;
+                var clear = new MenuItem { Header = actions.ClearLabel };
+                AssignmentActionPresentation.Show(clear, state);
                 if (!enabled)
                 {
-                    clear.ToolTip = actions.ClearUnavailableReason?.Invoke(control) ?? "No editable assignment on this control.";
+                    clear.ToolTip = state.Reason;
                     ToolTipService.SetShowOnDisabled(clear, true);
                 }
                 var choices = enabled ? actions.ClearChoices?.Invoke(control) : null;
@@ -90,10 +94,12 @@ namespace Heimdall.App.Games
                 else clear.Click += (_, _) => actions.Clear(control);
                 menu.Items.Add(clear);
             }
-            if (control.IsAxis && actions.CanTune?.Invoke(control) == true && actions.Tune is not null)
+            if (control.IsAxis && actions.Tune is not null)
             {
                 if (menu.Items.Count > 0) menu.Items.Add(new Separator());
                 var tune = new MenuItem { Header = "Tune axis…" };
+                AssignmentActionPresentation.Show(tune, State(actions, control, WorkspaceAssignmentAction.TuneAxis,
+                    actions.CanTune?.Invoke(control) == true, "Select an assigned axis that supports tuning."));
                 tune.Click += (_, _) => actions.Tune(control);
                 menu.Items.Add(tune);
             }
@@ -106,6 +112,11 @@ namespace Heimdall.App.Games
             image.StreamSource = stream; image.EndInit(); image.Freeze(); return image;
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static WorkspaceAssignmentActionState State(HardwareDiagramInteractions actions, HardwareGraphicControl control,
+            WorkspaceAssignmentAction action, bool ready, string reason = "") => actions.ActionState?.Invoke(control, action)
+                ?? WorkspaceAssignmentActionState.For(action, new("", true, false, false, false), new(true, ready, reason));
+        #endregion END private helpers
     }
 }
 

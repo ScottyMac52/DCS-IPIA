@@ -14,8 +14,13 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Button Content="{Binding Label}" Command="{Binding Command}"
-                            ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Label}"
-                            Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}"/>
+                            Visibility="{Binding Source.Visibility, FallbackValue=Visible}"
+                            ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Label}"
+                            Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}">
+                        <Button.ToolTip>
+                            <PriorityBinding><Binding Path="Source.ToolTip"/><Binding Path="ToolTip"/></PriorityBinding>
+                        </Button.ToolTip>
+                    </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

@@ -117,7 +117,7 @@ namespace Heimdall.App.Smoke
                 HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
                 var emptyMenu = new ContextMenu();
                 HardwareDiagramPresenter.RefreshMenu(emptyMenu, drawing.Controls[3], actions);
-                var unavailableClear = emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignments…");
+                var unavailableClear = emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignment");
                 if (unavailableClear.IsEnabled || unavailableClear.ToolTip is null)
                     throw new InvalidOperationException("An empty callout did not explain its disabled shared clear action.");
                 emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
@@ -125,7 +125,7 @@ namespace Heimdall.App.Smoke
                 if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 0 ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeInspect)
                     throw new InvalidOperationException("Inspecting an empty axis changed native assignments.");
-                var clearAxis = axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignments…");
+                var clearAxis = axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignment");
                 var axisSource = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 acceptReview = false;
                 clearAxis.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));

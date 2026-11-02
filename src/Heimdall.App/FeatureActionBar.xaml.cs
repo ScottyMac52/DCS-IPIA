@@ -39,7 +39,7 @@ namespace Heimdall.App
             var commands = buttons.Select(button => new FeatureActionCommand(button)).ToArray();
             var next = buttons.Select((button, index) => new FeatureAction(
                 button.Name.Length > 0 ? button.Name : "action-" + index,
-                button.Content?.ToString() ?? "", commands[index], button.ToolTip)).ToArray();
+                button.Content?.ToString() ?? "", commands[index], button.ToolTip) { Source = button }).ToArray();
 
             Actions = next;
             foreach (var old in _commands) old.Dispose();

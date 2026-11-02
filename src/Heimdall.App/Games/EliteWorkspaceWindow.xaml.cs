@@ -483,6 +483,7 @@ namespace Heimdall.App.Games
         private void FilterCommands(string? selected = null)
         {
             if (_session is null) return;
+            _selection.SelectScope(_session.Snapshot.Id.ToString("N") + ":" + Section);
             var previousCategory = CommandCategory;
             var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();
             _refreshing = true;
@@ -547,7 +548,7 @@ namespace Heimdall.App.Games
             Select: SelectControl, Drop: DropCommand,
             CanClear: CanEditControl, Clear: ClearControl,
             CanTune: control => control.IsAxis && CanEditControl(control) && AssignmentForControl(control)?.IsAxis == true,
-            Tune: TuneControl);
+            Tune: TuneControl, CanDrop: CanDropCommand, ActionState: ControlAction);
         /// <summary>Allows deterministic review of the real Elite tuning form in Windows smoke tests.</summary>
         internal Func<EliteAxisTuningWindow, bool?>? AxisTuningReview { get; set; }
         private EliteAssignmentRow? AssignmentForControl(HardwareGraphicControl control)
@@ -703,13 +704,16 @@ namespace Heimdall.App.Games
                 review, assigned, ready, _input?.Running == true, _busy,
                 Command is null ? "" : EliteCommandSlots.Replacement(_rows, Command.Id, Slot, deviceNames));
             _actions = editor.Actions;
-            _assignmentsView.ApplyAssignmentButton.IsEnabled = _actions.Apply;
-            _assignmentsView.ClearAssignmentButton.IsEnabled = _actions.Clear;
-            _assignmentsView.StopInputButton.IsEnabled = _actions.Stop;
+            AssignmentActionPresentation.Show(_assignmentsView.ApplyAssignmentButton, AssignmentAction(WorkspaceAssignmentAction.Apply,
+                review.Valid && review.Changed, review.Valid ? "Assignment unchanged." : review.Message));
+            AssignmentActionPresentation.Show(_assignmentsView.ClearAssignmentButton, AssignmentAction(WorkspaceAssignmentAction.Clear,
+                assigned, "No editable assignment in the selected slot."));
+            AssignmentActionPresentation.Show(_assignmentsView.StopInputButton, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
             _assignmentsView.CommandSlotSummary.Text = Command is null ? "" : EliteCommandSlots.Summary(_rows, Command.Id, Command.Type == CommandType.Axis, deviceNames);
             _assignmentsView.AssignmentDraftStatus.Text = editor.Feedback;
             _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
-            _assignmentsView.StartInputButton.IsEnabled = _actions.Start;
+            AssignmentActionPresentation.Show(_assignmentsView.StartInputButton, AssignmentAction(WorkspaceAssignmentAction.StartInput,
+                ready, "Select one linked, connected controller for input testing."));
             _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;
             _assignmentsView.ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
             UpdateInputActivityVisibility();

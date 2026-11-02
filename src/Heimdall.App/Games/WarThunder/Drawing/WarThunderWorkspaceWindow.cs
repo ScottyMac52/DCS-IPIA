@@ -16,7 +16,8 @@ namespace Heimdall.App.Games
             var type = (_assignments.Browser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Type
                 ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command.Type;
             _selectedPhysicalInput = _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == type);
-            _physicalSelectionBlocked = _selectedPhysicalInput is null;
+            if (_selectedPhysicalInput is null) _selection.BlockInput("This physical input has no verified native mapping. " + _physicalMap.Message);
+            else _selection.SelectInput(_selectedPhysicalInput.Key);
             RefreshEditor();
             _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping. " + _physicalMap.Message : control.Label + " selected. Apply assignment to stage the selected command.";
         }
@@ -49,7 +50,7 @@ namespace Heimdall.App.Games
         {
             if (_session is null || _input.Running) throw new InvalidOperationException("Stop input testing before editing.");
             var result = ExecuteAssignment(edit);
-            _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshEditor(); RefreshChrome();
+            _selectedPhysicalInput = null; _selection.SelectInput(null); RefreshEditor(); RefreshChrome();
             Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         }
         private IReadOnlyList<WarThunderWorkspaceRow> PhysicalAssignments(HardwareGraphicControl control)
@@ -110,7 +111,7 @@ namespace Heimdall.App.Games
         private void InspectPhysicalControl(HardwareGraphicControl control) => Run(() =>
         {
             var rows = PhysicalAssignments(control);
-            _selectedPhysicalInput = null; _physicalSelectionBlocked = false;
+            _selectedPhysicalInput = null; _selection.SelectInput(null);
             _refreshing = true;
             try
             {

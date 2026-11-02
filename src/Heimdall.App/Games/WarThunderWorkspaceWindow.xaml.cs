@@ -28,7 +28,7 @@ namespace Heimdall.App.Games
         private int _hardwareScan;
         private WarThunderPhysicalMap _physicalMap = new([], "Rescan controller inputs.");
         private WarThunderPhysicalInput? _selectedPhysicalInput;
-        private bool _physicalSelectionBlocked;
+        private readonly GameAssignmentSelection _selection = new();
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private readonly Func<GameControllerChange, bool>? _review;
         private readonly IReadOnlyList<WorkspaceHardware>? _suppliedDrawings;
@@ -153,7 +153,7 @@ namespace Heimdall.App.Games
         private string? SelectedDevice => (Controllers.SelectedItem as ListBoxItem)?.Tag as string;
         private void Open(GameWorkspace workspace, string? revision)
         {
-            _input.Stop(); _selectedPhysicalInput = null; _physicalSelectionBlocked = false;
+            _input.Stop(); _selectedPhysicalInput = null; _selection.Reset();
             var session = new GameProfileSession(_backend, workspace, EditionAccess.Policy, _drawings.Select(item => item.DeviceId).ToArray(),
                 () => _observed, new WarThunderDeviceReferenceMatcher());
             if (_session is not null) _session.Changed -= SessionChanged;

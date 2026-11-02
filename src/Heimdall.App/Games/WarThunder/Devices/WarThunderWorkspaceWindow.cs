@@ -18,7 +18,7 @@ namespace Heimdall.App.Games
             Controllers.SelectionChanged += (_, _) =>
             {
                 if (_refreshing) return;
-                _input.Stop(); _selectedPhysicalInput = null; _physicalSelectionBlocked = false; RefreshDevices(); RefreshCommands(); ShowDrawing();
+                _input.Stop(); _selectedPhysicalInput = null; _selection.SelectInput(null); RefreshDevices(); RefreshCommands(); ShowDrawing();
             };
             _devices.Rescan.Click += async (_, _) => { await RefreshHardwareAsync(); RefreshDevices(); ShowDrawing(); };
             _devices.Link.Click += (_, _) => Run(() =>
@@ -89,7 +89,7 @@ namespace Heimdall.App.Games
                     CanClear: CanClearPhysicalControl, Clear: ClearPhysicalControl,
                     CanTune: CanTunePhysicalControl, Tune: TunePhysicalControl,
                     DragFormat: "heimdall.war-thunder.command", Inspect: InspectPhysicalControl, CanDrop: CanDropPhysicalCommand,
-                    ClearChoices: ClearPhysicalChoices, ClearUnavailableReason: ClearUnavailableReason), AppearanceManager.ArtworkOpacityFor(this));
+                    ClearChoices: ClearPhysicalChoices, ClearUnavailableReason: ClearUnavailableReason, ActionState: ControlAction), AppearanceManager.ArtworkOpacityFor(this));
                 _assignments.Artwork.Feedback.Text = _physicalMap.Message;
             }
             _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;

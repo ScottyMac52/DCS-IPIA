@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application;
+using Heimdall.Application.Games;
+using Heimdall.App.Games;
 using Heimdall.Domain;
 using Heimdall.App;
 
@@ -13,6 +15,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Exercises real action sets, original callbacks, and inactive command disposal.</summary>
         public static void Verify()
         {
+            VerifyAssignmentAvailability();
             var module = new DcsModule(Guid.NewGuid(), "ACTION-TEST", "Action test");
             var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                 new Dictionary<string, string>(),
@@ -64,6 +67,62 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
+        private static void VerifyAssignmentAvailability()
+        {
+            VerifyLiveAssignmentToolbar();
+            var context = new WorkspaceAssignmentContext("scope", true, false, false, false);
+            var control = new HardwareGraphicControl("axis", "Axis", "JOY_X", 0, 0, 100, 30, true);
+            var actions = new HardwareDiagramInteractions(_ => { }, CanClear: _ => true, Clear: _ => { },
+                CanTune: _ => true, Tune: _ => { }, ActionState: (_, action) =>
+                    WorkspaceAssignmentActionState.For(action, context, new(true, true)));
+            var button = new Button(); var menu = new ContextMenu();
+            foreach (var current in new[] { context, context with { Testing = true }, context with { ReadOnly = true }, context with { Busy = true } })
+            {
+                context = current;
+                AssignmentActionPresentation.Show(button, WorkspaceAssignmentActionState.For(WorkspaceAssignmentAction.Clear, context, new(true, true)));
+                HardwareDiagramPresenter.RefreshMenu(menu, control, actions);
+                var clear = menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "Clear assignment");
+                var tune = menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "Tune axis…");
+                if (clear.IsEnabled != button.IsEnabled || tune.IsEnabled != button.IsEnabled || clear.ToolTip as string != button.ToolTip as string)
+                    throw new InvalidOperationException("Toolbar and callout menu disagree about the same assignment state.");
+                if (!button.IsEnabled && (button.ToolTip is null || !ToolTipService.GetShowOnDisabled(clear)))
+                    throw new InvalidOperationException("An unavailable assignment action has no accessible explanation.");
+            }
+            var unsupported = WorkspaceAssignmentActionState.For(WorkspaceAssignmentAction.AddAlternative, context, new(false, true));
+            var item = new MenuItem(); AssignmentActionPresentation.Show(button, unsupported); AssignmentActionPresentation.Show(item, unsupported);
+            if (button.Visibility != Visibility.Collapsed || item.Visibility != Visibility.Collapsed || button.IsEnabled || item.IsEnabled)
+                throw new InvalidOperationException("An unsupported action remains advertised by common presentation.");
+        }
+        private static void VerifyLiveAssignmentToolbar()
+        {
+            var source = new Button { Name = "Assignment", Content = "Clear assignment" };
+            var group = new ActionBar { IsFeatureActions = true }; group.Children.Add(source);
+            var bar = new FeatureActionBar(); bar.ShowActions(group);
+            var host = new Window { Width = 420, Height = 150, Content = bar, ShowInTaskbar = false };
+            try
+            {
+                host.Show(); ThemeControlSmoke.Pump(host);
+                var proxy = FindActionButton(bar) ?? throw new InvalidOperationException("The shared toolbar did not render its action.");
+                var blocked = WorkspaceAssignmentActionState.For(WorkspaceAssignmentAction.Clear,
+                    new("scope", true, false, false, true), new(true, true));
+                AssignmentActionPresentation.Show(source, blocked); ThemeControlSmoke.Pump(host);
+                if (proxy.IsEnabled || proxy.ToolTip as string != blocked.Reason || !ToolTipService.GetShowOnDisabled(proxy))
+                    throw new InvalidOperationException("The visible toolbar retained a stale availability explanation.");
+                AssignmentActionPresentation.Show(source, new(false, false, "unsupported")); ThemeControlSmoke.Pump(host);
+                if (proxy.Visibility != Visibility.Collapsed) throw new InvalidOperationException("The visible toolbar retained an unsupported source action.");
+                AssignmentActionPresentation.Show(source, new(true, true, "")); ThemeControlSmoke.Pump(host);
+                if (!proxy.IsEnabled || proxy.Visibility != Visibility.Visible || proxy.ToolTip is not null)
+                    throw new InvalidOperationException("The visible toolbar did not recover from a changed capability state.");
+            }
+            finally { bar.ClearActions(); host.Close(); }
+        }
+        private static Button? FindActionButton(DependencyObject root)
+        {
+            if (root is Button button && button.DataContext is FeatureAction) return button;
+            for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); index++)
+                if (FindActionButton(System.Windows.Media.VisualTreeHelper.GetChild(root, index)) is { } found) return found;
+            return null;
+        }
         private static void AssertLayoutStable(Window window, ContentControl content, double top, double height)
         {
             window.UpdateLayout();

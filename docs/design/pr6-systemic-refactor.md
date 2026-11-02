@@ -158,3 +158,26 @@ git pull
 For each game: assign through Apply, repeat the same assignment, assign through drag/drop, clear a single assignment, Discard and verify the original, then repeat and Save/reopen. Confirm drawings and Save state follow the draft, and export the saved profile. War Thunder acceptance includes a TQS throttle axis and SOL-R axes. Existing 80% line/80% branch per assembly and maximum method CRAP 50 gates remain unchanged. GitHub Actions must not be run.
 
 The development environment has no .NET SDK or Windows runtime. C# tests and WPF smoke behavior are pending the local run; source checks are not substitutes for those gates.
+
+
+
+## Stage 3B: common selection and live action availability
+
+`GameAssignmentSelection` now represents workspace/context scope, controller, command, native alternative, slot, pending input and failed-translation feedback. All four workspaces consume it. Scope changes reset the target; controller/alternative changes invalidate old input; adapters explicitly repopulate native fields from the newly selected record. War Thunder's extra blocked-selection boolean has been removed in favor of the shared selection state.
+
+`WorkspaceAssignmentActionSupport` is adapter evidence, separate from runtime gates. Native compatibility, range checks, paired-axis metadata, reserved DCS modifiers and record-shape capabilities still come from their existing adapter/draft boundaries. `WorkspaceAssignmentActionState` combines that evidence with the common open/read-only/busy/testing policy for Apply, Add Alternative, Clear, Tune Axis, Reverse Axis, Inspect, Start, Stop and Fit. Unsupported actions are hidden; supported unavailable actions remain disabled with an explanation. Start requires live hardware evidence; Stop remains available during acquisition even if the workspace is busy or closing. Read-only native system inputs remain protected.
+
+The common presenter renders live action state on buttons and pointed-control context menus. Drag-over/drop applies current workspace gates plus the adapter's compatibility check. FeatureActionBar now binds the source button's live tooltip and visibility; previously its tooltip was a navigation-time snapshot, so changing availability could leave the visible toolbar explanation stale. Clear and Tune state is refreshed when opening a context menu, independently of the last left-click selection.
+
+Windows smoke checks cover actual rendered toolbar updates, common menu/button agreement, and War Thunder live-input action gates. Unit tests cover mutation gates, supported/unavailable distinctions, recovery Stop, read-only Inspect/Fit, input readiness and complete selection transitions. Existing native editing, preservation and draft smoke checks remain in the full PR6 validation script.
+
+This checkpoint does not finish common screen composition or replace the native tuning dialogs. The remaining steps are the shared capability-driven Tune Axis form, remaining bulk/advanced-operation migration, and consolidation of workspace presentation/handlers. Production coverage thresholds and CRAP measurement remain unchanged.
+
+Run locally:
+
+```powershell
+git pull
+.\tests\validate-pr6.ps1 *>&1 | Tee-Object -FilePath .\pr6-refactor-stage3b-results.txt
+```
+
+Then check a button and an axis in each game: change controller/command/context/alternative, Apply, drag/drop, Clear, start/stop testing, Save/reopen, and Discard. Compare toolbar and context-menu availability for the same target. Supported unavailable actions should explain why; untranslatable callouts must not reuse the preceding input. No controller-evidence recapture is needed. .NET/WPF and 80/80/50 acceptance require the user's Windows run; this environment has no .NET SDK or Windows runtime. All commits use `[skip ci]`; do not run GitHub Actions.

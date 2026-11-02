@@ -242,7 +242,7 @@ namespace Heimdall.App.Games
         /// <summary>Exposes the same typed native commands installed on the shared presenter for deterministic smoke checks.</summary>
         internal HardwareDiagramInteractions DrawingInteractions() =>
             new(SelectDrawingInput, DropDrawingCommand, CanClearDrawingInput, ClearDrawingInput,
-                DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignments…", Inspect: InspectDrawingInput);
+                DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignment", Inspect: InspectDrawingInput, CanDrop: CanDropCommand, ActionState: ControlAction);
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
         {
@@ -466,12 +466,10 @@ namespace Heimdall.App.Games
         }
         private void UpdateApplyAvailability()
         {
-            ApplyButton.IsEnabled = !(_input?.Running ?? false) &&
-                !_scanningInputs && !(_identification?.Running ?? false) &&
-                CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand &&
-                TargetDevice.SelectedItem is GameDeviceChoice && InputPicker.IsEnabled &&
-                InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
-            ReverseAxisButton.IsEnabled = ApplyButton.IsEnabled && CanReverseSelectedAxis();
+            AssignmentActionPresentation.Show(ApplyButton, AssignmentAction(WorkspaceAssignmentAction.Apply,
+                CompatibleAssignmentTarget(), "Select a compatible command and verified controller input."));
+            AssignmentActionPresentation.Show(ReverseAxisButton, AssignmentAction(WorkspaceAssignmentAction.ReverseAxis,
+                CanReverseSelectedAxis(), "Select both saved directions of an axis to reverse it."));
         }
         private bool CanReverseSelectedAxis()
         {
@@ -716,8 +714,8 @@ namespace Heimdall.App.Games
             EditNativeRecordItem.IsEnabled = row is not null;
             ApplyNativeRecordItem.Visibility = row?.Editable == true && ApplyButton.IsEnabled
                 ? Visibility.Visible : Visibility.Collapsed;
-            ClearNativeRecordItem.Visibility = !_input.Running && !_scanningInputs && row?.Native.Type == 3 && _session?.AccessMessage.Length == 0
-                ? Visibility.Visible : Visibility.Collapsed;
+            AssignmentActionPresentation.Show(ClearNativeRecordItem, AssignmentAction(WorkspaceAssignmentAction.Clear,
+                row?.Native.Type == 3, "Select an editable joystick assignment."));
         }
         private void RecordRightClicked(object sender, MouseButtonEventArgs e)
         {
@@ -869,6 +867,7 @@ namespace Heimdall.App.Games
         private void SelectRecord(SquadronsWorkspaceRow row)
         {
             SelectCommandConcept(row.Native.Concept);
+            _selection.SelectAlternative(row.RecordId);
             _selection.SelectInput(row.Native.Input?.Key ?? "");
             _refreshing = true;
             try
@@ -920,6 +919,7 @@ namespace Heimdall.App.Games
             _refreshing = true;
             try
             {
+                _selection.SelectScope((_session?.Snapshot.Id.ToString("N") ?? "") + ":" + DrawingSection);
                 _selection.Refresh(SelectedAssignmentSource, filtered, selected, selectFirst: false);
                 CommandPicker.ItemsSource = filtered;
                 CommandPicker.SelectedItem = filtered.FirstOrDefault(x => x.Id == _selection.CommandId);
@@ -1245,10 +1245,10 @@ namespace Heimdall.App.Games
         {
             if (_input is null) return;
             var pin = SelectedController is { } slot ? _session?.Snapshot.Hardware.GetValueOrDefault(slot) : null;
-            StartInputButton.IsEnabled = FeaturePicker.SelectedIndex == 1 && !_input.Running && !_scanningInputs &&
-                !_identification.Running && pin is not null && _session?.AccessMessage.Length == 0 &&
-                GameInputReadiness.Ready(pin, _services.Discover());
-            StopInputButton.IsEnabled = _input.Running;
+            AssignmentActionPresentation.Show(StartInputButton, AssignmentAction(WorkspaceAssignmentAction.StartInput,
+                FeaturePicker.SelectedIndex == 1 && pin is not null && GameInputReadiness.Ready(pin, _services.Discover()),
+                "Select one linked, connected controller for input testing."));
+            AssignmentActionPresentation.Show(StopInputButton, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {

@@ -16,7 +16,8 @@ namespace Heimdall.App.Games
         private bool _refreshing;
         private bool _busy;
         private bool _physicalSelected;
-        private bool _physicalCompatible;
+        private WarThunderNativeEdit? _physicalEdit;
+        private GameAssignmentSelection _selection = new();
         private WarThunderBindingCapabilities? _capabilities;
         public WarThunderNativeEditorView()
         {
@@ -27,36 +28,43 @@ namespace Heimdall.App.Games
             Inverse.Click += (_, _) => Submit(WarThunderEditKind.Inverse);
             SetParameter.Click += (_, _) => Submit(WarThunderEditKind.Parameter);
             Input.SelectionChanged += (_, _) => { if (!_refreshing) SelectInput(); };
+            Literal.TextChanged += (_, _) => UpdateActions();
             Parameter.SelectionChanged += (_, _) => { if (Parameter.SelectedItem is WarThunderBlkScalar scalar) { Literal.Text = scalar.Value; Literal.ToolTip = "Native " + scalar.Type + " literal"; } };
-            Target.SelectionChanged += (_, _) => { if (!_refreshing) _physicalSelected = false; UpdateActions(); };
-            Index.TextChanged += (_, _) => { if (!_refreshing) _physicalSelected = false; UpdateActions(); };
+            Target.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectController((Target.SelectedItem as WarThunderDevice)?.Id); _selection.SelectInput(Index.Text); } UpdateActions(); };
+            Index.TextChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectInput(Index.Text); } UpdateActions(); };
         }
         #region BEGIN Public
         internal event EventHandler<WarThunderNativeEdit>? EditRequested;
         internal event EventHandler? PhysicalApplyRequested;
         internal void SelectPhysical(string deviceId, WarThunderPhysicalInput input)
         {
-            _physicalCompatible = _session is not null && _command?.Type == input.Type;
-            if (_physicalCompatible)
+            _physicalEdit = null;
+            if (_session is not null && _command?.Type == input.Type)
             {
-                try { _ = WarThunderDrawingProjection.Assignment(_session!.Snapshot.Profile, _command!.Id, deviceId, input); }
-                catch (InvalidOperationException) { _physicalCompatible = false; }
+                try { _physicalEdit = WarThunderDrawingProjection.Assignment(_session.Snapshot.Profile, _command.Id, deviceId, input); }
+                catch (InvalidOperationException) { }
             }
             _refreshing = true;
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().SingleOrDefault(device => device.Id == deviceId);
             Index.Text = input.Index.ToString(CultureInfo.InvariantCulture);
-            _refreshing = false; _physicalSelected = true; UpdateActions();
+            _refreshing = false; _physicalSelected = true;
+            _selection.SelectController(deviceId); _selection.SelectAlternative(_row?.RecordId);
+            if (_physicalEdit is null) _selection.BlockInput("This physical input has no verified native mapping.");
+            else _selection.SelectInput(input.Key);
+            UpdateActions();
         }
         internal void BlockPhysicalSelection(string message)
         {
             _refreshing = true;
             Target.SelectedItem = null; Index.Clear();
-            _refreshing = false; _physicalSelected = true; _physicalCompatible = false;
+            _refreshing = false; _physicalSelected = true; _physicalEdit = null;
+            _selection.BlockInput(message);
             Frame.AssignmentDraftStatus.Text = message; UpdateActions();
         }
-        internal void Show(GameProfileSession? session, SimCommand? command, WarThunderWorkspaceRow? row, bool busy)
+        internal void Show(GameProfileSession? session, SimCommand? command, WarThunderWorkspaceRow? row, bool busy, GameAssignmentSelection? selection = null)
         {
-            _refreshing = true; _physicalSelected = false; _session = session; _row = row; _command = command; _busy = busy;
+            if (selection is not null) _selection = selection;
+            _refreshing = true; _physicalSelected = false; _physicalEdit = null; _session = session; _row = row; _command = command; _busy = busy;
             Frame.ShowCommand(command);
             var previous = (Target.SelectedItem as WarThunderDevice)?.Id;
             Target.ItemsSource = session is null ? [] : WarThunderProfileBackend.ReadDevices(session.Snapshot.Profile);
@@ -74,18 +82,35 @@ namespace Heimdall.App.Games
                     : "Select a saved native mapping and zero-based index, then apply the supported operation.";
             _refreshing = false; SelectInput(); UpdateActions();
         }
+        internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action)
+        {
+            var context = new WorkspaceAssignmentContext(_selection.Scope, _session is not null, _session?.AccessMessage.Length > 0, false, _busy);
+            var review = action switch
+            {
+                WorkspaceAssignmentAction.Apply => ReviewInput(),
+                WorkspaceAssignmentAction.AddAlternative => ReviewEdit(WarThunderEditKind.Add),
+                _ => new GameAssignmentReview(true, true, "")
+            };
+            var targetCurrent = !_physicalSelected || (_physicalEdit is not null && _selection.InputBlockedReason.Length == 0);
+            var ready = action switch
+            {
+                WorkspaceAssignmentAction.Apply => review.Valid && review.Changed,
+                WorkspaceAssignmentAction.AddAlternative => _capabilities?.AddNativeInput == true && review.Valid && review.Changed,
+                WorkspaceAssignmentAction.Clear => _capabilities?.ClearAssignment == true,
+                WorkspaceAssignmentAction.TuneAxis => _capabilities?.EditableParameterAddresses.Count > 0,
+                WorkspaceAssignmentAction.ReverseAxis => _capabilities?.SetAxisInverse == true,
+                _ => false
+            };
+            return WorkspaceAssignmentActionState.For(action, context, new(true, targetCurrent && ready,
+                !targetCurrent ? _selection.InputBlockedReason : action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.AddAlternative
+                    ? review.Valid ? "Assignment unchanged." : review.Message : "Select an editable native assignment that supports this operation."));
+        }
         internal void Submit(WarThunderEditKind kind)
         {
-            if (_refreshing || _session is null || _busy || (_physicalSelected && !_physicalCompatible)) return;
+            if (_refreshing || _session is null || _busy || (_physicalSelected && (_physicalEdit is null || _selection.InputBlockedReason.Length > 0))) return;
             try
             {
-                var index = 0;
-                if ((kind is WarThunderEditKind.Rebind or WarThunderEditKind.Add)
-                    && !int.TryParse(Index.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
-                    throw new InvalidOperationException("Enter a zero-based native input index.");
-                var edit = new WarThunderNativeEdit(kind, _row?.RecordId ?? "", (kind == WarThunderEditKind.Parameter ? Parameter.SelectedItem as WarThunderBlkScalar : Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
-                    (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
-                    index, Inverse.IsChecked == true, Literal.Text);
+                var edit = CreateEdit(kind);
                 if (EditRequested is null) throw new InvalidOperationException("The assignment editor is not connected to its workspace.");
                 EditRequested.Invoke(this, edit);
             }
@@ -94,28 +119,56 @@ namespace Heimdall.App.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        private WarThunderNativeEdit CreateEdit(WarThunderEditKind kind)
+        {
+            var index = 0;
+            if ((kind is WarThunderEditKind.Rebind or WarThunderEditKind.Add)
+                && !int.TryParse(Index.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
+                throw new InvalidOperationException("Enter a zero-based native input index.");
+            return new(kind, _row?.RecordId ?? "", (kind == WarThunderEditKind.Parameter ? Parameter.SelectedItem as WarThunderBlkScalar : Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
+                (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
+                index, Inverse.IsChecked == true, Literal.Text);
+        }
+        private GameAssignmentReview ReviewInput()
+        {
+            if (_session is null) return new(false, false, "Import or open a profile first.");
+            if (_physicalSelected)
+                return _physicalEdit is not null && _selection.InputBlockedReason.Length == 0
+                    ? _session.ReviewNativeEdit(_physicalEdit) : new(false, false, _selection.InputBlockedReason);
+            return ReviewEdit(_capabilities?.RebindNativeInputs == true ? WarThunderEditKind.Rebind : WarThunderEditKind.Add);
+        }
+        private GameAssignmentReview ReviewEdit(WarThunderEditKind kind)
+        {
+            if (_session is null) return new(false, false, "Import or open a profile first.");
+            try { return _session.ReviewNativeEdit(CreateEdit(kind)); }
+            catch (InvalidOperationException error) { return new(false, false, error.Message); }
+        }
         private void SelectInput()
         {
             if (_session is null || Input.SelectedItem is not WarThunderBlkScalar scalar || _command is null) { UpdateActions(); return; }
             var target = WarThunderWorkspaceProjection.InputTarget(_session.Snapshot.Profile, scalar, _command.Type);
             if (target is not null)
             {
+                _refreshing = true;
                 Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().Single(device => device.Id == target.DeviceId);
                 Index.Text = target.Index.ToString(CultureInfo.InvariantCulture);
+                _refreshing = false;
+                _selection.SelectController(target.DeviceId); _selection.SelectAlternative(_row?.RecordId); _selection.SelectInput(scalar.Address);
             }
             UpdateActions();
         }
         private void UpdateActions()
         {
             if (_refreshing) return;
-            var ready = _session is not null && _session.AccessMessage.Length == 0 && !_busy && (!_physicalSelected || _physicalCompatible);
-            var capabilities = _capabilities;
-            Apply.IsEnabled = ready && Target.SelectedItem is WarThunderDevice && (_physicalSelected ? _physicalCompatible : (capabilities?.RebindNativeInputs == true && Input.SelectedItem is WarThunderBlkScalar) || capabilities?.AddNativeInput == true);
-            Add.IsEnabled = ready && capabilities?.AddNativeInput == true && Target.SelectedItem is WarThunderDevice;
-            Clear.IsEnabled = ready && capabilities?.ClearAssignment == true;
-            Inverse.IsEnabled = ready && capabilities?.SetAxisInverse == true;
-            SetParameter.IsEnabled = ready && capabilities?.EditableParameterAddresses.Count > 0;
-            Target.IsEnabled = ready; Input.IsEnabled = ready; Index.IsEnabled = ready; Parameter.IsEnabled = ready && capabilities?.EditableParameterAddresses.Count > 0;
+            AssignmentActionPresentation.Show(Apply, ActionState(WorkspaceAssignmentAction.Apply));
+            AssignmentActionPresentation.Show(Add, ActionState(WorkspaceAssignmentAction.AddAlternative));
+            AssignmentActionPresentation.Show(Clear, ActionState(WorkspaceAssignmentAction.Clear));
+            var tune = ActionState(WorkspaceAssignmentAction.TuneAxis);
+            AssignmentActionPresentation.Show(Inverse, ActionState(WorkspaceAssignmentAction.ReverseAxis));
+            AssignmentActionPresentation.Show(SetParameter, tune);
+            var editable = _session is not null && _session.AccessMessage.Length == 0 && !_busy;
+            Target.IsEnabled = editable; Input.IsEnabled = editable; Index.IsEnabled = editable;
+            Parameter.IsEnabled = editable && _capabilities?.EditableParameterAddresses.Count > 0;
             Literal.IsEnabled = Parameter.IsEnabled;
         }
         #endregion END private helpers

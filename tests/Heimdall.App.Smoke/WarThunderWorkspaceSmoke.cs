@@ -136,6 +136,9 @@ namespace Heimdall.App.Smoke
                 }
                 Click(assignments.Start);
                 if (input is null || input.Disposed) throw new InvalidOperationException("Shared input test did not acquire the explicit controller.");
+                if (assignments.Editor.Apply.IsEnabled || assignments.Editor.Clear.IsEnabled || !assignments.Stop.IsEnabled ||
+                    assignments.Editor.Clear.ToolTip is not string reason || !reason.Contains("Stop input", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Live input did not apply the shared action policy to the native editor and toolbar.");
                 input.Values[device.PhysicalGuid]["JOY_BTN1"] = 1; window.SampleInput();
                 if (!assignments.Activity.Text.Contains("JOY_BTN1", StringComparison.Ordinal)) throw new InvalidOperationException("Raw input activity was not displayed.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
@@ -246,7 +249,10 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Unmapped axis retained a stale editable native target.");
             assignments.Records.SelectedItem = null;
             assignments.Records.SelectedIndex = 0;
-            if (!assignments.Editor.Apply.IsEnabled) throw new InvalidOperationException("Explicit native record inspection did not recover after an unmapped axis selection.");
+            if (assignments.Editor.Target.SelectedItem is not WarThunderDevice || !assignments.Editor.Inverse.IsEnabled ||
+                assignments.Editor.Apply.IsEnabled || assignments.Editor.Apply.ToolTip is not string explanation ||
+                !explanation.Contains("unchanged", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Explicit native record inspection did not recover its target and truthful unchanged-action state.");
         }
         private static T Box<T>(FrameworkElement element, string name) where T : FrameworkElement => (T)element.FindName(name);
         private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
