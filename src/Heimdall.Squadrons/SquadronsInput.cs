@@ -11,9 +11,19 @@ namespace Heimdall.Squadrons
         #region BEGIN Public
         /// <summary>Gets the exact shared key for comparison with enumerated controls, including POV direction spelling.</summary>
         public string PhysicalKey => SquadronsInputCodec.PhysicalKey(Key);
+        /// <summary>Gets the authored hardware caption, when the linked drawing defines one.</summary>
+        public string? DefaultLabel { get; init; }
+
         /// <summary>Gets the whole-control label used by normal assignment pickers, without native half-axis details.</summary>
-        public string PhysicalDisplayName => Type == CommandType.Axis
-            ? Key.Replace("JOY_", "", StringComparison.Ordinal) + " axis" : DisplayName;
+        public string PhysicalDisplayName
+        {
+            get
+            {
+                var label = Type == CommandType.Axis ? Key.Replace("JOY_", "", StringComparison.Ordinal) + " axis" : DisplayName;
+                return string.IsNullOrWhiteSpace(DefaultLabel) || string.Equals(DefaultLabel, label, StringComparison.OrdinalIgnoreCase)
+                    ? label : DefaultLabel + " · " + label;
+            }
+        }
         /// <summary>Gets a readable physical input label for selection and assignment tables.</summary>
         public string DisplayName => Type switch
         {

@@ -6,6 +6,13 @@ namespace Heimdall.App.Games
     /// <summary>Keeps saved physical identity visible, including disconnected units, without choosing a replacement.</summary>
     internal static class ControllerLinkPresentation
     {
+        internal static void OpenDrawingPicker(ComboBox picker)
+        {
+            if (!picker.IsEnabled) return;
+            picker.Focus();
+            picker.IsDropDownOpen = true;
+        }
+
         internal static void ShowPhysical(ComboBox picker, DetectedDcsDevice? saved,
             IEnumerable<DetectedDcsDevice> observed)
         {

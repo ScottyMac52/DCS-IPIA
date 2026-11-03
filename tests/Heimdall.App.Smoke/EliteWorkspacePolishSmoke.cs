@@ -62,7 +62,8 @@ namespace Heimdall.App.Smoke
             window.Session.Discard();
             ThemeControlSmoke.Pump(window);
             var buttons = ThemeControlSmoke.Children(actions).OfType<Button>().Where(x => x.IsVisible).ToArray();
-            if (buttons.Length != actions.Actions.Length || buttons.Any(x => x.ActualWidth != 176 || x.ActualHeight != 30)
+            var expectedVisible = actions.Actions.Where(x => x.Source?.Visibility != Visibility.Collapsed);
+            if (!buttons.Select(x => x.DataContext).SequenceEqual(expectedVisible) || buttons.Any(x => x.ActualWidth != 176 || x.ActualHeight != 30)
                 || buttons.Any(x => !ReferenceEquals(x.Style, window.FindResource("ToolbarActionButton"))))
                 throw new InvalidOperationException("Visible action buttons lost their uniform shared style or dimensions.");
             var directory = Path.Combine(root, "DirectBindings"); Directory.CreateDirectory(directory);
@@ -92,6 +93,9 @@ namespace Heimdall.App.Smoke
         {
             var expected = new[] { apply, clear, start, stop }; var names = new[] { "ApplyAssignmentButton", "ClearAssignmentButton", "StartInputButton", "StopInputButton" };
             var actions = Box<FeatureActionBar>(window, "FeatureActions").Actions;
+            if (Box<Button>(window, "StartInputButton").Visibility != (stop ? Visibility.Collapsed : Visibility.Visible)
+                || Box<Button>(window, "StopInputButton").Visibility != (stop ? Visibility.Visible : Visibility.Collapsed))
+                throw new InvalidOperationException("The input test slot must show only Start or Stop.");
             for (var i = 0; i < names.Length; i++)
                 if (Box<Button>(window, names[i]).IsEnabled != expected[i] || actions.Single(x => x.Id == names[i]).Command.CanExecute(null) != expected[i])
                     throw new InvalidOperationException(names[i] + " did not update its source and shared action state.");

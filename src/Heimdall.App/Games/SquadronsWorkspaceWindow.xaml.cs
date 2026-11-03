@@ -114,6 +114,7 @@ namespace Heimdall.App.Games
             UnlinkControllerButton.Click += UnlinkClicked;
             ClearSlotButton.Click += ClearSlotClicked;
             RemoveUnusedSlotButton.Click += RemoveUnusedSlotClicked;
+            _devicesView.ChooseDrawingButton.Click += (_, _) => ControllerLinkPresentation.OpenDrawingPicker(DrawingPicker);
             ClearDrawingButton.Click += ClearDrawingClicked;
             ControllerSetup.Collapsed += SetupCollapsed;
             ConnectedPicker.SelectionChanged += ConnectedChanged;
@@ -451,7 +452,13 @@ namespace Heimdall.App.Games
             try
             {
                 // One picker entry per physical control, just like a drawing callout.
-                InputPicker.ItemsSource = keys is null ? [] : SquadronsInputCodec.PhysicalChoices(keys);
+                var drawing = _drawings.FirstOrDefault(item => item.DeviceId == pin?.HardwareId)?.Diagram;
+                InputPicker.ItemsSource = keys is null ? [] : SquadronsInputCodec.PhysicalChoices(keys)
+                    .Select(input => input with
+                    {
+                        DefaultLabel = drawing?.Controls.FirstOrDefault(control =>
+                            SquadronsInputCodec.PhysicalKey(control.InputKey) == input.PhysicalKey)?.Label
+                    }).ToArray();
                 InputPicker.SelectedItem = InputPicker.Items.Cast<SquadronsInput>()
                     .FirstOrDefault(x => x.PhysicalKey == SquadronsInputCodec.PhysicalKey(_selection.InputKey ?? ""));
                 InputPicker.IsEnabled = TargetDevice.IsEnabled && keys is not null;
@@ -533,14 +540,18 @@ namespace Heimdall.App.Games
             NativeControllerName.IsEnabled = workspaceReady && !running;
             IdentifyControllerButton.IsEnabled = links.SelectPhysical && ConnectedPicker.Items.Count > 0;
             AddControllerButton.IsEnabled = workspaceReady && !running && _session?.CanAddNativeControllers == true &&
-                ConnectedPicker.SelectedItem is DetectedDcsDevice candidate && !string.IsNullOrWhiteSpace(NativeControllerName.Text) &&
-                !_session.Snapshot.Hardware.Values.Any(x => x.Device.PhysicalGuid == candidate.PhysicalGuid);
+                (pin is not null || ConnectedPicker.SelectedItem is DetectedDcsDevice { Connected: true } candidate &&
+                    !string.IsNullOrWhiteSpace(NativeControllerName.Text) &&
+                    !_session.Snapshot.Hardware.Values.Any(x => x.Device.PhysicalGuid == candidate.PhysicalGuid));
             RenameControllerButton.IsEnabled = ready && !running && _session?.CanRenameNativeControllers == true &&
                 !string.IsNullOrWhiteSpace(NativeControllerName.Text);
             CancelIdentificationButton.IsEnabled = running;
             LinkControllerButton.IsEnabled = ready && links.SelectPhysical && ConnectedPicker.SelectedItem is DetectedDcsDevice { Connected: true };
             UnlinkControllerButton.IsEnabled = ready && links.UnlinkPhysical;
+            FeatureActionBar.ShowAlternate(LinkControllerButton, UnlinkControllerButton, pin is not null);
             RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
+            FeatureActionBar.ShowAlternate(AddControllerButton, RemoveUnusedSlotButton, selected is not null && pin is null && !AddControllerButton.IsEnabled);
+            FeatureActionBar.ShowAlternate(IdentifyControllerButton, CancelIdentificationButton, _identification.Running);
             ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             LinkStatus.Text = selected is null ? "Select connected hardware to add a controller, or select an existing slot to manage its link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
@@ -657,7 +668,16 @@ namespace Heimdall.App.Games
         });
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
-            if (!AddControllerButton.IsEnabled || ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return;
+            if (!AddControllerButton.IsEnabled) return;
+            if (SelectedController is { } slot && _session!.Snapshot.Hardware.ContainsKey(slot))
+            {
+                DevicePicker.SelectedIndex = 0;
+                ConnectedPicker.SelectedIndex = -1;
+                ConnectedPicker.Focus();
+                ConnectedPicker.IsDropDownOpen = true;
+                return;
+            }
+            if (ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return;
             ReviewNativeChange(_session!.PreviewAddNativeController(device.PhysicalGuid, NativeControllerName.Text));
         });
         private void CommandChanged(object sender, SelectionChangedEventArgs e)
@@ -999,6 +1019,9 @@ namespace Heimdall.App.Games
                 snapshot is not null && _session?.AccessMessage.Length == 0, _identification.Running || (_input?.Running ?? false) || _scanningInputs);
             DrawingPicker.IsEnabled = links.SelectDrawing && _drawings.Count > 0;
             ClearDrawingButton.IsEnabled = links.UnlinkDrawing;
+            _devicesView.ChooseDrawingButton.IsEnabled = DrawingPicker.IsEnabled;
+            FeatureActionBar.ShowAlternate(_devicesView.ChooseDrawingButton, ClearDrawingButton,
+                slot is not null && _session?.DrawingId(slot) is not null);
             DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
             if (DrawingPanel.IsExpanded != true) return;
             if (snapshot is not null && DevicePicker.SelectedItem is GameDeviceChoice system &&
@@ -1250,6 +1273,7 @@ namespace Heimdall.App.Games
                 FeaturePicker.SelectedIndex == 1 && pin is not null && GameInputReadiness.Ready(pin, _services.Discover()),
                 "Select one linked, connected controller for input testing."));
             AssignmentActionPresentation.Show(StopInputButton, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
+            FeatureActionBar.ShowAlternate(StartInputButton, StopInputButton, _input.Running);
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
