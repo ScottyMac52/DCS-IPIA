@@ -572,12 +572,17 @@ namespace Heimdall.App.Games
             if (!control.IsAxis || !CanEditControl(control) || AssignmentForControl(control) is not { IsAxis: true } row) return;
             SelectRow(row);
             var dialog = new EliteAxisTuningWindow(this, row.CommandName, row.Invert, row.Deadzone);
-            var accepted = AxisTuningReview is { } review ? review(dialog) : dialog.ShowDialog();
-            if (accepted == true && dialog.TryRead(out var invert, out var deadzone) && CanEditControl(control))
+            var session = _session!;
+            var invert = row.Invert;
+            var deadzone = row.Deadzone;
+            var result = ExecuteAssignment(row.CommandId, row.Input, row.Slot, () =>
             {
-                _session!.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone);
-                Status("Axis tuning staged. Save before exporting.");
-            }
+                var accepted = AxisTuningReview is { } review ? review(dialog) : dialog.ShowDialog();
+                if (accepted != true || !dialog.TryRead(out invert, out deadzone))
+                    return new(false, false, "Axis tuning canceled.");
+                return new(true, invert != row.Invert || deadzone != row.Deadzone, "");
+            }, () => session.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone));
+            AssignmentFeedback(result);
         });
         private void SelectControl(HardwareGraphicControl control)
         {

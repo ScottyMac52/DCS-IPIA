@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
@@ -21,11 +23,49 @@ namespace Heimdall.App.Games
             _scanningInputs || _identification.Running, _input.Running);
         private WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
             WorkspaceAssignmentActionState.For(action, AssignmentContext(), new(true, ready, reason));
-        private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action) =>
-            WorkspaceAssignmentActionState.For(action, AssignmentContext(), new(action != WorkspaceAssignmentAction.TuneAxis,
-                action != WorkspaceAssignmentAction.Clear || (SelectedController is { } slot &&
-                    SquadronsDrawingProjection.ForControl(control, _rows, slot, DrawingSection).Count > 0),
-                "No editable assignment on this control in the selected context."));
+        private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action)
+        {
+            var ready = action switch
+            {
+                WorkspaceAssignmentAction.Clear => SelectedController is { } slot &&
+                    SquadronsDrawingProjection.ForControl(control, _rows, slot, DrawingSection).Count > 0,
+                WorkspaceAssignmentAction.TuneAxis => DrawingAxisPair(control) is not null,
+                _ => true
+            };
+            return AssignmentAction(action, ready, "Select an editable assignment or a complete axis pair.");
+        }
+
+        private (SquadronsWorkspaceRow Positive, SquadronsWorkspaceRow Negative)? DrawingAxisPair(HardwareGraphicControl control)
+        {
+            if (!control.IsAxis || SelectedController is not { } slot || _session is not { } session) return null;
+            var pin = session.Snapshot.Hardware.GetValueOrDefault(slot);
+            if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs)?.Contains(control.InputKey) != true) return null;
+            var rows = SquadronsDrawingProjection.ForControl(control, _rows, slot, DrawingSection);
+            if (rows.Count != 2) return null;
+            var positive = rows.FirstOrDefault(row => row.Native.Input is { Type: CommandType.Axis, Direction: 1 });
+            var negative = rows.FirstOrDefault(row => row.Native.Input is { Type: CommandType.Axis, Direction: -1 });
+            return positive is not null && negative is not null && positive.Native.Concept == negative.Native.Concept
+                ? (positive, negative) : null;
+        }
+
+        private void TuneDrawingAxis(HardwareGraphicControl control) => RunAssignment(() =>
+        {
+            if (!ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled ||
+                DrawingAxisPair(control) is not { } pair || _session is not { } session) return;
+
+            var reverse = new CheckBox { Content = "Reverse the saved axis directions" };
+            reverse.SetResourceReference(FrameworkElement.StyleProperty, "AppCheckBox");
+            var dialog = new AxisTuningWindow(this, pair.Positive.CommandName, reverse, () => null);
+            var result = ExecuteAssignment(pair.Positive.Native.Concept, control.InputKey, pair.Positive.RecordId,
+                () => dialog.ShowDialog() == true
+                    ? new(true, reverse.IsChecked == true, "")
+                    : new(false, false, "Axis tuning canceled."),
+                () => session.ReverseNativeAxisPair(pair.Positive.RecordId, pair.Negative.RecordId,
+                    pair.Positive.DeviceId, control.InputKey));
+            Refresh(false);
+            AssignmentFeedback(result);
+        });
+
         private bool CanDropCommand(HardwareGraphicControl control, string commandId)
         {
             if (_session is null || SelectedController is not { } slot || _session.Catalog.Find(commandId) is not { } command ||

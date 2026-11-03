@@ -1,5 +1,8 @@
+using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.WarThunder;
 
 namespace Heimdall.App.Games
@@ -98,15 +101,54 @@ namespace Heimdall.App.Games
             });
         private void TunePhysicalControl(HardwareGraphicControl control) => Run(() =>
         {
-            InspectPhysicalControl(control);
-            var row = _assignments.Records.Items.Cast<WarThunderWorkspaceRow>().FirstOrDefault(candidate =>
+            if (!ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled || _session is not { } session) return;
+            var profile = session.Snapshot.Profile;
+            var row = PhysicalAssignments(control).First(candidate =>
             {
-                var capabilities = WarThunderProfileBackend.GetBindingCapabilities(_session!.Snapshot.Profile, candidate.RecordId);
-                return capabilities.SetAxisInverse || capabilities.EditableParameterAddresses.Count > 0;
+                var support = WarThunderProfileBackend.GetBindingCapabilities(profile, candidate.RecordId);
+                return support.SetAxisInverse || support.EditableParameterAddresses.Count > 0;
             });
-            _assignments.Records.SelectedItem = row; RefreshEditor();
-            _assignments.Editor.NativeDetails.IsExpanded = true;
-            if (_assignments.Editor.Inverse.IsEnabled) _assignments.Editor.Inverse.Focus(); else _assignments.Editor.Parameter.Focus();
+            var capabilities = WarThunderProfileBackend.GetBindingCapabilities(profile, row.RecordId);
+            var fields = new StackPanel();
+            var inverted = WarThunderWorkspaceProjection.IsInverted(row.Binding);
+            var invert = new CheckBox { Content = "Invert axis", IsChecked = inverted, Margin = new Thickness(0, 0, 0, 8) };
+            invert.SetResourceReference(FrameworkElement.StyleProperty, "AppCheckBox");
+            if (capabilities.SetAxisInverse) fields.Children.Add(invert);
+            var editors = new List<(WarThunderBlkScalar Field, TextBox Editor)>();
+            foreach (var field in row.Binding.Fields.Where(field => capabilities.EditableParameterAddresses.Contains(field.Address)
+                && (!capabilities.SetAxisInverse || WarThunderWorkspaceProjection.FieldName(field) != "inverse")))
+            {
+                var label = WarThunderWorkspaceProjection.FieldName(field);
+                var editor = new TextBox { Text = field.Value, Margin = new Thickness(0, 3, 0, 10) };
+                editor.SetResourceReference(FrameworkElement.StyleProperty, "AppTextBox");
+                fields.Children.Add(new Label { Content = label, Target = editor });
+                fields.Children.Add(editor);
+                editors.Add((field, editor));
+            }
+
+            var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, row.Command.Id, control.InputKey, row.RecordId);
+            var host = new WorkspaceAssignmentHost(AssignmentContext, () => JsonSerializer.Serialize(_session?.Snapshot));
+            WarThunderAxisTuningEdit? edit = null;
+            var review = new GameAssignmentReview(false, false, "Axis tuning canceled.");
+            var dialog = new AxisTuningWindow(this, row.Command.DisplayName, fields, () =>
+            {
+                var changes = editors.Where(item => item.Field.Value != item.Editor.Text)
+                    .Select(item => new WarThunderNativeEdit(WarThunderEditKind.Parameter, row.RecordId,
+                        item.Field.Address, Literal: item.Editor.Text)).ToList();
+                if (capabilities.SetAxisInverse && (invert.IsChecked == true) != inverted)
+                    changes.Add(new(WarThunderEditKind.Inverse, row.RecordId, Inverted: invert.IsChecked == true));
+                edit = new WarThunderAxisTuningEdit(changes);
+                review = session.ReviewNativeEdit(edit);
+                return review.Valid ? null : review.Message;
+            });
+            var result = AssignmentWorkflow.Execute(host, new WorkspaceAssignmentOperation(target,
+                () => dialog.ShowDialog() == true ? review : new(false, false, "Axis tuning canceled."),
+                () =>
+                {
+                    session.ApplyNativeEdit(edit!);
+                    return new(DraftOutcome.Applied, "");
+                }));
+            Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         });
         private void InspectPhysicalControl(HardwareGraphicControl control) => Run(() =>
         {

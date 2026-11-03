@@ -242,6 +242,7 @@ namespace Heimdall.App.Games
         /// <summary>Exposes the same typed native commands installed on the shared presenter for deterministic smoke checks.</summary>
         internal HardwareDiagramInteractions DrawingInteractions() =>
             new(SelectDrawingInput, DropDrawingCommand, CanClearDrawingInput, ClearDrawingInput,
+                CanTune: control => ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled, Tune: TuneDrawingAxis,
                 DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignment", Inspect: InspectDrawingInput, CanDrop: CanDropCommand, ActionState: ControlAction);
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
