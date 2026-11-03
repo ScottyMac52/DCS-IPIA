@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application.Validation;
 using Heimdall.Domain;
 using Heimdall.Domain.MultiSim;
 
@@ -14,6 +15,12 @@ namespace Heimdall.Dcs
         private const string NativeKey = "dcs.v1";
         private static readonly JsonSerializerOptions NativeOptions = new() { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
         #region BEGIN Public
+        /// <summary>Gets the versioned declarative contract packaged from the adapter's validation JSON file.</summary>
+        public ProfileValidationDefinition ValidationDefinition => ProfileValidationDefinitions.BuiltIn(SimId);
+        /// <summary>Validates without mutation using common rules plus the existing native semantic boundary.</summary>
+        public ProfileValidationResult Validate(ProfileDocument profile, ProfileValidationDefinition definition, CancellationToken cancellationToken = default) =>
+            ProfileValidationEngine.Validate(this, profile, definition, null, cancellationToken);
+
         /// <summary>Gets the DCS backend identifier.</summary>
         public string SimId => "dcs";
         /// <summary>Gets native Press/chord/filter support; runtime button modes and deployment are excluded.</summary>

@@ -18,7 +18,7 @@ namespace Heimdall.Infrastructure
         public async Task<IReadOnlyList<DcsModule>> ListAsync(CancellationToken ct = default)
         {
             await using var c = await Open(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT id,dcs_id,display_name FROM modules ORDER BY dcs_id COLLATE NOCASE,id";
             await using var r = await cmd.ExecuteReaderAsync(ct);
             var result = new List<DcsModule>();
@@ -33,7 +33,7 @@ namespace Heimdall.Infrastructure
         public async Task<DcsModule?> GetAsync(Guid id, CancellationToken ct = default)
         {
             await using var c = await Open(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT id,dcs_id,display_name FROM modules WHERE id=$id";
             cmd.Parameters.AddWithValue("$id", id.ToString("D"));
             await using var r = await cmd.ExecuteReaderAsync(ct);
@@ -46,7 +46,7 @@ namespace Heimdall.Infrastructure
         public async Task UpsertAsync(DcsModule value, CancellationToken ct = default)
         {
             await using var c = await Open(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText =
                 "INSERT INTO modules(id,dcs_id,display_name) VALUES($id,$dcs,$name) ON CONFLICT(id) DO UPDATE SET dcs_id=excluded.dcs_id,display_name=excluded.display_name";
             cmd.Parameters.AddWithValue("$id", value.Id.ToString("D"));
@@ -61,7 +61,7 @@ namespace Heimdall.Infrastructure
         public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
         {
             await using var c = await Open(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "DELETE FROM modules WHERE id=$id";
             cmd.Parameters.AddWithValue("$id", id.ToString("D"));
             return await cmd.ExecuteNonQueryAsync(ct) == 1;
@@ -72,7 +72,7 @@ namespace Heimdall.Infrastructure
         {
             var c = new SqliteConnection(connectionString);
             await c.OpenAsync(ct);
-            var cmd = c.CreateCommand();
+            await using var cmd = c.CreateCommand();
             cmd.CommandText = "PRAGMA foreign_keys=ON";
             await cmd.ExecuteNonQueryAsync(ct);
             return c;

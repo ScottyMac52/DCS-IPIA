@@ -18,7 +18,7 @@ jobs:
       dotnet_version: 10.0.x
       test_project: tests/Heimdall.Tests/Heimdall.Tests.csproj
       presentation_project: src/Heimdall.App/Heimdall.App.csproj
-      coverage_include: '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.EliteDangerous]*%2c[Heimdall.Squadrons]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
+      coverage_include: '[Heimdall.Domain]*%2c[Heimdall.Application]*%2c[Heimdall.Infrastructure]*%2c[Heimdall.Dcs]*%2c[Heimdall.EliteDangerous]*%2c[Heimdall.Squadrons]*%2c[Heimdall.WarThunder]*%2c[Heimdall.Rendering]*%2c[Heimdall.Packaging]*'
       line_threshold: 80
       branch_threshold: 80
 

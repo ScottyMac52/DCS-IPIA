@@ -1,0 +1,23 @@
+// synthetic source, retained verbatim
+controls{
+  version:i=5
+  basePresetPaths{default:t="config/hotkeys/synthetic.blk";}
+  hotkeys{
+    ID_FIRE{joyButton:i=1;activationType:i=9;}
+    ID_FIRE{keyboardKey:i=30;keyboardKey:i=31;}
+    ID_CHORD{joyButton:i=0;joyButton:i=2;keyboardKey:i=4;}
+    ID_EMPTY{}
+    ID_FUTURE{keyboardKey:i=9;future:t="retained";}
+  }
+  axes{
+    pitch{axisId:i=1;inverse:b=no;kMul:r=1.25;mouseAxisId:i=-1;futureParam:r=2;}
+    throttle{axisId:i=2;nonlinearity:i=1;}
+    empty_axis{}
+  }
+  deviceMapping{
+    joystick{devId:t="0001:0002";axesOffset:i=0;axesCount:i=2;buttonsOffset:i=0;buttonsCount:i=4;name:t="Repeated Device";}
+    joystick{devId:t="0001:0002";axesOffset:i=2;axesCount:i=2;buttonsOffset:i=4;buttonsCount:i=4;name:t="Repeated Device";}
+  }
+  future{setting:t="leave unchanged";}
+}
+settings{cameraInvertY:b=no;}

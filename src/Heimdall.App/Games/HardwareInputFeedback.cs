@@ -88,7 +88,7 @@ namespace Heimdall.App.Games
         }
         #endregion END Public
         #region BEGIN private helpers
-        private void Deactivated(object? sender, EventArgs e) { Stop(); _status("Input test stopped on focus loss."); }
+        private void Deactivated(object? sender, EventArgs e) { if (!Running) return; Stop(); _status("Input test stopped on focus loss."); }
         private void Poll(object? sender, EventArgs e)
         {
             try { Sample(); }
@@ -97,3 +97,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

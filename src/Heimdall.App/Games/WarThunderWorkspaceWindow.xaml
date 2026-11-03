@@ -1,0 +1,32 @@
+<Window x:Class="Heimdall.App.Games.WarThunderWorkspaceWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:games="clr-namespace:Heimdall.App.Games" xmlns:pres="clr-namespace:Heimdall.App"
+ Title="HEIMDALL — War Thunder" Icon="{x:Static pres:ApplicationBranding.Icon}" Width="1340" Height="860" MinWidth="1050" MinHeight="650" WindowStartupLocation="CenterOwner">
+ <games:GameWorkspaceShell Margin="10">
+  <WrapPanel Margin="0,0,0,10">
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="GamePicker" Width="180" AutomationProperties.Name="Game selection"><ComboBoxItem Content="DCS World" Tag="dcs"/><ComboBoxItem Content="Elite Dangerous" Tag="elite-dangerous"/><ComboBoxItem Content="Star Wars: Squadrons" Tag="star-wars-squadrons"/><ComboBoxItem Content="War Thunder" Tag="war-thunder"/></ComboBox>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Profiles" Width="220" DisplayMemberPath="Name" AutomationProperties.Name="Saved War Thunder profiles" Margin="8,0"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Save" Content="Save"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Discard" Content="Discard"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Export" Content="Export"/>
+   <TextBlock Style="{StaticResource AppLabel}" x:Name="SavedState" VerticalAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+  </WrapPanel>
+  <Expander Grid.Row="1" Header="Configuration and export settings" Margin="0,0,0,6" pres:WorkspaceLayout.Key="war-thunder.configuration">
+   <StackPanel Margin="0,6,0,0">
+    <WrapPanel><Button Style="{StaticResource ToolbarActionButton}" x:Name="Import" Content="Add / Import…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Duplicate" Content="Duplicate…"/>
+     <TextBlock Style="{StaticResource AppLabel}" Text="Profile name:" VerticalAlignment="Center" Margin="8,0"/><TextBox Style="{StaticResource AppTextBox}" x:Name="ProfileName" Width="250" MaxLength="100" AutomationProperties.Name="Profile name"/>
+    </WrapPanel>
+    <TextBlock Style="{StaticResource Hint}" Text="Export writes a separate review copy. Back up game settings before manually installing it." TextWrapping="Wrap" Margin="0,6,0,0"/>
+   </StackPanel>
+  </Expander>
+  <Grid Grid.Row="2"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <games:GameFeatureNavigation x:Name="FeaturePicker"><ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments &amp; Testing"/><ListBoxItem Content="Reference Sheets"/></games:GameFeatureNavigation>
+   <pres:FeatureActionBar ButtonStyle="{StaticResource ToolbarActionButton}" x:Name="FeatureActions" Grid.Row="1" Margin="0,6,0,8"/>
+   <games:GameControllerWorkspace Grid.Row="2" pres:WorkspaceLayout.Key="war-thunder.controllers.split">
+    <DockPanel Margin="0,0,10,0"><TextBlock Style="{StaticResource AppLabel}" Text="Controllers in profile" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,6"/><ListBox x:Name="Controllers" Style="{StaticResource WorkspaceControllerList}" AutomationProperties.Name="Native controllers"/></DockPanel>
+    <ContentControl x:Name="FeatureContent" Grid.Column="2" Margin="6,0,0,0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+   </games:GameControllerWorkspace>
+  </Grid>
+  <StackPanel Grid.Row="3">
+  <Expander x:Name="ErrorPanel" Header="Last operation error details" Visibility="Collapsed"><TextBox x:Name="ErrorDetails" Style="{StaticResource AppTextBox}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Operation error details"/></Expander>
+  <TextBlock x:Name="InputStatus" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+  <TextBlock Style="{StaticResource AppLabel}" x:Name="Status" Text="Import an exported controls BLK file to begin." TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
+ </games:GameWorkspaceShell>
+</Window>

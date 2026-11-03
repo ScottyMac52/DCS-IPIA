@@ -21,12 +21,11 @@ namespace Heimdall.App
                 if (ct.IsCancellationRequested) return 0;
                 try
                 {
-                    if (Marshal.ReadInt32(instance) < 552) throw new InvalidDataException("Invalid DirectInput object information.");
-                    var name = Marshal.PtrToStringUni(instance + 32, 260)?.TrimEnd('\0') ?? "";
-                    var terminator = name.IndexOf('\0');
-                    if (terminator >= 0) name = name[..terminator];
-                    objects.Add(new(Marshal.PtrToStructure<Guid>(instance + 4),
-                        unchecked((uint)Marshal.ReadInt32(instance + 24)), name));
+                    var size = Marshal.ReadInt32(instance);
+                    if (size is < 552 or > 4096) throw new InvalidDataException("Invalid DirectInput object information.");
+                    var bytes = new byte[size];
+                    Marshal.Copy(instance, bytes, 0, bytes.Length);
+                    objects.Add(ControllerObjectReader.Read(bytes));
                     return 1;
                 }
                 catch (Exception ex) { error = ex; return 0; }

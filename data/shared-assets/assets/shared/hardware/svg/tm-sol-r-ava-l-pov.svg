@@ -12,148 +12,148 @@
   <circle cx="615" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="200" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN7" x="225" y="222" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B07  |  Hat press</text>
-  <!-- callout:JOY_BTN_POV1_U -->
-  <polyline points="615,263 450,268 410,268" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="615" cy="263" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <!-- callout:JOY_BTN8 -->
+  <polyline points="593,285 450,268 410,268" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="593" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="250" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_U" x="225" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up</text>
-  <!-- callout:JOY_BTN_POV1_UR -->
-  <polyline points="631,269 450,294 225,300" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="631" cy="269" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN8" x="225" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B08  |  Hat left</text>
+  <!-- callout:JOY_BTN9 -->
+  <polyline points="615,263 450,294 225,300" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="615" cy="263" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="300" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_UR" x="225" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up-right</text>
-  <!-- callout:JOY_BTN_POV1_R -->
+  <text id="lbl-JOY_BTN9" x="225" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B09  |  Hat up</text>
+  <!-- callout:JOY_BTN10 -->
   <polyline points="637,285 450,344 225,350" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="637" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="350" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_R" x="225" y="372" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Right</text>
-  <!-- callout:JOY_BTN_POV1_DR -->
-  <polyline points="631,301 450,394 225,400" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="631" cy="301" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="400" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_DR" x="225" y="422" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down-right</text>
-  <!-- callout:JOY_BTN_POV1_D -->
-  <polyline points="615,307 450,444 225,450" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <text id="lbl-JOY_BTN10" x="225" y="372" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B10  |  Hat right</text>
+  <!-- callout:JOY_BTN11 -->
+  <polyline points="615,307 450,394 225,400" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="615" cy="307" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="450" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_D" x="225" y="472" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down</text>
-  <!-- callout:JOY_BTN_POV1_DL -->
-  <polyline points="599,301 450,494 225,500" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="599" cy="301" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="500" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_DL" x="225" y="522" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down-left</text>
-  <!-- callout:JOY_BTN_POV1_L -->
-  <polyline points="593,285 450,544 225,550" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="593" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="550" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_L" x="225" y="572" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Left</text>
-  <!-- callout:JOY_BTN_POV1_UL -->
-  <polyline points="599,269 450,594 225,600" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="599" cy="269" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="600" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN_POV1_UL" x="225" y="622" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up-left</text>
+  <rect x="40" y="400" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN11" x="225" y="422" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B11  |  Hat down</text>
   <!-- callout:JOY_BTN12 -->
-  <polyline points="635,340 450,664 225,670" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="635,340 450,444 225,450" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="635" cy="340" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="670" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN12" x="225" y="692" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B12  |  Action button</text>
+  <rect x="40" y="450" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN12" x="225" y="472" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B12  |  Action button</text>
   <!-- callout:JOY_BTN17 -->
   <polyline points="785,285 950,242 1175,236" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="785" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="200" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN17" x="1175" y="222" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B17  |  Hat press</text>
-  <!-- callout:JOY_BTN18 -->
-  <polyline points="763,285 950,268 990,268" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="763" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="250" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN18" x="1175" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B18  |  Hat left</text>
-  <!-- callout:JOY_BTN19 -->
-  <polyline points="785,263 950,294 1175,300" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <!-- callout:JOY_BTN_POV1_U -->
+  <polyline points="785,263 950,268 990,268" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="785" cy="263" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="250" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_U" x="1175" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up</text>
+  <!-- callout:JOY_BTN_POV1_UR -->
+  <polyline points="801,269 950,294 1175,300" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="801" cy="269" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="300" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN19" x="1175" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B19  |  Hat up</text>
-  <!-- callout:JOY_BTN20 -->
+  <text id="lbl-JOY_BTN_POV1_UR" x="1175" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up-right</text>
+  <!-- callout:JOY_BTN_POV1_R -->
   <polyline points="807,285 950,344 1175,350" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="807" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="350" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN20" x="1175" y="372" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B20  |  Hat right</text>
-  <!-- callout:JOY_BTN21 -->
-  <polyline points="785,307 950,394 1175,400" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="785" cy="307" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_R" x="1175" y="372" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Right</text>
+  <!-- callout:JOY_BTN_POV1_DR -->
+  <polyline points="801,301 950,394 1175,400" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="801" cy="301" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="400" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN21" x="1175" y="422" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B21  |  Hat down</text>
-  <!-- callout:JOY_BTN16 -->
-  <polyline points="765,340 950,444 1175,450" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="765" cy="340" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_DR" x="1175" y="422" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down-right</text>
+  <!-- callout:JOY_BTN_POV1_D -->
+  <polyline points="785,307 950,444 1175,450" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="785" cy="307" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="450" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN16" x="1175" y="472" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B16  |  Action button</text>
+  <text id="lbl-JOY_BTN_POV1_D" x="1175" y="472" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down</text>
+  <!-- callout:JOY_BTN_POV1_DL -->
+  <polyline points="769,301 950,494 1175,500" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="769" cy="301" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="500" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_DL" x="1175" y="522" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Down-left</text>
+  <!-- callout:JOY_BTN_POV1_L -->
+  <polyline points="763,285 950,544 1175,550" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="763" cy="285" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="550" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_L" x="1175" y="572" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Left</text>
+  <!-- callout:JOY_BTN_POV1_UL -->
+  <polyline points="769,269 950,594 1175,600" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="769" cy="269" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="600" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN_POV1_UL" x="1175" y="622" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">POV  |  Up-left</text>
+  <!-- callout:JOY_BTN16 -->
+  <polyline points="765,340 950,664 1175,670" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="765" cy="340" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <rect x="990" y="670" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN16" x="1175" y="692" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B16  |  Action button</text>
   <!-- callout:JOY_BTN13 -->
-  <polyline points="700,375 950,729 1175,735" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,375 480,532 225,514" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="375" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="735" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN13" x="1175" y="757" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
+  <rect x="40" y="514" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN13" x="225" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B13  |  Scroll wheel press</text>
   <!-- callout:JOY_BTN14 -->
-  <polyline points="700,365 950,779 1175,785" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,365 450,580 225,564" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="365" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="785" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN14" x="1175" y="807" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
+  <rect x="40" y="564" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN14" x="225" y="586" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B14  |  Scroll wheel up</text>
   <!-- callout:JOY_BTN15 -->
-  <polyline points="700,390 950,829 1175,835" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="700,390 460,620 225,610" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="390" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="990" y="835" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN15" x="1175" y="857" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
+  <rect x="40" y="610" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_BTN15" x="225" y="632" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B15  |  Scroll wheel down</text>
   <!-- callout:JOY_X -->
-  <polyline points="680,715 450,899 225,905" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="680" y1="715" x2="420" y2="724" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="680" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="905" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_X" x="225" y="927" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
+  <rect x="50" y="706" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_X" x="235" y="728" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">X  |  AVA roll</text>
   <!-- callout:JOY_Y -->
-  <polyline points="720,715 450,949 225,955" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <polyline points="720,715 440,778 235,760" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="720" cy="715" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="955" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_Y" x="225" y="977" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
+  <rect x="50" y="760" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_Y" x="235" y="782" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Y  |  AVA pitch</text>
   <!-- callout:JOY_RZ -->
-  <polyline points="700,860 450,999 225,1005" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <line x1="700" y1="860" x2="880" y2="860" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
   <circle cx="700" cy="860" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
-  <rect x="40" y="1005" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_RZ" x="225" y="1027" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
+  <rect x="880" y="842" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_RZ" x="1065" y="864" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">RZ  |  Grip twist</text>
   <!-- callout:JOY_BTN3 -->
-  <polyline points="807,1110 950,1098 990,1098" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="807" cy="1110" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="593,1110 950,1098 990,1098" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="593" cy="1110" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1080" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN3" x="1175" y="1102" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B03  |  Upper trigger input</text>
   <!-- callout:JOY_BTN4 -->
-  <polyline points="802,1162 950,1148 990,1148" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="802" cy="1162" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="598,1162 950,1148 990,1148" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="598" cy="1162" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1130" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN4" x="1175" y="1152" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B04  |  Upper trigger input</text>
   <!-- callout:JOY_BTN1 -->
-  <polyline points="744,1185 450,1198 410,1198" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="744" cy="1185" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="656,1185 450,1198 410,1198" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="656" cy="1185" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="1180" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN1" x="225" y="1202" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B01  |  Main trigger input</text>
   <!-- callout:JOY_BTN2 -->
-  <polyline points="732,1198 450,1224 225,1230" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="732" cy="1198" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="668,1198 450,1224 225,1230" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="668" cy="1198" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="40" y="1230" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN2" x="225" y="1252" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B02  |  Main trigger input</text>
   <!-- callout:JOY_BTN5 -->
-  <polyline points="704,1336 950,1328 990,1328" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
-  <circle cx="704" cy="1336" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
+  <polyline points="696,1336 950,1328 990,1328" fill="none" stroke="#00bfff" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.75"/>
+  <circle cx="696" cy="1336" r="5" fill="#00bfff" stroke="#0f172a" stroke-width="1.5"/>
   <rect x="990" y="1310" width="370" height="36" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN5" x="1175" y="1332" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">B05  |  Lower grip button</text>
-  <!-- box:JOY_BTN8 -->
+  <!-- box:JOY_BTN18 -->
   <rect x="70" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN8" x="212.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 8</text>
-  <!-- box:JOY_BTN9 -->
+  <text id="lbl-JOY_BTN18" x="212.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 18</text>
+  <!-- box:JOY_BTN19 -->
   <rect x="395" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN9" x="537.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 9</text>
-  <!-- box:JOY_BTN10 -->
+  <text id="lbl-JOY_BTN19" x="537.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 19</text>
+  <!-- box:JOY_BTN20 -->
   <rect x="720" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN10" x="862.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 10</text>
-  <!-- box:JOY_BTN11 -->
+  <text id="lbl-JOY_BTN20" x="862.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 20</text>
+  <!-- box:JOY_BTN21 -->
   <rect x="1045" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
-  <text id="lbl-JOY_BTN11" x="1187.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 11</text>
+  <text id="lbl-JOY_BTN21" x="1187.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 21</text>
   <!-- presentation:title -->
   <text id="meta-title" x="700" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" fill="#cbd5e1">SOL-R GRIP / AVA [L]</text>
   <!-- presentation:mode -->

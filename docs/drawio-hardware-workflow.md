@@ -2,6 +2,17 @@
 
 HEIMDALL owns the deterministic draw.io exporter under `scripts/asset-authoring/`. Node 24 is required for this developer tool; the installed .NET application does not require Node or a Common checkout. There are no npm dependencies. Original source identities and MIT attribution are retained in [PROVENANCE.json](../scripts/asset-authoring/PROVENANCE.json).
 
+After editing bundled draw.io files in this repository, regenerate the SVGs and refresh their bundle provenance together:
+
+```powershell
+node scripts/asset-authoring/refresh-hardware-bundle.mjs
+dotnet build -c Release
+```
+
+Close and reopen HEIMDALL after rebuilding. No game-profile reimport is needed. The refresh command validates/renders every source before promotion, updates only registered hardware drawing/SVG hashes, retains original upstream blob IDs and rejects unrelated bundle changes. It repairs stale SVG bytes even when the regenerated SVG already matches the pinned hash. Review and commit the edited draw.io files, derived SVGs and `data/shared-assets/provenance.json` together. This is an explicit authoring operation; runtime integrity checks remain enforced.
+
+Generating SVGs alone leaves the edited draw.io hashes stale. A mismatch makes the shared catalog unavailable across DCS, Elite, Squadrons and War Thunder. Do not bypass catalog validation or delete saved profiles to address it. For installed custom user drawings, use the application's reviewed custom mapping import instead of modifying its installed SharedAssets bundle.
+
 From the repository root, verify all published bundled hardware SVGs without changing files:
 
 ```sh

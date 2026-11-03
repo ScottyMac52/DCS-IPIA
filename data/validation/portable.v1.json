@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "backendId": "portable",
+  "backendVersion": 1,
+  "profileSchemaVersion": 1,
+  "rules": [
+    {
+      "path": "/profile/profileId",
+      "type": "string",
+      "minimumLength": 1
+    },
+    {
+      "path": "/profile/contextId",
+      "type": "string",
+      "minimumLength": 1
+    },
+    {
+      "path": "/profile/name",
+      "type": "string"
+    },
+    {
+      "path": "/profile/devices",
+      "type": "array",
+      "uniqueBy": "logicalId"
+    },
+    {
+      "path": "/profile/devices/*/logicalId",
+      "type": "string",
+      "minimumLength": 1
+    },
+    {
+      "path": "/profile/metadata",
+      "type": "object"
+    },
+    {
+      "path": "/profile/nativeData",
+      "type": "object"
+    },
+    {
+      "path": "/files",
+      "type": "array",
+      "minimumLength": 1
+    },
+    {
+      "path": "/profile/devices/*/buttons",
+      "type": "array"
+    },
+    {
+      "path": "/profile/devices/*/axes",
+      "type": "array"
+    },
+    {
+      "path": "/profile/devices/*/buttons/*/commandId",
+      "type": "string",
+      "minimumLength": 1,
+      "references": "/catalog/*/id"
+    },
+    {
+      "path": "/profile/devices/*/axes/*/commandId",
+      "type": "string",
+      "minimumLength": 1,
+      "references": "/catalog/*/id"
+    }
+  ],
+  "ranges": []
+}

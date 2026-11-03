@@ -23,7 +23,9 @@ namespace Heimdall.App.Games
         {
             _owner = owner; _activity = activity; _clear = clear; _status = status;
             _factory = factory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
-            _timer.Tick += Poll; _owner.Deactivated += Deactivated;
+            _timer.Tick += Poll;
+            _owner.Deactivated += Deactivated;
+            _owner.IsVisibleChanged += VisibilityChanged;
         }
         #region BEGIN Public
         /// <summary>Gets whether identification owns live input handles.</summary>
@@ -60,13 +62,25 @@ namespace Heimdall.App.Games
             _timer.Stop(); _source?.Dispose(); _source = null; _identification = null; _devices = []; _clear();
         }
         /// <summary>Releases native resources and foreground lifecycle subscriptions.</summary>
-        public void Dispose() { Stop(); _timer.Tick -= Poll; _owner.Deactivated -= Deactivated; }
+        public void Dispose()
+        {
+            Stop();
+            _timer.Tick -= Poll;
+            _owner.Deactivated -= Deactivated;
+            _owner.IsVisibleChanged -= VisibilityChanged;
+        }
         #endregion END Public
         #region BEGIN private helpers
         private void Deactivated(object? sender, EventArgs e)
         {
             if (_source is null) return;
             Stop(); _status("Controller identification stopped on focus loss. Identify again before linking.");
+        }
+        private void VisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (_owner.IsVisible || _source is null) return;
+            Stop();
+            _status("Controller identification stopped when the window was hidden. Identify again before linking.");
         }
         private void Poll(object? sender, EventArgs e)
         {

@@ -1,4 +1,6 @@
 using Heimdall.Application;
+using Heimdall.Application.Games;
+using Heimdall.App.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.Rendering;
@@ -64,7 +66,11 @@ namespace Heimdall.App.Features.Assignments
             AppearanceManager.ObserveArtwork(this, RefreshDiagram);
             InitializeComponent();
             RegisterName("SelectedCallout", SelectedCallout);
-            CommandManager.SelectedCommandChanged += (_, command) => SelectionEditor.ShowCommandLabel(command?.Name);
+            CommandManager.SelectedCommandChanged += (_, command) =>
+            {
+                SelectionEditor.ShowCommandLabel(command?.Name);
+                RefreshAssignmentActions();
+            };
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "assignments.zoom");
         }
 
@@ -169,15 +175,16 @@ namespace Heimdall.App.Features.Assignments
             InspectorDetails.Text = "";
             _updatingLabel = true; LabelEditor.Text = ""; _updatingLabel = false;
             LabelEditor.IsEnabled = false;
-            if (AssignButton is { } assign) assign.IsEnabled = false;
-            if (TuneAxisButton is { } tune) tune.IsEnabled = false;
+            RefreshAssignmentActions();
         }
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_refreshingChoices) return;
+            ClearSelectedControl();
             RefreshChoices();
             if (_context is not null) CommandManager.UseAssignmentPalette(CurrentLayer);
         }
-        private void LayerChanged(object sender, SelectionChangedEventArgs e) => RefreshChoices();
+        private void LayerChanged(object sender, SelectionChangedEventArgs e) { if (_refreshingChoices) return; ClearSelectedControl(); RefreshChoices(); }
 
         private void ZoomChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -209,6 +216,7 @@ namespace Heimdall.App.Features.Assignments
                 (diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(diagram.Svg)))
             {
                 DeviceTitle.Text = SelectDeviceText;
+                ClearSelectedControl();
                 return;
             }
 
@@ -301,8 +309,10 @@ namespace Heimdall.App.Features.Assignments
                     border.AllowDrop = !protectedInput;
                     border.DragOver += (_, args) =>
                     {
-                        var ok = !protectedInput && (args.Data.GetDataPresent(typeof(CommandPaletteEntry)) ||
-                                 args.Data.GetDataPresent(typeof(EditorControlDrag)));
+                        var compatible = args.Data.GetData(typeof(CommandPaletteEntry)) is CommandPaletteEntry incoming
+                            ? incoming.IsAxis == control.IsAxis : args.Data.GetDataPresent(typeof(EditorControlDrag));
+                        var ok = WorkspaceAssignmentActionState.For(WorkspaceAssignmentAction.Apply, AssignmentContext(),
+                            new(true, !protectedInput && compatible)).Enabled;
                         args.Effects = ok ? DragDropEffects.Copy : DragDropEffects.None;
                         if (ok && args.Data.GetDataPresent(typeof(EditorControlDrag)))
                             args.Effects = (Keyboard.Modifiers & ModifierKeys.Control) != 0 ? DragDropEffects.Copy : DragDropEffects.Move;
@@ -336,8 +346,7 @@ namespace Heimdall.App.Features.Assignments
                             InspectorDetails.Text += "\n" + modifierDescription +
                                 "\nReserved: change or remove it in Modifiers before assigning a command." +
                                 (pendingAssignment is null ? "" : "\nExisting assignment can still be cleared.");
-                        if (AssignButton is { } assignButton) assignButton.IsEnabled = !protectedInput;
-                        TuneAxisButton?.IsEnabled = !protectedInput && control.IsAxis && pendingAssignment is not null;
+                        RefreshAssignmentActions();
                         _updatingLabel = true;
                         LabelEditor.Text = protectedInput || caption == UnAssignedText ? "" : caption;
                         LabelEditor.IsEnabled = !protectedInput;
@@ -376,11 +385,9 @@ namespace Heimdall.App.Features.Assignments
                         _calloutDragStart = null;
                         _calloutDragControl = null;
                         SelectCallout();
-                        var currentAssignment = _context?.Draft?.Snapshot.FirstOrDefault(x =>
-                            DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
                         changeLabel.IsEnabled = !protectedInput && _context?.Working is not null;
-                        clearAssignment.IsEnabled = currentAssignment is not null;
-                        tuneAxis.IsEnabled = !protectedInput && control.IsAxis && currentAssignment is not null;
+                        AssignmentActionPresentation.Show(clearAssignment, AssignmentAction(control, WorkspaceAssignmentAction.Clear));
+                        AssignmentActionPresentation.Show(tuneAxis, AssignmentAction(control, WorkspaceAssignmentAction.TuneAxis));
                     };
                     if (_selectedInputKey == control.InputKey) SelectCallout();
                     border.PreviewMouseMove += (_, args) =>
@@ -454,10 +461,15 @@ namespace Heimdall.App.Features.Assignments
             var slot = KneeboardDraftProjection.SlotForControl(_context.Working!, diagram, _selected, layer, chord);
             if (slot is null) return;
 
-            var result = _context.Draft.Remove(slot);
+            var context = _context;
+            var result = ExecuteAssignment(slot, "", () =>
+            {
+                var cleared = context.Draft.Remove(slot);
+                if (cleared.Outcome == DraftOutcome.Applied) context.SetLabel(slot.Key, null);
+                return cleared;
+            });
             if (result.Outcome == DraftOutcome.Applied)
             {
-                _context.SetLabel(slot.Key, null);
                 _updatingLabel = true;
                 LabelEditor.Text = "";
                 _updatingLabel = false;
@@ -683,7 +695,10 @@ namespace Heimdall.App.Features.Assignments
             else SelectedCallout.Text = result.Message;
         }
 
-        private DraftResult AssignWithConfirmation(DraftAssignmentSlot slot, DraftCommand command)
+        private DraftResult AssignWithConfirmation(DraftAssignmentSlot slot, DraftCommand command) =>
+            ExecuteAssignment(slot, command.Id, () => AssignWithConfirmationCore(slot, command));
+
+        private DraftResult AssignWithConfirmationCore(DraftAssignmentSlot slot, DraftCommand command)
         {
             if (_context?.Draft is null)
                 return new(DraftOutcome.Blocked, "No draft.");
@@ -692,7 +707,10 @@ namespace Heimdall.App.Features.Assignments
                 ReservationError(diagram, slot.InputKey) is { } blocked)
                 return new(DraftOutcome.Blocked, blocked);
 
-            var result = _context.Draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
+            var draft = _context.Draft;
+            var scope = AssignmentContext().Scope;
+            var before = AssignmentSnapshot();
+            var result = draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
             if (result.Outcome != DraftOutcome.ConfirmationRequired)
                 return result;
 
@@ -709,7 +727,9 @@ namespace Heimdall.App.Features.Assignments
                 MessageBoxResult.No => DraftConflictChoice.Swap,
                 _ => DraftConflictChoice.Cancel
             };
-            return _context.Draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice);
+            if (AssignmentContext().Scope != scope || AssignmentSnapshot() != before)
+                return new(DraftOutcome.Blocked, "The assignment changed during confirmation. Review the current control again.");
+            return draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice);
         }
 
         private void UndoClicked(object sender, RoutedEventArgs e)
@@ -1115,3 +1135,4 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+

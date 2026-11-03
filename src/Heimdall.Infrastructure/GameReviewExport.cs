@@ -20,11 +20,11 @@ namespace Heimdall.Infrastructure
             parent = Path.GetFullPath(parent);
             if (protectedRoots.Any(root => Within(parent, Path.GetFullPath(root))))
                 throw new InvalidOperationException("Choose a review folder outside the active game Bindings folder.");
-            if (backendId is not "elite-dangerous" and not "star-wars-squadrons") throw new InvalidDataException("Unsupported review export game.");
+            if (backendId is not "elite-dangerous" and not "star-wars-squadrons" and not "war-thunder") throw new InvalidDataException("Unsupported review export game.");
             ValidateFiles(files, backendId);
             Directory.CreateDirectory(parent);
             RejectLinks(parent);
-            var name = (backendId == "star-wars-squadrons" ? "Squadrons-Review-" : "Elite-Dangerous-Review-") + Guid.NewGuid().ToString("N");
+            var name = (backendId switch { "war-thunder" => "War-Thunder-Review-", "star-wars-squadrons" => "Squadrons-Review-", _ => "Elite-Dangerous-Review-" }) + Guid.NewGuid().ToString("N");
             var stage = Path.Combine(parent, "." + name + ".tmp");
             var output = Path.Combine(parent, name);
             try
@@ -45,12 +45,13 @@ namespace Heimdall.Infrastructure
         #region BEGIN private helpers
         private static void ValidateFiles(IReadOnlyDictionary<string, string> files, string backendId)
         {
-            if (files.Count == 0 || files.Count > 8 || files.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count)
+            if (files.Count == 0 || files.Count > (backendId == "war-thunder" ? 1 : 8) || files.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count)
                 throw new InvalidDataException("Expected one complete nonempty review payload.");
             foreach (var (path, text) in files)
                 if (string.IsNullOrWhiteSpace(path) || path.IndexOfAny(['/', '\\', ':', '<', '>', '"', '|', '*', '?']) >= 0
-                    || path.Contains("..", StringComparison.Ordinal) || text is null || text.Length > 4 * 1024 * 1024
+                    || path.Contains("..", StringComparison.Ordinal) || text is null || text.Length > (backendId == "war-thunder" ? 8 : 4) * 1024 * 1024
                     || (backendId == "star-wars-squadrons" ? path != "ProfileOptions_profile_synced"
+                        : backendId == "war-thunder" ? !path.EndsWith(".blk", StringComparison.OrdinalIgnoreCase)
                         : !path.EndsWith(".binds", StringComparison.OrdinalIgnoreCase) && !path.EndsWith(".start", StringComparison.OrdinalIgnoreCase)))
                     throw new InvalidDataException("Review output must contain bounded native game basenames only.");
         }

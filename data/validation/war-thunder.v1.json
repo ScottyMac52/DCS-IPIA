@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "backendId": "war-thunder",
+  "backendVersion": 1,
+  "profileSchemaVersion": 1,
+  "rules": [
+    {
+      "path": "/profile/nativeData/war-thunder.v1",
+      "type": "object"
+    },
+    {
+      "path": "/native/controlsVersion",
+      "type": "integer",
+      "allowedValues": [
+        5
+      ]
+    },
+    {
+      "path": "/native/devices",
+      "type": "array",
+      "uniqueBy": "id"
+    },
+    {
+      "path": "/native/axisInputs",
+      "type": "array"
+    },
+    {
+      "path": "/native/buttonInputs",
+      "type": "array"
+    },
+    {
+      "path": "/files",
+      "type": "array",
+      "minimumLength": 1,
+      "maximumLength": 1
+    }
+  ],
+  "ranges": [
+    {
+      "path": "/native/devices",
+      "offset": "axesOffset",
+      "count": "axesCount",
+      "references": "/native/axisInputs/*"
+    },
+    {
+      "path": "/native/devices",
+      "offset": "buttonsOffset",
+      "count": "buttonsCount",
+      "references": "/native/buttonInputs/*"
+    }
+  ],
+  "includePortable": true
+}

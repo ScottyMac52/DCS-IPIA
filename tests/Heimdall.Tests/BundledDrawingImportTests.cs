@@ -26,7 +26,7 @@ namespace Heimdall.Tests
         [MemberData(nameof(Drawings))]
         public async Task Every_bundled_drawing_imports_renders_and_reopens(string path)
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var choices = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
             var hardware = choices.First(x => Path.GetFileNameWithoutExtension(x.Diagram.Path) == Path.GetFileNameWithoutExtension(path));
             var inputs = hardware.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal);
@@ -91,7 +91,7 @@ namespace Heimdall.Tests
         [Fact]
         public async Task Shifted_mfd_pairs_keep_assignments_and_labels_after_save_and_readoption()
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!.First(x => x.DeviceId == "tm-mfd");
             var inputs = hardware.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal);
             var definition = Definition(inputs.Values.Append("JOY_BTN29")); // Exercise continuation rendering alongside shifted pairs.

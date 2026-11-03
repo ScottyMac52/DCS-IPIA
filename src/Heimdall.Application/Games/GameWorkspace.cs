@@ -12,7 +12,10 @@ namespace Heimdall.Application.Games
         Dictionary<string, GameHardwarePin> Hardware)
     {
         #region BEGIN Public
-        /// <summary>Gets presentation order only; native devices and ED indices retain their original order.</summary>
+        /// <summary>Retains the imported source directory as a protected export root after reopening.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public string? SourceDirectory { get; init; }
+        /// <summary>Gets presentation order independently of native input numbering.</summary>
         public List<string> ControllerOrder { get; init; } = [];
         /// <summary>Retains independent drawing links while their physical controller is explicitly unlinked.</summary>
         public Dictionary<string, string> UnlinkedDrawings { get; init; } = new();

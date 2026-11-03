@@ -1,13 +1,14 @@
 """Enforce ProjectHope-style independent coverage and method CRAP gates."""
 import argparse
 import math
+import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from publish_test_results import cell, read_metrics
 
 ASSEMBLIES = tuple("Heimdall." + name for name in
-                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Squadrons", "Rendering", "Packaging"))
+                   ("Domain", "Application", "Infrastructure", "Dcs", "EliteDangerous", "Squadrons", "WarThunder", "Rendering", "Packaging"))
 
 
 def coverage_rows(report, assemblies=ASSEMBLIES, line_threshold=80, branch_threshold=80):
@@ -79,16 +80,18 @@ def publish_gate(report, raw, output, summary, ceiling=50):
     lines.extend("| " + " | ".join(cell(value) for value in row) + " |" for row in rows)
     lines.extend(["", f"## Method CRAP gate (maximum {ceiling:g})", "",
                   "CRAP = complexity² × (1 − method line coverage fraction)³ + complexity.",
-                  "All measured methods in the seven gated assemblies are included, including compiler-generated methods.",
+                  "All measured methods in the expected production assemblies are included, including compiler-generated methods.",
                   f"Measured methods: {len(metrics)}. Gate: **{'FAIL' if failures else 'PASS'}**.", ""])
     if failures:
         lines.extend("- " + cell(failure) for failure in failures)
     markdown = "\n".join(lines) + "\n"
-    print(markdown)
     output.mkdir(parents=True, exist_ok=True)
     (output / "QualityGateSummary.md").write_text(markdown, encoding="utf-8")
     with summary.open("a", encoding="utf-8") as stream:
         stream.write(markdown)
+    # Redirected Windows consoles may use cp1252; preserve UTF-8 artifacts and escape only unsupported console characters.
+    encoding = sys.stdout.encoding or "utf-8"
+    print(markdown.encode(encoding, errors="backslashreplace").decode(encoding))
     return 1 if failures else 0
 
 

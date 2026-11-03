@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "War Thunder native inspection v1",
+  "description": "Typed inspection of an accepted native controls-v5 capture. Source spans use UTF-16 string offsets. This is not a generative BLK format or proof of in-game acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "context",
+    "fileName",
+    "controlsVersion",
+    "opaqueSyntax",
+    "devices",
+    "bindings",
+    "scalars",
+    "blocks",
+    "diagnostics"
+  ],
+  "properties": {
+    "format": {
+      "const": "war-thunder-native-inspection-v1"
+    },
+    "context": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fileName": {
+      "type": "string",
+      "minLength": 5
+    },
+    "controlsVersion": {
+      "const": 5
+    },
+    "opaqueSyntax": {
+      "type": "boolean"
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/device"
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/binding"
+      }
+    },
+    "scalars": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scalar"
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/block"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "$defs": {
+    "scalar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Path",
+        "Type",
+        "Value",
+        "Start",
+        "End",
+        "Address",
+        "BlockAddress"
+      ],
+      "properties": {
+        "Path": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "Value": {
+          "type": "string"
+        },
+        "Start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "End": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Address": {
+          "type": "string",
+          "minLength": 3
+        },
+        "BlockAddress": {
+          "type": "string"
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Path",
+        "Start",
+        "Address",
+        "ParentAddress",
+        "HeaderStart",
+        "End"
+      ],
+      "properties": {
+        "Path": {
+          "type": "string"
+        },
+        "Start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Address": {
+          "type": "string",
+          "minLength": 3
+        },
+        "ParentAddress": {
+          "type": "string"
+        },
+        "HeaderStart": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "End": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Id",
+        "RecordId",
+        "Name",
+        "Product",
+        "AxesOffset",
+        "AxesCount",
+        "ButtonsOffset",
+        "ButtonsCount",
+        "Valid"
+      ],
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "RecordId": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Product": {
+          "type": "string"
+        },
+        "AxesOffset": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "AxesCount": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "ButtonsOffset": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "ButtonsCount": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "Valid": {
+          "type": "boolean"
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Id",
+        "Section",
+        "Command",
+        "Fields",
+        "HasChildren",
+        "Empty"
+      ],
+      "properties": {
+        "Id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "Section": {
+          "enum": [
+            "hotkeys",
+            "axes"
+          ]
+        },
+        "Command": {
+          "type": "string"
+        },
+        "Fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scalar"
+          }
+        },
+        "HasChildren": {
+          "type": "boolean"
+        },
+        "Empty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Code",
+        "Message",
+        "IsError"
+      ],
+      "properties": {
+        "Code": {
+          "type": "string"
+        },
+        "Message": {
+          "type": "string"
+        },
+        "IsError": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

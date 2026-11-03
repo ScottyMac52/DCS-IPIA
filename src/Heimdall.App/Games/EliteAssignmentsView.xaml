@@ -1,5 +1,5 @@
 <UserControl x:Class="Heimdall.App.Games.EliteAssignmentsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:pres="clr-namespace:Heimdall.App"
+ xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games"
  xmlns:local="clr-namespace:Heimdall.App.Games">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
@@ -10,15 +10,14 @@
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
 </pres:ActionBar>
 
-  <Grid x:Name="AuthoringPanel" pres:WorkspaceLayout.Key="elite.assignments.split">
-   <Grid.ColumnDefinitions><ColumnDefinition Width=".34*" MinWidth="220"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".66*" MinWidth="300"/></Grid.ColumnDefinitions>
+  <games:GameWorkspaceSplit x:Name="AuthoringPanel" pres:WorkspaceLayout.Key="elite.assignments.split">
+
    <local:GameCommandBrowserView x:Name="CommandBrowser" Margin="0,0,6,0"/>
-   <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Commands and assignment divider"/>
    <Grid Grid.Column="2" Margin="6,0,0,0">
     <Grid.RowDefinitions><RowDefinition Height=".62*" MinHeight="180"/><RowDefinition Height=".38*" MinHeight="100" MaxHeight="240"/></Grid.RowDefinitions>
     <local:EliteAssignmentArtworkView x:Name="Artwork"/>
     <local:GameAssignmentEditorView x:Name="SelectionEditor" Grid.Row="1"/>
    </Grid>
-  </Grid>
+  </games:GameWorkspaceSplit>
  </DockPanel>
 </UserControl>

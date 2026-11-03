@@ -102,6 +102,8 @@ namespace Heimdall.App.Smoke
                 var axisBorder = canvas.Children.OfType<Border>().Single(x => x.Tag is HardwareGraphicControl { Control: "axis" });
                 var axisMenu = axisBorder.ContextMenu ?? throw new InvalidOperationException("Axis callout has no context menu.");
                 HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
+                if (!axisMenu.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Tune axis…") && item.IsEnabled))
+                    throw new InvalidOperationException("A verified axis pair did not offer the shared tuning dialog.");
                 var beforeInspect = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
@@ -117,14 +119,15 @@ namespace Heimdall.App.Smoke
                 HardwareDiagramPresenter.RefreshMenu(axisMenu, drawing.Controls[2], actions);
                 var emptyMenu = new ContextMenu();
                 HardwareDiagramPresenter.RefreshMenu(emptyMenu, drawing.Controls[3], actions);
-                if (emptyMenu.Items.OfType<MenuItem>().Any(x => x.Header as string == "Clear assignments…"))
-                    throw new InvalidOperationException("An empty callout offered a clear action.");
+                var unavailableClear = emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignment");
+                if (unavailableClear.IsEnabled || unavailableClear.ToolTip is null)
+                    throw new InvalidOperationException("An empty callout did not explain its disabled shared clear action.");
                 emptyMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "View assignments")
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (Box<DataGrid>(window, "BindingsGrid").Items.Count != 0 ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeInspect)
                     throw new InvalidOperationException("Inspecting an empty axis changed native assignments.");
-                var clearAxis = axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignments…");
+                var clearAxis = axisMenu.Items.OfType<MenuItem>().Single(x => x.Header as string == "Clear assignment");
                 var axisSource = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 acceptReview = false;
                 clearAxis.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
@@ -149,7 +152,8 @@ namespace Heimdall.App.Smoke
                 if (backend.ReadBindings(window.Session.Snapshot.Profile).Any(x => x.Concept.EndsWith("ConceptFire", StringComparison.Ordinal)))
                     throw new InvalidOperationException("Pointed callout clear depended on the unrelated selected command.");
                 window.Session.Discard();
-                if (actions.Tune is not null) throw new InvalidOperationException("Squadrons advertised unimplemented axis tuning.");
+                if (actions.CanTune?.Invoke(drawing.Controls[0]) != false)
+                    throw new InvalidOperationException("Squadrons advertised axis tuning for a button.");
                 var frozen = JsonSerializer.Serialize(window.Session.Snapshot);
                 SelectDevice(devices, "squadrons.joystick.5");
                 if (actions.CanClear?.Invoke(new("z", "Z axis", "JOY_Z", 0, 0, 10, 10, true)) != true)
@@ -251,3 +255,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

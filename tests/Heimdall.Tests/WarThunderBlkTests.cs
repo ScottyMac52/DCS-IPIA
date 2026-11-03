@@ -6,14 +6,9 @@ using Xunit;
 
 namespace Heimdall.Tests
 {
+    /// <summary>Protects lossless native capture and conservative scalar edits before desktop activation.</summary>
     public sealed class WarThunderBlkTests
     {
-
-        private static readonly string[] ExpectedItems =
-        [
-            "item1",
-            "item2"
-        ];
 
         private const string Capture =
             "version:i=12\r\n" +
@@ -28,6 +23,8 @@ namespace Heimdall.Tests
             "}\r\n";
         private static readonly int[] expectedActivationCodes = new[] { 3, 9 };
 
+        #region BEGIN Public
+        /// <summary>Unchanged export preserves the complete original native text.</summary>
         [Fact]
         public void ImportAndNoOpExportPreserveEveryCharacter()
         {
@@ -37,6 +34,7 @@ namespace Heimdall.Tests
             Assert.Contains(document.Scalars, x => x.Path == "content/controls/hotkeys/fire/activationType" && x.Value == "3");
         }
 
+        /// <summary>Inventory discovery reports numeric codes without assigning game meanings.</summary>
         [Fact]
         public void InventoryKeepsActivationCodesOpaque()
         {
@@ -47,6 +45,7 @@ namespace Heimdall.Tests
             Assert.Single(controls.Joysticks);
         }
 
+        /// <summary>A scalar replacement changes only its captured source span.</summary>
         [Fact]
         public void ReviewedReplacementOnlyChangesTargetValue()
         {
@@ -56,6 +55,7 @@ namespace Heimdall.Tests
             Assert.Equal(Capture, document.SerializeUnchanged());
         }
 
+        /// <summary>Missing, ambiguous and incorrectly typed values cannot be changed.</summary>
         [Fact]
         public void InvalidAndAmbiguousEditsAreBlocked()
         {
@@ -65,6 +65,7 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => WarThunderBlkDocument.Parse("a:i=1;a:i=2;").ReplaceScalar("a", "3"));
         }
 
+        /// <summary>Comments and quoted text remain exact through isolated numeric changes.</summary>
         [Fact]
         public void CommentsAndQuotedStringsSurviveNativeRoundTrip()
         {
@@ -78,6 +79,7 @@ namespace Heimdall.Tests
             Assert.Throws<ArgumentException>(() => document.ReplaceScalar("root/value", "not-a-real"));
         }
 
+        /// <summary>Rejected writes leave the immutable source available for later valid edits.</summary>
         [Fact]
         public void RejectedReplacementsNeverChangeOriginalCapture()
         {
@@ -91,6 +93,7 @@ namespace Heimdall.Tests
             Assert.Equal("group{count:i=7;flag:b=1;}", doc.ReplaceScalar("group/count", "7"));
         }
 
+        /// <summary>Unknown numeric activation values and native identity fields remain evidence.</summary>
         [Fact]
         public void InventoryDoesNotInterpretUnknownActivationCodesOrHardwareOwnership()
         {
@@ -103,6 +106,7 @@ namespace Heimdall.Tests
             Assert.Equal(capture, controls.Document.SerializeUnchanged());
         }
 
+        /// <summary>Broken structure and binary content are outside the supported capture contract.</summary>
         [Fact]
         public void RejectsBrokenStructureAndBinaryContent()
         {
@@ -111,5 +115,6 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidDataException>(
                 () => WarThunderBlkDocument.Parse("abc\0def"));
         }
+        #endregion END Public
     }
 }

@@ -1,0 +1,9 @@
+<UserControl x:Class="Heimdall.App.Games.WarThunderReferenceView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pres="clr-namespace:Heimdall.App">
+ <DockPanel>
+  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Top"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Copy" Content="Copy reference table"/></pres:ActionBar>
+  <TextBlock Style="{StaticResource AppLabel}" DockPanel.Dock="Top" Text="Native reference sheet. Includes captured keyboard/mouse fields and unresolved inputs; no physical-axis aliases are inferred." TextWrapping="Wrap" Margin="8"/>
+  <DataGrid x:Name="Rows" IsReadOnly="True" AutoGenerateColumns="False" AutomationProperties.Name="War Thunder reference sheet">
+   <DataGrid.Columns><DataGridTextColumn Header="Command" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Record" Binding="{Binding RecordId}" Width="*"/><DataGridTextColumn Header="Native input (zero-based)" Binding="{Binding Inputs}" Width="2*"/><DataGridTextColumn Header="Fields" Binding="{Binding Details}" Width="2*"/></DataGrid.Columns>
+  </DataGrid>
+ </DockPanel>
+</UserControl>

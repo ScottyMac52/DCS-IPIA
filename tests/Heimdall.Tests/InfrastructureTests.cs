@@ -47,7 +47,7 @@ namespace Heimdall.Tests
                 new SqliteBackupService(Connection).Backup(backup);
                 await using var db = new SqliteConnection($"Data Source={backup};Pooling=False");
                 await db.OpenAsync();
-                var cmd = db.CreateCommand();
+                await using var cmd = db.CreateCommand();
                 cmd.CommandText = "SELECT COUNT(*) FROM schema_migrations";
                 Assert.Equal((long)SqliteMigrationRunner.CurrentVersion, await cmd.ExecuteScalarAsync());
             }

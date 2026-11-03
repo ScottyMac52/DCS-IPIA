@@ -134,8 +134,6 @@ namespace Heimdall.App.Games
             ClearNativeRecordItem.Click += ClearSelectedClicked;
             ApplyNativeRecordItem.Click += ApplyNativeRecordClicked;
             DrawingPanel.Expanded += DrawingExpanded;
-            DrawingPanel.Collapsed += DrawingCollapsed;
-            DrawingPanel.SizeChanged += DrawingPanelSizeChanged;
             TargetDevice.SelectionChanged += TargetChanged;
             InputPicker.SelectionChanged += InputChanged;
             _featureHost = new(FeatureContent, FeatureActions, StopLiveInput);
@@ -244,7 +242,8 @@ namespace Heimdall.App.Games
         /// <summary>Exposes the same typed native commands installed on the shared presenter for deterministic smoke checks.</summary>
         internal HardwareDiagramInteractions DrawingInteractions() =>
             new(SelectDrawingInput, DropDrawingCommand, CanClearDrawingInput, ClearDrawingInput,
-                DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignments…", Inspect: InspectDrawingInput);
+                CanTune: control => ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled, Tune: TuneDrawingAxis,
+                DragFormat: SquadronsCommandDragFormat, ClearLabel: "Clear assignment", Inspect: InspectDrawingInput, CanDrop: CanDropCommand, ActionState: ControlAction);
         /// <summary>Imports one selected native file with bounded input and preserves the current session on failure.</summary>
         internal void ImportFile(string path)
         {
@@ -468,12 +467,10 @@ namespace Heimdall.App.Games
         }
         private void UpdateApplyAvailability()
         {
-            ApplyButton.IsEnabled = !(_input?.Running ?? false) &&
-                !_scanningInputs && !(_identification?.Running ?? false) &&
-                CommandPicker.SelectedItem is Heimdall.Domain.MultiSim.SimCommand &&
-                TargetDevice.SelectedItem is GameDeviceChoice && InputPicker.IsEnabled &&
-                InputPicker.SelectedItem is SquadronsInput && _session?.AccessMessage.Length == 0;
-            ReverseAxisButton.IsEnabled = ApplyButton.IsEnabled && CanReverseSelectedAxis();
+            AssignmentActionPresentation.Show(ApplyButton, AssignmentAction(WorkspaceAssignmentAction.Apply,
+                CompatibleAssignmentTarget(), "Select a compatible command and verified controller input."));
+            AssignmentActionPresentation.Show(ReverseAxisButton, AssignmentAction(WorkspaceAssignmentAction.ReverseAxis,
+                CanReverseSelectedAxis(), "Select both saved directions of an axis to reverse it."));
         }
         private bool CanReverseSelectedAxis()
         {
@@ -597,12 +594,16 @@ namespace Heimdall.App.Games
         private void ReviewNativeChange(GameControllerChange change)
         {
             StopSamplingForReview();
-            if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)) return;
-            _session!.ApplyControllerChange(change);
+            var session = _session!;
+            var result = ExecuteAssignment("", "", "", () =>
+                (_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(this, change).ShowDialog() == true)
+                    ? new(true, true, "") : new(false, false, "Review canceled. No assignments changed."),
+                () => session.ApplyControllerChange(change));
+            if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             Refresh(false);
             if (change.ResultDeviceId is { } id)
                 DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == id);
-            StatusText.Text = "Native Squadrons assignments / slots updated in the draft. Save before exporting a review copy.";
+            AssignmentFeedback(result);
         }
         private void ClearSlotClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -714,8 +715,8 @@ namespace Heimdall.App.Games
             EditNativeRecordItem.IsEnabled = row is not null;
             ApplyNativeRecordItem.Visibility = row?.Editable == true && ApplyButton.IsEnabled
                 ? Visibility.Visible : Visibility.Collapsed;
-            ClearNativeRecordItem.Visibility = !_input.Running && !_scanningInputs && row?.Native.Type == 3 && _session?.AccessMessage.Length == 0
-                ? Visibility.Visible : Visibility.Collapsed;
+            AssignmentActionPresentation.Show(ClearNativeRecordItem, AssignmentAction(WorkspaceAssignmentAction.Clear,
+                row?.Native.Type == 3, "Select an editable joystick assignment."));
         }
         private void RecordRightClicked(object sender, MouseButtonEventArgs e)
         {
@@ -867,6 +868,7 @@ namespace Heimdall.App.Games
         private void SelectRecord(SquadronsWorkspaceRow row)
         {
             SelectCommandConcept(row.Native.Concept);
+            _selection.SelectAlternative(row.RecordId);
             _selection.SelectInput(row.Native.Input?.Key ?? "");
             _refreshing = true;
             try
@@ -918,6 +920,7 @@ namespace Heimdall.App.Games
             _refreshing = true;
             try
             {
+                _selection.SelectScope((_session?.Snapshot.Id.ToString("N") ?? "") + ":" + DrawingSection);
                 _selection.Refresh(SelectedAssignmentSource, filtered, selected, selectFirst: false);
                 CommandPicker.ItemsSource = filtered;
                 CommandPicker.SelectedItem = filtered.FirstOrDefault(x => x.Id == _selection.CommandId);
@@ -1088,39 +1091,11 @@ namespace Heimdall.App.Games
             StatusText.Text = "Drawing unlinked. Choose another drawing or save this change.";
         });
         private void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();
-        // The Expander may be larger than the pane's arranged row. Clamp the scroll
-        // host to the actual resizable row so WPF registers clipped drawing content
-        // as scrollable extent instead of simply hiding it behind the window edge.
-        private bool _drawingBoundsQueued;
-        private void DrawingPanelSizeChanged(object sender, SizeChangedEventArgs e) => QueueDrawingBounds();
-
-        private void QueueDrawingBounds()
-        {
-            if (_drawingBoundsQueued || DrawingPanel is null || DrawingScroll is null) return;
-            _drawingBoundsQueued = true;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
-            {
-                _drawingBoundsQueued = false;
-                if (!DrawingPanel.IsExpanded || DrawingPanel.ActualHeight <= 0) return;
-                var top = DrawingScroll.TranslatePoint(new Point(0, 0), DrawingPanel).Y;
-                var maximum = Math.Max(24, DrawingPanel.ActualHeight - top - 4);
-                if (double.IsFinite(maximum) && Math.Abs(DrawingScroll.MaxHeight - maximum) > 0.5)
-                    DrawingScroll.MaxHeight = maximum;
-            }));
-        }
-
         private void DrawingExpanded(object sender, RoutedEventArgs e)
         {
             if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
 
-            QueueDrawingBounds();
             if (!_refreshing && _drawingPresenter is not null) Run(RenderDrawing);
-        }
-        private void DrawingCollapsed(object sender, RoutedEventArgs e)
-        {
-            if (!ReferenceEquals(e.OriginalSource, DrawingPanel)) return;
-
-            DrawingScroll.MaxHeight = double.PositiveInfinity;
         }
         private void SelectDrawingInput(HardwareGraphicControl control)
         {
@@ -1185,12 +1160,17 @@ namespace Heimdall.App.Games
                 throw new InvalidOperationException("Stop live input and finish controller scanning before assigning.");
             var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
                 commandId, slot, input.PhysicalKey, input.Type == CommandType.Axis);
-            if (plan.NegativeRecordId is not null)
-                _session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
-            else if (plan.RecordId is not null)
-                _session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
-            else
-                _session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+            var session = _session;
+            var result = ExecuteAssignment(commandId, input.Key, plan.RecordId ?? "", () => new(true, true, ""), () =>
+            {
+                if (plan.NegativeRecordId is not null)
+                    session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
+                else if (plan.RecordId is not null)
+                    session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+                else
+                    session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
+            });
+            if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             _focusedConcept = null;
             _inspectedControl = null;
             SelectCommandConcept(plan.Concept);
@@ -1199,10 +1179,7 @@ namespace Heimdall.App.Games
             try { TargetDevice.SelectedItem = TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }
             finally { _refreshing = false; }
             Refresh(false);
-            StatusText.Text = plan.NegativeRecordId is null
-                ? "Assignment staged. Save before exporting."
-                : "Both directions of the axis staged. Save before exporting.";
-            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = StatusText.Text;
+            AssignmentFeedback(result);
         }
         private void CommandListDragPressed(object sender, MouseButtonEventArgs e)
         {
@@ -1269,10 +1246,10 @@ namespace Heimdall.App.Games
         {
             if (_input is null) return;
             var pin = SelectedController is { } slot ? _session?.Snapshot.Hardware.GetValueOrDefault(slot) : null;
-            StartInputButton.IsEnabled = FeaturePicker.SelectedIndex == 1 && !_input.Running && !_scanningInputs &&
-                !_identification.Running && pin is not null && _session?.AccessMessage.Length == 0 &&
-                GameInputReadiness.Ready(pin, _services.Discover());
-            StopInputButton.IsEnabled = _input.Running;
+            AssignmentActionPresentation.Show(StartInputButton, AssignmentAction(WorkspaceAssignmentAction.StartInput,
+                FeaturePicker.SelectedIndex == 1 && pin is not null && GameInputReadiness.Ready(pin, _services.Discover()),
+                "Select one linked, connected controller for input testing."));
+            AssignmentActionPresentation.Show(StopInputButton, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -1343,3 +1320,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

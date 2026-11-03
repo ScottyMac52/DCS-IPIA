@@ -118,9 +118,26 @@ class QualityGateTests(unittest.TestCase):
         raw.write_text("<CoverageSession><Modules>" +
                        "".join(module.replace("<ModuleName>Example</ModuleName>", f"<ModuleName>{name}</ModuleName>")
                                for name in gate.ASSEMBLIES) + "</Modules></CoverageSession>")
-        with contextlib.redirect_stdout(io.StringIO()):
-            status = gate.publish_gate(self.report, self.root, self.root / "output", self.root / "summary.md")
-        self.assertEqual(0, status)
+        for encoding in ("utf-8", "cp1252", "ascii"):
+            with self.subTest(encoding=encoding):
+                buffer = io.BytesIO()
+                console = io.TextIOWrapper(buffer, encoding=encoding, write_through=True)
+                with contextlib.redirect_stdout(console):
+                    status = gate.publish_gate(self.report, self.root, self.root / "output", self.root / "summary.md")
+                self.assertEqual(0, status)
+                self.assertIn("PASS", buffer.getvalue().decode(encoding))
+                self.assertIn("\\u2212" if encoding != "utf-8" else "−", buffer.getvalue().decode(encoding))
+                self.assertIn("−", (self.root / "output/QualityGateSummary.md").read_text(encoding="utf-8"))
+
+    def test_legacy_console_keeps_failure_status_and_utf8_diagnostics(self):
+        report = self.root / "配置.xml"
+        buffer = io.BytesIO()
+        console = io.TextIOWrapper(buffer, encoding="cp1252", write_through=True)
+        with contextlib.redirect_stdout(console):
+            status = gate.publish_gate(report, self.root, self.root / "output", self.root / "summary.md")
+        self.assertEqual(1, status)
+        self.assertIn("FAIL", buffer.getvalue().decode("cp1252"))
+        self.assertIn("配置.xml", (self.root / "output/QualityGateSummary.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

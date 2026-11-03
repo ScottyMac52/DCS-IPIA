@@ -1,0 +1,17 @@
+<UserControl x:Class="Heimdall.App.Games.GameDrawingView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid MinHeight="0" ClipToBounds="True">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
+  <WrapPanel Margin="0,0,0,6">
+   <TextBlock Style="{StaticResource AppLabel}" Text="Zoom" Margin="4,0,8,0" VerticalAlignment="Center"/>
+   <Slider x:Name="Zoom" Minimum="0.1" Maximum="3" Value="1" Width="140" VerticalAlignment="Center" AutomationProperties.Name="Controller drawing zoom"/>
+   <TextBlock x:Name="Feedback" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="400"/>
+  </WrapPanel>
+  <Grid Grid.Row="1" MinHeight="0" ClipToBounds="True">
+   <ScrollViewer x:Name="Viewport" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="False" Focusable="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="Wheel: vertical · Shift+wheel: horizontal · Ctrl+wheel: zoom at cursor · Middle-drag: pan">
+    <Canvas x:Name="Surface" Background="Transparent" Width="600" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+   </ScrollViewer>
+   <TextBox x:Name="Activity" Style="{StaticResource AppTextBox}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="12,60,12,12" AutomationProperties.Name="Live controller input activity" Visibility="Collapsed"/>
+   <TextBlock x:Name="Hint" Text="On Devices, link the selected controller and choose a hardware drawing. Start input test to see raw activity without a drawing." Style="{StaticResource Hint}" Margin="12" TextWrapping="Wrap" IsHitTestVisible="False"/>
+  </Grid>
+ </Grid>
+</UserControl>

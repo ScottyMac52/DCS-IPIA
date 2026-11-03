@@ -1,4 +1,5 @@
 using Heimdall.Domain.MultiSim;
+using Heimdall.Application.Validation;
 
 namespace Heimdall.Application.Interfaces
 {
@@ -10,6 +11,10 @@ namespace Heimdall.Application.Interfaces
         string SimId { get; }
         /// <summary>Gets the operations and binding semantics supported by this backend version.</summary>
         SimBackendCapabilities Capabilities { get; }
+        /// <summary>Gets the packaged versioned file-backed rules for this adapter.</summary>
+        ProfileValidationDefinition ValidationDefinition { get; }
+        /// <summary>Checks a loaded configuration against explicit file-backed rules and optional known-good native file hashes.</summary>
+        ProfileValidationResult Validate(ProfileDocument profile, ProfileValidationDefinition definition, CancellationToken cancellationToken = default);
         /// <summary>Imports captured native files without consulting active game folders.</summary>
         /// <param name="contextId">Explicit module or vehicle context.</param>
         /// <param name="sources">Relative native paths and their original text.</param>

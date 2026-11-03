@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "backendId": "star-wars-squadrons",
+  "backendVersion": 1,
+  "profileSchemaVersion": 1,
+  "rules": [
+    {
+      "path": "/profile/nativeData/squadrons.v1",
+      "type": "object"
+    }
+  ],
+  "ranges": [],
+  "includePortable": true
+}

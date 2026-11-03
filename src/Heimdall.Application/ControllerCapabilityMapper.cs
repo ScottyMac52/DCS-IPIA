@@ -56,7 +56,7 @@ namespace Heimdall.Application
                 .Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
             foreach (var input in supported.Where(x => duplicates.Contains(x.DcsKey)))
                 rejected.Add(new(input.Evidence, "Ambiguous duplicate DCS identity: " + input.DcsKey));
-            return new(1, supported.Where(x => !duplicates.Contains(x.DcsKey)).ToArray(), rejected.ToArray());
+            return new(1, supported.Where(x => !duplicates.Contains(x.DcsKey)).ToArray(), rejected.ToArray()) { NativeObjects = Array.AsReadOnly(evidence) };
         }
         /// <summary>Gets a content identity for controls, independent of localized object labels and scan order.</summary>
         /// <param name="capabilities">Versioned capability evidence.</param>

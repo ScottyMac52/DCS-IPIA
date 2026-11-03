@@ -12,4 +12,6 @@
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/EliteDangerous/Synthetic.4.2.binds" Link="Fixtures/EliteDangerous/Synthetic.4.2.binds" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/Squadrons/Synthetic_profile_synced" Link="Fixtures/Squadrons/Synthetic_profile_synced" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/Squadrons/Fresh_profile_synced" Link="Fixtures/Squadrons/Fresh_profile_synced" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/WarThunder/Synthetic.blk" Link="Fixtures/WarThunder/Synthetic.blk" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>
+

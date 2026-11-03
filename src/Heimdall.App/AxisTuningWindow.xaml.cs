@@ -8,6 +8,7 @@ namespace Heimdall.App
     public partial class AxisTuningWindow : Window
     {
         private readonly Action? _completed;
+        private readonly Func<string?>? _validateNative;
         /// <summary>Displays the current axis filter, including unset boolean fields.</summary>
         /// <param name="filter">Current tuning or null if none is stored.</param>
         /// <param name="completed">Optional completion callback for an embedded editor.</param>
@@ -29,6 +30,20 @@ namespace Heimdall.App
             HardwareDetentMax.Text = Format(filter?.HardwareDetentMax);
             Filter = filter;
         }
+        internal AxisTuningWindow(Window owner, string command, FrameworkElement fields, Func<string?> validate)
+        {
+            InitializeComponent();
+            _validateNative = validate;
+            Owner = owner;
+            Title = "Tune axis · " + command;
+            DcsFields.Visibility = ClearTuningButton.Visibility = Visibility.Collapsed;
+            NativeFields.Content = fields;
+            ApplyToDraftButton.IsDefault = true;
+            Height = double.NaN;
+            MinHeight = 0;
+            MaxHeight = SystemParameters.WorkArea.Height;
+            SizeToContent = SizeToContent.Height;
+        }
         #region BEGIN Public
         /// <summary>Gets the applied filter, or null when tuning was cleared.</summary>
         public AxisFilter? Filter { get; private set; }
@@ -46,6 +61,13 @@ namespace Heimdall.App
         }
         private void ApplyClicked(object sender, RoutedEventArgs e)
         {
+            if (_validateNative is not null)
+            {
+                var error = _validateNative();
+                ValidationMessage.Text = error ?? "";
+                if (error is null) DialogResult = true;
+                return;
+            }
             try
             {
                 var curvature = string.IsNullOrWhiteSpace(Curvature.Text)

@@ -17,7 +17,7 @@ namespace Heimdall.Tests
             Assert.True(BundledSharedCatalog.IsRoot(BundledSharedCatalog.Root));
             Assert.False(BundledSharedCatalog.IsRoot(Path.GetTempPath()));
             Assert.Equal(16, BundledSharedCatalog.Paths("assets/shared/hardware/drawio").Length);
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await BundledHardwareTestFixture.LoadAsync();
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
             Assert.Equal(16, hardware.Select(x => x.Diagram.Path).Distinct().Count());
             Assert.Contains(hardware, x => x.DeviceId == "ava-base-f16c" && x.Diagram.Controls.Count > 0);
