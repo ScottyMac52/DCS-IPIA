@@ -12,6 +12,7 @@ namespace Heimdall.App.Games
     {
         private readonly Dictionary<string, IReadOnlyList<WarThunderWorkspaceRow>> _drawingAssignments = new(StringComparer.Ordinal);
         #region BEGIN Public
+        internal Action<AxisTuningWindow>? AxisTuningOpened { get; set; }
         #endregion END Public
         #region BEGIN private helpers
         private void SelectPhysicalControl(HardwareGraphicControl control)
@@ -108,7 +109,19 @@ namespace Heimdall.App.Games
                 var support = WarThunderProfileBackend.GetBindingCapabilities(profile, candidate.RecordId);
                 return support.SetAxisInverse || support.EditableParameterAddresses.Count > 0;
             });
-            var capabilities = WarThunderProfileBackend.GetBindingCapabilities(profile, row.RecordId);
+            TuneNativeAxis(session, row, control.InputKey);
+        });
+
+        private void TuneSelectedNativeAxis() => Run(() =>
+        {
+            if (_session is { } session && _assignments.Records.SelectedItem is WarThunderWorkspaceRow row &&
+                _assignments.Editor.ActionState(WorkspaceAssignmentAction.TuneAxis).Enabled)
+                TuneNativeAxis(session, row, "");
+        });
+
+        private void TuneNativeAxis(GameProfileSession session, WarThunderWorkspaceRow row, string inputKey)
+        {
+            var capabilities = WarThunderProfileBackend.GetBindingCapabilities(session.Snapshot.Profile, row.RecordId);
             var fields = new StackPanel();
             var inverted = WarThunderWorkspaceProjection.IsInverted(row.Binding);
             var invert = new CheckBox { Content = "Invert axis", IsChecked = inverted, Margin = new Thickness(0, 0, 0, 8) };
@@ -126,7 +139,7 @@ namespace Heimdall.App.Games
                 editors.Add((field, editor));
             }
 
-            var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, row.Command.Id, control.InputKey, row.RecordId);
+            var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, row.Command.Id, inputKey, row.RecordId);
             var host = new WorkspaceAssignmentHost(AssignmentContext, () => JsonSerializer.Serialize(_session?.Snapshot));
             WarThunderAxisTuningEdit? edit = null;
             var review = new GameAssignmentReview(false, false, "Axis tuning canceled.");
@@ -141,6 +154,7 @@ namespace Heimdall.App.Games
                 review = session.ReviewNativeEdit(edit);
                 return review.Valid ? null : review.Message;
             });
+            dialog.Loaded += (_, _) => AxisTuningOpened?.Invoke(dialog);
             var result = AssignmentWorkflow.Execute(host, new WorkspaceAssignmentOperation(target,
                 () => dialog.ShowDialog() == true ? review : new(false, false, "Axis tuning canceled."),
                 () =>
@@ -149,7 +163,7 @@ namespace Heimdall.App.Games
                     return new(DraftOutcome.Applied, "");
                 }));
             Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
-        });
+        }
         private void InspectPhysicalControl(HardwareGraphicControl control) => Run(() =>
         {
             var rows = PhysicalAssignments(control);
@@ -169,4 +183,3 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
-

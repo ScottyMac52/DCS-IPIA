@@ -6,14 +6,11 @@
 
    </WrapPanel>
    <pres:ActionBar IsFeatureActions="True" FeatureOrder="-1" Visibility="Collapsed"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Apply" Content="Apply assignment"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" Content="Add alternative"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Clear" Content="Clear assignment" ToolTip="Clear the selected joystick assignment; preserve axis tuning, other input families and other alternatives."/>
+    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Tune" Content="Tune axis…"/>
    </pres:ActionBar>
-   <CheckBox x:Name="Inverse" Content="Invert axis" Style="{StaticResource AppCheckBox}" Margin="0,6"/>
-   <Expander x:Name="NativeDetails" Header="Native record details" IsExpanded="False"><StackPanel>
+   <Expander x:Name="NativeDetails" Header="Native record details" IsExpanded="False">
     <ComboBox Style="{StaticResource AppComboBox}" x:Name="Input" DisplayMemberPath="Address" AutomationProperties.Name="Native input occurrence"/>
-   <WrapPanel><TextBlock Style="{StaticResource AppLabel}" Text="Captured axis parameter" VerticalAlignment="Center"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="Parameter" DisplayMemberPath="Path" Width="220" Margin="8,0"/>
-    <TextBox Style="{StaticResource AppTextBox}" x:Name="Literal" Width="100" AutomationProperties.Name="Native parameter literal"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="SetParameter" Content="Apply parameter"/>
-   </WrapPanel>
-   </StackPanel></Expander>
+   </Expander>
   </StackPanel>
  </games:GameAssignmentEditorView.NativeEditor></games:GameAssignmentEditorView>
 </UserControl>

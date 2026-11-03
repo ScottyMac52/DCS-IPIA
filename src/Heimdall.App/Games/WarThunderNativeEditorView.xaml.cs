@@ -25,11 +25,7 @@ namespace Heimdall.App.Games
             Apply.Click += (_, _) => { if (_physicalSelected) PhysicalApplyRequested?.Invoke(this, EventArgs.Empty); else Submit(_capabilities?.RebindNativeInputs == true ? WarThunderEditKind.Rebind : WarThunderEditKind.Add); };
             Add.Click += (_, _) => Submit(WarThunderEditKind.Add);
             Clear.Click += (_, _) => Submit(WarThunderEditKind.Clear);
-            Inverse.Click += (_, _) => Submit(WarThunderEditKind.Inverse);
-            SetParameter.Click += (_, _) => Submit(WarThunderEditKind.Parameter);
             Input.SelectionChanged += (_, _) => { if (!_refreshing) SelectInput(); };
-            Literal.TextChanged += (_, _) => UpdateActions();
-            Parameter.SelectionChanged += (_, _) => { if (Parameter.SelectedItem is WarThunderBlkScalar scalar) { Literal.Text = scalar.Value; Literal.ToolTip = "Native " + scalar.Type + " literal"; } };
             Target.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectController((Target.SelectedItem as WarThunderDevice)?.Id); _selection.SelectInput(Index.Text); } UpdateActions(); };
             Index.TextChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectInput(Index.Text); } UpdateActions(); };
         }
@@ -71,9 +67,6 @@ namespace Heimdall.App.Games
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().FirstOrDefault(device => device.Id == previous);
             Input.ItemsSource = row is null ? [] : WarThunderWorkspaceProjection.InputFields(row.Binding); Input.SelectedIndex = 0;
             var capabilities = _capabilities = row is null || session is null ? null : WarThunderProfileBackend.GetBindingCapabilities(session.Snapshot.Profile, row.RecordId);
-            Parameter.ItemsSource = row?.Binding.Fields.Where(scalar => capabilities!.EditableParameterAddresses.Contains(scalar.Address)).ToArray() ?? [];
-            Parameter.SelectedIndex = 0;
-            Inverse.IsChecked = row is not null && WarThunderWorkspaceProjection.IsInverted(row.Binding);
             Frame.AssignmentDraftStatus.Text = busy ? "Stop input testing before editing." : session is null ? "Import a controls BLK capture to begin."
                 : capabilities is null ? "Select a captured native record."
                 : !capabilities.RebindNativeInputs && !capabilities.AddNativeInput && !capabilities.ClearAssignment
@@ -97,8 +90,7 @@ namespace Heimdall.App.Games
                 WorkspaceAssignmentAction.Apply => review.Valid && review.Changed,
                 WorkspaceAssignmentAction.AddAlternative => _capabilities?.AddNativeInput == true && review.Valid && review.Changed,
                 WorkspaceAssignmentAction.Clear => _capabilities?.ClearAssignment == true,
-                WorkspaceAssignmentAction.TuneAxis => _capabilities?.EditableParameterAddresses.Count > 0,
-                WorkspaceAssignmentAction.ReverseAxis => _capabilities?.SetAxisInverse == true,
+                WorkspaceAssignmentAction.TuneAxis => _capabilities?.SetAxisInverse == true || _capabilities?.EditableParameterAddresses.Count > 0,
                 _ => false
             };
             return WorkspaceAssignmentActionState.For(action, context, new(true, targetCurrent && ready,
@@ -125,9 +117,8 @@ namespace Heimdall.App.Games
             if ((kind is WarThunderEditKind.Rebind or WarThunderEditKind.Add)
                 && !int.TryParse(Index.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
                 throw new InvalidOperationException("Enter a zero-based native input index.");
-            return new(kind, _row?.RecordId ?? "", (kind == WarThunderEditKind.Parameter ? Parameter.SelectedItem as WarThunderBlkScalar : Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
+            return new(kind, _row?.RecordId ?? "", (Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
                 (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
-                index, Inverse.IsChecked == true, Literal.Text);
         }
         private GameAssignmentReview ReviewInput()
         {
@@ -163,15 +154,10 @@ namespace Heimdall.App.Games
             AssignmentActionPresentation.Show(Apply, ActionState(WorkspaceAssignmentAction.Apply));
             AssignmentActionPresentation.Show(Add, ActionState(WorkspaceAssignmentAction.AddAlternative));
             AssignmentActionPresentation.Show(Clear, ActionState(WorkspaceAssignmentAction.Clear));
-            var tune = ActionState(WorkspaceAssignmentAction.TuneAxis);
-            AssignmentActionPresentation.Show(Inverse, ActionState(WorkspaceAssignmentAction.ReverseAxis));
-            AssignmentActionPresentation.Show(SetParameter, tune);
+            AssignmentActionPresentation.Show(Tune, ActionState(WorkspaceAssignmentAction.TuneAxis));
             var editable = _session is not null && _session.AccessMessage.Length == 0 && !_busy;
             Target.IsEnabled = editable; Input.IsEnabled = editable; Index.IsEnabled = editable;
-            Parameter.IsEnabled = editable && _capabilities?.EditableParameterAddresses.Count > 0;
-            Literal.IsEnabled = Parameter.IsEnabled;
         }
         #endregion END private helpers
     }
 }
-

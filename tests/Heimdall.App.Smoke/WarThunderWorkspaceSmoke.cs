@@ -166,11 +166,28 @@ namespace Heimdall.App.Smoke
                 browser.CommandSearch.Text = "pitch";
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 var beforeNativeEdit = workflowCompletions;
-                assignments.Editor.Inverse.IsChecked = true; assignments.Editor.Submit(WarThunderEditKind.Inverse);
-                if (workflowCompletions != beforeNativeEdit + 1) throw new InvalidOperationException("Native editor bypassed the shared assignment workflow.");
-                assignments.Editor.NativeDetails.IsExpanded = true;
-                assignments.Editor.Parameter.SelectedItem = assignments.Editor.Parameter.Items.Cast<WarThunderBlkScalar>().Single(scalar => scalar.Path.EndsWith("/kMul", StringComparison.Ordinal));
-                assignments.Editor.Literal.Text = "1.5"; Click(assignments.Editor.SetParameter);
+                window.AxisTuningOpened = dialog =>
+                {
+                    try
+                    {
+                        if (dialog.NativeFields.Content is not StackPanel fields)
+                            throw new InvalidOperationException("The shared dialog did not display native tuning fields.");
+                        fields.Children.OfType<CheckBox>().Single().IsChecked = true;
+                        var label = fields.Children.OfType<Label>().Single(item => Equals(item.Content, "kMul"));
+                        if (label.Target is not TextBox editor)
+                            throw new InvalidOperationException("The native multiplier has no editor.");
+                        editor.Text = "1.5";
+                        Click(dialog.ApplyToDraftButton);
+                    }
+                    finally
+                    {
+                        if (dialog.IsVisible) dialog.Close();
+                    }
+                };
+                try { Click(assignments.Editor.Tune); }
+                finally { window.AxisTuningOpened = null; }
+                if (workflowCompletions != beforeNativeEdit + 1)
+                    throw new InvalidOperationException("Shared tuning did not stage both fields in one operation.");
                 AssertNative(window, "kMul:r=1.5");
                 var edited = AssertNative(window, "inverse:b=yes");
                 if (edited == savedDrawingText) throw new InvalidOperationException("Native inverse action did not stage an edit.");
@@ -245,11 +262,11 @@ namespace Heimdall.App.Smoke
             var control = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_X");
             control.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             if (assignments.Editor.Target.SelectedItem is not null || assignments.Editor.Index.Text.Length != 0 || assignments.Editor.Apply.IsEnabled
-                || assignments.Editor.Inverse.IsEnabled || assignments.Editor.SetParameter.IsEnabled)
+                || assignments.Editor.Tune.IsEnabled)
                 throw new InvalidOperationException("Unmapped axis retained a stale editable native target.");
             assignments.Records.SelectedItem = null;
             assignments.Records.SelectedIndex = 0;
-            if (assignments.Editor.Target.SelectedItem is not WarThunderDevice || !assignments.Editor.Inverse.IsEnabled ||
+            if (assignments.Editor.Target.SelectedItem is not WarThunderDevice || !assignments.Editor.Tune.IsEnabled ||
                 assignments.Editor.Apply.IsEnabled || assignments.Editor.Apply.ToolTip is not string explanation ||
                 !explanation.Contains("unchanged", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Explicit native record inspection did not recover its target and truthful unchanged-action state.");
@@ -265,4 +282,3 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
-

@@ -49,9 +49,10 @@ namespace Heimdall.App.Games
             var menu = new ContextMenu();
             var clear = new MenuItem { Header = "Clear assignment" };
             clear.Click += (_, _) => _assignments.Editor.Submit(WarThunderEditKind.Clear);
-            var invert = new MenuItem { Header = "Reverse axis" };
-            invert.Click += (_, _) => { _assignments.Editor.Inverse.IsChecked = _assignments.Editor.Inverse.IsChecked != true; _assignments.Editor.Submit(WarThunderEditKind.Inverse); };
-            menu.Items.Add(clear); menu.Items.Add(invert); _assignments.Records.ContextMenu = menu;
+            _assignments.Editor.Tune.Click += (_, _) => TuneSelectedNativeAxis();
+            var tune = new MenuItem { Header = "Tune axis…" };
+            tune.Click += (_, _) => TuneSelectedNativeAxis();
+            menu.Items.Add(clear); menu.Items.Add(tune); _assignments.Records.ContextMenu = menu;
             _assignments.Records.PreviewMouseRightButtonDown += (_, args) =>
             {
                 var row = args.OriginalSource is DependencyObject origin ? ItemsControl.ContainerFromElement(_assignments.Records, origin) as DataGridRow : null;
@@ -62,8 +63,8 @@ namespace Heimdall.App.Games
             _assignments.Records.ContextMenuOpening += (_, args) =>
             {
                 AssignmentActionPresentation.Show(clear, _assignments.Editor.ActionState(WorkspaceAssignmentAction.Clear));
-                AssignmentActionPresentation.Show(invert, _assignments.Editor.ActionState(WorkspaceAssignmentAction.ReverseAxis));
-                if (clear.Visibility != Visibility.Visible && invert.Visibility != Visibility.Visible) args.Handled = true;
+                AssignmentActionPresentation.Show(tune, _assignments.Editor.ActionState(WorkspaceAssignmentAction.TuneAxis));
+                if (clear.Visibility != Visibility.Visible && tune.Visibility != Visibility.Visible) args.Handled = true;
             };
         }
         private void RefreshCommands()
@@ -127,4 +128,3 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
-
