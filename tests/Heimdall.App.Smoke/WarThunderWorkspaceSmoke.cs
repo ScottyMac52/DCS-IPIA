@@ -198,10 +198,11 @@ namespace Heimdall.App.Smoke
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 assignments.CapturedAssignments.IsExpanded = true;
                 assignments.Records.SelectedItem = assignments.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Binding.Fields.Any(scalar => scalar.Path.EndsWith("/joyButton", StringComparison.Ordinal)));
-                assignments.Editor.Index.Text = "3"; Click(assignments.Editor.Apply);
+                assignments.Editor.Index.SelectedValue = 3; Click(assignments.Editor.Apply);
                 AssertNative(window, "joyButton:i=3");
                 ((MenuItem)assignments.Records.ContextMenu.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (!((WarThunderWorkspaceRow)assignments.Records.SelectedItem).Binding.Empty) throw new InvalidOperationException("Context clear did not empty the selected joystick alternative.");
+                assignments.Editor.Index.SelectedValue = 3;
                 Click(assignments.Editor.Add); AssertNative(window, "joyButton:i=3");
                 var keyboard = assignments.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Binding.Fields.Any(scalar => scalar.Path.EndsWith("/keyboardKey", StringComparison.Ordinal)));
                 assignments.Records.SelectedItem = keyboard;
@@ -261,7 +262,7 @@ namespace Heimdall.App.Smoke
             if (assignments.Editor.Target.SelectedItem is not WarThunderDevice) throw new InvalidOperationException("Native axis inspection did not select its saved owner.");
             var control = assignments.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_X");
             control.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-            if (assignments.Editor.Target.SelectedItem is not null || assignments.Editor.Index.Text.Length != 0 || assignments.Editor.Apply.IsEnabled
+            if (assignments.Editor.Target.SelectedItem is not null || assignments.Editor.Index.SelectedItem is not null || assignments.Editor.Apply.IsEnabled
                 || assignments.Editor.Tune.IsEnabled)
                 throw new InvalidOperationException("Unmapped axis retained a stale editable native target.");
             assignments.Records.SelectedItem = null;

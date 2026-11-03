@@ -45,7 +45,7 @@ namespace Heimdall.App.Smoke
             view.Browser.CommandsList.SelectedItem = view.Browser.CommandsList.Items.Cast<SimCommand>().Single(command => command.Id == pitch.Id);
             var control = view.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_X");
             control.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
-            if (!view.Editor.Apply.IsEnabled || view.Editor.Index.Text != "1") throw new InvalidOperationException("Axis callout did not select the verified original native ordinal.");
+            if (!view.Editor.Apply.IsEnabled || !Equals(view.Editor.Index.SelectedValue, 1)) throw new InvalidOperationException("Axis callout did not select the verified original native ordinal.");
             var apply = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Apply");
             if (!apply.Command.CanExecute(null)) throw new InvalidOperationException("Public Apply was disabled for the mapped axis.");
             apply.Command.Execute(null); RequireAxis(window, 1);

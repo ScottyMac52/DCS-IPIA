@@ -51,7 +51,7 @@ namespace Heimdall.App.Smoke
             var control = view.DrawingCanvas.Children.OfType<Border>().Single(border => border.Tag is HardwareGraphicControl graphic && graphic.InputKey == "JOY_Z");
             control.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             var apply = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Apply");
-            if (!apply.Command.CanExecute(null) || view.Editor.Index.Text != "0") throw new InvalidOperationException("Fallback layout did not enable the ordinary main axis at native slot zero.");
+            if (!apply.Command.CanExecute(null) || !Equals(view.Editor.Index.SelectedValue, 0)) throw new InvalidOperationException("Fallback layout did not enable the ordinary main axis at native slot zero.");
             apply.Command.Execute(null);
             var saved = window.Session!.Export().Files.Single().Value;
             if (!saved.Contains("throttle{axisId:i=0;nonlinearity:i=1;}", StringComparison.Ordinal)

@@ -29,8 +29,12 @@ namespace Heimdall.App.Smoke
                 EditionAccess.SetForTests(issuer.PremiumPolicy);
                 var physical = new DetectedDcsDevice(Guid.NewGuid(), "Smoke SOL-R controller", true,
                     ProductGuid: Guid.Parse("1001044f-0000-0000-0000-504944564944"));
-                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" },
-                    physical with { PhysicalGuid = Guid.NewGuid(), Name = "Throttle", ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") }));
+                var discovery = new GameSmokeDiscovery(physical, physical with { PhysicalGuid = Guid.NewGuid(), Name = "Identical controller" },
+                    physical with { PhysicalGuid = Guid.NewGuid(), Name = "Throttle", ProductGuid = Guid.Parse("1002044f-0000-0000-0000-504944564944") });
+                discovery.Inputs[physical.PhysicalGuid] = ControllerCapabilityMapper.Map(
+                    Enumerable.Range(27, 3).Select(number => new ControllerObject(Guid.NewGuid(),
+                        (uint)((number - 1) * 256 + 4), "Button " + number.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray());
+                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
                 EliteConfigurationsSmoke.Verify(root);
                 EliteSystemInputSmoke.Verify(root);
                 VerifyCards(root, services);
@@ -166,7 +170,11 @@ namespace Heimdall.App.Smoke
         private static void VerifyControllerAddition(string root, WorkspaceHardware[] hardware)
         {
             var physical = new DetectedDcsDevice(Guid.NewGuid(), "Unillustrated controller", true, ProductGuid: Guid.Parse("0bac06a3-0000-0000-0000-504944564944"));
-            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "AddController")), new GameSmokeDiscovery(physical));
+            var discovery = new GameSmokeDiscovery(physical);
+            discovery.Inputs[physical.PhysicalGuid] = ControllerCapabilityMapper.Map([
+                new ControllerObject(Guid.NewGuid(), 0x304, "Button 4")
+            ]);
+            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "AddController")), discovery);
             var source = Path.Combine(root, "Add.4.2.binds");
             File.WriteAllText(source, "<Root PresetName='Add' MajorVersion='4' MinorVersion='2'><PrimaryFire><Primary Device='Keyboard' Key='Key_Space'/><Secondary Device='{NoDevice}' Key=''/></PrimaryFire></Root>");
             Guid savedId;
@@ -178,7 +186,12 @@ namespace Heimdall.App.Smoke
                 if (document.Profile.Devices.Count != 2 || pin.Value.HardwareId is not null || !Box<StackPanel>(window, "AssignmentEditor").IsEnabled
                     || Box<WrapPanel>(window, "DrawingTools").IsVisible || Box<StackPanel>(window, "ReferenceChoiceTools").IsVisible)
                     throw new InvalidOperationException("A new controller still required ED reference or drawing choices.");
-                SelectCommand(window, "Primary Fire"); Box<ComboBox>(window, "InputKey").Text = "Joy_4"; Click(window, "ApplyAssignmentButton");
+                SelectCommand(window, "Primary Fire");
+                var input = Box<ComboBox>(window, "InputKey");
+                input.SelectedValue = "Joy_4";
+                if (input.IsEditable || !Equals(input.SelectedValue, "Joy_4"))
+                    throw new InvalidOperationException("An unillustrated controller did not expose its verified input in a selection-only picker.");
+                Click(window, "ApplyAssignmentButton");
                 if (!window.SaveProfile() || !services.Backend.Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
                     throw new InvalidOperationException("A new unillustrated controller did not save and export.");
                 var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);

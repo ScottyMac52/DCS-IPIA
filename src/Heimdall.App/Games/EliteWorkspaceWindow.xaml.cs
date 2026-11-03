@@ -26,7 +26,6 @@ namespace Heimdall.App.Games
         private readonly EliteAssignmentsView _assignmentsView = new();
         private readonly EliteReferenceSheetsView _referenceView = new();
         private readonly GameControllerReordering _reordering;
-        private readonly DependencyPropertyDescriptor _inputTextProperty = DependencyPropertyDescriptor.FromProperty(ComboBox.TextProperty, typeof(ComboBox))!;
         private readonly GameWorkspaceServices _services;
         private readonly IReadOnlyList<WorkspaceHardware> _hardware;
         private readonly HardwareDiagramPresenter _diagram;
@@ -46,6 +45,8 @@ namespace Heimdall.App.Games
         private readonly System.Windows.Threading.DispatcherTimer _readinessTimer = new() { Interval = TimeSpan.FromSeconds(1) };
         private bool _lastReady;
         private bool _loadingAssignment;
+        private IReadOnlyList<ControllerObservation> _inputEvidence = [];
+        private int _inputEvidenceScan;
         private bool _busy;
         private string? _bindingsDirectoryOverride;
         private GameControllerActions _controllerActions = new(false, false, false, false, false, false, false, false);
@@ -105,7 +106,6 @@ namespace Heimdall.App.Games
             _assignmentsView.CommandCategoryPicker.SelectionChanged += CommandFilterChanged;
             _assignmentsView.CommandTypePicker.SelectionChanged += CommandFilterChanged;
             _assignmentsView.AssignmentStatusPicker.SelectionChanged += CommandFilterChanged;
-            _inputTextProperty.AddValueChanged(_assignmentsView.InputKey, InputTextChanged);
             _assignmentsView.InputKey.SelectionChanged += AssignmentModeChanged;
             _assignmentsView.AxisDeadzone.TextChanged += AssignmentTextChanged;
             _assignmentsView.ModePicker.SelectionChanged += AssignmentModeChanged;
@@ -157,8 +157,8 @@ namespace Heimdall.App.Games
         /// <summary>Releases native input handles and draft event subscriptions.</summary>
         public void Dispose()
         {
+            _inputEvidenceScan++;
             _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
-            _inputTextProperty.RemoveValueChanged(_assignmentsView.InputKey, InputTextChanged);
             _commandDrag.Dispose(); _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _reordering.Dispose(); _identification.Dispose(); _input.Dispose(); if (_session is not null) _session.Changed -= SessionChanged; GC.SuppressFinalize(this);
         }
         /// <summary>Gets an explicit request to return to the DCS landing surface.</summary>
@@ -345,13 +345,12 @@ namespace Heimdall.App.Games
         }
         private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }
         private void AssignmentTextChanged(object sender, TextChangedEventArgs e) => DraftChanged();
-        private void InputTextChanged(object? sender, EventArgs e) => DraftChanged();
         private void AssignmentModeChanged(object sender, SelectionChangedEventArgs e) => DraftChanged();
         private void AssignmentOptionChanged(object sender, RoutedEventArgs e) => DraftChanged();
         private void DraftChanged()
         {
             if (_refreshing || _loadingAssignment || _session is null) return;
-            _selection.SelectInput(NativeInput(_assignmentsView.InputKey));
+            _selection.SelectInput((_assignmentsView.InputKey.SelectedItem as EliteInputChoice)?.Key);
             UpdateAvailability();
         }
         private GameAssignmentEdit? Draft()
@@ -754,8 +753,7 @@ namespace Heimdall.App.Games
         {
             var choice = _assignmentsView.InputKey.Items.Cast<EliteInputChoice>().FirstOrDefault(x => x.Key == key);
             _assignmentsView.InputKey.SelectedItem = choice;
-            _assignmentsView.InputKey.Text = choice?.DisplayName ?? key;
-            _selection.SelectInput(key);
+            _selection.SelectInput(choice?.Key);
         }
         private IReadOnlyList<EliteInputChoice> DeviceInputs(string deviceId, bool axes = false)
         {
@@ -763,7 +761,13 @@ namespace Heimdall.App.Games
             var document = _session.Snapshot;
             var drawing = document.Hardware.TryGetValue(deviceId, out var pin)
                 ? _hardware.FirstOrDefault(x => x.DeviceId == pin.HardwareId)?.Diagram : null;
-            return EliteDeviceInputs.ForDevice(document.Profile, deviceId, drawing, axes);
+            var choices = EliteDeviceInputs.ForDevice(document.Profile, deviceId, drawing, axes);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _inputEvidence);
+            if (keys is null) return choices;
+            return choices.Concat(keys.Where(key => key.StartsWith("JOY_", StringComparison.Ordinal)
+                    && axes == (!key.StartsWith("JOY_BTN", StringComparison.Ordinal) && !key.StartsWith("JOY_POV", StringComparison.Ordinal)))
+                .Select(EliteInputKeys.FromShared).OfType<string>().Select(key => new EliteInputChoice(key, key)))
+                .DistinctBy(choice => choice.Key, StringComparer.Ordinal).ToArray();
         }
         private void RefreshCombinationInputs()
         {
@@ -772,7 +776,40 @@ namespace Heimdall.App.Games
         }
         private void RemoveModifierClicked(object sender, RoutedEventArgs e)
         { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
-        private void Rescan() => Run(() => { StopLiveInput(); _devicesView.ConnectedPicker.ItemsSource = _services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); _devicesView.ConnectedPicker.SelectedIndex = -1; });
+        private void Rescan() => Run(() =>
+        {
+            StopLiveInput();
+            _devicesView.ConnectedPicker.ItemsSource = _services.Discover()
+                .Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
+            _devicesView.ConnectedPicker.SelectedIndex = -1;
+            _ = RefreshInputEvidenceAsync();
+        });
+
+        private async Task RefreshInputEvidenceAsync()
+        {
+            var scan = ++_inputEvidenceScan;
+            _inputEvidence = [];
+            try
+            {
+                var observations = await _services.DiscoverInputsAsync();
+                if (scan != _inputEvidenceScan) return;
+                _inputEvidence = observations;
+                if (Device is not { } device || Command is not { } command) return;
+                var key = _selection.InputKey;
+                _loadingAssignment = true;
+                try
+                {
+                    _assignmentsView.InputKey.ItemsSource = DeviceInputs(device.Id, command.Type == CommandType.Axis);
+                    SelectInput(key ?? "");
+                }
+                finally { _loadingAssignment = false; }
+                DraftChanged();
+            }
+            catch (Exception error)
+            {
+                if (scan == _inputEvidenceScan) Status("Controller input scan failed: " + error.Message);
+            }
+        }
         private void RescanClicked(object sender, RoutedEventArgs e) => Run(() =>
         { UpdateControllerAvailability(); if (_controllerActions.Rescan) { Rescan(); UpdateControllerAvailability(); } });
         private void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
@@ -1147,4 +1184,3 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
-

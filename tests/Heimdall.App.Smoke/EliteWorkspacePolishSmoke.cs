@@ -38,20 +38,20 @@ namespace Heimdall.App.Smoke
             if (!summary.Text.Contains("Primary:", StringComparison.Ordinal) || !summary.Text.Contains("Secondary:", StringComparison.Ordinal))
                 throw new InvalidOperationException("Command inspector must expose both global slot owners.");
             var slot = Box<ComboBox>(window, "SlotPicker"); slot.SelectedIndex = 1;
-            input.Text = "Joy_29";
+            input.SelectedValue = "Joy_29";
             if (!Box<TextBlock>(window, "AssignmentDraftStatus").Text.Contains("Applying replaces Secondary", StringComparison.Ordinal))
                 throw new InvalidOperationException("Cross-device slot replacement was not explained before applying.");
             slot.SelectedIndex = 0;
             AssertActions(window, false, true, true, false);
-            input.Text = "Joy_27"; AssertActions(window, true, true, true, false);
-            input.Text = " "; AssertActions(window, false, true, true, false);
-            input.Text = "Joy_27";
+            input.SelectedValue = "Joy_27"; AssertActions(window, true, true, true, false);
+            input.SelectedIndex = -1; AssertActions(window, false, true, true, false);
+            input.SelectedValue = "Joy_27";
             Action(window, "StartInputButton"); AssertActions(window, false, false, false, true);
             // Editing is allowed during sampling, but applying and clearing must wait for Stop.
-            input.Text = "Joy_28"; AssertActions(window, false, false, false, true);
+            input.SelectedValue = "Joy_28"; AssertActions(window, false, false, false, true);
             Action(window, "StopInputButton"); AssertActions(window, true, true, true, false);
             Action(window, "ApplyAssignmentButton"); AssertActions(window, false, true, true, false);
-            input.Text = ""; Action(window, "ClearAssignmentButton"); AssertActions(window, false, false, true, false);
+            input.SelectedIndex = -1; Action(window, "ClearAssignmentButton"); AssertActions(window, false, false, true, false);
             window.Session.Discard();
             commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.DisplayName == "Pitch Axis Raw");
             if (slot.Visibility != Visibility.Collapsed || Box<ComboBox>(window, "ModePicker").Visibility != Visibility.Collapsed

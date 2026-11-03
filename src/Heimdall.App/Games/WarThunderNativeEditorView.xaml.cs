@@ -7,9 +7,10 @@ using Heimdall.WarThunder;
 
 namespace Heimdall.App.Games
 {
-    /// <summary>Collects native indices and literals; the adapter owns parsing, range checks and mutations.</summary>
+    /// <summary>Presents native controller input choices; the adapter owns parsing, range checks and mutations.</summary>
     public partial class WarThunderNativeEditorView : UserControl
     {
+        internal Func<string, IReadOnlyList<WarThunderPhysicalInput>>? MappedInputs { get; set; }
         private GameProfileSession? _session;
         private WarThunderWorkspaceRow? _row;
         private SimCommand? _command;
@@ -26,8 +27,8 @@ namespace Heimdall.App.Games
             Add.Click += (_, _) => Submit(WarThunderEditKind.Add);
             Clear.Click += (_, _) => Submit(WarThunderEditKind.Clear);
             Input.SelectionChanged += (_, _) => { if (!_refreshing) SelectInput(); };
-            Target.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectController((Target.SelectedItem as WarThunderDevice)?.Id); _selection.SelectInput(Index.Text); } UpdateActions(); };
-            Index.TextChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectInput(Index.Text); } UpdateActions(); };
+            Target.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectController((Target.SelectedItem as WarThunderDevice)?.Id); RefreshInputChoices(); } UpdateActions(); };
+            Index.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectInput((Index.SelectedValue as int?)?.ToString(CultureInfo.InvariantCulture)); } UpdateActions(); };
         }
         #region BEGIN Public
         internal event EventHandler<WarThunderNativeEdit>? EditRequested;
@@ -42,7 +43,7 @@ namespace Heimdall.App.Games
             }
             _refreshing = true;
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().SingleOrDefault(device => device.Id == deviceId);
-            Index.Text = input.Index.ToString(CultureInfo.InvariantCulture);
+            RefreshInputChoices(input.Index);
             _refreshing = false; _physicalSelected = true;
             _selection.SelectController(deviceId); _selection.SelectAlternative(_row?.RecordId);
             if (_physicalEdit is null) _selection.BlockInput("This physical input has no verified native mapping.");
@@ -52,7 +53,7 @@ namespace Heimdall.App.Games
         internal void BlockPhysicalSelection(string message)
         {
             _refreshing = true;
-            Target.SelectedItem = null; Index.Clear();
+            Target.SelectedItem = null; Index.ItemsSource = null;
             _refreshing = false; _physicalSelected = true; _physicalEdit = null;
             _selection.BlockInput(message);
             Frame.AssignmentDraftStatus.Text = message; UpdateActions();
@@ -74,7 +75,8 @@ namespace Heimdall.App.Games
                 : !capabilities.RebindNativeInputs && !capabilities.AddNativeInput && !capabilities.ClearAssignment
                     && !capabilities.SetAxisInverse && capabilities.EditableParameterAddresses.Count == 0
                     ? "This native record is preserved read-only; no supported edit is available for its captured shape."
-                    : "Select a saved native mapping and zero-based index, then apply the supported operation.";
+                    : "Select a controller and input, then apply the assignment.";
+            RefreshInputChoices();
             _refreshing = false; SelectInput(); UpdateActions();
         }
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action)
@@ -115,13 +117,13 @@ namespace Heimdall.App.Games
         #region BEGIN private helpers
         private WarThunderNativeEdit CreateEdit(WarThunderEditKind kind)
         {
-            var index = 0;
+            var index = Index.SelectedValue as int?;
             if ((kind is WarThunderEditKind.Rebind or WarThunderEditKind.Add)
-                && !int.TryParse(Index.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
-                throw new InvalidOperationException("Enter a zero-based native input index.");
+                && index is null)
+                throw new InvalidOperationException("Select a controller input.");
             return new(kind, _row?.RecordId ?? "", (Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
                 (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
-                index);
+                index ?? 0);
         }
         private GameAssignmentReview ReviewInput()
         {
@@ -137,6 +139,38 @@ namespace Heimdall.App.Games
             try { return _session.ReviewNativeEdit(CreateEdit(kind)); }
             catch (InvalidOperationException error) { return new(false, false, error.Message); }
         }
+        private void RefreshInputChoices(int? selected = null)
+        {
+            var refreshing = _refreshing;
+            _refreshing = true;
+            try
+            {
+                if (Target.SelectedItem is not WarThunderDevice { Valid: true } device || _command is null)
+                {
+                    Index.ItemsSource = null;
+                    return;
+                }
+
+                var axis = _command.Type == CommandType.Axis;
+                var count = axis ? device.AxesCount : device.ButtonsCount;
+                var names = (MappedInputs?.Invoke(device.Id) ?? [])
+                    .Where(input => input.Type == _command.Type && input.Index >= 0 && input.Index < count)
+                    .ToLookup(input => input.Index, input => input.Key);
+                // Imported ranges are untrusted. Large ranges can still use verified and captured inputs.
+                IEnumerable<int> indices = count <= 4096 ? Enumerable.Range(0, count) : names.Select(group => group.Key);
+                if (selected is int current && current >= 0 && current < count)
+                    indices = indices.Append(current);
+                Index.ItemsSource = indices.Distinct().Order().Select(index =>
+                {
+                    var label = names.Contains(index) ? string.Join(" / ", names[index].Distinct(StringComparer.Ordinal))
+                        : string.Create(CultureInfo.InvariantCulture, $"Native {(axis ? "axis slot" : "button slot")} {index}");
+                    return new KeyValuePair<int, string>(index, label);
+                }).ToArray();
+                Index.SelectedValue = selected;
+            }
+            finally { _refreshing = refreshing; }
+        }
+
         private void SelectInput()
         {
             if (_session is null || Input.SelectedItem is not WarThunderBlkScalar scalar || _command is null) { UpdateActions(); return; }
@@ -145,7 +179,7 @@ namespace Heimdall.App.Games
             {
                 _refreshing = true;
                 Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().Single(device => device.Id == target.DeviceId);
-                Index.Text = target.Index.ToString(CultureInfo.InvariantCulture);
+                RefreshInputChoices(target.Index);
                 _refreshing = false;
                 _selection.SelectController(target.DeviceId); _selection.SelectAlternative(_row?.RecordId); _selection.SelectInput(scalar.Address);
             }
@@ -159,7 +193,7 @@ namespace Heimdall.App.Games
             AssignmentActionPresentation.Show(Clear, ActionState(WorkspaceAssignmentAction.Clear));
             AssignmentActionPresentation.Show(Tune, ActionState(WorkspaceAssignmentAction.TuneAxis));
             var editable = _session is not null && _session.AccessMessage.Length == 0 && !_busy;
-            Target.IsEnabled = editable; Input.IsEnabled = editable; Index.IsEnabled = editable;
+            Target.IsEnabled = editable; Input.IsEnabled = editable; Index.IsEnabled = editable && Index.HasItems;
         }
         #endregion END private helpers
     }

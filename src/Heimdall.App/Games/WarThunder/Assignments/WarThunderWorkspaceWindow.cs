@@ -107,6 +107,7 @@ namespace Heimdall.App.Games
         }
         private void RefreshEditor()
         {
+            _assignments.Editor.MappedInputs = MappedEditorInputs;
             var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
             var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command;
             if (_selection.CommandId != command?.Id || _selection.AlternativeId != row?.RecordId) _selectedPhysicalInput = null;
@@ -115,6 +116,27 @@ namespace Heimdall.App.Games
             _assignments.Editor.Show(_session, command, row, _input.Running, _selection);
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
             else if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
+        }
+        private IReadOnlyList<WarThunderPhysicalInput> MappedEditorInputs(string deviceId)
+        {
+            if (_session is null) return [];
+            var snapshot = _session.Snapshot;
+            if (!snapshot.Hardware.TryGetValue(deviceId, out var pin)) return [];
+            var observations = _controllerInputs.Where(item => item.Device.PhysicalGuid == pin.Device.PhysicalGuid
+                && item.Device.ProductGuid == pin.Device.ProductGuid).Take(2).ToArray();
+            if (observations.Length != 1) return [];
+            var inputs = WarThunderPhysicalMap.Create(snapshot.Profile, deviceId, observations[0]).Inputs;
+            var drawingId = _session.DrawingId(deviceId);
+            var diagram = _drawings.FirstOrDefault(item => item.DeviceId == drawingId)?.Diagram;
+            if (diagram is null) return inputs;
+            return inputs.Select(input =>
+            {
+                var control = diagram.Controls.FirstOrDefault(item => item.InputKey == input.Key
+                    && item.IsAxis == (input.Type == CommandType.Axis));
+                return control is null || string.IsNullOrWhiteSpace(control.Label)
+                    ? input
+                    : input with { Key = control.Label };
+            }).ToArray();
         }
         private void RefreshInputState()
         {
