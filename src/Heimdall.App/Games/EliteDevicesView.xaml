@@ -3,15 +3,15 @@
  xmlns:pres="clr-namespace:Heimdall.App">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="IdentifyControllerButton" Content="Identify Controller"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="CancelIdentificationButton" Content="Stop identifying"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ConfirmIdentificationButton" Content="Confirm controller link" IsEnabled="False"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="AddControllerButton" Content="Add controller…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReplaceControllerButton" Content="Replace selected…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveControllerButton" Content="Remove selected…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="RescanControllerButton" Content="Rescan"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkControllerButton" Content="Unlink physical controller…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ChangeDrawingButton" Content="Choose drawing…"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="IdentifyControllerButton" Content="Identify Controller"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="CancelIdentificationButton" Content="Stop identifying"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="ConfirmIdentificationButton" Content="Confirm controller link" IsEnabled="False"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="AddControllerButton" Content="Add controller…"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="ReplaceControllerButton" Content="Replace selected…"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="RemoveControllerButton" Content="Remove selected…"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="RescanControllerButton" Content="Rescan"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkControllerButton" Content="Unlink physical controller…"/>
+<Button pres:FeatureActionBar.MenuGroup="Devices" Style="{StaticResource ToolbarActionButton}" x:Name="ChangeDrawingButton" Content="Choose drawing…"/>
 </pres:ActionBar>
  <Grid pres:WorkspaceLayout.Key="elite.devices.split">
  <Grid.ColumnDefinitions><ColumnDefinition Width=".4*" MinWidth="240"/><ColumnDefinition Width="8"/><ColumnDefinition Width=".6*" MinWidth="280"/></Grid.ColumnDefinitions>
