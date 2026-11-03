@@ -9,8 +9,6 @@ namespace Heimdall.App
         #region BEGIN Public
         /// <summary>Gets the source button whose live visibility and unavailable explanation are mirrored by the shared toolbar.</summary>
         public Button? Source { get; init; }
-
-        internal FeatureAction[] MenuActions { get; init; } = [];
         #endregion END Public
     }
 }

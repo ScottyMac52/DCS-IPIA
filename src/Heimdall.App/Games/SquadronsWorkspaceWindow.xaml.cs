@@ -541,8 +541,10 @@ namespace Heimdall.App.Games
             CancelIdentificationButton.IsEnabled = running;
             LinkControllerButton.IsEnabled = ready && links.SelectPhysical && ConnectedPicker.SelectedItem is DetectedDcsDevice { Connected: true };
             UnlinkControllerButton.IsEnabled = ready && links.UnlinkPhysical;
-            ControllerLinkPresentation.ShowLinkAction(LinkControllerButton, UnlinkControllerButton, pin is not null);
+            FeatureActionBar.ShowAlternate(LinkControllerButton, UnlinkControllerButton, pin is not null);
             RemoveUnusedSlotButton.IsEnabled = ready && !running && pin is null;
+            FeatureActionBar.ShowAlternate(AddControllerButton, RemoveUnusedSlotButton, selected is not null);
+            FeatureActionBar.ShowAlternate(IdentifyControllerButton, CancelIdentificationButton, _identification.Running);
             ClearSlotButton.IsEnabled = ready && !running && _rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             LinkStatus.Text = selected is null ? "Select connected hardware to add a controller, or select an existing slot to manage its link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
@@ -1002,7 +1004,7 @@ namespace Heimdall.App.Games
             DrawingPicker.IsEnabled = links.SelectDrawing && _drawings.Count > 0;
             ClearDrawingButton.IsEnabled = links.UnlinkDrawing;
             _devicesView.ChooseDrawingButton.IsEnabled = DrawingPicker.IsEnabled;
-            ControllerLinkPresentation.ShowLinkAction(_devicesView.ChooseDrawingButton, ClearDrawingButton,
+            FeatureActionBar.ShowAlternate(_devicesView.ChooseDrawingButton, ClearDrawingButton,
                 slot is not null && _session?.DrawingId(slot) is not null);
             DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
             if (DrawingPanel.IsExpanded != true) return;
@@ -1255,6 +1257,7 @@ namespace Heimdall.App.Games
                 FeaturePicker.SelectedIndex == 1 && pin is not null && GameInputReadiness.Ready(pin, _services.Discover()),
                 "Select one linked, connected controller for input testing."));
             AssignmentActionPresentation.Show(StopInputButton, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
+            FeatureActionBar.ShowAlternate(StartInputButton, StopInputButton, _input.Running);
         }
         private void StartInputClicked(object sender, RoutedEventArgs e) => Run(() =>
         {

@@ -7,14 +7,13 @@
                   HorizontalScrollBarVisibility="Auto"
                   VerticalScrollBarVisibility="Disabled"
                   CanContentScroll="False" Focusable="False">
-        <ItemsControl ItemsSource="{Binding ToolbarActions, ElementName=Root}">
+        <ItemsControl ItemsSource="{Binding Actions, ElementName=Root}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Grid>
-                    <Button x:Name="DirectAction" Content="{Binding Label}" Command="{Binding Command}"
+                    <Button Content="{Binding Label}" Command="{Binding Command}"
                             Visibility="{Binding Source.Visibility, FallbackValue=Visible}"
                             ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Label}"
                             Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}">
@@ -22,16 +21,6 @@
                             <PriorityBinding><Binding Path="Source.ToolTip"/><Binding Path="ToolTip"/></PriorityBinding>
                         </Button.ToolTip>
                     </Button>
-                    <Button x:Name="MenuAction" Content="{Binding Label}" Click="OpenActionMenu" Visibility="Collapsed"
-                            AutomationProperties.Name="{Binding Label}"
-                            Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}"/>
-                    </Grid>
-                    <DataTemplate.Triggers>
-                        <DataTrigger Binding="{Binding Source}" Value="{x:Null}">
-                            <Setter TargetName="DirectAction" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="MenuAction" Property="Visibility" Value="Visible"/>
-                        </DataTrigger>
-                    </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

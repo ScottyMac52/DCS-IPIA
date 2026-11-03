@@ -144,6 +144,7 @@ namespace Heimdall.App.Games
             AssignmentActionPresentation.Show(_assignments.Start, AssignmentAction(WorkspaceAssignmentAction.StartInput,
                 pin is not null && GameInputReadiness.Ready(pin, _observed), "Select one linked, connected controller for input testing."));
             AssignmentActionPresentation.Show(_assignments.Stop, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
+            FeatureActionBar.ShowAlternate(_assignments.Start, _assignments.Stop, _input.Running);
             _assignments.Fit.IsEnabled = _presenter.Regions.Count > 0;
             RefreshChrome(); RefreshEditor();
         }
