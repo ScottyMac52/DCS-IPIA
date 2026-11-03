@@ -118,7 +118,7 @@ namespace Heimdall.App.Games
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
             else if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
         }
-        private IReadOnlyList<WarThunderPhysicalInput> MappedEditorInputs(string deviceId)
+        private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)
         {
             if (_session is null) return [];
             var snapshot = _session.Snapshot;
