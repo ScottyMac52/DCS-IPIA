@@ -119,6 +119,7 @@ namespace Heimdall.App.Games
                 throw new InvalidOperationException("Enter a zero-based native input index.");
             return new(kind, _row?.RecordId ?? "", (Input.SelectedItem as WarThunderBlkScalar)?.Address ?? "",
                 (Target.SelectedItem as WarThunderDevice)?.Id ?? "", _command?.Id ?? "", _command?.Type ?? CommandType.Button,
+                index);
         }
         private GameAssignmentReview ReviewInput()
         {
