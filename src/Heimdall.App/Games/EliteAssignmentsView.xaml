@@ -3,11 +3,11 @@
  xmlns:local="clr-namespace:Heimdall.App.Games">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button pres:FeatureActionBar.MenuGroup="Assignment" Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
-<Button pres:FeatureActionBar.MenuGroup="Assignment" Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" Style="{StaticResource ToolbarActionButton}" x:Name="StartInputButton" Content="Start input test"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" Style="{StaticResource ToolbarActionButton}" x:Name="StopInputButton" Content="Stop"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StartInputButton" Content="Start input test"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StopInputButton" Content="Stop"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
 </pres:ActionBar>
 
   <games:GameWorkspaceSplit x:Name="AuthoringPanel" pres:WorkspaceLayout.Key="elite.assignments.split">

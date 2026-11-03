@@ -4,10 +4,10 @@
  <UserControl.Resources><Style x:Key="SquadronsCellText" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style></UserControl.Resources>
 <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button pres:FeatureActionBar.MenuGroup="Assignment" x:Name="ApplyButton" Style="{StaticResource ToolbarActionButton}" Content="Apply assignment" Margin="8,0,0,0"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" x:Name="StartInputButton" Style="{StaticResource ToolbarActionButton}" Content="Start input test"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
-<Button pres:FeatureActionBar.MenuGroup="Input test" x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" ToolTip="Fit controller drawing to the available pane"/>
+<Button x:Name="ApplyButton" Style="{StaticResource ToolbarActionButton}" Content="Apply assignment" Margin="8,0,0,0"/>
+<Button x:Name="StartInputButton" Style="{StaticResource ToolbarActionButton}" Content="Start input test"/>
+<Button x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
+<Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" ToolTip="Fit controller drawing to the available pane"/>
  </pres:ActionBar>
    <games:GameWorkspaceSplit pres:WorkspaceLayout.Key="squadrons.assignments.split">
 
