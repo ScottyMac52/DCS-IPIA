@@ -28,6 +28,7 @@ namespace Heimdall.App.Games
             });
             _devices.Remove.Click += (_, _) => Run(() => { if (_session is not null && SelectedDevice is { } id) Review(_session.PreviewRemoveController(id)); });
             _devices.Unlink.Click += (_, _) => Run(() => { if (_session is not null && SelectedDevice is { } id) Review(_session.PreviewUnlinkController(id)); });
+            _devices.ChooseDrawing.Click += (_, _) => ControllerLinkPresentation.OpenDrawingPicker(_devices.Drawing);
             _devices.UnlinkDrawing.Click += (_, _) => Run(() => { _input.Stop(); if (_session is not null && SelectedDevice is { } id) _session.ChangeDrawing(id, null); });
             _devices.Drawing.SelectionChanged += (_, _) =>
             {
@@ -64,6 +65,9 @@ namespace Heimdall.App.Games
             _devices.Unlink.IsEnabled = state.UnlinkPhysical;
             _devices.Drawing.IsEnabled = state.SelectDrawing;
             _devices.UnlinkDrawing.IsEnabled = state.UnlinkDrawing;
+            _devices.ChooseDrawing.IsEnabled = state.SelectDrawing && drawingChoices.Count > 0;
+            ControllerLinkPresentation.ShowLinkAction(_devices.Link, _devices.Unlink, pin is not null);
+            ControllerLinkPresentation.ShowLinkAction(_devices.ChooseDrawing, _devices.UnlinkDrawing, drawing is not null);
             _devices.NativeDetails.Text = native is null ? "Select one saved mapping to review its controller setup."
                 : string.Create(CultureInfo.InvariantCulture, $"{native.Name} · {native.Id}\nNative product: {native.Product}\nAxes: offset {native.AxesOffset}, count {native.AxesCount}. Buttons: offset {native.ButtonsOffset}, count {native.ButtonsCount}.\n")
                     + (pin is null ? "Physical controller unlinked." : "Linked: " + pin.Device.Name + " · " + pin.Device.PhysicalGuid);

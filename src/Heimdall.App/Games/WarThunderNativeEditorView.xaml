@@ -5,7 +5,7 @@
     <StackPanel Width="240" Margin="0,0,8,0"><TextBlock Style="{StaticResource AppLabel}" Text="Input"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="Index" DisplayMemberPath="Value" SelectedValuePath="Key" AutomationProperties.Name="Controller input"/></StackPanel>
 
    </WrapPanel>
-   <pres:ActionBar IsFeatureActions="True" FeatureOrder="-1" Visibility="Collapsed"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Apply" Content="Apply assignment"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" Content="Add alternative"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Clear" Content="Clear assignment" ToolTip="Clear the selected joystick assignment; preserve axis tuning, other input families and other alternatives."/>
+   <pres:ActionBar IsFeatureActions="True" FeatureOrder="-1" Visibility="Collapsed"><Button Style="{StaticResource ToolbarActionButton}" x:Name="Apply" pres:FeatureActionBar.MenuGroup="Assignment" Content="Apply assignment"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" pres:FeatureActionBar.MenuGroup="Assignment" Content="Add alternative"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Clear" pres:FeatureActionBar.MenuGroup="Assignment" Content="Clear assignment" ToolTip="Clear the selected joystick assignment; preserve axis tuning, other input families and other alternatives."/>
     <Button Style="{StaticResource ToolbarActionButton}" x:Name="Tune" Content="Tune axis…"/>
    </pres:ActionBar>
    <Expander x:Name="NativeDetails" Header="Native record details" IsExpanded="False">

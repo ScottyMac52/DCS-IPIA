@@ -1,11 +1,19 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 
 namespace Heimdall.App
 {
     /// <summary>Displays stable-position buttons owned by the active workspace feature.</summary>
     public partial class FeatureActionBar : UserControl
     {
+        public static readonly DependencyProperty MenuGroupProperty = DependencyProperty.RegisterAttached(
+            "MenuGroup", typeof(string), typeof(FeatureActionBar), new PropertyMetadata(string.Empty));
+
+        public static string GetMenuGroup(DependencyObject element) => (string)element.GetValue(MenuGroupProperty);
+        public static void SetMenuGroup(DependencyObject element, string value) => element.SetValue(MenuGroupProperty, value);
+
         private readonly List<FeatureActionCommand> _commands = [];
 
         #region BEGIN Public
@@ -31,6 +39,16 @@ namespace Heimdall.App
             private set => SetValue(ActionsProperty, value);
         }
 
+        public static readonly DependencyProperty ToolbarActionsProperty =
+            DependencyProperty.Register(nameof(ToolbarActions), typeof(FeatureAction[]),
+                typeof(FeatureActionBar), new PropertyMetadata(Array.Empty<FeatureAction>()));
+
+        public FeatureAction[] ToolbarActions
+        {
+            get => (FeatureAction[])GetValue(ToolbarActionsProperty);
+            private set => SetValue(ToolbarActionsProperty, value);
+        }
+
         /// <summary>Replaces the action set atomically, without collapsing the toolbar in between views.</summary>
         public void ShowActions(DependencyObject view)
         {
@@ -42,6 +60,11 @@ namespace Heimdall.App
                 button.Content?.ToString() ?? "", commands[index], button.ToolTip) { Source = button }).ToArray();
 
             Actions = next;
+            ToolbarActions = next.GroupBy(action => GetMenuGroup(action.Source!) is { Length: > 0 } group
+                    ? (Group: group, Source: (Button?)null) : (Group: string.Empty, Source: action.Source))
+                .Select(group => group.Count() == 1 ? group.First() : new FeatureAction(
+                    group.Key.Group, group.Key.Group + " ▾", group.First().Command, null)
+                    { MenuActions = group.ToArray() }).ToArray();
             foreach (var old in _commands) old.Dispose();
             _commands.Clear();
             _commands.AddRange(commands);
@@ -51,12 +74,28 @@ namespace Heimdall.App
         public void ClearActions()
         {
             Actions = Array.Empty<FeatureAction>();
+            ToolbarActions = Array.Empty<FeatureAction>();
             foreach (var command in _commands) command.Dispose();
             _commands.Clear();
         }
         #endregion END Public
 
         #region BEGIN private helpers
+        private void OpenActionMenu(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { DataContext: FeatureAction action } button) return;
+            var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
+            foreach (var entry in action.MenuActions)
+            {
+                var item = new MenuItem { Header = entry.Label, Command = entry.Command };
+                item.SetBinding(VisibilityProperty, new Binding(nameof(Visibility)) { Source = entry.Source });
+                item.SetBinding(ToolTipProperty, new Binding(nameof(ToolTip)) { Source = entry.Source });
+                ToolTipService.SetShowOnDisabled(item, true);
+                menu.Items.Add(item);
+            }
+            menu.IsOpen = true;
+        }
+
         private static IEnumerable<Button> FindSources(DependencyObject root)
         {
             if (root is ActionBar { IsFeatureActions: true } group)

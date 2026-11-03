@@ -2,7 +2,7 @@
  <DockPanel>
   <pres:ActionBar x:Name="Actions" IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Top">
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Rescan" Content="Rescan"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Link" Content="Link physical controller…"/>
-   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Unlink" Content="Unlink physical controller…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Unlink" Content="Unlink physical controller…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="ChooseDrawing" Content="Link drawing…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Remove" Content="Remove controller…"/>
   </pres:ActionBar>
   <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>

@@ -3,8 +3,8 @@
  xmlns:local="clr-namespace:Heimdall.App.Games">
  <DockPanel>
  <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" pres:FeatureActionBar.MenuGroup="Assignment" Content="Apply assignment"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" pres:FeatureActionBar.MenuGroup="Assignment" Content="Clear slot"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="StartInputButton" Content="Start input test"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="StopInputButton" Content="Stop"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>

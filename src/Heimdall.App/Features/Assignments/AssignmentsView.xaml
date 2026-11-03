@@ -48,9 +48,9 @@
       </StackPanel></ScrollViewer>
      </Expander>
                 <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed" Margin="0,8,0,0">
-                    <Button Content="Assign selected command" Click="AssignClicked" Style="{StaticResource ActionButton}"/>
-                    <Button Content="Clear assignment" Click="ClearClicked" Style="{StaticResource ActionButton}"/>
-                    <Button Content="Clear layer" Click="ClearLayerClicked" Style="{StaticResource ActionButton}"/>
+                    <Button Content="Assign selected command" pres:FeatureActionBar.MenuGroup="Assignment" Click="AssignClicked" Style="{StaticResource ActionButton}"/>
+                    <Button Content="Clear assignment" pres:FeatureActionBar.MenuGroup="Assignment" Click="ClearClicked" Style="{StaticResource ActionButton}"/>
+                    <Button Content="Clear layer" pres:FeatureActionBar.MenuGroup="Assignment" Click="ClearLayerClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Undo" Click="UndoClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Save to database" Click="SaveClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Discard draft" Click="DiscardClicked" Style="{StaticResource ActionButton}"/>
