@@ -1,3 +1,4 @@
+using Heimdall.Domain.MultiSim;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,11 +20,20 @@ namespace Heimdall.App.Games
         {
             var type = (_assignments.Browser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Type
                 ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command.Type;
-            _selectedPhysicalInput = _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == type);
-            if (_selectedPhysicalInput is null) _selection.BlockInput("This physical input has no verified native mapping. " + _physicalMap.Message);
+            var controlType = control.IsAxis ? CommandType.Axis : CommandType.Button;
+            _selectedPhysicalInput = type == controlType
+                ? _physicalMap.Inputs.FirstOrDefault(input => input.Key == control.InputKey && input.Type == controlType)
+                : null;
+            var feedback = _selectedPhysicalInput is not null
+                ? control.Label + " selected. Apply assignment to stage the selected command."
+                : type != controlType
+                    ? control.IsAxis ? "Select an axis command before choosing this axis."
+                        : "Select a button command before choosing this control."
+                    : "This physical input has no verified native mapping. " + _physicalMap.Message;
+            if (_selectedPhysicalInput is null) _selection.BlockInput(feedback);
             else _selection.SelectInput(_selectedPhysicalInput.Key);
             RefreshEditor();
-            _assignments.Artwork.Feedback.Text = _selectedPhysicalInput is null ? "This physical input has no verified native mapping. " + _physicalMap.Message : control.Label + " selected. Apply assignment to stage the selected command.";
+            _assignments.Artwork.Feedback.Text = feedback;
         }
         internal void DropPhysicalCommand(HardwareGraphicControl control, string commandId) => Run(() =>
         {
