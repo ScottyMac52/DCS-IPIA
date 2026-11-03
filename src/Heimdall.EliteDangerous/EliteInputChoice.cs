@@ -1,4 +1,5 @@
 using System.Globalization;
+using Heimdall.Application;
 
 namespace Heimdall.EliteDangerous
 {
@@ -11,6 +12,11 @@ namespace Heimdall.EliteDangerous
         /// <summary>Gets the positive native button number, leaving keyboard, mouse and hat names intact.</summary>
         public int? ButtonNumber => Key.StartsWith("Joy_", StringComparison.Ordinal)
             && int.TryParse(Key[4..], NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0 ? number : null;
+        /// <summary>Gets the common assignment picker caption without changing the native key.</summary>
+        public string PickerLabel => AssignmentInputLabel.WithCaption(
+            ButtonNumber is { } number ? "Button " + number.ToString(CultureInfo.InvariantCulture) : Key,
+            DefaultLabel == Key ? null : DefaultLabel);
+
         /// <summary>Gets the default label, explicit button number when available and exact native key.</summary>
         public string DisplayName => (DefaultLabel == Key ? "" : DefaultLabel + " · ")
             + (ButtonNumber is { } number ? "Button " + number.ToString(CultureInfo.InvariantCulture) + " · " : "") + Key;
