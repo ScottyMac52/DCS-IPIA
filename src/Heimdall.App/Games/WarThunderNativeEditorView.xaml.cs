@@ -65,7 +65,9 @@ namespace Heimdall.App.Games
             var previous = (Target.SelectedItem as WarThunderDevice)?.Id;
             Target.ItemsSource = session is null ? [] : WarThunderProfileBackend.ReadDevices(session.Snapshot.Profile);
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().FirstOrDefault(device => device.Id == previous);
-            Input.ItemsSource = row is null ? [] : WarThunderWorkspaceProjection.InputFields(row.Binding); Input.SelectedIndex = 0;
+            Input.ItemsSource = row is null ? [] : WarThunderWorkspaceProjection.InputFields(row.Binding);
+            Input.SelectedIndex = 0;
+            NativeDetails.Visibility = Input.Items.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
             var capabilities = _capabilities = row is null || session is null ? null : WarThunderProfileBackend.GetBindingCapabilities(session.Snapshot.Profile, row.RecordId);
             Frame.AssignmentDraftStatus.Text = busy ? "Stop input testing before editing." : session is null ? "Import a controls BLK capture to begin."
                 : capabilities is null ? "Select a captured native record."
