@@ -1,4 +1,5 @@
 using Heimdall.Application;
+using Xunit;
 
 namespace Heimdall.Tests
 {
