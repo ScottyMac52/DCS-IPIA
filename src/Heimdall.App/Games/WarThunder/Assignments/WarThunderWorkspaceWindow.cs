@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application.Games;
@@ -128,15 +129,25 @@ namespace Heimdall.App.Games
             var inputs = WarThunderPhysicalMap.Create(snapshot.Profile, deviceId, observations[0]).Inputs;
             var drawingId = _session.DrawingId(deviceId);
             var diagram = _drawings.FirstOrDefault(item => item.DeviceId == drawingId)?.Diagram;
-            if (diagram is null) return inputs;
             return inputs.Select(input =>
             {
-                var control = diagram.Controls.FirstOrDefault(item => item.InputKey == input.Key
+                var control = diagram?.Controls.FirstOrDefault(item => item.InputKey == input.Key
                     && item.IsAxis == (input.Type == CommandType.Axis));
-                return control is null || string.IsNullOrWhiteSpace(control.Label)
-                    ? input
-                    : input with { Key = control.Label };
+                return input with { Key = EditorInputLabel(input, control?.Label) };
             }).ToArray();
+        }
+
+        private static string EditorInputLabel(WarThunderPhysicalInput input, string? caption)
+        {
+            const string prefix = "JOY_BTN";
+            if (input.Type != CommandType.Button || !input.Key.StartsWith(prefix, StringComparison.Ordinal)
+                || !int.TryParse(input.Key.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                || number <= 0)
+                return string.IsNullOrWhiteSpace(caption) ? input.Key : caption;
+
+            var button = "Button " + number.ToString(CultureInfo.InvariantCulture);
+            return string.IsNullOrWhiteSpace(caption) || string.Equals(caption, button, StringComparison.OrdinalIgnoreCase)
+                ? button : button + " — " + caption;
         }
         private void RefreshInputState()
         {
