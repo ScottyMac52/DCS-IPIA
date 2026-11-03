@@ -54,9 +54,18 @@ namespace Heimdall.App.Smoke
                 if (reviews != 2 || window.Session.Snapshot.Hardware.GetValueOrDefault(slot)?.Device.PhysicalGuid != device.PhysicalGuid ||
                     (picker.SelectedItem as GameDeviceChoice)?.Id != slot)
                     throw new InvalidOperationException("Reviewed addition did not create and select the new linked controller.");
+                if (!add.CanExecute(null))
+                    throw new InvalidOperationException("Add controller must open the picker from a linked slot.");
+                var added = window.Session.Snapshot;
+                add.Execute(null);
+                if ((picker.SelectedItem as GameDeviceChoice)?.Id != "all" || reviews != 2
+                    || !ReferenceEquals(added, window.Session.Snapshot))
+                    throw new InvalidOperationException("Opening the add picker from a linked slot changed the profile or requested review.");
                 physical.SelectedItem = device;
-                if (Box<Button>(window, "AddControllerButton").IsEnabled)
+                if (add.CanExecute(null))
                     throw new InvalidOperationException("An already linked physical unit could be added again.");
+                physical.IsDropDownOpen = false;
+                picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == slot);
                 var backend = new SquadronsProfileBackend();
                 if (backend.ReadBindings(window.Session.Snapshot.Profile).Count != 0)
                     throw new InvalidOperationException("Adding a controller adopted native default assignments.");
