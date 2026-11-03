@@ -452,7 +452,13 @@ namespace Heimdall.App.Games
             try
             {
                 // One picker entry per physical control, just like a drawing callout.
-                InputPicker.ItemsSource = keys is null ? [] : SquadronsInputCodec.PhysicalChoices(keys);
+                var drawing = _drawings.FirstOrDefault(item => item.DeviceId == pin?.HardwareId)?.Diagram;
+                InputPicker.ItemsSource = keys is null ? [] : SquadronsInputCodec.PhysicalChoices(keys)
+                    .Select(input => input with
+                    {
+                        DefaultLabel = drawing?.Controls.FirstOrDefault(control =>
+                            SquadronsInputCodec.PhysicalKey(control.InputKey) == input.PhysicalKey)?.Label
+                    }).ToArray();
                 InputPicker.SelectedItem = InputPicker.Items.Cast<SquadronsInput>()
                     .FirstOrDefault(x => x.PhysicalKey == SquadronsInputCodec.PhysicalKey(_selection.InputKey ?? ""));
                 InputPicker.IsEnabled = TargetDevice.IsEnabled && keys is not null;
