@@ -1,6 +1,11 @@
 # PR6 systemic refactor contract and migration gates
 
-Status: in progress. PR6 remains open; it is not ready to merge.
+Status: historical PR6 implementation contract. PR6 merged in #335, followed by
+shared input selection (#344), Devices standardization (#345), War Thunder
+controller creation (#346), and the input-label quality fix (#347). The final
+#323 implementation reconciliation and current merge gates are documented in
+[PR8 completion](shared-workspace-completion-pr8.md). The recovery branches and
+ordered tasks below describe the original migration, not active branch instructions.
 
 Recovery point: `e372843df2bb32b93b0f984d81f6238d9eb8c708` on
 `checkpoint/pr6-before-systemic-refactor-20261102`. The connector can create a
@@ -181,3 +186,4 @@ git pull
 ```
 
 Then check a button and an axis in each game: change controller/command/context/alternative, Apply, drag/drop, Clear, start/stop testing, Save/reopen, and Discard. Compare toolbar and context-menu availability for the same target. Supported unavailable actions should explain why; untranslatable callouts must not reuse the preceding input. No controller-evidence recapture is needed. .NET/WPF and 80/80/50 acceptance require the user's Windows run; this environment has no .NET SDK or Windows runtime. All commits use `[skip ci]`; do not run GitHub Actions.
+

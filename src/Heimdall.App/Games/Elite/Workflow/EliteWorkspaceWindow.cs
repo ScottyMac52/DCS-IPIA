@@ -33,11 +33,7 @@ namespace Heimdall.App.Games
         {
             var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, command, input, alternative);
             var host = new WorkspaceAssignmentHost(AssignmentContext, () => JsonSerializer.Serialize(_session?.Snapshot));
-            return AssignmentWorkflow.Execute(host, new WorkspaceAssignmentOperation(target, review, () =>
-            {
-                apply();
-                return new(DraftOutcome.Applied, "");
-            }));
+            return AssignmentWorkflow.Execute(host, target, review, apply);
         }
         private void AssignmentFeedback(DraftResult result)
         {
@@ -47,3 +43,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

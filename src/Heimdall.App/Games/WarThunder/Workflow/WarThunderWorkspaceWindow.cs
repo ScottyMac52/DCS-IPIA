@@ -32,13 +32,10 @@ namespace Heimdall.App.Games
             var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, edit.CommandId,
                 _selectedPhysicalInput is { } input && _selection.InputKey == input.Key ? input.Key : edit.FieldAddress, edit.RecordId);
             var host = new WorkspaceAssignmentHost(AssignmentContext, () => JsonSerializer.Serialize(_session?.Snapshot));
-            var operation = new WorkspaceAssignmentOperation(target, () => session.ReviewNativeEdit(edit), () =>
-            {
-                session.ApplyNativeEdit(edit);
-                return new(DraftOutcome.Applied, "");
-            });
-            return AssignmentWorkflow.Execute(host, operation);
+            return AssignmentWorkflow.Execute(host, target, () => session.ReviewNativeEdit(edit),
+                () => session.ApplyNativeEdit(edit));
         }
         #endregion END private helpers
     }
 }
+
