@@ -155,7 +155,7 @@ namespace Heimdall.App.Games
         {
             _input.Stop(); _selectedPhysicalInput = null; _selection.Reset();
             var session = new GameProfileSession(_backend, workspace, EditionAccess.Policy, _drawings.Select(item => item.DeviceId).ToArray(),
-                () => _observed, new WarThunderDeviceReferenceMatcher());
+                () => _observed, new WarThunderDeviceReferenceMatcher(), controllerInputs: () => _controllerInputs);
             if (_session is not null) _session.Changed -= SessionChanged;
             _session = session; _revision = revision; _session.Changed += SessionChanged;
             _refreshing = true; ProfileName.Text = workspace.Name; _refreshing = false;
