@@ -86,7 +86,7 @@ namespace Heimdall.Tests
             var session = Open(issuer.Policy);
             var edit = Copy(Edit(session, SquadronsCommandEditKind.AssignRecord, Fire, key, type), recordId: Fire + ".2");
             session.ApplyNativeEdit(edit);
-            var row = Assert.Single(Rows(session).Where(row => row.Concept == Fire));
+            var row = Assert.Single(Rows(session), row => row.Concept == Fire);
             Assert.Equal(key, row.Input!.Key); Assert.Equal(type, row.Input.Type);
             Assert.Equal(type == CommandType.Axis ? 1 : 0, row.Input.Direction);
         }
