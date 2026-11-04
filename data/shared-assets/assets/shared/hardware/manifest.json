@@ -36,7 +36,8 @@
     {
       "id": "grip-f18c",
       "aliases": [
-        "moza-ab9-hornet-grip"
+        "moza-ab9-hornet-grip",
+        "ava-base-f18c"
       ],
       "uiLayerModifiers": {
         "moza-ab9-hornet-grip": "MOZA_MODIFIER_BTN3"

@@ -29,6 +29,16 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Sol-R built-in layout is incomplete: " + layout.DeviceId);
             }
             Console.WriteLine("Smoke: four installed shared Sol-R grip/AVA layouts render without a user drawing library.");
+            var hornet = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!
+                .Single(x => x.DeviceId == "ava-base-f18c");
+            new EditionPolicy().RequireHardware([hornet.DeviceId]);
+            if (hornet.Diagram.Path != "assets/shared/hardware/svg/grip-f18c.svg" ||
+                hornet.Diagram.Controls.Count != 29 || hornet.Diagram.CustomMapping is not null ||
+                !hornet.Diagram.Controls.Any(x => x.InputKey == "JOY_BTN1" && x.Label == "Trigger 1") ||
+                !hornet.Diagram.Controls.Any(x => x.InputKey == "JOY_BTN6" && x.Label == "Trigger 2") ||
+                CanonicalSvgRenderer.RenderComplete(hornet.Diagram.Svg!, hornet.Diagram.Width, hornet.Diagram.Height).Length < 1000)
+                throw new InvalidOperationException("The installed AVA Hornet catalog must resolve to complete Hornet artwork.");
+            Console.WriteLine("Smoke: installed AVA Hornet alias resolves and renders without a user drawing library.");
         }
         #endregion END Public
     }

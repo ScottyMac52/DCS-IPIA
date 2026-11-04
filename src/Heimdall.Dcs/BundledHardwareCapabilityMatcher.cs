@@ -30,7 +30,7 @@ namespace Heimdall.Dcs
             return choices.Where(x => names.Contains(x.DeviceId) ||
                     (DcsPhysicalIdentity.FromFileName(x.DefaultFileName) is not null &&
                      DcsPhysicalIdentity.NameFromFileName(x.DefaultFileName).Equals(observed.Device.Name, StringComparison.OrdinalIgnoreCase)))
-                .Where(x => keys.SetEquals(x.Diagram.Controls.Select(c => c.InputKey)))
+                .Where(x => DcsInputKey.SamePhysicalInputs(keys, x.Diagram.Controls.Select(c => c.InputKey)))
                 .Select(x => x.DeviceId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         }
         #endregion END Public

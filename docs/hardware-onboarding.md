@@ -16,6 +16,8 @@ Use **Settings → Resume / rerun hardware setup** to review the current profile
 
 ## Persistence and compatibility
 
+For AVA Hornet and Sol-R identities, driver/mode checks, compatible built-in layouts and the physical acceptance record, see [AVA grip setup](ava-grip-setup.md). Unknown AVA variants use reviewed generic controls; do not substitute a Viper layout.
+
 SQLite schema 9 adds one `profile_setup` row containing completion and the confirmed destination. `SetupManager` stages adoption with `HardwareInventoryManager.Prepare`; `SqliteSetupRepository` checks the expected inventory and writes inventory and setup state in one SQLite transaction. Scanning does not adopt hardware. Schema 10 adds a separate `offered` flag to `profile_setup`; opening the wizard records the offer without changing completion, destination or inventory. Completed schema 9 profiles migrate with the offer already recorded. Completion has no dependency on application version, so ordinary restarts and upgrades do not restart finished setup.
 
 Schema 8 profiles with existing modules or adopted hardware are treated as established profiles during migration and are not forced through new-user setup. Legacy `onboarding-state.json` completion remains honored. Clearing or explicitly setting completion moves it to the database and removes that legacy marker. Profiles with neither saved modules nor inventory are offered setup if they have no prior completion marker.

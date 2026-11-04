@@ -36,6 +36,8 @@ namespace Heimdall.App
 
                 Generic controls work without a bundled photo: select the reviewed capability definition when creating a module, assign the device, and use the generated button/hat/axis layout. Test live inputs before building; ambiguous or unsupported controls need review.
 
+                AVA grips: record the installed driver, firmware, native device name and active grip/mode in the Thrustmaster control panel. Rescan after changing a grip or mode and review changed capabilities before adoption. AVA [R] Hornet offers Hornet artwork only with matching controls; Sol-R has separate right/left and buttons/POV layouts. Never force a Viper layout for an unknown AVA. Left-mode Hornet has no verified static mapping: use reviewed generic controls. Existing module assignments stay pinned; changing hardware does not remap them automatically.
+
                 Open the module’s top feature tabs: Devices, Modifiers, Assignments, Input Test, Commands, Pages, Kneeboards and Documentation. Assign using the command button or drag/drop; right-click callouts for labels, clear and axis tuning. Modifier activators are reserved. Fit shows the complete drawing. Save to database, then use Build & export to Validate, snapshot or package saved inputs. Hardware drawings → Import draw.io creates a verified user revision with captured local images. Applying or updating it is explicit; saved modules retain their pinned revisions. Keep editable source and images in a full backup.
 
                 Fly Now! deploys a saved module to the chosen Saved Games DCS folder. Review assignments and validation first. It automatically removes default axis assignments for unused controllers; verify the result in DCS. Clear removes recorded deployment files. Back up DCS inputs separately before real-game testing.
@@ -89,4 +91,3 @@ namespace Heimdall.App
         #endregion END private helpers
     }
 }
-
