@@ -2,6 +2,7 @@
  <DockPanel>
   <pres:ActionBar x:Name="Actions" IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Top">
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Rescan" Content="Rescan"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Add" Content="Add controller…"/>
    
    
   </pres:ActionBar>

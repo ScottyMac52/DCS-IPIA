@@ -27,6 +27,7 @@ namespace Heimdall.App.Smoke
                 EditionAccess.SetForTests(issuer.Policy); cards.SetRecent(new("war-thunder"));
                 if (!Box<Button>(cards, "WarThunderCard").IsEnabled || !Box<TextBlock>(cards, "RecentText").Text.Contains("War Thunder", StringComparison.Ordinal))
                     throw new InvalidOperationException("War Thunder card or recent selection is unavailable.");
+                VerifyControllerAddition(root);
                 var device = new DetectedDcsDevice(Guid.NewGuid(), "Synthetic controller", true, ProductGuid: Guid.Parse("00020001-0000-0000-0000-504944564944"));
                 var discovery = new GameSmokeDiscovery(device);
                 discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map([
@@ -241,6 +242,50 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyControllerAddition(string root)
+        {
+            var device = new DetectedDcsDevice(Guid.NewGuid(), "Added controller", true,
+                ProductGuid: Guid.Parse("56781234-0000-0000-0000-504944564944"));
+            var discovery = new GameSmokeDiscovery(device);
+            discovery.Inputs[device.PhysicalGuid] = ControllerCapabilityMapper.Map([
+                new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2u, "X") { Details = new(0, 256) },
+                new(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 4u, "Button") { Details = new(48, 0) }]);
+            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "addition-store")), discovery);
+            var path = Path.Combine(root, "addition.blk");
+            const string source = "controls{version:i=5;hotkeys{ID_FIRE{keyboardKey:i=30;}}}";
+            File.WriteAllText(path, source);
+            var accept = false;
+            var reviews = 0;
+            using var window = new WarThunderWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No,
+                reviewChange: _ => { reviews++; return accept; }, drawings: []);
+            WorkspaceLayout.SetPersistenceEnabled(window, false);
+            window.Show(); ThemeControlSmoke.Pump(window);
+            window.ImportFile(path);
+            var devices = window.DeviceView;
+            if (!devices.Physical.IsEnabled)
+                throw new InvalidOperationException("Adding a controller required an existing War Thunder mapping.");
+            devices.Physical.SelectedItem = device;
+            if (!devices.Add.IsEnabled) throw new InvalidOperationException("The connected controller could not be added.");
+            Click(devices.Add);
+            if (reviews != 1 || window.Session!.Snapshot.Profile.Devices.Count != 0 || window.Session.Export().Files.Values.Single() != source)
+                throw new InvalidOperationException("Canceling Add controller changed the War Thunder profile.");
+            accept = true; Click(devices.Add); ThemeControlSmoke.Pump(window);
+            var created = WarThunderProfileBackend.ReadDevices(window.Session.Snapshot.Profile);
+            if (reviews != 2 || created.Count != 1)
+                throw new InvalidOperationException("Add controller did not complete its review and create one mapping. "
+                    + Box<TextBox>(window, "ErrorDetails").Text);
+            var native = created[0];
+            if (native.Name != device.Name || native.AxesCount != 1 || native.ButtonsCount != 1
+                || window.Session.Snapshot.Hardware[native.Id].Device.PhysicalGuid != device.PhysicalGuid
+                || !Box<Button>(window, "Save").IsEnabled)
+                throw new InvalidOperationException("Add controller failed to stage the native mapping and physical link.");
+            if (!window.SaveCurrent()) throw new InvalidOperationException("The added controller could not be saved.");
+            Click(devices.Add);
+            devices.Physical.SelectedItem = device;
+            if (devices.Add.IsEnabled) throw new InvalidOperationException("The same physical controller could be added twice.");
+            window.Close();
+        }
+
         private static void VerifyRemoval(WarThunderWorkspaceWindow window)
         {
             var before = window.Session!.Export().Files.Single().Value;
