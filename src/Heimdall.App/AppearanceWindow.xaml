@@ -18,8 +18,8 @@
   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="350"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
    <Border Style="{DynamicResource Card}" Margin="0,0,16,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
     <TextBlock Text="Apply background to" FontWeight="SemiBold"/>
-    <ComboBox x:Name="TargetChoice" DisplayMemberPath="Value" SelectedValuePath="Key" SelectionChanged="TargetChanged" AutomationProperties.Name="Appearance target" Margin="0,4,0,8"/>
-    <ComboBox x:Name="TargetMode" SelectionChanged="ModeChanged" AutomationProperties.Name="Background inheritance" Margin="0,0,0,8">
+    <ComboBox Style="{StaticResource AppComboBox}" x:Name="TargetChoice" DisplayMemberPath="Value" SelectedValuePath="Key" SelectionChanged="TargetChanged" AutomationProperties.Name="Appearance target" Margin="0,4,0,8"/>
+    <ComboBox Style="{StaticResource AppComboBox}" x:Name="TargetMode" SelectionChanged="ModeChanged" AutomationProperties.Name="Background inheritance" Margin="0,0,0,8">
      <ComboBoxItem Content="Use inherited background"/><ComboBoxItem Content="Custom background"/><ComboBoxItem Content="No background image"/>
     </ComboBox>
     <TextBlock Text="Background image" FontSize="18" FontWeight="SemiBold"/>
@@ -46,7 +46,7 @@
     <TextBlock Text="{Binding ElementName=ControlOpacity, Path=Value, StringFormat={}{0:P0}}"/>
     <TextBlock Text="Adjusts control fills separately from panels. Text and borders stay opaque; interaction states and open popups keep protected fills." TextWrapping="Wrap" Margin="0,4,0,0"/>
     <TextBlock Text="Image layout" Margin="0,8,0,4"/>
-    <ComboBox x:Name="ImageFit" SelectionChanged="FitChanged" AutomationProperties.Name="Image layout">
+    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ImageFit" SelectionChanged="FitChanged" AutomationProperties.Name="Image layout">
      <ComboBoxItem Content="Fill — crop proportionally" Tag="Fill"/><ComboBoxItem Content="Fit — show whole image" Tag="Fit"/>
     </ComboBox>
     <TextBlock Text="Horizontal position (left → right)" Margin="0,8,0,0"/>

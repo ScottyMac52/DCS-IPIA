@@ -25,7 +25,7 @@
           <Button x:Name="CancelSelection" Content="_Cancel" IsCancel="True" MinWidth="90"/>
         </StackPanel>
         <Button x:Name="NewFolder" Content="New _folder" Click="NewFolderClicked" DockPanel.Dock="Left" Margin="0,0,8,0"/>
-        <ComboBox x:Name="FileTypes" SelectionChanged="FilterChanged" AutomationProperties.Name="File type filter"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="FileTypes" SelectionChanged="FilterChanged" AutomationProperties.Name="File type filter"/>
       </DockPanel>
     </StackPanel>
     <DataGrid x:Name="Entries" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"

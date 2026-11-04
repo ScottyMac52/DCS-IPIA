@@ -33,7 +33,7 @@
                 </ScrollViewer>
             </Border>
             <StackPanel Grid.Row="2">
-                <ComboBox x:Name="GenericPageChoice" SelectionChanged="GenericPageChanged" IsEnabled="False" Margin="0,8,0,0"/>
+                <ComboBox Style="{StaticResource AppComboBox}" x:Name="GenericPageChoice" SelectionChanged="GenericPageChanged" IsEnabled="False" Margin="0,8,0,0"/>
                 <TextBlock x:Name="KneeboardCaption" Margin="0,8,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Grid>

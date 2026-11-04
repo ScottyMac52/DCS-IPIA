@@ -12,7 +12,7 @@
     </Style>
 
     <Style x:Key="AppComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource OpaqueControlBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>

@@ -17,10 +17,10 @@
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <StackPanel>
             <TextBlock Text="Device profile"/>
-            <ComboBox x:Name="ProfilePaths" SelectionChanged="ProfileChanged" Margin="0,4,0,10"/>
+            <ComboBox Style="{StaticResource AppComboBox}" x:Name="ProfilePaths" SelectionChanged="ProfileChanged" Margin="0,4,0,10"/>
             <WrapPanel Margin="0,0,0,10">
               <TextBlock Text="Modifier layer:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-              <ComboBox x:Name="ClearLayerChoice" MinWidth="160"/>
+              <ComboBox Style="{StaticResource AppComboBox}" x:Name="ClearLayerChoice" MinWidth="160"/>
               <Button x:Name="ClearLayerButton" Content="Clear layer assignments" Click="ClearLayerClicked" Padding="10,4" Margin="8,0,0,0"/>
             </WrapPanel>
           </StackPanel>
@@ -36,7 +36,7 @@
           </DataGrid>
           <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" MaxHeight="260">
             <StackPanel x:Name="BindingFields">
-              <TextBlock Text="Command"/><ComboBox x:Name="CommandChoice" DisplayMemberPath="Name" Margin="0,4,0,8"/>
+              <TextBlock Text="Command"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="CommandChoice" DisplayMemberPath="Name" Margin="0,4,0,8"/>
               <TextBlock Text="DCS input key (for example JOY_BTN1)"/><TextBox x:Name="InputKey" Margin="0,4,0,8"/>
               <TextBlock Text="Modifier chord (names separated by +; blank for base)"/><TextBox x:Name="ModifierChord" Margin="0,4,0,8"/>
               <TextBlock x:Name="DeclaredModifiers" TextWrapping="Wrap" Margin="0,0,0,8"/>
@@ -96,13 +96,13 @@
             <StackPanel x:Name="DeviceFields">
               <TextBlock Text="Output hardware for custom or ambiguous joystick profiles" TextWrapping="Wrap"/>
               <Button x:Name="LoadOutputHardwareButton" Content="Load output hardware choices" Click="LoadOutputHardwareClicked" Padding="10,4"/>
-              <ComboBox x:Name="OutputHardwareChoice" DisplayMemberPath="Title" Margin="0,6,0,6"/>
+              <ComboBox Style="{StaticResource AppComboBox}" x:Name="OutputHardwareChoice" DisplayMemberPath="Title" Margin="0,6,0,6"/>
               <Button x:Name="SetOutputHardwareButton" Content="Stage selected output hardware" Click="SetOutputHardwareClicked" Padding="10,4"/>
 
               <TextBlock Text="Exact native DCS joystick filename, including {physical GUID}.diff.lua" TextWrapping="Wrap"/>
               <TextBox x:Name="DeviceFileName" Margin="0,4,0,8"/>
               <TextBlock Text="Copy from an existing joystick profile (blank creates an empty profile)" TextWrapping="Wrap"/>
-              <ComboBox x:Name="CloneProfileChoice" DisplayMemberPath="FileName" Margin="0,4,0,8"/>
+              <ComboBox Style="{StaticResource AppComboBox}" x:Name="CloneProfileChoice" DisplayMemberPath="FileName" Margin="0,4,0,8"/>
               <TextBlock Text="Rename keeps the same physical GUID and updates modifier device names. Clear assignments and device modifiers before deleting. The keyboard profile is protected." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
                 <Button x:Name="NewProfileButton" Content="New profile" Click="NewProfileClicked" Padding="10,4" Margin="0,0,8,0"/>
@@ -129,9 +129,9 @@
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="260">
             <StackPanel x:Name="ModifierFields">
               <TextBlock Text="Modifier name"/><TextBox x:Name="ModifierName" Margin="0,4,0,8"/>
-              <TextBlock Text="Native device"/><ComboBox x:Name="ModifierDevice" Margin="0,4,0,8"/>
+              <TextBlock Text="Native device"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierDevice" Margin="0,4,0,8"/>
               <TextBlock Text="DCS input key"/><TextBox x:Name="ModifierInput" Margin="0,4,0,8"/>
-              <TextBlock Text="Mode"/><ComboBox x:Name="ModifierModeChoice" Margin="0,4,0,8"/>
+              <TextBlock Text="Mode"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="ModifierModeChoice" Margin="0,4,0,8"/>
               <TextBlock Text="Hold is a modifier; Toggle is a switch. Keyboard defaults are protected. Clear assignments before removing or renaming a modifier they use." TextWrapping="Wrap" Margin="0,0,0,8"/>
               <WrapPanel>
                 <Button Content="New modifier" Click="NewModifierClicked" Padding="10,4" Margin="0,0,8,0"/>

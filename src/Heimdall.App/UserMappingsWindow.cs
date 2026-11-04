@@ -73,6 +73,7 @@ namespace Heimdall.App
             heading.Children.Add(new TextBlock { Text = "Controller for this drawing" });
             _definitions = new ComboBox { ItemsSource = definitions.Select(x => new KeyValuePair<string, HardwareDefinition>(
                 (targetNames?.GetValueOrDefault(x.Id) ?? "Controller") + " · " + x.Id[..12], x)).ToArray(), DisplayMemberPath = "Key", SelectedValuePath = "Value", SelectedIndex = definitions.Count > 0 ? 0 : -1, Margin = new Thickness(0, 4, 0, 10) };
+            _definitions.SetResourceReference(FrameworkElement.StyleProperty, "AppComboBox");
             RegisterName("MappingDefinitions", _definitions); heading.Children.Add(_definitions);
             var buttons = new WrapPanel();
             _import = Button("Open draw.io file…", "PreviewMappingButton", PreviewClicked);
