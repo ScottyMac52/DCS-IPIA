@@ -255,8 +255,9 @@ namespace Heimdall.App.Smoke
             const string source = "controls{version:i=5;hotkeys{ID_FIRE{keyboardKey:i=30;}}}";
             File.WriteAllText(path, source);
             var accept = false;
+            var reviews = 0;
             using var window = new WarThunderWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No,
-                reviewChange: _ => accept, drawings: []);
+                reviewChange: _ => { reviews++; return accept; }, drawings: []);
             WorkspaceLayout.SetPersistenceEnabled(window, false);
             window.Show(); ThemeControlSmoke.Pump(window);
             window.ImportFile(path);
@@ -266,10 +267,14 @@ namespace Heimdall.App.Smoke
             devices.Physical.SelectedItem = device;
             if (!devices.Add.IsEnabled) throw new InvalidOperationException("The connected controller could not be added.");
             Click(devices.Add);
-            if (window.Session!.Snapshot.Profile.Devices.Count != 0 || window.Session.Export().Files.Values.Single() != source)
+            if (reviews != 1 || window.Session!.Snapshot.Profile.Devices.Count != 0 || window.Session.Export().Files.Values.Single() != source)
                 throw new InvalidOperationException("Canceling Add controller changed the War Thunder profile.");
             accept = true; Click(devices.Add); ThemeControlSmoke.Pump(window);
-            var native = WarThunderProfileBackend.ReadDevices(window.Session.Snapshot.Profile).Single();
+            var created = WarThunderProfileBackend.ReadDevices(window.Session.Snapshot.Profile);
+            if (reviews != 2 || created.Count != 1)
+                throw new InvalidOperationException("Add controller did not complete its review and create one mapping. "
+                    + Box<TextBox>(window, "ErrorDetails").Text);
+            var native = created[0];
             if (native.Name != device.Name || native.AxesCount != 1 || native.ButtonsCount != 1
                 || window.Session.Snapshot.Hardware[native.Id].Device.PhysicalGuid != device.PhysicalGuid
                 || !Box<Button>(window, "Save").IsEnabled)
