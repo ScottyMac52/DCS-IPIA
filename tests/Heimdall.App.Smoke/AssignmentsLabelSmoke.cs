@@ -16,8 +16,8 @@ namespace Heimdall.App.Smoke
         public static void Verify()
         {
             var module = new DcsModule(Guid.NewGuid(), "LABELS", "Assignment label regression");
-            var profile = new DeviceProfile(Guid.NewGuid(), "tm-tpr", null, "Rudder", "Rudder.diff.lua");
-            var slot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-tpr", null, "Rudder", "Rudder.diff.lua");
+            var slot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             var graphic = new UiLayerDiagram("Rudder", null, "rudder.svg", 240, 90, [], [])
             {
                 ProfileId = profile.Id,
@@ -27,10 +27,10 @@ namespace Heimdall.App.Smoke
                     "<text id='lbl-axis' x='120' y='48' text-anchor='middle' fill='white'>Original label</text></svg>",
                 Controls = [new("axis", "Axis", "JOY_X", 20, 20, 200, 50, true)]
             };
-            var workspace = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [], [], [graphic],
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [], [], [graphic],
                 [new("X", "X", "Axis", true)], [], [new(slot, new("X", "X", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
             try
             {

@@ -15,7 +15,7 @@ namespace Heimdall.Tests
         private static readonly Guid Left = Guid.NewGuid();
         private static readonly Guid Right = Guid.NewGuid();
         private static readonly Guid[] Devices = [Left, Right];
-        private static readonly CommandPaletteEntry[] Commands =
+        private static readonly DcsCommandPaletteEntry[] Commands =
         [new("fire", "Fire", "Weapons", false), new("pitch", "Pitch", "Flight", true),
             new("shared", "Shared", "Weapons", false), new("unused", "Unused Axis Button", "Other", false)];
         #region BEGIN Public
@@ -97,9 +97,9 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static DraftAssignment[] Assignments() =>
+        private static DcsDraftAssignment[] Assignments() =>
         [Row(Left, "fire"), Row(Right, "pitch"), Row(Left, "shared"), Row(Right, "shared"), Row(Right, "fire", AssignmentLayer.UiLayer)];
-        private static DraftAssignment Row(Guid profile, string command, AssignmentLayer layer = AssignmentLayer.Module) =>
+        private static DcsDraftAssignment Row(Guid profile, string command, AssignmentLayer layer = AssignmentLayer.Module) =>
             new(new(Module, profile, layer, command == "pitch" ? BindingSection.Axis : BindingSection.Key, "JOY_" + command),
                 new(command, command, command == "pitch", layer));
         #endregion END private helpers

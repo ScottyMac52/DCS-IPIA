@@ -62,7 +62,7 @@ namespace Heimdall.App
             { Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString();
             var supportReports = new SupportReportService(new SqliteSupportDatabaseInspector(readOnlyConnection),
                 new SqliteHardwareInventoryRepository(readOnlyConnection),
-                new SqliteEditorWorkspaceRepository(readOnlyConnection, persistReadUpgrades: false),
+                new DcsSqliteEditorWorkspaceRepository(readOnlyConnection, persistReadUpgrades: false),
                 new FileUserMappingLibrary(userFolder), typeof(App).Assembly.GetName().Version!, SqliteMigrationRunner.CurrentVersion);
             try
             {
@@ -110,23 +110,23 @@ namespace Heimdall.App
                             connectionString, Path.Combine(AppContext.BaseDirectory, "appsettings.json"),
                             Path.Combine(userFolder, "user-settings.json"), Path.Combine(userFolder, "theme.txt"),
                             Path.Combine(userFolder, "appsettings.json")))
-                    .AddSingleton<IModuleConfigurationRepository>(
-                        _ => new SqliteConfigurationRepository(connectionString))
-                    .AddSingleton<IEditorWorkspaceRepository>(
-                        _ => new SqliteEditorWorkspaceRepository(connectionString))
+                    .AddSingleton<IDcsModuleConfigurationRepository>(
+                        _ => new DcsSqliteConfigurationRepository(connectionString))
+                    .AddSingleton<IDcsEditorWorkspaceRepository>(
+                        _ => new DcsSqliteEditorWorkspaceRepository(connectionString))
                     .AddSingleton<IHardwareInventoryRepository>(_ => new SqliteHardwareInventoryRepository(connectionString))
                     .AddSingleton<IControllerCapabilityDiscovery, WindowsConnectedDeviceDiscovery>()
                     .AddSingleton<IConnectedDeviceDiscovery, WindowsConnectedDeviceDiscovery>()
                     .AddSingleton<HardwareInventoryManager>()
                     .AddSingleton<ISetupRepository>(_ => new SqliteSetupRepository(connectionString))
                     .AddSingleton<SetupManager>()
-                    .AddSingleton<ISharedUiLayerWorkspaceRepository>(
-                        _ => new SqliteSharedUiLayerWorkspaceRepository(connectionString))
-                    .AddSingleton<IFlyNowPayloadBuilder, FlyNowPayloadBuilder>()
-                    .AddSingleton<IFlyNowService>(provider => profile.IsTest ? new IsolatedFlyNowService() :
-                        new SqliteFlyNowService(connectionString, Path.Combine(userFolder, "FlyNowBackups"),
-                            provider.GetRequiredService<IFlyNowPayloadBuilder>()))
-                    .AddSingleton<IModuleWorkspaceLoader, ModuleWorkspaceLoader>()
+                    .AddSingleton<IDcsSharedUiLayerWorkspaceRepository>(
+                        _ => new DcsSqliteSharedUiLayerWorkspaceRepository(connectionString))
+                    .AddSingleton<IDcsFlyNowPayloadBuilder, DcsFlyNowPayloadBuilder>()
+                    .AddSingleton<IDcsFlyNowService>(provider => profile.IsTest ? new DcsIsolatedFlyNowService() :
+                        new DcsSqliteFlyNowService(connectionString, Path.Combine(userFolder, "FlyNowBackups"),
+                            provider.GetRequiredService<IDcsFlyNowPayloadBuilder>()))
+                    .AddSingleton<IDcsModuleWorkspaceLoader, DcsModuleWorkspaceLoader>()
                     .AddSingleton<IDcsFolderImporter, DcsFolderImporter>()
                     .AddSingleton<IGameWorkspaceStore>(_ => new FileGameWorkspaceStore(userFolder))
                     .AddSingleton<GameWorkspaceServices>()

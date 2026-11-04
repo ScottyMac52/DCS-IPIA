@@ -16,7 +16,7 @@ namespace Heimdall.App.Smoke
     {
         #region BEGIN Public
         /// <summary>Checks successful duplicate-binding output and logging of three UI failures.</summary>
-        public static void Verify(string connection, IEditorWorkspaceRepository repository)
+        public static void Verify(string connection, IDcsEditorWorkspaceRepository repository)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-output-log-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -33,7 +33,7 @@ namespace Heimdall.App.Smoke
                 settings.TryUpdateSavedGamesDcsFolder(destination);
                 var output = new RecordingModuleOutputLogger<DcsModuleWorkspaceWindow>();
                 var exportPath = Path.Combine(root, "snapshot.heimdall-module.json");
-                editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository,
+                editor = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(saved), settings, repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
                 editor.Show();
                 // Duplicate import evidence must also pass the real validation and snapshot export actions.
@@ -47,7 +47,7 @@ namespace Heimdall.App.Smoke
                 editor.Close();
                 var sources = new Dictionary<string, string>(saved.Sources!) { ["config/integrations.json"] = "{" };
                 var broken = saved with { Sources = sources };
-                editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(broken), settings, repository,
+                editor = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(broken), settings, repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
                 editor.Show();
                 foreach (var (button, operation) in new[] { ("ValidateModuleButton", "Validate"),
@@ -66,12 +66,12 @@ namespace Heimdall.App.Smoke
                 editor.Close();
                 editor = null;
                 var fly = new RecordingModuleOutputLogger<MainWindow>();
-                main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
+                main = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
                     flyNow: new FailingModuleOutputFlyNow(), deviceDiscovery: new EmptyDeviceDiscovery(), logger: fly);
                 main.Show();
                 var modules = (ComboBox)WorkspaceUi.Find(main, "SavedModules")!;
                 Wait(main, () => modules.Items.Count > 0 && ((TextBlock)WorkspaceUi.Find(main, "FlyNowStatus")!).Text.StartsWith("No module", StringComparison.Ordinal));
-                modules.SelectedItem = modules.Items.Cast<SavedModuleChoice>().Single(x => x.Id == saved.Configuration.Module.Id);
+                modules.SelectedItem = modules.Items.Cast<DcsSavedModuleChoice>().Single(x => x.Id == saved.Configuration.Module.Id);
                 Click((Button)WorkspaceUi.Find(main, "FlyNowButton")!);
                 Wait(main, () => fly.Events.Count == 1 && ((Button)WorkspaceUi.Find(main, "FlyNowButton")!).IsEnabled);
                 VerifyEvent(fly.Events[0], saved.Configuration.Module.Id, saved.Configuration.Module.DcsId, "Fly Now!");

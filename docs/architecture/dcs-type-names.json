@@ -1,0 +1,1435 @@
+[
+  {
+    "old": "AssignmentsView",
+    "new": "DcsAssignmentsView",
+    "files": [
+      "src/Heimdall.App/Features/Assignments/DcsAssignmentsView.xaml.cs",
+      "src/Heimdall.App/Features/Assignments/Selection/DcsAssignmentsView.cs",
+      "src/Heimdall.App/Features/Assignments/Workflow/DcsAssignmentsView.cs"
+    ],
+    "appearance_key": "AssignmentsView"
+  },
+  {
+    "old": "AxisDefaultsReviewWindow",
+    "new": "DcsAxisDefaultsReviewWindow",
+    "files": [
+      "src/Heimdall.App/DcsAxisDefaultsReviewWindow.xaml.cs"
+    ],
+    "appearance_key": "AxisDefaultsReviewWindow"
+  },
+  {
+    "old": "CanonicalSnapshotSerializer",
+    "new": "DcsCanonicalSnapshotSerializer",
+    "files": [
+      "src/Heimdall.Dcs/DcsCanonicalSnapshotSerializer.cs"
+    ]
+  },
+  {
+    "old": "CommandBindingState",
+    "new": "DcsCommandBindingState",
+    "files": [
+      "src/Heimdall.Application/DcsCommandBindingState.cs"
+    ]
+  },
+  {
+    "old": "CommandBindingStateFilter",
+    "new": "DcsCommandBindingStateFilter",
+    "files": [
+      "src/Heimdall.Application/DcsCommandBindingStateFilter.cs"
+    ]
+  },
+  {
+    "old": "CommandCatalogImportChange",
+    "new": "DcsCommandCatalogImportChange",
+    "files": [
+      "src/Heimdall.Application/DcsCommandCatalogImportChange.cs"
+    ]
+  },
+  {
+    "old": "CommandCatalogImportSource",
+    "new": "DcsCommandCatalogImportSource",
+    "files": [
+      "src/Heimdall.Application/DcsCommandCatalogImportSource.cs"
+    ]
+  },
+  {
+    "old": "CommandImportReviewWindow",
+    "new": "DcsCommandImportReviewWindow",
+    "files": [
+      "src/Heimdall.App/DcsCommandImportReviewWindow.xaml.cs"
+    ],
+    "appearance_key": "CommandImportReviewWindow"
+  },
+  {
+    "old": "CommandPalette",
+    "new": "DcsCommandPalette",
+    "files": [
+      "src/Heimdall.Application/DcsCommandPalette.cs"
+    ]
+  },
+  {
+    "old": "CommandPaletteEntry",
+    "new": "DcsCommandPaletteEntry",
+    "files": [
+      "src/Heimdall.Application/DcsCommandPaletteEntry.cs"
+    ]
+  },
+  {
+    "old": "CommandUsageWindow",
+    "new": "DcsCommandUsageWindow",
+    "files": [
+      "src/Heimdall.App/Features/Commands/DcsCommandUsageWindow.xaml.cs"
+    ],
+    "appearance_key": "CommandUsageWindow"
+  },
+  {
+    "old": "CommandsManagementView",
+    "new": "DcsCommandsManagementView",
+    "files": [
+      "src/Heimdall.App/Features/Commands/DcsCommandsManagementView.xaml.cs"
+    ]
+  },
+  {
+    "old": "CommandsView",
+    "new": "DcsCommandsView",
+    "files": [
+      "src/Heimdall.App/Features/Commands/DcsCommandsView.xaml.cs"
+    ],
+    "appearance_key": "CommandsView"
+  },
+  {
+    "old": "CompleteReleaseArchive",
+    "new": "DcsCompleteReleaseArchive",
+    "files": [
+      "src/Heimdall.Packaging/DcsCompleteReleaseArchive.cs"
+    ]
+  },
+  {
+    "old": "CompleteReleaseVerifier",
+    "new": "DcsCompleteReleaseVerifier",
+    "files": [
+      "src/Heimdall.Packaging/DcsCompleteReleaseVerifier.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationBindingDto",
+    "new": "DcsConfigurationBindingDto",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsConfigurationBindingDto.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationImportService",
+    "new": "DcsConfigurationImportService",
+    "files": [
+      "src/Heimdall.Application/DcsConfigurationImportService.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationModifierDto",
+    "new": "DcsConfigurationModifierDto",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsConfigurationModifierDto.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationModuleDto",
+    "new": "DcsConfigurationModuleDto",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsConfigurationModuleDto.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationProfileDto",
+    "new": "DcsConfigurationProfileDto",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsConfigurationProfileDto.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationSnapshotDto",
+    "new": "DcsConfigurationSnapshotDto",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsConfigurationSnapshotDto.cs"
+    ]
+  },
+  {
+    "old": "ConfigurationSnapshotSerializer",
+    "new": "DcsConfigurationSnapshotSerializer",
+    "files": [
+      "src/Heimdall.Dcs/DcsConfigurationSnapshotSerializer.cs"
+    ]
+  },
+  {
+    "old": "ConsumerImportRequest",
+    "new": "DcsConsumerImportRequest",
+    "files": [
+      "src/Heimdall.Application/DcsConsumerImportRequest.cs"
+    ]
+  },
+  {
+    "old": "ConsumerImportResult",
+    "new": "DcsConsumerImportResult",
+    "files": [
+      "src/Heimdall.Application/DcsConsumerImportResult.cs"
+    ]
+  },
+  {
+    "old": "ConsumerSource",
+    "new": "DcsConsumerSource",
+    "files": [
+      "src/Heimdall.Application/DcsConsumerSource.cs"
+    ]
+  },
+  {
+    "old": "ConsumerSourceImporter",
+    "new": "DcsConsumerSourceImporter",
+    "files": [
+      "src/Heimdall.Dcs/DcsConsumerSourceImporter.cs"
+    ]
+  },
+  {
+    "old": "DetectedDeviceHardwareMatcher",
+    "new": "DcsDetectedDeviceHardwareMatcher",
+    "files": [
+      "src/Heimdall.Dcs/DcsDetectedDeviceHardwareMatcher.cs"
+    ]
+  },
+  {
+    "old": "DeviceProfile",
+    "new": "DcsDeviceProfile",
+    "files": [
+      "src/Heimdall.Domain/DcsDeviceProfile.cs"
+    ]
+  },
+  {
+    "old": "DevicesView",
+    "new": "DcsDevicesView",
+    "files": [
+      "src/Heimdall.App/Features/Devices/DcsDevicesView.xaml.cs"
+    ],
+    "appearance_key": "DevicesView"
+  },
+  {
+    "old": "DocumentationView",
+    "new": "DcsDocumentationView",
+    "files": [
+      "src/Heimdall.App/Features/Documentation/DcsDocumentationView.xaml.cs"
+    ],
+    "appearance_key": "DocumentationView"
+  },
+  {
+    "old": "DraftAssignment",
+    "new": "DcsDraftAssignment",
+    "files": [
+      "src/Heimdall.Application/DcsDraftAssignment.cs"
+    ]
+  },
+  {
+    "old": "DraftAssignmentService",
+    "new": "DcsDraftAssignmentService",
+    "files": [
+      "src/Heimdall.Application/DcsDraftAssignmentService.cs"
+    ]
+  },
+  {
+    "old": "DraftAssignmentSlot",
+    "new": "DcsDraftAssignmentSlot",
+    "files": [
+      "src/Heimdall.Application/DcsDraftAssignmentSlot.cs"
+    ]
+  },
+  {
+    "old": "DraftChange",
+    "new": "DcsDraftChange",
+    "files": [
+      "src/Heimdall.Application/DcsDraftChange.cs"
+    ]
+  },
+  {
+    "old": "DraftCommand",
+    "new": "DcsDraftCommand",
+    "files": [
+      "src/Heimdall.Application/DcsDraftCommand.cs"
+    ]
+  },
+  {
+    "old": "DraftOperation",
+    "new": "DcsDraftOperation",
+    "files": [
+      "src/Heimdall.Application/DcsDraftOperation.cs"
+    ]
+  },
+  {
+    "old": "DrawingReplacementSession",
+    "new": "DcsDrawingReplacementSession",
+    "files": [
+      "src/Heimdall.Application/DcsDrawingReplacementSession.cs"
+    ]
+  },
+  {
+    "old": "DrawingReplacementTarget",
+    "new": "DcsDrawingReplacementTarget",
+    "files": [
+      "src/Heimdall.Application/DcsDrawingReplacementTarget.cs"
+    ]
+  },
+  {
+    "old": "EditorControlDrag",
+    "new": "DcsEditorControlDrag",
+    "files": [
+      "src/Heimdall.App/DcsEditorControlDrag.cs"
+    ]
+  },
+  {
+    "old": "EditorSnapshotDocument",
+    "new": "DcsEditorSnapshotDocument",
+    "files": [
+      "src/Heimdall.Dcs/SnapshotModels/DcsEditorSnapshotDocument.cs"
+    ]
+  },
+  {
+    "old": "EditorSnapshotSerializer",
+    "new": "DcsEditorSnapshotSerializer",
+    "files": [
+      "src/Heimdall.Dcs/DcsEditorSnapshotSerializer.cs"
+    ]
+  },
+  {
+    "old": "EditorWorkspacePayload",
+    "new": "DcsEditorWorkspacePayload",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsEditorWorkspacePayload.cs"
+    ]
+  },
+  {
+    "old": "EditorWorkspaceSnapshot",
+    "new": "DcsEditorWorkspaceSnapshot",
+    "files": [
+      "src/Heimdall.Application/DcsEditorWorkspaceSnapshot.cs"
+    ]
+  },
+  {
+    "old": "EditorWorkspaceUpgrade",
+    "new": "DcsEditorWorkspaceUpgrade",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsEditorWorkspaceUpgrade.cs"
+    ]
+  },
+  {
+    "old": "FlyNowDeployment",
+    "new": "DcsFlyNowDeployment",
+    "files": [
+      "src/Heimdall.Application/DcsFlyNowDeployment.cs"
+    ]
+  },
+  {
+    "old": "FlyNowJournal",
+    "new": "DcsFlyNowJournal",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsFlyNowJournal.cs"
+    ]
+  },
+  {
+    "old": "FlyNowPayload",
+    "new": "DcsFlyNowPayload",
+    "files": [
+      "src/Heimdall.Application/DcsFlyNowPayload.cs"
+    ]
+  },
+  {
+    "old": "FlyNowPayloadBuilder",
+    "new": "DcsFlyNowPayloadBuilder",
+    "files": [
+      "src/Heimdall.Dcs/DcsFlyNowPayloadBuilder.cs"
+    ]
+  },
+  {
+    "old": "GeneratedInputTestPlan",
+    "new": "DcsGeneratedInputTestPlan",
+    "files": [
+      "src/Heimdall.Dcs/DcsGeneratedInputTestPlan.cs"
+    ]
+  },
+  {
+    "old": "IConsumerSourceImporter",
+    "new": "IDcsConsumerSourceImporter",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsConsumerSourceImporter.cs"
+    ]
+  },
+  {
+    "old": "IEditorWorkspaceCreationRepository",
+    "new": "IDcsEditorWorkspaceCreationRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsEditorWorkspaceCreationRepository.cs"
+    ]
+  },
+  {
+    "old": "IEditorWorkspaceRepository",
+    "new": "IDcsEditorWorkspaceRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsEditorWorkspaceRepository.cs"
+    ]
+  },
+  {
+    "old": "IEditorWorkspaceUpdateRepository",
+    "new": "IDcsEditorWorkspaceUpdateRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsEditorWorkspaceUpdateRepository.cs"
+    ]
+  },
+  {
+    "old": "IFlyNowPayloadBuilder",
+    "new": "IDcsFlyNowPayloadBuilder",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsFlyNowPayloadBuilder.cs"
+    ]
+  },
+  {
+    "old": "IFlyNowService",
+    "new": "IDcsFlyNowService",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsFlyNowService.cs"
+    ]
+  },
+  {
+    "old": "IModuleConfigurationImporter",
+    "new": "IDcsModuleConfigurationImporter",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsModuleConfigurationImporter.cs"
+    ]
+  },
+  {
+    "old": "IModuleConfigurationRepository",
+    "new": "IDcsModuleConfigurationRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsModuleConfigurationRepository.cs"
+    ]
+  },
+  {
+    "old": "IModuleRepository",
+    "new": "IDcsModuleRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsModuleRepository.cs"
+    ]
+  },
+  {
+    "old": "IModuleWorkspaceContext",
+    "new": "IDcsModuleWorkspaceContext",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsModuleWorkspaceContext.cs"
+    ]
+  },
+  {
+    "old": "IModuleWorkspaceLoader",
+    "new": "IDcsModuleWorkspaceLoader",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsModuleWorkspaceLoader.cs"
+    ]
+  },
+  {
+    "old": "ISharedCatalogImporter",
+    "new": "IDcsSharedCatalogImporter",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsSharedCatalogImporter.cs"
+    ]
+  },
+  {
+    "old": "ISharedLuaImporter",
+    "new": "IDcsSharedLuaImporter",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsSharedLuaImporter.cs"
+    ]
+  },
+  {
+    "old": "ISharedUiLayerWorkspaceRepository",
+    "new": "IDcsSharedUiLayerWorkspaceRepository",
+    "files": [
+      "src/Heimdall.Application/Interfaces/IDcsSharedUiLayerWorkspaceRepository.cs"
+    ]
+  },
+  {
+    "old": "ImmutableSnapshot",
+    "new": "DcsImmutableSnapshot",
+    "files": [
+      "src/Heimdall.Dcs/DcsImmutableSnapshot.cs"
+    ]
+  },
+  {
+    "old": "InputTestBinding",
+    "new": "DcsInputTestBinding",
+    "files": [
+      "src/Heimdall.Application/DcsInputTestBinding.cs"
+    ]
+  },
+  {
+    "old": "InputTestDiagramComposer",
+    "new": "DcsInputTestDiagramComposer",
+    "files": [
+      "src/Heimdall.App/DcsInputTestDiagramComposer.cs"
+    ]
+  },
+  {
+    "old": "InputTestModifier",
+    "new": "DcsInputTestModifier",
+    "files": [
+      "src/Heimdall.Application/DcsInputTestModifier.cs"
+    ]
+  },
+  {
+    "old": "InputTestResult",
+    "new": "DcsInputTestResult",
+    "files": [
+      "src/Heimdall.Application/DcsInputTestResult.cs"
+    ]
+  },
+  {
+    "old": "InputTestSession",
+    "new": "DcsInputTestSession",
+    "files": [
+      "src/Heimdall.Application/DcsInputTestSession.cs"
+    ]
+  },
+  {
+    "old": "InputTestView",
+    "new": "DcsInputTestView",
+    "files": [
+      "src/Heimdall.App/Features/InputTestView/DcsInputTestView.xaml.cs"
+    ],
+    "appearance_key": "InputTestView"
+  },
+  {
+    "old": "IntegrationImportReviewWindow",
+    "new": "DcsIntegrationImportReviewWindow",
+    "files": [
+      "src/Heimdall.App/DcsIntegrationImportReviewWindow.xaml.cs"
+    ],
+    "appearance_key": "IntegrationImportReviewWindow"
+  },
+  {
+    "old": "InventoryHardwareAuthoring",
+    "new": "DcsInventoryHardwareAuthoring",
+    "files": [
+      "src/Heimdall.Dcs/DcsInventoryHardwareAuthoring.cs"
+    ]
+  },
+  {
+    "old": "IsolatedFlyNowService",
+    "new": "DcsIsolatedFlyNowService",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsIsolatedFlyNowService.cs"
+    ]
+  },
+  {
+    "old": "KneeboardDraftPage",
+    "new": "DcsKneeboardDraftPage",
+    "files": [
+      "src/Heimdall.Application/DcsKneeboardDraftPage.cs"
+    ]
+  },
+  {
+    "old": "KneeboardDraftProjection",
+    "new": "DcsKneeboardDraftProjection",
+    "files": [
+      "src/Heimdall.Application/DcsKneeboardDraftProjection.cs"
+    ]
+  },
+  {
+    "old": "KneeboardLabelImporter",
+    "new": "DcsKneeboardLabelImporter",
+    "files": [
+      "src/Heimdall.Application/DcsKneeboardLabelImporter.cs"
+    ]
+  },
+  {
+    "old": "KneeboardLiveProjection",
+    "new": "DcsKneeboardLiveProjection",
+    "files": [
+      "src/Heimdall.Application/DcsKneeboardLiveProjection.cs"
+    ]
+  },
+  {
+    "old": "KneeboardPageDrag",
+    "new": "DcsKneeboardPageDrag",
+    "files": [
+      "src/Heimdall.App/DcsKneeboardPageDrag.cs"
+    ]
+  },
+  {
+    "old": "KneeboardPageLocator",
+    "new": "DcsKneeboardPageLocator",
+    "files": [
+      "src/Heimdall.Application/DcsKneeboardPageLocator.cs"
+    ]
+  },
+  {
+    "old": "KneeboardsView",
+    "new": "DcsKneeboardsView",
+    "files": [
+      "src/Heimdall.App/Features/Kneeboards/DcsKneeboardsView.xaml.cs"
+    ],
+    "appearance_key": "KneeboardsView"
+  },
+  {
+    "old": "MappingRevisionReview",
+    "new": "DcsMappingRevisionReview",
+    "files": [
+      "src/Heimdall.Application/DcsMappingRevisionReview.cs"
+    ]
+  },
+  {
+    "old": "MappingRevisionReviewWindow",
+    "new": "DcsMappingRevisionReviewWindow",
+    "files": [
+      "src/Heimdall.App/DcsMappingRevisionReviewWindow.cs"
+    ],
+    "appearance_key": "MappingRevisionReviewWindow"
+  },
+  {
+    "old": "MfdCategoryLabelUpgrade",
+    "new": "DcsMfdCategoryLabelUpgrade",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsMfdCategoryLabelUpgrade.cs"
+    ]
+  },
+  {
+    "old": "ModifierAssignmentReservation",
+    "new": "DcsModifierAssignmentReservation",
+    "files": [
+      "src/Heimdall.Application/DcsModifierAssignmentReservation.cs"
+    ]
+  },
+  {
+    "old": "ModifiersView",
+    "new": "DcsModifiersView",
+    "files": [
+      "src/Heimdall.App/Features/Modifiers/DcsModifiersView.xaml.cs"
+    ],
+    "appearance_key": "ModifiersView"
+  },
+  {
+    "old": "ModuleAxisCleanup",
+    "new": "DcsModuleAxisCleanup",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleAxisCleanup.cs"
+    ]
+  },
+  {
+    "old": "ModuleAxisDefaults",
+    "new": "DcsModuleAxisDefaults",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleAxisDefaults.cs"
+    ]
+  },
+  {
+    "old": "ModuleBuildSnapshot",
+    "new": "DcsModuleBuildSnapshot",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleBuildSnapshot.cs"
+    ]
+  },
+  {
+    "old": "ModuleCommandCatalogEditor",
+    "new": "DcsModuleCommandCatalogEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleCommandCatalogEditor.cs"
+    ]
+  },
+  {
+    "old": "ModuleCommandCatalogImport",
+    "new": "DcsModuleCommandCatalogImport",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleCommandCatalogImport.cs"
+    ]
+  },
+  {
+    "old": "ModuleCommandImportReview",
+    "new": "DcsModuleCommandImportReview",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleCommandImportReview.cs"
+    ]
+  },
+  {
+    "old": "ModuleCompleteReleaseWorkflow",
+    "new": "DcsModuleCompleteReleaseWorkflow",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleCompleteReleaseWorkflow.cs"
+    ]
+  },
+  {
+    "old": "ModuleConfiguration",
+    "new": "DcsModuleConfiguration",
+    "files": [
+      "src/Heimdall.Domain/DcsModuleConfiguration.cs"
+    ]
+  },
+  {
+    "old": "ModuleDocumentationProfile",
+    "new": "DcsModuleDocumentationProfile",
+    "files": [
+      "src/Heimdall.Rendering/DcsModuleDocumentationProfile.cs"
+    ]
+  },
+  {
+    "old": "ModuleDocumentationRenderer",
+    "new": "DcsModuleDocumentationRenderer",
+    "files": [
+      "src/Heimdall.Rendering/DcsModuleDocumentationRenderer.cs"
+    ]
+  },
+  {
+    "old": "ModuleDocumentationWorkflow",
+    "new": "DcsModuleDocumentationWorkflow",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleDocumentationWorkflow.cs"
+    ]
+  },
+  {
+    "old": "ModuleDto",
+    "new": "DcsModuleDto",
+    "files": [
+      "src/Heimdall.Application/DcsModuleDto.cs"
+    ]
+  },
+  {
+    "old": "ModuleImportRequest",
+    "new": "DcsModuleImportRequest",
+    "files": [
+      "src/Heimdall.Application/DcsModuleImportRequest.cs"
+    ]
+  },
+  {
+    "old": "ModuleImportResult",
+    "new": "DcsModuleImportResult",
+    "files": [
+      "src/Heimdall.Application/DcsModuleImportResult.cs"
+    ]
+  },
+  {
+    "old": "ModuleIntegrationImport",
+    "new": "DcsModuleIntegrationImport",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleIntegrationImport.cs"
+    ]
+  },
+  {
+    "old": "ModuleIntegrationImportReview",
+    "new": "DcsModuleIntegrationImportReview",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleIntegrationImportReview.cs"
+    ]
+  },
+  {
+    "old": "ModuleIntegrationInstruction",
+    "new": "DcsModuleIntegrationInstruction",
+    "files": [
+      "src/Heimdall.Application/DcsModuleIntegrationInstruction.cs"
+    ]
+  },
+  {
+    "old": "ModuleIntegrationMetadata",
+    "new": "DcsModuleIntegrationMetadata",
+    "files": [
+      "src/Heimdall.Application/DcsModuleIntegrationMetadata.cs"
+    ]
+  },
+  {
+    "old": "ModuleKneeboardPageEditor",
+    "new": "DcsModuleKneeboardPageEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleKneeboardPageEditor.cs"
+    ]
+  },
+  {
+    "old": "ModuleKneeboardPageSettings",
+    "new": "DcsModuleKneeboardPageSettings",
+    "files": [
+      "src/Heimdall.Application/DcsModuleKneeboardPageSettings.cs"
+    ]
+  },
+  {
+    "old": "ModuleLuaProfileRenderer",
+    "new": "DcsModuleLuaProfileRenderer",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleLuaProfileRenderer.cs"
+    ]
+  },
+  {
+    "old": "ModuleMarkdownRenderer",
+    "new": "DcsModuleMarkdownRenderer",
+    "files": [
+      "src/Heimdall.Rendering/DcsModuleMarkdownRenderer.cs"
+    ]
+  },
+  {
+    "old": "ModulePhysicalBindingReview",
+    "new": "DcsModulePhysicalBindingReview",
+    "files": [
+      "src/Heimdall.Dcs/DcsModulePhysicalBindingReview.cs"
+    ]
+  },
+  {
+    "old": "ModuleService",
+    "new": "DcsModuleService",
+    "files": [
+      "src/Heimdall.Application/DcsModuleService.cs"
+    ]
+  },
+  {
+    "old": "ModuleSnapshotEditionFilter",
+    "new": "DcsModuleSnapshotEditionFilter",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleSnapshotEditionFilter.cs"
+    ]
+  },
+  {
+    "old": "ModuleSnapshotWorkflow",
+    "new": "DcsModuleSnapshotWorkflow",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleSnapshotWorkflow.cs"
+    ]
+  },
+  {
+    "old": "ModuleSummaryCard",
+    "new": "DcsModuleSummaryCard",
+    "files": [
+      "src/Heimdall.Application/DcsModuleSummaryCard.cs"
+    ]
+  },
+  {
+    "old": "ModuleUiLayerBindingImporter",
+    "new": "DcsModuleUiLayerBindingImporter",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleUiLayerBindingImporter.cs"
+    ]
+  },
+  {
+    "old": "ModuleUpdateHistoryPayload",
+    "new": "DcsModuleUpdateHistoryPayload",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsModuleUpdateHistoryPayload.cs"
+    ]
+  },
+  {
+    "old": "ModuleWorkspaceLoader",
+    "new": "DcsModuleWorkspaceLoader",
+    "files": [
+      "src/Heimdall.Dcs/DcsModuleWorkspaceLoader.cs"
+    ]
+  },
+  {
+    "old": "ModuleWorkspacePreview",
+    "new": "DcsModuleWorkspacePreview",
+    "files": [
+      "src/Heimdall.Application/DcsModuleWorkspacePreview.cs"
+    ]
+  },
+  {
+    "old": "ModuleWorkspaceViewModel",
+    "new": "DcsModuleWorkspaceViewModel",
+    "files": [
+      "src/Heimdall.App/DcsModuleWorkspaceViewModel.cs"
+    ]
+  },
+  {
+    "old": "NewModuleDeviceAuthoring",
+    "new": "DcsNewModuleDeviceAuthoring",
+    "files": [
+      "src/Heimdall.Dcs/DcsNewModuleDeviceAuthoring.cs"
+    ]
+  },
+  {
+    "old": "NewModuleDeviceSelection",
+    "new": "DcsNewModuleDeviceSelection",
+    "files": [
+      "src/Heimdall.Application/DcsNewModuleDeviceSelection.cs"
+    ]
+  },
+  {
+    "old": "NewModuleWindow",
+    "new": "DcsNewModuleWindow",
+    "files": [
+      "src/Heimdall.App/DcsNewModuleWindow.xaml.cs"
+    ],
+    "appearance_key": "NewModuleWindow"
+  },
+  {
+    "old": "NewModuleWorkspaceFactory",
+    "new": "DcsNewModuleWorkspaceFactory",
+    "files": [
+      "src/Heimdall.Dcs/DcsNewModuleWorkspaceFactory.cs"
+    ]
+  },
+  {
+    "old": "OvGmeArtifactPaths",
+    "new": "DcsOvGmeArtifactPaths",
+    "files": [
+      "src/Heimdall.Dcs/DcsOvGmeArtifactPaths.cs"
+    ]
+  },
+  {
+    "old": "OvGmeArtifactWriter",
+    "new": "DcsOvGmeArtifactWriter",
+    "files": [
+      "src/Heimdall.Dcs/DcsOvGmeArtifactWriter.cs"
+    ]
+  },
+  {
+    "old": "OvGmePackage",
+    "new": "DcsOvGmePackage",
+    "files": [
+      "src/Heimdall.Packaging/DcsOvGmePackage.cs"
+    ]
+  },
+  {
+    "old": "OvGmePackageBuilder",
+    "new": "DcsOvGmePackageBuilder",
+    "files": [
+      "src/Heimdall.Packaging/DcsOvGmePackageBuilder.cs"
+    ]
+  },
+  {
+    "old": "OvGmePackageInput",
+    "new": "DcsOvGmePackageInput",
+    "files": [
+      "src/Heimdall.Packaging/DcsOvGmePackageInput.cs"
+    ]
+  },
+  {
+    "old": "OvGmePackageVerifier",
+    "new": "DcsOvGmePackageVerifier",
+    "files": [
+      "src/Heimdall.Packaging/DcsOvGmePackageVerifier.cs"
+    ]
+  },
+  {
+    "old": "PackageManifest",
+    "new": "DcsPackageManifest",
+    "files": [
+      "src/Heimdall.Packaging/DcsPackageManifest.cs"
+    ]
+  },
+  {
+    "old": "PackageManifestBuilder",
+    "new": "DcsPackageManifestBuilder",
+    "files": [
+      "src/Heimdall.Packaging/DcsPackageManifestBuilder.cs"
+    ]
+  },
+  {
+    "old": "PagesView",
+    "new": "DcsPagesView",
+    "files": [
+      "src/Heimdall.App/Features/Pages/DcsPagesView.xaml.cs"
+    ],
+    "appearance_key": "PagesView"
+  },
+  {
+    "old": "PinnedUiLayerProfileRecovery",
+    "new": "DcsPinnedUiLayerProfileRecovery",
+    "files": [
+      "src/Heimdall.Dcs/DcsPinnedUiLayerProfileRecovery.cs"
+    ]
+  },
+  {
+    "old": "ProfileImportSource",
+    "new": "DcsProfileImportSource",
+    "files": [
+      "src/Heimdall.Application/DcsProfileImportSource.cs"
+    ]
+  },
+  {
+    "old": "SaveModuleCommand",
+    "new": "DcsSaveModuleCommand",
+    "files": [
+      "src/Heimdall.Application/DcsSaveModuleCommand.cs"
+    ]
+  },
+  {
+    "old": "SavedGamesDeviceDiscovery",
+    "new": "DcsSavedGamesDeviceDiscovery",
+    "files": [
+      "src/Heimdall.Dcs/DcsSavedGamesDeviceDiscovery.cs"
+    ]
+  },
+  {
+    "old": "SavedGamesDeviceSelection",
+    "new": "DcsSavedGamesDeviceSelection",
+    "files": [
+      "src/Heimdall.Application/DcsSavedGamesDeviceSelection.cs"
+    ]
+  },
+  {
+    "old": "SavedGamesImportWindow",
+    "new": "DcsSavedGamesImportWindow",
+    "files": [
+      "src/Heimdall.App/DcsSavedGamesImportWindow.xaml.cs"
+    ],
+    "appearance_key": "SavedGamesImportWindow"
+  },
+  {
+    "old": "SavedGamesProfileChoice",
+    "new": "DcsSavedGamesProfileChoice",
+    "files": [
+      "src/Heimdall.App/DcsSavedGamesProfileChoice.cs"
+    ]
+  },
+  {
+    "old": "SavedGamesWorkspaceFactory",
+    "new": "DcsSavedGamesWorkspaceFactory",
+    "files": [
+      "src/Heimdall.Dcs/DcsSavedGamesWorkspaceFactory.cs"
+    ]
+  },
+  {
+    "old": "SavedModuleChoice",
+    "new": "DcsSavedModuleChoice",
+    "files": [
+      "src/Heimdall.App/DcsSavedModuleChoice.cs"
+    ]
+  },
+  {
+    "old": "SharedCatalogImportRequest",
+    "new": "DcsSharedCatalogImportRequest",
+    "files": [
+      "src/Heimdall.Application/DcsSharedCatalogImportRequest.cs"
+    ]
+  },
+  {
+    "old": "SharedCatalogImportResult",
+    "new": "DcsSharedCatalogImportResult",
+    "files": [
+      "src/Heimdall.Application/DcsSharedCatalogImportResult.cs"
+    ]
+  },
+  {
+    "old": "SharedLuaImportRequest",
+    "new": "DcsSharedLuaImportRequest",
+    "files": [
+      "src/Heimdall.Application/DcsSharedLuaImportRequest.cs"
+    ]
+  },
+  {
+    "old": "SharedLuaImportResult",
+    "new": "DcsSharedLuaImportResult",
+    "files": [
+      "src/Heimdall.Application/DcsSharedLuaImportResult.cs"
+    ]
+  },
+  {
+    "old": "SharedLuaSource",
+    "new": "DcsSharedLuaSource",
+    "files": [
+      "src/Heimdall.Application/DcsSharedLuaSource.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerAdoption",
+    "new": "DcsSharedUiLayerAdoption",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerAdoption.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerAdoptionChange",
+    "new": "DcsSharedUiLayerAdoptionChange",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerAdoptionChange.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerAdoptionChoice",
+    "new": "DcsSharedUiLayerAdoptionChoice",
+    "files": [
+      "src/Heimdall.App/DcsSharedUiLayerAdoptionChoice.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerBindingEditor",
+    "new": "DcsSharedUiLayerBindingEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerBindingEditor.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerCommand",
+    "new": "DcsSharedUiLayerCommand",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerCommand.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerCommandEditor",
+    "new": "DcsSharedUiLayerCommandEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerCommandEditor.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerDeviceProfile",
+    "new": "DcsSharedUiLayerDeviceProfile",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerDeviceProfile.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerHardwareMapping",
+    "new": "DcsSharedUiLayerHardwareMapping",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerHardwareMapping.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerImpactReport",
+    "new": "DcsSharedUiLayerImpactReport",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerImpactReport.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerImpactReviewer",
+    "new": "DcsSharedUiLayerImpactReviewer",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerImpactReviewer.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerKneeboardRenderer",
+    "new": "DcsSharedUiLayerKneeboardRenderer",
+    "files": [
+      "src/Heimdall.Rendering/DcsSharedUiLayerKneeboardRenderer.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerModifierEditor",
+    "new": "DcsSharedUiLayerModifierEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerModifierEditor.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerModuleImpact",
+    "new": "DcsSharedUiLayerModuleImpact",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerModuleImpact.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerModuleSourceImpact",
+    "new": "DcsSharedUiLayerModuleSourceImpact",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerModuleSourceImpact.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerOutputArchive",
+    "new": "DcsSharedUiLayerOutputArchive",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerOutputArchive.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerOutputDocument",
+    "new": "DcsSharedUiLayerOutputDocument",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerOutputDocument.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerOutputSerializer",
+    "new": "DcsSharedUiLayerOutputSerializer",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerOutputSerializer.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerOutputSnapshot",
+    "new": "DcsSharedUiLayerOutputSnapshot",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerOutputSnapshot.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerProfileEditor",
+    "new": "DcsSharedUiLayerProfileEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerProfileEditor.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerRevisionReference",
+    "new": "DcsSharedUiLayerRevisionReference",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerRevisionReference.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerSemanticAdoption",
+    "new": "DcsSharedUiLayerSemanticAdoption",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerSemanticAdoption.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerSemanticChange",
+    "new": "DcsSharedUiLayerSemanticChange",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerSemanticChange.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerSemanticPlan",
+    "new": "DcsSharedUiLayerSemanticPlan",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerSemanticPlan.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerSourceChange",
+    "new": "DcsSharedUiLayerSourceChange",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerSourceChange.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerWorkspace",
+    "new": "DcsSharedUiLayerWorkspace",
+    "files": [
+      "src/Heimdall.Application/DcsSharedUiLayerWorkspace.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerWorkspaceFactory",
+    "new": "DcsSharedUiLayerWorkspaceFactory",
+    "files": [
+      "src/Heimdall.Dcs/DcsSharedUiLayerWorkspaceFactory.cs"
+    ]
+  },
+  {
+    "old": "SharedUiLayerWorkspaceWindow",
+    "new": "DcsSharedUiLayerWorkspaceWindow",
+    "files": [
+      "src/Heimdall.App/DcsSharedUiLayerWorkspaceWindow.xaml.cs"
+    ],
+    "appearance_key": "SharedUiLayerWorkspaceWindow"
+  },
+  {
+    "old": "SnapshotDeviceKneeboardRenderer",
+    "new": "DcsSnapshotDeviceKneeboardRenderer",
+    "files": [
+      "src/Heimdall.Rendering/DcsSnapshotDeviceKneeboardRenderer.cs"
+    ]
+  },
+  {
+    "old": "SnapshotImportReview",
+    "new": "DcsSnapshotImportReview",
+    "files": [
+      "src/Heimdall.App/DcsSnapshotImportReview.cs"
+    ]
+  },
+  {
+    "old": "SnapshotLuaPayloadRenderer",
+    "new": "DcsSnapshotLuaPayloadRenderer",
+    "files": [
+      "src/Heimdall.Dcs/DcsSnapshotLuaPayloadRenderer.cs"
+    ]
+  },
+  {
+    "old": "SnapshotOvGmeComposer",
+    "new": "DcsSnapshotOvGmeComposer",
+    "files": [
+      "src/Heimdall.Dcs/DcsSnapshotOvGmeComposer.cs"
+    ]
+  },
+  {
+    "old": "SnapshotSummaryKneeboardRenderer",
+    "new": "DcsSnapshotSummaryKneeboardRenderer",
+    "files": [
+      "src/Heimdall.Rendering/DcsSnapshotSummaryKneeboardRenderer.cs"
+    ]
+  },
+  {
+    "old": "SqliteConfigurationRepository",
+    "new": "DcsSqliteConfigurationRepository",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsSqliteConfigurationRepository.cs"
+    ]
+  },
+  {
+    "old": "SqliteEditorWorkspaceRepository",
+    "new": "DcsSqliteEditorWorkspaceRepository",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsSqliteEditorWorkspaceRepository.cs"
+    ]
+  },
+  {
+    "old": "SqliteFlyNowService",
+    "new": "DcsSqliteFlyNowService",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsSqliteFlyNowService.cs"
+    ]
+  },
+  {
+    "old": "SqliteModuleRepository",
+    "new": "DcsSqliteModuleRepository",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsSqliteModuleRepository.cs"
+    ]
+  },
+  {
+    "old": "SqliteSharedUiLayerWorkspaceRepository",
+    "new": "DcsSqliteSharedUiLayerWorkspaceRepository",
+    "files": [
+      "src/Heimdall.Infrastructure/DcsSqliteSharedUiLayerWorkspaceRepository.cs"
+    ]
+  },
+  {
+    "old": "SummaryCardDrag",
+    "new": "DcsSummaryCardDrag",
+    "files": [
+      "src/Heimdall.App/DcsSummaryCardDrag.cs"
+    ]
+  },
+  {
+    "old": "SummaryCardOrder",
+    "new": "DcsSummaryCardOrder",
+    "files": [
+      "src/Heimdall.Application/DcsSummaryCardOrder.cs"
+    ]
+  },
+  {
+    "old": "TrainingActions",
+    "new": "DcsTrainingActions",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingActions.cs"
+    ]
+  },
+  {
+    "old": "TrainingAssets",
+    "new": "DcsTrainingAssets",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingAssets.cs"
+    ]
+  },
+  {
+    "old": "TrainingDiscovery",
+    "new": "DcsTrainingDiscovery",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingDiscovery.cs"
+    ]
+  },
+  {
+    "old": "TrainingEnvironment",
+    "new": "DcsTrainingEnvironment",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingEnvironment.cs"
+    ]
+  },
+  {
+    "old": "TrainingInputSource",
+    "new": "DcsTrainingInputSource",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingInputSource.cs"
+    ]
+  },
+  {
+    "old": "TrainingWindow",
+    "new": "DcsTrainingWindow",
+    "files": [
+      "src/Heimdall.App/Training/DcsTrainingWindow.xaml.cs"
+    ],
+    "appearance_key": "TrainingWindow"
+  },
+  {
+    "old": "UiLayerDiagramFactory",
+    "new": "DcsUiLayerDiagramFactory",
+    "files": [
+      "src/Heimdall.Dcs/DcsUiLayerDiagramFactory.cs"
+    ]
+  },
+  {
+    "old": "UiLayerLuaProfileRenderer",
+    "new": "DcsUiLayerLuaProfileRenderer",
+    "files": [
+      "src/Heimdall.Dcs/DcsUiLayerLuaProfileRenderer.cs"
+    ]
+  },
+  {
+    "old": "UiLayerModuleUsage",
+    "new": "DcsUiLayerModuleUsage",
+    "files": [
+      "src/Heimdall.Domain/DcsUiLayerModuleUsage.cs"
+    ]
+  },
+  {
+    "old": "UiLayerOverlay",
+    "new": "DcsUiLayerOverlay",
+    "files": [
+      "src/Heimdall.Domain/DcsUiLayerOverlay.cs"
+    ]
+  },
+  {
+    "old": "UiLayerTemplate",
+    "new": "DcsUiLayerTemplate",
+    "files": [
+      "src/Heimdall.Domain/DcsUiLayerTemplate.cs"
+    ]
+  },
+  {
+    "old": "UiLayerTombstone",
+    "new": "DcsUiLayerTombstone",
+    "files": [
+      "src/Heimdall.Domain/DcsUiLayerTombstone.cs"
+    ]
+  },
+  {
+    "old": "UserMappingAdoption",
+    "new": "DcsUserMappingAdoption",
+    "files": [
+      "src/Heimdall.Application/DcsUserMappingAdoption.cs"
+    ]
+  },
+  {
+    "old": "VersionedDomainSchema",
+    "new": "DcsVersionedDomainSchema",
+    "files": [
+      "src/Heimdall.Domain/DcsVersionedDomainSchema.cs"
+    ]
+  },
+  {
+    "old": "WindowContext",
+    "new": "DcsWindowContext",
+    "files": [
+      "src/Heimdall.App/DcsWindowContext.cs"
+    ]
+  },
+  {
+    "old": "WorkspaceDevice",
+    "new": "DcsWorkspaceDevice",
+    "files": [
+      "src/Heimdall.Application/DcsWorkspaceDevice.cs"
+    ]
+  },
+  {
+    "old": "WorkspaceManagement",
+    "new": "DcsWorkspaceManagement",
+    "files": [
+      "src/Heimdall.Application/DcsWorkspaceManagement.cs"
+    ]
+  },
+  {
+    "old": "WorkspaceModifier",
+    "new": "DcsWorkspaceModifier",
+    "files": [
+      "src/Heimdall.Application/DcsWorkspaceModifier.cs"
+    ]
+  },
+  {
+    "old": "WorkspaceStructureEditor",
+    "new": "DcsWorkspaceStructureEditor",
+    "files": [
+      "src/Heimdall.Dcs/DcsWorkspaceStructureEditor.cs"
+    ]
+  }
+]

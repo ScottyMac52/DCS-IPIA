@@ -53,9 +53,9 @@ namespace Heimdall.Tests
             var moduleSources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
             foreach (var source in sources) moduleSources[source.Key] = source.Value;
             workspace = workspace with { Sources = moduleSources };
-            Assert.NotNull(DetectedDeviceHardwareMatcher.Match(workspace, native));
-            workspace = InventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module, hardware);
-            workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+            Assert.NotNull(DcsDetectedDeviceHardwareMatcher.Match(workspace, native));
+            workspace = DcsInventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module, hardware);
+            workspace = DcsModuleKneeboardPageEditor.Set(workspace, null,
                 new(KneeboardPageKind.Summary, null, "00-OVERVIEW", "SOL-R", "AVA GRIP", 0,
                     [new("STICK", "Sol-R grip on AVA", "cyan")]));
             var profile = Assert.Single(workspace.Configuration.Profiles);
@@ -68,15 +68,15 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + Path.Combine(root, "module.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
                 var diagram = Assert.Single(reopened.Diagrams);
                 Assert.Equal(hardware.Diagram.Path, diagram.Path);
                 Assert.Null(diagram.CustomMapping);
                 Assert.Equal(hardware.Diagram.Svg, diagram.Svg);
-                Assert.NotEmpty(SnapshotDeviceKneeboardRenderer.Generate(reopened));
-                var portable = ModuleSnapshotWorkflow.Read(ModuleSnapshotWorkflow.Export(ModuleSnapshotWorkflow.Freeze(reopened, "1.0")));
+                Assert.NotEmpty(DcsSnapshotDeviceKneeboardRenderer.Generate(reopened));
+                var portable = DcsModuleSnapshotWorkflow.Read(DcsModuleSnapshotWorkflow.Export(DcsModuleSnapshotWorkflow.Freeze(reopened, "1.0")));
                 Assert.NotNull(portable);
             }
             finally { Directory.Delete(root, true); }

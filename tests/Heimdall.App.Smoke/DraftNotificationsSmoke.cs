@@ -27,9 +27,9 @@ namespace Heimdall.App.Smoke
             try
             {
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
-                var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
-                var configuration = new ModuleConfiguration(new(Guid.NewGuid(), "NOTIFY", "Notifications"), [profile],
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
+                var profile = new DcsDeviceProfile(Guid.NewGuid(), "test", null, "Test", "Test.diff.lua");
+                var configuration = new DcsModuleConfiguration(new(Guid.NewGuid(), "NOTIFY", "Notifications"), [profile],
                     [new DcsModifier("Shift", "test", "JOY_BTN9", ModifierMode.Hold)], [], "Created in IPIA");
                 var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
                 {
@@ -37,21 +37,21 @@ namespace Heimdall.App.Smoke
                     Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100'/></svg>",
                     Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
                 };
-                var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram],
-                    [new CommandPaletteEntry("KEY", "Test action", "Keys", false)], [], [], new Dictionary<string, string>(),
+                var workspace = new DcsEditorWorkspaceSnapshot(configuration, [], [], [diagram],
+                    [new DcsCommandPaletteEntry("KEY", "Test action", "Keys", false)], [], [], new Dictionary<string, string>(),
                     new Dictionary<string, string> {
                         ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                     });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository);
+                window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository);
                 window.Show();
                 ((TextBox)window.FindName("PackageVersion")).Text = "1.0.0";
-                var context = new WindowContext(window);
+                var context = new DcsWindowContext(window);
                 var commandsView = WorkspaceUi.Navigate(window, "Commands");
-                var standalone = (CommandsManagementView)commandsView.FindName("Manager");
+                var standalone = (DcsCommandsManagementView)commandsView.FindName("Manager");
                 var assignmentsView = WorkspaceUi.Navigate(window, "Assignments");
-                var embedded = (CommandsManagementView)assignmentsView.FindName("CommandManager");
+                var embedded = (DcsCommandsManagementView)assignmentsView.FindName("CommandManager");
                 var device = (ComboBox)assignmentsView.FindName("DeviceChoice");
                 var layers = (ComboBox)assignmentsView.FindName("Layers");
                 layers.SelectedItem = "Shift";
@@ -77,11 +77,11 @@ namespace Heimdall.App.Smoke
                 WorkspaceUi.Button(assignmentsView, "Undo").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 AssertState(window, standalone, embedded, false, 0);
 
-                var slot = new DraftAssignmentSlot(configuration.Module.Id, profile.Id, AssignmentLayer.Module,
+                var slot = new DcsDraftAssignmentSlot(configuration.Module.Id, profile.Id, AssignmentLayer.Module,
                     BindingSection.Key, "JOY_BTN1", "Shift");
-                var command = new DraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
+                var command = new DcsDraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
                 context.Draft!.Assign(slot, command, OccupiedDestinationBehavior.Ask);
-                var other = new DraftCommand("OTHER", "Other action", false, AssignmentLayer.Module);
+                var other = new DcsDraftCommand("OTHER", "Other action", false, AssignmentLayer.Module);
                 context.Draft.AddCommands([other]);
                 context.Draft.Assign(slot, other, OccupiedDestinationBehavior.Ask);
                 context.Draft.Assign(slot, other, OccupiedDestinationBehavior.Ask, DraftConflictChoice.Cancel);
@@ -118,34 +118,34 @@ namespace Heimdall.App.Smoke
             }
             finally
             {
-                if (window is not null) { new WindowContext(window).Discard(); window.Close(); }
+                if (window is not null) { new DcsWindowContext(window).Discard(); window.Close(); }
                 File.Delete(path);
             }
         }
         #endregion END Public
 
         #region BEGIN private helpers
-        private static void ConfigureFilters(CommandsManagementView manager)
+        private static void ConfigureFilters(DcsCommandsManagementView manager)
         {
             ((TextBox)manager.FindName("CommandSearch")).Text = "Test";
             ((ComboBox)manager.FindName("CommandCategoryFilter")).SelectedItem = "Keys";
             ((ComboBox)manager.FindName("CommandTypeFilter")).SelectedIndex = 1;
         }
 
-        private static void SetStateFilter(CommandsManagementView manager, string value)
+        private static void SetStateFilter(DcsCommandsManagementView manager, string value)
         {
             var filter = (ComboBox)manager.FindName("CommandStateFilter");
             filter.SelectedItem = filter.Items.Cast<ComboBoxItem>().Single(x => Equals(x.Content, value));
         }
 
-        private static void AssertRows(CommandsManagementView manager, int count)
+        private static void AssertRows(DcsCommandsManagementView manager, int count)
         {
             if (((DataGrid)manager.FindName("Commands")).Items.Count != count)
                 throw new InvalidOperationException("Assignment-dependent command filter did not refresh.");
         }
 
-        private static void AssertState(DcsModuleWorkspaceWindow window, CommandsManagementView standalone,
-            CommandsManagementView embedded, bool dirty, int bound)
+        private static void AssertState(DcsModuleWorkspaceWindow window, DcsCommandsManagementView standalone,
+            DcsCommandsManagementView embedded, bool dirty, int bound)
         {
             var summary = ((TextBlock)window.FindName("PendingSummary")).Text;
             if (summary.StartsWith("Pending", StringComparison.Ordinal) != dirty ||

@@ -16,26 +16,26 @@ namespace Heimdall.App
     public partial class DcsModuleWorkspaceWindow : GameWorkspaceWindow
     {
         private bool _changingSelection;
-        private readonly WindowContext _context;
-        private readonly ModuleWorkspaceViewModel _viewModel;
+        private readonly DcsWindowContext _context;
+        private readonly DcsModuleWorkspaceViewModel _viewModel;
         private readonly IAppSettingsService? _settings;
         private readonly DcsWorkspaceOutput _output;
 
-        public DcsModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
-                                     IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
+        public DcsModuleWorkspaceWindow(DcsModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
+                                     IDcsEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
-                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
-                                     ILogger<DcsModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<SavedModuleChoice>? moduleChoices = null)
+                                     Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<DcsMappingRevisionReview, bool>? mappingReviewConfirmation = null,
+                                     ILogger<DcsModuleWorkspaceWindow>? logger = null, bool persistLayout = true, DcsTrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<DcsSavedModuleChoice>? moduleChoices = null)
         {
             ArgumentNullException.ThrowIfNull(viewModel);
             _viewModel = viewModel;
             _settings = training is null ? settings : null;
             Session = new(viewModel, repository, deviceDiscovery, training, inventory, userMappings, mappingReviewConfirmation,
                 commandFilePicker, integrationFilePicker, axisDefaultsFilePicker, inputSourceFactory, inputLogClipboardWriter);
-            _context = new WindowContext(this);
+            _context = new DcsWindowContext(this);
             InitializeComponent();
             var outputLogger = logger ?? NullLogger<DcsModuleWorkspaceWindow>.Instance;
             _output = new(Session,
@@ -82,7 +82,7 @@ namespace Heimdall.App
         /// <summary>Gets an explicit requested saved DCS profile after a guarded close.</summary>
         public Guid? RequestedModule { get; private set; }
         internal DcsWorkspaceSession Session { get; }
-        internal void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit) => Session.RunStructureEdit(edit);
+        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => Session.RunStructureEdit(edit);
         internal void UpdateBuildAvailability() => RefreshWorkspaceState();
         #endregion END Public
 
@@ -138,12 +138,12 @@ namespace Heimdall.App
 
         private async void WorkspaceProfileChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_changingSelection || WorkspaceProfilePicker.SelectedItem is not SavedModuleChoice choice || choice.Id == Session.Saved?.Configuration.Module.Id) return;
+            if (_changingSelection || WorkspaceProfilePicker.SelectedItem is not DcsSavedModuleChoice choice || choice.Id == Session.Saved?.Configuration.Module.Id) return;
             if (await ConfirmWorkspaceSwitch()) { RequestedModule = choice.Id; Close(); }
             else
             {
                 _changingSelection = true;
-                WorkspaceProfilePicker.SelectedItem = WorkspaceProfilePicker.Items.Cast<SavedModuleChoice>().FirstOrDefault(item => item.Id == Session.Saved?.Configuration.Module.Id);
+                WorkspaceProfilePicker.SelectedItem = WorkspaceProfilePicker.Items.Cast<DcsSavedModuleChoice>().FirstOrDefault(item => item.Id == Session.Saved?.Configuration.Module.Id);
                 _changingSelection = false;
             }
         }

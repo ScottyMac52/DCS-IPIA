@@ -22,7 +22,7 @@ namespace Heimdall.Tests
             var configuration = Fixture();
             var repository = new MemoryConfigurationRepository();
             var importer = new StubImporter(new(configuration, []));
-            var service = new ConfigurationImportService(importer, repository);
+            var service = new DcsConfigurationImportService(importer, repository);
             Assert.True((await service.ImportAsync(Request())).Succeeded);
             Assert.Equal(configuration, await repository.GetAsync(configuration.Module.Id));
             importer.Result = new(null, [new("bad", "bad", true)]);
@@ -32,12 +32,12 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static ModuleConfiguration Fixture()
+        private static DcsModuleConfiguration Fixture()
         {
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             return new(module, [], [], [], "test");
         }
-        private static ModuleImportRequest Request() => new(new(Guid.NewGuid(), "UH-1H", "Huey"), [], null, "test");
+        private static DcsModuleImportRequest Request() => new(new(Guid.NewGuid(), "UH-1H", "Huey"), [], null, "test");
         #endregion END private helpers
     }
 }

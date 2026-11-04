@@ -17,10 +17,10 @@ namespace Heimdall.App.Smoke
         {
             VerifyAssignmentAvailability();
             var module = new DcsModule(Guid.NewGuid(), "ACTION-TEST", "Action test");
-            var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                 new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {

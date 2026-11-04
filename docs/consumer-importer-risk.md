@@ -1,6 +1,6 @@
 # Consumer importer risk reduction
 
-The initial coverage report measured `ConsumerSourceImporter.Import` at
+The initial coverage report measured `DcsConsumerSourceImporter.Import` at
 cyclomatic complexity **220**, line coverage **90.68%**, and CRAP **259.1826**.
 Coverage alone cannot solve that concentration of logic: with 100% coverage,
 the CRAP formula still yields the method's complexity, **220**.

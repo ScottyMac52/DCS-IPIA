@@ -10,7 +10,7 @@ namespace Heimdall.Application
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
         private readonly ISupportDatabaseInspector _database;
         private readonly IHardwareInventoryRepository _inventory;
-        private readonly IEditorWorkspaceRepository _workspaces;
+        private readonly IDcsEditorWorkspaceRepository _workspaces;
         private readonly IUserMappingLibrary _mappings;
         private readonly Version _version;
         private readonly int _schema;
@@ -22,7 +22,7 @@ namespace Heimdall.Application
         /// <param name="version">Application assembly version.</param>
         /// <param name="supportedSchema">Current supported database schema.</param>
         public SupportReportService(ISupportDatabaseInspector database, IHardwareInventoryRepository inventory,
-            IEditorWorkspaceRepository workspaces, IUserMappingLibrary mappings, Version version, int supportedSchema)
+            IDcsEditorWorkspaceRepository workspaces, IUserMappingLibrary mappings, Version version, int supportedSchema)
         {
             _database = database;
             _inventory = inventory;

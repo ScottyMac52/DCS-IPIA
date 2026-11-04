@@ -219,7 +219,7 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void AssertEmptyResult(SharedLuaImportResult result)
+        private static void AssertEmptyResult(DcsSharedLuaImportResult result)
         {
             Assert.False(result.Succeeded);
             Assert.Empty(result.Controls);
@@ -228,7 +228,7 @@ namespace Heimdall.Tests
             Assert.Empty(result.Modifiers);
             Assert.Empty(result.Provenance);
         }
-        private static SharedLuaImportRequest Fixture()
+        private static DcsSharedLuaImportRequest Fixture()
         {
             var root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DcsCommon");
             string Read(string filename) => File.ReadAllText(Path.Combine(root, filename));
@@ -240,7 +240,7 @@ namespace Heimdall.Tests
             Assert.True(catalog.Succeeded);
             var files = Directory.GetFiles(Path.Combine(root, "Lua"), "*.lua", SearchOption.AllDirectories)
                             .Order(StringComparer.Ordinal)
-                            .Select(file => new SharedLuaSource(
+                            .Select(file => new DcsSharedLuaSource(
                                         Path.GetRelativePath(Path.Combine(root, "Lua"), file).Replace('\\', '/'),
                                         File.ReadAllText(file)))
                             .ToArray();

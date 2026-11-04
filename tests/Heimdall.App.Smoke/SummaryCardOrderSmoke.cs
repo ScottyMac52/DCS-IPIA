@@ -26,15 +26,15 @@ namespace Heimdall.App.Smoke
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var module = new DcsModule(Guid.NewGuid(), "DRAG-TEST", "Drag test");
-                var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
+                var workspace = new DcsEditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                     new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-                workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+                workspace = DcsModuleKneeboardPageEditor.Set(workspace, null,
                     new(KneeboardPageKind.Summary, null, "summary", "Summary", "CONTROLS", 0,
                         [new("07", "First", "red"), new("08", "Second", "green"), new("09", "Third", "blue")]));
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 WorkspaceUi.Navigate(window, "Pages");
@@ -45,16 +45,16 @@ namespace Heimdall.App.Smoke
                 if (!cards.AllowDrop || cards.ItemContainerGenerator.ContainerFromIndex(0) is not ListBoxItem)
                     throw new InvalidOperationException("Summary drag list was not realized or did not allow drops.");
                 VerifyResizing(window, cards);
-                var first = (ModuleSummaryCard)cards.Items[0];
+                var first = (DcsModuleSummaryCard)cards.Items[0];
                 var point = new Point(10, cards.ActualHeight - 5);
-                var foreign = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(new ListBox(), first));
+                var foreign = new DataObject(typeof(DcsSummaryCardDrag), new DcsSummaryCardDrag(new ListBox(), first));
                 cards.RaiseEvent(DragArgs(foreign, cards, point, DragDrop.PreviewDragOverEvent));
                 var rejected = DragArgs(foreign, cards, point, DragDrop.PreviewDropEvent);
                 cards.RaiseEvent(rejected);
                 if (!rejected.Handled) throw new InvalidOperationException("The summary preview drop handler did not run.");
                 if (rejected.Effects != DragDropEffects.None || !ReferenceEquals(cards.Items[0], first))
                     throw new InvalidOperationException("A foreign card drag changed the list.");
-                var payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, first));
+                var payload = new DataObject(typeof(DcsSummaryCardDrag), new DcsSummaryCardDrag(cards, first));
                 var over = DragArgs(payload, cards, point, DragDrop.PreviewDragOverEvent);
                 cards.RaiseEvent(over);
                 if (over.Effects != DragDropEffects.Move) throw new InvalidOperationException("A same-list drag was rejected.");
@@ -66,12 +66,12 @@ namespace Heimdall.App.Smoke
                 window.UpdateLayout();
                 var row = (ListBoxItem)cards.ItemContainerGenerator.ContainerFromIndex(0);
                 point = row.TranslatePoint(new Point(10, row.ActualHeight / 4), cards);
-                payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, (ModuleSummaryCard)cards.Items[2]));
+                payload = new DataObject(typeof(DcsSummaryCardDrag), new DcsSummaryCardDrag(cards, (DcsModuleSummaryCard)cards.Items[2]));
                 cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "First,Second,Third");
                 // Dropping before the same row must leave the same objects in place.
-                var unchanged = (ModuleSummaryCard)cards.Items[0];
-                payload = new DataObject(typeof(SummaryCardDrag), new SummaryCardDrag(cards, unchanged));
+                var unchanged = (DcsModuleSummaryCard)cards.Items[0];
+                payload = new DataObject(typeof(DcsSummaryCardDrag), new DcsSummaryCardDrag(cards, unchanged));
                 cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 if (!ReferenceEquals(unchanged, cards.Items[0])) throw new InvalidOperationException("Same-position drop changed cards.");
                 // Lower half of the last row inserts after it.
@@ -81,7 +81,7 @@ namespace Heimdall.App.Smoke
                 cards.RaiseEvent(DragArgs(payload, cards, point, DragDrop.PreviewDropEvent));
                 Check(cards, "Second,Third,First");
                 var saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
-                if (ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards[0].Key != "07")
+                if (DcsModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards[0].Key != "07")
                     throw new InvalidOperationException("A form drag bypassed Stage/Save.");
                 ((Button)WorkspaceUi.Find(window, "StageAuthoredPageButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var previous = SynchronizationContext.Current;
@@ -92,7 +92,7 @@ namespace Heimdall.App.Smoke
                 while (true)
                 {
                     saved = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
-                    var savedCards = ModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards;
+                    var savedCards = DcsModuleKneeboardPageEditor.Describe(saved, saved.Pages[0]).Cards;
                     if (savedCards[0].Text == "Second" && savedCards[0].Key == "01" &&
                         ((TextBlock)WorkspaceUi.Find(window, "PageAuthoringStatus")!).Text.Equals("Saved to database.", StringComparison.Ordinal)) break;
                     if (((TextBlock)WorkspaceUi.Find(window, "EditorMessage")!).Text.StartsWith("Database save failed:", StringComparison.Ordinal))
@@ -112,11 +112,11 @@ namespace Heimdall.App.Smoke
                 ?? throw new InvalidOperationException("Summary cards have no vertical resize handle.");
             if (!handle.Focusable || handle.ActualHeight < 8)
                 throw new InvalidOperationException("Summary resize handle is not accessible or usable.");
-            var original = cards.Items.Cast<ModuleSummaryCard>().ToArray();
+            var original = cards.Items.Cast<DcsModuleSummaryCard>().ToArray();
             var height = cards.ActualHeight;
             handle.RaiseEvent(new DragDeltaEventArgs(0, 160) { RoutedEvent = Thumb.DragDeltaEvent });
             window.UpdateLayout();
-            if (cards.ActualHeight < height + 150 || !original.SequenceEqual(cards.Items.Cast<ModuleSummaryCard>()))
+            if (cards.ActualHeight < height + 150 || !original.SequenceEqual(cards.Items.Cast<DcsModuleSummaryCard>()))
                 throw new InvalidOperationException("Resizing did not expand the list or changed its card order.");
             height = cards.Height;
             var keyboard = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, Environment.TickCount, Key.Down)
@@ -143,8 +143,8 @@ namespace Heimdall.App.Smoke
         }
         private static void Check(ListBox cards, string expected)
         {
-            if (!cards.Items.Cast<ModuleSummaryCard>().Select(x => x.Text).SequenceEqual(expected.Split(',')) ||
-                !cards.Items.Cast<ModuleSummaryCard>().Select(x => x.Key).SequenceEqual(NumberedKeys))
+            if (!cards.Items.Cast<DcsModuleSummaryCard>().Select(x => x.Text).SequenceEqual(expected.Split(',')) ||
+                !cards.Items.Cast<DcsModuleSummaryCard>().Select(x => x.Key).SequenceEqual(NumberedKeys))
                 throw new InvalidOperationException("Summary drop did not reorder and renumber the rows.");
         }
         #endregion END private helpers

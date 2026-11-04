@@ -59,7 +59,7 @@ namespace Heimdall.Application
         {
             if (diagram.CustomMapping is not null)
             {
-                UserMappingAdoption.Validate(diagram);
+                DcsUserMappingAdoption.Validate(diagram);
                 return;
             }
             if (diagram.Path.StartsWith("user-mappings/", StringComparison.Ordinal))
@@ -79,7 +79,7 @@ namespace Heimdall.Application
         }
         /// <summary>Validates pinned generic profiles and their saved inputs before persistence or export.</summary>
         /// <param name="workspace">Module-owned snapshot.</param>
-        public static void ValidateWorkspace(EditorWorkspaceSnapshot workspace)
+        public static void ValidateWorkspace(DcsEditorWorkspaceSnapshot workspace)
         {
             foreach (var diagram in workspace.Diagrams)
             {
@@ -97,7 +97,7 @@ namespace Heimdall.Application
                     if (!diagram.Controls.Any(x => x.IsAxis == (assignment.Slot.Section == Domain.BindingSection.Axis) &&
                         DcsInputKey.SamePhysicalInput(x.InputKey, assignment.Slot.InputKey)))
                         throw new InvalidDataException("A generic assignment references an unsupported control.");
-                foreach (var modifier in (WorkspaceManagement.Read(workspace)?.Modifiers ?? []).Where(x => x.ProfileId == diagram.ProfileId))
+                foreach (var modifier in (DcsWorkspaceManagement.Read(workspace)?.Modifiers ?? []).Where(x => x.ProfileId == diagram.ProfileId))
                     if (!diagram.Controls.Any(x => !x.IsAxis && DcsInputKey.SamePhysicalInput(x.InputKey, modifier.Key)))
                         throw new InvalidDataException("A generic modifier references an unsupported digital control.");
             }

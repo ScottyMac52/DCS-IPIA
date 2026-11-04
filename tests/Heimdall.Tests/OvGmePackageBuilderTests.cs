@@ -18,13 +18,13 @@ namespace Heimdall.Tests
         {
             var payload = BasePayload();
             payload["Config/Input/UH-1H/keyboard/Keyboard.diff.lua"] = Profile;
-            var package = OvGmePackageBuilder.Build(Input(payload));
-            OvGmePackageVerifier.Verify(package);
+            var package = DcsOvGmePackageBuilder.Build(Input(payload));
+            DcsOvGmePackageVerifier.Verify(package);
             using var stream = new MemoryStream(package.Bytes);
             using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
             Assert.Equal(Profile, Read(zip.GetEntry("DCS-UH-1H-Components-v1-OVGME/Config/Input/UH-1H/keyboard/Keyboard.diff.lua")!));
             var nested = Repack(package, _ => true, "DCS-UH-1H-Components-v1-OVGME/Config/Input/UH-1H/keyboard/nested/Keyboard.diff.lua");
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(nested));
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(nested));
         }
 
         /// <summary>Archive structure matches the consumer package contract, independent of input order.</summary>
@@ -39,8 +39,8 @@ namespace Heimdall.Tests
                                                            ["Config/Input/UH-1H/modifiers.lua"] =
                                                                Encoding.UTF8.GetBytes("return {}") });
             var b = Input(a.Payload.Reverse().ToDictionary(x => x.Key, x => x.Value));
-            var first = OvGmePackageBuilder.Build(a);
-            var second = OvGmePackageBuilder.Build(b);
+            var first = DcsOvGmePackageBuilder.Build(a);
+            var second = DcsOvGmePackageBuilder.Build(b);
             Assert.Equal(first.Bytes, second.Bytes);
             Assert.Equal("DCS-UH-1H-Components-v1-OVGME.zip", first.FileName);
             Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(first.Bytes)), first.Sha256);
@@ -71,36 +71,36 @@ namespace Heimdall.Tests
         [Fact]
         public void VerifiesCompletedArchiveAndRejectsMalformedRepackedBytes()
         {
-            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
-            Assert.Equal(package.Sha256, OvGmePackageVerifier.Verify(package));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            var package = DcsOvGmePackageBuilder.Build(Input(BasePayload()));
+            Assert.Equal(package.Sha256, DcsOvGmePackageVerifier.Verify(package));
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 package with { Sha256 = new string('0', 64) }));
             var root = package.FileName[..^".zip".Length] + "/";
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != root)));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, _ => true, root + "Config/Input/UH-1H/joystick/rogue.txt")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, _ => true, root + "KNEEBOARD/UH-1H/01-mfd.png")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 package with { FileName = "wrong.zip" }));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != "README.TXT")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != "VERSION.TXT")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != root + "Config/Input/UH-1H/joystick/MFD.diff.lua")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != root + "KNEEBOARD/UH-1H/01-MFD.png")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, path => path != root + "KNEEBOARD/UH-1H/")));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(package, _ => true, root + "Config/Input/UH-1H/joystick/empty.diff.lua", true)));
             var uiPayload = BasePayload();
             uiPayload["Config/Input/UiLayer/joystick/MFD.diff.lua"] = Profile;
             uiPayload["Config/Input/UiLayer/modifiers.lua"] = Encoding.UTF8.GetBytes("return {}");
-            var uiPackage = OvGmePackageBuilder.Build(Input(uiPayload));
-            Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(
+            var uiPackage = DcsOvGmePackageBuilder.Build(Input(uiPayload));
+            Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(
                 Repack(uiPackage, path => !path.EndsWith("/UiLayer/modifiers.lua", StringComparison.Ordinal))));
         }
 
@@ -108,13 +108,13 @@ namespace Heimdall.Tests
         [Fact]
         public void WriterRejectsMalformedArchiveWithoutPublishingArtifacts()
         {
-            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            var package = DcsOvGmePackageBuilder.Build(Input(BasePayload()));
             var bad = Repack(package, path => path != package.FileName[..^".zip".Length] + "/");
             var folder = Path.Combine(Path.GetTempPath(), "ipia-verify-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             try
             {
-                Assert.Throws<InvalidDataException>(() => global::Heimdall.Dcs.OvGmeArtifactWriter.Write(bad, folder));
+                Assert.Throws<InvalidDataException>(() => global::Heimdall.Dcs.DcsOvGmeArtifactWriter.Write(bad, folder));
                 Assert.Empty(Directory.GetFiles(folder));
             }
             finally
@@ -136,7 +136,7 @@ namespace Heimdall.Tests
         {
             var payload = BasePayload();
             payload[path] = Profile;
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(payload)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(payload)));
         }
         /// <summary>Case-insensitive collision cannot overwrite a Windows Saved Games file.</summary>
         [Fact]
@@ -144,22 +144,22 @@ namespace Heimdall.Tests
         {
             var payload = BasePayload();
             payload["KNEEBOARD/UH-1H/01-mfd.png"] = Png;
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(payload)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(payload)));
         }
         /// <summary>At least one source profile, image, and UI modifier file are mandatory as applicable.</summary>
         [Fact]
         public void Rejects_incomplete_payloads()
         {
             var noProfile = new Dictionary<string, byte[]> { { "KNEEBOARD/UH-1H/01-MFD.png", Png } };
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(noProfile)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(noProfile)));
             var noPng = new Dictionary<string, byte[]> { { "Config/Input/UH-1H/joystick/MFD.diff.lua", Profile } };
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(noPng)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(noPng)));
             var noUiModifiers = BasePayload();
             noUiModifiers["Config/Input/UiLayer/joystick/MFD.diff.lua"] = Profile;
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(noUiModifiers)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(noUiModifiers)));
             var nullFile = BasePayload();
             nullFile["KNEEBOARD/UH-1H/02-MFD.png"] = null!;
-            Assert.Throws<ArgumentException>(() => OvGmePackageBuilder.Build(Input(nullFile)));
+            Assert.Throws<ArgumentException>(() => DcsOvGmePackageBuilder.Build(Input(nullFile)));
         }
         /// <summary>Package names and versions cannot become paths in the archive.</summary>
         [Theory]
@@ -170,7 +170,7 @@ namespace Heimdall.Tests
         public void Rejects_bad_identifiers(string packageId, string moduleId, string version)
         {
             Assert.Throws<ArgumentException>(
-                () => OvGmePackageBuilder.Build(new(packageId, moduleId, version, BasePayload())));
+                () => DcsOvGmePackageBuilder.Build(new(packageId, moduleId, version, BasePayload())));
         }
         /// <summary>The independent verifier rejects unsafe repacked entries even with a valid checksum.</summary>
         [Theory]
@@ -181,8 +181,8 @@ namespace Heimdall.Tests
         [InlineData("directory/")]
         public void Verifier_rejects_unsafe_or_nonempty_entries(string extra)
         {
-            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
-            var error = Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(Repack(package, _ => true, extra)));
+            var package = DcsOvGmePackageBuilder.Build(Input(BasePayload()));
+            var error = Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(Repack(package, _ => true, extra)));
             Assert.StartsWith("Invalid OvGME archive:", error.Message, StringComparison.Ordinal);
         }
 
@@ -196,14 +196,14 @@ namespace Heimdall.Tests
         [InlineData("KNEEBOARD/UH-1H/hidden.txt")]
         public void Verifier_rejects_unexpected_payload_families(string relative)
         {
-            var package = OvGmePackageBuilder.Build(Input(BasePayload()));
+            var package = DcsOvGmePackageBuilder.Build(Input(BasePayload()));
             var root = package.FileName[..^".zip".Length] + "/";
-            var error = Assert.Throws<InvalidDataException>(() => OvGmePackageVerifier.Verify(Repack(package, _ => true, root + relative)));
+            var error = Assert.Throws<InvalidDataException>(() => DcsOvGmePackageVerifier.Verify(Repack(package, _ => true, root + relative)));
             Assert.Contains("Unexpected or empty OvGME payload", error.Message, StringComparison.Ordinal);
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static OvGmePackage Repack(OvGmePackage package, Func<string, bool> include,
+        private static DcsOvGmePackage Repack(DcsOvGmePackage package, Func<string, bool> include,
                                             string? extra = null, bool empty = false)
         {
             using var input = new MemoryStream(package.Bytes);
@@ -232,7 +232,7 @@ namespace Heimdall.Tests
             return package with { Bytes = bytes, Sha256 = sha,
                                   ChecksumLine = $"{sha}  {package.FileName}\n" };
         }
-        private static OvGmePackageInput Input(IReadOnlyDictionary<string, byte[]> payload) =>
+        private static DcsOvGmePackageInput Input(IReadOnlyDictionary<string, byte[]> payload) =>
             new("DCS-UH-1H-Components", "UH-1H", "v1", payload);
         private static Dictionary<string, byte[]> BasePayload() =>
             new() { ["Config/Input/UH-1H/joystick/MFD.diff.lua"] = Profile, ["KNEEBOARD/UH-1H/01-MFD.png"] = Png };

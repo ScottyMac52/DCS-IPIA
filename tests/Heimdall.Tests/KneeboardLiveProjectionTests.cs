@@ -13,18 +13,18 @@ namespace Heimdall.Tests
         {
             var page = Example();
             var baseline = new Dictionary<AssignmentLayer, string>();
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "button", baseline));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "shift-only", baseline));
-            var baseImage = KneeboardLiveProjection.Focus(page, baseline);
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "button", baseline));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "shift-only", baseline));
+            var baseImage = DcsKneeboardLiveProjection.Focus(page, baseline);
             Assert.Equal("#ffffff", baseImage.Labels["button"][0].Color);
-            Assert.Equal(KneeboardLiveProjection.InactiveLabelColor, baseImage.Labels["button"][1].Color);
+            Assert.Equal(DcsKneeboardLiveProjection.InactiveLabelColor, baseImage.Labels["button"][1].Color);
 
             var held = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
-            Assert.Equal("#dc2626", KneeboardLiveProjection.ActiveColor(page, "button", held));
-            Assert.Equal("#dc2626", KneeboardLiveProjection.ActiveColor(page, "shift-only", held));
-            var shiftedImage = KneeboardLiveProjection.Focus(page, held);
-            Assert.Equal(KneeboardLiveProjection.InactiveLabelColor, shiftedImage.Labels["button"][0].Color);
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "button", held));
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "shift-only", held));
+            var shiftedImage = DcsKneeboardLiveProjection.Focus(page, held);
+            Assert.Equal(DcsKneeboardLiveProjection.InactiveLabelColor, shiftedImage.Labels["button"][0].Color);
             Assert.Equal("#dc2626", shiftedImage.Labels["button"][1].Color);
             Assert.Equal("#ffffff", page.Labels["button"][0].Color); // Immutable export source.
         }
@@ -37,13 +37,13 @@ namespace Heimdall.Tests
             var active = new Dictionary<AssignmentLayer, string> {
                 [AssignmentLayer.Module] = "ARM+S3", [AssignmentLayer.UiLayer] = "UI"
             };
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "button", active));
-            Assert.Equal("#7c3aed", KneeboardLiveProjection.ActiveColor(page, "ui", active));
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "unmapped", active));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "button", active));
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "ui", active));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "unmapped", active));
             active[AssignmentLayer.Module] = "S3";
-            Assert.Equal("#dc2626", KneeboardLiveProjection.ActiveColor(page, "button", active));
-            Assert.Equal("#7c3aed", KneeboardLiveProjection.ActiveColor(page, "ui", active));
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "button", active));
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "ui", active));
         }
 
         /// <summary>UI Layer SHIFT replaces Module Base for paired positions of one physical button.</summary>
@@ -63,21 +63,21 @@ namespace Heimdall.Tests
                 new("shifted", "Shifted", "JOY_BTN1", 0, 30, 20, 20)
             ];
             var active = new Dictionary<AssignmentLayer, string>();
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "base", controls, active));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "base", controls, active));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
 
             active[AssignmentLayer.UiLayer] = "UI_SHIFT";
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "base", controls, active));
-            Assert.Equal("#7c3aed", KneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
-            var focused = KneeboardLiveProjection.Focus(page, controls, active);
-            Assert.Equal(KneeboardLiveProjection.InactiveLabelColor, focused.Labels["base"][0].Color);
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "base", controls, active));
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
+            var focused = DcsKneeboardLiveProjection.Focus(page, controls, active);
+            Assert.Equal(DcsKneeboardLiveProjection.InactiveLabelColor, focused.Labels["base"][0].Color);
             Assert.Equal("#7c3aed", focused.Labels["shifted"][0].Color);
 
             active[AssignmentLayer.UiLayer] = "";
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "base", controls, active));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "base", controls, active));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "shifted", controls, active));
             Assert.Equal("#ffffff", page.Labels["base"][0].Color);
         }
 
@@ -97,16 +97,16 @@ namespace Heimdall.Tests
                 new("ui", "UI", "JOY_BTN1", 0, 50, 20, 20)
             ];
             var state = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
-            Assert.Equal("#dc2626", KneeboardLiveProjection.ActiveColor(page, "module", controls, state));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "base", controls, state));
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "module", controls, state));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "base", controls, state));
             state[AssignmentLayer.UiLayer] = "UI_SHIFT";
-            Assert.Equal("#7c3aed", KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "module", controls, state));
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "module", controls, state));
             state[AssignmentLayer.Module] = "";
-            Assert.Equal("#7c3aed", KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
             state[AssignmentLayer.UiLayer] = "OTHER";
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "base", controls, state));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "base", controls, state));
         }
 
         /// <summary>UI Layer Base keeps its cyan identity and exact scope matching.</summary>
@@ -120,9 +120,9 @@ namespace Heimdall.Tests
             HardwareGraphicControl[] controls = [new("ui", "UI", "JOY_BTN2", 0, 0, 20, 20)];
             var state = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
             Assert.Equal("#0891b2",
-                KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
+                DcsKneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
             state[AssignmentLayer.UiLayer] = "UI_SHIFT";
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
         }
         #endregion END Public
 

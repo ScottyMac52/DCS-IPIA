@@ -23,13 +23,13 @@ namespace Heimdall.Tests
         {
             await new SqliteMigrationRunner(Connection).MigrateAsync();
             await new SqliteMigrationRunner(Connection).MigrateAsync();
-            var repository = new SqliteConfigurationRepository(Connection);
+            var repository = new DcsSqliteConfigurationRepository(Connection);
             var value = Fixture("first");
             Assert.Null(await repository.GetAsync(value.Module.Id));
             await repository.ReplaceAsync(value);
             Assert.Equal(
-                ConfigurationSnapshotSerializer.Serialize([value]).Content,
-                ConfigurationSnapshotSerializer
+                DcsConfigurationSnapshotSerializer.Serialize([value]).Content,
+                DcsConfigurationSnapshotSerializer
                     .Serialize([await repository.GetAsync(value.Module.Id) ?? throw new InvalidOperationException()])
                     .Content);
             Assert.Single(await repository.ListAsync());
@@ -83,10 +83,10 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static ModuleConfiguration Fixture(string provenance)
+        private static DcsModuleConfiguration Fixture(string provenance)
         {
             var module = new DcsModule(Guid.Parse("11111111-1111-1111-1111-111111111111"), "UH-1H", "Huey");
-            var profile = new DeviceProfile(Guid.Parse("22222222-2222-2222-2222-222222222222"), "moza-ab9-hornet-grip",
+            var profile = new DcsDeviceProfile(Guid.Parse("22222222-2222-2222-2222-222222222222"), "moza-ab9-hornet-grip",
                                             null, "cyclic", "MOZA.diff.lua");
             var modifier = new DcsModifier("SHIFT", "MOZA", "JOY_BTN3", ModifierMode.Hold);
             var binding = new DcsBinding(profile.Id, BindingSection.Axis, "a1", "Roll", BindingDisposition.Added,

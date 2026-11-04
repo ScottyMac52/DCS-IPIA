@@ -23,17 +23,17 @@ namespace Heimdall.App.Smoke
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var module = new DcsModule(Guid.NewGuid(), "PAGE-DRAG", "Page drag");
-                var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
+                var workspace = new DcsEditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                     new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
                 for (var i = 0; i < 3; i++)
-                    workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+                    workspace = DcsModuleKneeboardPageEditor.Set(workspace, null,
                         new(KneeboardPageKind.Summary, null, "summary-" + i, "Summary " + i, "CONTROLS", i + 10,
                             [new("01", "Card " + i, "cyan")]));
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var original = workspace.Pages.ToArray();
-                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 WorkspaceUi.Navigate(window, "Pages");
@@ -43,12 +43,12 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Page rows do not support output-order drag/drop.");
                 var first = (KneeboardPage)pages.Items[0];
                 var point = new Point(10, pages.ActualHeight - 5);
-                var foreign = new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(new DataGrid(), first));
+                var foreign = new DataObject(typeof(DcsKneeboardPageDrag), new DcsKneeboardPageDrag(new DataGrid(), first));
                 var rejected = DragArgs(foreign, pages, point, DragDrop.PreviewDropEvent);
                 pages.RaiseEvent(rejected);
                 if (!rejected.Handled || rejected.Effects != DragDropEffects.None || !ReferenceEquals(first, pages.Items[0]))
                     throw new InvalidOperationException("A foreign page drag changed the draft.");
-                var payload = new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(pages, first));
+                var payload = new DataObject(typeof(DcsKneeboardPageDrag), new DcsKneeboardPageDrag(pages, first));
                 var over = DragArgs(payload, pages, point, DragDrop.PreviewDragOverEvent);
                 pages.RaiseEvent(over);
                 if (over.Effects != DragDropEffects.Move) throw new InvalidOperationException("A current page drag was rejected.");
@@ -59,11 +59,11 @@ namespace Heimdall.App.Smoke
                 window.UpdateLayout();
                 var row = (DataGridRow)pages.ItemContainerGenerator.ContainerFromIndex(0);
                 point = row.TranslatePoint(new Point(10, row.ActualHeight / 4), pages);
-                payload = new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(pages, (KneeboardPage)pages.Items[2]));
+                payload = new DataObject(typeof(DcsKneeboardPageDrag), new DcsKneeboardPageDrag(pages, (KneeboardPage)pages.Items[2]));
                 pages.RaiseEvent(DragArgs(payload, pages, point, DragDrop.PreviewDropEvent));
                 Check(pages, original.Select(x => x.Id).ToArray());
                 var unchanged = (KneeboardPage)pages.Items[0];
-                payload = new DataObject(typeof(KneeboardPageDrag), new KneeboardPageDrag(pages, unchanged));
+                payload = new DataObject(typeof(DcsKneeboardPageDrag), new DcsKneeboardPageDrag(pages, unchanged));
                 pages.RaiseEvent(DragArgs(payload, pages, point, DragDrop.PreviewDropEvent));
                 if (!ReferenceEquals(unchanged, pages.Items[0])) throw new InvalidOperationException("An unchanged drop rewrote the pages.");
                 window.UpdateLayout();
@@ -88,8 +88,8 @@ namespace Heimdall.App.Smoke
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
                 }
                 foreach (var page in original)
-                    if (ModuleKneeboardPageEditor.Describe(saved, saved.Pages.Single(x => x.Id == page.Id)).Cards.Single().Text !=
-                        ModuleKneeboardPageEditor.Describe(workspace, page).Cards.Single().Text)
+                    if (DcsModuleKneeboardPageEditor.Describe(saved, saved.Pages.Single(x => x.Id == page.Id)).Cards.Single().Text !=
+                        DcsModuleKneeboardPageEditor.Describe(workspace, page).Cards.Single().Text)
                         throw new InvalidOperationException("Page reordering changed summary content.");
                 window.Close();
             }

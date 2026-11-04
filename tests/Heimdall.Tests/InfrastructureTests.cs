@@ -25,7 +25,7 @@ namespace Heimdall.Tests
             var migration = new SqliteMigrationRunner(Connection);
             await migration.MigrateAsync();
             await migration.MigrateAsync();
-            var repo = new SqliteModuleRepository(Connection);
+            var repo = new DcsSqliteModuleRepository(Connection);
             var id = Guid.NewGuid();
             Assert.Null(await repo.GetAsync(id));
             await repo.UpsertAsync(new DcsModule(id, "UH-1H", "Huey"));

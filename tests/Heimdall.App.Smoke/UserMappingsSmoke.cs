@@ -77,14 +77,14 @@ namespace Heimdall.App.Smoke
                 if (!File.Exists(starter) || DrawioMappingFileImport.Load(starter, definition, "smoke").MappedInputs.Count != 4)
                     throw new InvalidOperationException("The starter export lost native inputs.");
                 reopened.Close();
-                var defaults = new SharedUiLayerWorkspace(0, new string('a', 40), new Dictionary<string, string>
+                var defaults = new DcsSharedUiLayerWorkspace(0, new string('a', 40), new Dictionary<string, string>
                 { ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"id":"pause","command":"d3001pnilu3001cdnilvd1vpnilvunil","label":"Pause","category":"General"}]}""" });
-                var workspace = NewModuleWorkspaceFactory.Create("MAPPING-SMOKE", "Mapping smoke", defaults,
+                var workspace = DcsNewModuleWorkspaceFactory.Create("MAPPING-SMOKE", "Mapping smoke", defaults,
                     new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true);
-                workspace = InventoryHardwareAuthoring.Add(workspace, new(new(Guid.NewGuid(), "Panel", definition.Id, "Panel", "", true, []), definition), AssignmentLayer.Module);
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                workspace = DcsInventoryHardwareAuthoring.Add(workspace, new(new(Guid.NewGuid(), "Panel", definition.Id, "Panel", "", true, []), definition), AssignmentLayer.Module);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new GameSmokeDiscovery(), userMappings: library, mappingReviewConfirmation: _ => true);
+                var editor = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new GameSmokeDiscovery(), userMappings: library, mappingReviewConfirmation: _ => true);
                 editor.Show();
                 var choices = (ComboBox)WorkspaceUi.Find(editor, "CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
@@ -101,7 +101,7 @@ namespace Heimdall.App.Smoke
                 var next = DrawioMappingImporter.Import(revision.Source.Replace("fillColor=#ffffff", "fillColor=#eeeeee", StringComparison.Ordinal),
                     definition, revision.SourceName, revision.ApplicationVersion);
                 library.SaveAsync(next).GetAwaiter().GetResult();
-                var reviewWindow = new MappingRevisionReviewWindow(next, repository);
+                var reviewWindow = new DcsMappingRevisionReviewWindow(next, repository);
                 reviewWindow.Show();
                 Pump(reviewWindow, () => WorkspaceUi.Find(reviewWindow, "RevisionTarget_0") is CheckBox);
                 Click((Button)WorkspaceUi.Find(reviewWindow, "PreviewRevisionTarget_0")!);
@@ -136,7 +136,7 @@ namespace Heimdall.App.Smoke
                 if (!File.Exists(portableBundle) || portableLibrary.ListAsync().GetAwaiter().GetResult().Count != 0)
                     throw new InvalidOperationException("A portable module pin could not export without silently publishing a library entry.");
                 pinnedTools.Close();
-                var bundledSources = ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
+                var bundledSources = DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
                 var mfd = JsonSerializer.Deserialize<WorkspaceHardware[]>(bundledSources["config/ipia-hardware.json"])!.First(x => x.DeviceId == "tm-mfd");
                 var mfdCapabilities = ControllerCapabilityMapper.Map(Enumerable.Range(0, 28).Select(x =>
                     new ControllerObject(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12u | ((uint)x << 8), "Button " + (x + 1))));
@@ -176,12 +176,12 @@ namespace Heimdall.App.Smoke
                 var savedEdited = library.ListAsync().GetAwaiter().GetResult().Single(x => x.SourceName == "tm-mfd(1).drawio");
                 if (savedEdited.ExporterVersion != "ipia-drawio-4" || savedEdited.Controls.Count != 48 || savedEdited.MappedInputs.Count != 28)
                     throw new InvalidOperationException("Renamed edited MFD preview did not preserve its native controls.");
-                var mfdWorkspace = NewModuleWorkspaceFactory.Create("GLOBAL-MFD-SMOKE", "Global MFD smoke", defaults,
+                var mfdWorkspace = DcsNewModuleWorkspaceFactory.Create("GLOBAL-MFD-SMOKE", "Global MFD smoke", defaults,
                     new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true);
-                mfdWorkspace = WorkspaceStructureEditor.AddDevice(mfdWorkspace, mfd, AssignmentLayer.Module,
+                mfdWorkspace = DcsWorkspaceStructureEditor.AddDevice(mfdWorkspace, mfd, AssignmentLayer.Module,
                     "MFD {22222222-2222-2222-2222-222222222222}.diff.lua", "Left", "Pilot");
                 repository.SaveAsync(mfdWorkspace).GetAwaiter().GetResult();
-                var globalReview = new MappingRevisionReviewWindow(savedMfd, repository);
+                var globalReview = new DcsMappingRevisionReviewWindow(savedMfd, repository);
                 globalReview.Show();
                 Pump(globalReview, () => WorkspaceUi.Find(globalReview, "RevisionTarget_1") is CheckBox);
                 var targets = Enumerable.Range(0, 2).Select(i => (Index: i, Choice: (CheckBox)WorkspaceUi.Find(globalReview, "RevisionTarget_" + i)!)).ToArray();
@@ -196,7 +196,7 @@ namespace Heimdall.App.Smoke
                 var changedMfd = repository.GetAsync(mfdWorkspace.Configuration.Module.Id).GetAwaiter().GetResult()!;
                 if (changedMfd.Diagrams.Single().OriginalDrawing is null || changedMfd.Diagrams.Single().CustomMapping?.Id != savedMfd.Id)
                     throw new InvalidOperationException("Global MFD replacement did not retain the original built-in artwork.");
-                var rollbackReview = new MappingRevisionReviewWindow(savedMfd, repository);
+                var rollbackReview = new DcsMappingRevisionReviewWindow(savedMfd, repository);
                 rollbackReview.Show();
                 Pump(rollbackReview, () => WorkspaceUi.Find(rollbackReview, "RevisionTarget_1") is CheckBox);
                 var originalButton = Enumerable.Range(0, 2).Select(i => WorkspaceUi.Find(rollbackReview, "RestoreOriginalDrawing_" + i)).OfType<Button>().Single();
@@ -219,7 +219,7 @@ namespace Heimdall.App.Smoke
         {
             var view = WorkspaceUi.Navigate(editor, "Devices");
             var devices = (DataGrid)view.FindName("ManagedDevices");
-            devices.SelectedItem = devices.Items.Cast<WorkspaceDevice>().Single(device => device.ProfileId == profileId);
+            devices.SelectedItem = devices.Items.Cast<DcsWorkspaceDevice>().Single(device => device.ProfileId == profileId);
             var unlink = (Button)view.FindName("UnlinkDrawingButton");
             var apply = (Button)view.FindName("ApplyCustomDrawingButton");
             var status = (TextBlock)view.FindName("StatusMessage");
@@ -258,7 +258,7 @@ namespace Heimdall.App.Smoke
             var retained = (Button)view.FindName("UseRetainedDrawingButton");
             if (model.DrawingUnlinked != !linked || apply.IsEnabled != !linked ||
                 unlink.IsEnabled != linked || retained.IsEnabled != !linked ||
-                devices.SelectedItem is not WorkspaceDevice selected || selected.ProfileId != profileId)
+                devices.SelectedItem is not DcsWorkspaceDevice selected || selected.ProfileId != profileId)
                 throw new InvalidOperationException("Drawing link refresh failed: linked=" + linked +
                     ", modelUnlinked=" + model.DrawingUnlinked + ", apply=" + apply.IsEnabled +
                     ", unlink=" + unlink.IsEnabled + ", retained=" + retained.IsEnabled + ". " +

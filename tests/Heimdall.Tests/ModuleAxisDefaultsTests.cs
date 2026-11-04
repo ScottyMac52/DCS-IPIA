@@ -27,14 +27,14 @@ namespace Heimdall.Tests
         public void Render_SuppressesDefaultsByCommandAxisAndChord()
         {
             var workspace = Workspace();
-            var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X"),
+            var assignment = new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X"),
                 new("a2001cdnil", "Pitch", true, AssignmentLayer.Module)) { Filter = new(Deadzone: 4, Invert: true) };
             workspace = workspace with { Assignments = [assignment] };
-            var imported = ModuleAxisDefaults.Import(workspace, ProfileId, AssignmentLayer.Module, Defaults);
+            var imported = DcsModuleAxisDefaults.Import(workspace, ProfileId, AssignmentLayer.Module, Defaults);
             Assert.Empty(workspace.Sources!);
             Assert.Equal(workspace.Assignments, imported.Assignments);
-            var lua = ModuleLuaProfileRenderer.Render(imported, ProfileId);
-            Assert.Equal(lua, ModuleLuaProfileRenderer.Render(EditorSnapshotSerializer.Deserialize(EditorSnapshotSerializer.Serialize(imported)), ProfileId));
+            var lua = DcsModuleLuaProfileRenderer.Render(imported, ProfileId);
+            Assert.Equal(lua, DcsModuleLuaProfileRenderer.Render(DcsEditorSnapshotSerializer.Deserialize(DcsEditorSnapshotSerializer.Serialize(imported)), ProfileId));
             var bindings = DcsLuaParser.ParseProfile(lua, ProfileId);
             var active = Assert.Single(bindings, x => x.Disposition != BindingDisposition.Removed);
             Assert.Equal("a2001cdnil", active.CommandId);
@@ -47,10 +47,10 @@ namespace Heimdall.Tests
             Assert.DoesNotContain(bindings, x => x.Section == BindingSection.Key);
             var restored = imported with { Configuration = new(imported.Configuration.Module, imported.Configuration.Profiles, [],
                 [new(ProfileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Removed, "JOY_X")], "test") };
-            Assert.DoesNotContain(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
+            Assert.DoesNotContain(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
                 x => x.CommandId == "a2001cdnil" && x.Disposition == BindingDisposition.Removed);
             var shifted = imported with { Assignments = [assignment with { Slot = assignment.Slot with { ModifierChord = "SHIFT" } }] };
-            Assert.Contains(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(shifted, ProfileId), ProfileId),
+            Assert.Contains(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(shifted, ProfileId), ProfileId),
                 x => x.CommandId == "a2001cdnil" && x.Reformers.Count == 0 && x.Disposition == BindingDisposition.Removed);
         }
 
@@ -58,17 +58,17 @@ namespace Heimdall.Tests
         [Fact]
         public void Clear_PreservesDefaultsAndScopeIsolation()
         {
-            var workspace = ModuleAxisDefaults.Import(Workspace(), ProfileId, AssignmentLayer.Module, Defaults);
-            var device = WorkspaceStructureEditor.Describe(workspace).Devices.Single();
-            var cleared = WorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "");
-            Assert.All(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId),
+            var workspace = DcsModuleAxisDefaults.Import(Workspace(), ProfileId, AssignmentLayer.Module, Defaults);
+            var device = DcsWorkspaceStructureEditor.Describe(workspace).Devices.Single();
+            var cleared = DcsWorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "");
+            Assert.All(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId),
                 x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
-            cleared = WorkspaceStructureEditor.ClearDeviceAssignments(cleared, device);
-            Assert.Equal(5, DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId).Count);
-            Assert.Empty(ModuleAxisDefaults.Apply(workspace, ProfileId, AssignmentLayer.UiLayer, []));
-            Assert.Empty(ModuleAxisDefaults.Apply(workspace, Guid.NewGuid(), AssignmentLayer.Module, []));
-            var existing = ModuleAxisDefaults.Review(workspace, ProfileId, AssignmentLayer.Module, Defaults);
-            Assert.Equal(5, ModuleAxisDefaults.Apply(workspace, ProfileId, AssignmentLayer.Module, existing).Count);
+            cleared = DcsWorkspaceStructureEditor.ClearDeviceAssignments(cleared, device);
+            Assert.Equal(5, DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId).Count);
+            Assert.Empty(DcsModuleAxisDefaults.Apply(workspace, ProfileId, AssignmentLayer.UiLayer, []));
+            Assert.Empty(DcsModuleAxisDefaults.Apply(workspace, Guid.NewGuid(), AssignmentLayer.Module, []));
+            var existing = DcsModuleAxisDefaults.Review(workspace, ProfileId, AssignmentLayer.Module, Defaults);
+            Assert.Equal(5, DcsModuleAxisDefaults.Apply(workspace, ProfileId, AssignmentLayer.Module, existing).Count);
         }
 
         /// <summary>Unmapped or cleared imported axes become removals while unmapped key history survives.</summary>
@@ -82,11 +82,11 @@ namespace Heimdall.Tests
             workspace = workspace with { Configuration = new(configuration.Module, configuration.Profiles, [],
                 [new(ProfileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Changed, axis),
                  new(ProfileId, BindingSection.Key, "KEY", "Key", BindingDisposition.Added, "JOY_BTN99")], "test") };
-            var bindings = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace, ProfileId), ProfileId);
+            var bindings = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(workspace, ProfileId), ProfileId);
             Assert.Contains(bindings, x => x.InputKey == axis && x.Disposition == BindingDisposition.Removed);
             Assert.Contains(bindings, x => x.InputKey == "JOY_BTN99" && x.Disposition == BindingDisposition.Added);
-            var cleared = WorkspaceStructureEditor.ClearDeviceAssignments(workspace, WorkspaceStructureEditor.Describe(workspace).Devices.Single());
-            Assert.Equal(BindingDisposition.Removed, Assert.Single(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId)).Disposition);
+            var cleared = DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, DcsWorkspaceStructureEditor.Describe(workspace).Devices.Single());
+            Assert.Equal(BindingDisposition.Removed, Assert.Single(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId)).Disposition);
         }
 
         /// <summary>Clearing a chord removes its authored axis and preserves the other chord.</summary>
@@ -96,16 +96,16 @@ namespace Heimdall.Tests
             var workspace = Workspace();
             workspace = workspace with { Configuration = new(workspace.Configuration.Module, workspace.Configuration.Profiles,
                 [new("SHIFT", "Keyboard", "LShift", ModifierMode.Hold)], [], "test") };
-            var command = new DraftCommand("a2001cdnil", "Pitch", true, AssignmentLayer.Module);
-            var slot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
+            var command = new DcsDraftCommand("a2001cdnil", "Pitch", true, AssignmentLayer.Module);
+            var slot = new DcsDraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             workspace = workspace with { Assignments = [new(slot, command), new(slot with { ModifierChord = "SHIFT" }, command)] };
-            var device = WorkspaceStructureEditor.Describe(workspace).Devices.Single();
-            var cleared = WorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "SHIFT");
-            var bindings = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId);
+            var device = DcsWorkspaceStructureEditor.Describe(workspace).Devices.Single();
+            var cleared = DcsWorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "SHIFT");
+            var bindings = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId);
             Assert.Contains(bindings, x => x.Reformers.Count == 0 && x.Disposition == BindingDisposition.Added);
             Assert.Contains(bindings, x => x.Reformers.SingleOrDefault() == "SHIFT" && x.Disposition == BindingDisposition.Removed);
-            cleared = WorkspaceStructureEditor.ClearDeviceAssignments(cleared, device);
-            Assert.All(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId),
+            cleared = DcsWorkspaceStructureEditor.ClearDeviceAssignments(cleared, device);
+            Assert.All(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId),
                 x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
         }
 
@@ -115,17 +115,17 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace();
             var hardware = new WorkspaceHardware("Stick", "Stick", "Stick.diff.lua", workspace.Diagrams[0]);
-            workspace = WorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", null, null);
-            var device = WorkspaceStructureEditor.Describe(workspace).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            workspace = ModuleAxisDefaults.Import(workspace, device.ProfileId, AssignmentLayer.UiLayer, Defaults);
-            var command = new DraftCommand("a2001cdnil", "Pitch", true, AssignmentLayer.UiLayer);
+            workspace = DcsWorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", null, null);
+            var device = DcsWorkspaceStructureEditor.Describe(workspace).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            workspace = DcsModuleAxisDefaults.Import(workspace, device.ProfileId, AssignmentLayer.UiLayer, Defaults);
+            var command = new DcsDraftCommand("a2001cdnil", "Pitch", true, AssignmentLayer.UiLayer);
             workspace = workspace with { Assignments = [new(new(ModuleId, device.ProfileId, AssignmentLayer.UiLayer, BindingSection.Axis, "JOY_X"), command)] };
-            var bindings = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(workspace, device.ProfileId), device.ProfileId);
+            var bindings = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(workspace, device.ProfileId), device.ProfileId);
             Assert.Equal("a2001cdnil", Assert.Single(bindings, x => x.Disposition != BindingDisposition.Removed).CommandId);
             Assert.Equal(4, bindings.Count(x => x.Disposition == BindingDisposition.Removed));
-            Assert.Empty(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace, ProfileId), ProfileId));
-            var cleared = WorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "");
-            Assert.All(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(cleared, device.ProfileId), device.ProfileId),
+            Assert.Empty(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(workspace, ProfileId), ProfileId));
+            var cleared = DcsWorkspaceStructureEditor.ClearLayerAssignments(workspace, device, "");
+            Assert.All(DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(cleared, device.ProfileId), device.ProfileId),
                 x => Assert.Equal(BindingDisposition.Removed, x.Disposition));
         }
 
@@ -137,7 +137,7 @@ namespace Heimdall.Tests
         public void Import_RejectsInvalidEvidenceWithoutMutation(string source)
         {
             var workspace = Workspace();
-            Assert.Throws<InvalidDataException>(() => ModuleAxisDefaults.Import(workspace, ProfileId, AssignmentLayer.Module, source));
+            Assert.Throws<InvalidDataException>(() => DcsModuleAxisDefaults.Import(workspace, ProfileId, AssignmentLayer.Module, source));
             Assert.Empty(workspace.Sources!);
         }
 
@@ -145,15 +145,15 @@ namespace Heimdall.Tests
         [Fact]
         public void Review_RejectsUnknownDestinationAndMalformedLua()
         {
-            Assert.Throws<InvalidDataException>(() => ModuleAxisDefaults.Review(Workspace(), Guid.NewGuid(), AssignmentLayer.Module, Defaults));
-            Assert.Throws<InvalidDataException>(() => ModuleAxisDefaults.Review(Workspace(), ProfileId, AssignmentLayer.UiLayer, Defaults));
-            Assert.Throws<FormatException>(() => ModuleAxisDefaults.Review(Workspace(), ProfileId, AssignmentLayer.Module, "not a profile"));
+            Assert.Throws<InvalidDataException>(() => DcsModuleAxisDefaults.Review(Workspace(), Guid.NewGuid(), AssignmentLayer.Module, Defaults));
+            Assert.Throws<InvalidDataException>(() => DcsModuleAxisDefaults.Review(Workspace(), ProfileId, AssignmentLayer.UiLayer, Defaults));
+            Assert.Throws<FormatException>(() => DcsModuleAxisDefaults.Review(Workspace(), ProfileId, AssignmentLayer.Module, "not a profile"));
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
-            var configuration = new ModuleConfiguration(new(ModuleId, "AXIS-TEST", "Axis test"),
+            var configuration = new DcsModuleConfiguration(new(ModuleId, "AXIS-TEST", "Axis test"),
                 [new(ProfileId, "Stick", null, "Stick", "Stick.diff.lua")], [], [], "test");
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
                 ProfileId = ProfileId, Controls = [new("x", "X", "JOY_X", 0, 0, 10, 10, true)] };

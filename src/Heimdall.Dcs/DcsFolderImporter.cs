@@ -28,7 +28,7 @@ namespace Heimdall.Dcs
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(folder);
             var diagnostics = new List<ImportDiagnostic>();
-            var profiles = new List<DeviceProfile>();
+            var profiles = new List<DcsDeviceProfile>();
             var bindings = new List<DcsBinding>();
             var modifiers = new List<DcsModifier>();
             var sources = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -72,7 +72,7 @@ namespace Heimdall.Dcs
                     if (guidStart >= 0 && key.EndsWith('}'))
                         key = key[..guidStart];
                     var id = StableIdentity.Create("dcs-saved-games-profile", filename.ToUpperInvariant());
-                    var profile = new DeviceProfile(id, key, null, "unresolved device", filename);
+                    var profile = new DcsDeviceProfile(id, key, null, "unresolved device", filename);
                     var text = await File.ReadAllTextAsync(file, cancellationToken);
                     var parsed = DcsLuaParser.ParseProfile(text, id);
                     profiles.Add(profile);

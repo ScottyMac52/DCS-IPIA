@@ -15,19 +15,19 @@ namespace Heimdall.Tests
         public void GeneratesPinnedOverview()
         {
             var workspace = Workspace();
-            var first = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(workspace));
+            var first = Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(workspace));
             Assert.Equal("KNEEBOARD/TEST/00-OVERVIEW.png", first.Key);
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, first.Value.Take(8));
             Assert.Equal(
                 first.Value,
-                Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(workspace with { Images = [] })).Value);
+                Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(workspace with { Images = [] })).Value);
             var changed = workspace with {
                 Sources = new Dictionary<string, string> { ["config/kneeboard.json"] =
                                                                workspace.Sources!["config/kneeboard.json"].Replace(
                                                                    "Flight controls", "Other controls",
                                                                    StringComparison.Ordinal) }
             };
-            Assert.NotEqual(first.Value, Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(changed)).Value);
+            Assert.NotEqual(first.Value, Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(changed)).Value);
         }
         /// <summary>A nine-device overview supports the authored Hornet palette.</summary>
         [Fact]
@@ -45,7 +45,7 @@ namespace Heimdall.Tests
             var updated = workspace with {
                 Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
             };
-            var image = Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
+            var image = Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(updated)).Value;
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Take(8));
             using var bitmap = SKBitmap.Decode(image);
             Assert.Equal(SKColor.Parse("#142b52"), bitmap.GetPixel(400, 300));
@@ -64,7 +64,7 @@ namespace Heimdall.Tests
                 Pages = [overview, voice],
                 Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
             };
-            var images = SnapshotSummaryKneeboardRenderer.Generate(updated);
+            var images = DcsSnapshotSummaryKneeboardRenderer.Generate(updated);
             Assert.Equal(2, images.Count);
             foreach (var file in new[] { "00-FA18C-CONTROL-OVERVIEW", "01-VAICOM-OVERVIEW" })
             {
@@ -89,7 +89,7 @@ namespace Heimdall.Tests
             var updated = workspace with {
                 Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest }
             };
-            using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
+            using var bitmap = SKBitmap.Decode(Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(updated)).Value);
             Assert.Equal(SKColor.Parse("#15314e"), bitmap.GetPixel(400, 300));
             Assert.Equal(SKColor.Parse("#3e2d12"), bitmap.GetPixel(880, 300));
             Assert.Equal(SKColor.Parse("#38131c"), bitmap.GetPixel(400, 470));
@@ -103,19 +103,19 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace();
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(workspace with { Sources = null }));
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(workspace with { Sources = null }));
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(workspace with { Pages = [] }));
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(workspace with { Pages = [] }));
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(
                     workspace with { Pages = [..workspace.Pages, workspace.Pages[0]] }));
-            Assert.Throws<InvalidDataException>(() => SnapshotSummaryKneeboardRenderer.Generate(workspace with {
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotSummaryKneeboardRenderer.Generate(workspace with {
                 Sources =
                     new Dictionary<string, string> { ["config/kneeboard.json"] =
                                                          workspace.Sources!["config/kneeboard.json"].Replace(
                                                              "00-OVERVIEW", "../OVERVIEW", StringComparison.Ordinal) }
             }));
-            Assert.Throws<InvalidDataException>(() => SnapshotSummaryKneeboardRenderer.Generate(workspace with {
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotSummaryKneeboardRenderer.Generate(workspace with {
                 Sources = new Dictionary<string, string> { ["config/kneeboard.json"] =
                                                                workspace.Sources!["config/kneeboard.json"].Replace(
                                                                    "Flight controls", "Unsupported 🚀",
@@ -127,17 +127,17 @@ namespace Heimdall.Tests
         public void RejectsMalformedAuthoredSummaryRows()
         {
             var workspace = Workspace();
-            static EditorWorkspaceSnapshot With(EditorWorkspaceSnapshot saved, string manifest) =>
+            static DcsEditorWorkspaceSnapshot With(DcsEditorWorkspaceSnapshot saved, string manifest) =>
                 saved with { Sources = new Dictionary<string, string> { ["config/kneeboard.json"] = manifest } };
             const string valid = """{"summaryPages":[{"type":"summary","file":"00-OVERVIEW","title":"CONTROL OVERVIEW","kicker":"PHYSICAL CONTROLLERS","items":[{"key":"STICK","text":"Flight controls","accent":"red"}]}]}""";
             var blue = valid.Replace("\"accent\":\"red\"", "\"accent\":\"blue\"", StringComparison.Ordinal);
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
-                         Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(With(workspace, blue))).Value.Take(8));
-            Assert.Throws<InvalidDataException>(() => SnapshotSummaryKneeboardRenderer.Generate(With(workspace, "{}")));
+                         Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(With(workspace, blue))).Value.Take(8));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotSummaryKneeboardRenderer.Generate(With(workspace, "{}")));
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(With(workspace, """{"summaryPages":[]}""")));
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(With(workspace, """{"summaryPages":[]}""")));
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(With(
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(With(
                     workspace,
                     valid.Replace("\"items\":[{\"key\":\"STICK\",\"text\":\"Flight controls\",\"accent\":\"red\"}]",
                                   "\"items\":[]", StringComparison.Ordinal))));
@@ -148,17 +148,17 @@ namespace Heimdall.Tests
                                                   key = "D" + i, text = "Controls", accent = "blue"
                                               }) } }
             });
-            Assert.Throws<InvalidDataException>(() => SnapshotSummaryKneeboardRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotSummaryKneeboardRenderer.Generate(
                 With(workspace, tooMany)));
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
-                         Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(With(
+                         Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(With(
                              workspace, valid.Replace("\"accent\":\"red\"", "\"accent\":\"orange\"",
                                                       StringComparison.Ordinal)))).Value.Take(8));
             Assert.Throws<InvalidDataException>(
-                () => SnapshotSummaryKneeboardRenderer.Generate(
+                () => DcsSnapshotSummaryKneeboardRenderer.Generate(
                     With(workspace,
                          valid.Replace("\"title\":\"CONTROL OVERVIEW\"", "\"title\":\"\"", StringComparison.Ordinal))));
-            Assert.NotEmpty(SnapshotSummaryKneeboardRenderer.Generate(
+            Assert.NotEmpty(DcsSnapshotSummaryKneeboardRenderer.Generate(
                 With(workspace, valid.Replace("Flight controls", new string('A', 200), StringComparison.Ordinal))));
         }
 
@@ -172,7 +172,7 @@ namespace Heimdall.Tests
                 new { key = "COLL", text = "Short", accent = "gold" },
                 new { key = "PEDALS", text = "Rudder controls", accent = "red" }
             });
-            var images = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+            var images = DcsSnapshotSummaryKneeboardRenderer.Generate(workspace);
             using var bitmap = SKBitmap.Decode(Assert.Single(images).Value);
             // Card one grows past its original 350px lower edge; both columns
             // in the row share a height, and the next row begins below it.
@@ -191,7 +191,7 @@ namespace Heimdall.Tests
                 new { key = "COLL", text = "Short", accent = "gold" },
                 new { key = "PEDALS", text = "Rudder controls", accent = "red" }
             });
-            var images = SnapshotSummaryKneeboardRenderer.Generate(workspace);
+            var images = DcsSnapshotSummaryKneeboardRenderer.Generate(workspace);
             Assert.True(images.Count > 1);
             Assert.Contains("KNEEBOARD/TEST/00-OVERVIEW.png", images.Keys);
             Assert.Contains("KNEEBOARD/TEST/00-OVERVIEW-002.png", images.Keys);
@@ -210,12 +210,12 @@ namespace Heimdall.Tests
         public void EmptyDescriptionRetainsMinimumCardHeight()
         {
             var workspace = WithCards(new[] { new { key = "EMPTY", text = "", accent = "blue" } });
-            using var bitmap = SKBitmap.Decode(Assert.Single(SnapshotSummaryKneeboardRenderer.Generate(workspace)).Value);
+            using var bitmap = SKBitmap.Decode(Assert.Single(DcsSnapshotSummaryKneeboardRenderer.Generate(workspace)).Value);
             Assert.Equal(SKColor.Parse("#142b52"), bitmap.GetPixel(400, 300));
             Assert.Equal(SKColor.Parse("#0a1629"), bitmap.GetPixel(400, 360));
         }
 
-        private static EditorWorkspaceSnapshot WithCards<T>(IEnumerable<T> cards)
+        private static DcsEditorWorkspaceSnapshot WithCards<T>(IEnumerable<T> cards)
         {
             var workspace = Workspace();
             var manifest = System.Text.Json.JsonSerializer.Serialize(new {
@@ -228,11 +228,11 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
             var id = Guid.Parse("323efbe0-6d8b-44d3-a2ab-840d16593de5");
             var module = new DcsModule(id, "TEST", "Test");
-            var configuration = new ModuleConfiguration(module, [], [], [], "fixture");
+            var configuration = new DcsModuleConfiguration(module, [], [], [], "fixture");
             var page = new KneeboardPage(Guid.NewGuid(), id, null, KneeboardPageKind.Summary, "00-OVERVIEW", "Overview",
                                          [], 0);
             const string manifest = """{"summaryPages":[{"type":"summary","file":"00-OVERVIEW","title":"CONTROL OVERVIEW","kicker":"PHYSICAL CONTROLLERS","items":[{"key":"STICK","text":"Flight controls","accent":"red"}]}]}""";

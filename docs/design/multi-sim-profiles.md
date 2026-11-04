@@ -94,7 +94,7 @@ An untouched ambiguous native profile is archival evidence, not permission to
 silently resolve a controller or edit an ambiguous binding.
 
 For complete editor state, `Capture(workspace)` pins the existing verified
-`EditorSnapshotSerializer` snapshot alongside the portable assignment projection.
+`DcsEditorSnapshotSerializer` snapshot alongside the portable assignment projection.
 `DcsSimProfileBackend.Restore(document)` validates edits through the existing
 assignment and native-output services. It retains original assignment display
 names, removal history, labels, artwork, shared revisions, provenance and

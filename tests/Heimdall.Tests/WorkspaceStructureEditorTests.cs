@@ -23,19 +23,19 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace();
             var hardware = new WorkspaceHardware("stick", "Stick", "Other.diff.lua", workspace.Diagrams[0]);
-            workspace = WorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.Module, "Other.diff.lua", "SECOND", null);
+            workspace = DcsWorkspaceStructureEditor.AddDevice(workspace, hardware, AssignmentLayer.Module, "Other.diff.lua", "SECOND", null);
             var other = workspace.Configuration.Profiles.Single(x => x.Id != ProfileId);
-            workspace = WorkspaceStructureEditor.ClearDeviceAssignments(workspace, WorkspaceStructureEditor.Describe(workspace).Devices.First(x => x.ProfileId == ProfileId));
-            foreach (var modifier in WorkspaceStructureEditor.Describe(workspace).Modifiers.ToArray())
-                workspace = WorkspaceStructureEditor.RemoveModifier(workspace, modifier);
-            var members = WorkspaceStructureEditor.Describe(workspace).Devices.Where(x => x.ProfileId == ProfileId).ToArray();
-            workspace = WorkspaceStructureEditor.RemoveDevice(workspace, members[0]);
+            workspace = DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, DcsWorkspaceStructureEditor.Describe(workspace).Devices.First(x => x.ProfileId == ProfileId));
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(workspace).Modifiers.ToArray())
+                workspace = DcsWorkspaceStructureEditor.RemoveModifier(workspace, modifier);
+            var members = DcsWorkspaceStructureEditor.Describe(workspace).Devices.Where(x => x.ProfileId == ProfileId).ToArray();
+            workspace = DcsWorkspaceStructureEditor.RemoveDevice(workspace, members[0]);
             Assert.Contains(workspace.Pages, x => x.StableKey == "01-STICK");
-            workspace = WorkspaceStructureEditor.RemoveDevice(workspace, members[1]);
+            workspace = DcsWorkspaceStructureEditor.RemoveDevice(workspace, members[1]);
             Assert.Equal(other.Id, Assert.Single(workspace.Configuration.Profiles).Id);
             Assert.Equal("device-" + other.Id.ToString("N"), Assert.Single(workspace.Pages).StableKey);
             Assert.Equal(0, workspace.Pages[0].Order);
-            Assert.True(ModuleKneeboardPageEditor.CanRemove(workspace, workspace.Pages[0]));
+            Assert.True(DcsModuleKneeboardPageEditor.CanRemove(workspace, workspace.Pages[0]));
         }
 
         /// <summary>Deletion removes all filename aliases and compacts remaining page orders through SQLite reopening.</summary>
@@ -57,14 +57,14 @@ namespace Heimdall.Tests
                 Images = [new("01-STICK", "old.png", [1], "old"), new("02-ALIAS", "alias.png", [2], "old")],
                 Sources = new Dictionary<string, string>(saved.Sources!) { ["config/kneeboard.json"] = root.ToJsonString() }
             };
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
-            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
-                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module),
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module),
                 "Renamed stick.diff.lua", null, null);
             var before = saved;
-            foreach (var membership in WorkspaceStructureEditor.Describe(saved).Devices.ToArray())
-                saved = WorkspaceStructureEditor.RemoveDevice(saved, membership);
+            foreach (var membership in DcsWorkspaceStructureEditor.Describe(saved).Devices.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveDevice(saved, membership);
             Assert.Equal(summary.Id, Assert.Single(saved.Pages).Id);
             Assert.Equal(0, saved.Pages[0].Order);
             Assert.Empty(saved.Images);
@@ -76,7 +76,7 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(before);
                 await repository.SaveAsync(saved);
                 var reopened = (await repository.GetAsync(ModuleId))!;
@@ -93,18 +93,18 @@ namespace Heimdall.Tests
         public void ClearsSelectedDeviceScopeAndChord()
         {
             var baseline = Workspace();
-            var moduleDevice = WorkspaceStructureEditor.Describe(baseline).Devices.Single(x => x.Layer == AssignmentLayer.Module);
-            var cleared = WorkspaceStructureEditor.ClearLayerAssignments(baseline, moduleDevice, "SHIFT");
+            var moduleDevice = DcsWorkspaceStructureEditor.Describe(baseline).Devices.Single(x => x.Layer == AssignmentLayer.Module);
+            var cleared = DcsWorkspaceStructureEditor.ClearLayerAssignments(baseline, moduleDevice, "SHIFT");
             Assert.Single(cleared.Assignments);
             Assert.Empty(cleared.Labels);
-            Assert.Empty(DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
-            Assert.Contains(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId), x => x.CommandId == "UNMAPPED");
-            var uiDevice = WorkspaceStructureEditor.Describe(cleared).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            var unchanged = WorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, "");
+            Assert.Empty(DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
+            Assert.Contains(DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId), x => x.CommandId == "UNMAPPED");
+            var uiDevice = DcsWorkspaceStructureEditor.Describe(cleared).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            var unchanged = DcsWorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, "");
             Assert.Single(unchanged.Assignments);
-            cleared = WorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, " UI_SHIFT ");
+            cleared = DcsWorkspaceStructureEditor.ClearLayerAssignments(cleared, uiDevice, " UI_SHIFT ");
             Assert.Empty(cleared.Assignments);
-            Assert.Empty(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
+            Assert.Empty(DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(cleared, ProfileId), ProfileId));
             Assert.Equal(2, baseline.Assignments.Count);
         }
         /// <summary>New devices use editable filenames, optional identity fields, and independent scope membership.</summary>
@@ -113,21 +113,21 @@ namespace Heimdall.Tests
         {
             var saved = Workspace();
             var hardware = new WorkspaceHardware("other", "Other device", "Default.diff.lua", saved.Diagrams[0]);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Custom UI.diff.lua", null, null);
-            var state = WorkspaceStructureEditor.Describe(saved);
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Custom UI.diff.lua", null, null);
+            var state = DcsWorkspaceStructureEditor.Describe(saved);
             var added = state.Devices.Single(x => x.FileName == "Custom UI.diff.lua");
             Assert.Null(added.Instance);
             Assert.Null(added.Role);
             Assert.DoesNotContain(state.Devices, x => x.ProfileId == added.ProfileId && x.Layer == AssignmentLayer.Module);
-            var payload = SnapshotLuaPayloadRenderer.Generate(saved);
+            var payload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains("Config/Input/UiLayer/joystick/Custom UI.diff.lua", payload.Keys);
             Assert.DoesNotContain("Config/Input/TEST/joystick/Custom UI.diff.lua", payload.Keys);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, added, "Renamed UI.diff.lua", "SECOND", "Auxiliary");
-            Assert.Contains("Config/Input/UiLayer/joystick/Renamed UI.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
-            var json = saved.Sources![WorkspaceManagement.SourcePath];
-            var restored = JsonSerializer.Deserialize<WorkspaceManagement>(json)!;
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, added, "Renamed UI.diff.lua", "SECOND", "Auxiliary");
+            Assert.Contains("Config/Input/UiLayer/joystick/Renamed UI.diff.lua", DcsSnapshotLuaPayloadRenderer.Generate(saved).Keys);
+            var json = saved.Sources![DcsWorkspaceManagement.SourcePath];
+            var restored = JsonSerializer.Deserialize<DcsWorkspaceManagement>(json)!;
             Assert.Equal("Auxiliary", restored.Devices.Single(x => x.ProfileId == added.ProfileId).Role);
-            saved = WorkspaceStructureEditor.RemoveDevice(saved, WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.ProfileId == added.ProfileId));
+            saved = DcsWorkspaceStructureEditor.RemoveDevice(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.ProfileId == added.ProfileId));
             Assert.DoesNotContain(saved.Configuration.Profiles, x => x.Id == added.ProfileId);
             Assert.DoesNotContain(saved.Diagrams, x => x.ProfileId == added.ProfileId);
             Assert.DoesNotContain(saved.Pages, x => x.StableKey == "device-" + added.ProfileId.ToString("N"));
@@ -137,19 +137,19 @@ namespace Heimdall.Tests
         public void BlocksUsedDevicesUntilBothScopesAndActivatorsAreCleared()
         {
             var saved = Workspace();
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveDevice(saved, device));
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveDevice(saved, device));
             var onlyUi = saved with { Assignments = saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer).ToArray() };
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveDevice(onlyUi, device));
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, device);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveDevice(onlyUi, device));
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, device);
             Assert.Empty(saved.Assignments);
-            Assert.DoesNotContain(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(saved, ProfileId), ProfileId),
+            Assert.DoesNotContain(DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(saved, ProfileId), ProfileId),
                 x => x.Disposition != BindingDisposition.Removed);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveDevice(saved, device));
-            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
-                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
-            foreach (var membership in WorkspaceStructureEditor.Describe(saved).Devices.ToArray())
-                saved = WorkspaceStructureEditor.RemoveDevice(saved, membership);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveDevice(saved, device));
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            foreach (var membership in DcsWorkspaceStructureEditor.Describe(saved).Devices.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveDevice(saved, membership);
             Assert.Empty(saved.Configuration.Profiles);
         }
         /// <summary>Modifier updates preserve used references and labels, while removal checks native and semantic uses across scopes.</summary>
@@ -157,31 +157,31 @@ namespace Heimdall.Tests
         public void RenamesUsedModifiersAndChecksCrossScopeUsage()
         {
             var saved = Workspace();
-            var shift = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.SetModifier(saved, shift, shift with { Name = "RENAMED", SemanticLayer = "Combat", Mode = ModifierMode.Toggle });
-            var renamed = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
+            var shift = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, shift, shift with { Name = "RENAMED", SemanticLayer = "Combat", Mode = ModifierMode.Toggle });
+            var renamed = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
             Assert.Contains(saved.Assignments, x => x.Slot.Layer == AssignmentLayer.Module && x.Slot.ModifierChord == "RENAMED");
             Assert.Contains(saved.Labels, x => x.Key == saved.Assignments.Single(a => a.Slot.Layer == AssignmentLayer.Module).Slot.Key && x.Value == "My label");
-            var payload = SnapshotLuaPayloadRenderer.Generate(saved);
+            var payload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains("RENAMED", Encoding.UTF8.GetString(payload["Config/Input/TEST/joystick/Stick.diff.lua"]));
             Assert.Contains("[\"switch\"] = true", Encoding.UTF8.GetString(payload["Config/Input/TEST/modifiers.lua"]));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(saved, renamed));
-            var ui = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            saved = WorkspaceStructureEditor.SetModifier(saved, ui, ui with { SemanticLayer = "Combat" });
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveModifier(saved, renamed));
+            var ui = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, ui, ui with { SemanticLayer = "Combat" });
             var moduleCleared = saved with { Assignments = saved.Assignments.Where(x => x.Slot.Layer != AssignmentLayer.Module).ToArray() };
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(moduleCleared, renamed));
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
-            saved = WorkspaceStructureEditor.RemoveModifier(saved, renamed);
-            Assert.DoesNotContain(WorkspaceStructureEditor.Describe(saved).Modifiers, x => x.Name == "RENAMED");
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveModifier(moduleCleared, renamed));
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices[0]);
+            saved = DcsWorkspaceStructureEditor.RemoveModifier(saved, renamed);
+            Assert.DoesNotContain(DcsWorkspaceStructureEditor.Describe(saved).Modifiers, x => x.Name == "RENAMED");
         }
         /// <summary>UI modifier renames migrate mapped and unmapped bindings without losing either.</summary>
         [Fact]
         public void RenamesUiModifierAndKeepsUnmappedBindings()
         {
             var saved = Workspace();
-            var ui = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            saved = WorkspaceStructureEditor.SetModifier(saved, ui, ui with { Name = "VOICE_SHIFT", SemanticLayer = "Voice", Mode = ModifierMode.Toggle });
-            var bindings = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(saved, ProfileId), ProfileId);
+            var ui = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, ui, ui with { Name = "VOICE_SHIFT", SemanticLayer = "Voice", Mode = ModifierMode.Toggle });
+            var bindings = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(saved, ProfileId), ProfileId);
             Assert.Contains(bindings, x => x.CommandId == "UNMAPPED");
             Assert.All(bindings, x => Assert.Contains("VOICE_SHIFT", x.Reformers));
             Assert.DoesNotContain(saved.Assignments, x => x.Slot.Layer == AssignmentLayer.UiLayer && x.Slot.ModifierChord == "UI_SHIFT");
@@ -191,16 +191,16 @@ namespace Heimdall.Tests
         public void RejectsInvalidDevicesAndModifiers()
         {
             var saved = Workspace();
-            var device = WorkspaceStructureEditor.Describe(saved).Devices[0];
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, "../bad.diff.lua", null, null));
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices[0];
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, device, "../bad.diff.lua", null, null));
             var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", saved.Diagrams[0]);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Stick.diff.lua", null, null));
-            var modifier = new WorkspaceModifier(AssignmentLayer.Module, ProfileId, "NEW", "JOY_X", "Layer", ModifierMode.Hold, "");
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, modifier));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN2", Name = "SHIFT" }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN1", SemanticLayer = "" }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN1", Name = "A+B" }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, "Other.diff.lua", null, null, hardware: hardware));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Stick.diff.lua", null, null));
+            var modifier = new DcsWorkspaceModifier(AssignmentLayer.Module, ProfileId, "NEW", "JOY_X", "Layer", ModifierMode.Hold, "");
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, modifier));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN2", Name = "SHIFT" }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN1", SemanticLayer = "" }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, modifier with { Key = "JOY_BTN1", Name = "A+B" }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, device, "Other.diff.lua", null, null, hardware: hardware));
         }
         /// <summary>New modifiers become valid assignment layers and exports use the edited activator filename.</summary>
         [Fact]
@@ -208,22 +208,22 @@ namespace Heimdall.Tests
         {
             var saved = Workspace();
             foreach (var layer in new[] { AssignmentLayer.Module, AssignmentLayer.UiLayer })
-                saved = WorkspaceStructureEditor.SetModifier(saved, null,
+                saved = DcsWorkspaceStructureEditor.SetModifier(saved, null,
                     new(layer, ProfileId, "EXTRA", "JOY_BTN1", "Extra Layer", ModifierMode.Hold, ""));
-            Assert.Contains("EXTRA", WorkspaceStructureEditor.UiModifierNames(saved));
+            Assert.Contains("EXTRA", DcsWorkspaceStructureEditor.UiModifierNames(saved));
             var commands = saved.Assignments.Select(x => x.Command).Distinct();
-            var draft = new DraftAssignmentService(saved.Configuration, commands, saved.Assignments, WorkspaceStructureEditor.UiModifierNames(saved));
-            var slot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "EXTRA");
+            var draft = new DcsDraftAssignmentService(saved.Configuration, commands, saved.Assignments, DcsWorkspaceStructureEditor.UiModifierNames(saved));
+            var slot = new DcsDraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "EXTRA");
             Assert.Equal(DraftOutcome.Applied, draft.Assign(slot, new("VOICE", "Voice", false, AssignmentLayer.UiLayer), OccupiedDestinationBehavior.ReplaceInDraft).Outcome);
             saved = saved with { Assignments = draft.Snapshot };
-            Assert.Contains("EXTRA", UiLayerLuaProfileRenderer.Render(saved, ProfileId));
+            Assert.Contains("EXTRA", DcsUiLayerLuaProfileRenderer.Render(saved, ProfileId));
 
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, "Renamed stick.diff.lua", null, null);
-            var lua = Encoding.UTF8.GetString(SnapshotLuaPayloadRenderer.Generate(saved)["Config/Input/TEST/modifiers.lua"]);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, "Renamed stick.diff.lua", null, null);
+            var lua = Encoding.UTF8.GetString(DcsSnapshotLuaPayloadRenderer.Generate(saved)["Config/Input/TEST/modifiers.lua"]);
             Assert.All(DcsLuaParser.ParseModifiers(lua).Where(x => x.Device != "Keyboard"),
                 x => Assert.Equal("Renamed stick", x.Device));
-            Assert.Contains("Config/Input/TEST/joystick/Renamed stick.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
+            Assert.Contains("Config/Input/TEST/joystick/Renamed stick.diff.lua", DcsSnapshotLuaPayloadRenderer.Generate(saved).Keys);
         }
         /// <summary>Saved device membership, semantic modifiers, and the hardware catalog reopen without source checkouts.</summary>
         /// <returns>Completion of the SQLite round trip.</returns>
@@ -235,23 +235,23 @@ namespace Heimdall.Tests
             {
                 var saved = Workspace();
                 var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", saved.Diagrams[0]);
-                saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Custom.diff.lua", "AUX", null);
-                var added = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Custom.diff.lua");
-                saved = WorkspaceStructureEditor.SetModifier(saved, null,
+                saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Custom.diff.lua", "AUX", null);
+                var added = DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Custom.diff.lua");
+                saved = DcsWorkspaceStructureEditor.SetModifier(saved, null,
                     new(AssignmentLayer.Module, added.ProfileId, "AUX_SHIFT", "JOY_BTN2", "Auxiliary", ModifierMode.Toggle, ""));
                 var sources = new Dictionary<string, string>(saved.Sources!) { ["config/ipia-hardware.json"] = JsonSerializer.Serialize(new[] { hardware }) };
                 saved = saved with { Sources = sources };
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                Assert.Equal("Custom.diff.lua", WorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == added.ProfileId).FileName);
-                var modifier = WorkspaceStructureEditor.Describe(restored).Modifiers.Single(x => x.Name == "AUX_SHIFT");
+                Assert.Equal("Custom.diff.lua", DcsWorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == added.ProfileId).FileName);
+                var modifier = DcsWorkspaceStructureEditor.Describe(restored).Modifiers.Single(x => x.Name == "AUX_SHIFT");
                 Assert.Equal("Auxiliary", modifier.SemanticLayer);
                 Assert.Equal(ModifierMode.Toggle, modifier.Mode);
-                Assert.Equal("Other.diff.lua", Assert.Single(WorkspaceStructureEditor.Hardware(restored)).DefaultFileName);
-                Assert.Contains("Config/Input/TEST/joystick/Custom.diff.lua", SnapshotLuaPayloadRenderer.Generate(restored).Keys);
+                Assert.Equal("Other.diff.lua", Assert.Single(DcsWorkspaceStructureEditor.Hardware(restored)).DefaultFileName);
+                Assert.Contains("Config/Input/TEST/joystick/Custom.diff.lua", DcsSnapshotLuaPayloadRenderer.Generate(restored).Keys);
                 // Repository operations must release their native handles before returning.
                 File.Delete(path);
                 Assert.False(File.Exists(path));
@@ -263,22 +263,22 @@ namespace Heimdall.Tests
         public void RejectsMembershipDriftRatherThanDroppingAssignments()
         {
             var saved = Workspace();
-            var module = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.SetModifier(saved, module, module with { SemanticLayer = "Flight" });
-            var state = WorkspaceStructureEditor.Describe(saved);
+            var module = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, module, module with { SemanticLayer = "Flight" });
+            var state = DcsWorkspaceStructureEditor.Describe(saved);
             var invalid = state with { Devices = state.Devices.Where(x => x.Layer != AssignmentLayer.UiLayer).ToArray() };
-            var sources = new Dictionary<string, string>(saved.Sources!) { [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) };
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(saved with { Sources = sources }));
+            var sources = new Dictionary<string, string>(saved.Sources!) { [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) };
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(saved with { Sources = sources }));
         }
         /// <summary>Module MFD edits reach the combined kneeboard, including its bottom callout.</summary>
         [Fact]
         public void UpdatesMfdCategoryLabels()
         {
             var saved = Workspace("tm-mfd");
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null,
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null,
                 new Dictionary<string, string> { ["left"] = "COMM1", ["right"] = "COMM2", ["top"] = "UFC", ["bottom"] = "RADAR" });
-            var page = KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels);
             Assert.Equal("COMM1", page.CategoryLabels["mfd-category-left"]);
             Assert.Equal("COMM2", page.CategoryLabels["mfd-category-right"]);
             Assert.Equal("UFC", page.CategoryLabels["mfd-category-top"]);
@@ -319,10 +319,10 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                var combined = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                var combined = DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
                 Assert.Equal(authoredBottom ? "AUTHORED BOTTOM" : "LEGACY LAYER", combined.CategoryLabels["mfd-category-bottom"]);
                 Assert.Equal("TOP", combined.CategoryLabels["mfd-category-top"]);
                 Assert.DoesNotContain("mfd-category-middle", combined.CategoryLabels.Keys);
@@ -350,26 +350,26 @@ namespace Heimdall.Tests
             var templateId = Guid.NewGuid();
             var configuration = saved.Configuration;
             saved = saved with {
-                Configuration = new ModuleConfiguration(configuration.Module,
-                    [.. configuration.Profiles, new DeviceProfile(templateId, "grip-f18c", null, "Stick", "Hornet grip.diff.lua")],
+                Configuration = new DcsModuleConfiguration(configuration.Module,
+                    [.. configuration.Profiles, new DcsDeviceProfile(templateId, "grip-f18c", null, "Stick", "Hornet grip.diff.lua")],
                     configuration.Modifiers, configuration.Bindings, configuration.Provenance),
                 Diagrams = [.. saved.Diagrams, saved.Diagrams[0] with {
                     ProfileId = templateId, SupportsUiLayer = true, CanonicalUiLayerSourcePath = null, Callouts = [] }]
             };
-            var importedPayload = SnapshotLuaPayloadRenderer.Generate(saved);
-            var device = Assert.Single(WorkspaceStructureEditor.Describe(saved).Devices,
+            var importedPayload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
+            var device = Assert.Single(DcsWorkspaceStructureEditor.Describe(saved).Devices,
                 x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD",
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD",
                 new Dictionary<string, string> { ["right"] = "AMPCD", ["top"] = "UI Layer" });
             var path = Path.Combine(Path.GetTempPath(), "ipia-role-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                var state = WorkspaceStructureEditor.Describe(restored);
+                var state = DcsWorkspaceStructureEditor.Describe(restored);
                 var updated = Assert.Single(state.Devices, x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
                 Assert.Equal("AMPCD", updated.Role);
                 Assert.Equal("MFD3", updated.Instance);
@@ -377,13 +377,13 @@ namespace Heimdall.Tests
                 Assert.Equal("AMPCD", restored.Configuration.Profiles.Single(x => x.Id == ProfileId).Role);
                 Assert.DoesNotContain(state.Devices, x => x.ProfileId == templateId && x.Layer == AssignmentLayer.UiLayer);
                 Assert.True(restored.Diagrams.Single(x => x.ProfileId == templateId).SupportsUiLayer);
-                var page = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                var page = DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
                 Assert.Equal("AMPCD", page.CategoryLabels["mfd-category-right"]);
-                var payload = SnapshotLuaPayloadRenderer.Generate(restored);
+                var payload = DcsSnapshotLuaPayloadRenderer.Generate(restored);
                 Assert.Equal(importedPayload.Keys.Order(), payload.Keys.Order());
                 foreach (var entry in importedPayload)
                     Assert.Equal(entry.Value, payload[entry.Key]);
-                Assert.Contains(DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
+                Assert.Contains(DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(restored, ProfileId), ProfileId),
                     x => x.CommandId == "UNMAPPED");
             }
             finally { File.Delete(path); }
@@ -407,14 +407,14 @@ namespace Heimdall.Tests
                     Callouts = keepAssignments ? [] : saved.Diagrams[0].Callouts }],
                 Assignments = keepAssignments ? saved.Assignments : saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module).ToArray()
             };
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
             if (sourceAvailable)
             {
-                var recovered = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD");
-                Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(recovered));
+                var recovered = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD");
+                Assert.NotEmpty(DcsSnapshotLuaPayloadRenderer.Generate(recovered));
             }
             else
-                Assert.Throws<InvalidDataException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
+                Assert.Throws<InvalidDataException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, "MFD3", "AMPCD"));
         }
         /// <summary>Any module device can save a page heading independently of hardware, role, and other pages.</summary>
         /// <param name="deviceId">MFD or ordinary shared hardware.</param>
@@ -426,34 +426,34 @@ namespace Heimdall.Tests
         {
             var original = Workspace(deviceId);
             var hardware = new WorkspaceHardware("other", "Other hardware", "Other.diff.lua", original.Diagrams[0]);
-            var saved = WorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", "Other role");
-            var payloadBefore = SnapshotLuaPayloadRenderer.Generate(saved);
-            var pngBefore = SnapshotDeviceKneeboardRenderer.Generate(saved);
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+            var saved = DcsWorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", "Other role");
+            var payloadBefore = DcsSnapshotLuaPayloadRenderer.Generate(saved);
+            var pngBefore = DcsSnapshotDeviceKneeboardRenderer.Generate(saved);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
             var originalProfile = saved.Configuration.Profiles.Single(x => x.Id == ProfileId);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
                 kneeboardTitle: "  F/A-18 AMPCD & Controls  ");
             var path = Path.Combine(Path.GetTempPath(), "ipia-title-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                var combined = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                var combined = DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
                 Assert.Equal("F/A-18 AMPCD & Controls", combined.Title);
                 Assert.Equal("Controls", combined.Kicker);
                 Assert.Equal("F/A-18 AMPCD & Controls", restored.Pages.Single(x => x.StableKey == "01-STICK").Title);
                 Assert.Equal("other", restored.Pages.Single(x => x.StableKey != "01-STICK").Title);
                 Assert.Equal(originalProfile, restored.Configuration.Profiles.Single(x => x.Id == ProfileId));
                 Assert.Equal(original.Diagrams[0].Title, restored.Diagrams[0].Title);
-                Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(original, original.Diagrams[0], original.Assignments, original.Labels).Title);
+                Assert.Equal("Stick", DcsKneeboardDraftProjection.CreateCombined(original, original.Diagrams[0], original.Assignments, original.Labels).Title);
                 Assert.Contains("F/A-18 AMPCD &amp; Controls", CompositeKneeboardRenderer.BuildPageSvg(restored.Diagrams[0], combined, ""));
-                var pngAfter = SnapshotDeviceKneeboardRenderer.Generate(restored);
+                var pngAfter = DcsSnapshotDeviceKneeboardRenderer.Generate(restored);
                 Assert.NotEqual(pngBefore["KNEEBOARD/TEST/01-STICK.png"], pngAfter["KNEEBOARD/TEST/01-STICK.png"]);
                 Assert.Equal(pngBefore.Keys.Order(), pngAfter.Keys.Order());
-                var payloadAfter = SnapshotLuaPayloadRenderer.Generate(restored);
+                var payloadAfter = DcsSnapshotLuaPayloadRenderer.Generate(restored);
                 foreach (var entry in payloadBefore)
                     Assert.Equal(entry.Value, payloadAfter[entry.Key]);
             }
@@ -465,12 +465,12 @@ namespace Heimdall.Tests
         {
             var saved = Workspace();
             var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", saved.Diagrams[0]);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
                 kneeboardTitle: "Auxiliary controls");
             Assert.Equal("Auxiliary controls", saved.Pages.Single(x => x.StableKey != "01-STICK").Title);
-            var ui = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, ui, ui.FileName, ui.Instance, ui.Role, kneeboardTitle: "UI title");
-            Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
+            var ui = DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, ui, ui.FileName, ui.Instance, ui.Role, kneeboardTitle: "UI title");
+            Assert.Equal("Stick", DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
         }
         /// <summary>Blank or multiline page headings fail validation without changing the original snapshot.</summary>
         /// <param name="title">An invalid title.</param>
@@ -481,10 +481,10 @@ namespace Heimdall.Tests
         public void RejectsInvalidKneeboardTitles(string title)
         {
             var saved = Workspace();
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName,
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName,
                 device.Instance, device.Role, kneeboardTitle: title));
-            Assert.Equal("Stick", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
+            Assert.Equal("Stick", DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
         }
         /// <summary>Any device subtitle persists independently of its title, identity, bindings, and other pages.</summary>
         /// <param name="deviceId">An MFD or ordinary shared device.</param>
@@ -496,39 +496,39 @@ namespace Heimdall.Tests
         {
             var original = Workspace(deviceId);
             var hardware = new WorkspaceHardware("other", "Other", "Other.diff.lua", original.Diagrams[0]);
-            var saved = WorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
+            var saved = DcsWorkspaceStructureEditor.AddDevice(original, hardware, AssignmentLayer.Module, "Other.diff.lua", "AUX", null,
                 kneeboardSubtitle: "Auxiliary panel");
-            var before = SnapshotDeviceKneeboardRenderer.Generate(saved)["KNEEBOARD/TEST/01-STICK.png"];
-            var luaBefore = SnapshotLuaPayloadRenderer.Generate(saved);
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
+            var before = DcsSnapshotDeviceKneeboardRenderer.Generate(saved)["KNEEBOARD/TEST/01-STICK.png"];
+            var luaBefore = DcsSnapshotLuaPayloadRenderer.Generate(saved);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, device.Instance, device.Role,
                 kneeboardSubtitle: "  Center display & controls  ");
             var path = Path.Combine(Path.GetTempPath(), "ipia-subtitle-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                var page = KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
+                var page = DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels);
                 Assert.Equal("Center display & controls", page.Kicker);
                 Assert.Equal("Stick", page.Title);
-                Assert.Equal("Auxiliary panel", KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[1], restored.Assignments, restored.Labels).Kicker);
+                Assert.Equal("Auxiliary panel", DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[1], restored.Assignments, restored.Labels).Kicker);
                 Assert.Equal(original.Configuration.Profiles[0], restored.Configuration.Profiles.Single(x => x.Id == ProfileId));
                 Assert.Contains("Center display &amp; controls", CompositeKneeboardRenderer.BuildPageSvg(restored.Diagrams[0], page, ""));
-                Assert.NotEqual(before, SnapshotDeviceKneeboardRenderer.Generate(restored)["KNEEBOARD/TEST/01-STICK.png"]);
+                Assert.NotEqual(before, DcsSnapshotDeviceKneeboardRenderer.Generate(restored)["KNEEBOARD/TEST/01-STICK.png"]);
                 foreach (var entry in luaBefore)
-                    Assert.Equal(entry.Value, SnapshotLuaPayloadRenderer.Generate(restored)[entry.Key]);
-                var ui = WorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
-                restored = WorkspaceStructureEditor.UpdateDevice(restored, ui, ui.FileName, ui.Instance, ui.Role, kneeboardSubtitle: "UI change");
-                Assert.Equal(page.Kicker, KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
-                device = WorkspaceStructureEditor.Describe(restored).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
-                restored = WorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName, device.Instance, device.Role, kneeboardSubtitle: "");
+                    Assert.Equal(entry.Value, DcsSnapshotLuaPayloadRenderer.Generate(restored)[entry.Key]);
+                var ui = DcsWorkspaceStructureEditor.Describe(restored).Devices.Single(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.UiLayer);
+                restored = DcsWorkspaceStructureEditor.UpdateDevice(restored, ui, ui.FileName, ui.Instance, ui.Role, kneeboardSubtitle: "UI change");
+                Assert.Equal(page.Kicker, DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
+                device = DcsWorkspaceStructureEditor.Describe(restored).Devices.First(x => x.ProfileId == ProfileId && x.Layer == AssignmentLayer.Module);
+                restored = DcsWorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName, device.Instance, device.Role, kneeboardSubtitle: "");
                 await repository.SaveAsync(restored);
                 restored = (await repository.GetAsync(ModuleId))!;
-                Assert.Equal("", KneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
-                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName,
+                Assert.Equal("", DcsKneeboardDraftProjection.CreateCombined(restored, restored.Diagrams[0], restored.Assignments, restored.Labels).Kicker);
+                Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(restored, device, device.FileName,
                     device.Instance, device.Role, kneeboardSubtitle: "Invalid\nsubtitle"));
             }
             finally { File.Delete(path); }
@@ -538,53 +538,53 @@ namespace Heimdall.Tests
         public void ReusesPhysicalProfilesAcrossScopes()
         {
             var saved = Workspace();
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
-            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
-                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
-            var ui = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            saved = WorkspaceStructureEditor.RemoveDevice(saved, ui);
-            var hardware = WorkspaceStructureEditor.Hardware(saved)[0];
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", null, null);
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            var ui = DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = DcsWorkspaceStructureEditor.RemoveDevice(saved, ui);
+            var hardware = DcsWorkspaceStructureEditor.Hardware(saved)[0];
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", null, null);
             Assert.Single(saved.Configuration.Profiles);
             Assert.True(saved.Diagrams[0].SupportsUiLayer);
-            Assert.Equal(2, WorkspaceStructureEditor.Describe(saved).Devices.Count);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Duplicate.diff.lua", null, null));
-            saved = WorkspaceStructureEditor.RemoveDevice(saved, WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.Module));
+            Assert.Equal(2, DcsWorkspaceStructureEditor.Describe(saved).Devices.Count);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Duplicate.diff.lua", null, null));
+            saved = DcsWorkspaceStructureEditor.RemoveDevice(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.Layer == AssignmentLayer.Module));
             Assert.Single(saved.Configuration.Profiles);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "MODULE.DIFF.LUA", "  ", "  ");
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "MODULE.DIFF.LUA", "  ", "  ");
             Assert.Equal("MODULE.DIFF.LUA", saved.Configuration.Profiles[0].SourceName);
-            Assert.Contains("Config/Input/TEST/joystick/MODULE.DIFF.LUA", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
+            Assert.Contains("Config/Input/TEST/joystick/MODULE.DIFF.LUA", DcsSnapshotLuaPayloadRenderer.Generate(saved).Keys);
         }
         /// <summary>Unused hardware replacement regenerates its device page rather than retaining old graphic metadata.</summary>
         [Fact]
         public void ReplacesUnusedHardwareAndResetsAuthoredPage()
         {
             var saved = Workspace();
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
-            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
-                saved = WorkspaceStructureEditor.RemoveModifier(saved, modifier);
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices[0]);
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(saved).Modifiers.ToArray())
+                saved = DcsWorkspaceStructureEditor.RemoveModifier(saved, modifier);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
             var hardware = new WorkspaceHardware("replacement", "Replacement", "Replacement.diff.lua",
                 saved.Diagrams[0] with { Device = "Replacement", Controls = [new("new-button", "New button", "JOY_BTN4", 0, 0, 10, 10, false)] });
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, "Replacement.diff.lua", "SECOND", "Aux", hardware: hardware);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, "Replacement.diff.lua", "SECOND", "Aux", hardware: hardware);
             Assert.Equal("replacement", saved.Configuration.Profiles[0].DeviceId);
             Assert.Equal("new-button", Assert.Single(saved.Diagrams[0].Controls).Control);
             Assert.DoesNotContain(saved.Pages, x => x.StableKey == "01-STICK");
-            Assert.Equal("Replacement · SECOND", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
-            Assert.Contains("Config/Input/TEST/joystick/Replacement.diff.lua", SnapshotLuaPayloadRenderer.Generate(saved).Keys);
+            Assert.Equal("Replacement · SECOND", DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).Title);
+            Assert.Contains("Config/Input/TEST/joystick/Replacement.diff.lua", DcsSnapshotLuaPayloadRenderer.Generate(saved).Keys);
         }
         /// <summary>Device identity edits cannot merge separate instances or collide across scope filenames.</summary>
         [Fact]
         public void RejectsDuplicateInstancesAndCrossScopeFilenames()
         {
             var saved = Workspace();
-            var hardware = WorkspaceStructureEditor.Hardware(saved)[0];
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Aux.diff.lua", "SECOND", "Aux");
-            var added = WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua");
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", null, null));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", "SECOND", null));
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", " SECOND ", " Aux ");
-            Assert.Equal("SECOND", WorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua").Instance);
+            var hardware = DcsWorkspaceStructureEditor.Hardware(saved)[0];
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, "Aux.diff.lua", "SECOND", "Aux");
+            var added = DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua");
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", null, null));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, "Stick.diff.lua", "SECOND", null));
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, added, "Aux.diff.lua", " SECOND ", " Aux ");
+            Assert.Equal("SECOND", DcsWorkspaceStructureEditor.Describe(saved).Devices.Single(x => x.FileName == "Aux.diff.lua").Instance);
         }
         /// <summary>Invalid native filenames are rejected before save or export.</summary>
         /// <param name="file">Unsafe or incomplete native filename.</param>
@@ -599,50 +599,50 @@ namespace Heimdall.Tests
         public void RejectsUnsafeNativeFilenames(string file)
         {
             var saved = Workspace();
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, WorkspaceStructureEditor.Hardware(saved)[0], AssignmentLayer.Module, file, "SECOND", null));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, DcsWorkspaceStructureEditor.Hardware(saved)[0], AssignmentLayer.Module, file, "SECOND", null));
         }
         /// <summary>Modifier validation rejects missing devices, malformed names, duplicate controls, and scope moves.</summary>
         [Fact]
         public void RejectsInvalidModifierDefinitionsAndScopeMoves()
         {
             var saved = Workspace();
-            var candidate = new WorkspaceModifier(AssignmentLayer.Module, ProfileId, "NEW", "JOY_BTN1", "New", ModifierMode.Hold, "");
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { ProfileId = Guid.NewGuid() }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " " }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = "A\tB" }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Mode = (ModifierMode)99 }));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Key = "JOY_BTN2" }));
-            var existing = WorkspaceStructureEditor.Describe(saved).Modifiers.First(x => x.Layer == AssignmentLayer.Module);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, existing, candidate with { Layer = AssignmentLayer.UiLayer }));
-            saved = WorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " NEW ", SemanticLayer = " New " });
-            Assert.Equal("New", WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Name == "NEW").SemanticLayer);
-            var ui = WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
-            saved = WorkspaceStructureEditor.SetModifier(saved, ui, ui with { Key = "JOY_BTN1" });
-            Assert.Equal("JOY_BTN1", WorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer).Key);
+            var candidate = new DcsWorkspaceModifier(AssignmentLayer.Module, ProfileId, "NEW", "JOY_BTN1", "New", ModifierMode.Hold, "");
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { ProfileId = Guid.NewGuid() }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " " }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = "A\tB" }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { Mode = (ModifierMode)99 }));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { Key = "JOY_BTN2" }));
+            var existing = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.First(x => x.Layer == AssignmentLayer.Module);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, existing, candidate with { Layer = AssignmentLayer.UiLayer }));
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, null, candidate with { Name = " NEW ", SemanticLayer = " New " });
+            Assert.Equal("New", DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Name == "NEW").SemanticLayer);
+            var ui = DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer);
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, ui, ui with { Key = "JOY_BTN1" });
+            Assert.Equal("JOY_BTN1", DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer).Key);
         }
         /// <summary>Managed exports reject duplicate memberships, unknown profiles, missing sources, and duplicate output paths.</summary>
         [Fact]
         public void RejectsCorruptManagedExports()
         {
             var saved = Workspace();
-            var modifier = WorkspaceStructureEditor.Describe(saved).Modifiers[0];
-            saved = WorkspaceStructureEditor.SetModifier(saved, modifier, modifier with { SemanticLayer = "Flight" });
-            var state = WorkspaceStructureEditor.Describe(saved);
-            EditorWorkspaceSnapshot WithState(WorkspaceManagement invalid) => saved with {
-                Sources = new Dictionary<string, string>(saved.Sources!) { [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) }
+            var modifier = DcsWorkspaceStructureEditor.Describe(saved).Modifiers[0];
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, modifier, modifier with { SemanticLayer = "Flight" });
+            var state = DcsWorkspaceStructureEditor.Describe(saved);
+            DcsEditorWorkspaceSnapshot WithState(DcsWorkspaceManagement invalid) => saved with {
+                Sources = new Dictionary<string, string>(saved.Sources!) { [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(invalid) }
             };
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [.. state.Devices, state.Devices[0]] })));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { ProfileId = Guid.NewGuid() }] })));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { Layer = (AssignmentLayer)99 }] })));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(WithState(state with { Devices = [] }), ProfileId));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [.. state.Devices, state.Devices[0]] })));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { ProfileId = Guid.NewGuid() }] })));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(WithState(state with { Devices = [state.Devices[0] with { Layer = (AssignmentLayer)99 }] })));
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(WithState(state with { Devices = [] }), ProfileId));
             var sources = new Dictionary<string, string>(saved.Sources!);
             sources.Remove("config/ipia-ui-" + ProfileId.ToString("N") + ".lua");
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(saved with { Sources = sources }, ProfileId));
-            var duplicate = new DeviceProfile(Guid.NewGuid(), "other", null, "Other", "Other.diff.lua");
-            var configuration = new ModuleConfiguration(saved.Configuration.Module, [.. saved.Configuration.Profiles, duplicate],
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(saved with { Sources = sources }, ProfileId));
+            var duplicate = new DcsDeviceProfile(Guid.NewGuid(), "other", null, "Other", "Other.diff.lua");
+            var configuration = new DcsModuleConfiguration(saved.Configuration.Module, [.. saved.Configuration.Profiles, duplicate],
                 saved.Configuration.Modifiers, saved.Configuration.Bindings, saved.Configuration.Provenance);
             var badPaths = WithState(state with { Devices = [.. state.Devices, new(duplicate.Id, AssignmentLayer.Module, "Stick.diff.lua", null, null)] });
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(badPaths with { Configuration = configuration }));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(badPaths with { Configuration = configuration }));
         }
         /// <summary>Module MFD edits take precedence over earlier per-layer authored category labels and permit clearing them.</summary>
         [Fact]
@@ -652,12 +652,12 @@ namespace Heimdall.Tests
             var sources = new Dictionary<string, string>(saved.Sources!);
             sources["config/kneeboard.json"] = sources["config/kneeboard.json"].Replace("\"categoryLabels\":{}", "\"categoryLabels\":{},\"layers\":[{\"categoryLabels\":{\"top\":\"OLD\"}},{\"labels\":{}}]", StringComparison.Ordinal);
             saved = saved with { Sources = sources };
-            var device = WorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEW", ["bottom"] = "MID" });
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEWER", ["bottom"] = "MID" });
-            Assert.Equal("NEWER", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-top"]);
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string>());
-            Assert.Equal("", KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-bottom"]);
+            var device = DcsWorkspaceStructureEditor.Describe(saved).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEW", ["bottom"] = "MID" });
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string> { ["top"] = "NEWER", ["bottom"] = "MID" });
+            Assert.Equal("NEWER", DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-top"]);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, device.FileName, null, null, new Dictionary<string, string>());
+            Assert.Equal("", DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels).CategoryLabels["mfd-category-bottom"]);
         }
         /// <summary>Default keyboard modifiers remain protected in both scopes even after every assignment is cleared.</summary>
         /// <param name="key">Built-in keyboard modifier key.</param>
@@ -674,7 +674,7 @@ namespace Heimdall.Tests
         {
             var saved = Workspace();
             saved = saved with {
-                Configuration = new ModuleConfiguration(saved.Configuration.Module, saved.Configuration.Profiles,
+                Configuration = new DcsModuleConfiguration(saved.Configuration.Module, saved.Configuration.Profiles,
                     [.. saved.Configuration.Modifiers, new(key, "Keyboard", key, ModifierMode.Hold)],
                     saved.Configuration.Bindings, saved.Configuration.Provenance)
             };
@@ -683,22 +683,22 @@ namespace Heimdall.Tests
                 "local modifiers = { [\"UI_SHIFT\"] = { [\"device\"] = \"Stick\", [\"key\"] = \"JOY_BTN2\", [\"switch\"] = false }, " +
                 "[\"" + key + "\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"" + key + "\", [\"switch\"] = false } } return modifiers";
             saved = saved with { Sources = sources };
-            Assert.Equal(2, WorkspaceStructureEditor.Describe(saved).Modifiers.Count(x => x.Name == key));
-            saved = WorkspaceStructureEditor.ClearDeviceAssignments(saved, WorkspaceStructureEditor.Describe(saved).Devices[0]);
+            Assert.Equal(2, DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Count(x => x.Name == key));
+            saved = DcsWorkspaceStructureEditor.ClearDeviceAssignments(saved, DcsWorkspaceStructureEditor.Describe(saved).Devices[0]);
             Assert.Empty(saved.Assignments);
-            foreach (var modifier in WorkspaceStructureEditor.Describe(saved).Modifiers.Where(x => x.Name == key))
+            foreach (var modifier in DcsWorkspaceStructureEditor.Describe(saved).Modifiers.Where(x => x.Name == key))
             {
-                Assert.True(WorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
-                var error = Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(saved, modifier));
+                Assert.True(DcsWorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
+                var error = Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveModifier(saved, modifier));
                 Assert.Contains("Default keyboard modifiers", error.Message);
-                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.SetModifier(saved, modifier,
+                Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.SetModifier(saved, modifier,
                     modifier with { ProfileId = ProfileId, Key = "JOY_BTN1", Name = "MOVED" }));
             }
-            var payload = SnapshotLuaPayloadRenderer.Generate(saved);
+            var payload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains("\"" + key + "\"", Encoding.UTF8.GetString(payload["Config/Input/TEST/modifiers.lua"]));
             Assert.Contains("\"" + key + "\"", Encoding.UTF8.GetString(payload["Config/Input/UiLayer/modifiers.lua"]));
-            Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, ProfileId, key, key, key, ModifierMode.Hold, "Stick")));
-            Assert.False(WorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, Guid.Empty, "CUSTOM", "K", "Custom", ModifierMode.Hold, "Keyboard")));
+            Assert.False(DcsWorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, ProfileId, key, key, key, ModifierMode.Hold, "Stick")));
+            Assert.False(DcsWorkspaceStructureEditor.IsDefaultKeyboardModifier(new(AssignmentLayer.Module, Guid.Empty, "CUSTOM", "K", "Custom", ModifierMode.Hold, "Keyboard")));
         }
         /// <summary>Rebinding preserves authored data while changing exact native filenames and modifiers in both scopes.</summary>
         /// <returns>Completion of real SQLite preservation checks.</returns>
@@ -712,59 +712,59 @@ namespace Heimdall.Tests
                     new DcsBinding(ProfileId, BindingSection.Key, "OLD", "Removed action", BindingDisposition.Removed, "JOY_BTN3")
                 ]), original.Configuration.Provenance),
                 Assignments = [.. original.Assignments,
-                    new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", ""),
+                    new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", ""),
                         new("AXIS", "Pitch", true, AssignmentLayer.Module)) { Filter = new AxisFilter(Deadzone: 4, Curvature: [12], Invert: true) }]
             };
-            var device = WorkspaceStructureEditor.Describe(original).Devices.First(x => x.Layer == AssignmentLayer.Module);
+            var device = DcsWorkspaceStructureEditor.Describe(original).Devices.First(x => x.Layer == AssignmentLayer.Module);
             var file = new DetectedDcsDevice(Guid.Parse("11223344-1234-11F1-8001-444553540000"), "Actual Stick", false).FileName;
-            var rebound = WorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");
+            var rebound = DcsWorkspaceStructureEditor.RebindDevice(original, device, file, "Pilot", "Grip");
             Assert.Equal(original.Assignments, rebound.Assignments);
             Assert.Equal(original.Labels, rebound.Labels);
             Assert.Equal(JsonSerializer.Serialize(original.Configuration.Bindings.OrderBy(x => x.CommandId)), JsonSerializer.Serialize(rebound.Configuration.Bindings.OrderBy(x => x.CommandId)));
             Assert.Equal(original.Pages.Select(x => x.Id), rebound.Pages.Select(x => x.Id));
             Assert.Equal(original.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!], rebound.Sources![original.Diagrams[0].CanonicalUiLayerSourcePath!]);
-            Assert.Equal(UiLayerLuaProfileRenderer.Render(original, ProfileId), UiLayerLuaProfileRenderer.Render(rebound, ProfileId));
-            Assert.Equal(ModuleLuaProfileRenderer.Render(original, ProfileId), ModuleLuaProfileRenderer.Render(rebound, ProfileId));
-            Assert.All(WorkspaceStructureEditor.Describe(rebound).Devices, x => Assert.Equal(file, x.FileName));
-            Assert.All(WorkspaceStructureEditor.Describe(rebound).Modifiers, x => Assert.Equal(file[..^9], x.NativeDevice));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(rebound, device, file, "Pilot", null));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(original, device, "Generic.diff.lua", null, null));
+            Assert.Equal(DcsUiLayerLuaProfileRenderer.Render(original, ProfileId), DcsUiLayerLuaProfileRenderer.Render(rebound, ProfileId));
+            Assert.Equal(DcsModuleLuaProfileRenderer.Render(original, ProfileId), DcsModuleLuaProfileRenderer.Render(rebound, ProfileId));
+            Assert.All(DcsWorkspaceStructureEditor.Describe(rebound).Devices, x => Assert.Equal(file, x.FileName));
+            Assert.All(DcsWorkspaceStructureEditor.Describe(rebound).Modifiers, x => Assert.Equal(file[..^9], x.NativeDevice));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RebindDevice(rebound, device, file, "Pilot", null));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RebindDevice(original, device, "Generic.diff.lua", null, null));
             var path = Path.Combine(Path.GetTempPath(), "ipia-rebind-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(rebound);
                 var restored = (await repository.GetAsync(ModuleId))!;
-                var output = SnapshotLuaPayloadRenderer.Generate(restored);
+                var output = DcsSnapshotLuaPayloadRenderer.Generate(restored);
                 Assert.Contains("Config/Input/TEST/joystick/" + file, output.Keys);
                 Assert.Contains("Config/Input/UiLayer/joystick/" + file, output.Keys);
                 foreach (var scope in new[] { "TEST", "UiLayer" })
                     Assert.Contains(file[..^9], Encoding.UTF8.GetString(output["Config/Input/" + scope + "/modifiers.lua"]));
                 Assert.Equal("Stick.diff.lua", original.Configuration.Profiles[0].SourceName);
-                var updated = WorkspaceStructureEditor.Describe(restored).Devices.First(x => x.Layer == AssignmentLayer.Module);
-                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(restored, updated,
+                var updated = DcsWorkspaceStructureEditor.Describe(restored).Devices.First(x => x.Layer == AssignmentLayer.Module);
+                Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(restored, updated,
                     new DetectedDcsDevice(Guid.NewGuid(), "Other", true).FileName, null, null));
                 var other = new WorkspaceHardware("other", "Other", "Other.diff.lua", restored.Diagrams[0]);
-                var withOther = WorkspaceStructureEditor.AddDevice(restored, other, AssignmentLayer.Module,
+                var withOther = DcsWorkspaceStructureEditor.AddDevice(restored, other, AssignmentLayer.Module,
                     new DetectedDcsDevice(Guid.NewGuid(), "Other", true).FileName, "Second", null);
-                var otherDevice = WorkspaceStructureEditor.Describe(withOther).Devices[^1];
-                Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RebindDevice(withOther, otherDevice, file, null, null));
+                var otherDevice = DcsWorkspaceStructureEditor.Describe(withOther).Devices[^1];
+                Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RebindDevice(withOther, otherDevice, file, null, null));
             }
             finally { File.Delete(path); }
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace(string deviceId = "stick")
+        private static DcsEditorWorkspaceSnapshot Workspace(string deviceId = "stick")
         {
-            var profile = new DeviceProfile(ProfileId, deviceId, null, "Stick", "Stick.diff.lua");
-            var config = new ModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"), [profile],
+            var profile = new DcsDeviceProfile(ProfileId, deviceId, null, "Stick", "Stick.diff.lua");
+            var config = new DcsModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"), [profile],
                 [new DcsModifier("SHIFT", "Stick", "JOY_BTN2", ModifierMode.Hold)],
                 [new DcsBinding(ProfileId, BindingSection.Key, "FLIGHT", "Flight", BindingDisposition.Added, "JOY_BTN1", ["SHIFT"])], "fixture");
             var assignments = new[] {
-                new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "SHIFT"), new("FLIGHT", "Flight", false, AssignmentLayer.Module)),
-                new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "UI_SHIFT"), new("VOICE", "Voice", false, AssignmentLayer.UiLayer))
+                new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "SHIFT"), new("FLIGHT", "Flight", false, AssignmentLayer.Module)),
+                new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "UI_SHIFT"), new("VOICE", "Voice", false, AssignmentLayer.UiLayer))
             };
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [],
                 [new(1, "one", "Voice", "UI_SHIFT", 0, 0, 10, 10) { CommandId = "VOICE" }]) {
@@ -778,7 +778,7 @@ namespace Heimdall.Tests
                 ["assets/shared/ui-layer/input/UiLayer/joystick/Stick.diff.lua"] = """local diff = { ["keyDiffs"] = { ["VOICE"] = { ["name"] = "Voice", ["added"] = { [1] = { ["key"] = "JOY_BTN1", ["reformers"] = { [1] = "UI_SHIFT" } } } }, ["UNMAPPED"] = { ["name"] = "Unmapped", ["added"] = { [1] = { ["key"] = "JOY_BTN99", ["reformers"] = { [1] = "UI_SHIFT" } } } } } } return diff"""
             };
             return new(config, [new KneeboardPage(Guid.NewGuid(), ModuleId, null, KneeboardPageKind.Device, "01-STICK", "Stick", [], 0)],
-                [], [diagram], [new CommandPaletteEntry("FLIGHT", "Flight", "Flight", false)],
+                [], [diagram], [new DcsCommandPaletteEntry("FLIGHT", "Flight", "Flight", false)],
                 [new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "VOICE", "Voice", "UI", false)], assignments, new Dictionary<string, string> { [assignments[0].Slot.Key] = "My label" }, sources);
         }
         #endregion END private helpers

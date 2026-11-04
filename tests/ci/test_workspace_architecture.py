@@ -23,7 +23,7 @@ class WorkspaceArchitectureTests(unittest.TestCase):
     def test_base_has_no_game_or_native_session_dependencies(self):
         source = (APP / 'Games/GameWorkspaceWindow.cs').read_text()
         for forbidden in ('Heimdall.Dcs', 'Heimdall.EliteDangerous', 'Heimdall.Squadrons',
-                          'Heimdall.WarThunder', 'EditorWorkspaceSnapshot', 'GameProfileSession'):
+                          'Heimdall.WarThunder', 'DcsEditorWorkspaceSnapshot', 'GameProfileSession'):
             self.assertNotIn(forbidden, source)
         for responsibility in ('NavigateToFeature', 'OnClosing', 'OnClosed', 'RegisterWorkspaceCleanup'):
             self.assertIn(responsibility, source)
@@ -34,9 +34,9 @@ class WorkspaceArchitectureTests(unittest.TestCase):
             self.assertIn(collaborator, source)
         for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
             self.assertRegex(source, rf'override \w+(?:<[^>]+>)? {hook}\(')
-        for forbidden in ('new DraftAssignmentService', 'ModuleSnapshotWorkflow.Freeze',
-                          'ModuleCompleteReleaseWorkflow.Write', '_repository.SaveAsync',
-                          'new DevicesView', 'Dictionary<string, UserControl>'):
+        for forbidden in ('new DcsDraftAssignmentService', 'DcsModuleSnapshotWorkflow.Freeze',
+                          'DcsModuleCompleteReleaseWorkflow.Write', '_repository.SaveAsync',
+                          'new DcsDevicesView', 'Dictionary<string, UserControl>'):
             self.assertNotIn(forbidden, source)
 
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):

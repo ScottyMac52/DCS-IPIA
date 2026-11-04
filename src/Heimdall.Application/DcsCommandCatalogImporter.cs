@@ -10,7 +10,7 @@ namespace Heimdall.Application
         /// <param name="json">Contents of a DCS-Common command catalog JSON file.</param>
         /// <param name="moduleId">Expected DCS module identifier, such as UH-1H.</param>
         /// <returns>Distinct module commands with named categories.</returns>
-        public static IReadOnlyList<CommandPaletteEntry> Parse(string json, string moduleId)
+        public static IReadOnlyList<DcsCommandPaletteEntry> Parse(string json, string moduleId)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(json);
             ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
@@ -26,7 +26,7 @@ namespace Heimdall.Application
                 var commands = root.GetProperty("commands");
                 if (commands.ValueKind != JsonValueKind.Array)
                     throw new FormatException("Catalog commands must be an array.");
-                var entries = new List<CommandPaletteEntry>();
+                var entries = new List<DcsCommandPaletteEntry>();
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var row in commands.EnumerateArray())
                 {

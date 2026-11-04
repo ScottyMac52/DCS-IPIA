@@ -33,9 +33,9 @@ namespace Heimdall.App.Smoke
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
                 var settings = new SqliteAppSettingsService(connection, Path.Combine(folder, "defaults.json"),
                     Path.Combine(folder, "user.json"), Path.Combine(folder, "theme.txt"));
-                window = new MainWindow(new global::Heimdall.Dcs.ModuleWorkspaceLoader(),
+                window = new MainWindow(new global::Heimdall.Dcs.DcsModuleWorkspaceLoader(),
                     new global::Heimdall.Dcs.DcsFolderImporter(), settings,
-                    new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
+                    new DcsSqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show(); window.Activate(); ThemeControlSmoke.Pump(window);
                 var menu = (Menu)window.FindName("MainMenu")!;
                 // ContextMenu's owning Popup resolves this through its placement target.

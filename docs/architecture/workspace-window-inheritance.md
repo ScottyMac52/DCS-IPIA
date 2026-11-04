@@ -14,7 +14,7 @@ callbacks rather than copying the DCS window.
 | `DcsWorkspaceSession` | DCS saved/working snapshots, draft subscriptions, structural edits, personal labels, native validation, persistence and discard |
 | `DcsWorkspaceOutput` | Validation, snapshot/documentation/complete-release/package output from saved DCS state; destinations and logging are injected |
 | `DcsWorkspaceFeatures` | Registers the eight existing feature factories and the Input Test availability policy |
-| `WindowContext` | Compatibility facade over the session, shared events and inherited Save/Discard paths; no mutable state in window fields |
+| `DcsWindowContext` | Compatibility facade over the session, shared events and inherited Save/Discard paths; no mutable state in window fields |
 | `DcsControllerSelection` | DCS controller rail synchronization and binding cleanup |
 
 The base has no native backend, game ID switch, DCS snapshot, or simulator-specific
@@ -49,7 +49,7 @@ availability is re-evaluated before reusing a cached view. Common chrome is
 refreshed after both successful and failed asynchronous actions.
 
 DCS retains its existing two-choice close prompt and three-choice switch prompt.
-The `WindowContext` API and constructor parameter contract remain compatible
+The `DcsWindowContext` API and constructor parameter contract remain compatible
 with existing callers; the DCS window type is now named `DcsModuleWorkspaceWindow`.
 Its explicit appearance target retains the persisted `ModuleWorkspaceWindow` key,
 so existing backgrounds, artwork opacity and view inheritance remain available. Training accesses its window-owned session and keeps its

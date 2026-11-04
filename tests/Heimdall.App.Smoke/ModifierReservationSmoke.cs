@@ -17,8 +17,8 @@ namespace Heimdall.App.Smoke
         public static void Verify()
         {
             var module = new DcsModule(Guid.NewGuid(), "RESERVED-MFD", "Reserved inputs");
-            var profile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD 2", "MFD", "MFD.diff.lua");
-            var configuration = new ModuleConfiguration(module, [profile],
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD 2", "MFD", "MFD.diff.lua");
+            var configuration = new DcsModuleConfiguration(module, [profile],
                 [new DcsModifier("S3", "MFD", "JOY_BTN7", ModifierMode.Hold)], [], "smoke");
             var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 100'>" +
                 "<rect width='130' height='100' fill='white'/>" +
@@ -38,20 +38,20 @@ namespace Heimdall.App.Smoke
                     new("free", "BTN8", "JOY_BTN8", 10, 52, 48, 34)
                 ]
             };
-            var management = new WorkspaceManagement([
+            var management = new DcsWorkspaceManagement([
                 new(profile.Id, AssignmentLayer.Module, "MFD.diff.lua", null, null),
                 new(profile.Id, AssignmentLayer.UiLayer, "MFD.diff.lua", null, null)
             ], [
                 new(AssignmentLayer.Module, profile.Id, "S3", "JOY_BTN7", "SHIFT", ModifierMode.Hold, "MFD"),
                 new(AssignmentLayer.UiLayer, profile.Id, "UI SHIFT", "JOY_BTN7", "UI", ModifierMode.Toggle, "MFD")
             ]);
-            var slot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
+            var slot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
                 BindingSection.Key, "JOY_BTN7");
-            var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [diagram],
-                [new CommandPaletteEntry("CMD", "Legacy", "General", false)], [],
-                [new DraftAssignment(slot, new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module)),
-                 new DraftAssignment(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" },
-                    new DraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
+            var workspace = new DcsEditorWorkspaceSnapshot(configuration, [], [], [diagram],
+                [new DcsCommandPaletteEntry("CMD", "Legacy", "General", false)], [],
+                [new DcsDraftAssignment(slot, new DcsDraftCommand("CMD", "Legacy", false, AssignmentLayer.Module)),
+                 new DcsDraftAssignment(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" },
+                    new DcsDraftCommand("CMD", "Legacy", false, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> {
                     ["config/kneeboard.json"] = "{}",
                     ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] =
@@ -61,9 +61,9 @@ namespace Heimdall.App.Smoke
                         "[\"key\"] = \"JOY_BTN7\", [\"switch\"] = true } } return modifiers",
                     ["assets/shared/ui-layer/input/UiLayer/joystick/MFD.diff.lua"] =
                         "local diff = { [\"keyDiffs\"] = {} } return diff",
-                    [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(management)
+                    [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(management)
                 });
-            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
@@ -107,22 +107,22 @@ namespace Heimdall.App.Smoke
                 var clear = ActionBar.FindButton(view, "Clear assignment")!;
                 clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, clear));
                 if (!((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
-                    new WindowContext(window).Draft?.Snapshot.Any(a =>
+                    new DcsWindowContext(window).Draft?.Snapshot.Any(a =>
                         DcsInputKey.SamePhysicalInput(a.Slot.InputKey, "JOY_BTN7")) != false)
                     throw new InvalidOperationException("Legacy assignment could not be cleared independently.");
 
-                var context = new WindowContext(window);
+                var context = new DcsWindowContext(window);
                 // The color fixture uses S3; release that binding before testing modifier removal.
                 context.Draft!.Remove(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" });
-                context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
-                    WorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.Module)));
+                context.RunStructureEdit(w => DcsWorkspaceStructureEditor.RemoveModifier(w,
+                    DcsWorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.Module)));
                 if (Callout("reserved").AllowDrop)
                     throw new InvalidOperationException("The UI Layer modifier was not respected.");
-                context.RunStructureEdit(w => WorkspaceStructureEditor.RemoveModifier(w,
-                    WorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer)));
+                context.RunStructureEdit(w => DcsWorkspaceStructureEditor.RemoveModifier(w,
+                    DcsWorkspaceStructureEditor.Describe(w).Modifiers.Single(x => x.Layer == AssignmentLayer.UiLayer)));
                 if (!Callout("reserved").AllowDrop)
                 {
-                    var remaining = string.Join(", ", WorkspaceStructureEditor.Describe(context.Working!).Modifiers
+                    var remaining = string.Join(", ", DcsWorkspaceStructureEditor.Describe(context.Working!).Modifiers
                         .Select(x => x.Layer + ":" + x.Name));
                     var error = ((TextBlock)window.FindName("EditorMessage")!).Text;
                     throw new InvalidOperationException("Removing modifiers did not release reserved inputs. " +

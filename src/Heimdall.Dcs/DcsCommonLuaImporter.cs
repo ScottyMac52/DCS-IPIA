@@ -9,13 +9,13 @@ using Heimdall.Domain;
 namespace Heimdall.Dcs
 {
     /// <summary>Imports pinned DCS-Common hardware definitions and canonical UI Layer Lua.</summary>
-    public sealed class DcsCommonLuaImporter : ISharedLuaImporter
+    public sealed class DcsCommonLuaImporter : IDcsSharedLuaImporter
     {
         #region BEGIN Public
         /// <summary>Reads supplied source text without executing Lua or changing source files.</summary>
         /// <param name="request">The catalog and pinned Lua source texts.</param>
         /// <returns>Validated normalized data and exact source provenance.</returns>
-        public SharedLuaImportResult Import(SharedLuaImportRequest request)
+        public DcsSharedLuaImportResult Import(DcsSharedLuaImportRequest request)
         {
             ArgumentNullException.ThrowIfNull(request);
             var diagnostics = new List<ImportDiagnostic>();
@@ -27,7 +27,7 @@ namespace Heimdall.Dcs
             if (diagnostics.Any(x => x.IsError))
                 return Failure(diagnostics);
             var controls = new List<SharedHardwareControl>();
-            var profiles = new List<DeviceProfile>();
+            var profiles = new List<DcsDeviceProfile>();
             var bindings = new List<DcsBinding>();
             var modifiers = new List<DcsModifier>();
             var catalog = request.Catalog!;
@@ -93,7 +93,7 @@ namespace Heimdall.Dcs
                            match.Groups["position"].Success ? match.Groups["position"].Value : null);
         }
         /// <summary>Accumulates request errors before any Lua is parsed.</summary>
-        private static void ValidateRequest(SharedLuaImportRequest request, List<ImportDiagnostic> diagnostics)
+        private static void ValidateRequest(DcsSharedLuaImportRequest request, List<ImportDiagnostic> diagnostics)
         {
             if (request.Commit is null || request.Commit.Length != 40 || !request.Commit.All(Uri.IsHexDigit))
                 diagnostics.Add(new("invalid-commit", "A pinned 40-character DCS-Common commit is required.", true));
@@ -106,7 +106,7 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Validates every source path and text while preserving diagnostic order.</summary>
-        private static void ValidateSources(IReadOnlyList<SharedLuaSource> sources, List<ImportDiagnostic> diagnostics)
+        private static void ValidateSources(IReadOnlyList<DcsSharedLuaSource> sources, List<ImportDiagnostic> diagnostics)
         {
             var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var source in sources)
@@ -122,13 +122,13 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Requires a safe repository-relative Lua path before accepting its source record.</summary>
-        private static bool IsValidSource([NotNullWhen(true)] SharedLuaSource? source) =>
+        private static bool IsValidSource([NotNullWhen(true)] DcsSharedLuaSource? source) =>
             source is not null && !string.IsNullOrWhiteSpace(source.Path) && !source.Path.StartsWith('/') &&
             !source.Path.Contains('\\') && !source.Path.Split('/').Any(x => x is "" or "." or "..") &&
             source.Path.EndsWith(".lua", StringComparison.Ordinal);
 
         /// <summary>Reads canonical modifiers and retains their dedicated diagnostics.</summary>
-        private static SharedLuaSource? ReadModifiers(IReadOnlyList<SharedLuaSource> sources, List<DcsModifier> modifiers,
+        private static DcsSharedLuaSource? ReadModifiers(IReadOnlyList<DcsSharedLuaSource> sources, List<DcsModifier> modifiers,
                                                       List<ImportDiagnostic> diagnostics)
         {
             var modifierSource =
@@ -150,9 +150,9 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Dispatches one source to its hardware or UI profile parser.</summary>
-        private static void ImportSource(SharedLuaSource source, SharedLuaSource? modifierSource,
-                                          SharedCatalogImportResult catalog, Dictionary<string, PhysicalDevice> known,
-                                          List<SharedHardwareControl> controls, List<DeviceProfile> profiles, List<DcsBinding> bindings)
+        private static void ImportSource(DcsSharedLuaSource source, DcsSharedLuaSource? modifierSource,
+                                          DcsSharedCatalogImportResult catalog, Dictionary<string, PhysicalDevice> known,
+                                          List<SharedHardwareControl> controls, List<DcsDeviceProfile> profiles, List<DcsBinding> bindings)
         {
             if (source.Path.StartsWith("assets/shared/hardware/lua/", StringComparison.Ordinal))
             {
@@ -174,8 +174,8 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Resolves a canonical profile identity before parsing its bindings.</summary>
-        private static void ImportUiProfile(SharedLuaSource source, SharedCatalogImportResult catalog,
-                                             Dictionary<string, PhysicalDevice> known, List<DeviceProfile> profiles,
+        private static void ImportUiProfile(DcsSharedLuaSource source, DcsSharedCatalogImportResult catalog,
+                                             Dictionary<string, PhysicalDevice> known, List<DcsDeviceProfile> profiles,
                                              List<DcsBinding> bindings)
         {
             var filename = Path.GetFileName(source.Path);
@@ -188,7 +188,7 @@ namespace Heimdall.Dcs
                     $"No valid ordered device-map rule for {name}; resolve the profile identity in the shared map.");
             var instance = ResolveInstance(name, deviceKey, catalog.DeviceMap!);
             var id = StableIdentity.Create("ui-layer-profile", $"{deviceKey}/{name}");
-            var profile = new DeviceProfile(id, deviceKey, instance, "ui-layer", filename);
+            var profile = new DcsDeviceProfile(id, deviceKey, instance, "ui-layer", filename);
             profiles.Add(profile);
             bindings.AddRange(DcsLuaParser.ParseProfile(source.Content, id));
         }
@@ -212,9 +212,9 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Checks unique identities and canonical modifier and command references.</summary>
-        private static void ValidateImportedReferences(List<SharedHardwareControl> controls, List<DeviceProfile> profiles,
+        private static void ValidateImportedReferences(List<SharedHardwareControl> controls, List<DcsDeviceProfile> profiles,
                                                         List<DcsBinding> bindings, List<DcsModifier> modifiers,
-                                                        SharedCatalogImportResult catalog, List<ImportDiagnostic> diagnostics)
+                                                        DcsSharedCatalogImportResult catalog, List<ImportDiagnostic> diagnostics)
         {
             if (profiles.Select(x => x.Id).Distinct().Count() != profiles.Count)
                 diagnostics.Add(new("duplicate-profile",
@@ -239,7 +239,7 @@ namespace Heimdall.Dcs
         }
 
         /// <summary>Hashes original source bytes and orders provenance by repository path.</summary>
-        private static SourceProvenance[] CreateProvenance(IReadOnlyList<SharedLuaSource> sources, string commit)
+        private static SourceProvenance[] CreateProvenance(IReadOnlyList<DcsSharedLuaSource> sources, string commit)
         {
             var provenance =
                 sources
@@ -250,7 +250,7 @@ namespace Heimdall.Dcs
                     .ToArray();
             return provenance;
         }
-        private static SharedLuaImportResult Failure(List<ImportDiagnostic> diagnostics) => new([], [], [], [], [],
+        private static DcsSharedLuaImportResult Failure(List<ImportDiagnostic> diagnostics) => new([], [], [], [], [],
                                                                                                 diagnostics);
         private static string? ResolveDevice(string name, SharedDeviceMap map)
         {

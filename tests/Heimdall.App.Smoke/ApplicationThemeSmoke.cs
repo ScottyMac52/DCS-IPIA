@@ -43,9 +43,9 @@ namespace Heimdall.App.Smoke
             var settings = new SettingsWindow(new FileAppSettingsService(Path.Combine(folder, "defaults.json"),
                 Path.Combine(folder, "settings.json"), Path.Combine(folder, "theme.txt")));
             var axis = new AxisTuningWindow(null);
-            var config = new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "THEME", "Theme"), [], [], [], "smoke");
-            var workspace = new EditorWorkspaceSnapshot(config, [], [], [], [], [], [], new Dictionary<string, string>(), new Dictionary<string, string>());
-            var usage = new CommandUsageWindow("Theme command", "General", [], workspace, new Dictionary<string, string>());
+            var config = new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "THEME", "Theme"), [], [], [], "smoke");
+            var workspace = new DcsEditorWorkspaceSnapshot(config, [], [], [], [], [], [], new Dictionary<string, string>(), new Dictionary<string, string>());
+            var usage = new DcsCommandUsageWindow("Theme command", "General", [], workspace, new Dictionary<string, string>());
             var support = new SupportReportWindow("{\"themePreview\":true}");
             var help = new WorkflowHelpWindow();
             var windows = new Window[] { fixture, settings, axis, usage, support, help };

@@ -51,9 +51,9 @@ Both complete training scenarios must pass rendered smoke acceptance.
 - `WorkspaceLayout.cs`: presentation-only attached behavior for persisted
   splitters/disclosures and training preference isolation.
 - `DiagramViewport.cs`: viewport scale/Fit behavior shared by existing drawings.
-- `Training/TrainingActions.cs`: Fit and disclosed-target visibility; no training
+- `Training/DcsTrainingActions.cs`: Fit and disclosed-target visibility; no training
   scenario content or business operations are replaced.
-- `Training/TrainingWindow.xaml.cs`: fits the mounted compact workspace to the
+- `Training/DcsTrainingWindow.xaml.cs`: fits the mounted compact workspace to the
   training viewport so both drag endpoints remain visible; retains the creation
   form's existing scroll extent.
 - Unit/smoke tests and test project source linkage: verify storage cross-platform

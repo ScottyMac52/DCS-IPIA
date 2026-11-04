@@ -24,12 +24,12 @@ namespace Heimdall.Tests
                 Directory.CreateDirectory(destination);
                 File.WriteAllText(Path.Combine(destination, "unrelated.txt"), "keep");
                 var builder = new FlyNowTestPayloadBuilder();
-                var service = new SqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
+                var service = new DcsSqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
                 var module = Guid.NewGuid();
                 var active = await service.DeployAsync(module, destination);
                 Assert.Equal(module, active.ModuleId);
                 Assert.Contains("Config/Input/UiLayer/modifiers.lua", active.Files);
-                var reopened = new SqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
+                var reopened = new DcsSqliteFlyNowService(connection, Path.Combine(root, "backups"), builder);
                 Assert.Equal(module, (await reopened.GetActiveAsync())!.ModuleId);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => reopened.DeployAsync(Guid.NewGuid(), destination));
                 await reopened.DeployAsync(module, destination);
@@ -174,7 +174,7 @@ namespace Heimdall.Tests
             File.WriteAllText(target, "partial-copy");
             Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(destination, newPath))!);
             File.WriteAllText(Path.Combine(destination, newPath), "partial-copy");
-            var candidate = new FlyNowDeployment(previous?.ModuleId ?? Guid.NewGuid(), "Test", destination, [originalPath, newPath]);
+            var candidate = new DcsFlyNowDeployment(previous?.ModuleId ?? Guid.NewGuid(), "Test", destination, [originalPath, newPath]);
             await WriteJournalAsync(connection, new
             {
                 Active = candidate,
@@ -198,7 +198,7 @@ namespace Heimdall.Tests
             await WriteJournalAsync(connection, new
             {
                 Active = active with { Clearing = true },
-                Previous = (FlyNowDeployment?)null,
+                Previous = (DcsFlyNowDeployment?)null,
                 BackupFolder = "",
                 ReplacedFiles = new Dictionary<string, bool>(),
                 Writing = false
@@ -211,7 +211,7 @@ namespace Heimdall.Tests
         #endregion END Public
 
         #region BEGIN private helpers
-        private static async Task WithServiceAsync(Func<SqliteFlyNowService, string, FlyNowTestPayloadBuilder, string, Task> test)
+        private static async Task WithServiceAsync(Func<DcsSqliteFlyNowService, string, FlyNowTestPayloadBuilder, string, Task> test)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-fly-test-" + Guid.NewGuid().ToString("N"));
             var destination = Path.Combine(root, "DCS");
@@ -221,7 +221,7 @@ namespace Heimdall.Tests
                 var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
                 var builder = new FlyNowTestPayloadBuilder();
-                await test(new SqliteFlyNowService(connection, Path.Combine(root, "backups"), builder), destination, builder, connection);
+                await test(new DcsSqliteFlyNowService(connection, Path.Combine(root, "backups"), builder), destination, builder, connection);
             }
             finally { Directory.Delete(root, true); }
         }

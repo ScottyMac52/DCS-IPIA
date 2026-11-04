@@ -115,8 +115,8 @@ namespace Heimdall.App.Smoke
         }
 
         /// <summary>Reads the displayed command palette entries from a grid.</summary>
-        public static IReadOnlyList<CommandPaletteEntry> Entries(DataGrid grid) => grid.Items.Cast<object>().Select(row =>
-            new CommandPaletteEntry((string)row.GetType().GetProperty("Id")!.GetValue(row)!,
+        public static IReadOnlyList<DcsCommandPaletteEntry> Entries(DataGrid grid) => grid.Items.Cast<object>().Select(row =>
+            new DcsCommandPaletteEntry((string)row.GetType().GetProperty("Id")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Name")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Category")!.GetValue(row)!,
                 (bool)row.GetType().GetProperty("IsAxis")!.GetValue(row)!)).ToArray();

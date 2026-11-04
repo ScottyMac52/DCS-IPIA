@@ -22,19 +22,19 @@ namespace Heimdall.Tests
                 var migration = new SqliteMigrationRunner(connection);
                 await migration.MigrateAsync();
                 await migration.MigrateAsync();
-                var modules = new SqliteEditorWorkspaceRepository(connection);
-                var module = new EditorWorkspaceSnapshot(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "test"),
+                var modules = new DcsSqliteEditorWorkspaceRepository(connection);
+                var module = new DcsEditorWorkspaceSnapshot(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "test"),
                     [], [], [], [], [], [], new Dictionary<string, string>(), new Dictionary<string, string> { ["module-override"] = "unchanged" });
                 await modules.SaveAsync(module);
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 Assert.Null(await repository.GetAsync());
-                var seed = await SharedUiLayerWorkspaceFactory.CreateAsync();
+                var seed = await DcsSharedUiLayerWorkspaceFactory.CreateAsync();
                 Assert.Equal(0, seed.Revision);
                 Assert.Contains("assets/shared/ui-layer/functions.json", seed.Sources.Keys);
                 Assert.Contains("assets/shared/ui-layer/input/UiLayer/keyboard/Keyboard.diff.lua", seed.Sources.Keys);
                 var first = await repository.SaveAsync(seed);
                 Assert.Equal(1, first.Revision);
-                var reopened = (await new SqliteSharedUiLayerWorkspaceRepository(connection).GetAsync())!;
+                var reopened = (await new DcsSqliteSharedUiLayerWorkspaceRepository(connection).GetAsync())!;
                 Assert.Equal(first.ContentSha256, reopened.ContentSha256);
                 Assert.Equal(seed.Sources.OrderBy(x => x.Key), reopened.Sources.OrderBy(x => x.Key));
                 var changed = new Dictionary<string, string>(reopened.Sources);
@@ -73,9 +73,9 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var sources = new Dictionary<string, string> { [scenario == "path" ? "assets/shared/ui-layer/../outside" : "assets/shared/ui-layer/functions.json"] = scenario == "text" ? " " : "{}" };
-                var workspace = new SharedUiLayerWorkspace(scenario == "revision" ? -1 : 0, scenario == "commit" ? "invalid" : new string('a', 40), scenario == "empty" ? new Dictionary<string, string>() : sources);
+                var workspace = new DcsSharedUiLayerWorkspace(scenario == "revision" ? -1 : 0, scenario == "commit" ? "invalid" : new string('a', 40), scenario == "empty" ? new Dictionary<string, string>() : sources);
                 await Assert.ThrowsAsync<InvalidDataException>(() => repository.SaveAsync(workspace));
                 Assert.Null(await repository.GetAsync());
             }

@@ -12,10 +12,10 @@ namespace Heimdall.App.Games.Dcs
         private bool _structureDirty;
         private bool _disposed;
 
-        internal DcsWorkspaceSession(ModuleWorkspaceViewModel viewModel, IEditorWorkspaceRepository? repository,
-            IConnectedDeviceDiscovery? deviceDiscovery, TrainingEnvironment? training,
+        internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
+            IConnectedDeviceDiscovery? deviceDiscovery, DcsTrainingEnvironment? training,
             HardwareInventoryManager? inventory, IUserMappingLibrary? userMappings,
-            Func<MappingRevisionReview, bool>? mappingReviewConfirmation,
+            Func<DcsMappingRevisionReview, bool>? mappingReviewConfirmation,
             Func<bool, IReadOnlyList<string>?>? commandFilePicker, Func<string?>? integrationFilePicker,
             Func<string?>? axisDefaultsFilePicker, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory,
             Action<string, string>? inputLogClipboardWriter)
@@ -26,7 +26,7 @@ namespace Heimdall.App.Games.Dcs
             Inventory = training is null ? inventory : null;
             UserMappings = training is null ? userMappings : null;
             MappingReviewConfirmation = mappingReviewConfirmation;
-            DeviceDiscovery = training is null ? deviceDiscovery ?? new WindowsConnectedDeviceDiscovery() : new TrainingDiscovery();
+            DeviceDiscovery = training is null ? deviceDiscovery ?? new WindowsConnectedDeviceDiscovery() : new DcsTrainingDiscovery();
             CommandFilePicker = training is null ? commandFilePicker : _ => [Path.Combine(training.Root, "commands.json")];
             IntegrationFilePicker = training is null ? integrationFilePicker : () => null;
             AxisDefaultsFilePicker = training is null ? axisDefaultsFilePicker : () => null;
@@ -38,21 +38,21 @@ namespace Heimdall.App.Games.Dcs
         }
 
         #region BEGIN Public
-        internal TrainingEnvironment? Training { get; }
-        internal IEditorWorkspaceRepository? Repository { get; }
+        internal DcsTrainingEnvironment? Training { get; }
+        internal IDcsEditorWorkspaceRepository? Repository { get; }
         internal IConnectedDeviceDiscovery DeviceDiscovery { get; }
         internal HardwareInventoryManager? Inventory { get; }
         internal IUserMappingLibrary? UserMappings { get; }
-        internal Func<MappingRevisionReview, bool>? MappingReviewConfirmation { get; }
+        internal Func<DcsMappingRevisionReview, bool>? MappingReviewConfirmation { get; }
         internal Func<bool, IReadOnlyList<string>?>? CommandFilePicker { get; }
         internal Func<string?>? IntegrationFilePicker { get; }
         internal Func<string?>? AxisDefaultsFilePicker { get; }
         internal Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? InputSourceFactory { get; }
         internal Action<string, string>? InputLogClipboardWriter { get; }
         internal string SavedGamesRoot { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
-        internal EditorWorkspaceSnapshot? Saved { get; private set; }
-        internal EditorWorkspaceSnapshot? Working { get; private set; }
-        internal DraftAssignmentService? Draft { get; private set; }
+        internal DcsEditorWorkspaceSnapshot? Saved { get; private set; }
+        internal DcsEditorWorkspaceSnapshot? Working { get; private set; }
+        internal DcsDraftAssignmentService? Draft { get; private set; }
         internal IReadOnlyDictionary<string, string> Labels => _labels;
         internal bool HasPendingChanges => _structureDirty || Draft?.HasChanges == true ||
             Saved is not null && (_labels.Count != Saved.Labels.Count ||
@@ -67,7 +67,7 @@ namespace Heimdall.App.Games.Dcs
             RaiseStateChanged();
         }
 
-        internal void RunStructureEdit(Func<EditorWorkspaceSnapshot, EditorWorkspaceSnapshot> edit)
+        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
         {
             try
             {
@@ -88,10 +88,10 @@ namespace Heimdall.App.Games.Dcs
             {
                 var updated = EditSnapshot();
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
-                updated = PinnedUiLayerProfileRecovery.Restore(updated);
+                updated = DcsPinnedUiLayerProfileRecovery.Restore(updated);
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
-                SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
-                ModuleIntegrationImport.Instructions(updated);
+                DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
+                DcsModuleIntegrationImport.Instructions(updated);
                 await Repository.SaveAsync(updated);
                 Saved = updated; Working = updated; _structureDirty = false;
                 RebuildDraft(updated);
@@ -128,29 +128,29 @@ namespace Heimdall.App.Games.Dcs
         #endregion END Public
 
         #region BEGIN private helpers
-        private EditorWorkspaceSnapshot EditSnapshot()
+        private DcsEditorWorkspaceSnapshot EditSnapshot()
         {
             var workspace = Working ?? Saved ?? throw new InvalidOperationException("Open a saved module to manage devices and modifiers.");
             return workspace with { Assignments = Draft?.Snapshot ?? workspace.Assignments,
                 Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal) };
         }
 
-        private void RebuildDraft(EditorWorkspaceSnapshot workspace)
+        private void RebuildDraft(DcsEditorWorkspaceSnapshot workspace)
         {
-            var commands = workspace.ModuleCommands.Select(command => new DraftCommand(command.Id, command.Name, command.IsAxis, AssignmentLayer.Module))
-                .Concat(workspace.UiCommands.Select(command => new DraftCommand(command.DcsCommandId, command.Name, command.IsAxis, AssignmentLayer.UiLayer)));
-            SetDraft(new DraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
-                WorkspaceStructureEditor.UiModifierNames(workspace)));
+            var commands = workspace.ModuleCommands.Select(command => new DcsDraftCommand(command.Id, command.Name, command.IsAxis, AssignmentLayer.Module))
+                .Concat(workspace.UiCommands.Select(command => new DcsDraftCommand(command.DcsCommandId, command.Name, command.IsAxis, AssignmentLayer.UiLayer)));
+            SetDraft(new DcsDraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
+                DcsWorkspaceStructureEditor.UiModifierNames(workspace)));
         }
 
-        private void SetDraft(DraftAssignmentService? draft)
+        private void SetDraft(DcsDraftAssignmentService? draft)
         {
             if (Draft is not null) Draft.Changed -= DraftChanged;
             Draft = draft;
             if (Draft is not null) Draft.Changed += DraftChanged;
         }
 
-        private void RestoreLabels(EditorWorkspaceSnapshot? workspace)
+        private void RestoreLabels(DcsEditorWorkspaceSnapshot? workspace)
         {
             _labels.Clear();
             if (workspace is not null)

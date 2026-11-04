@@ -89,11 +89,11 @@ namespace Heimdall.App.Smoke
         {
             var connection = "Data Source=" + Path.Combine(root, "edition.db") + ";Pooling=False";
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-            var repository = new SqliteEditorWorkspaceRepository(connection);
-            var sources = ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
-            var defaults = SharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult();
+            var repository = new DcsSqliteEditorWorkspaceRepository(connection);
+            var sources = DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
+            var defaults = DcsSharedUiLayerWorkspaceFactory.CreateAsync().GetAwaiter().GetResult();
             var created = false;
-            var form = new NewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery(), completed: () => created = true, savedGamesRoot: root);
+            var form = new DcsNewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery(), completed: () => created = true, savedGamesRoot: root);
             form.Show(); ThemeControlSmoke.Pump(form);
             try
             {
@@ -109,28 +109,28 @@ namespace Heimdall.App.Smoke
                 ThemeControlSmoke.Pump(form);
                 if (!created || form.CreatedWorkspace is null) throw new InvalidOperationException("Free Thrustmaster module could not be saved: " + ((TextBlock)form.FindName("CreationError")!).Text);
                 var allowed = form.CreatedWorkspace;
-                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(allowed), settings, repository, new EmptyDeviceDiscovery());
+                var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(allowed), settings, repository, new EmptyDeviceDiscovery());
                 window.Show(); ThemeControlSmoke.Pump(window);
                 try
                 {
-                    var view = new InputTestView(); view.Initialize(new WindowContext(window));
+                    var view = new DcsInputTestView(); view.Initialize(new DcsWindowContext(window));
                     ((Button)view.FindName("StartInputTestButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     if (!((TextBlock)view.FindName("InputTestStatus")!).Text.Contains("reserved", StringComparison.Ordinal))
                         throw new InvalidOperationException("Free direct input-test handler escaped the edition boundary.");
                     view.Dispose();
-                    var reserved = WorkspaceStructureEditor.Hardware(allowed).Single(item => item.DeviceId == "moza-ab9");
+                    var reserved = DcsWorkspaceStructureEditor.Hardware(allowed).Single(item => item.DeviceId == "moza-ab9");
                     var before = window.Session.Working;
-                    window.RunStructureEdit(current => WorkspaceStructureEditor.AddDevice(current, reserved, AssignmentLayer.Module,
+                    window.RunStructureEdit(current => DcsWorkspaceStructureEditor.AddDevice(current, reserved, AssignmentLayer.Module,
                         "Other base {23456789-1111-2222-3333-444455556666}.diff.lua", "other", "other"));
                     if (!ReferenceEquals(before, window.Session.Working)) throw new InvalidOperationException("Reserved hardware edit mutated a Free workspace.");
                     ThemeControlSmoke.SaveImage(window, "free-edition-workspace");
                 }
                 finally { window.Close(); }
-                var other = WorkspaceStructureEditor.Hardware(allowed).Single(item => item.DeviceId == "moza-ab9");
-                var legacy = WorkspaceStructureEditor.AddDevice(allowed, other, AssignmentLayer.Module,
+                var other = DcsWorkspaceStructureEditor.Hardware(allowed).Single(item => item.DeviceId == "moza-ab9");
+                var legacy = DcsWorkspaceStructureEditor.AddDevice(allowed, other, AssignmentLayer.Module,
                     "Legacy base {34567890-1111-2222-3333-444455556666}.diff.lua", "legacy", "legacy");
                 repository.SaveAsync(legacy).GetAwaiter().GetResult();
-                var locked = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(legacy), settings, repository, new EmptyDeviceDiscovery());
+                var locked = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(legacy), settings, repository, new EmptyDeviceDiscovery());
                 locked.Show(); ThemeControlSmoke.Pump(locked);
                 try
                 {
@@ -142,7 +142,7 @@ namespace Heimdall.App.Smoke
                         throw new InvalidOperationException("Free fallback removed existing hardware data.");
                 }
                 finally { locked.Close(); }
-                var main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                var main = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 main.Show(); ThemeControlSmoke.Pump(main); ThemeControlSmoke.SaveImage(main, "free-edition-main"); main.Close();
             }
             finally { form.Close(); }

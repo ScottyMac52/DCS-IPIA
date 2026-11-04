@@ -21,7 +21,7 @@ The SHAs are historical snapshots; branch tips may advance independently. Never 
 | Hardware discovery/linking | `GameControllerIdentification`, controller observations, captured-slot APIs | Substantial reuse | Native slot IDs must not be conflated with physical device identities |
 | Drawing rendering | `EliteDiagramPresenter`, shared SVG renderer and drawing definitions | Used by Elite/Squadrons feature branch | Extract shared presenter with typed callbacks; never fake implemented menu actions |
 | Drawing navigation | `DiagramViewport` and local feature-window code | Partly shared | Fit, zoom, scroll, pan consistent; preserve the Squadrons branch's measured scroll fix when migrating |
-| Command selection and assignment editing | DCS `AssignmentsView`, Elite feature views, Squadrons window | Mostly separate | Compose shared surfaces with adapter-owned action plans |
+| Command selection and assignment editing | DCS `DcsAssignmentsView`, Elite feature views, Squadrons window | Mostly separate | Compose shared surfaces with adapter-owned action plans |
 | Workspace toolbar, navigation, pending status | DCS, Elite, Squadrons windows | Duplicated presentation | Extract a common shell and session coordinator incrementally |
 | Tuning/clearing/context menus | Working draft operations in DCS, adapter-specific in Elite, partial in Squadrons | Inconsistent | Capabilities must control menu visibility and actual command execution |
 | No-drawing fallback / native diagnostics | Selected game-specific views | Partial | First-class drawing, table-only, and text-only modes |

@@ -29,7 +29,7 @@ namespace Heimdall.Tests
                 Module("D", new Dictionary<string, string> { [Root + "b"] = "local", [Root + "c"] = "local removed" }),
                 Module("N", null)
             };
-            var report = SharedUiLayerImpactReviewer.Review(baseline, proposal, modules);
+            var report = DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, modules);
             Assert.Equal(7, report.BaselineRevision);
             Assert.Equal(AllChanges, report.Changes.Select(x => x.Change));
             Assert.Equal(new[] { Root + "a", Root + "b", Root + "c" }, report.Changes.Select(x => x.Path));
@@ -48,15 +48,15 @@ namespace Heimdall.Tests
         public void Handles_unchanged_defaults_empty_modules_and_exact_case_and_newlines()
         {
             var baseline = Defaults(new Dictionary<string, string> { [Root + "file"] = "text\n" });
-            var unchanged = SharedUiLayerImpactReviewer.Review(baseline, baseline, [Module("M", null)]);
+            var unchanged = DcsSharedUiLayerImpactReviewer.Review(baseline, baseline, [Module("M", null)]);
             Assert.Empty(unchanged.Changes);
             Assert.Equal("No default changes", Assert.Single(unchanged.Modules).Status);
             var proposal = baseline with { Sources = new Dictionary<string, string> { [Root + "File"] = "text\r\n" } };
-            var empty = SharedUiLayerImpactReviewer.Review(baseline, proposal, []);
+            var empty = DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, []);
             Assert.Empty(empty.Modules);
             Assert.Equal(RenameChanges, empty.Changes.Select(x => x.Change));
             var module = Module("M", new Dictionary<string, string> { [Root + "File"] = "text\n", [Root + "file"] = "text\n" });
-            var report = SharedUiLayerImpactReviewer.Review(baseline, proposal, [module]);
+            var report = DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, [module]);
             Assert.Equal(RenameEvidence, report.Modules[0].Sources.Select(x => x.Status));
         }
         /// <summary>Reports are independent of collection insertion order, including modules with the same DCS identity.</summary>
@@ -67,16 +67,16 @@ namespace Heimdall.Tests
             var proposal = baseline with { Sources = new Dictionary<string, string> { [Root + "a"] = "new", [Root + "b"] = "same" } };
             var first = Module("M", baseline.Sources);
             var second = Module("M", proposal.Sources);
-            var one = SharedUiLayerImpactReviewer.Review(baseline, proposal, [first, second]);
-            var two = SharedUiLayerImpactReviewer.Review(baseline, proposal, [second, first]);
+            var one = DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, [first, second]);
+            var two = DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, [second, first]);
             Assert.Equal(one.Changes, two.Changes);
             Assert.Equal(one.Modules.Select(x => x.ModuleId), two.Modules.Select(x => x.ModuleId));
             Assert.Single(one.Changes);
-            Assert.Throws<ArgumentException>(() => SharedUiLayerImpactReviewer.Review(baseline, proposal with { Revision = 8 }, []));
-            Assert.Throws<ArgumentException>(() => SharedUiLayerImpactReviewer.Review(baseline, proposal with { SourceCommit = new string('b', 40) }, []));
-            Assert.Throws<ArgumentNullException>(() => SharedUiLayerImpactReviewer.Review(null!, proposal, []));
-            Assert.Throws<ArgumentNullException>(() => SharedUiLayerImpactReviewer.Review(baseline, null!, []));
-            Assert.Throws<ArgumentNullException>(() => SharedUiLayerImpactReviewer.Review(baseline, proposal, null!));
+            Assert.Throws<ArgumentException>(() => DcsSharedUiLayerImpactReviewer.Review(baseline, proposal with { Revision = 8 }, []));
+            Assert.Throws<ArgumentException>(() => DcsSharedUiLayerImpactReviewer.Review(baseline, proposal with { SourceCommit = new string('b', 40) }, []));
+            Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerImpactReviewer.Review(null!, proposal, []));
+            Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerImpactReviewer.Review(baseline, null!, []));
+            Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerImpactReviewer.Review(baseline, proposal, null!));
         }
         /// <summary>Real SQLite reports preserve snapshot JSON, configuration, module overrides and default history.</summary>
         [Fact]
@@ -87,15 +87,15 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
-                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
+                var defaults = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var first = await defaults.SaveAsync(Defaults(new Dictionary<string, string> { [Root + "functions.json"] = "old" }) with { Revision = 0 });
                 var module = Module("M", new Dictionary<string, string> { [Root + "functions.json"] = "module-local", ["config/module.json"] = "untouched" });
                 await repository.SaveAsync(module);
                 var before = await JsonAsync(connection);
                 var saved = (await repository.GetAsync(module.Configuration.Module.Id))!;
                 var draft = first with { Sources = new Dictionary<string, string> { [Root + "functions.json"] = "new" } };
-                var report = SharedUiLayerImpactReviewer.Review(first, draft, [saved]);
+                var report = DcsSharedUiLayerImpactReviewer.Review(first, draft, [saved]);
                 Assert.Equal("Different source", Assert.Single(Assert.Single(report.Modules).Sources).Status);
                 Assert.Equal(before, await JsonAsync(connection));
                 var second = await defaults.SaveAsync(draft);
@@ -105,16 +105,16 @@ namespace Heimdall.Tests
                 Assert.Equal("module-local", (await repository.GetAsync(module.Configuration.Module.Id))!.Sources![Root + "functions.json"]);
                 Assert.Equal("untouched", saved.Sources!["config/module.json"]);
                 Assert.True(await repository.DeleteAsync(module.Configuration.Module.Id));
-                Assert.Empty(SharedUiLayerImpactReviewer.Review(first, draft, []).Modules);
+                Assert.Empty(DcsSharedUiLayerImpactReviewer.Review(first, draft, []).Modules);
                 Assert.Equal(2, (await defaults.GetAsync())!.Revision);
             }
             finally { File.Delete(file); }
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static SharedUiLayerWorkspace Defaults(IReadOnlyDictionary<string, string> sources) => new(7, new string('a', 40), sources);
-        private static EditorWorkspaceSnapshot Module(string dcsId, IReadOnlyDictionary<string, string>? sources) =>
-            new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), dcsId, "Name " + dcsId), [], [], [], "test"),
+        private static DcsSharedUiLayerWorkspace Defaults(IReadOnlyDictionary<string, string> sources) => new(7, new string('a', 40), sources);
+        private static DcsEditorWorkspaceSnapshot Module(string dcsId, IReadOnlyDictionary<string, string>? sources) =>
+            new(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), dcsId, "Name " + dcsId), [], [], [], "test"),
                 [], [], [], [], [], [], new Dictionary<string, string> { ["custom-label"] = "preserved" }, sources);
         private static async Task<string> JsonAsync(string connectionString)
         {

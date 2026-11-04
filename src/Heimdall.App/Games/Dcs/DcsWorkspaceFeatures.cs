@@ -15,17 +15,17 @@ namespace Heimdall.App.Games.Dcs
     internal static class DcsWorkspaceFeatures
     {
         #region BEGIN Public
-        internal static IReadOnlyList<WorkspaceFeature> Create(IModuleWorkspaceContext context, bool persistLayout) =>
+        internal static IReadOnlyList<WorkspaceFeature> Create(IDcsModuleWorkspaceContext context, bool persistLayout) =>
         [
-            new("Devices", () => Prepare(new DevicesView(), view => view.Initialize(context), persistLayout)),
-            new("Modifiers", () => Prepare(new ModifiersView(), view => view.Initialize(context), persistLayout)),
-            new("Assignments", () => Prepare(new AssignmentsView(), view => view.Initialize(context), persistLayout)),
-            new("InputTest", () => Prepare(new InputTestView(), view => view.Initialize(context), persistLayout),
+            new("Devices", () => Prepare(new DcsDevicesView(), view => view.Initialize(context), persistLayout)),
+            new("Modifiers", () => Prepare(new DcsModifiersView(), view => view.Initialize(context), persistLayout)),
+            new("Assignments", () => Prepare(new DcsAssignmentsView(), view => view.Initialize(context), persistLayout)),
+            new("InputTest", () => Prepare(new DcsInputTestView(), view => view.Initialize(context), persistLayout),
                 () => EditionAccess.AllowsInputTest(context) ? null : "Live input testing is reserved for Premium. Availability and pricing TBA."),
-            new("Commands", () => Prepare(new CommandsView(), view => view.Initialize(context), persistLayout)),
-            new("Pages", () => Prepare(new PagesView(), view => view.Initialize(context), persistLayout)),
-            new("Kneeboards", () => Prepare(new KneeboardsView(), view => view.Initialize(context), persistLayout)),
-            new("Documentation", () => Prepare(new DocumentationView(), view => view.Initialize(context), persistLayout))
+            new("Commands", () => Prepare(new DcsCommandsView(), view => view.Initialize(context), persistLayout)),
+            new("Pages", () => Prepare(new DcsPagesView(), view => view.Initialize(context), persistLayout)),
+            new("Kneeboards", () => Prepare(new DcsKneeboardsView(), view => view.Initialize(context), persistLayout)),
+            new("Documentation", () => Prepare(new DcsDocumentationView(), view => view.Initialize(context), persistLayout))
         ];
         #endregion END Public
 

@@ -22,20 +22,20 @@ namespace Heimdall.App.Smoke
             var physical = Guid.NewGuid();
             var workspace = Workspace(physical);
             var otherPhysical = Guid.NewGuid();
-            var otherProfile = new DeviceProfile(Guid.NewGuid(), "aux-test", "SECOND", "Modifier", $"Test {{{otherPhysical:D}}}.diff.lua");
+            var otherProfile = new DcsDeviceProfile(Guid.NewGuid(), "aux-test", "SECOND", "Modifier", $"Test {{{otherPhysical:D}}}.diff.lua");
             var config = workspace.Configuration;
             workspace = workspace with { Configuration = new(config.Module, [.. config.Profiles, otherProfile],
                 [new DcsModifier("S3", $"Test {{{otherPhysical:D}}}", "JOY_BTN1", ModifierMode.Hold)], config.Bindings, config.Provenance),
                 Diagrams = [.. workspace.Diagrams, workspace.Diagrams[0] with { ProfileId = otherProfile.Id, Device = "Other controller",
                     Controls = workspace.Diagrams[0].Controls }],
-                Assignments = [.. workspace.Assignments, new DraftAssignment(
+                Assignments = [.. workspace.Assignments, new DcsDraftAssignment(
                     new(config.Module.Id, config.Profiles[0].Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "S3"),
                     new("SHIFTED", "Shifted action", false, AssignmentLayer.Module))] };
-            var before = EditorSnapshotSerializer.Serialize(workspace);
+            var before = DcsEditorSnapshotSerializer.Serialize(workspace);
             FakeDeviceInputSource? source = null;
             InputTestLogClipboard? clipboard = null;
             var clipboardFailure = false;
-            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
                 inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
                     ? new FakeDeviceInputSource(physical, otherPhysical) { ButtonValue = 0 } : throw new InvalidOperationException("Test must still acquire the modifier controller."),
                 inputLogClipboardWriter: (html, text) =>
@@ -48,7 +48,7 @@ namespace Heimdall.App.Smoke
             window.UpdateLayout();
             window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
             var device = (ComboBox)view.FindName("FeedbackDevice")!;
-            device.SelectedItem = device.Items.Cast<WorkspaceDevice>().Single(x => x.ProfileId == workspace.Diagrams[0].ProfileId);
+            device.SelectedItem = device.Items.Cast<DcsWorkspaceDevice>().Single(x => x.ProfileId == workspace.Diagrams[0].ProfileId);
             window.UpdateLayout();
             var start = (Button)WorkspaceUi.Find(window, "StartInputTestButton")!;
             var stop = (Button)WorkspaceUi.Find(window, "StopInputTestButton")!;
@@ -76,7 +76,7 @@ namespace Heimdall.App.Smoke
                 .Single(x => x.Tag is string key && key == "JOY_BTN1|button");
             var shiftedOutline = diagram.Children.OfType<Border>()
                 .Single(x => x.Tag is string key && key == "JOY_BTN1|button-shifted");
-            var baseColor = (Color)ColorConverter.ConvertFromString(KneeboardLiveProjection.BaseHighlightColor);
+            var baseColor = (Color)ColorConverter.ConvertFromString(DcsKneeboardLiveProjection.BaseHighlightColor);
             if ((activeOutline.BorderBrush as SolidColorBrush)?.Color != baseColor ||
                 shiftedOutline.BorderBrush != Brushes.Transparent)
                 throw new InvalidOperationException("Base input highlight was not blue.");
@@ -136,7 +136,7 @@ namespace Heimdall.App.Smoke
             Wait(window, () => source.Disposed);
             if (!status.Text.Contains("disconnect", StringComparison.Ordinal))
                 throw new InvalidOperationException("Device loss was not reported.");
-            if (EditorSnapshotSerializer.Serialize(workspace) != before)
+            if (DcsEditorSnapshotSerializer.Serialize(workspace) != before)
                 throw new InvalidOperationException("Input testing mutated the original workspace.");
             start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             WorkspaceUi.Navigate(window, "Devices");
@@ -186,13 +186,13 @@ namespace Heimdall.App.Smoke
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }
-        private static EditorWorkspaceSnapshot Workspace(Guid physical)
+        private static DcsEditorWorkspaceSnapshot Workspace(Guid physical)
         {
-            var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", $"Test {{{physical:D}}}.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "test", null, "Test", $"Test {{{physical:D}}}.diff.lua");
             var module = new DcsModule(Guid.NewGuid(), "INPUT_TEST", "Input test");
-            var command = new DraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
-            var assignment = new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""), command);
-            var configuration = new ModuleConfiguration(module, [profile], [], [], "Test fixture");
+            var command = new DcsDraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
+            var assignment = new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""), command);
+            var configuration = new DcsModuleConfiguration(module, [profile], [], [], "Test fixture");
             var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
             {
                 ProfileId = profile.Id,

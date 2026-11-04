@@ -34,7 +34,7 @@ namespace Heimdall.App
                 new RoutedEventHandler((sender, args) =>
                 {
                     if (sender is UserControl view && ReferenceEquals(args.OriginalSource, view) &&
-                        Heimdall.Application.AppearanceTargets.All.ContainsKey(view.GetType().Name)) AppearanceManager.Attach(view);
+                        Heimdall.Application.AppearanceTargets.All.ContainsKey(AppearanceManager.GetTarget(view) ?? view.GetType().Name)) AppearanceManager.Attach(view);
                 }));
         }
         #endregion END Public

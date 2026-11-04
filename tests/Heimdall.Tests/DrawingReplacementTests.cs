@@ -22,7 +22,7 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var workspace = BuiltIn("First", units: 2);
                 var other = BuiltIn("Second");
                 await repository.SaveAsync(workspace);
@@ -31,7 +31,7 @@ namespace Heimdall.Tests
                 var otherJson = JsonSerializer.Serialize(await repository.GetAsync(other.Configuration.Module.Id));
                 var revision = Revision();
                 await new FileUserMappingLibrary(root).SaveAsync(revision);
-                var session = new DrawingReplacementSession(revision, repository);
+                var session = new DcsDrawingReplacementSession(revision, repository);
                 await session.LoadAsync();
                 Assert.Equal(3, session.CompatibleTargets.Count);
                 Assert.Equal(0, session.StagedModuleCount);
@@ -78,13 +78,13 @@ namespace Heimdall.Tests
             var id = original.Diagrams.Single().ProfileId;
             var first = Revision();
             var second = Revision("#eeeeee");
-            var adopted = UserMappingAdoption.Apply(original, id, first);
-            var changed = UserMappingAdoption.Apply(adopted, id, second);
+            var adopted = DcsUserMappingAdoption.Apply(original, id, first);
+            var changed = DcsUserMappingAdoption.Apply(adopted, id, second);
             Assert.Same(adopted.Diagrams.Single().OriginalDrawing, changed.Diagrams.Single().OriginalDrawing);
-            var restoredSnapshot = EditorSnapshotSerializer.Deserialize(EditorSnapshotSerializer.Serialize(changed));
+            var restoredSnapshot = DcsEditorSnapshotSerializer.Deserialize(DcsEditorSnapshotSerializer.Serialize(changed));
             var renamed = restoredSnapshot with { Diagrams = restoredSnapshot.Diagrams.Select(x => x with
                 { Controls = x.Controls.Select(c => c with { Label = "Personal " + c.Control }).ToArray() }).ToArray() };
-            var rollback = UserMappingAdoption.RestoreOriginal(renamed, id);
+            var rollback = DcsUserMappingAdoption.RestoreOriginal(renamed, id);
             var diagram = rollback.Diagrams.Single();
             Assert.Null(diagram.CustomMapping);
             Assert.Null(diagram.OriginalDrawing);
@@ -98,13 +98,13 @@ namespace Heimdall.Tests
             Assert.Same(renamed.Sources, rollback.Sources);
             Assert.Same(renamed.Pages, rollback.Pages);
             Assert.Same(renamed.Labels, rollback.Labels);
-            var roundTrip = EditorSnapshotSerializer.Deserialize(EditorSnapshotSerializer.Serialize(rollback));
+            var roundTrip = DcsEditorSnapshotSerializer.Deserialize(DcsEditorSnapshotSerializer.Serialize(rollback));
             Assert.Equal(2, roundTrip.Diagrams.Single().MappingHistory!.Count);
-            var readopted = UserMappingAdoption.Apply(roundTrip, id, first);
+            var readopted = DcsUserMappingAdoption.Apply(roundTrip, id, first);
             Assert.Equal(second.Id, Assert.Single(readopted.Diagrams.Single().MappingHistory!).Id);
             Assert.NotNull(readopted.Diagrams.Single().OriginalDrawing);
             var repository = new Fakes.DrawingReviewRepository([renamed]);
-            var session = new DrawingReplacementSession(second, repository);
+            var session = new DcsDrawingReplacementSession(second, repository);
             await session.LoadAsync();
             session.Stage(session.Targets, restoreOriginal: true);
             Assert.Equal(second.Id, (await repository.GetAsync(original.Configuration.Module.Id))!.Diagrams.Single().CustomMapping!.Id);
@@ -134,12 +134,12 @@ namespace Heimdall.Tests
             if (kind == "axis") controls[0] = controls[0] with { IsAxis = !controls[0].IsAxis };
             workspace = workspace with { Diagrams = [diagram with { Controls = controls }] };
             var repository = new Fakes.DrawingReviewRepository([workspace]);
-            var session = new DrawingReplacementSession(Revision(), repository);
+            var session = new DcsDrawingReplacementSession(Revision(), repository);
             await session.LoadAsync();
             Assert.Empty(session.CompatibleTargets);
             Assert.NotEmpty(session.Targets.Single().Review.Conflicts);
             Assert.Throws<InvalidOperationException>(() => session.Stage(session.Targets));
-            Assert.Throws<InvalidOperationException>(() => UserMappingAdoption.Apply(workspace, diagram.ProfileId, Revision()));
+            Assert.Throws<InvalidOperationException>(() => DcsUserMappingAdoption.Apply(workspace, diagram.ProfileId, Revision()));
             Assert.Equal(0, session.StagedModuleCount);
             Assert.Equal(0, repository.WriteCount);
         }
@@ -150,28 +150,28 @@ namespace Heimdall.Tests
         {
             var workspace = BuiltIn("Selection");
             var repository = new Fakes.DrawingReviewRepository([workspace], includeMissingModule: true);
-            var session = new DrawingReplacementSession(Revision(), repository);
+            var session = new DcsDrawingReplacementSession(Revision(), repository);
             await session.LoadAsync();
             Assert.Single(session.Targets);
             Assert.True(session.CanSave);
             Assert.False(session.Targets.Single().CanRestoreOriginal);
             Assert.Throws<InvalidOperationException>(() => session.Stage([]));
             Assert.Throws<InvalidOperationException>(() => session.Stage(session.Targets, restoreOriginal: true));
-            var another = new DrawingReplacementSession(Revision(), new Fakes.DrawingReviewRepository([BuiltIn("Foreign")]));
+            var another = new DcsDrawingReplacementSession(Revision(), new Fakes.DrawingReviewRepository([BuiltIn("Foreign")]));
             await another.LoadAsync();
             Assert.Throws<InvalidOperationException>(() => session.Stage(another.Targets));
             await Assert.ThrowsAsync<InvalidOperationException>(session.SaveAsync);
-            var readonlySession = new DrawingReplacementSession(Revision(), new Fakes.ReadOnlyDrawingRepository(workspace));
+            var readonlySession = new DcsDrawingReplacementSession(Revision(), new Fakes.ReadOnlyDrawingRepository(workspace));
             await readonlySession.LoadAsync();
             Assert.False(readonlySession.CanSave);
             readonlySession.Stage(readonlySession.CompatibleTargets);
             await Assert.ThrowsAsync<InvalidOperationException>(readonlySession.SaveAsync);
             readonlySession.Discard();
             Assert.Equal(0, readonlySession.StagedModuleCount);
-            Assert.Throws<InvalidDataException>(() => UserMappingAdoption.RestoreOriginal(workspace, workspace.Diagrams.Single().ProfileId));
+            Assert.Throws<InvalidDataException>(() => DcsUserMappingAdoption.RestoreOriginal(workspace, workspace.Diagrams.Single().ProfileId));
             var generic = Generic();
-            generic = UserMappingAdoption.Apply(generic, generic.Diagrams.Single().ProfileId, Revision());
-            Assert.Throws<InvalidOperationException>(() => UserMappingAdoption.RestoreOriginal(generic, generic.Diagrams.Single().ProfileId));
+            generic = DcsUserMappingAdoption.Apply(generic, generic.Diagrams.Single().ProfileId, Revision());
+            Assert.Throws<InvalidOperationException>(() => DcsUserMappingAdoption.RestoreOriginal(generic, generic.Diagrams.Single().ProfileId));
         }
 
         /// <summary>A partial failure reports saved modules, preserves remaining drafts and requires a fresh review.</summary>
@@ -181,7 +181,7 @@ namespace Heimdall.Tests
             var first = BuiltIn("Saved");
             var second = BuiltIn("Stale");
             var repository = new Fakes.DrawingReviewRepository([first, second]) { FailModule = second.Configuration.Module.Id };
-            var session = new DrawingReplacementSession(Revision(), repository);
+            var session = new DcsDrawingReplacementSession(Revision(), repository);
             await session.LoadAsync();
             session.Stage(session.CompatibleTargets);
             await Assert.ThrowsAsync<InvalidOperationException>(session.SaveAsync);
@@ -215,7 +215,7 @@ namespace Heimdall.Tests
         {
             var workspace = BuiltIn("Integrity");
             var id = workspace.Diagrams.Single().ProfileId;
-            var adopted = UserMappingAdoption.Apply(workspace, id, Revision());
+            var adopted = DcsUserMappingAdoption.Apply(workspace, id, Revision());
             var diagram = adopted.Diagrams.Single();
             var original = diagram.OriginalDrawing!;
             var invalid = corruption switch
@@ -235,8 +235,8 @@ namespace Heimdall.Tests
             };
             var corrupt = diagram with { OriginalDrawing = invalid,
                 GenericCapabilities = corruption == "generic-evidence" ? GenericHardwareFixture.Definition().Capabilities : null };
-            Assert.Throws<InvalidDataException>(() => UserMappingAdoption.Validate(corrupt));
-            Assert.Throws<InvalidDataException>(() => UserMappingAdoption.RestoreOriginal(adopted with { Diagrams = [corrupt] }, id));
+            Assert.Throws<InvalidDataException>(() => DcsUserMappingAdoption.Validate(corrupt));
+            Assert.Throws<InvalidDataException>(() => DcsUserMappingAdoption.RestoreOriginal(adopted with { Diagrams = [corrupt] }, id));
         }
 
         /// <summary>All shipped built-in drawings retain their stable inputs on first adoption and original rollback.</summary>
@@ -250,12 +250,12 @@ namespace Heimdall.Tests
             var definition = BundledDrawingImportTests.Definition(hardware.Diagram.Controls.Select(x => x.InputKey));
             var inputs = hardware.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal);
             var revision = DrawioMappingFileImport.Load(Path.Combine(BundledSharedCatalog.Root, path), definition, "test", inputs);
-            var workspace = WorkspaceStructureEditor.AddDevice(GenericHardwareFixture.Workspace(), hardware, AssignmentLayer.Module,
+            var workspace = DcsWorkspaceStructureEditor.AddDevice(GenericHardwareFixture.Workspace(), hardware, AssignmentLayer.Module,
                 "Test controller {11111111-1111-1111-1111-111111111111}.diff.lua", "Test", "Pilot");
             var diagram = workspace.Diagrams.Single();
-            var adopted = UserMappingAdoption.Apply(workspace, diagram.ProfileId, revision);
+            var adopted = DcsUserMappingAdoption.Apply(workspace, diagram.ProfileId, revision);
             Assert.NotNull(adopted.Diagrams.Single().OriginalDrawing);
-            var restored = UserMappingAdoption.RestoreOriginal(adopted, diagram.ProfileId).Diagrams.Single();
+            var restored = DcsUserMappingAdoption.RestoreOriginal(adopted, diagram.ProfileId).Diagrams.Single();
             Assert.Equal(diagram.Svg, restored.Svg);
             Assert.Equal(diagram.Controls, restored.Controls);
         }
@@ -264,17 +264,17 @@ namespace Heimdall.Tests
         private static UserMappingRevision Revision(string color = "#dddddd") => DrawioMappingImporter.Import(
             DrawioMappingStarter.Export(GenericHardwareFixture.Definition()).Replace("fillColor=#ffffff", "fillColor=" + color, StringComparison.Ordinal),
             GenericHardwareFixture.Definition(), "controller.drawio", "test");
-        private static EditorWorkspaceSnapshot Generic() => InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
+        private static DcsEditorWorkspaceSnapshot Generic() => DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
             GenericHardwareFixture.Unit(GenericHardwareFixture.Definition(), "Unit"), AssignmentLayer.Module);
-        private static EditorWorkspaceSnapshot BuiltIn(string name, int units = 1)
+        private static DcsEditorWorkspaceSnapshot BuiltIn(string name, int units = 1)
         {
             var workspace = Generic();
-            if (units > 1) workspace = InventoryHardwareAuthoring.Add(workspace,
+            if (units > 1) workspace = DcsInventoryHardwareAuthoring.Add(workspace,
                 GenericHardwareFixture.Unit(GenericHardwareFixture.Definition(), "Second unit"), AssignmentLayer.Module);
-            var profiles = workspace.Configuration.Profiles.Select(x => new DeviceProfile(x.Id, "built-in-test", x.Instance, x.Role, x.SourceName)).ToArray();
+            var profiles = workspace.Configuration.Profiles.Select(x => new DcsDeviceProfile(x.Id, "built-in-test", x.Instance, x.Role, x.SourceName)).ToArray();
             workspace = workspace with
             {
-                Configuration = new ModuleConfiguration(new(workspace.Configuration.Module.Id, name, name), profiles, workspace.Configuration.Modifiers,
+                Configuration = new DcsModuleConfiguration(new(workspace.Configuration.Module.Id, name, name), profiles, workspace.Configuration.Modifiers,
                     workspace.Configuration.Bindings, workspace.Configuration.Provenance),
                 Diagrams = workspace.Diagrams.Select(x => x with { GenericCapabilities = null, Path = "assets/shared/hardware/test.svg" }).ToArray()
             };

@@ -4,15 +4,15 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.Tests.Fakes
 {
     /// <summary>Exposes saved drawings without the reviewed-write capability.</summary>
-    internal sealed class ReadOnlyDrawingRepository(EditorWorkspaceSnapshot snapshot) : IEditorWorkspaceRepository
+    internal sealed class ReadOnlyDrawingRepository(DcsEditorWorkspaceSnapshot snapshot) : IDcsEditorWorkspaceRepository
     {
         #region BEGIN Public
         /// <inheritdoc/>
-        public Task<EditorWorkspaceSnapshot?> GetAsync(Guid moduleId, CancellationToken ct = default) => Task.FromResult<EditorWorkspaceSnapshot?>(snapshot);
+        public Task<DcsEditorWorkspaceSnapshot?> GetAsync(Guid moduleId, CancellationToken ct = default) => Task.FromResult<DcsEditorWorkspaceSnapshot?>(snapshot);
         /// <inheritdoc/>
         public Task<IReadOnlyList<Guid>> ListAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Guid>>([snapshot.Configuration.Module.Id]);
         /// <inheritdoc/>
-        public Task SaveAsync(EditorWorkspaceSnapshot value, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SaveAsync(DcsEditorWorkspaceSnapshot value, CancellationToken ct = default) => throw new NotSupportedException();
         /// <inheritdoc/>
         public Task<bool> DeleteAsync(Guid moduleId, CancellationToken ct = default) => throw new NotSupportedException();
         #endregion END Public

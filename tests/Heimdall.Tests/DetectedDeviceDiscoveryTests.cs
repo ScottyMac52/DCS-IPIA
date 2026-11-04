@@ -84,15 +84,15 @@ namespace Heimdall.Tests
                 var keyboard = Path.Combine(root, "DCS", "Config", "Input", "UiLayer", "keyboard");
                 Directory.CreateDirectory(keyboard);
                 File.WriteAllText(Path.Combine(keyboard, new DetectedDcsDevice(Second, "Keyboard", false).FileName), "");
-                var found = Assert.Single(SavedGamesDeviceDiscovery.Discover(root));
+                var found = Assert.Single(DcsSavedGamesDeviceDiscovery.Discover(root));
                 Assert.Equal(First, found.PhysicalGuid);
                 Assert.False(found.Connected);
                 Assert.Equal(file, found.FileName);
-                Assert.Equal(found, Assert.Single(SavedGamesDeviceDiscovery.Discover(Path.Combine(root, "DCS"))));
-                Assert.Throws<DirectoryNotFoundException>(() => SavedGamesDeviceDiscovery.Discover(Path.Combine(root, "missing")));
-                Assert.Throws<ArgumentException>(() => SavedGamesDeviceDiscovery.Discover(" "));
+                Assert.Equal(found, Assert.Single(DcsSavedGamesDeviceDiscovery.Discover(Path.Combine(root, "DCS"))));
+                Assert.Throws<DirectoryNotFoundException>(() => DcsSavedGamesDeviceDiscovery.Discover(Path.Combine(root, "missing")));
+                Assert.Throws<ArgumentException>(() => DcsSavedGamesDeviceDiscovery.Discover(" "));
                 Directory.Delete(Path.Combine(root, "DCS"), true);
-                Assert.Empty(SavedGamesDeviceDiscovery.Discover(root));
+                Assert.Empty(DcsSavedGamesDeviceDiscovery.Discover(root));
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
@@ -110,15 +110,15 @@ namespace Heimdall.Tests
                     new Dictionary<string, IReadOnlyDictionary<string, string>>(), []))
             };
             saved = saved with { Sources = sources };
-            Assert.Equal("tm-mfd", DetectedDeviceHardwareMatcher.Match(saved, new(First, "F16 MFD 3", true))!.DeviceId);
-            Assert.Equal("other", DetectedDeviceHardwareMatcher.Match(saved, new(First, "Unknown MFD", true))!.DeviceId);
-            Assert.Null(DetectedDeviceHardwareMatcher.Match(saved, new(First, "Unknown grip", true)));
+            Assert.Equal("tm-mfd", DcsDetectedDeviceHardwareMatcher.Match(saved, new(First, "F16 MFD 3", true))!.DeviceId);
+            Assert.Equal("other", DcsDetectedDeviceHardwareMatcher.Match(saved, new(First, "Unknown MFD", true))!.DeviceId);
+            Assert.Null(DcsDetectedDeviceHardwareMatcher.Match(saved, new(First, "Unknown grip", true)));
             sources.Remove("config/ipia-device-map.json");
-            Assert.Null(DetectedDeviceHardwareMatcher.Match(saved, new(First, "F16 MFD 3", true)));
+            Assert.Null(DcsDetectedDeviceHardwareMatcher.Match(saved, new(First, "F16 MFD 3", true)));
             sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(new[] { hardware });
-            Assert.Equal("tm-mfd", DetectedDeviceHardwareMatcher.Match(saved, new(Second, "F16 MFD 3", true))!.DeviceId);
+            Assert.Equal("tm-mfd", DcsDetectedDeviceHardwareMatcher.Match(saved, new(Second, "F16 MFD 3", true))!.DeviceId);
             sources["config/ipia-device-map.json"] = "null";
-            Assert.NotNull(DetectedDeviceHardwareMatcher.Match(saved, new(Second, "F16 MFD 3", true)));
+            Assert.NotNull(DcsDetectedDeviceHardwareMatcher.Match(saved, new(Second, "F16 MFD 3", true)));
         }
         /// <summary>Separate physical MFDs can omit instance and role, while both scopes reuse the selected physical identity.</summary>
         [Fact]
@@ -128,21 +128,21 @@ namespace Heimdall.Tests
             var hardware = Hardware();
             var first = new DetectedDcsDevice(First, "F16 MFD 3", true);
             var second = new DetectedDcsDevice(Second, "F16 MFD 3", true);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, first.FileName, null, null);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, second.FileName, null, null);
-            saved = WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, first.FileName, null, null);
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, first.FileName, null, null);
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, second.FileName, null, null);
+            saved = DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.UiLayer, first.FileName, null, null);
             Assert.Equal(2, saved.Configuration.Profiles.Count);
-            var memberships = WorkspaceStructureEditor.Describe(saved).Devices;
+            var memberships = DcsWorkspaceStructureEditor.Describe(saved).Devices;
             Assert.All(memberships, x => { Assert.Null(x.Instance); Assert.Null(x.Role); Assert.NotEqual(x.ProfileId, x.PhysicalGuid); });
             Assert.Single(memberships.Select(x => x.ProfileId).Distinct(), id => memberships.Count(x => x.ProfileId == id) == 2);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, first.FileName, "Another", null));
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.AddDevice(saved, hardware with { DeviceId = "other" }, AssignmentLayer.Module, "Other {" + First + "}.diff.lua", null, null));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, hardware, AssignmentLayer.Module, first.FileName, "Another", null));
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.AddDevice(saved, hardware with { DeviceId = "other" }, AssignmentLayer.Module, "Other {" + First + "}.diff.lua", null, null));
             var device = memberships.First(x => x.PhysicalGuid == First && x.Layer == AssignmentLayer.Module);
-            saved = WorkspaceStructureEditor.SetModifier(saved, null, new(AssignmentLayer.Module, device.ProfileId, "SHIFT", "JOY_BTN1", "Shift", ModifierMode.Hold, ""));
+            saved = DcsWorkspaceStructureEditor.SetModifier(saved, null, new(AssignmentLayer.Module, device.ProfileId, "SHIFT", "JOY_BTN1", "Shift", ModifierMode.Hold, ""));
             var renamed = "Edited MFD {" + First + "}.diff.lua";
-            saved = WorkspaceStructureEditor.UpdateDevice(saved, device, renamed, null, null);
-            Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.UpdateDevice(saved, device, "Edited.diff.lua", null, null));
-            var payload = SnapshotLuaPayloadRenderer.Generate(saved);
+            saved = DcsWorkspaceStructureEditor.UpdateDevice(saved, device, renamed, null, null);
+            Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.UpdateDevice(saved, device, "Edited.diff.lua", null, null));
+            var payload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains("Config/Input/TEST/joystick/" + renamed, payload.Keys);
             Assert.Contains("Config/Input/TEST/joystick/" + second.FileName, payload.Keys);
             Assert.Contains("Config/Input/UiLayer/joystick/" + first.FileName, payload.Keys);
@@ -156,15 +156,15 @@ namespace Heimdall.Tests
             var root = Path.Combine(Path.GetTempPath(), "ipia-guid-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
-                var saved = WorkspaceStructureEditor.AddDevice(Workspace(), Hardware(), AssignmentLayer.Module,
+                var saved = DcsWorkspaceStructureEditor.AddDevice(Workspace(), Hardware(), AssignmentLayer.Module,
                     new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
                 var connection = "Data Source=" + root + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(saved);
                 var reopened = (await repository.GetAsync(saved.Configuration.Module.Id))!;
-                Assert.Equal(First, Assert.Single(WorkspaceStructureEditor.Describe(reopened).Devices).PhysicalGuid);
-                Assert.Equal(SnapshotLuaPayloadRenderer.Generate(saved).Keys, SnapshotLuaPayloadRenderer.Generate(reopened).Keys);
+                Assert.Equal(First, Assert.Single(DcsWorkspaceStructureEditor.Describe(reopened).Devices).PhysicalGuid);
+                Assert.Equal(DcsSnapshotLuaPayloadRenderer.Generate(saved).Keys, DcsSnapshotLuaPayloadRenderer.Generate(reopened).Keys);
             }
             finally { File.Delete(root); }
         }
@@ -172,40 +172,40 @@ namespace Heimdall.Tests
         [Fact]
         public void Explicit_unlink_preserves_bindings_and_requires_a_new_physical_link_before_export()
         {
-            var workspace = WorkspaceStructureEditor.AddDevice(Workspace(), Hardware(), AssignmentLayer.Module,
+            var workspace = DcsWorkspaceStructureEditor.AddDevice(Workspace(), Hardware(), AssignmentLayer.Module,
                 new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
-            workspace = WorkspaceStructureEditor.AddDevice(workspace, Hardware(), AssignmentLayer.UiLayer,
+            workspace = DcsWorkspaceStructureEditor.AddDevice(workspace, Hardware(), AssignmentLayer.UiLayer,
                 new DetectedDcsDevice(First, "F16 MFD 3", true).FileName, null, null);
-            var device = WorkspaceStructureEditor.Describe(workspace).Devices[0];
+            var device = DcsWorkspaceStructureEditor.Describe(workspace).Devices[0];
             workspace = workspace with { Assignments = [new(new(workspace.Configuration.Module.Id, device.ProfileId,
                 AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""),
                 new("d3001pnilu3001cdnilvd1vpnilvunil", "Test", false, AssignmentLayer.Module))] };
             var original = JsonSerializer.Serialize(workspace);
-            var unlinked = WorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device);
-            Assert.All(WorkspaceStructureEditor.Describe(unlinked).Devices, x => Assert.Null(x.PhysicalGuid));
+            var unlinked = DcsWorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device);
+            Assert.All(DcsWorkspaceStructureEditor.Describe(unlinked).Devices, x => Assert.Null(x.PhysicalGuid));
             Assert.Equal(workspace.Assignments, unlinked.Assignments);
             Assert.Equal(workspace.Diagrams, unlinked.Diagrams);
-            Assert.Throws<InvalidDataException>(() => ModulePhysicalBindingReview.Validate(unlinked));
-            var detachedDrawing = WorkspaceStructureEditor.SetDrawingLinked(unlinked, device.ProfileId, false);
-            var frozen = EditorSnapshotSerializer.Serialize(detachedDrawing);
-            var reopened = EditorSnapshotSerializer.Deserialize(frozen);
-            Assert.Equal(frozen, EditorSnapshotSerializer.Serialize(reopened));
+            Assert.Throws<InvalidDataException>(() => DcsModulePhysicalBindingReview.Validate(unlinked));
+            var detachedDrawing = DcsWorkspaceStructureEditor.SetDrawingLinked(unlinked, device.ProfileId, false);
+            var frozen = DcsEditorSnapshotSerializer.Serialize(detachedDrawing);
+            var reopened = DcsEditorSnapshotSerializer.Deserialize(frozen);
+            Assert.Equal(frozen, DcsEditorSnapshotSerializer.Serialize(reopened));
             Assert.Equal(detachedDrawing.Assignments, reopened.Assignments);
-            Assert.All(WorkspaceStructureEditor.Describe(reopened).Devices, x => Assert.Null(x.PhysicalGuid));
+            Assert.All(DcsWorkspaceStructureEditor.Describe(reopened).Devices, x => Assert.Null(x.PhysicalGuid));
             Assert.True(reopened.Diagrams.Single().DrawingUnlinked);
-            var current = WorkspaceStructureEditor.Describe(reopened).Devices[0];
-            var relinked = WorkspaceStructureEditor.RebindDevice(reopened, current,
+            var current = DcsWorkspaceStructureEditor.Describe(reopened).Devices[0];
+            var relinked = DcsWorkspaceStructureEditor.RebindDevice(reopened, current,
                 new DetectedDcsDevice(Second, "F16 MFD 3", true).FileName, null, null);
-            Assert.All(WorkspaceStructureEditor.Describe(relinked).Devices, x => Assert.Equal(Second, x.PhysicalGuid));
+            Assert.All(DcsWorkspaceStructureEditor.Describe(relinked).Devices, x => Assert.Equal(Second, x.PhysicalGuid));
             Assert.True(relinked.Diagrams.Single().DrawingUnlinked);
-            Assert.False(WorkspaceStructureEditor.SetDrawingLinked(relinked, device.ProfileId, true).Diagrams.Single().DrawingUnlinked);
+            Assert.False(DcsWorkspaceStructureEditor.SetDrawingLinked(relinked, device.ProfileId, true).Diagrams.Single().DrawingUnlinked);
             Assert.Equal(original, JsonSerializer.Serialize(workspace));
         }
         #endregion END Public
         #region BEGIN private helpers
         private static WorkspaceHardware Hardware() => new("tm-mfd", "MFD", new DetectedDcsDevice(First, "F16 MFD 3", false).FileName,
             new UiLayerDiagram("MFD", null, "mfd.svg", 100, 100, [], []) { Controls = [new("one", "OSB01", "JOY_BTN1", 0, 0, 10, 10, false)] });
-        private static EditorWorkspaceSnapshot Workspace() => new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "fixture"),
+        private static DcsEditorWorkspaceSnapshot Workspace() => new(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "fixture"),
             [], [], [], [], [], [], new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{\"profiles\":{},\"pages\":[]}", ["config/ipia-hardware.json"] = JsonSerializer.Serialize(new[] { Hardware() }) });
         #endregion END private helpers
     }

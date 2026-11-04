@@ -16,31 +16,31 @@ namespace Heimdall.Tests
             var first = Guid.NewGuid();
             var second = Guid.NewGuid();
             var third = Guid.NewGuid();
-            var commands = new[] { new CommandPaletteEntry("A", "A", "Category", false),
-                                   new CommandPaletteEntry("B", "B", "Category", false),
-                                   new CommandPaletteEntry("C", "C", "Category", false) };
-            DraftAssignment Assignment(Guid profile, string id, string chord = "",
+            var commands = new[] { new DcsCommandPaletteEntry("A", "A", "Category", false),
+                                   new DcsCommandPaletteEntry("B", "B", "Category", false),
+                                   new DcsCommandPaletteEntry("C", "C", "Category", false) };
+            DcsDraftAssignment Assignment(Guid profile, string id, string chord = "",
                                        AssignmentLayer layer = AssignmentLayer.Module) =>
                 new(new(module, profile, layer, BindingSection.Key, "JOY_BTN" + id, chord),
-                    new DraftCommand(id, id, false, layer));
+                    new DcsDraftCommand(id, id, false, layer));
             var assignments =
                 new[] { Assignment(first, "A"), Assignment(second, "A", "SHIFT"), Assignment(first, "B", "SHIFT"),
                         Assignment(third, "C", layer: AssignmentLayer.UiLayer) };
-            string[] Ids(CommandBindingState state, string chord = "", AssignmentLayer layer = AssignmentLayer.Module,
+            string[] Ids(DcsCommandBindingState state, string chord = "", AssignmentLayer layer = AssignmentLayer.Module,
                          Guid[]? eligible = null) =>
-                CommandBindingStateFilter
+                DcsCommandBindingStateFilter
                     .Filter(commands, assignments, layer, eligible ?? [first, second], first, chord, state)
                     .Select(x => x.Id)
                     .ToArray();
-            Assert.Equal(["A", "B", "C"], Ids(CommandBindingState.All));
-            Assert.Equal(["A"], Ids(CommandBindingState.Bound));
-            Assert.Equal(["B", "C"], Ids(CommandBindingState.Unbound));
-            Assert.Equal(["B"], Ids(CommandBindingState.Bound, "SHIFT"));
-            Assert.Equal(["A"], Ids(CommandBindingState.BoundByAll));
-            Assert.Equal(["C"], Ids(CommandBindingState.UnboundByAll));
-            Assert.Equal(["C"], Ids(CommandBindingState.BoundByAll, layer: AssignmentLayer.UiLayer, eligible: [third]));
+            Assert.Equal(["A", "B", "C"], Ids(DcsCommandBindingState.All));
+            Assert.Equal(["A"], Ids(DcsCommandBindingState.Bound));
+            Assert.Equal(["B", "C"], Ids(DcsCommandBindingState.Unbound));
+            Assert.Equal(["B"], Ids(DcsCommandBindingState.Bound, "SHIFT"));
+            Assert.Equal(["A"], Ids(DcsCommandBindingState.BoundByAll));
+            Assert.Equal(["C"], Ids(DcsCommandBindingState.UnboundByAll));
+            Assert.Equal(["C"], Ids(DcsCommandBindingState.BoundByAll, layer: AssignmentLayer.UiLayer, eligible: [third]));
             Assert.Equal(["A", "B"],
-                         Ids(CommandBindingState.UnboundByAll, layer: AssignmentLayer.UiLayer, eligible: [third]));
+                         Ids(DcsCommandBindingState.UnboundByAll, layer: AssignmentLayer.UiLayer, eligible: [third]));
         }
         #endregion END Public
     }

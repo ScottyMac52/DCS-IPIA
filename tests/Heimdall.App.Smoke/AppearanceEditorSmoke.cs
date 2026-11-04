@@ -32,9 +32,9 @@ namespace Heimdall.App.Smoke
                 AppearanceManager.Configure(store); chooser.Show();
                 var connection = "Data Source=" + Path.Combine(root, "preview.db") + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-                main = new MainWindow(new global::Heimdall.Dcs.ModuleWorkspaceLoader(),
+                main = new MainWindow(new global::Heimdall.Dcs.DcsModuleWorkspaceLoader(),
                     new global::Heimdall.Dcs.DcsFolderImporter(), settings,
-                    new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
+                    new DcsSqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery());
                 main.Show();
                 var theme = (ComboBox)chooser.FindName("ThemeChoice")!;
                 foreach (var skin in new[] { 0, 1, 2, 3 })

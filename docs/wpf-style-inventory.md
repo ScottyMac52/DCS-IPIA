@@ -24,7 +24,7 @@ Scope: 52 XAML files, including theme dictionaries, and 141 C# files under `src/
 | `ColumnDefinition` | 0 | 48 | 5 |
 | `ComboBox` | 76 | 0 | 4 |
 | `ComboBoxItem` | 0 | 68 | 0 |
-| `CommandsManagementView` | 0 | 2 | 0 |
+| `DcsCommandsManagementView` | 0 | 2 | 0 |
 | `ContentControl` | 0 | 6 | 0 |
 | `ContentPresenter` | 0 | 1 | 0 |
 | `ContextMenu` | 0 | 1 | 3 |

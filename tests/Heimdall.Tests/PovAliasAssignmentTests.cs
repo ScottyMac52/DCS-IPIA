@@ -20,12 +20,12 @@ namespace Heimdall.Tests
             Assert.Equal(8, workspace.Assignments.Count);
             Assert.Equal(4, draft.Snapshot.Count);
             Assert.All(draft.Snapshot, x => Assert.StartsWith("JOY_BTN_POV1_", x.Slot.InputKey));
-            var page = KneeboardDraftProjection.CreateCombined(workspace, workspace.Diagrams[0], workspace.Assignments, workspace.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(workspace, workspace.Diagrams[0], workspace.Assignments, workspace.Labels);
             Assert.Equal(4, page.Labels.Count);
             Assert.Contains(page.Labels["D"], x => x.Text == "TRIM Button - NOSE UP");
-            var png = Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(workspace)).Value;
+            var png = Assert.Single(DcsSnapshotDeviceKneeboardRenderer.Generate(workspace)).Value;
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8));
-            var parsed = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace, workspace.Diagrams[0].ProfileId), workspace.Diagrams[0].ProfileId);
+            var parsed = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(workspace, workspace.Diagrams[0].ProfileId), workspace.Diagrams[0].ProfileId);
             Assert.Equal(workspace.Configuration.Bindings.Count, parsed.Count);
             foreach (var original in workspace.Configuration.Bindings)
                 Assert.Contains(parsed, x => x.CommandId == original.CommandId && x.InputKey == original.InputKey &&
@@ -47,17 +47,17 @@ namespace Heimdall.Tests
             var slot = original.Single(x => x.Slot.InputKey == "JOY_BTN_POV1_D").Slot with { InputKey = key };
             Assert.Equal(DraftOutcome.Applied, draft.Remove(slot).Outcome);
             var profile = slot.ProfileId;
-            var cleared = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace with { Assignments = draft.Snapshot }, profile), profile);
+            var cleared = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(workspace with { Assignments = draft.Snapshot }, profile), profile);
             Assert.DoesNotContain(cleared, x => x.Disposition != BindingDisposition.Removed && DcsInputKey.SamePhysicalInput(x.InputKey, key));
             Assert.Equal(workspace.Configuration.Bindings.Count(x => x.Disposition == BindingDisposition.Removed || x.Section == BindingSection.Axis),
                 cleared.Count(x => x.Disposition == BindingDisposition.Removed));
             Assert.Equal(DraftOutcome.Applied, draft.Undo().Outcome);
             Assert.Equal(original, draft.Snapshot);
-            var replacement = new DraftCommand("NEW", "Replacement", false, AssignmentLayer.Module);
+            var replacement = new DcsDraftCommand("NEW", "Replacement", false, AssignmentLayer.Module);
             draft.AddCommands([replacement]);
             Assert.Equal(DraftOutcome.Applied, draft.Assign(slot, replacement, OccupiedDestinationBehavior.ReplaceInDraft).Outcome);
             Assert.Equal(4, draft.Snapshot.Count);
-            var edited = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(workspace with { Assignments = draft.Snapshot }, profile), profile);
+            var edited = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(workspace with { Assignments = draft.Snapshot }, profile), profile);
             var aliases = edited.Where(x => x.Disposition != BindingDisposition.Removed && DcsInputKey.SamePhysicalInput(x.InputKey, key)).ToArray();
             Assert.Equal(2, aliases.Length);
             Assert.All(aliases, x => Assert.Equal("NEW", x.CommandId));
@@ -79,10 +79,10 @@ namespace Heimdall.Tests
                 original with { Slot = original.Slot with { ModifierChord = "SHIFT" } } };
             Assert.Equal(variants.Length, DcsInputKey.CollapseAliases(variants).Count);
             var saved = workspace with { Assignments = [original], Labels = new Dictionary<string, string> { [original.Slot.Key] = "Saved POV label" } };
-            var page = KneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(saved, saved.Diagrams[0], saved.Assignments, saved.Labels);
             Assert.Equal("Saved POV label", Assert.Single(page.Labels["D"]).Text);
-            Assert.Equal("Saved POV label", KneeboardDraftProjection.Create(saved, saved.Diagrams[0], saved.Assignments, saved.Labels)[0].Captions["D"]);
-            Assert.Single(SnapshotDeviceKneeboardRenderer.Generate(saved));
+            Assert.Equal("Saved POV label", DcsKneeboardDraftProjection.Create(saved, saved.Diagrams[0], saved.Assignments, saved.Labels)[0].Captions["D"]);
+            Assert.Single(DcsSnapshotDeviceKneeboardRenderer.Generate(saved));
         }
 
         /// <summary>Saved alias conflicts remain blocked; authoritative saved edits resolve imported conflicts.</summary>
@@ -94,12 +94,12 @@ namespace Heimdall.Tests
             var second = first with { Slot = first.Slot with { InputKey = "JOY_BTN_POV1_D" }, Command = first.Command with { Id = "CONFLICT" } };
             var conflicting = workspace with { Assignments = [first, second] };
             Assert.Throws<ArgumentException>(() => Draft(conflicting));
-            Assert.Throws<InvalidDataException>(() => SnapshotDeviceKneeboardRenderer.Generate(conflicting));
-            Assert.Throws<InvalidDataException>(() => ModuleLuaProfileRenderer.Render(conflicting, first.Slot.ProfileId));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotDeviceKneeboardRenderer.Generate(conflicting));
+            Assert.Throws<InvalidDataException>(() => DcsModuleLuaProfileRenderer.Render(conflicting, first.Slot.ProfileId));
             var changedBinding = workspace.Configuration.Bindings.Select(x => x.InputKey == "JOY_POV1_D" && x.Disposition != BindingDisposition.Removed
                 ? new DcsBinding(x.ProfileId, x.Section, "CONFLICT", x.CommandName, x.Disposition, x.InputKey, x.Reformers, x.Filter) : x).ToArray();
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, changedBinding, "fixture");
-            var reconciled = DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, changedBinding, "fixture");
+            var reconciled = DcsLuaParser.ParseProfile(DcsModuleLuaProfileRenderer.Render(
                 workspace with { Configuration = config, Assignments = Draft(workspace).Snapshot }, first.Slot.ProfileId), first.Slot.ProfileId);
             Assert.DoesNotContain(reconciled, x => x.CommandId == "CONFLICT" && x.Disposition != BindingDisposition.Removed);
             foreach (var alias in new[] { "JOY_POV1_D", "JOY_BTN_POV1_D" })
@@ -109,16 +109,16 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static DraftAssignmentService Draft(EditorWorkspaceSnapshot workspace) => new(workspace.Configuration,
+        private static DcsDraftAssignmentService Draft(DcsEditorWorkspaceSnapshot workspace) => new(workspace.Configuration,
             workspace.Assignments.Select(x => x.Command).DistinctBy(x => x.Id), workspace.Assignments);
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
             var module = new DcsModule(Guid.NewGuid(), "F-16C_50", "F-16C Viper");
-            var profile = new DeviceProfile(Guid.NewGuid(), "ava-base-f16c", null, "Ava", "Ava.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "ava-base-f16c", null, "Ava", "Ava.diff.lua");
             var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "F16", "Ava.diff.lua"));
             var bindings = DcsLuaParser.ParseProfile(source, profile.Id);
             var modifiers = DcsLuaParser.ParseModifiers(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "F16", "modifiers.lua")));
-            var config = new ModuleConfiguration(module, [profile], modifiers, bindings, "IPI 5.7.1");
+            var config = new DcsModuleConfiguration(module, [profile], modifiers, bindings, "IPI 5.7.1");
             var controls = Directions.Select((direction, index) =>
                 new HardwareGraphicControl(direction, "POV " + direction, "JOY_BTN_POV1_" + direction, 0, index * 20, 20, 10)).ToArray();
             var diagram = new UiLayerDiagram("Ava", null, "ava.svg", 100, 100, [], []) {
@@ -127,7 +127,7 @@ namespace Heimdall.Tests
             };
             var assignments = bindings.Where(x => x.Disposition != BindingDisposition.Removed &&
                 controls.Any(c => DcsInputKey.SamePhysicalInput(c.InputKey, x.InputKey))).Select(x =>
-                new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, x.Section, x.InputKey, string.Join("+", x.Reformers)),
+                new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, x.Section, x.InputKey, string.Join("+", x.Reformers)),
                     new(x.CommandId, x.CommandName, false, AssignmentLayer.Module))).ToArray();
             var page = new KneeboardPage(Guid.NewGuid(), module.Id, Guid.NewGuid(), KneeboardPageKind.Device, "AVA", "Ava", [], 1);
             return new(config, [page], [], [diagram], [], [], assignments, new Dictionary<string, string>(),
