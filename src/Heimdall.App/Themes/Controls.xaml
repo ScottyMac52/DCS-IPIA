@@ -76,4 +76,19 @@
     <Style x:Key="FeatureActionButton" TargetType="Button" BasedOn="{StaticResource ToolbarActionButton}">
         <Setter Property="Margin" Value="0,0,8,4"/>
     </Style>
+    <Style x:Key="DeviceSetupSection" TargetType="GroupBox">
+        <Setter Property="Margin" Value="0,8,0,8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GroupBox">
+                    <StackPanel>
+                        <ContentPresenter ContentSource="Header" Margin="0,0,0,4"
+                                          TextElement.FontWeight="SemiBold"
+                                          TextElement.Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        <ContentPresenter ContentSource="Content"/>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

@@ -7,10 +7,10 @@
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="CancelIdentificationButton" Content="Stop identifying"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="ConfirmIdentificationButton" Content="Confirm controller link" IsEnabled="False"/>
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="AddControllerButton" Content="Add controller…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReplaceControllerButton" Content="Replace selected…"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveControllerButton" Content="Remove selected…"/>
+
+
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="RescanControllerButton" Content="Rescan"/>
-<Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkControllerButton" Content="Unlink physical controller…"/>
+
 </pres:ActionBar>
  <pres:DeviceDetailsLayout pres:WorkspaceLayout.Key="elite.devices.split">
  <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,6,0"><StackPanel x:Name="DeviceTools" Margin="0,0,0,10">
@@ -22,10 +22,15 @@
 
      </WrapPanel>
      <TextBlock Style="{StaticResource AppLabel}" x:Name="IdentificationStatus" TextWrapping="Wrap" Margin="0,6,0,12" AutomationProperties.Name="Controller identification result" AutomationProperties.LiveSetting="Polite"/>
-     <TextBlock Style="{StaticResource AppLabel}" Text="Physical controller" FontSize="18" FontWeight="SemiBold"/>
+
      <TextBlock Style="{StaticResource AppLabel}" Text="Choose your connected controller to add it, or select a profile controller on the left to remove or replace it. Every removal/replacement is previewed. Drawings are optional." TextWrapping="Wrap" Margin="0,4,0,8"/>
      <StackPanel>
-      <ComboBox Style="{StaticResource AppComboBox}" x:Name="ConnectedPicker" DisplayMemberPath="Title" MinWidth="160" AutomationProperties.Name="Controller to add or use as replacement"/>
+      <GroupBox Header="Physical controller" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<WrapPanel Margin="0,0,0,6"><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkControllerButton" Content="Unlink physical controller…"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ReplaceControllerButton" Content="Replace selected…"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="RemoveControllerButton" Content="Remove selected…"/></WrapPanel>
+<ComboBox Style="{StaticResource AppComboBox}" x:Name="ConnectedPicker" DisplayMemberPath="Title" MinWidth="160" AutomationProperties.Name="Controller to add or use as replacement"/>
+</StackPanel></GroupBox>
 
 
 
@@ -40,7 +45,9 @@
        <Button Style="{StaticResource ToolbarActionButton}" x:Name="LinkReferenceButton" Content="Link selected reference"/>
       </WrapPanel>
      </StackPanel>
-     <WrapPanel Margin="0,8,0,0"><TextBlock Style="{StaticResource AppLabel}" x:Name="DrawingStatus" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="550"/>
+     <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<TextBlock Style="{StaticResource AppLabel}" x:Name="DrawingStatus" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="550"/>
+<WrapPanel Margin="0,0,0,6">
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="ChangeDrawingButton" Content="Choose drawing…"/>
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="NoDrawingButton" Content="Unlink drawing"/>
 
@@ -49,6 +56,7 @@
       <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" MinWidth="160" AutomationProperties.Name="Optional shared hardware drawing"/>
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="UseDrawingButton" Content="Use drawing"/>
      </WrapPanel>
+</StackPanel></GroupBox>
     </StackPanel></ScrollViewer>
 
  <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>

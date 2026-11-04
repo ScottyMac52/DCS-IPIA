@@ -9,8 +9,8 @@
 <Button x:Name="CancelIdentificationButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
 <Button x:Name="AddControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Add controller…"/>
 <Button x:Name="RemoveUnusedSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Remove unused slot…"/>
-<Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link physical controller…"/>
-<Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink physical controller…"/>
+
+
 <Button x:Name="RenameControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Update game name…"/>
 <Button x:Name="ClearSlotButton" Style="{StaticResource ToolbarActionButton}" Content="Clear assignments…"/>
 
@@ -20,14 +20,23 @@
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
  <TextBlock Style="{StaticResource SectionTitle}" Text="Controller setup"/>
  <TextBlock Style="{StaticResource Hint}" Text="Select connected hardware to add a missing controller, or select an existing slot to link it. Then choose a drawing." TextWrapping="Wrap"/>
-     <games:GameControllerSetup x:Name="ControllerSetup" Foreground="{DynamicResource PrimaryTextBrush}">
+     <GroupBox Header="Physical controller" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<WrapPanel Margin="0,0,0,6"><Button x:Name="LinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Link physical controller…"/>
+<Button x:Name="UnlinkControllerButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink physical controller…"/></WrapPanel>
+<ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Squadrons physical controller">
+       <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+</StackPanel></GroupBox>
+ <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<WrapPanel Margin="0,0,0,6"><Button x:Name="ChooseDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Choose drawing…"/><Button x:Name="ClearDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink drawing"/></WrapPanel>
+   <ComboBox x:Name="DrawingPicker" Style="{StaticResource AppComboBox}" DisplayMemberPath="Title" AutomationProperties.Name="Squadrons shared hardware drawing"/>
+</StackPanel></GroupBox>
+     <games:GameControllerSetup x:Name="ControllerSetup" Header="Squadrons device settings" Foreground="{DynamicResource PrimaryTextBrush}">
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="440" Margin="0,8,0,0">
      <StackPanel>
       <TextBlock x:Name="LinkStatus" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
-      <TextBlock Style="{StaticResource AppLabel}" Text="Physical controller" Margin="0,8,0,4"/>
-      <ComboBox x:Name="ConnectedPicker" Style="{StaticResource AppComboBox}" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Squadrons physical controller">
-       <ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding PhysicalGuid}" FontSize="10" TextWrapping="Wrap"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
-      </ComboBox>
+
+      
       <TextBlock Style="{StaticResource AppLabel}" Text="Game device name" Margin="0,8,0,4"/>
       <TextBox x:Name="NativeControllerName" Style="{StaticResource AppTextBox}" MaxLength="256" AutomationProperties.Name="Squadrons new controller name"
        ToolTip="Squadrons uses a reported device name plus an occurrence number. Review the suggestion before adding or updating a controller."/>
@@ -36,9 +45,6 @@
      </StackPanel>
     </ScrollViewer>
      </games:GameControllerSetup>
- <TextBlock Style="{StaticResource AppLabel}" Text="Hardware drawing" Margin="0,14,0,6"/>
-       <WrapPanel Margin="0,0,0,6"><Button x:Name="ChooseDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Choose drawing…"/><Button x:Name="ClearDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Unlink drawing"/></WrapPanel>
-   <ComboBox x:Name="DrawingPicker" Style="{StaticResource AppComboBox}" DisplayMemberPath="Title" AutomationProperties.Name="Squadrons shared hardware drawing"/>
 
 
  <TextBlock Style="{StaticResource Hint}" Text="Drawing choice does not change the native slot or its assignments. Assignments and live input testing are on the Assignments &amp; Testing tab." TextWrapping="Wrap"/>
