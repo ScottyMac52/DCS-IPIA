@@ -21,6 +21,7 @@ namespace Heimdall.App.Games
                 _input.Stop(); _selectedPhysicalInput = null; _selection.SelectInput(null); RefreshDevices(); RefreshCommands(); ShowDrawing();
             };
             _devices.Rescan.Click += async (_, _) => { await RefreshHardwareAsync(); RefreshDevices(); ShowDrawing(); };
+            _devices.Add.Click += (_, _) => Run(AddController);
             _devices.Link.Click += (_, _) => Run(() =>
             {
                 if (_session is not null && SelectedDevice is { } id && _devices.Physical.SelectedItem is DetectedDcsDevice physical)
@@ -35,8 +36,41 @@ namespace Heimdall.App.Games
                 if (_refreshing || _session is null || SelectedDevice is not { } id || _devices.Drawing.SelectedItem is not WorkspaceHardware hardware) return;
                 Run(() => { _input.Stop(); _session.ChangeDrawing(id, hardware.DeviceId); });
             };
-            _devices.Physical.SelectionChanged += (_, _) => { if (!_refreshing) _devices.Link.IsEnabled = _devices.Physical.IsEnabled && _devices.Physical.SelectedItem is DetectedDcsDevice; };
+            _devices.Physical.SelectionChanged += (_, _) => { if (!_refreshing)
+                {
+                    _devices.Link.IsEnabled = SelectedDevice is not null && _devices.Physical.IsEnabled && _devices.Physical.SelectedItem is DetectedDcsDevice;
+                    UpdateAddController();
+                } };
         }
+        private void AddController()
+        {
+            if (!_devices.Add.IsEnabled || _session is null) return;
+            if (SelectedDevice is not null)
+            {
+                Controllers.SelectedIndex = 0;
+                _devices.Physical.SelectedIndex = -1;
+                _devices.Physical.Focus();
+                _devices.Physical.IsDropDownOpen = true;
+                return;
+            }
+            if (_devices.Physical.SelectedItem is not DetectedDcsDevice physical) return;
+            var change = _session.PreviewAddNativeController(physical.PhysicalGuid, physical.Name);
+            Review(change);
+            Controllers.SelectedItem = Controllers.Items.Cast<ListBoxItem>()
+                .FirstOrDefault(item => item.Tag as string == change.ResultDeviceId) ?? Controllers.SelectedItem;
+        }
+
+        private void UpdateAddController()
+        {
+            var workspace = _session?.Snapshot;
+            var physical = _devices.Physical.SelectedItem as DetectedDcsDevice;
+            var available = _session?.CanAddNativeControllers == true && _session.AccessMessage.Length == 0 && !_input.Running;
+            _devices.Add.IsEnabled = available && (SelectedDevice is not null ||
+                physical is { Connected: true } && workspace is not null &&
+                !workspace.Hardware.Values.Any(pin => pin.Device.PhysicalGuid == physical.PhysicalGuid));
+            _devices.Add.ToolTip = "Choose an unlinked connected controller. Review its native input ranges before adding it.";
+        }
+
         private void Review(GameControllerChange change)
         {
             _input.Stop();
@@ -60,7 +94,8 @@ namespace Heimdall.App.Games
             var ready = native is not null && native.Valid && _session!.AccessMessage.Length == 0;
             var state = ControllerLinkState.For(pin is not null, drawing is not null, ready, _input.Running);
             _devices.Remove.IsEnabled = ready && !_input.Running;
-            _devices.Physical.IsEnabled = state.SelectPhysical;
+            _devices.Physical.IsEnabled = state.SelectPhysical ||
+                id is null && _session?.CanAddNativeControllers == true && _session.AccessMessage.Length == 0 && !_input.Running;
             _devices.Link.IsEnabled = state.SelectPhysical && _devices.Physical.SelectedItem is DetectedDcsDevice;
             _devices.Unlink.IsEnabled = state.UnlinkPhysical;
             _devices.Drawing.IsEnabled = state.SelectDrawing;
@@ -78,6 +113,7 @@ namespace Heimdall.App.Games
                     $"Object {item.EnumerationIndex} · {item.Kind} · Native slot {item.NativeIndex?.ToString(CultureInfo.InvariantCulture) ?? "unresolved/excluded"} · {item.Detail} · {item.InputId}")))
                 : _physicalMap.Message;
             _refreshing = false;
+            UpdateAddController();
         }
         private void ShowDrawing()
         {

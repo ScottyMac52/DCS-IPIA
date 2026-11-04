@@ -149,7 +149,9 @@ namespace Heimdall.Application.Games
             if (observed.ProductGuid == Guid.Empty || _current.Hardware.Values.Any(x => x.Device.PhysicalGuid == physicalGuid))
                 throw new InvalidOperationException("Choose an unlinked connected controller with a verified product identity.");
             var candidate = Snapshot;
-            var profile = creator.AddNativeController(candidate.Profile, nativeName);
+            var observation = _controllerInputs().SingleOrDefault(item =>
+                item.Device.PhysicalGuid == observed.PhysicalGuid && item.Device.ProductGuid == observed.ProductGuid);
+            var profile = creator.AddNativeController(candidate.Profile, nativeName, observation);
             RequireProfileIdentity(profile, "Native controller creation changed the owning game or profile identity.");
             var added = profile.Devices.ExceptBy(_current.Profile.Devices.Select(x => x.LogicalId), x => x.LogicalId).Single();
             candidate = candidate with { Profile = profile };
@@ -160,8 +162,12 @@ namespace Heimdall.Application.Games
                 "Add controller: " + nativeName + "\nNative slot: " + added.LogicalId +
                 "\nPhysical unit: " + observed.Name + " · " + observed.PhysicalGuid +
                 "\nProduct: " + observed.ProductGuid +
+                "\nNative mapping: " + string.Join(", ", added.Identity!.SimSpecificIds.Select(field => field.Key + "=" + field.Value)) +
                 "\n\nCreates one native device declaration and links this exact physical unit. Existing devices and assignments are retained." +
-                "\nSave and export the profile, then verify the device name and recognition in Squadrons.", added.LogicalId, observed);
+                "\nSave and export the profile, then verify the added controller in the game.", added.LogicalId, observed,
+                observation is null ? null : () => [JsonSerializer.Serialize(_controllerInputs().SingleOrDefault(item =>
+                    item.Device.PhysicalGuid == observed.PhysicalGuid && item.Device.ProductGuid == observed.ProductGuid)?.Capabilities)],
+                observation is null ? null : [JsonSerializer.Serialize(observation.Capabilities)]);
         }
         /// <summary>Gets whether native controller names can be updated explicitly.</summary>
         public bool CanRenameNativeControllers => _backend is INativeControllerNames;

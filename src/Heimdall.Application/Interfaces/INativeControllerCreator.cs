@@ -8,6 +8,9 @@ namespace Heimdall.Application.Interfaces
         #region BEGIN Public
         /// <summary>Adds one named controller in an unused native slot while retaining all existing assignments.</summary>
         ProfileDocument AddNativeController(ProfileDocument profile, string nativeName);
+        /// <summary>Adds a controller using current physical identity and optional native object evidence.</summary>
+        ProfileDocument AddNativeController(ProfileDocument profile, string nativeName, ControllerObservation? observation) =>
+            AddNativeController(profile, nativeName);
         #endregion END Public
     }
 }

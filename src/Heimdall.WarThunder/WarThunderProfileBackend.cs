@@ -9,7 +9,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.WarThunder
 {
     /// <summary>Imports portable native-backed controls, validates native edits and exports exact reviewed text without deployment.</summary>
-    public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator, ISimControllerRemoval
+    public sealed class WarThunderProfileBackend : ISimProfileBackend, ISimCapturedDeviceLinkValidator, ISimControllerRemoval, INativeControllerCreator
     {
         private const string EvidenceKey = "war-thunder.v1";
         private static readonly JsonSerializerOptions EvidenceOptions = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
@@ -50,6 +50,18 @@ namespace Heimdall.WarThunder
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or InvalidDataException or JsonException or FormatException)
             { return new(new Dictionary<string, string>(), [new("war-thunder.export.blocked", error.Message, true)]); }
         }
+        /// <summary>Requires physical object evidence for a new War Thunder mapping.</summary>
+        public ProfileDocument AddNativeController(ProfileDocument profile, string nativeName) =>
+            throw new InvalidOperationException("Rescan and select a connected controller before adding its native mapping.");
+
+        /// <summary>Appends one mapping using the existing driver layout translator.</summary>
+        public ProfileDocument AddNativeController(ProfileDocument profile, string nativeName, ControllerObservation? observation)
+        {
+            var evidence = Evidence(profile);
+            var native = new WarThunderNativeProfile(evidence.Text);
+            return Edited(evidence, WarThunderControllerAddition.Create(native, nativeName, observation));
+        }
+
         /// <summary>Gets all captured commands, retaining original catalog evidence through clear operations.</summary>
         public ICommandCatalog GetCatalog(ProfileDocument profile)
         {
