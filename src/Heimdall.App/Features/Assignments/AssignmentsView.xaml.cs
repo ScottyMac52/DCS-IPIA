@@ -59,6 +59,7 @@ namespace Heimdall.App.Features.Assignments
         private const string SelectDeviceText = "Select a device";
         private const string UnableToRenderMessage = "Unable to render: ";
         private HardwareGraphicControl? _selected;
+        private readonly Dictionary<string, Action> _inputSelections = new(StringComparer.Ordinal);
         private readonly DiagramViewport _viewport;
         #region BEGIN Public
         public AssignmentsView()
@@ -171,6 +172,7 @@ namespace Heimdall.App.Features.Assignments
         private void ClearSelectedControl()
         {
             _selected = null; _selectedInputKey = null;
+            InputPicker.SelectedIndex = -1;
             SelectedCallout.Text = "Select a callout and a command.";
             InspectorDetails.Text = "";
             _updatingLabel = true; LabelEditor.Text = ""; _updatingLabel = false;
@@ -209,9 +211,19 @@ namespace Heimdall.App.Features.Assignments
             return held.Count == 0 ? null : ModifierAssignmentReservation.BlockReason(key, held);
         }
 
+        private void InputPickerChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (InputPicker.SelectedValue is string key && key != _selectedInputKey
+                && _inputSelections.TryGetValue(key, out var select))
+                select();
+        }
+
         private void RefreshDiagram()
         {
             Diagram.Children.Clear();
+            _inputSelections.Clear();
+            InputPicker.ItemsSource = null;
+            InputPicker.IsEnabled = false;
             if (_context?.Working is null || DeviceChoice.SelectedItem is not UiLayerDiagram diagram ||
                 (diagram.DrawingUnlinked || string.IsNullOrWhiteSpace(diagram.Svg)))
             {
@@ -324,6 +336,7 @@ namespace Heimdall.App.Features.Assignments
                     {
                         _selected = control;
                         _selectedInputKey = control.InputKey;
+                        InputPicker.SelectedValue = control.InputKey;
                         SelectedCallout.Text = protectedInput
                             ? $"{control.Label} · {control.InputKey} · MODIFIER (reserved)"
                             : $"{control.Label} · {control.InputKey} → {caption}";
@@ -389,6 +402,7 @@ namespace Heimdall.App.Features.Assignments
                         AssignmentActionPresentation.Show(clearAssignment, AssignmentAction(control, WorkspaceAssignmentAction.Clear));
                         AssignmentActionPresentation.Show(tuneAxis, AssignmentAction(control, WorkspaceAssignmentAction.TuneAxis));
                     };
+                    _inputSelections.TryAdd(control.InputKey, SelectCallout);
                     if (_selectedInputKey == control.InputKey) SelectCallout();
                     border.PreviewMouseMove += (_, args) =>
                     {
@@ -405,8 +419,16 @@ namespace Heimdall.App.Features.Assignments
             }
             catch (Exception ex)
             {
+                _inputSelections.Clear();
                 DeviceTitle.Text = UnableToRenderMessage + ex.Message;
             }
+
+            InputPicker.ItemsSource = diagram.Controls.Where(control => _inputSelections.ContainsKey(control.InputKey))
+                .DistinctBy(control => control.InputKey)
+                .Select(control => new KeyValuePair<string, string>(control.InputKey,
+                    AssignmentInputLabel.ForPhysicalKey(control.InputKey, control.Label))).ToArray();
+            InputPicker.IsEnabled = _inputSelections.Count > 0;
+            InputPicker.SelectedValue = _selectedInputKey;
         }
 
         private void AssignClicked(object sender, RoutedEventArgs e)

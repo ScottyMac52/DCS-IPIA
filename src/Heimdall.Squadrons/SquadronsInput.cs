@@ -1,3 +1,4 @@
+using Heimdall.Application;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.Squadrons
@@ -20,8 +21,7 @@ namespace Heimdall.Squadrons
             get
             {
                 var label = Type == CommandType.Axis ? Key.Replace("JOY_", "", StringComparison.Ordinal) + " axis" : DisplayName;
-                return string.IsNullOrWhiteSpace(DefaultLabel) || string.Equals(DefaultLabel, label, StringComparison.OrdinalIgnoreCase)
-                    ? label : DefaultLabel + " · " + label;
+                return AssignmentInputLabel.WithCaption(label, DefaultLabel);
             }
         }
         /// <summary>Gets a readable physical input label for selection and assignment tables.</summary>

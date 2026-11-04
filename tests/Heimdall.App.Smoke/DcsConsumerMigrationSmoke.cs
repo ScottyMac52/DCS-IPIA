@@ -49,7 +49,12 @@ namespace Heimdall.App.Smoke
                 rail.SelectedValue = right.Id; ThemeControlSmoke.Pump(window);
                 if (((TextBlock)view.FindName("InspectorDetails")).Text.Length != 0)
                     throw new InvalidOperationException("Controller switching retained stale native inspector details.");
+                var inputPicker = (AssignmentInputPicker)view.FindName("InputPicker");
+                if (inputPicker.SelectedValue is not null)
+                    throw new InvalidOperationException("Controller switching retained the previous input selection.");
                 SelectCallout(view); ThemeControlSmoke.Pump(window);
+                if (!Equals(inputPicker.SelectedValue, "JOY_BTN1"))
+                    throw new InvalidOperationException("The DCS drawing callout did not select its native input in the shared picker.");
                 if (!((TextBlock)view.FindName("InspectorDetails")).Text.Contains("Saved: Right action", StringComparison.Ordinal) ||
                     ((TextBox)view.FindName("LabelEditor")).Text != "Right action")
                     throw new InvalidOperationException("Right controller inspection did not reload its native binding and label.");

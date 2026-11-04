@@ -58,7 +58,7 @@
      <TextBlock x:Name="AssignmentHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Text="Select an assignment to edit."/>
      <WrapPanel Margin="0,8,0,0">
       <ComboBox x:Name="TargetDevice" Style="{StaticResource AppComboBox}" Width="260" DisplayMemberPath="Name" AutomationProperties.Name="Squadrons assignment controller"/>
-      <ComboBox x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="PhysicalDisplayName" AutomationProperties.Name="Squadrons assignment input"/>
+      <pres:AssignmentInputPicker x:Name="InputPicker" Style="{StaticResource AppComboBox}" Width="220" Margin="8,0,0,0" DisplayMemberPath="PhysicalDisplayName" AutomationProperties.Name="Squadrons assignment input"/>
       <Button x:Name="ReverseAxisButton" Style="{StaticResource ToolbarActionButton}" Content="Reverse axis" Margin="8,0,0,0" IsEnabled="False" ToolTip="Reverse both directions of the selected saved axis assignment"/>
 
      </WrapPanel>

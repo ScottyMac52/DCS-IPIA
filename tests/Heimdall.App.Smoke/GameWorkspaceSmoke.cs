@@ -83,7 +83,9 @@ namespace Heimdall.App.Smoke
                 if (inputPicker.Items.Cast<EliteInputChoice>().Any(x => x.Key.EndsWith("Axis", StringComparison.Ordinal)))
                     throw new InvalidOperationException("A button command offered axis inputs.");
                 inputPicker.SelectedItem = buttonChoice; ThemeControlSmoke.Pump(window);
-                if (inputPicker.Text != buttonChoice.DisplayName || !inputPicker.Text.Contains("Button 9", StringComparison.Ordinal))
+                if (inputPicker.Text != buttonChoice.PickerLabel || !inputPicker.Text.StartsWith("Button 9", StringComparison.Ordinal)
+                    || !inputPicker.Text.Contains(" — ", StringComparison.Ordinal)
+                    || !Equals(inputPicker.SelectedValue, "Joy_9"))
                     throw new InvalidOperationException("The main input picker omitted the default label or button number.");
                 Box<ComboBox>(window, "ModePicker").SelectedIndex = 1; Click(window, "ApplyAssignmentButton");
                 SelectCommand(window, "Pitch Axis Raw");
