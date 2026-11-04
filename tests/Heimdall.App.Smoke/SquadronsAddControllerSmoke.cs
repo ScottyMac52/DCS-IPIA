@@ -54,9 +54,24 @@ namespace Heimdall.App.Smoke
                 if (reviews != 2 || window.Session.Snapshot.Hardware.GetValueOrDefault(slot)?.Device.PhysicalGuid != device.PhysicalGuid ||
                     (picker.SelectedItem as GameDeviceChoice)?.Id != slot)
                     throw new InvalidOperationException("Reviewed addition did not create and select the new linked controller.");
+                if (!add.CanExecute(null))
+                    throw new InvalidOperationException("Add controller must open the picker from a linked slot.");
+                var addedText = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+                var linkedCount = window.Session.Snapshot.Hardware.Count;
+                add.Execute(null);
+                if ((picker.SelectedItem as GameDeviceChoice)?.Id != "all")
+                    throw new InvalidOperationException("Add controller did not switch to All devices and inputs.");
+                if (reviews != 2)
+                    throw new InvalidOperationException("Opening the add picker unexpectedly requested a controller review.");
+                if (window.Session.Export().Files[SquadronsProfileBackend.FileName] != addedText
+                    || window.Session.Snapshot.Hardware.Count != linkedCount
+                    || window.Session.Snapshot.Hardware.GetValueOrDefault(slot)?.Device.PhysicalGuid != device.PhysicalGuid)
+                    throw new InvalidOperationException("Opening the add picker changed the native profile or its physical links.");
                 physical.SelectedItem = device;
-                if (Box<Button>(window, "AddControllerButton").IsEnabled)
+                if (add.CanExecute(null))
                     throw new InvalidOperationException("An already linked physical unit could be added again.");
+                physical.IsDropDownOpen = false;
+                picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == slot);
                 var backend = new SquadronsProfileBackend();
                 if (backend.ReadBindings(window.Session.Snapshot.Profile).Count != 0)
                     throw new InvalidOperationException("Adding a controller adopted native default assignments.");

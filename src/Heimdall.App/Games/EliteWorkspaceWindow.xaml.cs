@@ -658,6 +658,8 @@ namespace Heimdall.App.Games
             _devicesView.IdentifyControllerButton.IsEnabled = _controllerActions.Start;
             _devicesView.CancelIdentificationButton.IsEnabled = _controllerActions.Stop;
             _devicesView.ConfirmIdentificationButton.IsEnabled = _controllerActions.Confirm;
+            FeatureActionBar.ShowAlternate(_devicesView.IdentifyControllerButton, _devicesView.CancelIdentificationButton,
+                _identification?.Running == true);
             _devicesView.AddControllerButton.IsEnabled = _controllerActions.Add;
             _devicesView.ReplaceControllerButton.IsEnabled = _controllerActions.Replace;
             _devicesView.RemoveControllerButton.IsEnabled = _controllerActions.Remove;
@@ -670,6 +672,7 @@ namespace Heimdall.App.Games
             _devicesView.ChangeDrawingButton.IsEnabled = links.SelectDrawing;
             _devicesView.UseDrawingButton.IsEnabled = links.SelectDrawing;
             _devicesView.NoDrawingButton.IsEnabled = links.UnlinkDrawing;
+            FeatureActionBar.ShowAlternate(_devicesView.ChangeDrawingButton, _devicesView.NoDrawingButton, drawingId is not null);
             _devicesView.DrawingTools.Visibility = !physical ? Visibility.Collapsed : drawingId is not null ? Visibility.Visible : _devicesView.DrawingTools.Visibility;
             _devicesView.HardwarePicker.IsEnabled = links.SelectDrawing;
             _refreshing = true;
@@ -718,6 +721,7 @@ namespace Heimdall.App.Games
             _assignmentsView.FitDiagramButton.IsEnabled = drawing is not null;
             AssignmentActionPresentation.Show(_assignmentsView.StartInputButton, AssignmentAction(WorkspaceAssignmentAction.StartInput,
                 ready, "Select one linked, connected controller for input testing."));
+            FeatureActionBar.ShowAlternate(_assignmentsView.StartInputButton, _assignmentsView.StopInputButton, _input?.Running == true);
             _assignmentsView.ExportSheetButton.Visibility = Visibility.Collapsed;
             _assignmentsView.ExportSheetButton.IsEnabled = opened && drawing is not null && AccessStatus.Text.Length == 0;
             UpdateInputActivityVisibility();

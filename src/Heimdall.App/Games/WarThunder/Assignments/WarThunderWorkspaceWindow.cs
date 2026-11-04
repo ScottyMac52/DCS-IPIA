@@ -1,3 +1,4 @@
+using Heimdall.Application;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application.Games;
@@ -117,7 +118,7 @@ namespace Heimdall.App.Games
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
             else if (_selectedPhysicalInput is not null && SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, _selectedPhysicalInput);
         }
-        private IReadOnlyList<WarThunderPhysicalInput> MappedEditorInputs(string deviceId)
+        private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)
         {
             if (_session is null) return [];
             var snapshot = _session.Snapshot;
@@ -128,22 +129,21 @@ namespace Heimdall.App.Games
             var inputs = WarThunderPhysicalMap.Create(snapshot.Profile, deviceId, observations[0]).Inputs;
             var drawingId = _session.DrawingId(deviceId);
             var diagram = _drawings.FirstOrDefault(item => item.DeviceId == drawingId)?.Diagram;
-            if (diagram is null) return inputs;
             return inputs.Select(input =>
             {
-                var control = diagram.Controls.FirstOrDefault(item => item.InputKey == input.Key
+                var control = diagram?.Controls.FirstOrDefault(item => item.InputKey == input.Key
                     && item.IsAxis == (input.Type == CommandType.Axis));
-                return control is null || string.IsNullOrWhiteSpace(control.Label)
-                    ? input
-                    : input with { Key = control.Label };
+                return input with { Key = AssignmentInputLabel.ForPhysicalKey(input.Key, control?.Label) };
             }).ToArray();
         }
+
         private void RefreshInputState()
         {
             var pin = SelectedDevice is { } id ? _session?.Snapshot.Hardware.GetValueOrDefault(id) : null;
             AssignmentActionPresentation.Show(_assignments.Start, AssignmentAction(WorkspaceAssignmentAction.StartInput,
                 pin is not null && GameInputReadiness.Ready(pin, _observed), "Select one linked, connected controller for input testing."));
             AssignmentActionPresentation.Show(_assignments.Stop, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
+            FeatureActionBar.ShowAlternate(_assignments.Start, _assignments.Stop, _input.Running);
             _assignments.Fit.IsEnabled = _presenter.Regions.Count > 0;
             RefreshChrome(); RefreshEditor();
         }

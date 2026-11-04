@@ -56,6 +56,13 @@ namespace Heimdall.App
         }
         #endregion END Public
 
+        /// <summary>Shows one direct action from two mutually exclusive states.</summary>
+        internal static void ShowAlternate(Button primary, Button alternate, bool useAlternate)
+        {
+            primary.Visibility = useAlternate ? Visibility.Collapsed : Visibility.Visible;
+            alternate.Visibility = useAlternate ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         #region BEGIN private helpers
         private static IEnumerable<Button> FindSources(DependencyObject root)
         {

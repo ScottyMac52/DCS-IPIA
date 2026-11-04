@@ -4,9 +4,9 @@
        <StackPanel x:Name="AssignmentEditor" Margin="0,4,0,0">
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
          <TextBlock Style="{StaticResource AppLabel}" Text="Input" VerticalAlignment="Center" Margin="0,0,8,0"/>
-        <ComboBox Style="{StaticResource AppComboBox}" x:Name="InputKey" Grid.Column="1" IsEditable="False" DisplayMemberPath="DisplayName" SelectedValuePath="Key"
-                  TextSearch.TextPath="DisplayName" MaxDropDownHeight="300" AutomationProperties.Name="Elite input key"
-                  ToolTip="Choose an input from the selected controller. Buttons/hats or axes follow the command type. Choices show the default label, button number and exact native key; exact keys can also be typed."/>
+        <pres:AssignmentInputPicker Style="{StaticResource AppComboBox}" x:Name="InputKey" Grid.Column="1" IsEditable="False" DisplayMemberPath="PickerLabel" SelectedValuePath="Key"
+                  TextSearch.TextPath="PickerLabel" AutomationProperties.Name="Elite input key"
+                  ToolTip="Choose an input from the selected controller. Buttons/hats or axes follow the command type. Choices show the physical input identifier and its default label when available."/>
         </Grid>
         <TextBlock Style="{StaticResource Hint}" x:Name="CommandSlotSummary" TextWrapping="Wrap" Margin="0,8,0,0"
                    AutomationProperties.Name="Elite command slots across all devices" AutomationProperties.LiveSetting="Polite"/>

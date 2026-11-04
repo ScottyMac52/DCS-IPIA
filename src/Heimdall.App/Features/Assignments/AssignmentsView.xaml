@@ -35,6 +35,8 @@
     </ScrollViewer>
     <games:GameAssignmentEditorView x:Name="SelectionEditor" Grid.Row="2">
      <games:GameAssignmentEditorView.NativeEditor><StackPanel>
+     <pres:AssignmentInputPicker x:Name="InputPicker" Style="{StaticResource AppComboBox}"
+         DisplayMemberPath="Value" SelectedValuePath="Key" SelectionChanged="InputPickerChanged"/>
      <Expander x:Name="InputDetails" Header="Selected input · assignment and label" pres:WorkspaceLayout.Key="assignments.inspector">
       <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto"><StackPanel>
                 <TextBlock Text="Label" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
