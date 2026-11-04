@@ -55,7 +55,7 @@ namespace Heimdall.Application.Games
         public void ApplyNativeEdit(ISimNativeEdit edit)
         {
             RequireAccess(); ArgumentNullException.ThrowIfNull(edit);
-            if (edit.BackendId != _backend.SimId) throw new InvalidOperationException("The native edit belongs to another game.");
+            RequireNativeEdit(edit);
             StageNativeProfile(edit.Apply(Snapshot.Profile), "The native edit changed game or profile identity.");
         }
         /// <summary>Gets whether native indexed-record editing is implemented by the active adapter.</summary>
@@ -488,8 +488,11 @@ namespace Heimdall.Application.Games
         public GameAssignmentReview ReviewNativeEdit(ISimNativeEdit edit)
         {
             ArgumentNullException.ThrowIfNull(edit);
-            return ReviewProfile(profile => edit.BackendId == _backend.SimId ? edit.Apply(profile)
-                : throw new InvalidOperationException("The native edit belongs to another game."));
+            return ReviewProfile(profile =>
+            {
+                RequireNativeEdit(edit);
+                return edit.Apply(profile);
+            });
         }
         /// <summary>Stages the entire reviewed draft atomically, including its toggle, with one change event.</summary>
         public void Assign(GameAssignmentEdit draft) => Edit(profile => ApplyDraft(profile, draft));
@@ -568,6 +571,17 @@ namespace Heimdall.Application.Games
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException or InvalidDataException or JsonException)
             { return new(false, false, error.Message); }
+        }
+        private void RequireNativeEdit(ISimNativeEdit edit)
+        {
+            if (edit.BackendId != _backend.SimId)
+                throw new InvalidOperationException("The native edit belongs to another game.");
+            if (edit is not IVerifiedSimNativeEdit physical) return;
+            var pin = _current.Hardware.GetValueOrDefault(physical.LogicalDeviceId);
+            var keys = GameControllerInputs.VerifiedKeys(pin, _controllerInputs());
+            if (!GameInputReadiness.Ready(pin, _observed()) ||
+                keys?.Contains(physical.PhysicalInputKey, StringComparer.Ordinal) != true)
+                throw new InvalidOperationException("Link and verify this physical input before assigning or reversing it.");
         }
         private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)
         {
@@ -725,4 +739,5 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
+
 

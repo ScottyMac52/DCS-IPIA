@@ -183,6 +183,38 @@ namespace Heimdall.Tests
             Assert.Equal(("scope", true, false, false, false), (contextScope, open, readOnly, busy, testing));
             Assert.Equal("", context.BlockedReason); Assert.NotEqual(context, context with { Testing = true });
         }
+        /// <summary>Void native actions share cancellation, stale-scope, no-op detection and completion with draft-returning actions.</summary>
+        [Theory]
+        [InlineData("apply", DraftOutcome.Applied)]
+        [InlineData("noop", DraftOutcome.NoChange)]
+        [InlineData("cancel", DraftOutcome.Blocked)]
+        [InlineData("scope", DraftOutcome.Blocked)]
+        public void Native_action_overload_uses_the_common_boundary(string mode, DraftOutcome expected)
+        {
+            var context = Ready(); var snapshot = "before"; var applied = 0; var completed = 0;
+            var workflow = new WorkspaceAssignmentWorkflow();
+            workflow.Completed += (_, _) => completed++;
+            var result = workflow.Execute(new WorkspaceAssignmentHost(() => context, () => snapshot), Target(), () =>
+            {
+                if (mode == "scope") context = context with { Scope = "other controller" };
+                return new(mode != "cancel", true, "Canceled");
+            }, () =>
+            {
+                applied++;
+                if (mode == "apply") snapshot = "after";
+            });
+            Assert.Equal(expected, result.Outcome); Assert.Equal(1, completed);
+            Assert.Equal(mode is "apply" or "noop" ? 1 : 0, applied);
+        }
+        /// <summary>Missing callbacks fail before native invocation.</summary>
+        [Fact]
+        public void Native_action_overload_rejects_null_callbacks()
+        {
+            var host = new WorkspaceAssignmentHost(Ready, () => "before");
+            var workflow = new WorkspaceAssignmentWorkflow();
+            Assert.Throws<ArgumentNullException>(() => workflow.Execute(host, Target(), null!, () => { }));
+            Assert.Throws<ArgumentNullException>(() => workflow.Execute(host, Target(), () => new(true, true, ""), null!));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static WorkspaceAssignmentContext Ready() => new("scope", true, false, false, false);
@@ -190,3 +222,4 @@ namespace Heimdall.Tests
         #endregion END private helpers
     }
 }
+

@@ -207,14 +207,35 @@ namespace Heimdall.App.Smoke
             var browser = Box<GameCommandBrowserView>(window, "CommandBrowser");
             var commands = (ListBox)browser.FindName("CommandsList");
             var inputs = Box<ComboBox>(window, "InputPicker");
+            var workflowCompletions = 0;
+            window.AssignmentWorkflow.Completed += (_, _) => workflowCompletions++;
             inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_X");
             Click(window, "ApplyButton");
             var rows = backend.ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).ToArray();
             if (rows.Length != 2 || rows.Any(x => x.Input?.Key != "JOY_X" || x.DeviceId != 2) ||
                 rows.Select(x => x.Input!.Direction).Distinct().Count() != 2)
                 throw new InvalidOperationException("Normal Apply split the native axis pair or edited the previously selected Fire command.");
+            if (workflowCompletions != 1)
+                throw new InvalidOperationException("Normal Apply did not execute exactly once through the shared workflow.");
+            inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_X");
+            if (Box<Button>(window, "ApplyButton").IsEnabled)
+                throw new InvalidOperationException("An unchanged Squadrons assignment remained actionable unlike the shared native review policy.");
             window.Session.Discard();
             actions.Drop!(drawing.Controls[2], throttle.Id);
+            var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
+            var beforeWorkflow = workflowCompletions;
+            var beforeDirections = backend.ReadBindings(window.Session.Snapshot.Profile)
+                .Where(row => row.Concept == "IncomStarshipInputConcepts.ConceptThrottle")
+                .ToDictionary(row => row.RecordId, row => row.Input!.Direction);
+            if (!Box<Button>(window, "ReverseAxisButton").IsEnabled)
+                throw new InvalidOperationException("A complete saved axis did not enable Reverse axis.");
+            Click(window, "ReverseAxisButton");
+            if (workflowCompletions != beforeWorkflow + 1 || backend.ReadBindings(window.Session.Snapshot.Profile)
+                .Where(row => beforeDirections.ContainsKey(row.RecordId)).Any(row => row.Input!.Direction != -beforeDirections[row.RecordId]))
+                throw new InvalidOperationException("Reverse axis bypassed the shared workflow or failed to reverse both directions.");
+            Click(window, "ReverseAxisButton");
+            if (workflowCompletions != beforeWorkflow + 2 || window.Session.Export().Files[SquadronsProfileBackend.FileName] != beforeReverse)
+                throw new InvalidOperationException("A second shared reversal failed to restore native assignments.");
 
             commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.Id == fire.Id);
             browser.CommandSearch.Text = "Fire";
@@ -226,7 +247,10 @@ namespace Heimdall.App.Smoke
                 window.Session.Export().Files[SquadronsProfileBackend.FileName] != before)
                 throw new InvalidOperationException("Filtered inspection retained another command heading or changed native assignments.");
             inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_X");
+            beforeWorkflow = workflowCompletions;
             Box<MenuItem>(window, "ApplyNativeRecordItem").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            if (workflowCompletions != beforeWorkflow + 1)
+                throw new InvalidOperationException("Advanced native record authoring bypassed the shared assignment workflow.");
             rows = backend.ReadBindings(window.Session.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).ToArray();
             if (rows.Count(x => x.Input?.Key == "JOY_X") != 1 || rows.Count(x => x.Input?.Key == "JOY_Y") != 1)
                 throw new InvalidOperationException("The explicitly record-scoped advanced action did not retain the other direction.");
@@ -255,4 +279,5 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+
 

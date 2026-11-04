@@ -29,7 +29,7 @@ namespace Heimdall.App.Games
         private readonly GameControllerReordering _reordering;
         private readonly HardwareDiagramPresenter _drawingPresenter;
         private readonly DiagramViewport _drawingViewport;
-        private Point? _commandDragStart;
+        private readonly GameCommandDragSource _commandDrag;
         private IReadOnlyList<WorkspaceHardware> _drawings = [];
         private GameProfileSession? _session;
         private string? _revision;
@@ -183,8 +183,14 @@ namespace Heimdall.App.Games
             CommandSearch.TextChanged += CommandSearchChanged;
             CommandBrowser.ClearCommandFiltersButton.Click += ResetCommandFiltersClicked;
             CommandPicker.SelectionChanged += CommandChanged;
-            CommandPicker.PreviewMouseLeftButtonDown += CommandListDragPressed;
-            CommandPicker.PreviewMouseMove += DragCapturedCommand;
+            _commandDrag = new(CommandPicker, SquadronsCommandDragFormat,
+                () => _session?.AccessMessage.Length == 0 && !_scanningInputs && !_identification.Running && !_input.Running,
+                command => DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.",
+                effect =>
+                {
+                    if (effect == DragDropEffects.None && !DrawingDropFeedback.Text.StartsWith("Drop onto ", StringComparison.Ordinal))
+                        DrawingDropFeedback.Text = "Drop canceled or outside a supported callout. Aim for an outlined input on the drawing.";
+                });
             CommandContextFilter.ItemsSource = new[] { "All", "Flight", "Menus & General", "Hangar & Briefing Room", "Other" };
             CommandContextFilter.SelectedIndex = CommandInputFilter.SelectedIndex = CommandStatusFilter.SelectedIndex = 0;
             Loaded += async (_, _) =>
@@ -214,7 +220,7 @@ namespace Heimdall.App.Games
         /// <summary>Supplies the shared name prompt in unattended workspace smoke tests.</summary>
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         /// <summary>Releases identification handles and foreground lifecycle subscriptions.</summary>
-        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _input.Dispose(); _identification.Dispose(); _reordering.Dispose(); GC.SuppressFinalize(this); }
+        public void Dispose() { if (_disposed) return; _disposed = true; _inputScan++; _commandDrag.Dispose(); _featureHost.Clear(); _input.StateChanged -= InputStateChanged; _input.Dispose(); _identification.Dispose(); _reordering.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Refreshes capability evidence asynchronously; failed, obsolete or closed-window scans cannot enable assignments.</summary>
         internal async Task RefreshControllerInputsAsync()
         {
@@ -474,8 +480,9 @@ namespace Heimdall.App.Games
         }
         private void UpdateApplyAvailability()
         {
+            var review = ReviewAssignmentTarget();
             AssignmentActionPresentation.Show(ApplyButton, AssignmentAction(WorkspaceAssignmentAction.Apply,
-                CompatibleAssignmentTarget(), "Select a compatible command and verified controller input."));
+                review.Valid && review.Changed, review.Valid ? "Assignment unchanged." : review.Message));
             AssignmentActionPresentation.Show(ReverseAxisButton, AssignmentAction(WorkspaceAssignmentAction.ReverseAxis,
                 CanReverseSelectedAxis(), "Select both saved directions of an axis to reverse it."));
         }
@@ -484,12 +491,9 @@ namespace Heimdall.App.Games
             if (_session is null || CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
                 TargetDevice.SelectedItem is not GameDeviceChoice device ||
                 InputPicker.SelectedItem is not SquadronsInput { Type: CommandType.Axis } input) return false;
-            var rows = _backend.ReadBindings(_session.Snapshot.Profile).Where(row => row.Type == 3 &&
-                row.Concept == command.Metadata["squadrons.concept"] &&
-                "squadrons.joystick." + (row.DeviceId + 1) == device.Id && row.Input?.PhysicalKey == input.PhysicalKey).ToArray();
-            return rows.Length == 2 && rows.Count(row => row.Input!.Direction == 1) == 1 &&
-                rows.Count(row => row.Input!.Direction == -1) == 1;
+            return SquadronsAxisPair.Find(_session.Snapshot.Profile, command.Id, device.Id, input.PhysicalKey) is not null;
         }
+
         private void TargetChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) Run(UpdateInputChoices); }
         private void InputChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -768,27 +772,22 @@ namespace Heimdall.App.Games
                 CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
                 TargetDevice.SelectedItem is not GameDeviceChoice device ||
                 InputPicker.SelectedItem is not SquadronsInput { Type: CommandType.Axis } input) return;
-            var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
-                command.Id, device.Id, input.PhysicalKey, true);
-            if (plan.RecordId is null || plan.NegativeRecordId is null)
-                throw new InvalidOperationException("Select a complete saved axis assignment to reverse.");
-            _session.ReverseNativeAxisPair(plan.RecordId, plan.NegativeRecordId, device.Id, input.Key);
+            var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.ReverseAxis, command.Id, device.Id, input.Key, input.Type);
+            var result = ExecuteNativeAssignment(edit);
             Refresh(false);
-            SelectionEditor.AssignmentDraftStatus.Text = StatusText.Text = "Axis reversed. Save before exporting.";
+            AssignmentFeedback(result);
         });
         private void ApplyNativeRecordClicked(object sender, RoutedEventArgs e) => RunAssignment(() =>
         {
             if (!ApplyButton.IsEnabled || BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Editable: true } row ||
                 CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
-                command.Metadata["squadrons.concept"] != row.Native.Concept ||
                 TargetDevice.SelectedItem is not GameDeviceChoice device || InputPicker.SelectedItem is not SquadronsInput input)
                 return;
-            // This advanced action is explicitly record-scoped. Preserve its native direction.
-            var direction = input.Type == CommandType.Axis
-                ? row.Native.Input is { Type: CommandType.Axis } previous ? previous.Direction : 1 : input.Direction;
-            _session!.RebindNative(row.RecordId, device.Id, input.Key, input.Type, direction);
+            var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.AssignRecord, command.Id,
+                device.Id, input.Key, input.Type, row.RecordId);
+            var result = ExecuteNativeAssignment(edit);
             Refresh(false);
-            SelectionEditor.AssignmentDraftStatus.Text = StatusText.Text = "One native record staged. Other direction records are unchanged. Save before exporting.";
+            AssignmentFeedback(result);
         });
         private void ImportTemplatesClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
@@ -1187,53 +1186,18 @@ namespace Heimdall.App.Games
         {
             if (_session is null || _scanningInputs || _identification.Running || _input.Running)
                 throw new InvalidOperationException("Stop live input and finish controller scanning before assigning.");
-            var plan = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile,
-                commandId, slot, input.PhysicalKey, input.Type == CommandType.Axis);
-            var session = _session;
-            var result = ExecuteAssignment(commandId, input.Key, plan.RecordId ?? "", () => new(true, true, ""), () =>
-            {
-                if (plan.NegativeRecordId is not null)
-                    session.RebindNativeAxisPair(plan.RecordId!, plan.NegativeRecordId, slot, plan.Input.Key);
-                else if (plan.RecordId is not null)
-                    session.RebindNative(plan.RecordId, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
-                else
-                    session.AddSquadronsNativeBinding(plan.Concept, slot, plan.Input.Key, plan.Input.Type, plan.Input.Direction);
-            });
+            var result = ExecuteNativeAssignment(new(SquadronsCommandEditKind.AssignControl,
+                commandId, slot, input.Key, input.Type));
             if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             _focusedConcept = null;
             _inspectedControl = null;
-            SelectCommandConcept(plan.Concept);
+            SelectCommandConcept(_session.Catalog.Find(commandId)!.Metadata["squadrons.concept"]);
             _selection.SelectInput(input.Key);
             _refreshing = true;
             try { TargetDevice.SelectedItem = TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }
             finally { _refreshing = false; }
             Refresh(false);
             AssignmentFeedback(result);
-        }
-        private void CommandListDragPressed(object sender, MouseButtonEventArgs e)
-        {
-            _commandDragStart = e.GetPosition(CommandPicker);
-        }
-        private void DragCapturedCommand(object sender, MouseEventArgs e)
-        {
-            if (!ReferenceEquals(sender, CommandPicker) || _commandDragStart is not { } start ||
-                e.LeftButton != MouseButtonState.Pressed ||
-                CommandPicker.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command ||
-                _session is null || _session.AccessMessage.Length != 0)
-            {
-                if (e.LeftButton != MouseButtonState.Pressed) _commandDragStart = null;
-                return;
-            }
-            var at = e.GetPosition(CommandPicker);
-            if (Math.Abs(at.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(at.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-            _commandDragStart = null;
-            DrawingDropFeedback.Text = "Drag " + command.DisplayName + " onto the outlined hardware control.";
-            var effect = DragDrop.DoDragDrop(CommandPicker,
-                new DataObject(SquadronsCommandDragFormat, command.Id), DragDropEffects.Copy);
-            if (effect == DragDropEffects.None &&
-                !DrawingDropFeedback.Text.StartsWith("Drop onto ", StringComparison.Ordinal))
-                DrawingDropFeedback.Text = "Drop canceled or outside a supported callout. Aim for an outlined input on the drawing.";
         }
         private bool CanClearDrawingInput(HardwareGraphicControl control) =>
             !_scanningInputs && !_identification.Running && !_input.Running && _session?.AccessMessage.Length == 0 &&
@@ -1350,4 +1314,5 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+
 

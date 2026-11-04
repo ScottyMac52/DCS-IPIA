@@ -35,17 +35,12 @@ namespace Heimdall.App.Games
             return AssignmentAction(action, ready, "Select an editable assignment or a complete axis pair.");
         }
 
-        private (SquadronsWorkspaceRow Positive, SquadronsWorkspaceRow Negative)? DrawingAxisPair(HardwareGraphicControl control)
+        private SquadronsAxisPair? DrawingAxisPair(HardwareGraphicControl control)
         {
             if (!control.IsAxis || SelectedController is not { } slot || _session is not { } session) return null;
             var pin = session.Snapshot.Hardware.GetValueOrDefault(slot);
             if (GameControllerInputs.VerifiedKeys(pin, _controllerInputs)?.Contains(control.InputKey) != true) return null;
-            var rows = SquadronsDrawingProjection.ForControl(control, _rows, slot, DrawingSection);
-            if (rows.Count != 2) return null;
-            var positive = rows.FirstOrDefault(row => row.Native.Input is { Type: CommandType.Axis, Direction: 1 });
-            var negative = rows.FirstOrDefault(row => row.Native.Input is { Type: CommandType.Axis, Direction: -1 });
-            return positive is not null && negative is not null && positive.Native.Concept == negative.Native.Concept
-                ? (positive, negative) : null;
+            return SquadronsAxisPair.For(SquadronsDrawingProjection.ForControl(control, _rows, slot, DrawingSection));
         }
 
         private void TuneDrawingAxis(HardwareGraphicControl control) => RunAssignment(() =>
@@ -56,12 +51,14 @@ namespace Heimdall.App.Games
             var reverse = new CheckBox { Content = "Reverse the saved axis directions" };
             reverse.SetResourceReference(FrameworkElement.StyleProperty, "AppCheckBox");
             var dialog = new AxisTuningWindow(this, pair.Positive.CommandName, reverse, () => null);
-            var result = ExecuteAssignment(pair.Positive.Native.Concept, control.InputKey, pair.Positive.RecordId,
+            var command = session.Catalog.Commands.Single(item => item.Metadata["squadrons.concept"] == pair.Positive.Native.Concept);
+            var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.ReverseAxis, command.Id,
+                pair.Positive.DeviceId, control.InputKey, CommandType.Axis);
+            var result = ExecuteAssignment(command.Id, control.InputKey, pair.Positive.RecordId,
                 () => dialog.ShowDialog() == true
-                    ? new(true, reverse.IsChecked == true, "")
+                    ? reverse.IsChecked == true ? session.ReviewNativeEdit(edit) : new(true, false, "")
                     : new(false, false, "Axis tuning canceled."),
-                () => session.ReverseNativeAxisPair(pair.Positive.RecordId, pair.Negative.RecordId,
-                    pair.Positive.DeviceId, control.InputKey));
+                () => session.ApplyNativeEdit(edit));
             Refresh(false);
             AssignmentFeedback(result);
         });
@@ -75,23 +72,35 @@ namespace Heimdall.App.Games
             try { _ = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile, commandId, slot, control.InputKey, control.IsAxis); return true; }
             catch (InvalidOperationException) { return false; }
         }
-        private bool CompatibleAssignmentTarget()
+        private GameAssignmentReview ReviewAssignmentTarget()
         {
             if (_session is null || CommandPicker.SelectedItem is not SimCommand command ||
-                TargetDevice.SelectedItem is not GameDeviceChoice target || InputPicker.SelectedItem is not SquadronsInput input || !InputPicker.IsEnabled) return false;
-            try { _ = SquadronsDrawingAssignment.For(_backend, _session.Snapshot.Profile, command.Id, target.Id, input.PhysicalKey, input.Type == CommandType.Axis); return true; }
-            catch (InvalidOperationException) { return false; }
+                TargetDevice.SelectedItem is not GameDeviceChoice target || InputPicker.SelectedItem is not SquadronsInput input || !InputPicker.IsEnabled)
+                return new(false, false, "Select a compatible command and verified controller input.");
+            return _session.ReviewNativeEdit(new SquadronsCommandEdit(SquadronsCommandEditKind.AssignControl,
+                command.Id, target.Id, input.Key, input.Type));
+        }
+        private DraftResult ExecuteNativeAssignment(SquadronsCommandEdit edit)
+        {
+            var session = _session ?? throw new InvalidOperationException("Open a configuration before editing assignments.");
+            var result = ExecuteAssignment(edit.CommandId, edit.Key, edit.RecordId,
+                () => session.ReviewNativeEdit(edit), () => session.ApplyNativeEdit(edit));
+            return result.Outcome != DraftOutcome.Applied ? result : result with
+            {
+                Message = edit.Kind switch
+                {
+                    SquadronsCommandEditKind.AssignRecord => "One native record staged. Other direction records are unchanged. Save before exporting.",
+                    SquadronsCommandEditKind.ReverseAxis => "Axis reversed. Save before exporting.",
+                    _ => result.Message
+                }
+            };
         }
         private DraftResult ExecuteAssignment(string command, string input, string alternative,
             Func<GameAssignmentReview> review, Action apply)
         {
             var target = new WorkspaceAssignmentTarget(AssignmentContext().Scope, command, input, alternative);
             var host = new WorkspaceAssignmentHost(AssignmentContext, () => JsonSerializer.Serialize(_session?.Snapshot));
-            return AssignmentWorkflow.Execute(host, new WorkspaceAssignmentOperation(target, review, () =>
-            {
-                apply();
-                return new(DraftOutcome.Applied, "");
-            }));
+            return AssignmentWorkflow.Execute(host, target, review, apply);
         }
         private void AssignmentFeedback(DraftResult result)
         {
@@ -100,3 +109,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

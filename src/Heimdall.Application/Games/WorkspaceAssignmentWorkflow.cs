@@ -11,6 +11,17 @@ namespace Heimdall.Application.Games
         public event EventHandler<DraftResult>? Completed;
         /// <summary>Gets the immutable target of the most recently requested action.</summary>
         public WorkspaceAssignmentTarget? Selection { get; private set; }
+        /// <summary>Adapts a native void mutation to the same review, state and actual-change boundary used by DCS drafts.</summary>
+        public DraftResult Execute(IWorkspaceAssignmentHost host, WorkspaceAssignmentTarget target,
+            Func<GameAssignmentReview> review, Action apply)
+        {
+            ArgumentNullException.ThrowIfNull(review); ArgumentNullException.ThrowIfNull(apply);
+            return Execute(host, new WorkspaceAssignmentOperation(target, review, () =>
+            {
+                apply();
+                return new(DraftOutcome.Applied, "");
+            }));
+        }
         /// <summary>Checks fresh state and adapter review, then executes one action without persisting or deploying files.</summary>
         public DraftResult Execute(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation)
         {
@@ -55,3 +66,4 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
+

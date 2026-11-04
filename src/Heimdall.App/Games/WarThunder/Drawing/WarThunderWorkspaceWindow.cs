@@ -165,13 +165,9 @@ namespace Heimdall.App.Games
                 return review.Valid ? null : review.Message;
             });
             dialog.Loaded += (_, _) => AxisTuningOpened?.Invoke(dialog);
-            var result = AssignmentWorkflow.Execute(host, new WorkspaceAssignmentOperation(target,
+            var result = AssignmentWorkflow.Execute(host, target,
                 () => dialog.ShowDialog() == true ? review : new(false, false, "Axis tuning canceled."),
-                () =>
-                {
-                    session.ApplyNativeEdit(edit!);
-                    return new(DraftOutcome.Applied, "");
-                }));
+                () => session.ApplyNativeEdit(edit!));
             Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         }
         private void InspectPhysicalControl(HardwareGraphicControl control) => Run(() =>
@@ -193,3 +189,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+
