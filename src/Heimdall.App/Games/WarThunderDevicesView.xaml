@@ -2,11 +2,12 @@
  <DockPanel>
   <pres:ActionBar x:Name="Actions" IsFeatureActions="True" Visibility="Collapsed" DockPanel.Dock="Top">
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Rescan" Content="Rescan"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="Link" Content="Link physical controller…"/>
-   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Unlink" Content="Unlink physical controller…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="ChooseDrawing" Content="Link drawing…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/>
+   <Button Style="{StaticResource ToolbarActionButton}" x:Name="Unlink" Content="Unlink physical controller…"/>
    <Button Style="{StaticResource ToolbarActionButton}" x:Name="Remove" Content="Remove controller…"/>
   </pres:ActionBar>
-  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-   <TextBlock Style="{StaticResource SectionTitle}" Text="Devices"/>
+  <pres:DeviceDetailsLayout pres:WorkspaceLayout.Key="war-thunder.devices.split">
+ <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+   <TextBlock Style="{StaticResource SectionTitle}" Text="Controller setup"/>
    <TextBlock Style="{StaticResource Hint}" Text="Select a controller in the profile on the left. Link its physical controller explicitly, then choose a shared drawing." TextWrapping="Wrap" Margin="0,8"/>
    <games:GameControllerSetup><StackPanel Margin="0,8,0,0">
    <TextBlock Style="{StaticResource Hint}" x:Name="NativeDetails" TextWrapping="Wrap" Margin="0,8"/>
@@ -17,8 +18,11 @@
     <TextBox x:Name="LayoutTrace" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" MaxHeight="240" AutomationProperties.Name="Native input translation trace"/>
    </Expander>
    <TextBlock Style="{StaticResource AppLabel}" Text="Hardware drawing" Margin="0,12,0,0"/>
-   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Drawing" Width="340" DisplayMemberPath="Title" AutomationProperties.Name="Hardware drawing" Margin="0,6"/>
+   <WrapPanel Margin="0,0,0,6"><Button Style="{StaticResource ToolbarActionButton}" x:Name="ChooseDrawing" Content="Choose drawing…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/></WrapPanel>
+   <ComboBox Style="{StaticResource AppComboBox}" x:Name="Drawing" DisplayMemberPath="Title" AutomationProperties.Name="Hardware drawing" Margin="0,6"/>
    <TextBlock Style="{StaticResource Hint}" Text="Native mapping ranges do not identify a Windows controller. Physical and drawing links require explicit unlink before replacement. These links do not renumber the exported native inputs." TextWrapping="Wrap" Margin="0,16"/>
   </StackPanel></ScrollViewer>
+  <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>
+ </pres:DeviceDetailsLayout>
  </DockPanel>
 </UserControl>

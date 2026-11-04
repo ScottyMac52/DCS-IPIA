@@ -1023,6 +1023,12 @@ namespace Heimdall.App.Games
             FeatureActionBar.ShowAlternate(_devicesView.ChooseDrawingButton, ClearDrawingButton,
                 slot is not null && _session?.DrawingId(slot) is not null);
             DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
+            if (snapshot is not null && slot is not null && DrawingPicker.SelectedItem is WorkspaceHardware preview)
+                _devicesView.ControllerPreview.Show(preview.Diagram,
+                    SquadronsDrawingProjection.Diagram(snapshot.Name, preview.Diagram, _rows, slot, "All"),
+                    AppearanceManager.ArtworkOpacityFor(this));
+            else
+                _devicesView.ControllerPreview.Clear();
             if (DrawingPanel.IsExpanded != true) return;
             if (snapshot is not null && DevicePicker.SelectedItem is GameDeviceChoice system &&
                 SquadronsSystemInputDrawings.Create(system.Id, _rows) is { } systemDiagram)
