@@ -10,7 +10,7 @@ callbacks rather than copying the DCS window.
 | Component | Responsibility |
 | --- | --- |
 | `GameWorkspaceWindow : Window` | Feature registration, lazy view caching, capability checks on navigation, mounting/action bars, serialized asynchronous actions, Save/Discard handlers, pending chrome, switch guard, close guard and resource cleanup |
-| `ModuleWorkspaceWindow : GameWorkspaceWindow` | DCS composition and XAML events; overrides the native-action and state hooks; supplies picker dialogs and DCS-specific selector/status presentation |
+| `DcsModuleWorkspaceWindow : GameWorkspaceWindow` | DCS composition and XAML events; overrides the native-action and state hooks; supplies picker dialogs and DCS-specific selector/status presentation |
 | `DcsWorkspaceSession` | DCS saved/working snapshots, draft subscriptions, structural edits, personal labels, native validation, persistence and discard |
 | `DcsWorkspaceOutput` | Validation, snapshot/documentation/complete-release/package output from saved DCS state; destinations and logging are injected |
 | `DcsWorkspaceFeatures` | Registers the eight existing feature factories and the Input Test availability policy |
@@ -49,8 +49,10 @@ availability is re-evaluated before reusing a cached view. Common chrome is
 refreshed after both successful and failed asynchronous actions.
 
 DCS retains its existing two-choice close prompt and three-choice switch prompt.
-The `WindowContext` API and `ModuleWorkspaceWindow` constructor remain compatible
-with existing callers. Training accesses its window-owned session and keeps its
+The `WindowContext` API and constructor parameter contract remain compatible
+with existing callers; the DCS window type is now named `DcsModuleWorkspaceWindow`.
+Its explicit appearance target retains the persisted `ModuleWorkspaceWindow` key,
+so existing backgrounds, artwork opacity and view inheritance remain available. Training accesses its window-owned session and keeps its
 isolated repository, input source, catalog and output destinations. Shared context
 events now come from that one session, including compatibility facade instances.
 

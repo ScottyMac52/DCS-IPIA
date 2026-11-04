@@ -29,7 +29,7 @@ namespace Heimdall.App.Smoke
                 [new(first, new("X", "Alpha 12", true, AssignmentLayer.Module)),
                  new(second, new("Y", "Alpha 34", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
             var context = new WindowContext(window);
             try

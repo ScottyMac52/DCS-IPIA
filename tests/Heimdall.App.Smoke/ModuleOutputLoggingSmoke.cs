@@ -20,7 +20,7 @@ namespace Heimdall.App.Smoke
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-output-log-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
-            ModuleWorkspaceWindow? editor = null;
+            DcsModuleWorkspaceWindow? editor = null;
             MainWindow? main = null;
             try
             {
@@ -31,9 +31,9 @@ namespace Heimdall.App.Smoke
                 var destination = Path.Combine(root, "DCS");
                 Directory.CreateDirectory(destination);
                 settings.TryUpdateSavedGamesDcsFolder(destination);
-                var output = new RecordingModuleOutputLogger<ModuleWorkspaceWindow>();
+                var output = new RecordingModuleOutputLogger<DcsModuleWorkspaceWindow>();
                 var exportPath = Path.Combine(root, "snapshot.heimdall-module.json");
-                editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository,
+                editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
                 editor.Show();
                 // Duplicate import evidence must also pass the real validation and snapshot export actions.
@@ -47,7 +47,7 @@ namespace Heimdall.App.Smoke
                 editor.Close();
                 var sources = new Dictionary<string, string>(saved.Sources!) { ["config/integrations.json"] = "{" };
                 var broken = saved with { Sources = sources };
-                editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(broken), settings, repository,
+                editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(broken), settings, repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), outputPathPicker: _ => exportPath, logger: output);
                 editor.Show();
                 foreach (var (button, operation) in new[] { ("ValidateModuleButton", "Validate"),

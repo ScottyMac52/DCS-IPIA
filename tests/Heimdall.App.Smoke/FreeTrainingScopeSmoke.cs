@@ -36,7 +36,7 @@ namespace Heimdall.App.Smoke
             Reject(() => environment.CreateInputSource(0, [Guid.NewGuid()]), "physical controllers");
             // A caller-supplied factory alone is never permission to use the tester in Free.
             var factoryCalled = false;
-            var ordinary = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(sample), repository: environment.Repository,
+            var ordinary = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(sample), repository: environment.Repository,
                 inputSourceFactory: (_, _) => { factoryCalled = true; return new TrainingInputSource(); });
             ordinary.Show(); ThemeControlSmoke.Pump(ordinary);
             try

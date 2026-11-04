@@ -25,7 +25,7 @@ namespace Heimdall.App.Smoke
                 [], [], [], "smoke"), [], [], [], [], [], [], new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
             var original = EditorSnapshotSerializer.Serialize(workspace);
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
                 window.Width = 1060;
@@ -91,7 +91,7 @@ namespace Heimdall.App.Smoke
 
             // A new window restores safe proportions rather than off-screen pixel widths.
             WorkspaceLayoutStore.Write("assignments.split", 9999);
-            var reopened = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
+            var reopened = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
                 reopened.Width = 1024;

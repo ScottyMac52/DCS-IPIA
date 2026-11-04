@@ -20,7 +20,7 @@ namespace Heimdall.App.Smoke
             var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                 new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {

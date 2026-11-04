@@ -35,7 +35,7 @@ namespace Heimdall.App.Smoke
             FakeDeviceInputSource? source = null;
             InputTestLogClipboard? clipboard = null;
             var clipboardFailure = false;
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
                 inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
                     ? new FakeDeviceInputSource(physical, otherPhysical) { ButtonValue = 0 } : throw new InvalidOperationException("Test must still acquire the modifier controller."),
                 inputLogClipboardWriter: (html, text) =>

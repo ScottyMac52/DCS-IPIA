@@ -301,14 +301,14 @@ namespace Heimdall.App.Smoke
             var previewProfile = new global::Heimdall.Domain.DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
             var preview = new DcsFolderImportResult("Game selection smoke", [previewProfile], [], [], []);
             var choice = new SavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
-            var gameWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var gameWindow = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
             if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 4)
                 throw new InvalidOperationException("DCS must offer all four game choices.");
-            var squadronsWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var squadronsWindow = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             squadronsWindow.Show(); ThemeControlSmoke.Pump(squadronsWindow);
             Box<ComboBox>(squadronsWindow, "WorkspaceGamePicker").SelectedIndex = 2;
@@ -317,7 +317,7 @@ namespace Heimdall.App.Smoke
             Box<ComboBox>(gameWindow, "WorkspaceGamePicker").SelectedIndex = 1;
             if (gameWindow.IsVisible || gameWindow.RequestedGame != "elite-dangerous")
                 throw new InvalidOperationException("The DCS workspace did not request the selected game after closing.");
-            var profileWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var profileWindow = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             profileWindow.Show(); ThemeControlSmoke.Pump(profileWindow);
             Box<ComboBox>(profileWindow, "WorkspaceProfilePicker").SelectedItem = choice;

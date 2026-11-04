@@ -810,8 +810,8 @@ namespace Heimdall.App
         {
             if (_lastViewModel is null)
                 return;
-            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
-                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
+            var window = new DcsModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
+                logger: new AssemblyLogger<DcsModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
                 moduleChoices: SavedModules.Items.Cast<SavedModuleChoice>().ToArray()) { Owner = this };
             if (_games is not null && _lastViewModel.Workspace is { } workspace)
                 RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);

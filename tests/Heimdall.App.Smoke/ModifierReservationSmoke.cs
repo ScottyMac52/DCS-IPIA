@@ -63,7 +63,7 @@ namespace Heimdall.App.Smoke
                         "local diff = { [\"keyDiffs\"] = {} } return diff",
                     [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(management)
                 });
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {

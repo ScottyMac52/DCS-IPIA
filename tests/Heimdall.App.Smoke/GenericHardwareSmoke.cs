@@ -80,7 +80,7 @@ namespace Heimdall.App.Smoke
                 if (workspace.Configuration.Profiles.Count != 2 || workspace.SharedDefault is not null || workspace.Assignments.Count != 0 ||
                     workspace.Diagrams.Any(x => x.GenericCapabilities is null))
                     throw new InvalidOperationException("Generic creation copied personal defaults or lost distinct physical units.");
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, inventory: manager);
+                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, inventory: manager);
                 editor.Show();
                 var units = (ComboBox)WorkspaceUi.Find(editor, "InventoryUnits")!;
                 Pump(editor, () => units.Items.Count == 2);

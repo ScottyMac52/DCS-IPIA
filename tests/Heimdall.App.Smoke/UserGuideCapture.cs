@@ -17,7 +17,7 @@ namespace Heimdall.App.Smoke
         }
 
         /// <summary>Documents every DCS feature, restores selection and verifies that capture leaves authoring unchanged.</summary>
-        internal static void DcsFeatures(ModuleWorkspaceWindow window)
+        internal static void DcsFeatures(DcsModuleWorkspaceWindow window)
         {
             if (!Enabled) return;
             var before = EditorSnapshotSerializer.Serialize(window.Session.Working!);

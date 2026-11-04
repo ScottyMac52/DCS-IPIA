@@ -84,7 +84,7 @@ namespace Heimdall.App.Smoke
                 workspace = InventoryHardwareAuthoring.Add(workspace, new(new(Guid.NewGuid(), "Panel", definition.Id, "Panel", "", true, []), definition), AssignmentLayer.Module);
                 var repository = new SqliteEditorWorkspaceRepository(connection);
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new GameSmokeDiscovery(), userMappings: library, mappingReviewConfirmation: _ => true);
+                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new GameSmokeDiscovery(), userMappings: library, mappingReviewConfirmation: _ => true);
                 editor.Show();
                 var choices = (ComboBox)WorkspaceUi.Find(editor, "CustomMappingRevisions")!;
                 Pump(editor, () => choices.Items.Count == 1);
@@ -215,7 +215,7 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void StageMapping(ModuleWorkspaceWindow editor, Guid profileId, string revisionId)
+        private static void StageMapping(DcsModuleWorkspaceWindow editor, Guid profileId, string revisionId)
         {
             var view = WorkspaceUi.Navigate(editor, "Devices");
             var devices = (DataGrid)view.FindName("ManagedDevices");
@@ -249,7 +249,7 @@ namespace Heimdall.App.Smoke
             if (apply.IsEnabled || !unlink.IsEnabled)
                 throw new InvalidOperationException("Adopted drawing did not restore the linked selector state. " + status.Text);
         }
-        private static void VerifyDrawingLinkState(ModuleWorkspaceWindow editor, UserControl view, Guid profileId, bool linked)
+        private static void VerifyDrawingLinkState(DcsModuleWorkspaceWindow editor, UserControl view, Guid profileId, bool linked)
         {
             var model = editor.Session.Working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
             var devices = (DataGrid)view.FindName("ManagedDevices");
@@ -276,7 +276,7 @@ namespace Heimdall.App.Smoke
             var deadline = DateTime.UtcNow.AddSeconds(30);
             while (!ready())
             {
-                if (DateTime.UtcNow >= deadline) throw new InvalidOperationException("Custom mapping UI timed out." + (window is ModuleWorkspaceWindow editor ? " " + ((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")).Text : ""));
+                if (DateTime.UtcNow >= deadline) throw new InvalidOperationException("Custom mapping UI timed out." + (window is DcsModuleWorkspaceWindow editor ? " " + ((TextBlock)WorkspaceUi.Find(editor, "DevicesMessage")).Text : ""));
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             }
         }

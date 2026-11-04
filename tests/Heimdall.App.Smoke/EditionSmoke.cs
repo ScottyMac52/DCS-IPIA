@@ -109,7 +109,7 @@ namespace Heimdall.App.Smoke
                 ThemeControlSmoke.Pump(form);
                 if (!created || form.CreatedWorkspace is null) throw new InvalidOperationException("Free Thrustmaster module could not be saved: " + ((TextBlock)form.FindName("CreationError")!).Text);
                 var allowed = form.CreatedWorkspace;
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(allowed), settings, repository, new EmptyDeviceDiscovery());
+                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(allowed), settings, repository, new EmptyDeviceDiscovery());
                 window.Show(); ThemeControlSmoke.Pump(window);
                 try
                 {
@@ -130,7 +130,7 @@ namespace Heimdall.App.Smoke
                 var legacy = WorkspaceStructureEditor.AddDevice(allowed, other, AssignmentLayer.Module,
                     "Legacy base {34567890-1111-2222-3333-444455556666}.diff.lua", "legacy", "legacy");
                 repository.SaveAsync(legacy).GetAwaiter().GetResult();
-                var locked = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(legacy), settings, repository, new EmptyDeviceDiscovery());
+                var locked = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(legacy), settings, repository, new EmptyDeviceDiscovery());
                 locked.Show(); ThemeControlSmoke.Pump(locked);
                 try
                 {

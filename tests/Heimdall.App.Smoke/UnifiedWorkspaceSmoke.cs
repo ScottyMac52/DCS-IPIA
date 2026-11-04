@@ -28,7 +28,7 @@ namespace Heimdall.App.Smoke
             var workspace = new EditorWorkspaceSnapshot(new(module, profiles, [], [], "smoke"), [], [], diagrams, [], [], [],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
             var original = EditorSnapshotSerializer.Serialize(workspace);
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
+            var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
             try
             {
                 window.Show(); ThemeControlSmoke.Pump(window);

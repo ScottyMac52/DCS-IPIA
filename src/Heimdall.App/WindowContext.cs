@@ -14,7 +14,7 @@ namespace Heimdall.App
 
         #region BEGIN Public
         /// <summary>Connects feature views to the supplied module workspace host.</summary>
-        public WindowContext(ModuleWorkspaceWindow window)
+        public WindowContext(DcsModuleWorkspaceWindow window)
         {
             _session = window.Session;
             _save = window.SaveWorkspaceAsync;

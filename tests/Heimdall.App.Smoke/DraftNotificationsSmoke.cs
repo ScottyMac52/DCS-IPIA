@@ -23,7 +23,7 @@ namespace Heimdall.App.Smoke
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-draft-notifications-" + Guid.NewGuid().ToString("N") + ".db");
             var connection = "Data Source=" + path + ";Pooling=False";
-            ModuleWorkspaceWindow? window = null;
+            DcsModuleWorkspaceWindow? window = null;
             try
             {
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
@@ -44,7 +44,7 @@ namespace Heimdall.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                     });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository);
+                window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository);
                 window.Show();
                 ((TextBox)window.FindName("PackageVersion")).Text = "1.0.0";
                 var context = new WindowContext(window);
@@ -144,7 +144,7 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("Assignment-dependent command filter did not refresh.");
         }
 
-        private static void AssertState(ModuleWorkspaceWindow window, CommandsManagementView standalone,
+        private static void AssertState(DcsModuleWorkspaceWindow window, CommandsManagementView standalone,
             CommandsManagementView embedded, bool dirty, int bound)
         {
             var summary = ((TextBlock)window.FindName("PendingSummary")).Text;

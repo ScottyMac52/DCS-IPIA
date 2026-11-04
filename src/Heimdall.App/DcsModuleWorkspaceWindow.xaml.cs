@@ -13,7 +13,7 @@ using System.Windows.Controls;
 namespace Heimdall.App
 {
     /// <summary>Supplies DCS actions and feature registrations to the inherited workspace lifecycle.</summary>
-    public partial class ModuleWorkspaceWindow : GameWorkspaceWindow
+    public partial class DcsModuleWorkspaceWindow : GameWorkspaceWindow
     {
         private bool _changingSelection;
         private readonly WindowContext _context;
@@ -21,14 +21,14 @@ namespace Heimdall.App
         private readonly IAppSettingsService? _settings;
         private readonly DcsWorkspaceOutput _output;
 
-        public ModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
+        public DcsModuleWorkspaceWindow(ModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
                                      Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null,
                                      Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null,
                                      Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null,
                                      Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null,
                                      Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<MappingRevisionReview, bool>? mappingReviewConfirmation = null,
-                                     ILogger<ModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<SavedModuleChoice>? moduleChoices = null)
+                                     ILogger<DcsModuleWorkspaceWindow>? logger = null, bool persistLayout = true, TrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<SavedModuleChoice>? moduleChoices = null)
         {
             ArgumentNullException.ThrowIfNull(viewModel);
             _viewModel = viewModel;
@@ -37,7 +37,7 @@ namespace Heimdall.App
                 commandFilePicker, integrationFilePicker, axisDefaultsFilePicker, inputSourceFactory, inputLogClipboardWriter);
             _context = new WindowContext(this);
             InitializeComponent();
-            var outputLogger = logger ?? NullLogger<ModuleWorkspaceWindow>.Instance;
+            var outputLogger = logger ?? NullLogger<DcsModuleWorkspaceWindow>.Instance;
             _output = new(Session,
                 training is null ? outputPathPicker ?? ChooseOutputPath : snapshot => snapshot
                     ? Path.Combine(training.Outputs, "training.heimdall-module.json") : training.Outputs,

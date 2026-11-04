@@ -121,7 +121,7 @@ namespace Heimdall.App.Smoke
             var folder =
                 new DcsFolderImportResult("Saved Games/Input/UH-1H/joystick", [profile], [], [],
                                           [new("bad-profile", "One other device profile could not be parsed.", true)]);
-            var folderWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
+            var folderWindow = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(folder));
             folderWindow.Show();
             if (!System.Text.RegularExpressions.Regex.IsMatch(folderWindow.Title, @" · version \d+\.\d+\.\d+\.\d+$"))
                 throw new InvalidOperationException("Workspace title must show only a four-part application version.");
@@ -192,7 +192,7 @@ namespace Heimdall.App.Smoke
                 !importedView.Draft.Snapshot.Any(x => x.Slot.Layer == AssignmentLayer.UiLayer &&
                                                       x.Slot.ModifierChord == "MOZA_MODIFIER_BTN3"))
                 throw new InvalidOperationException("The import dropped shifted module or UI Layer assignments.");
-            var repoWindow = new ModuleWorkspaceWindow(importedView);
+            var repoWindow = new DcsModuleWorkspaceWindow(importedView);
             repoWindow.Show();
             repoWindow.UpdateLayout();
             var scratch = Path.Combine(Path.GetTempPath(), "ipia-editor-smoke-" + Guid.NewGuid().ToString("N") + ".db");
@@ -218,7 +218,7 @@ namespace Heimdall.App.Smoke
             var loaded = repository.GetAsync(module.Id).GetAwaiter().GetResult()!;
             if (loaded.Diagrams[0].Svg != svg || loaded.ModuleCommands[0].Category != "Flight Control")
                 throw new InvalidOperationException("Saved SVG or category was not recovered from SQLite.");
-            var savedWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(loaded), null, repository);
+            var savedWindow = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(loaded), null, repository);
             savedWindow.Show();
             savedWindow.UpdateLayout();
             if (!savedWindow.IsVisible || ((Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!).Children.Count == 0)
@@ -273,7 +273,7 @@ namespace Heimdall.App.Smoke
                                   Labels = new Dictionary<string, string> { [shiftedUiSlot.Key] = "Old VR Zoom" } })
                 .GetAwaiter()
                 .GetResult();
-            var clearedWindow = new ModuleWorkspaceWindow(
+            var clearedWindow = new DcsModuleWorkspaceWindow(
                 new ModuleWorkspaceViewModel(repository.GetAsync(module.Id).GetAwaiter().GetResult()!), null,
                 repository);
             clearedWindow.Show();
@@ -399,7 +399,7 @@ namespace Heimdall.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                     });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 var pages = (DataGrid)WorkspaceUi.Find(window, "AuthoredPages")!;
                 var removePage = (Button)WorkspaceUi.Find(window, "RemoveAuthoredPageButton")!;
@@ -476,7 +476,7 @@ namespace Heimdall.App.Smoke
                     new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
                     axisDefaultsFilePicker: () => Path.Combine(htmlRoot, "axes.diff.lua"));
                 window.Show();
@@ -560,7 +560,7 @@ namespace Heimdall.App.Smoke
             }
             finally { File.Delete(path); File.Delete(jsonPath); if (Directory.Exists(htmlRoot)) Directory.Delete(htmlRoot, true); }
         }
-        private static void VerifyAxisDefaults(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
+        private static void VerifyAxisDefaults(DcsModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
         {
             const string source = "local diff = { [\"axisDiffs\"] = { [\"a2002cdnil\"] = { [\"name\"] = \"Roll\", [\"removed\"] = { [1] = { [\"key\"] = \"JOY_X\" } } } } } return diff";
             File.WriteAllText(path, source);
@@ -604,7 +604,7 @@ namespace Heimdall.App.Smoke
             if (!((TextBlock)WorkspaceUi.Find(window, "DevicesMessage")!).Text.StartsWith("Axis default import failed:", StringComparison.Ordinal))
                 throw new InvalidOperationException("Malformed axis import hid its error.");
         }
-        private static void VerifyIntegrationInstructions(ModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
+        private static void VerifyIntegrationInstructions(DcsModuleWorkspaceWindow window, SqliteEditorWorkspaceRepository repository, Guid moduleId, string path)
         {
             var load = (Button)WorkspaceUi.Find(window, "LoadIntegrationInstructionsButton")!;
             var groups = (ListBox)WorkspaceUi.Find(window, "IntegrationInstructions")!;
@@ -643,7 +643,7 @@ namespace Heimdall.App.Smoke
             if (groups.Items.Count != 0) throw new InvalidOperationException("Selected instruction did not remove.");
             ((Button)WorkspaceUi.Find(window, "DiscardIntegrationInstructionsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (groups.Items.Count != 1) throw new InvalidOperationException("Discard did not restore saved instructions.");
-            var reopened = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(repository.GetAsync(moduleId).GetAwaiter().GetResult()!), repository: repository);
+            var reopened = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(repository.GetAsync(moduleId).GetAwaiter().GetResult()!), repository: repository);
             reopened.Show();
             if (((ListBox)WorkspaceUi.Find(reopened, "IntegrationInstructions")!).Items.Count != 1)
                 throw new InvalidOperationException("Saved integration instructions did not reopen.");
@@ -653,7 +653,7 @@ namespace Heimdall.App.Smoke
             if (groups.Items.Count != 1 || !((TextBlock)WorkspaceUi.Find(window, "IntegrationStatus")!).Text.StartsWith("Integration import failed:", StringComparison.Ordinal))
                 throw new InvalidOperationException("Malformed instruction import changed the draft or hid the error.");
         }
-        private static void VerifyModuleSnapshotButtons(ModuleWorkspaceWindow authoring, SqliteEditorWorkspaceRepository source, Guid moduleId)
+        private static void VerifyModuleSnapshotButtons(DcsModuleWorkspaceWindow authoring, SqliteEditorWorkspaceRepository source, Guid moduleId)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-module-output-smoke-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -661,7 +661,7 @@ namespace Heimdall.App.Smoke
             {
                 var snapshotPath = Path.Combine(root, "module.heimdall-module.json");
                 var saved = source.GetAsync(moduleId).GetAwaiter().GetResult()!;
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: source,
+                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: source,
                     outputPathPicker: snapshot => snapshot ? snapshotPath : root, documentationFolderPicker: () => root,
                     completeReleaseFolderPicker: () => root);
                 editor.Show();
@@ -750,7 +750,7 @@ namespace Heimdall.App.Smoke
             try { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
             finally { SynchronizationContext.SetSynchronizationContext(previous); }
         }
-        private static void WaitForOutput(ModuleWorkspaceWindow editor, string prefix)
+        private static void WaitForOutput(DcsModuleWorkspaceWindow editor, string prefix)
         {
             var deadline = DateTime.UtcNow.AddSeconds(60);
             var status = (TextBlock)WorkspaceUi.Find(editor, "BuildStatus")!;
@@ -829,7 +829,7 @@ namespace Heimdall.App.Smoke
                 if (!created.Sources!.TryGetValue("config/ipia-axis-cleanup-devices.json", out var cleanup) ||
                     state.Devices.Where(x => x.Layer == AssignmentLayer.Module).Any(x => !cleanup.Contains(x.FileName, StringComparison.Ordinal)))
                     throw new InvalidOperationException("Native controller identities were not saved for aircraft axis cleanup.");
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(created), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
                 var dropdown = (ComboBox)WorkspaceUi.Find(editor, "DeviceChoice")!;
@@ -907,7 +907,7 @@ namespace Heimdall.App.Smoke
                 if (devices.Length != 3 || !DcsLuaParser.ParseProfile(ModuleLuaProfileRenderer.Render(saved, devices.Single(x => x.FileName == second.SourceName).ProfileId), second.Id)
                     .Any(x => x.Disposition == BindingDisposition.Removed))
                     throw new InvalidOperationException("Empty or removal-only profiles did not survive import.");
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
+                var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery());
                 editor.Show();
                 editor.UpdateLayout();
                 if (((DataGrid)WorkspaceUi.Find(editor, "ManagedDevices")!).Items.Count == 0 || ((ComboBox)WorkspaceUi.Find(editor, "DeviceChoice")!).Items.Count == 0)

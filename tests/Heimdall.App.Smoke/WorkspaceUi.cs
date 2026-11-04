@@ -81,7 +81,7 @@ namespace Heimdall.App.Smoke
 
         #region BEGIN Public
         /// <summary>Selects a workspace feature and returns its active user control.</summary>
-        public static UserControl Navigate(ModuleWorkspaceWindow window, string feature)
+        public static UserControl Navigate(DcsModuleWorkspaceWindow window, string feature)
         {
             var nav = (ListBox)window.FindName("FeatureNav");
             nav.SelectedItem = nav.Items.Cast<ListBoxItem>().Single(x => Equals(x.Tag, feature));
@@ -92,7 +92,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Finds a host or feature control using the smoke test control-name mapping.</summary>
         public static object Find(FrameworkElement root, string name)
         {
-            if (root is not ModuleWorkspaceWindow window) return root.FindName(name)!;
+            if (root is not DcsModuleWorkspaceWindow window) return root.FindName(name)!;
             if (window.FindName(name) is { } hostControl) return hostControl;
             var current = (UserControl)((ContentControl)window.FindName("FeatureContent")).Content;
             if (name is "SaveAuthoringButton" or "DiscardAuthoringButton")

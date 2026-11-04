@@ -19,7 +19,7 @@ namespace Heimdall.App.Smoke
             var previous = EditionAccess.Policy;
             using var issuer = new OwnerLicenseTestIssuer();
             EditionAccess.SetForTests(issuer.PremiumPolicy);
-            ModuleWorkspaceWindow? window = null;
+            DcsModuleWorkspaceWindow? window = null;
             try
             {
                 var module = new DcsModule(Guid.NewGuid(), "CONSUMERS", "Consumer parity");
@@ -36,8 +36,10 @@ namespace Heimdall.App.Smoke
                     });
                 var frozen = JsonSerializer.Serialize(workspace);
                 window = new(new ModuleWorkspaceViewModel(workspace), persistLayout: false);
-                if (typeof(ModuleWorkspaceWindow).BaseType != typeof(GameWorkspaceWindow))
+                if (typeof(DcsModuleWorkspaceWindow).BaseType != typeof(GameWorkspaceWindow))
                     throw new InvalidOperationException("DCS does not inherit the shared workspace algorithms.");
+                if (AppearanceManager.GetTarget(window) != "ModuleWorkspaceWindow")
+                    throw new InvalidOperationException("The DCS window rename lost the persisted appearance identity.");
                 window.Show(); ThemeControlSmoke.Pump(window);
                 if (window.FindName("WorkspaceRoot") is not GameWorkspaceShell { SeparateFeatureActions: true })
                     throw new InvalidOperationException("DCS is not using the shared workspace shell.");

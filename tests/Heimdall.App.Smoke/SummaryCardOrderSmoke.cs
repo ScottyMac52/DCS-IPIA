@@ -34,7 +34,7 @@ namespace Heimdall.App.Smoke
                     new(KneeboardPageKind.Summary, null, "summary", "Summary", "CONTROLS", 0,
                         [new("07", "First", "red"), new("08", "Second", "green"), new("09", "Third", "blue")]));
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 WorkspaceUi.Navigate(window, "Pages");
@@ -106,7 +106,7 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void VerifyResizing(ModuleWorkspaceWindow window, ListBox cards)
+        private static void VerifyResizing(DcsModuleWorkspaceWindow window, ListBox cards)
         {
             var handle = WorkspaceUi.Find(window, "SummaryCardsResizeHandle") as Thumb
                 ?? throw new InvalidOperationException("Summary cards have no vertical resize handle.");

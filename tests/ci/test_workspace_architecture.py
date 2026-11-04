@@ -9,9 +9,15 @@ APP = ROOT / 'src/Heimdall.App'
 
 class WorkspaceArchitectureTests(unittest.TestCase):
     def test_dcs_inherits_the_shared_window_in_csharp_and_xaml(self):
-        source = (APP / 'ModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
-        self.assertRegex(source, r'class ModuleWorkspaceWindow : GameWorkspaceWindow')
-        self.assertEqual(ET.parse(APP / 'ModuleWorkspaceWindow.xaml').getroot().tag,
+        source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
+        self.assertRegex(source, r'class DcsModuleWorkspaceWindow : GameWorkspaceWindow')
+        root = ET.parse(APP / 'DcsModuleWorkspaceWindow.xaml').getroot()
+        self.assertEqual(root.attrib['{http://schemas.microsoft.com/winfx/2006/xaml}Class'],
+                         'Heimdall.App.DcsModuleWorkspaceWindow')
+        self.assertEqual(root.attrib['{clr-namespace:Heimdall.App}AppearanceManager.Target'],
+                         'ModuleWorkspaceWindow')
+        self.assertFalse((APP / 'ModuleWorkspaceWindow.xaml.cs').exists())
+        self.assertEqual(root.tag,
                          '{clr-namespace:Heimdall.App.Games}GameWorkspaceWindow')
 
     def test_base_has_no_game_or_native_session_dependencies(self):
@@ -23,7 +29,7 @@ class WorkspaceArchitectureTests(unittest.TestCase):
             self.assertIn(responsibility, source)
 
     def test_dcs_window_delegates_editing_output_and_feature_construction(self):
-        source = (APP / 'ModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
+        source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
         for collaborator in ('DcsWorkspaceSession', 'DcsWorkspaceOutput', 'DcsWorkspaceFeatures'):
             self.assertIn(collaborator, source)
         for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
@@ -36,7 +42,7 @@ class WorkspaceArchitectureTests(unittest.TestCase):
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
         for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):
             source = (APP / f'Games/Dcs/{name}.cs').read_text()
-            self.assertNotRegex(source, r'\b(?:ModuleWorkspaceWindow|System.Windows|FindName|TextBlock)\b')
+            self.assertNotRegex(source, r'\b(?:DcsModuleWorkspaceWindow|System.Windows|FindName|TextBlock)\b')
 
 
 if __name__ == '__main__':

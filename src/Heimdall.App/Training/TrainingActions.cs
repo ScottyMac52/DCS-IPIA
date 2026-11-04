@@ -19,7 +19,7 @@ namespace Heimdall.App
         private readonly Func<FrameworkElement, FrameworkElement, Task> _animateDrag;
         private ContextMenu? _menu;
         private Window? _form;
-        private ModuleWorkspaceWindow? _workspace;
+        private DcsModuleWorkspaceWindow? _workspace;
         private TaskCompletionSource? _formCompletion;
         private const string Light = "d3001pnilu3001cd1vd1vpnilvu0";
         private const string Shifted = "d3002pnilu3002cd1vd1vpnilvu0";
@@ -191,7 +191,7 @@ namespace Heimdall.App
         }
         private void OpenWorkspace(EditorWorkspaceSnapshot saved)
         {
-            _workspace = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), persistLayout: false, repository: _environment.Repository,
+            _workspace = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), persistLayout: false, repository: _environment.Repository,
                 deviceDiscovery: new TrainingDiscovery(), commandFilePicker: _ => [Path.Combine(_environment.Root, "commands.json")],
                 outputPathPicker: snapshot => snapshot ? Path.Combine(_environment.Outputs, "training.heimdall-module.json") : _environment.Outputs,
                 documentationFolderPicker: () => _environment.Outputs, completeReleaseFolderPicker: () => _environment.Outputs,

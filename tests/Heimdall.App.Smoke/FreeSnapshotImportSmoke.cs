@@ -100,7 +100,7 @@ namespace Heimdall.App.Smoke
                     var saved = repository.GetAsync(imported[0]).GetAwaiter().GetResult()!;
                     if (!EditionAccess.AllowsWorkspace(saved) || saved.Configuration.Profiles.Count != 1 || saved.Assignments.Count != 3)
                         throw new InvalidOperationException("Accepted snapshot remained edition-locked or lost supported assignments.");
-                    var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository, new EmptyDeviceDiscovery());
+                    var editor = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository, new EmptyDeviceDiscovery());
                     try
                     {
                         editor.Show(); ThemeControlSmoke.Pump(editor);

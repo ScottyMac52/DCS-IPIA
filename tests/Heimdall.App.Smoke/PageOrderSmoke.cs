@@ -33,7 +33,7 @@ namespace Heimdall.App.Smoke
                             [new("01", "Card " + i, "cyan")]));
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var original = workspace.Pages.ToArray();
-                var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
+                var window = new DcsModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 WorkspaceUi.Navigate(window, "Pages");
