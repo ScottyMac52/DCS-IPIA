@@ -36,6 +36,8 @@ namespace Heimdall.App.Smoke
                     });
                 var frozen = JsonSerializer.Serialize(workspace);
                 window = new(new ModuleWorkspaceViewModel(workspace), persistLayout: false);
+                if (typeof(ModuleWorkspaceWindow).BaseType != typeof(GameWorkspaceWindow))
+                    throw new InvalidOperationException("DCS does not inherit the shared workspace algorithms.");
                 window.Show(); ThemeControlSmoke.Pump(window);
                 if (window.FindName("WorkspaceRoot") is not GameWorkspaceShell { SeparateFeatureActions: true })
                     throw new InvalidOperationException("DCS is not using the shared workspace shell.");

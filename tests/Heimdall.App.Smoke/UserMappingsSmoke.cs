@@ -229,7 +229,7 @@ namespace Heimdall.App.Smoke
             var physicalPicker = (ComboBox)view.FindName("DetectedDevice");
             var physicalReadOnly = fileName.IsReadOnly;
             var physicalEnabled = physicalPicker.IsEnabled;
-            var assignments = JsonSerializer.Serialize(editor._working!.Assignments);
+            var assignments = JsonSerializer.Serialize(editor.Session.Working!.Assignments);
             Click(unlink);
             VerifyDrawingLinkState(editor, view, profileId, linked: false);
             var retained = (Button)view.FindName("UseRetainedDrawingButton");
@@ -238,12 +238,12 @@ namespace Heimdall.App.Smoke
             Click(unlink);
             VerifyDrawingLinkState(editor, view, profileId, linked: false);
             if (fileName.IsReadOnly != physicalReadOnly || physicalPicker.IsEnabled != physicalEnabled ||
-                JsonSerializer.Serialize(editor._working!.Assignments) != assignments)
+                JsonSerializer.Serialize(editor.Session.Working!.Assignments) != assignments)
                 throw new InvalidOperationException("Drawing unlink/relink changed physical ownership or assignments.");
             var revisions = (ComboBox)view.FindName("CustomMappingRevisions");
             revisions.SelectedItem = revisions.Items.Cast<UserMappingRevision>().Single(revision => revision.Id == revisionId);
             Click(apply);
-            var staged = editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
+            var staged = editor.Session.Working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
             if (staged.CustomMapping?.Id != revisionId || staged.DrawingUnlinked || !status.Text.Contains("staged", StringComparison.Ordinal))
                 throw new InvalidOperationException("Custom mapping adoption was not staged. " + status.Text);
             if (apply.IsEnabled || !unlink.IsEnabled)
@@ -251,7 +251,7 @@ namespace Heimdall.App.Smoke
         }
         private static void VerifyDrawingLinkState(ModuleWorkspaceWindow editor, UserControl view, Guid profileId, bool linked)
         {
-            var model = editor._working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
+            var model = editor.Session.Working!.Diagrams.Single(diagram => diagram.ProfileId == profileId);
             var devices = (DataGrid)view.FindName("ManagedDevices");
             var apply = (Button)view.FindName("ApplyCustomDrawingButton");
             var unlink = (Button)view.FindName("UnlinkDrawingButton");

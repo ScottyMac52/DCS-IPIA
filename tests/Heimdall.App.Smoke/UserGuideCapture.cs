@@ -20,7 +20,7 @@ namespace Heimdall.App.Smoke
         internal static void DcsFeatures(ModuleWorkspaceWindow window)
         {
             if (!Enabled) return;
-            var before = EditorSnapshotSerializer.Serialize(window._working!);
+            var before = EditorSnapshotSerializer.Serialize(window.Session.Working!);
             var navigation = (ListBox)window.FindName("FeatureNav");
             var selected = (navigation.SelectedItem as ListBoxItem)?.Tag as string ?? "Assignments";
             try
@@ -32,7 +32,7 @@ namespace Heimdall.App.Smoke
                 }
             }
             finally { WorkspaceUi.Navigate(window, selected); }
-            if (EditorSnapshotSerializer.Serialize(window._working!) != before)
+            if (EditorSnapshotSerializer.Serialize(window.Session.Working!) != before)
                 throw new InvalidOperationException("Guide capture changed the DCS authoring snapshot.");
         }
         #endregion END Public

@@ -50,8 +50,8 @@ namespace Heimdall.App.Smoke
                 if (!ReferenceEquals(assignments, Box<ContentControl>(window, "FeatureContent").Content))
                     throw new InvalidOperationException("Assign/Test mode discarded the cached assignment surface.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "unified-dcs-assignments");
-                if (EditorSnapshotSerializer.Serialize(window._working!) != original ||
-                    !window._draft!.Snapshot.SequenceEqual(workspace.Assignments) || window._labels.Count != workspace.Labels.Count)
+                if (EditorSnapshotSerializer.Serialize(window.Session.Working!) != original ||
+                    !window.Session.Draft!.Snapshot.SequenceEqual(workspace.Assignments) || window.Session.Labels.Count != workspace.Labels.Count)
                     throw new InvalidOperationException("Presentation geometry or selection changed the DCS snapshot.");
                 var added = Profile("New");
                 window.RunStructureEdit(current => current with
@@ -65,7 +65,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Cached input testing omitted a newly added DCS controller.");
                 window.DiscardClicked(window, new RoutedEventArgs());
                 WorkspaceUi.Navigate(window, "Devices"); WorkspaceUi.Navigate(window, "InputTest"); ThemeControlSmoke.Pump(window);
-                if (rail.Items.Count != 2 || EditorSnapshotSerializer.Serialize(window._working!) != original)
+                if (rail.Items.Count != 2 || EditorSnapshotSerializer.Serialize(window.Session.Working!) != original)
                     throw new InvalidOperationException("Cached input testing retained a discarded controller or changed native state.");
             }
             finally { window.Close(); }

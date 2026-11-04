@@ -8,7 +8,7 @@ using Heimdall.Dcs;
 namespace Heimdall.App
 {
     /// <summary>Coordinates controller selection across existing DCS views without owning native profile edits.</summary>
-    internal sealed class DcsControllerSelection
+    internal sealed class DcsControllerSelection : IDisposable
     {
         private Guid? _selectedController;
         private bool _linkingController;
@@ -57,6 +57,16 @@ namespace Heimdall.App
                 if (_picker.SelectedValue is Guid id) _selectedController = id;
             }
             finally { _linkingController = false; }
+        }
+
+        /// <summary>Releases rail bindings and its selection subscription when the workspace closes.</summary>
+        public void Dispose()
+        {
+            _picker.SelectionChanged -= ControllerSelectionChanged;
+            BindingOperations.ClearBinding(_picker, Selector.SelectedValueProperty);
+            BindingOperations.ClearBinding(_picker, ItemsControl.ItemsSourceProperty);
+            _picker.ItemsSource = null;
+            _view = null;
         }
 
         #endregion END Public

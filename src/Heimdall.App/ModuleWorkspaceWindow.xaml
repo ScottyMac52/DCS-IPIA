@@ -1,4 +1,4 @@
-<Window x:Class="Heimdall.App.ModuleWorkspaceWindow"
+<games:GameWorkspaceWindow x:Class="Heimdall.App.ModuleWorkspaceWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:local="clr-namespace:Heimdall.App"
         xmlns:games="clr-namespace:Heimdall.App.Games"
@@ -138,4 +138,4 @@
       </Popup>
     </Grid>
   </games:GameWorkspaceShell>
-</Window>
+</games:GameWorkspaceWindow>

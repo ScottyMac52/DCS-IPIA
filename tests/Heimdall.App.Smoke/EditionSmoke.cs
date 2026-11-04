@@ -119,10 +119,10 @@ namespace Heimdall.App.Smoke
                         throw new InvalidOperationException("Free direct input-test handler escaped the edition boundary.");
                     view.Dispose();
                     var reserved = WorkspaceStructureEditor.Hardware(allowed).Single(item => item.DeviceId == "moza-ab9");
-                    var before = window._working;
+                    var before = window.Session.Working;
                     window.RunStructureEdit(current => WorkspaceStructureEditor.AddDevice(current, reserved, AssignmentLayer.Module,
                         "Other base {23456789-1111-2222-3333-444455556666}.diff.lua", "other", "other"));
-                    if (!ReferenceEquals(before, window._working)) throw new InvalidOperationException("Reserved hardware edit mutated a Free workspace.");
+                    if (!ReferenceEquals(before, window.Session.Working)) throw new InvalidOperationException("Reserved hardware edit mutated a Free workspace.");
                     ThemeControlSmoke.SaveImage(window, "free-edition-workspace");
                 }
                 finally { window.Close(); }

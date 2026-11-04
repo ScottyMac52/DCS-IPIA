@@ -64,7 +64,7 @@ namespace Heimdall.App
                 case "context-label": OpenContext("JOY_BTN1"); break;
                 case "context-clear": OpenContext("JOY_BTN5"); break;
                 case "clear": MenuClick("Clear assignment");
-                    Require(!_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_BTN5" && x.Slot.ModifierChord.Length == 0 && x.Slot.Layer == AssignmentLayer.Module), "Context clear did not remove the assignment."); break;
+                    Require(!_workspace!.Session.Draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_BTN5" && x.Slot.ModifierChord.Length == 0 && x.Slot.Layer == AssignmentLayer.Module), "Context clear did not remove the assignment."); break;
                 case "label": ContextLabel(); break;
                 case "toggle": AddModifier("TRAIN_TOGGLE", "JOY_BTN4", ModifierMode.Toggle); break;
                 case "toggled": Assign("JOY_BTN1", ButtonCommand(3), "TRAIN_TOGGLE", false); break;
@@ -197,7 +197,7 @@ namespace Heimdall.App
                 documentationFolderPicker: () => _environment.Outputs, completeReleaseFolderPicker: () => _environment.Outputs,
                 integrationFilePicker: () => null, axisDefaultsFilePicker: () => null,
                 training: _environment);
-            _workspace._savedGamesRoot = _environment.ImportFolder;
+            _workspace.Session.SavedGamesRoot = _environment.ImportFolder;
             _mount(_workspace);
         }
         private UserControl Navigate(string feature)
@@ -220,8 +220,8 @@ namespace Heimdall.App
             var view = Get<UserControl>(Navigate("Commands"), "Manager");
             WithDialog<CommandImportReviewWindow>(() => Click(Action(view, "Import JSON…")),
                 dialog => Click(Get<Button>(dialog, "StageImportButton")));
-            Require(_workspace!._working!.ModuleCommands.Count >= 3 &&
-                _workspace._working.Sources!.Keys.Any(x => x.StartsWith("config/ipia-command-imports/", StringComparison.Ordinal)),
+            Require(_workspace!.Session.Working!.ModuleCommands.Count >= 3 &&
+                _workspace.Session.Working.Sources!.Keys.Any(x => x.StartsWith("config/ipia-command-imports/", StringComparison.Ordinal)),
                 "Command catalog import failed.");
         }
         private void AddModifier(string name, string key, ModifierMode mode)
@@ -275,7 +275,7 @@ namespace Heimdall.App
         {
             var view = SelectPalette(key, command, layer, ui);
             Click(Action(view, "Assign selected command"));
-            Require(_workspace!._draft!.Snapshot.Any(x => x.Command.Id == command && x.Slot.InputKey == key &&
+            Require(_workspace!.Session.Draft!.Snapshot.Any(x => x.Command.Id == command && x.Slot.InputKey == key &&
                 x.Slot.ModifierChord == (layer == "Base" ? "" : layer) && x.Slot.Layer == (ui ? AssignmentLayer.UiLayer : AssignmentLayer.Module)),
                 "Assignment did not reach the draft.");
         }
@@ -283,7 +283,7 @@ namespace Heimdall.App
         {
             var view = SelectAssignment("JOY_BTN1", "Base", false);
             Get<TextBox>(view, "LabelEditor").Text = text;
-            Require(_workspace!._labels.Values.Contains(text, StringComparer.Ordinal), "Label was not staged.");
+            Require(_workspace!.Session.Labels.Values.Contains(text, StringComparer.Ordinal), "Label was not staged.");
         }
         private static string ButtonCommand(int index) => $"d{3000 + index}pnilu{3000 + index}cd1vd1vpnilvu0";
         private static Border Callout(UserControl view, string key) => Descendants(Get<Canvas>(view, "Diagram")).OfType<Border>()
@@ -296,10 +296,10 @@ namespace Heimdall.App
             var source = grid.ItemContainerGenerator.ContainerFromItem(grid.SelectedItem) as FrameworkElement ?? grid;
             var target = Callout(view, key);
             await _animateDrag(source, target);
-            var definition = _workspace!._working!.ModuleCommands.Single(x => x.Id == command);
+            var definition = _workspace!.Session.Working!.ModuleCommands.Single(x => x.Id == command);
             ((AssignmentsView)view).DropPaletteCommand((HardwareGraphicControl)target.Tag,
                 new(definition.Id, definition.Name, definition.Category, definition.IsAxis));
-            Require(_workspace._draft!.Snapshot.Any(x => x.Slot.InputKey == key && x.Command.Id == command), "Palette drop was not applied.");
+            Require(_workspace.Session.Draft!.Snapshot.Any(x => x.Slot.InputKey == key && x.Command.Id == command), "Palette drop was not applied.");
         }
         private void OpenContext(string key)
         {
@@ -328,7 +328,7 @@ namespace Heimdall.App
                 Descendants(dialog).OfType<TextBox>().Single().Text = "LIGHTS";
                 Click(Action(dialog, "OK"));
             });
-            Require(_workspace!._labels.Values.Contains("LIGHTS", StringComparer.Ordinal), "Context label was not staged.");
+            Require(_workspace!.Session.Labels.Values.Contains("LIGHTS", StringComparer.Ordinal), "Context label was not staged.");
         }
         private void TuneAxis()
         {
@@ -351,7 +351,7 @@ namespace Heimdall.App
         private void ApplyAxis()
         {
             Click(Get<Button>(_form!, "ApplyToDraftButton"));
-            Require(_workspace!._draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_Y" && x.Filter?.Deadzone == 3), "Axis tuning was not staged.");
+            Require(_workspace!.Session.Draft!.Snapshot.Any(x => x.Slot.InputKey == "JOY_Y" && x.Filter?.Deadzone == 3), "Axis tuning was not staged.");
             _mount(_workspace);
             _form!.Close();
             _form = null;
@@ -394,8 +394,8 @@ namespace Heimdall.App
         private async Task SaveAsync()
         {
             await _workspace!.SaveWorkspaceAsync();
-            var reopened = await _environment.Repository.GetAsync(_workspace._saved!.Configuration.Module.Id);
-            Require(reopened is not null && reopened.Assignments.Count == _workspace._draft!.Snapshot.Count, "Save did not persist assignments.");
+            var reopened = await _environment.Repository.GetAsync(_workspace.Session.Saved!.Configuration.Module.Id);
+            Require(reopened is not null && reopened.Assignments.Count == _workspace.Session.Draft!.Snapshot.Count, "Save did not persist assignments.");
         }
         private void DiscardExample()
         {
@@ -403,11 +403,11 @@ namespace Heimdall.App
             var view = Navigate("Assignments");
             Click(Action(view, "Discard draft"));
             SelectAssignment("JOY_BTN1", "Base", false);
-            Require(!_workspace!._labels.Values.Contains("TEMPORARY - discard this", StringComparer.Ordinal), "Discard did not restore saved labels.");
+            Require(!_workspace!.Session.Labels.Values.Contains("TEMPORARY - discard this", StringComparer.Ordinal), "Discard did not restore saved labels.");
         }
         private async Task ReopenAsync()
         {
-            var saved = await _environment.Repository.GetAsync(_workspace!._saved!.Configuration.Module.Id)
+            var saved = await _environment.Repository.GetAsync(_workspace!.Session.Saved!.Configuration.Module.Id)
                 ?? throw new InvalidDataException("Saved training module is missing.");
             _workspace.DiscardClicked(null!, null!);
             _workspace.Close();
@@ -419,7 +419,7 @@ namespace Heimdall.App
             Click(Action(view, "Add missing device pages"));
             Click(Action(view, "Generate Summary"));
             await SaveAsync();
-            Require(_workspace!._saved!.Pages.Any(x => x.Kind == KneeboardPageKind.Summary), "Summary pages were not created.");
+            Require(_workspace!.Session.Saved!.Pages.Any(x => x.Kind == KneeboardPageKind.Summary), "Summary pages were not created.");
         }
         private void Preview()
         {
