@@ -95,18 +95,18 @@ namespace Heimdall.Tests
             if (failure == "overlap") source = source.Replace("axesOffset:i=2", "axesOffset:i=1", StringComparison.Ordinal);
             if (failure == "multiple-mappings") source = source.Replace("deviceMapping{", "deviceMapping{}deviceMapping{", StringComparison.Ordinal);
             var profile = WarThunderBackendFixture.Import(backend, source);
-            var observation = Observation();
-            observation = failure switch
+            var observed = Observation();
+            ControllerObservation? observation = failure switch
             {
                 "missing" => null,
-                "disconnected" => observation with { Device = observation.Device with { Connected = false } },
-                "product" => observation with { Device = observation.Device with { ProductGuid = Guid.Empty } },
-                "details" => observation with { Capabilities = ControllerCapabilityMapper.Map([new(Guid.NewGuid(), 4, "Legacy")]) },
-                "empty" => observation with { Capabilities = ControllerCapabilityMapper.Map([]) },
-                "ambiguous" => observation with { Capabilities = ControllerCapabilityMapper.Map([WarThunderLayoutFixture.Button(0), WarThunderLayoutFixture.Button(0)]) },
-                _ => observation
+                "disconnected" => observed with { Device = observed.Device with { Connected = false } },
+                "product" => observed with { Device = observed.Device with { ProductGuid = Guid.Empty } },
+                "details" => observed with { Capabilities = ControllerCapabilityMapper.Map([new(Guid.NewGuid(), 4, "Legacy")]) },
+                "empty" => observed with { Capabilities = ControllerCapabilityMapper.Map([]) },
+                "ambiguous" => observed with { Capabilities = ControllerCapabilityMapper.Map([WarThunderLayoutFixture.Button(0), WarThunderLayoutFixture.Button(0)]) },
+                _ => observed
             };
-            Assert.ThrowsAny<ArgumentException>(() => backend.AddNativeController(profile, " "));
+            Assert.ThrowsAny<ArgumentException>(() => backend.AddNativeController(profile, " ", observation));
             Assert.Throws<InvalidOperationException>(() => backend.AddNativeController(profile, "New"));
             Assert.Throws<InvalidOperationException>(() => backend.AddNativeController(profile, failure == "bad-name" ? "bad\nname" : "New", observation));
             Assert.Equal(source, WarThunderBackendFixture.Export(backend, profile));
