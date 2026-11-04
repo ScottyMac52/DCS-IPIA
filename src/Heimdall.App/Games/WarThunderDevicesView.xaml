@@ -20,10 +20,10 @@
 <WrapPanel Margin="0,0,0,6"><Button Style="{StaticResource ToolbarActionButton}" x:Name="ChooseDrawing" Content="Choose drawing…"/><Button Style="{StaticResource ToolbarActionButton}" x:Name="UnlinkDrawing" Content="Unlink drawing…"/></WrapPanel>
    <ComboBox Style="{StaticResource AppComboBox}" x:Name="Drawing" DisplayMemberPath="Title" AutomationProperties.Name="Hardware drawing" Margin="0,6"/>
 </StackPanel></GroupBox>
-   <Expander Header="War Thunder device diagnostics" IsExpanded="False" Margin="0,8"><StackPanel>
+   <pres:WorkspaceDiagnosticsPanel><ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"><StackPanel>
     <TextBlock Style="{StaticResource Hint}" x:Name="NativeDetails" TextWrapping="Wrap" Margin="0,8"/>
     <TextBox x:Name="LayoutTrace" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" MaxHeight="240" AutomationProperties.Name="Native input translation trace"/>
-   </StackPanel></Expander>
+   </StackPanel></ScrollViewer></pres:WorkspaceDiagnosticsPanel>
    <TextBlock Style="{StaticResource Hint}" Text="Native mapping ranges do not identify a Windows controller. Physical and drawing links require explicit unlink before replacement. These links do not renumber the exported native inputs." TextWrapping="Wrap" Margin="0,16"/>
   </StackPanel></ScrollViewer>
   <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>

@@ -49,8 +49,8 @@
                     <Button x:Name="UseRetainedDrawingButton" Content="Link retained drawing" Click="UseRetainedDrawingClicked" Style="{StaticResource ActionButton}"/>
                     <ComboBox x:Name="CustomMappingRevisions" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
                     <WrapPanel Margin="0,0,0,10">
-                        <Button Content="Refresh mappings" Click="RefreshUserMappingsClicked" Padding="8,4" Style="{StaticResource ActionButton}"/>
-                        <Button x:Name="ApplyCustomDrawingButton" Content="Apply drawing to selected device" Click="AdoptCustomMappingClicked" Padding="8,4" Margin="6,0,0,0" Style="{StaticResource ActionButton}"/>
+                        <Button Content="Refresh mappings" Click="RefreshUserMappingsClicked" Style="{StaticResource ToolbarActionButton}"/>
+                        <Button x:Name="ApplyCustomDrawingButton" Content="Apply drawing to selected device" Click="AdoptCustomMappingClicked" Style="{StaticResource ToolbarActionButton}"/>
                     </WrapPanel>
                     <TextBlock Text="Shared hardware" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>

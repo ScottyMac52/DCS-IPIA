@@ -40,7 +40,7 @@
 
      </WrapPanel>
      <WrapPanel x:Name="DrawingTools" Visibility="Collapsed" Margin="0,6,0,0">
-      <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" MinWidth="160" Margin="0,0,8,4" AutomationProperties.Name="Optional shared hardware drawing"/>
+      <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwarePicker" DisplayMemberPath="Title" MinWidth="160" Margin="0,0,8,0" AutomationProperties.Name="Optional shared hardware drawing"/>
       <Button Style="{StaticResource ToolbarActionButton}" x:Name="UseDrawingButton" Content="Use drawing"/>
      </WrapPanel>
 </StackPanel></GroupBox>
