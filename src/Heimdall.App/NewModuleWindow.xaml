@@ -25,16 +25,16 @@
         <TextBlock Text="Initial aircraft devices are optional. Add each physical unit separately; the same hardware template can be used repeatedly. For an offline unit, enter its captured native filename. GUIDs must come from the unit, not the hardware template."
                    TextWrapping="Wrap" Margin="0,0,0,8"/>
         <Label Target="{Binding ElementName=InventoryChoices}" Content="Adopted hardware inventory (including offline units)"/>
-        <ComboBox x:Name="InventoryChoices" DisplayMemberPath="Title" SelectionChanged="InventoryChanged"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="InventoryChoices" DisplayMemberPath="Title" SelectionChanged="InventoryChanged"/>
         <Label Target="{Binding ElementName=PhysicalChoices}" Content="Physical unit"/>
-        <ComboBox x:Name="PhysicalChoices" DisplayMemberPath="Title" SelectionChanged="PhysicalChanged"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="PhysicalChoices" DisplayMemberPath="Title" SelectionChanged="PhysicalChanged"/>
         <WrapPanel Margin="0,8,0,8">
           <Button x:Name="RefreshDevicesButton" Content="Refresh devices" Click="RefreshDevicesClicked" Padding="10,4"/>
           <Button Content="Saved Games folder…" Click="SavedGamesClicked" Margin="8,0,0,0" Padding="10,4"/>
           <Button x:Name="ManualFileButton" Content="Use typed filename" Click="ManualFileClicked" Margin="8,0,0,0" Padding="10,4"/>
         </WrapPanel>
         <Label Target="{Binding ElementName=HardwareChoices}" Content="Shared hardware template"/>
-        <ComboBox x:Name="HardwareChoices" DisplayMemberPath="Title" SelectionChanged="HardwareChanged" AutomationProperties.Name="Initial module hardware"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="HardwareChoices" DisplayMemberPath="Title" SelectionChanged="HardwareChanged" AutomationProperties.Name="Initial module hardware"/>
         <Label Target="{Binding ElementName=NativeFileInput}" Content="Native GUID-qualified DCS filename"/>
         <TextBox x:Name="NativeFileInput"/>
         <Label Target="{Binding ElementName=UnitInstance}" Content="Instance label (for example Left or Right)"/>
@@ -42,7 +42,7 @@
         <Label Target="{Binding ElementName=UnitRole}" Content="Role (optional)"/>
         <TextBox x:Name="UnitRole"/>
         <Label Target="{Binding ElementName=BaselineChoices}" Content="Copied UI Layer profile to rebind (optional)"/>
-        <ComboBox x:Name="BaselineChoices"/>
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="BaselineChoices"/>
         <TextBlock Text="Rebinding retains that profile's assignments and modifier references. Leave this empty to add an independent unit. Copied profiles not selected here retain their saved baseline identity and can be rebound in Devices."
                    TextWrapping="Wrap" Margin="0,8,0,8"/>
         <WrapPanel>

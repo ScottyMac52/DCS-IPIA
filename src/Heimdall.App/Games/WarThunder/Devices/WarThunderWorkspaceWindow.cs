@@ -85,9 +85,11 @@ namespace Heimdall.App.Games
             var drawing = SelectedDevice is { } id ? _session?.DrawingId(id) : null;
             var hardware = _drawings.FirstOrDefault(item => item.DeviceId == drawing);
             RefreshPhysicalMap();
+            _devices.ControllerPreview.Clear();
             if (hardware is not null)
             {
                 var page = WarThunderDrawingProjection.Diagram(hardware.Diagram, _session!.Snapshot.Profile, SelectedDevice!, _physicalMap);
+                _devices.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(this));
                 _presenter.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
                     SelectPhysicalControl, _physicalMap.Inputs.Count > 0 ? DropPhysicalCommand : null,
                     CanClear: CanClearPhysicalControl, Clear: ClearPhysicalControl,

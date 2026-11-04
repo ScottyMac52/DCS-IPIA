@@ -24,7 +24,7 @@
         <TextBlock x:Name="EditionExplanation" Text="Free training · Premium feature demonstrations use sample hardware and simulated input. Your edition stays unchanged. Premium availability/pricing TBA."
                    TextWrapping="Wrap" Margin="0,0,0,12" Foreground="{DynamicResource SecondaryTextBrush}"/>
         <TextBlock Text="Scenario"/>
-        <ComboBox x:Name="ScenarioChoice" DisplayMemberPath="Title" SelectionChanged="ScenarioChanged"
+        <ComboBox Style="{StaticResource AppComboBox}" x:Name="ScenarioChoice" DisplayMemberPath="Title" SelectionChanged="ScenarioChanged"
                   AutomationProperties.Name="Training scenario" Margin="0,4,0,12"/>
         <WrapPanel>
           <Button x:Name="PlayButton" Content="Play / Resume" Click="PlayClicked" Padding="10,4" Margin="0,0,6,6"/>
@@ -35,7 +35,7 @@
         </WrapPanel>
         <WrapPanel Margin="0,6,0,10">
           <TextBlock Text="Playback speed" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <ComboBox x:Name="SpeedChoice" SelectedIndex="1" SelectionChanged="SpeedChanged" Width="100" AutomationProperties.Name="Playback speed">
+          <ComboBox Style="{StaticResource AppComboBox}" x:Name="SpeedChoice" SelectedIndex="1" SelectionChanged="SpeedChanged" Width="100" AutomationProperties.Name="Playback speed">
             <ComboBoxItem Content="0.5×" Tag="0.5"/><ComboBoxItem Content="1×" Tag="1"/>
             <ComboBoxItem Content="2×" Tag="2"/>
           </ComboBox>

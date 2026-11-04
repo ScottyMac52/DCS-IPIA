@@ -40,7 +40,13 @@ namespace Heimdall.App.Smoke
                 var picker = Box<ListBox>(window, "DevicePicker");
                 picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.3");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = device;
-                toolbar.Actions.Single(x => x.Id == "LinkControllerButton").Command.Execute(null);
+                ThemeControlSmoke.Pump(window);
+                var link = Box<Button>(window, "LinkControllerButton");
+                if (!link.IsVisible || !link.IsEnabled || toolbar.Actions.Any(x => x.Id == link.Name))
+                    throw new InvalidOperationException("The physical link action must be available in Devices setup, outside the toolbar.");
+                link.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (window.Session!.Snapshot.Hardware.GetValueOrDefault("squadrons.joystick.3")?.Device.PhysicalGuid != device.PhysicalGuid)
+                    throw new InvalidOperationException("The physical link action did not link the selected controller.");
                 if (!window.SaveProfile()) throw new InvalidOperationException("Linked fixture did not save.");
                 var native = window.Session!.Export().Files[SquadronsProfileBackend.FileName];
                 navigation.SelectedIndex = 1; ThemeControlSmoke.Pump(window);

@@ -28,6 +28,9 @@ namespace Heimdall.App.Games
             var target = new ComboBox { ItemsSource = connected, DisplayMemberPath = "Title", Margin = new Thickness(0, 4, 0, 4) };
             System.Windows.Automation.AutomationProperties.SetName(target, "Replacement physical controller"); selectors.Children.Add(target);
             var reference = new ComboBox { DisplayMemberPath = "Name", Margin = new Thickness(0, 0, 0, 8) };
+            source.SetResourceReference(FrameworkElement.StyleProperty, "AppComboBox");
+            target.SetResourceReference(FrameworkElement.StyleProperty, "AppComboBox");
+            reference.SetResourceReference(FrameworkElement.StyleProperty, "AppComboBox");
             System.Windows.Automation.AutomationProperties.SetName(reference, "Captured replacement ED reference"); selectors.Children.Add(reference);
             var details = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             System.Windows.Automation.AutomationProperties.SetName(details, "Affected native assignments"); layout.Children.Add(details);

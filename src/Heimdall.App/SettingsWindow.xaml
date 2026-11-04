@@ -12,7 +12,7 @@
     <TextBlock x:Name="EditionStatus" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8"/>
     <Button Content="Install license…" Click="InstallOwnerLicenseClicked" HorizontalAlignment="Left" Padding="10,4" Margin="0,0,0,12"/>
     <TextBlock FontWeight="SemiBold" Text="UI skin"/>
-    <ComboBox x:Name="ThemeChoice" Width="180" HorizontalAlignment="Left" Margin="0,6,0,8"
+    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ThemeChoice" Width="180" HorizontalAlignment="Left" Margin="0,6,0,8"
               AutomationProperties.Name="Appearance theme" SelectionChanged="ThemeChoice_SelectionChanged">
       <ComboBoxItem Content="Modern Light" Tag="Light"/>
       <ComboBoxItem Content="Modern Dark" Tag="Dark"/>
@@ -25,7 +25,7 @@
             HorizontalAlignment="Left" Padding="10,4" Margin="0,0,0,16"
             AutomationProperties.Name="Restore default appearance"/>
     <TextBlock FontWeight="SemiBold" Text="Occupied destination"/>
-    <ComboBox x:Name="ConflictChoice" Width="235" HorizontalAlignment="Left" Margin="0,6,0,8"
+    <ComboBox Style="{StaticResource AppComboBox}" x:Name="ConflictChoice" Width="235" HorizontalAlignment="Left" Margin="0,6,0,8"
               AutomationProperties.Name="Occupied destination behavior" SelectionChanged="ConflictChoice_SelectionChanged">
       <ComboBoxItem Content="Ask before replacing" Tag="Ask"/>
       <ComboBoxItem Content="Replace in draft" Tag="ReplaceInDraft"/>

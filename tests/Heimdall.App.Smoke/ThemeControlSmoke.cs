@@ -84,9 +84,9 @@ namespace Heimdall.App.Smoke
                     AssertPixel(tabs, 220, 90, "SurfaceBrush");
                     AssertPixel(disabled, 6, 6, "DisabledBackgroundBrush");
                     AssertPixel(scope, 6, 6, "DisabledBackgroundBrush");
-                    AssertPixel(choices, 6, 6, "ControlBackgroundBrush");
+                    AssertPixel(choices, 6, 6, "OpaqueControlBackgroundBrush");
                     AssertPixel(legacyText, 6, 6, "ControlBackgroundBrush");
-                    AssertPixel(legacyChoice, 6, 6, "ControlBackgroundBrush");
+                    AssertPixel(legacyChoice, 6, 6, "OpaqueControlBackgroundBrush");
                     if (legacyText.Foreground is not SolidColorBrush foreground || foreground.Color != Brush("PrimaryTextBrush") ||
                         legacyLabel.Foreground is not SolidColorBrush label || label.Color != Brush("PrimaryTextBrush") ||
                         legacyCheck.Foreground is not SolidColorBrush check || check.Color != Brush("PrimaryTextBrush"))

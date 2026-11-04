@@ -24,12 +24,7 @@
                 </pres:ActionBar>
             </WrapPanel>
         </StackPanel>
-        <Grid Grid.Row="1" pres:WorkspaceLayout.Key="devices.split">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=".4*" MinWidth="240"/>
-                <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width=".6*" MinWidth="280"/>
-            </Grid.ColumnDefinitions>
+        <pres:DeviceDetailsLayout Grid.Row="1" pres:WorkspaceLayout.Key="devices.split">
             <DataGrid Visibility="Collapsed" SelectedValuePath="ProfileId" x:Name="ManagedDevices" Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,4,0">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Device" Binding="{Binding Title}" Width="*"/>
@@ -37,26 +32,30 @@
                     <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
-            <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" AutomationProperties.Name="Controller link and drawing divider"/>
-            <GroupBox Grid.Column="0" Header="Controller link" Padding="8" Margin="4,0,0,0">
+
+            <Border Grid.Column="0" Margin="4,0,0,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                    <TextBlock Text="Detected device" Style="{StaticResource AppLabel}"/>
-                        <Button x:Name="UnlinkPhysicalButton" Content="Unlink physical controller…" Click="UnlinkPhysicalClicked" Style="{StaticResource ActionButton}"/>
+                    <TextBlock Text="Controller setup" Style="{StaticResource SectionTitle}"/>
+                    <GroupBox Header="Physical controller" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<Button x:Name="UnlinkPhysicalButton" Content="Unlink physical controller…" Click="UnlinkPhysicalClicked" Style="{StaticResource ActionButton}"/>
                         <ComboBox x:Name="DetectedDevice" DisplayMemberPath="Title" SelectionChanged="DetectedDeviceChanged" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
+</StackPanel></GroupBox>
                     <TextBlock Text="Adopted hardware inventory" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
                     <Button Content="Add inventory unit with generic controls" Click="AddInventoryClicked" Padding="8,4" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
-                    <TextBlock Text="Saved hardware drawing" Style="{StaticResource AppLabel}"/>
-                    <Button x:Name="UnlinkDrawingButton" Content="Unlink drawing" Click="UnlinkDrawingClicked" Style="{StaticResource ActionButton}"/>
+                    <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+<Button x:Name="UnlinkDrawingButton" Content="Unlink drawing" Click="UnlinkDrawingClicked" Style="{StaticResource ActionButton}"/>
                     <Button x:Name="UseRetainedDrawingButton" Content="Link retained drawing" Click="UseRetainedDrawingClicked" Style="{StaticResource ActionButton}"/>
                     <ComboBox x:Name="CustomMappingRevisions" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
                     <WrapPanel Margin="0,0,0,10">
-                        <Button Content="Refresh mappings" Click="RefreshUserMappingsClicked" Padding="8,4" Style="{StaticResource ActionButton}"/>
-                        <Button x:Name="ApplyCustomDrawingButton" Content="Apply drawing to selected device" Click="AdoptCustomMappingClicked" Padding="8,4" Margin="6,0,0,0" Style="{StaticResource ActionButton}"/>
+                        <Button Content="Refresh mappings" Click="RefreshUserMappingsClicked" Style="{StaticResource ToolbarActionButton}"/>
+                        <Button x:Name="ApplyCustomDrawingButton" Content="Apply drawing to selected device" Click="AdoptCustomMappingClicked" Style="{StaticResource ToolbarActionButton}"/>
                     </WrapPanel>
                     <TextBlock Text="Shared hardware" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
+</StackPanel></GroupBox>
+                    <Expander Header="DCS device settings" Margin="0,8,0,0"><StackPanel>
                     <TextBlock Text="Native DCS filename" Style="{StaticResource AppLabel}"/>
                     <TextBox x:Name="ManagedFileName" Margin="0,4,0,10" Style="{StaticResource AppTextBox}"/>
                     <TextBlock Text="Instance (optional)" Style="{StaticResource AppLabel}"/>
@@ -83,6 +82,7 @@
                             <TextBox x:Name="MfdBottom" Style="{StaticResource AppTextBox}"/>
                         </StackPanel>
                     </GroupBox>
+                    </StackPanel></Expander>
                         <pres:ActionBar Margin="0,8,0,0">
                             <Button Content="Update" Click="UpdateDeviceClicked" Style="{StaticResource ActionButton}"/>
                             <Button Content="Remove" Click="RemoveDeviceClicked" Style="{StaticResource ActionButton}"/>
@@ -93,8 +93,8 @@
                         <TextBlock x:Name="StatusMessage" TextWrapping="Wrap" Margin="0,12,0,0" Style="{StaticResource AppLabel}"/>
                 </StackPanel>
                 </ScrollViewer>
-            </GroupBox>
+            </Border>
             <pres:WorkspaceDrawingPreview x:Name="ControllerPreview" Grid.Column="2" Margin="6,0,0,0"/>
-        </Grid>
+        </pres:DeviceDetailsLayout>
     </Grid>
 </UserControl>

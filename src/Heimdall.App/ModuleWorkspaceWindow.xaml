@@ -11,8 +11,8 @@
     <StackPanel>
     <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <WrapPanel x:Name="GameWorkspaceSelectors" Margin="0,0,0,8" Visibility="Collapsed">
-     <ComboBox x:Name="WorkspaceGamePicker" Width="180" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/><ComboBoxItem Content="War Thunder"/></ComboBox>
-     <ComboBox x:Name="WorkspaceProfilePicker" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
+     <ComboBox Style="{StaticResource AppComboBox}" x:Name="WorkspaceGamePicker" Width="180" SelectionChanged="WorkspaceGameChanged" AutomationProperties.Name="Workspace game selection"><ComboBoxItem Content="DCS World"/><ComboBoxItem Content="Elite Dangerous"/><ComboBoxItem Content="Star Wars: Squadrons"/><ComboBoxItem Content="War Thunder"/></ComboBox>
+     <ComboBox Style="{StaticResource AppComboBox}" x:Name="WorkspaceProfilePicker" Width="220" Margin="8,0,0,0" DisplayMemberPath="DisplayName" SelectionChanged="WorkspaceProfileChanged" AutomationProperties.Name="Workspace aircraft profile"/>
     </WrapPanel>
      <WrapPanel Grid.Column="1">
       <Button x:Name="SaveWorkspaceButton" Style="{StaticResource ToolbarActionButton}" Content="Save" Click="SaveClicked" ToolTip="Save all pending workspace edits to HEIMDALL."/>
@@ -39,28 +39,10 @@
      </WrapPanel>
     </Grid>
     <DockPanel Margin="0,0,0,5">
-      <Expander x:Name="ModuleDetails" Header="Module details" DockPanel.Dock="Right" MaxWidth="660"
-                local:WorkspaceLayout.Key="workspace.details">
-        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto"><StackPanel>
-      <TextBlock Text="{Binding Commit}" Margin="0,6,0,0"
-                 Foreground="{DynamicResource SecondaryTextBrush}"/>
-      <TextBlock Text="{Binding SourceNote}" Margin="0,3,0,0"
-                 Foreground="{DynamicResource SecondaryTextBrush}"/>
-      <Expander Header="Import details" Margin="0,8,0,0" AutomationProperties.Name="Imported profiles and bindings">
-        <Grid Height="180"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <GroupBox Header="Profiles" Margin="0,0,8,0"><ListBox ItemsSource="{Binding Profiles}" AutomationProperties.Name="Imported device profiles"/></GroupBox>
-          <GroupBox Header="Bindings" Grid.Column="1"><ListBox ItemsSource="{Binding Bindings}" AutomationProperties.Name="Imported aircraft bindings"/></GroupBox>
-        </Grid>
-      </Expander>
-        </StackPanel></ScrollViewer>
-      </Expander>
+      
       <TextBlock Text="{Binding Summary}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
     </DockPanel>
-    <ListBox x:Name="ImportDiagnostics" ItemsSource="{Binding Diagnostics}" MaxHeight="54">
-      <ListBox.Style><Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
-        <Style.Triggers><DataTrigger Binding="{Binding Diagnostics[0]}" Value="No import diagnostics."><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
-      </Style></ListBox.Style>
-    </ListBox>
+    
     </StackPanel>
     <StackPanel Grid.Row="1">
     <ListBox x:Name="FeatureNav" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
@@ -99,6 +81,25 @@
     <Grid Grid.Row="4" Margin="0,5,0,0">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
+        <local:WorkspaceDiagnosticsPanel x:Name="ModuleDetails" local:WorkspaceLayout.Key="workspace.details">
+        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto"><StackPanel>
+      <TextBlock Text="{Binding Commit}" Margin="0,6,0,0"
+                 Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <TextBlock Text="{Binding SourceNote}" Margin="0,3,0,0"
+                 Foreground="{DynamicResource SecondaryTextBrush}"/>
+      <Expander Header="Import details" Margin="0,8,0,0" AutomationProperties.Name="Imported profiles and bindings">
+        <Grid Height="180"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <GroupBox Header="Profiles" Margin="0,0,8,0"><ListBox ItemsSource="{Binding Profiles}" AutomationProperties.Name="Imported device profiles"/></GroupBox>
+          <GroupBox Header="Bindings" Grid.Column="1"><ListBox ItemsSource="{Binding Bindings}" AutomationProperties.Name="Imported aircraft bindings"/></GroupBox>
+        </Grid>
+      </Expander>
+        <ListBox x:Name="ImportDiagnostics" ItemsSource="{Binding Diagnostics}" MaxHeight="54">
+      <ListBox.Style><Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+        <Style.Triggers><DataTrigger Binding="{Binding Diagnostics[0]}" Value="No import diagnostics."><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+      </Style></ListBox.Style>
+    </ListBox>
+        </StackPanel></ScrollViewer>
+      </local:WorkspaceDiagnosticsPanel>
         <TextBlock x:Name="PendingSummary" Text="No pending assignment changes" TextWrapping="Wrap"/>
         <TextBlock x:Name="EditorMessage" TextWrapping="Wrap"/>
         <TextBlock x:Name="OutputFailureDiagnostic" TextWrapping="Wrap"/>

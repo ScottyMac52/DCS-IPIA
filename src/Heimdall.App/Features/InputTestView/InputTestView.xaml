@@ -19,7 +19,7 @@
                     <Button x:Name="StopInputTestButton" Content="Stop test" Click="StopInputTestClicked" Style="{StaticResource ActionButton}" IsEnabled="False"/>
                 </pres:ActionBar>
             </WrapPanel>
-            <ComboBox x:Name="InputTestSnapshotChoice" SelectedIndex="0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
+            <ComboBox Style="{StaticResource AppComboBox}" x:Name="InputTestSnapshotChoice" SelectedIndex="0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
             <TextBlock x:Name="InputTestLogMessage"/>
             <TextBlock x:Name="InputTestStatus" TextWrapping="Wrap" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
             <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource AppLabel}"/>
