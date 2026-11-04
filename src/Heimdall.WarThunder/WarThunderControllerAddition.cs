@@ -37,14 +37,11 @@ namespace Heimdall.WarThunder
             if (vendor == 0 || model == 0)
                 throw new InvalidOperationException("The connected controller must report nonzero vendor and product IDs.");
             var devId = vendor.ToString("X4", CultureInfo.InvariantCulture) + ":" + model.ToString("X4", CultureInfo.InvariantCulture);
-            var escaped = name.Replace("\", "\\", StringComparison.Ordinal).Replace(""", "\"", StringComparison.Ordinal);
+            var escaped = name.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
             var text = native.Document.SerializeUnchanged();
-            var newline = text.Contains("
-", StringComparison.Ordinal) ? "
-" : "
-";
+            var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
             var declaration = string.Create(CultureInfo.InvariantCulture,
-                $"joystick{{devId:t="{devId}";axesOffset:i={axesOffset};axesCount:i={layout.Axes.Count};buttonsOffset:i={buttonsOffset};buttonsCount:i={layout.Buttons.Count};name:t="{escaped}";}}");
+                $"joystick{{devId:t=\"{devId}\";axesOffset:i={axesOffset};axesCount:i={layout.Axes.Count};buttonsOffset:i={buttonsOffset};buttonsCount:i={layout.Buttons.Count};name:t=\"{escaped}\";}}");
             var insertion = mappings.Count == 0 ? native.Controls.End - 1 : mappings[0].End - 1;
             var addition = mappings.Count == 0 ? "deviceMapping{" + newline + declaration + newline + "}" : declaration;
             return text.Insert(insertion, newline + addition + newline);
