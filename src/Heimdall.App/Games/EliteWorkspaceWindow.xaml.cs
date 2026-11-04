@@ -673,7 +673,7 @@ namespace Heimdall.App.Games
             _devicesView.UseDrawingButton.IsEnabled = links.SelectDrawing;
             _devicesView.NoDrawingButton.IsEnabled = links.UnlinkDrawing;
             FeatureActionBar.ShowAlternate(_devicesView.ChangeDrawingButton, _devicesView.NoDrawingButton, drawingId is not null);
-            _devicesView.DrawingTools.Visibility = !physical ? Visibility.Collapsed : drawingId is not null ? Visibility.Visible : _devicesView.DrawingTools.Visibility;
+            _devicesView.DrawingTools.Visibility = !physical || drawingId is not null ? Visibility.Collapsed : _devicesView.DrawingTools.Visibility;
             _devicesView.HardwarePicker.IsEnabled = links.SelectDrawing;
             _refreshing = true;
             try { if (drawingId is not null) _devicesView.HardwarePicker.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == drawingId); }
@@ -940,10 +940,10 @@ namespace Heimdall.App.Games
             if (!_devicesView.UseDrawingButton.IsEnabled) return;
             if (_session is null || Device is null || _devicesView.HardwarePicker.SelectedItem is not WorkspaceHardware drawing)
                 throw new InvalidOperationException("Choose an optional drawing first.");
-            _session.ChangeDrawing(Device.Id, drawing.DeviceId); _devicesView.DrawingTools.Visibility = Visibility.Visible;
+            _session.ChangeDrawing(Device.Id, drawing.DeviceId); _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
         });
         private void NoDrawingClicked(object sender, RoutedEventArgs e) => Run(() =>
-        { UpdateControllerAvailability(); if (_devicesView.NoDrawingButton.IsEnabled && _session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Visible; } });
+        { UpdateControllerAvailability(); if (_devicesView.NoDrawingButton.IsEnabled && _session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; } });
         private void ImportClicked(object sender, RoutedEventArgs e)
         {
             if (!ConfirmLeave()) return;
