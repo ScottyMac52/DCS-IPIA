@@ -56,8 +56,8 @@
                     <Button Content="Clear assignment" Click="ClearClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Clear layer" Click="ClearLayerClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Undo" Click="UndoClicked" Style="{StaticResource ActionButton}"/>
-                    <Button Content="Save to database" Click="SaveClicked" Style="{StaticResource ActionButton}"/>
-                    <Button Content="Discard draft" Click="DiscardClicked" Style="{StaticResource ActionButton}"/>
+                    <Button x:Name="SaveDraftButton" Content="Save to database" Click="SaveClicked" Style="{StaticResource ActionButton}"/>
+                    <Button x:Name="DiscardDraftButton" Content="Discard draft" Click="DiscardClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Tune axis…" Click="TuneAxisClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Render kneeboard" Click="RenderClicked" Style="{StaticResource ActionButton}"/>
                     <Button Content="Load authored labels…" Click="LoadAuthoredLabelsClicked" Style="{StaticResource ActionButton}"/>

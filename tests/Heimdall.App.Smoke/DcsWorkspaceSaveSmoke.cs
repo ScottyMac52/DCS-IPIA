@@ -45,11 +45,11 @@ namespace Heimdall.App.Smoke
                     !((FeatureActionBar)window.FindName("FeatureActions")).IsEnabled, "Navigation re-enabled editing during save.");
                 Reject(() => context.SaveAsync().GetAwaiter().GetResult());
                 Reject(context.Discard);
-                WorkspaceUi.Button(assignments, "Save to database").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                ((Button)assignments.FindName("SaveDraftButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 var feedback = (TextBlock)assignments.FindName("SelectedCallout");
-                Require(feedback.Text.StartsWith("Database save failed:", StringComparison.Ordinal), "The feature reported a blocked save as successful.");
-                WorkspaceUi.Button(assignments, "Discard draft").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Require(feedback.Text.StartsWith("Discard failed:", StringComparison.Ordinal), "The feature reported a blocked discard as successful.");
+                Require(feedback.Text.StartsWith("Database save failed:", StringComparison.Ordinal), "Assignments did not report the blocked save. Actual status: " + feedback.Text);
+                ((Button)assignments.FindName("DiscardDraftButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Require(feedback.Text.StartsWith("Discard failed:", StringComparison.Ordinal), "Assignments did not report the blocked discard. Actual status: " + feedback.Text);
                 Reject(() => context.SetLabel("during-save", "must not be applied"));
                 var edited = false;
                 context.RunStructureEdit(current => { edited = true; return current; });
