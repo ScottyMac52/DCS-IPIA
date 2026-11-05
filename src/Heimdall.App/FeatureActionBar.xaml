@@ -2,27 +2,25 @@
              x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pres="clr-namespace:Heimdall.App">
-    <!-- A single horizontally scrollable row avoids resizing the feature content. -->
-    <ScrollViewer x:Name="ActionScroll" Height="48"
-                  HorizontalScrollBarVisibility="Auto"
-                  VerticalScrollBarVisibility="Disabled"
-                  CanContentScroll="False" Focusable="False">
-        <ItemsControl ItemsSource="{Binding Actions, ElementName=Root}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Content="{Binding Label}" Command="{Binding Command}"
-                            Visibility="{Binding Source.Visibility, FallbackValue=Visible}"
-                            ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Label}"
-                            Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}">
-                        <Button.ToolTip>
-                            <PriorityBinding><Binding Path="Source.ToolTip"/><Binding Path="ToolTip"/></PriorityBinding>
-                        </Button.ToolTip>
-                    </Button>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </ScrollViewer>
+    <!-- Measure against the available width and let complete button rows determine the height. -->
+    <ItemsControl MinHeight="34" ItemsSource="{Binding Actions, ElementName=Root}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Button Content="{Binding Label}" Command="{Binding Command}" Height="Auto" MinHeight="30"
+                        Visibility="{Binding Source.Visibility, FallbackValue=Visible}"
+                        ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Label}"
+                        Style="{Binding ButtonStyle, RelativeSource={RelativeSource AncestorType=pres:FeatureActionBar}, TargetNullValue={StaticResource FeatureActionButton}}">
+                    <Button.ContentTemplate>
+                        <DataTemplate><AccessText Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"/></DataTemplate>
+                    </Button.ContentTemplate>
+                    <Button.ToolTip>
+                        <PriorityBinding><Binding Path="Source.ToolTip"/><Binding Path="ToolTip"/></PriorityBinding>
+                    </Button.ToolTip>
+                </Button>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
 </UserControl>

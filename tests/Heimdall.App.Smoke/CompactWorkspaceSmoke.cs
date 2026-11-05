@@ -50,7 +50,9 @@ namespace Heimdall.App.Smoke
                 var viewport = (ScrollViewer)view.FindName("DiagramScroll")!;
                 if (commands.TranslatePoint(new Point(), window).X >= viewport.TranslatePoint(new Point(), window).X ||
                     viewport.ActualHeight < 150)
-                    throw new InvalidOperationException("Assignments did not reserve usable controller space on the right.");
+                    throw new InvalidOperationException($"Assignments did not reserve usable controller space on the right. " +
+                        $"Commands X={commands.TranslatePoint(new Point(), window).X:F1}; viewport X={viewport.TranslatePoint(new Point(), window).X:F1}, " +
+                        $"height={viewport.ActualHeight:F1}; actions height={((FeatureActionBar)window.FindName("FeatureActions")!).ActualHeight:F1}.");
 
                 // A large drawing stands in for full controller artwork, including the callout extents.
                 var drawing = (Canvas)view.FindName("Diagram")!;

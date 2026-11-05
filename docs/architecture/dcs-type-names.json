@@ -3,9 +3,7 @@
     "old": "AssignmentsView",
     "new": "DcsAssignmentsView",
     "files": [
-      "src/Heimdall.App/Features/Assignments/DcsAssignmentsView.xaml.cs",
-      "src/Heimdall.App/Features/Assignments/Selection/DcsAssignmentsView.cs",
-      "src/Heimdall.App/Features/Assignments/Workflow/DcsAssignmentsView.cs"
+      "src/Heimdall.App/Features/Assignments/DcsAssignmentsView.xaml.cs"
     ],
     "appearance_key": "AssignmentsView"
   },
