@@ -105,3 +105,7 @@ The 80% line / 80% branch per measured assembly and CRAP ceiling of 50 are
 unchanged. The WPF app remains outside the existing measured-assembly list; its
 new inheritance tests execute in the Windows smoke runner. No architectural claim
 is inferred from a coverage number or a passing native round-trip test.
+
+Assignment features now have a corresponding composable base; see
+[assignment-view composition](assignments-view-composition.md) for shared functions,
+DCS collaborators and the native override contract.

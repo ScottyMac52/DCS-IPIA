@@ -39,6 +39,27 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                           'new DcsDevicesView', 'Dictionary<string, UserControl>'):
             self.assertNotIn(forbidden, source)
 
+    def test_assignments_are_composed_by_a_game_neutral_base(self):
+        base = (APP / 'Games/GameAssignmentsView.cs').read_text()
+        for forbidden in ('Heimdall.Dcs', 'Dcs', 'Module', 'UiLayerDiagram'):
+            self.assertNotIn(forbidden, base)
+        for responsibility in ('CommandsPanel', 'ControllerPanel', 'EditorPanel',
+                               'ExecuteAssignment', 'SaveAssignmentsAsync', 'DiscardAssignments',
+                               'BindAssignmentChanges'):
+            self.assertIn(responsibility, base)
+        root = ET.parse(APP / 'Features/Assignments/DcsAssignmentsView.xaml').getroot()
+        self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}GameAssignmentsView')
+        source = (APP / 'Features/Assignments/DcsAssignmentsView.xaml.cs').read_text()
+        self.assertIn('DcsAssignmentsView : GameAssignmentsView', source)
+        for collaborator in ('DcsAssignmentDiagram', 'DcsAssignmentEditing',
+                             'DcsAssignmentLabels', 'DcsAssignmentDragDrop', 'DcsAssignmentPreview'):
+            self.assertIn(collaborator, source)
+            implementation = (APP / f'Features/Assignments/{collaborator}.cs').read_text()
+            self.assertNotIn('DcsAssignmentsView', implementation)
+        self.assertLess(len(source.splitlines()), 350)
+        self.assertFalse((APP / 'Features/Assignments/Selection/DcsAssignmentsView.cs').exists())
+        self.assertFalse((APP / 'Features/Assignments/Workflow/DcsAssignmentsView.cs').exists())
+
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
         for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):
             source = (APP / f'Games/Dcs/{name}.cs').read_text()
