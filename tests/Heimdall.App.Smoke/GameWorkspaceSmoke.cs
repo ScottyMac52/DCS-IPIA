@@ -296,6 +296,38 @@ namespace Heimdall.App.Smoke
             if (commands.ItemsSource is not System.Windows.Data.ListCollectionView view || view.Groups?.Count != 4)
                 throw new InvalidOperationException("The command palette did not group commands by display category.");
         }
+        private static void VerifyDcsSelectorLayout(DcsModuleWorkspaceWindow window)
+        {
+            var selectors = Box<WrapPanel>(window, "GameWorkspaceSelectors");
+            var game = Box<ComboBox>(window, "WorkspaceGamePicker");
+            var profile = Box<ComboBox>(window, "WorkspaceProfilePicker");
+            var previousWidth = window.Width;
+            var previousFont = window.FontSize;
+            try
+            {
+                foreach (var font in new[] { 12d, 18d })
+                {
+                    window.FontSize = font;
+                    foreach (var width in new[] { 1340d, 900d, 1340d })
+                    {
+                        window.Width = width; ThemeControlSmoke.Pump(window);
+                        var first = new Rect(game.TranslatePoint(new Point(), selectors), game.RenderSize);
+                        var second = new Rect(profile.TranslatePoint(new Point(), selectors), profile.RenderSize);
+                        if (game.ActualHeight < 29.5 || profile.ActualHeight < 29.5 ||
+                            first.Left < -.5 || second.Left < -.5 || first.Right > selectors.ActualWidth + .5 ||
+                            second.Right > selectors.ActualWidth + .5 || second.Bottom > selectors.ActualHeight + .5)
+                            throw new InvalidOperationException("A DCS header selector was clipped by its wrapping layout.");
+                        var aligned = width == 900
+                            ? Math.Abs(second.Left - first.Left) <= .5 && second.Top >= first.Bottom + 3.5
+                            : Math.Abs(second.Top - first.Top) <= .5 && second.Left >= first.Right + 7.5;
+                        if (!aligned)
+                            throw new InvalidOperationException($"DCS selector spacing failed at width {width}: game={first}, profile={second}.");
+                    }
+                }
+            }
+            finally { window.Width = previousWidth; window.FontSize = previousFont; }
+        }
+
         private static void VerifyDcsSelectors()
         {
             var previewProfile = new global::Heimdall.Domain.DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
@@ -304,6 +336,7 @@ namespace Heimdall.App.Smoke
             var gameWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
+            VerifyDcsSelectorLayout(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
             if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 4)

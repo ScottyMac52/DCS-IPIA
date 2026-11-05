@@ -116,3 +116,9 @@ the compact test size. The inspector fields remain reachable by scrolling.
 and expanded sizes and two font sizes, checks that the drawing and inspector do
 not overlap, and scrolls the last native field into view. The original DCS compact
 assertion remains in place and now reports measured geometry on failure.
+
+The DCS game/profile header uses trailing and bottom selector margins. Selectors
+remain separated on one row and start at the same left edge when the profile
+selector wraps. `GameWorkspaceSmoke` checks full selector bounds and alignment
+at 1340/900/1340 widths and two font sizes while retaining the existing native
+game/profile switching scenarios.
