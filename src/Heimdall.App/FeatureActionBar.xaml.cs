@@ -3,7 +3,7 @@ using System.Windows.Controls;
 
 namespace Heimdall.App
 {
-    /// <summary>Displays stable-position buttons owned by the active workspace feature.</summary>
+    /// <summary>Displays wrapping, content-sized buttons owned by the active workspace feature.</summary>
     public partial class FeatureActionBar : UserControl
     {
         private readonly List<FeatureActionCommand> _commands = [];
@@ -14,7 +14,7 @@ namespace Heimdall.App
             InitializeComponent();
         }
 
-        /// <summary>Optional workspace-specific shared toolbar style; other workspaces retain ActionButton.</summary>
+        /// <summary>Optional workspace-specific toolbar style; button height remains content-driven.</summary>
         public static readonly DependencyProperty ButtonStyleProperty = DependencyProperty.Register(nameof(ButtonStyle),
             typeof(Style), typeof(FeatureActionBar), new PropertyMetadata(null));
         /// <summary>Gets or sets the shared style applied to visible action buttons.</summary>

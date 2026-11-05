@@ -80,3 +80,20 @@ Existing DCS assignment, cached-command, labels, drag/drop, axis tuning, delayed
 save, appearance/layout and training smoke scenarios remain required. Linux
 cross-compilation verifies wiring and compilation; it does not execute WPF.
 Coverage and CRAP gates keep their existing scope and exclude the WPF app.
+
+## Shared feature action layout
+
+`FeatureActionBar` wraps complete buttons into as many rows as the available
+width requires. Its height follows those rows; the shell's Auto row keeps the
+native feature content below the action bar. The former fixed-height horizontal
+scroll strip is removed. A minimum empty-row height remains, and changing a
+feature's action count may move the feature content to accommodate more rows.
+Visible buttons use automatic height with a 30-DIP minimum. Their access-key
+captions can wrap within the styled button width, preserving full text at larger
+font sizes. Native commands, availability, tooltips and optional game styles
+continue to come from the same source actions.
+
+`FeatureActionLayoutSmoke` checks rendered button and caption bounds, row growth
+and recovery on widening, overlap and native action routing at 1100, 700 and 420
+window widths, default/custom toolbar styles and 12/18-DIP fonts. These WPF checks
+require execution on Windows.
