@@ -45,7 +45,8 @@ namespace Heimdall.App.Smoke
                 window.SaveAction = async () => { saves++; await pendingSave.Task; window.Pending = false; };
                 var save = window.SaveWorkspaceAsync();
                 Require(!window.Save.IsEnabled && !window.Discard.IsEnabled, "Save did not enter the inherited busy state.");
-                window.SaveWorkspaceAsync().GetAwaiter().GetResult();
+                Reject(() => window.SaveWorkspaceAsync().GetAwaiter().GetResult());
+                Reject(() => window.DiscardClicked(window, new()));
                 Require(saves == 1, "The base allowed overlapping persistence operations.");
                 Require(!window.TryLeaveAsync(GameWorkspaceLeaveDecision.Discard).GetAwaiter().GetResult(), "Switching was allowed during persistence.");
                 window.Close();
@@ -77,6 +78,8 @@ namespace Heimdall.App.Smoke
                     "The base switch guard did not invoke Save.");
                 window.Close();
                 Require(window.CleanupCount == 1 && window.Surface.Content is null, "Successful close did not release owned features and resources.");
+                Reject(() => window.SaveWorkspaceAsync().GetAwaiter().GetResult());
+                Reject(() => window.DiscardClicked(window, new()));
                 window.NavigateToFeature("First");
                 Require(window.Surface.Content is null && window.FirstCreations == 1, "Closed navigation recreated a feature.");
             }
@@ -85,6 +88,13 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
+        private static void Reject(Action action)
+        {
+            try { action(); }
+            catch (InvalidOperationException) { return; }
+            throw new InvalidOperationException("A rejected workspace action incorrectly completed successfully.");
+        }
+
         private static void Require(bool condition, string message)
         {
             if (!condition) throw new InvalidOperationException(message);

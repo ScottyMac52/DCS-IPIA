@@ -11,6 +11,7 @@ namespace Heimdall.App.Games.Dcs
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private bool _structureDirty;
         private bool _disposed;
+        private bool _saving;
 
         internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
             IConnectedDeviceDiscovery? deviceDiscovery, DcsTrainingEnvironment? training,
@@ -38,6 +39,7 @@ namespace Heimdall.App.Games.Dcs
         }
 
         #region BEGIN Public
+        internal bool IsSaving => _saving;
         internal DcsTrainingEnvironment? Training { get; }
         internal IDcsEditorWorkspaceRepository? Repository { get; }
         internal IConnectedDeviceDiscovery DeviceDiscovery { get; }
@@ -62,6 +64,7 @@ namespace Heimdall.App.Games.Dcs
 
         internal void SetLabel(string key, string? value)
         {
+            RequireEditable();
             if (string.IsNullOrWhiteSpace(value)) _labels.Remove(key);
             else _labels[key] = value;
             RaiseStateChanged();
@@ -71,6 +74,7 @@ namespace Heimdall.App.Games.Dcs
         {
             try
             {
+                RequireEditable();
                 var updated = edit(EditSnapshot());
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 RebuildDraft(updated);
@@ -83,9 +87,14 @@ namespace Heimdall.App.Games.Dcs
 
         internal async Task SaveAsync()
         {
-            if (Repository is null || Saved is null || Draft is null) return;
+            RequireEditable();
+            if (Repository is null || Saved is null || Draft is null)
+                throw new InvalidOperationException("Open a writable DCS workspace before saving.");
+            _saving = true;
             try
             {
+                using var editingLock = Draft.SuspendEditing();
+                RaiseStateChanged();
                 var updated = EditSnapshot();
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 updated = DcsPinnedUiLayerProfileRecovery.Restore(updated);
@@ -95,18 +104,18 @@ namespace Heimdall.App.Games.Dcs
                 await Repository.SaveAsync(updated);
                 Saved = updated; Working = updated; _structureDirty = false;
                 RebuildDraft(updated);
-                RaiseStateChanged();
             }
             catch (Exception error)
             {
                 RaiseStatus("Database save failed: " + error.Message);
-                RaiseStateChanged();
                 throw;
             }
+            finally { _saving = false; RaiseStateChanged(); }
         }
 
         internal void Discard()
         {
+            RequireEditable();
             Working = Saved; _structureDirty = false;
             if (Saved is not null) RebuildDraft(Saved);
             else Draft?.Discard();
@@ -128,6 +137,12 @@ namespace Heimdall.App.Games.Dcs
         #endregion END Public
 
         #region BEGIN private helpers
+        private void RequireEditable()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_saving) throw new InvalidOperationException("The workspace is being saved. Wait for saving to finish before editing.");
+        }
+
         private DcsEditorWorkspaceSnapshot EditSnapshot()
         {
             var workspace = Working ?? Saved ?? throw new InvalidOperationException("Open a saved module to manage devices and modifiers.");

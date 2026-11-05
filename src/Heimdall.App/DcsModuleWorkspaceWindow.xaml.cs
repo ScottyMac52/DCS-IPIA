@@ -104,6 +104,7 @@ namespace Heimdall.App
         /// <inheritdoc/>
         protected override void OnWorkspaceStateChanged()
         {
+            RefreshFeatureAvailability();
             if (_output is null || BuildButton is null || PackageVersion is null) return;
             BuildButton.IsEnabled = !WorkspaceActionRunning && _output.CanRun(_viewModel.HasErrors, PackageVersion.Text);
             ValidateModuleButton.IsEnabled = ExportModuleSnapshotButton.IsEnabled = ExportModuleDocumentationButton.IsEnabled =
@@ -153,8 +154,15 @@ namespace Heimdall.App
             AssignmentModes.Visibility = key is "Assignments" or "InputTest" ? Visibility.Visible : Visibility.Collapsed;
             AssignMode.IsChecked = key == "Assignments";
             TestMode.IsChecked = key == "InputTest";
-            FeatureContent.IsEnabled = FeatureActions.IsEnabled = EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
-            if (!FeatureContent.IsEnabled) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
+            RefreshFeatureAvailability();
+        }
+
+        private void RefreshFeatureAvailability()
+        {
+            if (FeatureContent is null || FeatureActions is null) return;
+            var allowed = EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
+            FeatureContent.IsEnabled = FeatureActions.IsEnabled = allowed && !WorkspaceActionRunning && !Session.IsSaving;
+            if (!allowed) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
         }
 
         private void FeatureNavChanged(object sender, SelectionChangedEventArgs e)

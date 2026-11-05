@@ -6,6 +6,8 @@ namespace Heimdall.Application
     public sealed class DcsDraftAssignmentService
     {
         private readonly DcsModuleConfiguration _module;
+        private int _editSuspensions;
+        private const string SuspendedMessage = "The workspace is being saved. Wait for saving to finish before editing.";
         private readonly HashSet<string> _uiModifiers;
         private readonly Dictionary<string, DcsDraftCommand> _allowed;
         private readonly Dictionary<string, DcsDraftAssignment> _original = new(StringComparer.Ordinal);
@@ -55,10 +57,19 @@ namespace Heimdall.Application
         /// <summary>Occurs once after an applied assignment mutation, undo, or state-changing discard.</summary>
         public event EventHandler? Changed;
 
+        /// <summary>Prevents draft mutations while a persistence operation owns an immutable snapshot.</summary>
+        /// <returns>A nested, independently disposable lease; releasing every lease restores editing.</returns>
+        public IDisposable SuspendEditing()
+        {
+            _editSuspensions++;
+            return new DcsDraftEditLock(() => _editSuspensions--);
+        }
+
         /// <summary>Adds validated commands imported after the editor opens without changing staged assignments.</summary>
         /// <param name="commands">Commands from the selected module's verified catalog.</param>
         public void AddCommands(IEnumerable<DcsDraftCommand> commands)
         {
+            if (_editSuspensions > 0) throw new InvalidOperationException(SuspendedMessage);
             ArgumentNullException.ThrowIfNull(commands);
             foreach (var command in commands)
             {
@@ -91,6 +102,7 @@ namespace Heimdall.Application
         public DraftResult Assign(DcsDraftAssignmentSlot destination, DcsDraftCommand command,
                                   OccupiedDestinationBehavior behavior, DraftConflictChoice? choice = null)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!Validate(destination, command, out var reason))
                 return Block(reason);
             _current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var existing);
@@ -128,6 +140,7 @@ namespace Heimdall.Application
         /// <returns>One undoable operation or a blocked result.</returns>
         public DraftResult Swap(DcsDraftAssignmentSlot source, DcsDraftAssignmentSlot destination)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!SameContext(source, destination, out var reason))
                 return Block(reason);
             if (DcsInputKey.PhysicalSlotKey(source) == DcsInputKey.PhysicalSlotKey(destination))
@@ -148,6 +161,7 @@ namespace Heimdall.Application
         /// <returns>An undoable operation or a blocked result.</returns>
         public DraftResult TuneAxis(DcsDraftAssignmentSlot slot, AxisFilter? filter)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!ValidateSlot(slot, out var reason))
                 return Block(reason);
             if (slot.Section != BindingSection.Axis)
@@ -169,6 +183,7 @@ namespace Heimdall.Application
         /// <returns>Before/after record or an unchanged result.</returns>
         public DraftResult Remove(DcsDraftAssignmentSlot slot)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!ValidateSlot(slot, out var reason))
                 return Block(reason);
             return _current.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var prior) ? Commit("Remove", [new(slot, prior, null)])
@@ -179,6 +194,7 @@ namespace Heimdall.Application
         /// <returns>Before/after record or an unchanged result.</returns>
         public DraftResult Restore(DcsDraftAssignmentSlot slot)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!ValidateSlot(slot, out var reason))
                 return Block(reason);
             _current.TryGetValue(DcsInputKey.PhysicalSlotKey(slot), out var prior);
@@ -189,6 +205,7 @@ namespace Heimdall.Application
         /// <returns>The reversed operation or an unchanged result.</returns>
         public DraftResult Undo()
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (_history.Count == 0)
                 return Unchanged();
             var last = _history[^1];
@@ -203,6 +220,7 @@ namespace Heimdall.Application
         /// <summary>Discards the whole draft and restores the imported snapshot.</summary>
         public void Discard()
         {
+            if (_editSuspensions > 0) throw new InvalidOperationException(SuspendedMessage);
             var changed = HasChanges;
             _current.Clear();
             foreach (var (key, value) in _original)
@@ -215,6 +233,7 @@ namespace Heimdall.Application
         private DraftResult Transfer(DcsDraftAssignmentSlot source, DcsDraftAssignmentSlot destination,
                                      OccupiedDestinationBehavior behavior, DraftConflictChoice? choice, bool copy)
         {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!SameContext(source, destination, out var reason))
                 return Block(reason);
             if (!_current.TryGetValue(DcsInputKey.PhysicalSlotKey(source), out var incoming))

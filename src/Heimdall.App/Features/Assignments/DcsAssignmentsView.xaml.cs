@@ -1019,9 +1019,13 @@ namespace Heimdall.App.Features.Assignments
 
         private void DiscardClicked(object sender, RoutedEventArgs e)
         {
-            _context?.Discard();
-            RefreshDiagram();
-            SelectedCallout.Text = "Pending edits discarded.";
+            try
+            {
+                _context?.Discard();
+                RefreshDiagram();
+                SelectedCallout.Text = "Pending edits discarded.";
+            }
+            catch (Exception error) { SelectedCallout.Text = "Discard failed: " + error.Message; }
         }
 
         internal Action<AxisTuningWindow>? AxisTuningPresenter { get; set; }

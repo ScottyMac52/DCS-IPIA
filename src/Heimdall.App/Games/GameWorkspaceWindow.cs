@@ -104,15 +104,23 @@ namespace Heimdall.App.Games
         /// <summary>Serializes asynchronous workspace actions and restores common availability even after failure.</summary>
         protected async Task RunWorkspaceActionAsync(Func<Task> action)
         {
-            if (_runningAction || _closed) return;
+            if (_closed) throw new InvalidOperationException("The workspace is closed.");
+            if (_runningAction) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
             _runningAction = true;
-            RefreshWorkspaceState();
-            try { await action(); }
+            try
+            {
+                RefreshWorkspaceState();
+                await action();
+            }
             finally { _runningAction = false; RefreshWorkspaceState(); }
         }
 
         /// <summary>Saves through the adapter hook using the common action lifetime.</summary>
-        protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(SaveWorkspaceCoreAsync);
+        protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(() =>
+        {
+            if (!CanSaveWorkspace) throw new InvalidOperationException("This workspace cannot currently be saved.");
+            return SaveWorkspaceCoreAsync();
+        });
 
         /// <summary>Executes the shared Save button path and displays failures without losing pending state.</summary>
         protected async void SaveClicked(object sender, RoutedEventArgs e)
@@ -124,7 +132,8 @@ namespace Heimdall.App.Games
         /// <summary>Executes the shared Discard button path through the adapter's restoration hook.</summary>
         protected internal void DiscardClicked(object sender, RoutedEventArgs e)
         {
-            if (_runningAction || _closed) return;
+            if (_closed) throw new InvalidOperationException("The workspace is closed.");
+            if (_runningAction) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
             DiscardWorkspaceCore();
             RefreshWorkspaceState();
         }

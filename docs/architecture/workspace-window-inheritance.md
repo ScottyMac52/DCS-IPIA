@@ -48,6 +48,16 @@ are released only after a successful close. Feature factories run once per windo
 availability is re-evaluated before reusing a cached view. Common chrome is
 refreshed after both successful and failed asynchronous actions.
 
+Blocked Save/Discard calls throw instead of completing as if persistence succeeded.
+The base rejects overlapping or closed-window actions; saving a workspace without
+write access also fails explicitly. DCS disables its feature content/actions while
+saving, including after feature navigation. `DcsWorkspaceSession` guards label,
+structure and discard operations and holds a `DcsDraftAssignmentService.SuspendEditing`
+lease across persistence. The draft blocks every mutation path, including cached
+references, until all leases release. Failure retains the original pending state
+and undo history; success establishes the persisted baseline before editing resumes.
+The delayed-repository Windows smoke covers both outcomes and concurrent callers.
+
 DCS retains its existing two-choice close prompt and three-choice switch prompt.
 The `DcsWindowContext` API and constructor parameter contract remain compatible
 with existing callers; the DCS window type is now named `DcsModuleWorkspaceWindow`.

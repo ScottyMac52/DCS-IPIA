@@ -340,6 +340,52 @@ namespace Heimdall.Tests
                                                            uiCommand, OccupiedDestinationBehavior.Ask)
                                                    .Outcome);
         }
+        /// <summary>Persistence suspends every write path without losing assignments, undo history or dirty state.</summary>
+        [Fact]
+        public void Suspended_draft_blocks_all_mutations_until_the_save_releases_it()
+        {
+            var (service, source, target, _, first, _) = Fixture();
+            service.Remove(source);
+            var before = service.Snapshot.ToArray();
+            var history = service.History.ToArray();
+            var notifications = 0;
+            service.Changed += (_, _) => notifications++;
+            using (service.SuspendEditing())
+            {
+                var results = new[]
+                {
+                    service.Assign(source, first, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Move(target, source, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Copy(target, source, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Swap(source, target), service.TuneAxis(source, null),
+                    service.Remove(target), service.Restore(source), service.Undo()
+                };
+                Assert.All(results, result => Assert.Equal(DraftOutcome.Blocked, result.Outcome));
+                Assert.Throws<InvalidOperationException>(() => service.AddCommands([first]));
+                Assert.Throws<InvalidOperationException>(service.Discard);
+                Assert.Equal(before, service.Snapshot);
+                Assert.Equal(history, service.History);
+                Assert.True(service.HasChanges);
+                Assert.Equal(0, notifications);
+            }
+            Assert.Equal(DraftOutcome.Applied, service.Undo().Outcome);
+            Assert.False(service.HasChanges);
+            service.AddCommands([first]);
+            service.Discard();
+        }
+
+        /// <summary>Nested suspensions cannot unlock each other and a lease can safely be disposed twice.</summary>
+        [Fact]
+        public void Editing_resumes_only_after_every_save_lease_is_released()
+        {
+            var (service, source, _, _, _, _) = Fixture();
+            var outer = service.SuspendEditing();
+            var inner = service.SuspendEditing();
+            outer.Dispose(); outer.Dispose();
+            Assert.Equal(DraftOutcome.Blocked, service.Remove(source).Outcome);
+            inner.Dispose();
+            Assert.Equal(DraftOutcome.Applied, service.Remove(source).Outcome);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static (DcsDraftAssignmentService Service, DcsDraftAssignmentSlot Source, DcsDraftAssignmentSlot Target,
