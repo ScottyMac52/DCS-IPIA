@@ -38,6 +38,7 @@ namespace Heimdall.App.Features.Assignments
             AssignmentWorkspace.Name = "AssignmentWorkspace";
             RegisterName("AssignmentWorkspace", AssignmentWorkspace);
             WorkspaceLayout.SetKey(AssignmentWorkspace, "assignments.split");
+            ControllerHeader.SizeChanged += (_, _) => ControllerReserveHeight = ControllerHeader.ActualHeight + 160;
             AssignmentWorkspace.AllowDrop = true;
             _inspector = new(_state, InputPicker, SelectedCallout, InspectorDetails, LabelEditor, GenericControlName,
                 RenameGenericControlButton, RefreshAssignmentActions);

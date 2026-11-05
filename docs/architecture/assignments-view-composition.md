@@ -13,7 +13,7 @@ workspace types.
 | `CommandsPanel` | A command browser; no required command or catalog model |
 | `ControllerPanel` | A drawing, physical-input list or another native controller presentation |
 | `EditorPanel` | Native assignment fields; DCS uses the existing `GameAssignmentEditorView` frame |
-| Shared split and local adorner layer | Native content, drag handlers and persisted layout key |
+| Shared split, local adorner layer and bounded inspector scrolling | Native content, drag handlers, persisted layout key and `ControllerReserveHeight` |
 | `RefreshAssignments` | `RefreshAssignmentsCore`; recursive selection events are suppressed |
 | `BindAssignmentChanges` | Subscribe/unsubscribe callbacks for the current workspace's event |
 | `ExecuteAssignment` | Fresh `CaptureAssignmentContext`, `CaptureAssignmentSnapshot`, an immutable target, a native mutation callback and optional native review |
@@ -97,3 +97,22 @@ continue to come from the same source actions.
 and recovery on widening, overlap and native action routing at 1100, 700 and 420
 window widths, default/custom toolbar styles and 12/18-DIP fonts. These WPF checks
 require execution on Windows.
+
+## Compact controller and inspector allocation
+
+The shared base bounds the inspector's visible height before allocating the
+controller's star row. `ControllerReserveHeight` requests space for the native
+controller panel; the inspector uses its natural height when it fits and scrolls
+when it would otherwise consume the reserved controller area. A 32-DIP inspector
+viewport remains available when the whole pane is shorter than the requested
+reservation. Games supply their own reservation without adding native geometry
+rules to the base.
+
+DCS updates that reservation from the actual controller header height plus 160
+DIPs for its drawing area. This tracks header wrapping and status expansion while
+retaining the existing smoke requirement of at least 150 DIPs for the drawing at
+the compact test size. The inspector fields remain reachable by scrolling.
+`AssignmentsPanelLayoutSmoke` exercises a tall, game-neutral inspector at compact
+and expanded sizes and two font sizes, checks that the drawing and inspector do
+not overlap, and scrolls the last native field into view. The original DCS compact
+assertion remains in place and now reports measured geometry on failure.

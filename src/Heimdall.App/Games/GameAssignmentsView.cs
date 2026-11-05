@@ -15,6 +15,9 @@ namespace Heimdall.App.Games
             { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly ContentControl _editor = new()
             { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        private readonly Grid _right = new() { Margin = new Thickness(6, 0, 0, 0) };
+        private readonly ScrollViewer _editorViewport = new()
+            { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, CanContentScroll = false };
         private Action<EventHandler>? _subscribe;
         private Action<EventHandler>? _unsubscribe;
         private bool _subscribed;
@@ -25,19 +28,31 @@ namespace Heimdall.App.Games
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
         {
-            var right = new Grid { Margin = new Thickness(6, 0, 0, 0) };
-            right.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star), MinHeight = 100 });
-            right.RowDefinitions.Add(new() { Height = GridLength.Auto });
-            Grid.SetRow(_editor, 1);
-            right.Children.Add(_controller); right.Children.Add(_editor);
-            Grid.SetColumn(right, 2);
-            AssignmentWorkspace.Children.Add(_commands); AssignmentWorkspace.Children.Add(right);
+            _right.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star), MinHeight = 100 });
+            _right.RowDefinitions.Add(new() { Height = GridLength.Auto });
+            _editorViewport.Content = _editor;
+            Grid.SetRow(_editorViewport, 1);
+            _right.Children.Add(_controller); _right.Children.Add(_editorViewport);
+            _right.SizeChanged += (_, _) => UpdatePanelAllocation();
+            Grid.SetColumn(_right, 2);
+            AssignmentWorkspace.Children.Add(_commands); AssignmentWorkspace.Children.Add(_right);
             Content = new AdornerDecorator { Child = AssignmentWorkspace };
             Loaded += (_, _) => { _unmounted = false; Attach(); RefreshAssignments(); };
             Unloaded += (_, _) => { _unmounted = true; Detach(); };
         }
 
         #region BEGIN Public
+        /// <summary>Identifies the requested controller-panel reservation before the inspector may grow.</summary>
+        public static readonly DependencyProperty ControllerReserveHeightProperty = DependencyProperty.Register(
+            nameof(ControllerReserveHeight), typeof(double), typeof(GameAssignmentsView),
+            new PropertyMetadata(180d, (owner, _) => ((GameAssignmentsView)owner).UpdatePanelAllocation()),
+            value => double.IsFinite((double)value) && (double)value >= 0);
+        /// <summary>Gets or sets controller space to preserve when possible; the inspector scrolls within the remaining height.</summary>
+        public double ControllerReserveHeight
+        {
+            get => (double)GetValue(ControllerReserveHeightProperty);
+            set => SetValue(ControllerReserveHeightProperty, value);
+        }
         /// <summary>Identifies the game-supplied command browser panel.</summary>
         public static readonly DependencyProperty CommandsPanelProperty = DependencyProperty.Register(
             nameof(CommandsPanel), typeof(UIElement), typeof(GameAssignmentsView),
@@ -136,6 +151,13 @@ namespace Heimdall.App.Games
             catch (Exception error) { ShowAssignmentStatus("Discard failed: " + error.Message); return false; }
         }
         #region BEGIN private helpers
+        private void UpdatePanelAllocation()
+        {
+            var available = _right.ActualHeight;
+            if (available <= 0) return;
+            // Keep the inspector reachable even when the entire pane is shorter than the requested reservation.
+            _editorViewport.MaxHeight = Math.Min(available, Math.Max(32, available - ControllerReserveHeight));
+        }
         private void Changed(object? sender, EventArgs args) => RefreshAssignments();
         private void Attach()
         {

@@ -11,6 +11,7 @@ namespace Heimdall.App.Smoke
         #region BEGIN Public
         internal static void Verify()
         {
+            AssignmentsPanelLayoutSmoke.Verify();
             var source = new AssignmentChangeSource();
             var replacement = new AssignmentChangeSource();
             var view = new AssignmentsBaseProbe();

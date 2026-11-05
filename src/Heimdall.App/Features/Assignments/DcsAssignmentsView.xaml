@@ -9,7 +9,7 @@
  <games:GameAssignmentsView.ControllerPanel>
    <Grid>
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="100"/></Grid.RowDefinitions>
-    <StackPanel>
+    <StackPanel x:Name="ControllerHeader">
      <Expander Header="Device status"><TextBlock x:Name="StatusText" TextWrapping="Wrap"/></Expander>
                 <WrapPanel Margin="0,0,0,4">
                     <TextBlock Text="Device:" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource AppLabel}"/>
