@@ -1,9 +1,9 @@
-# Workspace window inheritance — DCS first
+# Workspace window inheritance
 
-This change implements the requested base architecture and migrates DCS only.
-Elite Dangerous, Squadrons and War Thunder retain their existing windows and code.
-Their later migration must reuse these algorithms through overrides or registered
-callbacks rather than copying the DCS window.
+The shared base architecture now supports DCS and Elite Dangerous through native
+overrides and registered callbacks. Squadrons and War Thunder retain their existing
+windows and code. Their later migration must reuse these algorithms rather than
+copying either native window.
 
 ## Ownership
 
@@ -82,8 +82,8 @@ Architecture acceptance is separate from behavior acceptance:
   overlapping-operation rejection, canceled closing and cleanup.
 - Existing DCS consumer, draft notification, output/logging, edition, training,
   labels, controller selection and cached-feature smoke checks remain required.
-- Source review must confirm that the other three game implementations are
-  unchanged. None is claimed to have migrated in this change.
+- Each migration must leave consumers outside its scope unchanged. The ED
+  follow-up migrates ED; Squadrons and War Thunder remain on their existing windows.
 
 Linux can cross-compile the application and smoke project with:
 
@@ -109,3 +109,6 @@ is inferred from a coverage number or a passing native round-trip test.
 Assignment features now have a corresponding composable base; see
 [assignment-view composition](assignments-view-composition.md) for shared functions,
 DCS collaborators and the native override contract.
+
+[Elite Dangerous inheritance](elite-workspace-inheritance.md) documents the ED
+consumer, native collaborators, inspector integration and runtime acceptance.

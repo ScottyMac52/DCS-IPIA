@@ -1,10 +1,13 @@
 using System.Windows.Controls;
+using System.Text.Json;
+using Heimdall.Application;
+using Heimdall.App.Games.Elite;
 using Heimdall.Application.Games;
 
 namespace Heimdall.App.Games
 {
     /// <summary>Composes independent command, artwork and selected-input surfaces without owning binding rules.</summary>
-    public partial class EliteAssignmentsView : UserControl
+    public partial class EliteAssignmentsView : GameAssignmentsView
     {
         #region BEGIN Public
         /// <summary>Creates the feature and connects the selected command across component namescopes.</summary>
@@ -12,6 +15,14 @@ namespace Heimdall.App.Games
         {
             InitializeComponent();
             SelectionEditor.SetEditor(_editor);
+            AssignmentWorkspace.Name = "AuthoringPanel";
+            RegisterName("AuthoringPanel", AssignmentWorkspace);
+            WorkspaceLayout.SetKey(AssignmentWorkspace, "elite.assignments.split");
+            AssignmentInspectorViewport.Name = "AssignmentInspectorScroll";
+            RegisterName("AssignmentInspectorScroll", AssignmentInspectorViewport);
+            ControllerReserveHeight = 240;
+            Artwork.Loaded += (_, _) => UpdateControllerReservation();
+            Artwork.DiagramScroll.SizeChanged += (_, _) => UpdateControllerReservation();
         }
         #endregion END Public
 
@@ -20,7 +31,47 @@ namespace Heimdall.App.Games
             CommandBrowser.Configure(inputTypes, statuses);
         internal GameAssignmentEditorView Selection => SelectionEditor;
         private readonly EliteAssignmentEditorView _editor = new();
+        private EliteWorkspaceContext? _context;
+        private Action? _refresh;
+        private Action? _drawingRefresh;
+        private Action<string>? _status;
+        private Func<Task>? _save;
+        private Action? _discard;
+        internal void Initialize(EliteWorkspaceContext context, Action refresh, Action drawingRefresh,
+            Func<Task> save, Action discard, Action<string> status)
+        {
+            _context = context; _refresh = refresh; _drawingRefresh = drawingRefresh;
+            _save = save; _discard = discard; _status = status;
+            BindAssignmentChanges(handler => context.Changed += handler, handler => context.Changed -= handler);
+        }
+        internal void RefreshNativeAssignments() => RefreshAssignments();
+        internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
+            WorkspaceAssignmentActionState.For(action, CurrentAssignmentContext, new(true, ready, reason));
+        internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>
+            ExecuteAssignment(new(CurrentAssignmentContext.Scope, command, input, alternative),
+                () => { apply(); return new(DraftOutcome.Applied, ""); }, review);
+        protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context?.AssignmentContext ?? new("", false, false, false, false);
+        protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(_context?.Session?.Snapshot);
+        protected override Task SaveAssignmentsCoreAsync() => _save?.Invoke() ?? throw new InvalidOperationException("Open an Elite workspace before saving.");
+        protected override void DiscardAssignmentsCore()
+        {
+            if (_discard is null) throw new InvalidOperationException("Open an Elite workspace before discarding.");
+            _discard();
+        }
+        protected override void RefreshAssignmentsCore() => _refresh?.Invoke();
+        protected override void RefreshAssignmentDrawing() => _drawingRefresh?.Invoke();
+        protected override void ShowAssignmentStatus(string message)
+        {
+            AssignmentDraftStatus.Text = message; _status?.Invoke(message);
+        }
         #region BEGIN private helpers
+        private void UpdateControllerReservation()
+        {
+            var viewport = Artwork.DiagramScroll;
+            if (!Artwork.IsLoaded || viewport.Visibility != System.Windows.Visibility.Visible || viewport.ActualHeight <= 0) return;
+            var chrome = Artwork.ActualHeight - viewport.ActualHeight;
+            ControllerReserveHeight = Math.Max(180, chrome + 160);
+        }
         internal ComboBox CommandCategoryPicker => CommandBrowser.CommandCategoryPicker;
         internal ComboBox CommandTypePicker => CommandBrowser.CommandTypePicker;
         internal Button ClearCommandFiltersButton => CommandBrowser.ClearCommandFiltersButton;

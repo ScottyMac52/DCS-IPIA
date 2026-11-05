@@ -75,6 +75,8 @@ namespace Heimdall.App.Games
 
         /// <summary>Gets the common geometry for native drag feedback and persisted splitter configuration.</summary>
         protected GameWorkspaceSplit AssignmentWorkspace { get; } = new() { Margin = new Thickness(4), Background = System.Windows.Media.Brushes.Transparent };
+        /// <summary>Gets the common inspector viewport for native namescope compatibility and focus checks.</summary>
+        protected ScrollViewer AssignmentInspectorViewport => _editorViewport;
         /// <summary>Gets the common selection state reused by adapter action policies.</summary>
         protected internal GameAssignmentSelection AssignmentSelection { get; } = new();
         /// <summary>Gets the common execution boundary shared by all native entry points.</summary>

@@ -35,6 +35,7 @@ namespace Heimdall.App.Smoke
                     Enumerable.Range(27, 3).Select(number => new ControllerObject(Guid.NewGuid(),
                         (uint)((number - 1) * 256 + 4), "Button " + number.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray());
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
+                EliteInheritanceSmoke.Verify(root);
                 EliteConfigurationsSmoke.Verify(root);
                 EliteSystemInputSmoke.Verify(root);
                 VerifyCards(root, services);
