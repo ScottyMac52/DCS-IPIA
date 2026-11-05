@@ -7,7 +7,7 @@ using Heimdall.Domain;
 namespace Heimdall.Tests.Fakes
 {
     /// <summary>Represents memory repository.</summary>
-    internal sealed class MemoryRepository : IModuleRepository
+    internal sealed class MemoryRepository : IDcsModuleRepository
     {
         private readonly Dictionary<Guid, DcsModule> values = [];
         #region BEGIN Public

@@ -23,34 +23,34 @@ namespace Heimdall.App
         public static async Task VerifyAsync(string folder, UserMappingRevision revision)
         {
             var connection = new SqliteConnectionStringBuilder { DataSource = Path.Combine(folder, "ipia.db"), Pooling = false }.ToString();
-            var repository = new SqliteEditorWorkspaceRepository(connection);
+            var repository = new DcsSqliteEditorWorkspaceRepository(connection);
             var manifest = Path.Combine(folder, "release-user-data.json");
             if (!File.Exists(manifest))
             {
                 if ((await repository.ListAsync()).Count != 0) throw new InvalidDataException("Acceptance profile has modules but no baseline evidence.");
-                var defaults = await new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
-                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var bundled = NewModuleWorkspaceFactory.Create("RELEASE-BUNDLED", "Bundled acceptance", defaults, hardware);
+                var defaults = await new DcsSqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(await DcsSharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var bundled = DcsNewModuleWorkspaceFactory.Create("RELEASE-BUNDLED", "Bundled acceptance", defaults, hardware);
                 // Explicit fixture review exercises the same binding safeguard as a user's saved module.
-                foreach (var device in WorkspaceStructureEditor.Describe(bundled).Devices.DistinctBy(x => x.ProfileId).ToArray())
-                    bundled = WorkspaceStructureEditor.RebindDevice(bundled, device, device.FileName, device.Instance, device.Role);
+                foreach (var device in DcsWorkspaceStructureEditor.Describe(bundled).Devices.DistinctBy(x => x.ProfileId).ToArray())
+                    bundled = DcsWorkspaceStructureEditor.RebindDevice(bundled, device, device.FileName, device.Instance, device.Role);
                 await repository.SaveAsync(bundled);
                 var unit = new HardwareInventoryInstance(Guid.NewGuid(), "Acceptance panel", revision.Definition.Id, "Pilot panel", "Pilot", true, []);
                 await new SqliteHardwareInventoryRepository(connection).SaveAsync(new(1, [revision.Definition], [unit], []));
                 var choice = new InventoryHardwareChoice(unit, revision.Definition);
                 foreach (var custom in new[] { false, true })
                 {
-                    var workspace = NewModuleWorkspaceFactory.Create(custom ? "RELEASE-CUSTOM" : "RELEASE-GENERIC",
+                    var workspace = DcsNewModuleWorkspaceFactory.Create(custom ? "RELEASE-CUSTOM" : "RELEASE-GENERIC",
                         custom ? "Custom acceptance" : "Generic acceptance", defaults, hardware, true);
-                    workspace = InventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module);
-                    var command = new DraftCommand("d3001pnilu3001cdnilvd1vpnilvunil", "Acceptance button", false, AssignmentLayer.Module);
+                    workspace = DcsInventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module);
+                    var command = new DcsDraftCommand("d3001pnilu3001cdnilvd1vpnilvunil", "Acceptance button", false, AssignmentLayer.Module);
                     workspace = workspace with
                     {
                         ModuleCommands = [new(command.Id, command.Name, "Acceptance", false)],
                         Assignments = [new(new(workspace.Configuration.Module.Id, workspace.Configuration.Profiles.Single().Id,
                             AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1"), command)]
                     };
-                    if (custom) workspace = UserMappingAdoption.Apply(workspace, workspace.Configuration.Profiles.Single().Id, revision);
+                    if (custom) workspace = DcsUserMappingAdoption.Apply(workspace, workspace.Configuration.Profiles.Single().Id, revision);
                     await repository.SaveAsync(workspace);
                 }
                 File.WriteAllText(manifest, JsonSerializer.Serialize(await Evidence(repository, folder)));
@@ -64,7 +64,7 @@ namespace Heimdall.App
                 throw new InvalidDataException("Saved acceptance snapshot/Lua/PNG evidence changed: " + string.Join(", ", changed));
             var readOnly = new SqliteConnectionStringBuilder(connection) { Mode = SqliteOpenMode.ReadOnly }.ToString();
             var reports = new SupportReportService(new SqliteSupportDatabaseInspector(readOnly),
-                new SqliteHardwareInventoryRepository(readOnly), new SqliteEditorWorkspaceRepository(readOnly, false),
+                new SqliteHardwareInventoryRepository(readOnly), new DcsSqliteEditorWorkspaceRepository(readOnly, false),
                 new FileUserMappingLibrary(folder), typeof(App).Assembly.GetName().Version!, SqliteMigrationRunner.CurrentVersion);
             var report = JsonSerializer.Deserialize<SupportReport>(await reports.CaptureAsync())!;
             if (report.Failures.Count != 0 || report.Modules?.Count != 3 || report.CustomMappingRevisions != 1 ||
@@ -73,7 +73,7 @@ namespace Heimdall.App
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static async Task<SortedDictionary<string, string>> Evidence(SqliteEditorWorkspaceRepository repository, string folder)
+        private static async Task<SortedDictionary<string, string>> Evidence(DcsSqliteEditorWorkspaceRepository repository, string folder)
         {
             var evidence = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var id in await repository.ListAsync())
@@ -82,7 +82,7 @@ namespace Heimdall.App
                 GenericHardwareLayout.ValidateWorkspace(workspace);
                 var name = workspace.Configuration.Module.DcsId;
                 evidence[name + "/snapshot"] = Hash(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(workspace)));
-                var payload = SnapshotLuaPayloadRenderer.Generate(workspace);
+                var payload = DcsSnapshotLuaPayloadRenderer.Generate(workspace);
                 foreach (var (path, bytes) in payload) evidence[name + "/lua/" + path] = Hash(bytes);
                 foreach (var diagram in workspace.Diagrams)
                 {

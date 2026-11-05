@@ -21,7 +21,7 @@ namespace Heimdall.Tests
         public async Task Service_exposes_crud()
         {
             var repo = new MemoryRepository();
-            var service = new ModuleService(repo);
+            var service = new DcsModuleService(repo);
             var generated = await service.SaveAsync(new(null, "F-14", "Tomcat"));
             Assert.NotEqual(Guid.Empty, generated.Id);
             var id = Guid.NewGuid();

@@ -15,10 +15,10 @@ namespace Heimdall.Tests
         {
             var id = Guid.NewGuid();
             var module = Guid.NewGuid();
-            var slot = new DraftAssignmentSlot(module, id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", "A+B");
-            var workspace = new EditorWorkspaceSnapshot(new(new(module, "DOCS", "Guide aircraft"), [], [], [], "local source"),
+            var slot = new DcsDraftAssignmentSlot(module, id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", "A+B");
+            var workspace = new DcsEditorWorkspaceSnapshot(new(new(module, "DOCS", "Guide aircraft"), [], [], [], "local source"),
                 [], [], [], [], [], [], new Dictionary<string, string> { [slot.Key] = "Pitch | <script>\n*[link](url)" });
-            var profile = new ModuleDocumentationProfile("Config/Input/DOCS/joystick/Stick.diff.lua", id,
+            var profile = new DcsModuleDocumentationProfile("Config/Input/DOCS/joystick/Stick.diff.lua", id,
                 [new(id, BindingSection.Axis, "axis", "Pitch", BindingDisposition.Changed, "JOY_X", ["B", "A"],
                     new(Deadzone: 3, SaturationX: 90, SaturationY: 95, Curvature: [12, 15], Invert: true, Slider: false,
                         HardwareDetent: false, HardwareDetentAB: 40, HardwareDetentMax: 80)),
@@ -27,9 +27,9 @@ namespace Heimdall.Tests
                 [new("A", "Keyboard", "LShift", ModifierMode.Hold)]);
             var sources = new Dictionary<string, string> { ["LICENSE.txt"] = "Captured license\r\nCopyright | holder\n```", ["metadata.json"] = "{}" };
             workspace = workspace with { Sources = sources };
-            var defaults = new ModuleDocumentationProfile("default/Keyboard.diff.lua", null,
+            var defaults = new DcsModuleDocumentationProfile("default/Keyboard.diff.lua", null,
                 [new(id, BindingSection.Key, "pause", "Pause", BindingDisposition.Added, "Pause")], []);
-            var guides = ModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]);
+            var guides = DcsModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]);
             Assert.Equal(GuideNames, guides.Keys);
             var controls = guides["CONTROL-MAPPINGS.md"];
             Assert.Contains("Pitch \\| &lt;script&gt;<br>\\*\\[link\\](url)", controls, StringComparison.Ordinal);
@@ -43,27 +43,27 @@ namespace Heimdall.Tests
             Assert.Contains("HEIMDALL rendering font license", guides["THIRD-PARTY-ASSETS.md"], StringComparison.Ordinal);
             Assert.DoesNotContain("VAICOM", string.Concat(guides.Values), StringComparison.Ordinal);
             Assert.DoesNotContain("\r", string.Concat(guides.Values), StringComparison.Ordinal);
-            Assert.Equal(guides.OrderBy(x => x.Key), ModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]).OrderBy(x => x.Key));
+            Assert.Equal(guides.OrderBy(x => x.Key), DcsModuleDocumentationRenderer.Render(workspace, "1.2", "digest", [profile], [defaults]).OrderBy(x => x.Key));
         }
 
         /// <summary>Only explicit, valid captured metadata adds an integration guide.</summary>
         [Fact]
         public void Integrations_require_explicit_module_metadata_and_instructions()
         {
-            var workspace = new EditorWorkspaceSnapshot(new(new(Guid.NewGuid(), "DOCS", "Guide aircraft"), [], [], [], "local"),
+            var workspace = new DcsEditorWorkspaceSnapshot(new(new(Guid.NewGuid(), "DOCS", "Guide aircraft"), [], [], [], "local"),
                 [], [], [], [], [], [], new Dictionary<string, string>());
-            var empty = ModuleDocumentationRenderer.Render(workspace, "1", "digest", [], []);
+            var empty = DcsModuleDocumentationRenderer.Render(workspace, "1", "digest", [], []);
             Assert.DoesNotContain("INTEGRATIONS.md", empty.Keys);
             Assert.Contains("No license or attribution statement", empty["THIRD-PARTY-ASSETS.md"], StringComparison.Ordinal);
-            EditorWorkspaceSnapshot With(string value) => workspace with { Sources = new Dictionary<string, string> { ["config/integrations.json"] = value } };
-            var declared = ModuleDocumentationRenderer.Render(With("""{"schemaVersion":1,"integrations":[{"name":"OpenKneeboard","instructions":"Use the declared folder.\nKeep this custom mapping."}]}"""), "1", "digest", [], []);
+            DcsEditorWorkspaceSnapshot With(string value) => workspace with { Sources = new Dictionary<string, string> { ["config/integrations.json"] = value } };
+            var declared = DcsModuleDocumentationRenderer.Render(With("""{"schemaVersion":1,"integrations":[{"name":"OpenKneeboard","instructions":"Use the declared folder.\nKeep this custom mapping."}]}"""), "1", "digest", [], []);
             Assert.Contains("OpenKneeboard", declared["INTEGRATIONS.md"], StringComparison.Ordinal);
             Assert.Contains("INTEGRATIONS.md", declared["README.md"], StringComparison.Ordinal);
-            Assert.Throws<InvalidDataException>(() => ModuleDocumentationRenderer.Render(With("""{"schemaVersion":2,"integrations":[]}"""), "1", "digest", [], []));
-            Assert.Throws<InvalidDataException>(() => ModuleDocumentationRenderer.Render(With("""{"schemaVersion":1,"integrations":[{"name":"VAICOM","instructions":" "}]}"""), "1", "digest", [], []));
-            Assert.Throws<ArgumentNullException>(() => ModuleDocumentationRenderer.Render(null!, "1", "digest", [], []));
-            Assert.Throws<ArgumentNullException>(() => ModuleDocumentationRenderer.Render(workspace, "1", "digest", null!, []));
-            Assert.Throws<ArgumentNullException>(() => ModuleDocumentationRenderer.Render(workspace, "1", "digest", [], null!));
+            Assert.Throws<InvalidDataException>(() => DcsModuleDocumentationRenderer.Render(With("""{"schemaVersion":2,"integrations":[]}"""), "1", "digest", [], []));
+            Assert.Throws<InvalidDataException>(() => DcsModuleDocumentationRenderer.Render(With("""{"schemaVersion":1,"integrations":[{"name":"VAICOM","instructions":" "}]}"""), "1", "digest", [], []));
+            Assert.Throws<ArgumentNullException>(() => DcsModuleDocumentationRenderer.Render(null!, "1", "digest", [], []));
+            Assert.Throws<ArgumentNullException>(() => DcsModuleDocumentationRenderer.Render(workspace, "1", "digest", null!, []));
+            Assert.Throws<ArgumentNullException>(() => DcsModuleDocumentationRenderer.Render(workspace, "1", "digest", [], null!));
         }
         #endregion END Public
         #region BEGIN private helpers

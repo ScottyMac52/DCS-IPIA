@@ -11,10 +11,10 @@ namespace Heimdall.Application
         /// <summary>Imports one or more DCS-generated HTML exports for the selected aircraft.</summary>
         /// <param name="files">Filename and HTML content for each selected device export.</param>
         /// <returns>Distinct assignable commands whose category comes from the DCS category column.</returns>
-        public static IReadOnlyList<CommandPaletteEntry> Parse(IEnumerable<(string FileName, string Html)> files)
+        public static IReadOnlyList<DcsCommandPaletteEntry> Parse(IEnumerable<(string FileName, string Html)> files)
         {
             ArgumentNullException.ThrowIfNull(files);
-            var result = new Dictionary<string, CommandPaletteEntry>(StringComparer.Ordinal);
+            var result = new Dictionary<string, DcsCommandPaletteEntry>(StringComparer.Ordinal);
             var any = false;
             foreach (var (fileName, html) in files)
             {
@@ -51,7 +51,7 @@ namespace Heimdall.Application
                     var categories =
                         cells[2].Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                     var category = categories.Length == 0 ? "Uncategorized" : string.Join(" / ", categories);
-                    var entry = new CommandPaletteEntry(id, cells[1], category, axis);
+                    var entry = new DcsCommandPaletteEntry(id, cells[1], category, axis);
                     if (result.TryGetValue(id, out var prior) && prior != entry)
                         throw new InvalidDataException(
                             $"{fileName}: conflicting name, category or type for command '{id}'.");

@@ -91,7 +91,7 @@ smoke executable.
 Scenario narration/targets/checkpoints live in versioned JSON under
 `src/Heimdall.App/Training/Assets`. Assets are embedded in the application assembly,
 so installed and portable distributions do not depend on source-tree paths.
-Only actions registered in `TrainingActions` can execute. Schema and metadata
+Only actions registered in `DcsTrainingActions` can execute. Schema and metadata
 validation run before playback; each action verifies completion, and asynchronous
 forms/outputs have bounded waits. Delays are pacing only.
 

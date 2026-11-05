@@ -15,7 +15,7 @@ namespace Heimdall.App.Smoke
         /// <param name="source">Deterministic device source.</param>
         /// <param name="clipboard">Returns the captured clipboard payload.</param>
         /// <param name="setFailure">Controls a simulated clipboard failure.</param>
-        public static void VerifyLive(ModuleWorkspaceWindow window, FakeDeviceInputSource source,
+        public static void VerifyLive(DcsModuleWorkspaceWindow window, FakeDeviceInputSource source,
             Func<InputTestLogClipboard?> clipboard, Action<bool> setFailure)
         {
             var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
@@ -64,7 +64,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Checks that stopped logs can still be copied and cleared, with disabled empty-log actions.</summary>
         /// <param name="window">Module editor after Stop.</param>
         /// <param name="clipboard">Returns the captured clipboard payload.</param>
-        public static void VerifyStopped(ModuleWorkspaceWindow window, Func<InputTestLogClipboard?> clipboard)
+        public static void VerifyStopped(DcsModuleWorkspaceWindow window, Func<InputTestLogClipboard?> clipboard)
         {
             var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
             var clear = (Button)WorkspaceUi.Find(window, "ClearInputTestLogButton")!;

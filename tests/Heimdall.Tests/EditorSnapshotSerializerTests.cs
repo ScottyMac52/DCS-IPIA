@@ -25,62 +25,62 @@ namespace Heimdall.Tests
                                                           { "a", "Start" } },
                 Sources = new Dictionary<string, string> { { "config/z.json", "z" }, { "config/a.json", "a" } }
             };
-            var snapshot = EditorSnapshotSerializer.Serialize(first);
-            Assert.Equal(snapshot, EditorSnapshotSerializer.Serialize(reversed));
+            var snapshot = DcsEditorSnapshotSerializer.Serialize(first);
+            Assert.Equal(snapshot, DcsEditorSnapshotSerializer.Serialize(reversed));
             Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(snapshot.Content))),
                          snapshot.Sha256);
             Assert.Contains("\"assignments\"", snapshot.Content, StringComparison.Ordinal);
             Assert.Contains("\"sources\"", snapshot.Content, StringComparison.Ordinal);
             Assert.EndsWith("\n", snapshot.Content, StringComparison.Ordinal);
-            var restored = EditorSnapshotSerializer.Deserialize(snapshot);
+            var restored = DcsEditorSnapshotSerializer.Deserialize(snapshot);
             Assert.Equal(ModuleId, restored.Configuration.Module.Id);
             Assert.Equal(2, restored.Pages.Count);
             Assert.Single(restored.Images);
             Assert.Single(restored.Assignments);
             Assert.Equal("JOY_BTN1", restored.Assignments[0].Slot.InputKey);
             Assert.Equal("Edited", restored.Labels[restored.Assignments[0].Slot.Key]);
-            Assert.Equal(snapshot, EditorSnapshotSerializer.Serialize(restored));
+            Assert.Equal(snapshot, DcsEditorSnapshotSerializer.Serialize(restored));
         }
         /// <summary>Byte edits, schema changes and noncanonical formatting are rejected.</summary>
         [Fact]
         public void Rejects_tampered_or_noncanonical_snapshot()
         {
-            var snapshot = EditorSnapshotSerializer.Serialize(Workspace());
+            var snapshot = DcsEditorSnapshotSerializer.Serialize(Workspace());
             Assert.Throws<InvalidDataException>(
-                () => EditorSnapshotSerializer.Deserialize(snapshot with { Content = snapshot.Content + " " }));
+                () => DcsEditorSnapshotSerializer.Deserialize(snapshot with { Content = snapshot.Content + " " }));
             var future =
                 snapshot.Content.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 77", StringComparison.Ordinal);
-            Assert.Throws<System.Text.Json.JsonException>(() => EditorSnapshotSerializer.Deserialize(Rehash(future)));
+            Assert.Throws<System.Text.Json.JsonException>(() => DcsEditorSnapshotSerializer.Deserialize(Rehash(future)));
             Assert.Throws<InvalidDataException>(
-                () => EditorSnapshotSerializer.Deserialize(Rehash(snapshot.Content + " ")));
+                () => DcsEditorSnapshotSerializer.Deserialize(Rehash(snapshot.Content + " ")));
         }
         /// <summary>Cross-module assignments and corrupt pinned images cannot be exported.</summary>
         [Fact]
         public void Rejects_foreign_or_corrupt_workspace()
         {
             var workspace = Workspace();
-            Assert.Throws<ArgumentException>(() => EditorSnapshotSerializer.Serialize(workspace with { Assignments = [
+            Assert.Throws<ArgumentException>(() => DcsEditorSnapshotSerializer.Serialize(workspace with { Assignments = [
                 workspace.Assignments[0] with { Slot =
                                                     workspace.Assignments[0].Slot with { ModuleId = Guid.NewGuid() } }
             ] }));
             Assert.Throws<ArgumentException>(
-                () => EditorSnapshotSerializer.Serialize(
+                () => DcsEditorSnapshotSerializer.Serialize(
                     workspace with { Pages = [workspace.Pages[0] with { ModuleId = Guid.NewGuid() }] }));
             Assert.Throws<ArgumentException>(
-                () => EditorSnapshotSerializer.Serialize(
+                () => DcsEditorSnapshotSerializer.Serialize(
                     workspace with { Images = [workspace.Images[0] with { Bytes = [1, 2, 3] }] }));
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static ImmutableSnapshot Rehash(string content) =>
+        private static DcsImmutableSnapshot Rehash(string content) =>
             new(content, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content))));
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
             var module = new DcsModule(ModuleId, "UH-1H", "Huey");
-            var profile = new DeviceProfile(ProfileId, "tm-mfd", "MFD1", "left", "MFD.diff.lua");
-            var configuration = new ModuleConfiguration(module, [profile], [], [], "Huey@0123456789abcdef");
+            var profile = new DcsDeviceProfile(ProfileId, "tm-mfd", "MFD1", "left", "MFD.diff.lua");
+            var configuration = new DcsModuleConfiguration(module, [profile], [], [], "Huey@0123456789abcdef");
             var slot =
-                new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
+                new DcsDraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
             var imageBytes = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
             var image = new KneeboardImageAsset("01-MFD", "kneeboard/UH-1H/01-MFD.png", imageBytes,
                                                 Convert.ToHexStringLower(SHA256.HashData(imageBytes)));

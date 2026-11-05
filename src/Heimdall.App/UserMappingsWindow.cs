@@ -32,7 +32,7 @@ namespace Heimdall.App
         private readonly Button _review;
         private readonly Button _delete;
         private HashSet<string> _libraryRevisionIds = new(StringComparer.Ordinal);
-        private readonly IEditorWorkspaceRepository? _workspaces;
+        private readonly IDcsEditorWorkspaceRepository? _workspaces;
         private readonly Func<string?>? _starterPicker;
         private UserMappingRevision? _candidate;
         private bool _busy;
@@ -52,7 +52,7 @@ namespace Heimdall.App
             Func<string?>? sourcePicker = null, Func<string?>? exportPicker = null, IReadOnlyDictionary<string, string>? targetNames = null, IReadOnlyList<UserMappingRevision>? modulePins = null,
             string? bundledDrawingsDirectory = null, bool canDiscoverHardware = false,
             IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? bundledInputs = null,
-            IEditorWorkspaceRepository? workspaces = null, Func<string?>? starterPicker = null)
+            IDcsEditorWorkspaceRepository? workspaces = null, Func<string?>? starterPicker = null)
         {
             _library = library;
             _workspaces = workspaces; _starterPicker = starterPicker;
@@ -206,7 +206,7 @@ namespace Heimdall.App
         private void ReviewClicked(object sender, RoutedEventArgs e)
         {
             if (_workspaces is null || _revisions.SelectedItem is not UserMappingRevision revision) return;
-            new MappingRevisionReviewWindow(revision, _workspaces) { Owner = this }.ShowDialog();
+            new DcsMappingRevisionReviewWindow(revision, _workspaces) { Owner = this }.ShowDialog();
         }
         private void StarterClicked(object sender, RoutedEventArgs e)
         {
@@ -260,7 +260,7 @@ namespace Heimdall.App
             _delete.IsEnabled = !_busy && _revisions.SelectedItem is UserMappingRevision selected &&
                 _libraryRevisionIds.Contains(selected.Id);
             _starter.IsEnabled = !_busy && _definitions.SelectedValue is HardwareDefinition;
-            _review.IsEnabled = _export.IsEnabled && _workspaces is IEditorWorkspaceUpdateRepository;
+            _review.IsEnabled = _export.IsEnabled && _workspaces is IDcsEditorWorkspaceUpdateRepository;
         }
         #endregion END private helpers
     }

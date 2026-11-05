@@ -21,7 +21,7 @@ namespace Heimdall.Tests
         [InlineData("edited-tm-mfd-2.drawio")]
         public async Task Reported_drawings_import_with_all_controls_and_artwork(string file)
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!
                 .First(x => x.DeviceId == "tm-mfd");
             var inputs = hardware.Diagram.Controls.ToDictionary(x => x.Control, x => x.InputKey, StringComparer.Ordinal);

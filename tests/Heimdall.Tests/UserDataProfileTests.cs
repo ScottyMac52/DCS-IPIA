@@ -144,7 +144,7 @@ namespace Heimdall.Tests
             Directory.CreateDirectory(_root);
             var sentinel = Path.Combine(_root, "Saved Games.txt");
             File.WriteAllText(sentinel, "unchanged");
-            var service = new IsolatedFlyNowService();
+            var service = new DcsIsolatedFlyNowService();
             Assert.Null(await service.GetActiveAsync());
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeployAsync(Guid.NewGuid(), _root));
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.ClearAsync());

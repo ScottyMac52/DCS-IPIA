@@ -1,6 +1,6 @@
 # Draft assignment notifications
 
-`DraftAssignmentService.Changed` is the shared notification boundary for assignment edits. It fires synchronously once after the complete assignment snapshot and undo history have been updated by assign, remove, restore, move, copy, swap, axis tuning, or undo. A discard fires only if the assignment snapshot changes. Rejected, cancelled, unconfirmed, and unchanged operations do not publish a change.
+`DcsDraftAssignmentService.Changed` is the shared notification boundary for assignment edits. It fires synchronously once after the complete assignment snapshot and undo history have been updated by assign, remove, restore, move, copy, swap, axis tuning, or undo. A discard fires only if the assignment snapshot changes. Rejected, cancelled, unconfirmed, and unchanged operations do not publish a change.
 
 The module workspace host subscribes to its current draft and updates pending status and validate/build/export availability before publishing the existing workspace context `StateChanged` event. Replacing a draft during structural edits, save, or discard detaches the old subscription and attaches the new one. Closing the host detaches its draft subscription.
 

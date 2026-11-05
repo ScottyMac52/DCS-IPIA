@@ -100,7 +100,7 @@ def publish_html_metrics(output, metrics, errors):
 Coverage and complexity are from OpenCover. The separate quality gate enforces independent 80/80 coverage and CRAP ≤ 50 for the eight production assemblies.</p>
 <p><a href="crap-scores.csv">Download CSV</a> · <a href="crap-scores.json">Download JSON</a></p>
 <label for="ipia-method-filter">Filter assembly, class, or method:</label>
-<input id="ipia-method-filter" type="search" placeholder="e.g. ConsumerSourceImporter" />
+<input id="ipia-method-filter" type="search" placeholder="e.g. DcsConsumerSourceImporter" />
 <p id="ipia-method-count" aria-live="polite"></p>
 <div class="ipia-method-scroll"><table id="ipia-method-table">
 <thead><tr>""" + "".join(

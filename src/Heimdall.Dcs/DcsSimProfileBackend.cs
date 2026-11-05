@@ -78,12 +78,12 @@ namespace Heimdall.Dcs
         /// <param name="workspace">Existing DCS editor workspace.</param>
         /// <param name="cancellationToken">Cancellation before returning the independent document.</param>
         /// <returns>A portable profile whose native envelope can restore the complete workspace.</returns>
-        public ProfileDocument Capture(EditorWorkspaceSnapshot workspace, CancellationToken cancellationToken = default)
+        public ProfileDocument Capture(DcsEditorWorkspaceSnapshot workspace, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var snapshot = EditorSnapshotSerializer.Serialize(workspace);
-            workspace = EditorSnapshotSerializer.Deserialize(snapshot);
-            var payload = SnapshotLuaPayloadRenderer.Generate(workspace).ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.Value));
+            var snapshot = DcsEditorSnapshotSerializer.Serialize(workspace);
+            workspace = DcsEditorSnapshotSerializer.Deserialize(snapshot);
+            var payload = DcsSnapshotLuaPayloadRenderer.Generate(workspace).ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.Value));
             var profile = Import(workspace.Configuration.Module.DcsId, payload, cancellationToken);
             var commands = Read(profile).Commands;
             profile.ProfileId = workspace.Configuration.Module.Id.ToString("D");
@@ -112,12 +112,12 @@ namespace Heimdall.Dcs
         /// <param name="profile">Captured portable workspace document.</param>
         /// <param name="cancellationToken">Cancellation before returning restored state.</param>
         /// <returns>Independent workspace, including untouched assets and native removal history.</returns>
-        public static EditorWorkspaceSnapshot Restore(ProfileDocument profile, CancellationToken cancellationToken = default)
+        public static DcsEditorWorkspaceSnapshot Restore(ProfileDocument profile, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var state = Read(profile);
-            var workspace = EditorSnapshotSerializer.Deserialize(state.Workspace ?? throw new InvalidDataException("This profile has native files only; no editor workspace was captured."));
-            var assignments = new List<DraftAssignment>();
+            var workspace = DcsEditorSnapshotSerializer.Deserialize(state.Workspace ?? throw new InvalidDataException("This profile has native files only; no editor workspace was captured."));
+            var assignments = new List<DcsDraftAssignment>();
             foreach (var device in profile.Devices)
             {
                 if (!device.Identity!.SimSpecificIds.TryGetValue("dcs.profileId", out var profileId))
@@ -139,12 +139,12 @@ namespace Heimdall.Dcs
                         : original with { Filter = binding.Filter });
                 }
             }
-            var commands = state.Commands.Select(x => new DraftCommand(x.Metadata["nativeId"], x.DisplayName,
+            var commands = state.Commands.Select(x => new DcsDraftCommand(x.Metadata["nativeId"], x.DisplayName,
                 x.Type == CommandType.Axis, x.Context == "UiLayer" ? AssignmentLayer.UiLayer : AssignmentLayer.Module)).DistinctBy(x => (x.Id, x.Layer));
-            var draft = new DraftAssignmentService(workspace.Configuration, commands, assignments,
+            var draft = new DcsDraftAssignmentService(workspace.Configuration, commands, assignments,
                 Modifiers(state.Sources, "UiLayer").Select(x => x.Name));
             var restored = workspace with { Assignments = draft.Snapshot };
-            SnapshotLuaPayloadRenderer.Generate(restored);
+            DcsSnapshotLuaPayloadRenderer.Generate(restored);
             cancellationToken.ThrowIfCancellationRequested();
             return restored;
         }
@@ -172,7 +172,7 @@ namespace Heimdall.Dcs
                             RejectNonstandardSyntax(source.Value);
                         }
                     }
-                    files = SnapshotLuaPayloadRenderer.Generate(restored).ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.Value));
+                    files = DcsSnapshotLuaPayloadRenderer.Generate(restored).ToDictionary(x => x.Key, x => Encoding.UTF8.GetString(x.Value));
                 }
                 else
                 {
@@ -196,7 +196,7 @@ namespace Heimdall.Dcs
                             return new DcsBinding(binding.ProfileId, binding.Section, binding.CommandId, binding.CommandName,
                                 previous?.Disposition ?? BindingDisposition.Added, binding.InputKey, binding.Reformers, binding.Filter);
                         });
-                        files[device.LogicalId] = ModuleLuaProfileRenderer.Write([.. removals, .. effective]);
+                        files[device.LogicalId] = DcsModuleLuaProfileRenderer.Write([.. removals, .. effective]);
                     }
                 }
                 cancellationToken.ThrowIfCancellationRequested();

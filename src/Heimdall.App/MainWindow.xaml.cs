@@ -19,17 +19,17 @@ namespace Heimdall.App
     {
         private readonly GameWorkspaceServices? _games;
         private bool _changingGame;
-        private readonly IModuleWorkspaceLoader _loader;
+        private readonly IDcsModuleWorkspaceLoader _loader;
         private readonly IDcsFolderImporter _folderImporter;
         private readonly IAppSettingsService _settings;
-        private readonly IEditorWorkspaceRepository _workspaces;
-        private readonly ISharedUiLayerWorkspaceRepository? _sharedDefaults;
+        private readonly IDcsEditorWorkspaceRepository _workspaces;
+        private readonly IDcsSharedUiLayerWorkspaceRepository? _sharedDefaults;
         private readonly Func<string?>? _snapshotFilePicker;
-        private ModuleWorkspaceViewModel? _lastViewModel;
+        private DcsModuleWorkspaceViewModel? _lastViewModel;
         private bool _moduleOperationBusy;
-        private readonly IFlyNowService? _flyNow;
+        private readonly IDcsFlyNowService? _flyNow;
         private readonly Func<string?>? _savedGamesFolderPicker;
-        private FlyNowDeployment? _activeDeployment;
+        private DcsFlyNowDeployment? _activeDeployment;
         private bool _flyNowReadFailed;
         private bool _flyNowLoading = true;
         private readonly IUserDataRecoveryService? _recovery;
@@ -65,10 +65,10 @@ namespace Heimdall.App
         /// <param name="deviceDiscovery">Native controller discovery for deployment cleanup.</param>
         /// <param name="supportReports">Read-only selected-profile support evidence.</param>
         /// <param name="games">Optional profile-owned game selection and ED editing services.</param>
-        public MainWindow(IModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
-                          IAppSettingsService settings, IEditorWorkspaceRepository workspaces,
-                          ISharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
-                          IFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
+        public MainWindow(IDcsModuleWorkspaceLoader loader, IDcsFolderImporter folderImporter,
+                          IAppSettingsService settings, IDcsEditorWorkspaceRepository workspaces,
+                          IDcsSharedUiLayerWorkspaceRepository? sharedDefaults = null, Func<string?>? snapshotFilePicker = null,
+                          IDcsFlyNowService? flyNow = null, Func<string?>? savedGamesFolderPicker = null,
                           IUserDataRecoveryService? recovery = null, Action? closeDatabase = null,
                           UserDataProfile? profile = null, IUserDataProfileService? profileService = null,
                           HardwareInventoryManager? hardwareInventory = null, SetupManager? setup = null, IUserMappingLibrary? userMappings = null,
@@ -106,7 +106,7 @@ namespace Heimdall.App
             if (profile is not null)
                 ProfileIndicator.Text = (profile.IsTest ? "TEST PROFILE: " : "Profile: ") + profile.Name + " · " + profile.DataDirectory +
                     (profile.IsTest ? " · DCS deployment disabled" : "");
-            RestoreModuleSnapshotButton.IsEnabled = _workspaces is IEditorWorkspaceCreationRepository;
+            RestoreModuleSnapshotButton.IsEnabled = _workspaces is IDcsEditorWorkspaceCreationRepository;
             SharedDefaultsButton.IsEnabled = _sharedDefaults is not null;
             NewModuleButton.IsEnabled = _sharedDefaults is not null;
             ThemeManager.Apply(_settings.Current.Theme.ToString());
@@ -155,8 +155,8 @@ namespace Heimdall.App
             if (_games is not null)
             {
                 var recent = _games.Recent();
-                if (recent.DcsModuleId is { } id) SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id) ?? SavedModules.SelectedItem;
-                var choice = SavedModules.SelectedItem as SavedModuleChoice;
+                if (recent.DcsModuleId is { } id) SavedModules.SelectedItem = SavedModules.Items.Cast<DcsSavedModuleChoice>().FirstOrDefault(x => x.Id == id) ?? SavedModules.SelectedItem;
+                var choice = SavedModules.SelectedItem as DcsSavedModuleChoice;
                 RememberDcs(choice?.Id, choice?.DisplayName ?? "");
                 OfferHardwareSetup();
             }
@@ -273,8 +273,8 @@ namespace Heimdall.App
             if (command == MainWindowCommands.Setup) return _setup is not null && _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.Profiles) return _profileService is not null && !_flyNowLoading && OwnedWindows.Count == 0;
             if (command == MainWindowCommands.NewModule || command == MainWindowCommands.SharedDefaults) return _sharedDefaults is not null;
-            if (command == MainWindowCommands.RestoreModule) return _workspaces is IEditorWorkspaceCreationRepository;
-            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            if (command == MainWindowCommands.RestoreModule) return _workspaces is IDcsEditorWorkspaceCreationRepository;
+            var selected = (SavedModules.SelectedItem as DcsSavedModuleChoice)?.Id;
             if (command == MainWindowCommands.OpenModule) return selected is not null;
             if (command == MainWindowCommands.DeleteModule) return selected is not null && !_flyNowReadFailed && _activeDeployment?.ModuleId != selected;
             if (command == MainWindowCommands.FlyNow) return !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
@@ -334,7 +334,7 @@ namespace Heimdall.App
             SetModuleOperationBusy(true);
             try
             {
-                var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var sources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
                 var bundledHardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
                 var bundledInputs = bundledHardware.GroupBy(x => Path.GetFileNameWithoutExtension(x.Diagram.Path) + ".drawio", StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(x => x.Key, x => (IReadOnlyDictionary<string, string>)x.First().Diagram.Controls
@@ -415,7 +415,7 @@ namespace Heimdall.App
         private void UpdateFlyNowControls()
         {
             if (FlyNowButton is null) return;
-            var selected = (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
+            var selected = (SavedModules.SelectedItem as DcsSavedModuleChoice)?.Id;
             var destination = _settings.Current.SavedGamesDcsFolder;
             SavedGamesDestination.Text = destination.Length == 0 ? "Setup: browse for your DCS Saved Games instance folder." : destination;
             FlyNowButton.IsEnabled = _profile?.IsTest != true && !_moduleOperationBusy && !_flyNowLoading && !_flyNowReadFailed && _flyNow is not null && selected is not null &&
@@ -429,7 +429,7 @@ namespace Heimdall.App
 
         private async void FlyNowClicked(object sender, RoutedEventArgs e)
         {
-            if (_moduleOperationBusy || !FlyNowButton.IsEnabled || _flyNow is null || SavedModules.SelectedItem is not SavedModuleChoice selected) return;
+            if (_moduleOperationBusy || !FlyNowButton.IsEnabled || _flyNow is null || SavedModules.SelectedItem is not DcsSavedModuleChoice selected) return;
             SetModuleOperationBusy(true);
             var dcsId = selected.DisplayName;
             try
@@ -441,9 +441,9 @@ namespace Heimdall.App
                 dcsId = saved.Configuration.Module.DcsId;
                 FlyNowStatus.Text = "Capturing controllers for aircraft axis cleanup…";
                 var devices = await Task.Run(() => DcsPhysicalIdentity.Merge(_deviceDiscovery.Discover(),
-                    SavedGamesDeviceDiscovery.Discover(destination)));
+                    DcsSavedGamesDeviceDiscovery.Discover(destination)));
                 EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
-                var captured = ModuleAxisCleanup.CaptureDevices(saved,
+                var captured = DcsModuleAxisCleanup.CaptureDevices(saved,
                     devices.Where(x => EditionAccess.Policy.HasPremium || EditionAccess.Policy.AllowsDevice(x) ||
                         saved.Configuration.Profiles.Any(profile => DcsPhysicalIdentity.FromFileName(profile.SourceName) == x.PhysicalGuid)).Select(x => x.FileName).Concat(saved.Configuration.Profiles.Select(x => x.SourceName)
                         .Where(x => DcsPhysicalIdentity.FromFileName(x) is not null)));
@@ -493,10 +493,10 @@ namespace Heimdall.App
                 var saved = await _sharedDefaults.GetAsync();
                 if (saved is null)
                 {
-                    var seed = await SharedUiLayerWorkspaceFactory.CreateAsync();
+                    var seed = await DcsSharedUiLayerWorkspaceFactory.CreateAsync();
                     saved = await _sharedDefaults.SaveAsync(seed);
                 }
-                new SharedUiLayerWorkspaceWindow(saved, _sharedDefaults, _workspaces) { Owner = this }.ShowDialog();
+                new DcsSharedUiLayerWorkspaceWindow(saved, _sharedDefaults, _workspaces) { Owner = this }.ShowDialog();
             }
             catch (Exception ex)
             {
@@ -513,13 +513,13 @@ namespace Heimdall.App
             {
                 ImportStatus.Text = "Loading internal hardware and shared defaults…";
                 var defaults = await _sharedDefaults.GetAsync() ??
-                    await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
-                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var dialog = new NewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory,
-                    logger: new AssemblyLogger<NewModuleWindow>(_loggerFactory)) { Owner = this };
+                    await _sharedDefaults.SaveAsync(await DcsSharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var dialog = new DcsNewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory,
+                    logger: new AssemblyLogger<DcsNewModuleWindow>(_loggerFactory)) { Owner = this };
                 if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
                     return;
-                _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                _lastViewModel = new DcsModuleWorkspaceViewModel(saved);
                 await RefreshSavedModulesAsync(saved.Configuration.Module.Id);
                 ImportStatus.Text = $"Created {saved.Configuration.Module.DisplayName}; shared default revision {defaults.Revision} is pinned.";
                 ShowImported();
@@ -536,7 +536,7 @@ namespace Heimdall.App
         }
         private async void RestoreModuleSnapshotClicked(object sender, RoutedEventArgs e)
         {
-            if (_moduleOperationBusy || _workspaces is not IEditorWorkspaceCreationRepository repository) return;
+            if (_moduleOperationBusy || _workspaces is not IDcsEditorWorkspaceCreationRepository repository) return;
             var path = _snapshotFilePicker is null ? ChooseSnapshotFile() : _snapshotFilePicker();
             if (path is null) return;
             SetModuleOperationBusy(true);
@@ -544,21 +544,21 @@ namespace Heimdall.App
             {
                 ImportStatus.Text = "Verifying module snapshot, pinned assets and generated package…";
                 var json = await File.ReadAllTextAsync(path);
-                var snapshot = await Task.Run(() => ModuleSnapshotWorkflow.Read(json));
-                var workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                var snapshot = await Task.Run(() => DcsModuleSnapshotWorkflow.Read(json));
+                var workspace = DcsEditorSnapshotSerializer.Deserialize(snapshot.Workspace);
                 var observed = EditionAccess.Policy.HasPremium ? null : _deviceDiscovery.Discover();
-                var unsupported = ModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
+                var unsupported = DcsModuleSnapshotEditionFilter.Unsupported(workspace, EditionAccess.Policy, observed);
                 if (unsupported.Count > 0)
                 {
-                    if (!SnapshotImportReview.Show(this, unsupported, ModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, unsupported)))
+                    if (!DcsSnapshotImportReview.Show(this, unsupported, DcsModuleSnapshotEditionFilter.HasSupportedProfiles(workspace, unsupported)))
                     { ImportStatus.Text = "Module snapshot import cancelled. No module data was saved."; return; }
                     ImportStatus.Text = "Verifying the supported-device-only snapshot…";
-                    snapshot = await Task.Run(() => ModuleSnapshotEditionFilter.KeepSupported(snapshot, EditionAccess.Policy, observed));
-                    workspace = EditorSnapshotSerializer.Deserialize(snapshot.Workspace);
+                    snapshot = await Task.Run(() => DcsModuleSnapshotEditionFilter.KeepSupported(snapshot, EditionAccess.Policy, observed));
+                    workspace = DcsEditorSnapshotSerializer.Deserialize(snapshot.Workspace);
                 }
                 EditionAccess.RequireWorkspace(workspace);
-                var restored = await ModuleSnapshotWorkflow.RestoreAsync(snapshot, repository);
-                _lastViewModel = new ModuleWorkspaceViewModel(restored);
+                var restored = await DcsModuleSnapshotWorkflow.RestoreAsync(snapshot, repository);
+                _lastViewModel = new DcsModuleWorkspaceViewModel(restored);
                 await RefreshSavedModulesAsync(restored.Configuration.Module.Id);
                 ImportStatus.Text = $"Restored {restored.Configuration.Module.DisplayName} from verified snapshot. Open module to edit or build with package version {snapshot.Version}. Shared defaults and other modules were preserved." +
                     (unsupported.Count > 0 ? $" Removed {unsupported.Count} unsupported device(s) and assignments depending on their modifiers from the imported copy." : "");
@@ -606,12 +606,12 @@ namespace Heimdall.App
                     if (_sharedDefaults is null)
                         throw new InvalidOperationException("Shared UI Layer storage is required to create an editable module.");
                     var defaults = await _sharedDefaults.GetAsync() ??
-                        await _sharedDefaults.SaveAsync(await SharedUiLayerWorkspaceFactory.CreateAsync());
-                    var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                    var review = new SavedGamesImportWindow(result, defaults, hardware, _workspaces) { Owner = this };
+                        await _sharedDefaults.SaveAsync(await DcsSharedUiLayerWorkspaceFactory.CreateAsync());
+                    var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                    var review = new DcsSavedGamesImportWindow(result, defaults, hardware, _workspaces) { Owner = this };
                     if (review.ShowDialog() != true || review.ImportedWorkspace is not { } persisted)
                         return;
-                    _lastViewModel = new ModuleWorkspaceViewModel(persisted);
+                    _lastViewModel = new DcsModuleWorkspaceViewModel(persisted);
                     await RefreshSavedModulesAsync(persisted.Configuration.Module.Id);
                     ImportStatus.Text = $"Imported {result.Profiles.Count} Saved Games devices and {result.Bindings.Count} bindings into an editable module. Axis removals and captured keyboard profiles are retained. Load a command JSON or Controls HTML for the complete command palette.";
                 }
@@ -626,7 +626,7 @@ namespace Heimdall.App
                             string.Join("; ", preview.Import.Diagnostics.Where(x => x.IsError).Select(x => x.Message)));
                         return;
                     }
-                    var importedView = new ModuleWorkspaceViewModel(preview);
+                    var importedView = new DcsModuleWorkspaceViewModel(preview);
                     if (preview.Diagrams.Any(x => x.Controls.Count > 0) && importedView.Draft is null)
                     {
                         ShowImportError("Assignments were not saved: " + importedView.DraftNote);
@@ -647,13 +647,13 @@ namespace Heimdall.App
                     if (authored > 0 && importedView.Labels.Count == 0)
                         throw new InvalidDataException(
                             "No authored kneeboard labels matched the imported module bindings.");
-                    var saved = new EditorWorkspaceSnapshot(
+                    var saved = new DcsEditorWorkspaceSnapshot(
                         module, preview.Import.Pages, preview.Images, preview.Diagrams, importedView.ModuleCommands,
                         preview.UiCommands, importedView.Draft?.Snapshot ?? [], importedView.Labels,
                         preview.Import.Sources.Concat(preview.SharedLuaSources)
                             .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
-                    saved = PinnedUiLayerProfileRecovery.Restore(saved);
-                    SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
+                    saved = DcsPinnedUiLayerProfileRecovery.Restore(saved);
+                    DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
                     EditionAccess.RequireWorkspace(saved, _deviceDiscovery);
                     await _workspaces.SaveAsync(saved);
                     var persisted =
@@ -664,7 +664,7 @@ namespace Heimdall.App
                                                         value != pair.Value))
                         throw new InvalidDataException(
                             "The authored kneeboard labels did not survive the SQLite save.");
-                    _lastViewModel = new ModuleWorkspaceViewModel(persisted);
+                    _lastViewModel = new DcsModuleWorkspaceViewModel(persisted);
                     await RefreshSavedModulesAsync(module.Module.Id);
                     ImportStatus.Text =
                         $"Imported {module.Profiles.Count} profiles, {persisted.Labels.Count} authored kneeboard labels, {preview.Images.Count} kneeboard PNGs and {preview.Diagrams.Count} UI Layer graphics. {preview.GraphicDiagnostics.Count} graphic issues. Imported committed revision {preview.ModuleCommit}. Commit local changes and import again to refresh.";
@@ -685,7 +685,7 @@ namespace Heimdall.App
         }
         private async void DeleteModule_Click(object sender, RoutedEventArgs e)
         {
-            if (_moduleOperationBusy || !DeleteModuleButton.IsEnabled || SavedModules.SelectedItem is not SavedModuleChoice choice)
+            if (_moduleOperationBusy || !DeleteModuleButton.IsEnabled || SavedModules.SelectedItem is not DcsSavedModuleChoice choice)
                 return;
             if (ThemeMessageBox.Show(this,
                 $"Delete {choice.DisplayName} and all of its saved profiles, assignments, labels, and kneeboards from the local database? You can import it again from scratch.",
@@ -717,8 +717,8 @@ namespace Heimdall.App
             ImportButton.IsEnabled = !busy;
             NewModuleButton.IsEnabled = !busy && _sharedDefaults is not null;
             OpenModuleButton.IsEnabled = !busy;
-            RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IEditorWorkspaceCreationRepository;
-            DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is SavedModuleChoice;
+            RestoreModuleSnapshotButton.IsEnabled = !busy && _workspaces is IDcsEditorWorkspaceCreationRepository;
+            DeleteModuleButton.IsEnabled = !busy && SavedModules.SelectedItem is DcsSavedModuleChoice;
             SharedDefaultsButton.IsEnabled = !busy && _sharedDefaults is not null;
             ThemePicker.IsEnabled = !busy && EditionAccess.Policy.HasPremium;
             CommandManager.InvalidateRequerySuggested();
@@ -728,18 +728,18 @@ namespace Heimdall.App
         {
             try
             {
-                if (SavedModules.SelectedItem is not SavedModuleChoice choice)
+                if (SavedModules.SelectedItem is not DcsSavedModuleChoice choice)
                 {
                     await RefreshSavedModulesAsync();
-                    if (SavedModules.SelectedItem is not SavedModuleChoice)
+                    if (SavedModules.SelectedItem is not DcsSavedModuleChoice)
                     {
                         ImportStatus.Text = "No local editor workspace has been saved yet.";
                         return;
                     }
-                    choice = (SavedModuleChoice)SavedModules.SelectedItem;
+                    choice = (DcsSavedModuleChoice)SavedModules.SelectedItem;
                 }
                 var saved = await _workspaces.GetAsync(choice.Id);
-                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as DcsSavedModuleChoice)?.Id != choice.Id)
                     return;
                 if (saved is null)
                 {
@@ -747,7 +747,7 @@ namespace Heimdall.App
                     await RefreshSavedModulesAsync();
                     return;
                 }
-                _lastViewModel = new ModuleWorkspaceViewModel(saved);
+                _lastViewModel = new DcsModuleWorkspaceViewModel(saved);
                 ImportStatus.Text = SavedWorkspaceStatus(saved);
                 ShowImported();
             }
@@ -759,11 +759,11 @@ namespace Heimdall.App
         private async void SavedModuleChanged(object sender, SelectionChangedEventArgs e)
         {
             if (DeleteModuleButton is not null)
-                DeleteModuleButton.IsEnabled = !_moduleOperationBusy && SavedModules?.SelectedItem is SavedModuleChoice;
+                DeleteModuleButton.IsEnabled = !_moduleOperationBusy && SavedModules?.SelectedItem is DcsSavedModuleChoice;
             UpdateFlyNowControls();
             if (_moduleOperationBusy)
                 return;
-            if (SavedModules?.SelectedItem is not SavedModuleChoice choice)
+            if (SavedModules?.SelectedItem is not DcsSavedModuleChoice choice)
             {
                 _lastViewModel = null;
                 return;
@@ -771,9 +771,9 @@ namespace Heimdall.App
             try
             {
                 var saved = await _workspaces.GetAsync(choice.Id);
-                if (_moduleOperationBusy || (SavedModules.SelectedItem as SavedModuleChoice)?.Id != choice.Id)
+                if (_moduleOperationBusy || (SavedModules.SelectedItem as DcsSavedModuleChoice)?.Id != choice.Id)
                     return;
-                _lastViewModel = saved is null ? null : new ModuleWorkspaceViewModel(saved);
+                _lastViewModel = saved is null ? null : new DcsModuleWorkspaceViewModel(saved);
                 ImportStatus.Text =
                     saved is null
                         ? "The selected module is no longer in the database."
@@ -784,12 +784,12 @@ namespace Heimdall.App
                 ShowImportError("Unable to select saved module: " + ex.Message);
             }
         }
-        private static string SavedWorkspaceStatus(EditorWorkspaceSnapshot saved) =>
+        private static string SavedWorkspaceStatus(DcsEditorWorkspaceSnapshot saved) =>
             $"Opened saved workspace for {saved.Configuration.Module.DisplayName} ({saved.Configuration.Provenance}). This workspace loads from SQLite. Use Import Module only to refresh an imported repository.";
         private async Task RefreshSavedModulesAsync(Guid? selected = null)
         {
-            var previous = selected ?? (SavedModules.SelectedItem as SavedModuleChoice)?.Id;
-            var choices = new List<SavedModuleChoice>();
+            var previous = selected ?? (SavedModules.SelectedItem as DcsSavedModuleChoice)?.Id;
+            var choices = new List<DcsSavedModuleChoice>();
             foreach (var id in await _workspaces.ListAsync())
             {
                 var snapshot = await _workspaces.GetAsync(id);
@@ -810,9 +810,9 @@ namespace Heimdall.App
         {
             if (_lastViewModel is null)
                 return;
-            var window = new ModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
-                logger: new AssemblyLogger<ModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
-                moduleChoices: SavedModules.Items.Cast<SavedModuleChoice>().ToArray()) { Owner = this };
+            var window = new DcsModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
+                logger: new AssemblyLogger<DcsModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
+                moduleChoices: SavedModules.Items.Cast<DcsSavedModuleChoice>().ToArray()) { Owner = this };
             if (_games is not null && _lastViewModel.Workspace is { } workspace)
                 RememberDcs(workspace.Configuration.Module.Id, workspace.Configuration.Module.DisplayName);
             window.ShowDialog();
@@ -821,7 +821,7 @@ namespace Heimdall.App
             else if (window.RequestedGame == "star-wars-squadrons") OpenSquadrons();
             else if (window.RequestedModule is { } id)
             {
-                SavedModules.SelectedItem = SavedModules.Items.Cast<SavedModuleChoice>().FirstOrDefault(x => x.Id == id);
+                SavedModules.SelectedItem = SavedModules.Items.Cast<DcsSavedModuleChoice>().FirstOrDefault(x => x.Id == id);
                 OpenSaved_Click(this, new RoutedEventArgs());
             }
         }
@@ -838,7 +838,7 @@ namespace Heimdall.App
         private void TrainingClicked(object sender, RoutedEventArgs e)
         {
             if (_moduleOperationBusy) return;
-            new TrainingWindow { Owner = this }.ShowDialog();
+            new DcsTrainingWindow { Owner = this }.ShowDialog();
         }
         private void Settings_Click(object sender, RoutedEventArgs e)
         {

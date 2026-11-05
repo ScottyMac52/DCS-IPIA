@@ -9,13 +9,13 @@ using Heimdall.Domain;
 namespace Heimdall.Dcs
 {
     /// <summary>Reads pinned DCS-Common shared manifests into stable domain identities.</summary>
-    public sealed class DcsCommonCatalogImporter : ISharedCatalogImporter
+    public sealed class DcsCommonCatalogImporter : IDcsSharedCatalogImporter
     {
         #region BEGIN Public
         /// <summary>Imports authored DCS-Common catalogs without modifying their sources.</summary>
         /// <param name="request">The pinned source texts and paths.</param>
         /// <returns>Normalized data, provenance, and diagnostics.</returns>
-        public SharedCatalogImportResult Import(SharedCatalogImportRequest request)
+        public DcsSharedCatalogImportResult Import(DcsSharedCatalogImportRequest request)
         {
             ArgumentNullException.ThrowIfNull(request);
             var diagnostics = new List<ImportDiagnostic>();
@@ -63,7 +63,7 @@ namespace Heimdall.Dcs
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static SharedCatalogImportResult Failure(List<ImportDiagnostic> diagnostics) => new([], null, [], [],
+        private static DcsSharedCatalogImportResult Failure(List<ImportDiagnostic> diagnostics) => new([], null, [], [],
                                                                                                     null, [],
                                                                                                     diagnostics);
         private static PhysicalDevice[] ParseDevices(JsonElement root)
@@ -114,7 +114,7 @@ namespace Heimdall.Dcs
                 throw new ArgumentException("No UI Layer functions.");
             return commands.OrderBy(x => x.Id).ToArray();
         }
-        private static UiLayerTemplate[] ParseTemplates(JsonElement root, IReadOnlyList<PhysicalDevice> devices,
+        private static DcsUiLayerTemplate[] ParseTemplates(JsonElement root, IReadOnlyList<PhysicalDevice> devices,
                                                         IReadOnlyList<DcsCommandDefinition> commands)
         {
             if (root.GetProperty("schemaVersion").GetInt32() != 1)
@@ -122,7 +122,7 @@ namespace Heimdall.Dcs
             var knownDevices = devices.SelectMany(d => new[] { d.StableKey }.Concat(d.Aliases))
                                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var knownFunctions = commands.Select(c => c.Id).ToHashSet();
-            var templates = new List<UiLayerTemplate>();
+            var templates = new List<DcsUiLayerTemplate>();
             var source = root.GetProperty("devices");
             if (source.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException("Invalid UI Layer device overlays.");

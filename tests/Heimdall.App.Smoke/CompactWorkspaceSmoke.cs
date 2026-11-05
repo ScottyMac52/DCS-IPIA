@@ -21,11 +21,11 @@ namespace Heimdall.App.Smoke
             WorkspaceLayoutStore.Write("assignments.inspector", 0);
             WorkspaceLayoutStore.Write("assignments.zoom", 0);
             WorkspaceLayoutStore.Write("assignments.split", .3);
-            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(Guid.NewGuid(), "COMPACT", "Compact layout"),
+            var workspace = new DcsEditorWorkspaceSnapshot(new(new DcsModule(Guid.NewGuid(), "COMPACT", "Compact layout"),
                 [], [], [], "smoke"), [], [], [], [], [], [], new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var original = EditorSnapshotSerializer.Serialize(workspace);
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
+            var original = DcsEditorSnapshotSerializer.Serialize(workspace);
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
                 window.Width = 1060;
@@ -84,14 +84,14 @@ namespace Heimdall.App.Smoke
                 if (!((Button)window.FindName("ValidateModuleButton")!).IsVisible)
                     throw new InvalidOperationException("Output actions are unreachable from the compact menu.");
                 output.IsChecked = false;
-                if (EditorSnapshotSerializer.Serialize(workspace) != original)
+                if (DcsEditorSnapshotSerializer.Serialize(workspace) != original)
                     throw new InvalidOperationException("Layout changed module data.");
             }
             finally { window.Close(); }
 
             // A new window restores safe proportions rather than off-screen pixel widths.
             WorkspaceLayoutStore.Write("assignments.split", 9999);
-            var reopened = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
+            var reopened = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
                 reopened.Width = 1024;

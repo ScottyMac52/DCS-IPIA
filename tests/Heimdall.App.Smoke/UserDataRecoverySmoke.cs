@@ -26,13 +26,13 @@ namespace Heimdall.App.Smoke
                 Directory.CreateDirectory(data);
                 var connection = "Data Source=" + Path.Combine(data, "ipia.db") + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
-                repository.SaveAsync(new EditorWorkspaceSnapshot(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "BACKUP", "Backup test"), [], [], [], "smoke"),
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
+                repository.SaveAsync(new DcsEditorWorkspaceSnapshot(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "BACKUP", "Backup test"), [], [], [], "smoke"),
                     [], [], [], [], [], [], new Dictionary<string, string>())).GetAwaiter().GetResult();
                 var settings = new SqliteAppSettingsService(connection, Path.Combine(data, "defaults.json"), Path.Combine(data, "user-settings.json"), Path.Combine(data, "theme.txt"));
                 var recovery = new UserDataRecoveryService(data, "1.2.3.4");
-                var main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
-                    flyNow: new IsolatedFlyNowService(), recovery: recovery, profile: profile,
+                var main = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
+                    flyNow: new DcsIsolatedFlyNowService(), recovery: recovery, profile: profile,
                     profileService: new UserDataProfileService(profile, "1.2.3.4"));
                 main.Show();
                 var modules = (ComboBox)main.FindName("SavedModules")!;
@@ -69,7 +69,7 @@ namespace Heimdall.App.Smoke
                 if (!closed || !shell.RequiresRestart || ((Button)shell.FindName("BackupUserDataButton")!).IsEnabled)
                     throw new InvalidOperationException("Restore did not quiesce services and require restart.");
                 shell.Close();
-                if (new SqliteEditorWorkspaceRepository("Data Source=" + Path.Combine(target, "ipia.db") + ";Pooling=False").ListAsync().GetAwaiter().GetResult().Count != 1)
+                if (new DcsSqliteEditorWorkspaceRepository("Data Source=" + Path.Combine(target, "ipia.db") + ";Pooling=False").ListAsync().GetAwaiter().GetResult().Count != 1)
                     throw new InvalidOperationException("The UI restore did not preserve the saved module.");
             }
             finally

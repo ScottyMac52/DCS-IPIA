@@ -29,9 +29,9 @@ namespace Heimdall.Tests
             var snapshot = new HardwareInventorySnapshot(1, [definition], [unit.Instance],
                 [new(new(unit.Instance.PhysicalGuid, Secret, false), null, Secret)]);
             await new SqliteHardwareInventoryRepository(Connection).SaveAsync(snapshot);
-            var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), unit, AssignmentLayer.Module);
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), unit, AssignmentLayer.Module);
             workspace = workspace with { Sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value).Append(new KeyValuePair<string, string>(Secret, _folder)).ToDictionary() };
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(workspace);
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(workspace);
             var mappingDefinition = new HardwareDefinition("unused", ControllerCapabilityMapper.Map(
                 [new ControllerObject(Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12, Secret)]));
             mappingDefinition = mappingDefinition with { Id = ControllerCapabilityMapper.Fingerprint(mappingDefinition.Capabilities) };
@@ -39,17 +39,17 @@ namespace Heimdall.Tests
                 new Dictionary<string, byte[]> { ["private-controller.png"] = DrawioMappingFixture.Png });
             Assert.Single(revision.Assets);
             await new FileUserMappingLibrary(_folder).SaveAsync(revision);
-            var custom = InventoryHardwareAuthoring.Add(NewModuleWorkspaceFactory.Create("CUSTOM", Secret, GenericHardwareFixture.Defaults(),
+            var custom = DcsInventoryHardwareAuthoring.Add(DcsNewModuleWorkspaceFactory.Create("CUSTOM", Secret, GenericHardwareFixture.Defaults(),
                 new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true), GenericHardwareFixture.Unit(mappingDefinition, Secret), AssignmentLayer.Module);
-            custom = UserMappingAdoption.Apply(custom, custom.Configuration.Profiles.Single().Id, revision);
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(custom);
-            var bundledProfile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", null, Secret, Secret + ".diff.lua");
+            custom = DcsUserMappingAdoption.Apply(custom, custom.Configuration.Profiles.Single().Id, revision);
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(custom);
+            var bundledProfile = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", null, Secret, Secret + ".diff.lua");
             var bundled = Empty("BUNDLED") with
             {
                 Configuration = new(new(Guid.NewGuid(), "BUNDLED", Secret), [bundledProfile], [], [], Secret),
                 Diagrams = [new(Secret, Secret, Secret, 100, 100, Encoding.UTF8.GetBytes(Secret), []) { ProfileId = bundledProfile.Id }]
             };
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(bundled);
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(bundled);
             var before = Hashes();
             var text = await Service().CaptureAsync();
             var report = JsonSerializer.Deserialize<SupportReport>(text)!;
@@ -81,7 +81,7 @@ namespace Heimdall.Tests
         public async Task Legacy_capture_does_not_persist_read_upgrades()
         {
             await Create();
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("LEGACY"));
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("LEGACY"));
             Execute("UPDATE editor_workspaces SET snapshot_json=json_set(snapshot_json,'$.Version',1)");
             var before = File.ReadAllBytes(DatabasePath);
             Assert.Empty(JsonSerializer.Deserialize<SupportReport>(await Service().CaptureAsync())!.Failures);
@@ -93,7 +93,7 @@ namespace Heimdall.Tests
         public async Task Partial_failures_are_not_silently_empty()
         {
             await Create();
-            var repository = new SqliteEditorWorkspaceRepository(Connection);
+            var repository = new DcsSqliteEditorWorkspaceRepository(Connection);
             await repository.SaveAsync(Empty("GOOD"));
             await repository.SaveAsync(Empty("BAD"));
             Execute("UPDATE editor_workspaces SET snapshot_json='PRIVATE invalid JSON' WHERE module_id=(SELECT id FROM modules WHERE dcs_id='BAD')");
@@ -180,7 +180,7 @@ namespace Heimdall.Tests
             await Create();
             var service = Service();
             var preview = await service.CaptureAsync();
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("LATER"));
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("LATER"));
             var file = Path.Combine(_folder, "reviewed.json");
             SupportReportFile.WriteNew(file, preview);
             Assert.Equal(Encoding.UTF8.GetBytes(preview), File.ReadAllBytes(file));
@@ -197,7 +197,7 @@ namespace Heimdall.Tests
         public async Task Failed_migration_rolls_back_and_can_be_retried()
         {
             await Create();
-            await new SqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("RETAINED"));
+            await new DcsSqliteEditorWorkspaceRepository(Connection).SaveAsync(Empty("RETAINED"));
             Execute("DROP TABLE hardware_inventory; DROP TABLE hardware_definitions; DROP TABLE hardware_observations; DELETE FROM schema_migrations WHERE version>=8");
             await Assert.ThrowsAsync<SqliteException>(() => new SqliteMigrationRunner(Connection).MigrateAsync());
             using (var db = new SqliteConnection(Connection))
@@ -211,7 +211,7 @@ namespace Heimdall.Tests
             }
             Execute("DROP TABLE profile_setup");
             await new SqliteMigrationRunner(Connection).MigrateAsync();
-            Assert.Single((await new SqliteEditorWorkspaceRepository(Connection).ListAsync()));
+            Assert.Single((await new DcsSqliteEditorWorkspaceRepository(Connection).ListAsync()));
             Assert.Empty(JsonSerializer.Deserialize<SupportReport>(await Service().CaptureAsync())!.Failures);
         }
 
@@ -233,7 +233,7 @@ namespace Heimdall.Tests
         {
             var readOnly = new SqliteConnectionStringBuilder(Connection) { Mode = SqliteOpenMode.ReadOnly }.ToString();
             return new(inspector ?? new SqliteSupportDatabaseInspector(readOnly),
-                new SqliteHardwareInventoryRepository(readOnly), new SqliteEditorWorkspaceRepository(readOnly, false),
+                new SqliteHardwareInventoryRepository(readOnly), new DcsSqliteEditorWorkspaceRepository(readOnly, false),
                 new FileUserMappingLibrary(_folder), new Version(1, 2, 3, 4), SqliteMigrationRunner.CurrentVersion);
         }
         private void Execute(string sql)
@@ -246,7 +246,7 @@ namespace Heimdall.Tests
         }
         private string[] Hashes() => Directory.EnumerateFiles(_folder, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal)
             .Select(path => Path.GetRelativePath(_folder, path) + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))).ToArray();
-        private static EditorWorkspaceSnapshot Empty(string id) => new(new(new(Guid.NewGuid(), id, Secret), [], [], [], Secret),
+        private static DcsEditorWorkspaceSnapshot Empty(string id) => new(new(new(Guid.NewGuid(), id, Secret), [], [], [], Secret),
             [], [], [], [], [], [], new Dictionary<string, string>());
         private static string Drawing() => """
             <mxfile><diagram><mxGraphModel pageWidth="900" pageHeight="600"><root>

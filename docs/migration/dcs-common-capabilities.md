@@ -83,8 +83,8 @@ Exit criteria: Compare effective commands, removed bindings, keyboard ownership,
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Application/SharedUiLayerRevisionReference.cs](../../src/Heimdall.Application/SharedUiLayerRevisionReference.cs)
-- [src/Dcs.Ipia.Dcs/SnapshotLuaPayloadRenderer.cs](../../src/Heimdall.Dcs/SnapshotLuaPayloadRenderer.cs)
+- [src/Dcs.Ipia.Application/DcsSharedUiLayerRevisionReference.cs](../../src/Heimdall.Application/DcsSharedUiLayerRevisionReference.cs)
+- [src/Dcs.Ipia.Dcs/DcsSnapshotLuaPayloadRenderer.cs](../../src/Heimdall.Dcs/DcsSnapshotLuaPayloadRenderer.cs)
 - [tests/Dcs.Ipia.Tests/ModuleUiLayerBindingImporterTests.cs](../../tests/Heimdall.Tests/ModuleUiLayerBindingImporterTests.cs)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
 
@@ -113,7 +113,7 @@ Exit criteria: Compare every profile/instance, key/axis changed/removed/default 
 IPIA evidence:
 
 - [src/Dcs.Ipia.Dcs/DcsLuaParser.cs](../../src/Heimdall.Dcs/DcsLuaParser.cs)
-- [src/Dcs.Ipia.Dcs/ModuleWorkspaceLoader.cs](../../src/Heimdall.Dcs/ModuleWorkspaceLoader.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleWorkspaceLoader.cs](../../src/Heimdall.Dcs/DcsModuleWorkspaceLoader.cs)
 - [tests/Dcs.Ipia.Tests/ModuleLuaProfileRendererTests.cs](../../tests/Heimdall.Tests/ModuleLuaProfileRendererTests.cs)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
 
@@ -126,7 +126,7 @@ Exit criteria: Compare all pages and scopes/chords, callout/image alignment, una
 IPIA evidence:
 
 - [src/Dcs.Ipia.Rendering/CompositeKneeboardRenderer.cs](../../src/Heimdall.Rendering/CompositeKneeboardRenderer.cs)
-- [src/Dcs.Ipia.Rendering/SnapshotSummaryKneeboardRenderer.cs](../../src/Heimdall.Rendering/SnapshotSummaryKneeboardRenderer.cs)
+- [src/Dcs.Ipia.Rendering/DcsSnapshotSummaryKneeboardRenderer.cs](../../src/Heimdall.Rendering/DcsSnapshotSummaryKneeboardRenderer.cs)
 - [tests/Dcs.Ipia.Tests/SnapshotDeviceKneeboardRendererTests.cs](../../tests/Heimdall.Tests/SnapshotDeviceKneeboardRendererTests.cs)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
 
@@ -138,8 +138,8 @@ Exit criteria: Preserve identities, categories, labels, modifiers, tuning, repea
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs](../../src/Heimdall.Dcs/NewModuleWorkspaceFactory.cs)
-- [src/Dcs.Ipia.Dcs/ModuleCommandCatalogImport.cs](../../src/Heimdall.Dcs/ModuleCommandCatalogImport.cs)
+- [src/Dcs.Ipia.Dcs/DcsNewModuleWorkspaceFactory.cs](../../src/Heimdall.Dcs/DcsNewModuleWorkspaceFactory.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleCommandCatalogImport.cs](../../src/Heimdall.Dcs/DcsModuleCommandCatalogImport.cs)
 - [tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs](../../tests/Heimdall.Tests/ModuleSnapshotWorkflowTests.cs)
 - [tests/Dcs.Ipia.App.Smoke/Program.cs](../../tests/Heimdall.App.Smoke/Program.cs)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
@@ -152,7 +152,7 @@ Exit criteria: Legacy repository scaffolding is excluded from application comple
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs](../../src/Heimdall.Dcs/NewModuleWorkspaceFactory.cs)
+- [src/Dcs.Ipia.Dcs/DcsNewModuleWorkspaceFactory.cs](../../src/Heimdall.Dcs/DcsNewModuleWorkspaceFactory.cs)
 - [docs/new-module-creation.md](../../docs/new-module-creation.md)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
 
@@ -164,14 +164,14 @@ Exit criteria: Compare every generated guide with pinned consumer golden cases a
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Rendering/ModuleDocumentationRenderer.cs](../../src/Heimdall.Rendering/ModuleDocumentationRenderer.cs)
-- [src/Dcs.Ipia.Dcs/ModuleDocumentationWorkflow.cs](../../src/Heimdall.Dcs/ModuleDocumentationWorkflow.cs)
+- [src/Dcs.Ipia.Rendering/DcsModuleDocumentationRenderer.cs](../../src/Heimdall.Rendering/DcsModuleDocumentationRenderer.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleDocumentationWorkflow.cs](../../src/Heimdall.Dcs/DcsModuleDocumentationWorkflow.cs)
 - [tests/Dcs.Ipia.Tests/ModuleDocumentationRendererTests.cs](../../tests/Heimdall.Tests/ModuleDocumentationRendererTests.cs)
 - [tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs](../../tests/Heimdall.Tests/ModuleSnapshotWorkflowTests.cs)
 - [tests/Dcs.Ipia.App.Smoke/Program.cs](../../tests/Heimdall.App.Smoke/Program.cs)
 - [docs/module-authoring.md](../../docs/module-authoring.md)
-- [src/Dcs.Ipia.Application/ModuleIntegrationMetadata.cs](../../src/Heimdall.Application/ModuleIntegrationMetadata.cs)
-- [src/Dcs.Ipia.Dcs/ModuleIntegrationImport.cs](../../src/Heimdall.Dcs/ModuleIntegrationImport.cs)
+- [src/Dcs.Ipia.Application/DcsModuleIntegrationMetadata.cs](../../src/Heimdall.Application/DcsModuleIntegrationMetadata.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleIntegrationImport.cs](../../src/Heimdall.Dcs/DcsModuleIntegrationImport.cs)
 - [tests/Dcs.Ipia.Tests/ModuleIntegrationImportTests.cs](../../tests/Heimdall.Tests/ModuleIntegrationImportTests.cs)
 - [tests/Dcs.Ipia.Tests/Fixtures/Integrations/README.md](../../tests/Heimdall.Tests/Fixtures/Integrations/README.md)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
@@ -184,8 +184,8 @@ Exit criteria: Compare exact paths/case, aircraft/UI profiles/modifiers, all PNG
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Packaging/OvGmePackageVerifier.cs](../../src/Heimdall.Packaging/OvGmePackageVerifier.cs)
-- [src/Dcs.Ipia.Dcs/ModuleSnapshotWorkflow.cs](../../src/Heimdall.Dcs/ModuleSnapshotWorkflow.cs)
+- [src/Dcs.Ipia.Packaging/DcsOvGmePackageVerifier.cs](../../src/Heimdall.Packaging/DcsOvGmePackageVerifier.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleSnapshotWorkflow.cs](../../src/Heimdall.Dcs/DcsModuleSnapshotWorkflow.cs)
 - [tests/Dcs.Ipia.Tests/SnapshotOvGmeComposerTests.cs](../../tests/Heimdall.Tests/SnapshotOvGmeComposerTests.cs)
 - [docs/migration/application-completion.md](../../docs/migration/application-completion.md)
 
@@ -197,9 +197,9 @@ Exit criteria: Compare pinned consumer Complete release layouts and document int
 
 IPIA evidence:
 
-- [src/Dcs.Ipia.Dcs/ModuleCompleteReleaseWorkflow.cs](../../src/Heimdall.Dcs/ModuleCompleteReleaseWorkflow.cs)
-- [src/Dcs.Ipia.Packaging/CompleteReleaseArchive.cs](../../src/Heimdall.Packaging/CompleteReleaseArchive.cs)
-- [src/Dcs.Ipia.Packaging/CompleteReleaseVerifier.cs](../../src/Heimdall.Packaging/CompleteReleaseVerifier.cs)
+- [src/Dcs.Ipia.Dcs/DcsModuleCompleteReleaseWorkflow.cs](../../src/Heimdall.Dcs/DcsModuleCompleteReleaseWorkflow.cs)
+- [src/Dcs.Ipia.Packaging/DcsCompleteReleaseArchive.cs](../../src/Heimdall.Packaging/DcsCompleteReleaseArchive.cs)
+- [src/Dcs.Ipia.Packaging/DcsCompleteReleaseVerifier.cs](../../src/Heimdall.Packaging/DcsCompleteReleaseVerifier.cs)
 - [tests/Dcs.Ipia.Tests/CompleteReleaseArchiveTests.cs](../../tests/Heimdall.Tests/CompleteReleaseArchiveTests.cs)
 - [tests/Dcs.Ipia.Tests/ModuleSnapshotWorkflowTests.cs](../../tests/Heimdall.Tests/ModuleSnapshotWorkflowTests.cs)
 - [.github/workflows/release.yml](../../.github/workflows/release.yml)

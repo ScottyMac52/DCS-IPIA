@@ -12,7 +12,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Checks all four assignment consumers and the game drawing/navigation components.</summary>
         internal static void Verify()
         {
-            UserControl[] consumers = [new AssignmentsView(), new EliteAssignmentsView(), new SquadronsAssignmentsView(), new WarThunderAssignmentsView()];
+            UserControl[] consumers = [new DcsAssignmentsView(), new EliteAssignmentsView(), new SquadronsAssignmentsView(), new WarThunderAssignmentsView()];
             foreach (var consumer in consumers)
             {
                 var split = Descendants(consumer).OfType<GameWorkspaceSplit>().Single();

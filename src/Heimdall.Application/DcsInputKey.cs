@@ -17,13 +17,13 @@ namespace Heimdall.Application
         /// <summary>Gets a comparison key that treats known POV spellings as one assignment slot.</summary>
         /// <param name="slot">Module, device, scope, section, input, and modifier chord.</param>
         /// <returns>Physical slot identity without changing the stored input spelling.</returns>
-        public static string PhysicalSlotKey(DraftAssignmentSlot slot) =>
+        public static string PhysicalSlotKey(DcsDraftAssignmentSlot slot) =>
             (slot with { InputKey = ToDcsKey(slot.InputKey) }).Key;
 
         /// <summary>Collapses equivalent POV aliases while retaining conflicting assignments for validation.</summary>
         /// <param name="assignments">Imported or previously saved assignments.</param>
         /// <returns>One preferred original assignment per compatible alias group.</returns>
-        public static IReadOnlyList<DraftAssignment> CollapseAliases(IEnumerable<DraftAssignment> assignments) =>
+        public static IReadOnlyList<DcsDraftAssignment> CollapseAliases(IEnumerable<DcsDraftAssignment> assignments) =>
             assignments.GroupBy(x => PhysicalSlotKey(x.Slot), StringComparer.Ordinal)
                 .SelectMany(group => {
                     var entries = group.ToArray();
@@ -43,7 +43,7 @@ namespace Heimdall.Application
         /// <param name="section">Key or axis section.</param>
         /// <param name="hardwareKey">Key from the shared hardware definition.</param>
         /// <returns>The profile key, or the DCS POV spelling for an unassigned control.</returns>
-        public static string Resolve(ModuleConfiguration configuration, Guid profileId, BindingSection section,
+        public static string Resolve(DcsModuleConfiguration configuration, Guid profileId, BindingSection section,
                                      string hardwareKey, string? modifierChord = null)
         {
             if (modifierChord is not null)

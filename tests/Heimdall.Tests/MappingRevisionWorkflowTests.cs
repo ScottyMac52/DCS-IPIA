@@ -41,12 +41,12 @@ namespace Heimdall.Tests
         public async Task Revision_adoption_save_discard_rollback_and_snapshot_are_isolated()
         {
             var definition = GenericHardwareFixture.Definition();
-            var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
                 GenericHardwareFixture.Unit(definition, "Pilot"), AssignmentLayer.Module);
             var profile = workspace.Configuration.Profiles.Single();
-            workspace = WorkspaceStructureEditor.SetModifier(workspace, null,
+            workspace = DcsWorkspaceStructureEditor.SetModifier(workspace, null,
                 new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN1", "Shift", ModifierMode.Hold, ""));
-            var assignments = new[] { new DraftAssignment(
+            var assignments = new[] { new DcsDraftAssignment(
                 new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X"),
                 new("axis", "Pitch", false, AssignmentLayer.Module))
                 { Filter = new(Deadzone: 0.1, SaturationX: 0.8, SaturationY: 0.9, Curvature: FlatCurve) } };
@@ -55,8 +55,8 @@ namespace Heimdall.Tests
             var first = DrawioMappingImporter.Import(source, definition, "controller.drawio", "test");
             var second = DrawioMappingImporter.Import(source.Replace("fillColor=#ffffff", "fillColor=#eeeeee", StringComparison.Ordinal),
                 definition, "controller.drawio", "test");
-            var pinned = UserMappingAdoption.Apply(workspace, profile.Id, first);
-            var review = MappingRevisionReview.Create(pinned.Diagrams.Single(), second);
+            var pinned = DcsUserMappingAdoption.Apply(workspace, profile.Id, first);
+            var review = DcsMappingRevisionReview.Create(pinned.Diagrams.Single(), second);
             Assert.Empty(review.Conflicts);
             Assert.NotEmpty(review.Changes);
             var root = Path.Combine(Path.GetTempPath(), "ipia-revisions-" + Guid.NewGuid().ToString("N"));
@@ -65,13 +65,13 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(pinned);
                 var other = GenericHardwareFixture.Workspace();
-                other = other with { Configuration = new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "OTHER", "Other aircraft"),
+                other = other with { Configuration = new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "OTHER", "Other aircraft"),
                         other.Configuration.Profiles, other.Configuration.Modifiers, other.Configuration.Bindings, other.Configuration.Provenance) };
-                other = InventoryHardwareAuthoring.Add(other, GenericHardwareFixture.Unit(definition, "Other pilot"), AssignmentLayer.Module);
-                other = UserMappingAdoption.Apply(other, other.Configuration.Profiles.Single().Id, first);
+                other = DcsInventoryHardwareAuthoring.Add(other, GenericHardwareFixture.Unit(definition, "Other pilot"), AssignmentLayer.Module);
+                other = DcsUserMappingAdoption.Apply(other, other.Configuration.Profiles.Single().Id, first);
                 await repository.SaveAsync(other);
                 var otherJson = JsonSerializer.Serialize(await repository.GetAsync(other.Configuration.Module.Id));
                 var library = new FileUserMappingLibrary(root);
@@ -79,7 +79,7 @@ namespace Heimdall.Tests
                 await library.SaveAsync(second);
                 Assert.Equal(first.Id, (await repository.GetAsync(workspace.Configuration.Module.Id))!.Diagrams.Single().CustomMapping!.Id);
                 var expected = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
-                var draft = UserMappingAdoption.Apply(expected, profile.Id, second);
+                var draft = DcsUserMappingAdoption.Apply(expected, profile.Id, second);
                 Assert.Same(expected.Assignments, draft.Assignments);
                 Assert.Equal(first.Id, (await repository.GetAsync(workspace.Configuration.Module.Id))!.Diagrams.Single().CustomMapping!.Id);
                 await repository.SaveIfUnchangedAsync(expected, draft);
@@ -90,12 +90,12 @@ namespace Heimdall.Tests
                 Assert.Equal(JsonSerializer.Serialize(expected.Configuration), JsonSerializer.Serialize(saved.Configuration));
                 Assert.Equal(JsonSerializer.Serialize(expected.Assignments), JsonSerializer.Serialize(saved.Assignments));
                 Assert.Equal(otherJson, JsonSerializer.Serialize(await repository.GetAsync(other.Configuration.Module.Id)));
-                var legacySnapshot = EditorSnapshotSerializer.Serialize(expected);
+                var legacySnapshot = DcsEditorSnapshotSerializer.Serialize(expected);
                 Assert.DoesNotContain("mappingHistory", legacySnapshot.Content, StringComparison.Ordinal);
-                Assert.Equal(legacySnapshot.Content, EditorSnapshotSerializer.Serialize(EditorSnapshotSerializer.Deserialize(legacySnapshot)).Content);
-                var snapshot = EditorSnapshotSerializer.Serialize(saved);
-                var restored = EditorSnapshotSerializer.Deserialize(snapshot);
-                var rollback = UserMappingAdoption.Apply(restored, profile.Id, first);
+                Assert.Equal(legacySnapshot.Content, DcsEditorSnapshotSerializer.Serialize(DcsEditorSnapshotSerializer.Deserialize(legacySnapshot)).Content);
+                var snapshot = DcsEditorSnapshotSerializer.Serialize(saved);
+                var restored = DcsEditorSnapshotSerializer.Deserialize(snapshot);
+                var rollback = DcsUserMappingAdoption.Apply(restored, profile.Id, first);
                 Assert.Equal(first.Id, rollback.Diagrams.Single().CustomMapping!.Id);
                 Assert.Contains(rollback.Diagrams.Single().MappingHistory!, x => x.Id == second.Id);
                 Assert.Equal(JsonSerializer.Serialize(saved.Assignments), JsonSerializer.Serialize(rollback.Assignments));
@@ -108,12 +108,12 @@ namespace Heimdall.Tests
                 await activeLibrary.SaveAsync(second);
                 var activeConnection = "Data Source=" + Path.Combine(active, "ipia.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(activeConnection).MigrateAsync();
-                await new SqliteEditorWorkspaceRepository(activeConnection).SaveAsync(saved);
+                await new DcsSqliteEditorWorkspaceRepository(activeConnection).SaveAsync(saved);
                 var recovery = new UserDataRecoveryService(active, "test");
                 recovery.Backup(backup);
                 recovery.Restore(backup);
                 Assert.Equal(2, (await new FileUserMappingLibrary(active).ListAsync()).Count);
-                Assert.Single((await new SqliteEditorWorkspaceRepository(activeConnection).GetAsync(workspace.Configuration.Module.Id))!.Diagrams.Single().MappingHistory!);
+                Assert.Single((await new DcsSqliteEditorWorkspaceRepository(activeConnection).GetAsync(workspace.Configuration.Module.Id))!.Diagrams.Single().MappingHistory!);
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
         }
@@ -123,21 +123,21 @@ namespace Heimdall.Tests
         public void Identity_changes_require_reconciliation()
         {
             var definition = GenericHardwareFixture.Definition();
-            var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
                 GenericHardwareFixture.Unit(definition, "Pilot"), AssignmentLayer.Module);
             var profile = workspace.Configuration.Profiles.Single();
             var source = DrawioMappingStarter.Export(definition);
             var first = DrawioMappingImporter.Import(source, definition, "controller.drawio", "test");
-            var pinned = UserMappingAdoption.Apply(workspace, profile.Id, first);
+            var pinned = DcsUserMappingAdoption.Apply(workspace, profile.Id, first);
             var changed = DrawioMappingImporter.Import(source.Replace("label-JOY_BTN1", "label-renamed", StringComparison.Ordinal),
                 definition, "controller.drawio", "test");
-            Assert.Contains(MappingRevisionReview.Create(pinned.Diagrams.Single(), changed).Conflicts, x => x.Contains("JOY_BTN1", StringComparison.Ordinal));
-            var error = Assert.Throws<InvalidOperationException>(() => UserMappingAdoption.Apply(pinned, profile.Id, changed));
+            Assert.Contains(DcsMappingRevisionReview.Create(pinned.Diagrams.Single(), changed).Conflicts, x => x.Contains("JOY_BTN1", StringComparison.Ordinal));
+            var error = Assert.Throws<InvalidOperationException>(() => DcsUserMappingAdoption.Apply(pinned, profile.Id, changed));
             Assert.Contains("reconciliation", error.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(first.Id, pinned.Diagrams.Single().CustomMapping!.Id);
             var incompatible = DrawioMappingImporter.Import(DrawioMappingStarter.Export(GenericHardwareFixture.Definition(true)),
                 GenericHardwareFixture.Definition(true), "other.drawio", "test");
-            var incompatibleReview = MappingRevisionReview.Create(pinned.Diagrams.Single(), incompatible);
+            var incompatibleReview = DcsMappingRevisionReview.Create(pinned.Diagrams.Single(), incompatible);
             Assert.NotEmpty(incompatibleReview.Conflicts);
             Assert.Contains(incompatibleReview.Conflicts, x => x.Contains("definition-only:", StringComparison.Ordinal) ||
                 x.Contains("profile-only:", StringComparison.Ordinal));
@@ -148,18 +148,18 @@ namespace Heimdall.Tests
         public void A_selected_profile_changes_without_touching_another_unit_or_unsaved_edits()
         {
             var definition = GenericHardwareFixture.Definition();
-            var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(),
                 GenericHardwareFixture.Unit(definition, "Left"), AssignmentLayer.Module);
-            workspace = InventoryHardwareAuthoring.Add(workspace, GenericHardwareFixture.Unit(definition, "Right"), AssignmentLayer.Module);
+            workspace = DcsInventoryHardwareAuthoring.Add(workspace, GenericHardwareFixture.Unit(definition, "Right"), AssignmentLayer.Module);
             var ids = workspace.Diagrams.Select(x => x.ProfileId).ToArray();
             var source = DrawioMappingStarter.Export(definition);
             var first = DrawioMappingImporter.Import(source, definition, "panel.drawio", "test");
             var second = DrawioMappingImporter.Import(source.Replace("fillColor=#ffffff", "fillColor=#dddddd", StringComparison.Ordinal),
                 definition, "panel.drawio", "test");
-            foreach (var id in ids) workspace = UserMappingAdoption.Apply(workspace, id, first);
-            workspace = InventoryHardwareAuthoring.RenameControl(workspace, ids[0], "JOY_BTN1", "Unsaved personal label");
+            foreach (var id in ids) workspace = DcsUserMappingAdoption.Apply(workspace, id, first);
+            workspace = DcsInventoryHardwareAuthoring.RenameControl(workspace, ids[0], "JOY_BTN1", "Unsaved personal label");
             var untouched = JsonSerializer.Serialize(workspace.Diagrams.Single(x => x.ProfileId == ids[1]));
-            var changed = UserMappingAdoption.Apply(workspace, ids[0], second);
+            var changed = DcsUserMappingAdoption.Apply(workspace, ids[0], second);
             Assert.Same(workspace.Configuration, changed.Configuration);
             Assert.Same(workspace.Assignments, changed.Assignments);
             Assert.Same(workspace.Labels, changed.Labels);

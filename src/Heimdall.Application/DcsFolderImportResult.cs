@@ -11,7 +11,7 @@ namespace Heimdall.Application
         /// <param name="bindings">Parsed aircraft bindings.</param>
         /// <param name="modifiers">Parsed adjacent modifiers, when available.</param>
         /// <param name="diagnostics">Import diagnostics.</param>
-        public DcsFolderImportResult(string folder, IReadOnlyList<DeviceProfile> profiles,
+        public DcsFolderImportResult(string folder, IReadOnlyList<DcsDeviceProfile> profiles,
                                      IReadOnlyList<DcsBinding> bindings, IReadOnlyList<DcsModifier> modifiers,
                                      IReadOnlyList<ImportDiagnostic> diagnostics)
         {
@@ -25,7 +25,7 @@ namespace Heimdall.Application
         /// <summary>Gets the selected local directory.</summary>
         public string Folder { get; }
         /// <summary>Gets profile names without assuming a shared device identity.</summary>
-        public IReadOnlyList<DeviceProfile> Profiles { get; }
+        public IReadOnlyList<DcsDeviceProfile> Profiles { get; }
         /// <summary>Gets the aircraft bindings.</summary>
         public IReadOnlyList<DcsBinding> Bindings { get; }
         /// <summary>Gets the adjacent DCS modifiers.</summary>

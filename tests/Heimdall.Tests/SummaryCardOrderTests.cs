@@ -17,9 +17,9 @@ namespace Heimdall.Tests
         [InlineData(2, 1, "A,C,B")]
         public void Moves_and_renumbers(int source, int insertion, string expected)
         {
-            ModuleSummaryCard[] cards = [new("07", "A", "red") { SourceIndex = 0 },
+            DcsModuleSummaryCard[] cards = [new("07", "A", "red") { SourceIndex = 0 },
                 new("07", "B", "green") { SourceIndex = 1 }, new("09", "C", "blue") { SourceIndex = 2 }];
-            var moved = SummaryCardOrder.Move(cards, source, insertion);
+            var moved = DcsSummaryCardOrder.Move(cards, source, insertion);
             Assert.Equal(expected.Split(','), moved.Select(x => x.Text));
             Assert.Equal(NumberedKeys, moved.Select(x => x.Key));
             Assert.All(moved, card => {
@@ -38,22 +38,22 @@ namespace Heimdall.Tests
         [InlineData(1, 2)]
         public void Same_position_does_not_renumber(int source, int insertion)
         {
-            ModuleSummaryCard[] cards = [new("Custom", "A", "red"), new("42", "B", "green")];
-            Assert.Same(cards, SummaryCardOrder.Move(cards, source, insertion));
+            DcsModuleSummaryCard[] cards = [new("Custom", "A", "red"), new("42", "B", "green")];
+            Assert.Same(cards, DcsSummaryCardOrder.Move(cards, source, insertion));
         }
 
         /// <summary>Invalid coordinates do not mutate cards, and a single card can remain in place.</summary>
         [Fact]
         public void Rejects_invalid_indices_and_handles_single_card()
         {
-            ModuleSummaryCard[] cards = [new("07", "A", "red")];
-            Assert.Same(cards, SummaryCardOrder.Move(cards, 0, 1));
-            Assert.Throws<ArgumentNullException>(() => SummaryCardOrder.Move(null!, 0, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => SummaryCardOrder.Move([], 0, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => SummaryCardOrder.Move(cards, -1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => SummaryCardOrder.Move(cards, 1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => SummaryCardOrder.Move(cards, 0, -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => SummaryCardOrder.Move(cards, 0, 2));
+            DcsModuleSummaryCard[] cards = [new("07", "A", "red")];
+            Assert.Same(cards, DcsSummaryCardOrder.Move(cards, 0, 1));
+            Assert.Throws<ArgumentNullException>(() => DcsSummaryCardOrder.Move(null!, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => DcsSummaryCardOrder.Move([], 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => DcsSummaryCardOrder.Move(cards, -1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => DcsSummaryCardOrder.Move(cards, 1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => DcsSummaryCardOrder.Move(cards, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => DcsSummaryCardOrder.Move(cards, 0, 2));
         }
         #endregion END Public
     }

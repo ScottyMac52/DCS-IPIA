@@ -110,7 +110,7 @@ namespace Heimdall.Tests
                 Commit(huey);
                 File.WriteAllText(Path.Combine(huey, "README.md"), "# uncommitted readme\n");
                 File.WriteAllText(Path.Combine(huey, "config", "kneeboard.json"), "{broken");
-                var result = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var result = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.True(result.Import.Succeeded,
                             string.Join("; ", result.Import.Diagnostics.Select(x => x.Message)));
                 Assert.Contains("config/kneeboard.json", result.UncommittedSourcePaths);
@@ -129,15 +129,15 @@ namespace Heimdall.Tests
                 Assert.DoesNotContain(result.SharedLuaSources.Keys,
                                       x => x.StartsWith("assets/shared/hardware/", StringComparison.Ordinal));
                 var authoredLabels =
-                    KneeboardLabelImporter.Import(result.Import.Metadata, result.Import.Configuration!);
+                    DcsKneeboardLabelImporter.Import(result.Import.Metadata, result.Import.Configuration!);
                 Assert.Equal(101, authoredLabels.Count);
                 var mfd1 =
                     result.Import.Configuration!.Profiles.Single(x => x.DeviceId == "tm-mfd" && x.Instance == "MFD1");
-                var mfd1Top = new DraftAssignmentSlot(result.Import.Configuration.Module.Id, mfd1.Id,
+                var mfd1Top = new DcsDraftAssignmentSlot(result.Import.Configuration.Module.Id, mfd1.Id,
                                                       AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
                 Assert.Equal("Switch", authoredLabels[mfd1Top.Key]);
                 var hornet = result.Import.Configuration!.Profiles.Single(x => x.DeviceId == "moza-ab9-hornet-grip");
-                var baseArm = new DraftAssignmentSlot(result.Import.Configuration.Module.Id, hornet.Id,
+                var baseArm = new DcsDraftAssignmentSlot(result.Import.Configuration.Module.Id, hornet.Id,
                                                       AssignmentLayer.Module, BindingSection.Key, "JOY_BTN11");
                 Assert.Equal("Arm Up", authoredLabels[baseArm.Key]);
                 Assert.Equal("Gun Up", authoredLabels[(baseArm with { ModifierChord = "MOZA_F16_F18_BTN3" }).Key]);
@@ -147,13 +147,13 @@ namespace Heimdall.Tests
                              authoredLabels[(baseTrim with { ModifierChord = "MOZA_F16_F18_BTN3" }).Key]);
                 var database = "Data Source=" + Path.Combine(temp, "labels.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(database).MigrateAsync();
-                await new SqliteConfigurationRepository(database).ReplaceAsync(result.Import.Configuration);
+                await new DcsSqliteConfigurationRepository(database).ReplaceAsync(result.Import.Configuration);
                 var workspace =
-                    new EditorWorkspaceSnapshot(result.Import.Configuration, result.Import.Pages, result.Images,
+                    new DcsEditorWorkspaceSnapshot(result.Import.Configuration, result.Import.Pages, result.Images,
                                                 result.Diagrams, [], result.UiCommands, [], authoredLabels,
                                                 result.Import.Sources.Concat(result.SharedLuaSources)
                                                     .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
-                var repository = new SqliteEditorWorkspaceRepository(database);
+                var repository = new DcsSqliteEditorWorkspaceRepository(database);
                 await repository.SaveAsync(workspace);
                 var reopened = await repository.GetAsync(result.Import.Configuration.Module.Id);
                 Assert.NotNull(reopened);
@@ -166,18 +166,18 @@ namespace Heimdall.Tests
                 Assert.Contains("config/ipia-device-map.json", reopened.Sources.Keys);
                 Assert.Equal(result.SharedLuaSources["config/ipia-hardware.json"], reopened.Sources["config/ipia-hardware.json"]);
                 Assert.DoesNotContain(reopened.Configuration.Profiles, x => x.DeviceId == "ava-base-f16c");
-                var ava = Assert.Single(WorkspaceStructureEditor.Hardware(reopened), x => x.DeviceId == "ava-base-f16c");
+                var ava = Assert.Single(DcsWorkspaceStructureEditor.Hardware(reopened), x => x.DeviceId == "ava-base-f16c");
                 Assert.NotEmpty(ava.Diagram.Controls);
-                Assert.Equal("ava-base-f16c", DetectedDeviceHardwareMatcher.Match(reopened,
+                Assert.Equal("ava-base-f16c", DcsDetectedDeviceHardwareMatcher.Match(reopened,
                     new(Guid.NewGuid(), "AVA [R] - Viper", true))!.DeviceId);
                 Assert.Equal("# committed module readme\n", reopened.Sources["README.md"]);
                 Assert.Equal("Committed package instructions\n", reopened.Sources["packaging/ovgme/README.TXT"]);
-                var frozen = EditorSnapshotSerializer.Serialize(reopened);
+                var frozen = DcsEditorSnapshotSerializer.Serialize(reopened);
                 Assert.Equal(reopened.Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"],
-                             EditorSnapshotSerializer.Deserialize(frozen)
+                             DcsEditorSnapshotSerializer.Deserialize(frozen)
                                  .Sources!["assets/shared/ui-layer/input/UiLayer/modifiers.lua"]);
                 Assert.Equal("Write-Output 'committed build'\n",
-                             EditorSnapshotSerializer.Deserialize(frozen).Sources!["scripts/Build-OvGME.ps1"]);
+                             DcsEditorSnapshotSerializer.Deserialize(frozen).Sources!["scripts/Build-OvGME.ps1"]);
                 Assert.StartsWith("{\n", result.Import.Sources["config/kneeboard.json"], StringComparison.Ordinal);
                 var preview = Assert.Single(result.Images);
                 Assert.Equal("00-UH1H-CONTROL-OVERVIEW", preview.PageKey);
@@ -185,15 +185,15 @@ namespace Heimdall.Tests
                 Assert.Equal(2, result.ModuleCommands.Count);
                 Assert.Contains(result.ModuleCommands,
                                 x => x.Name == "ADF Band 190-400 kHz" && x.Category == "ADF Set Control panel");
-                Assert.Single(CommandPalette.Filter(result.ModuleCommands, null, "View"));
+                Assert.Single(DcsCommandPalette.Filter(result.ModuleCommands, null, "View"));
                 Assert.Empty(result.CommandDiagnostics);
                 var savedCatalog = File.ReadAllText(catalogPath);
                 File.Delete(catalogPath);
-                var missingSource = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var missingSource = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.Empty(missingSource.ModuleCommands);
                 Assert.Contains(missingSource.CommandDiagnostics, x => x.Code == "module-command-source" && x.IsError);
                 File.WriteAllText(catalogPath, "{invalid");
-                var invalidSource = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var invalidSource = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.Contains(invalidSource.CommandDiagnostics, x => x.Code == "module-command-source" && x.IsError);
                 File.WriteAllText(catalogPath, savedCatalog);
                 Assert.NotEmpty(result.UiCommands);
@@ -239,7 +239,7 @@ namespace Heimdall.Tests
                                                              common,
                                                              "assets/shared/hardware/svg/tm-warthog-throttle.svg"))
                     };
-                var withoutHardwareMap = UiLayerDiagramFactory.Create(result.Import, catalog, graphics);
+                var withoutHardwareMap = DcsUiLayerDiagramFactory.Create(result.Import, catalog, graphics);
                 Assert.Equal(5, withoutHardwareMap.Count);
                 Assert.All(withoutHardwareMap, x => Assert.Empty(x.Controls));
                 Assert.Contains(withoutHardwareMap, x => x.Instance == "MFD1" && !x.SupportsUiLayer);
@@ -255,11 +255,11 @@ namespace Heimdall.Tests
                 var canonicalLua = new DcsCommonLuaImporter().Import(
                     new(new string('a', 40), catalog,
                         Directory.GetFiles(lua, "*.lua", SearchOption.AllDirectories)
-                            .Select(path => new SharedLuaSource(Path.GetRelativePath(lua, path).Replace('\\', '/'),
+                            .Select(path => new DcsSharedLuaSource(Path.GetRelativePath(lua, path).Replace('\\', '/'),
                                                                 File.ReadAllText(path)))
                             .ToArray()));
                 Assert.True(canonicalLua.Succeeded);
-                var sharedMap = new SharedLuaImportResult(
+                var sharedMap = new DcsSharedLuaImportResult(
                     canonicalLua.Controls
                         .Select(control => control.Control.StableKey == baseControl
                                                ? new SharedHardwareControl(axisControl, control.InputKey, "axis",
@@ -272,18 +272,18 @@ namespace Heimdall.Tests
                 withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"] =
                     withoutLabel["assets/shared/hardware/svg/tm-mfd.svg"].Replace(
                         "id='lbl-" + mappedControl.Control + "'", "id='other-label'", StringComparison.Ordinal);
-                var fallback = UiLayerDiagramFactory.Create(result.Import, catalog, withoutLabel, sharedMap);
+                var fallback = DcsUiLayerDiagramFactory.Create(result.Import, catalog, withoutLabel, sharedMap);
                 Assert.Contains(fallback.SelectMany(x => x.Controls), x => x.Control == mappedControl.Control &&
                                                                            x.Label == mappedControl.Control &&
                                                                            x.IsAxis);
                 Assert.Throws<InvalidDataException>(
-                    () => UiLayerDiagramFactory.Create(result.Import, catalog, new Dictionary<string, string>()));
+                    () => DcsUiLayerDiagramFactory.Create(result.Import, catalog, new Dictionary<string, string>()));
                 var missingBox = new Dictionary<string, string>(graphics);
                 missingBox["assets/shared/hardware/svg/grip-f18c.svg"] =
                     missingBox["assets/shared/hardware/svg/grip-f18c.svg"].Replace(
                         "box:hornet-grip-paddle", "box:missing-control", StringComparison.Ordinal);
                 Assert.Throws<InvalidDataException>(
-                    () => UiLayerDiagramFactory.Create(result.Import, catalog, missingBox));
+                    () => DcsUiLayerDiagramFactory.Create(result.Import, catalog, missingBox));
                 var nonAdjacentBox = new Dictionary<string, string>(graphics);
                 nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"] =
                     nonAdjacentBox["assets/shared/hardware/svg/grip-f18c.svg"].Replace(
@@ -291,14 +291,14 @@ namespace Heimdall.Tests
                         "<!-- box:hornet-grip-paddle -->\n  <text>Unexpected shape</text>\n  <rect",
                         StringComparison.Ordinal);
                 var badBox = Assert.Throws<InvalidDataException>(
-                    () => UiLayerDiagramFactory.Create(result.Import, catalog, nonAdjacentBox));
+                    () => DcsUiLayerDiagramFactory.Create(result.Import, catalog, nonAdjacentBox));
                 Assert.Contains("adjacent rectangle", badBox.Message, StringComparison.Ordinal);
                 var unsupportedImage = new Dictionary<string, string>(graphics);
                 unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"] =
                     unsupportedImage["assets/shared/hardware/svg/tm-mfd.svg"].Replace(
                         "data:image/png;base64,", "data:image/gif;base64,", StringComparison.Ordinal);
                 Assert.Throws<InvalidDataException>(
-                    () => UiLayerDiagramFactory.Create(result.Import, catalog, unsupportedImage));
+                    () => DcsUiLayerDiagramFactory.Create(result.Import, catalog, unsupportedImage));
                 var mfdSvg = graphics["assets/shared/hardware/svg/tm-mfd.svg"];
                 foreach (var (original, invalid, expected) in new[] {
                              ("<svg xmlns='http://www.w3.org/2000/svg' width='960'",
@@ -315,7 +315,7 @@ namespace Heimdall.Tests
                     malformed["assets/shared/hardware/svg/tm-mfd.svg"] =
                         mfdSvg.Replace(original, invalid, StringComparison.Ordinal);
                     var errors = new List<string>();
-                    var remaining = UiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
+                    var remaining = DcsUiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
                         (profile, error) => errors.Add($"{profile.DeviceId}: {error.Message}"));
                     Assert.Equal(2, remaining.Count);
                     Assert.Contains(errors, x => x.Contains("tm-mfd.svg", StringComparison.Ordinal) &&
@@ -325,7 +325,7 @@ namespace Heimdall.Tests
                 insetImage["assets/shared/hardware/svg/tm-mfd.svg"] = mfdSvg.Replace(
                     " x='0' y='0' width='960' height='720'/>",
                     " x='100' y='50' width='600' height='500'/>", StringComparison.Ordinal);
-                Assert.Equal(5, UiLayerDiagramFactory.Create(result.Import, catalog, insetImage, sharedMap).Count);
+                Assert.Equal(5, DcsUiLayerDiagramFactory.Create(result.Import, catalog, insetImage, sharedMap).Count);
                 var throttleSvg = graphics["assets/shared/hardware/svg/tm-warthog-throttle.svg"];
                 foreach (var (original, invalid) in new[] {
                              ("x='10'", "x='950'"), ("x='10'", "x='NaN'"),
@@ -336,7 +336,7 @@ namespace Heimdall.Tests
                     malformed["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
                         throttleSvg.Replace(original, invalid, StringComparison.Ordinal);
                     var errors = new List<string>();
-                    var remaining = UiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
+                    var remaining = DcsUiLayerDiagramFactory.Create(result.Import, catalog, malformed, sharedMap,
                         (profile, error) => errors.Add($"{profile.DeviceId}: {error.Message}"));
                     Assert.Equal(4, remaining.Count);
                     Assert.Contains(errors, x => x.Contains("tm-warthog-throttle", StringComparison.Ordinal) &&
@@ -345,7 +345,7 @@ namespace Heimdall.Tests
                 var atOrigin = new Dictionary<string, string>(graphics);
                 atOrigin["assets/shared/hardware/svg/tm-warthog-throttle.svg"] =
                     throttleSvg.Replace("x='10'", "x='0'", StringComparison.Ordinal);
-                Assert.Contains(UiLayerDiagramFactory.Create(result.Import, catalog, atOrigin, sharedMap),
+                Assert.Contains(DcsUiLayerDiagramFactory.Create(result.Import, catalog, atOrigin, sharedMap),
                                 x => x.Controls.Any(control => control.Control == "warthog-thr-slew-push" &&
                                                              control.X == 0));
                 Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(image)), preview.Sha256);
@@ -355,7 +355,7 @@ namespace Heimdall.Tests
                 Git(huey, "add", "config/UH-1H.dcs-scaffold.json");
                 Git(huey, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm",
                     "unlink commands");
-                var unlinked = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var unlinked = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.Empty(unlinked.ModuleCommands);
                 Assert.Empty(unlinked.CommandDiagnostics);
                 solution["import"]!["commandSource"] = System.Text.Json.JsonSerializer.SerializeToNode(
@@ -364,7 +364,7 @@ namespace Heimdall.Tests
                 Git(huey, "add", "config/UH-1H.dcs-scaffold.json");
                 Git(huey, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm",
                     "invalid command source");
-                var unsupported = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var unsupported = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.Contains(unsupported.CommandDiagnostics, x => x.Code == "module-command-source" && x.IsError);
                 var htmlPath = Path.Combine(temp, "MFD 1.html");
                 File.WriteAllText(
@@ -376,7 +376,7 @@ namespace Heimdall.Tests
                 Git(huey, "add", "config/UH-1H.dcs-scaffold.json");
                 Git(huey, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm",
                     "link DCS HTML");
-                var linkedHtml = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var linkedHtml = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.Contains(linkedHtml.ModuleCommands,
                                 x => x.Category == "ADF Set Control panel" && x.Name == "ADF Band 190-400 kHz");
                 Assert.Empty(linkedHtml.CommandDiagnostics);
@@ -388,7 +388,7 @@ namespace Heimdall.Tests
                 Git(common, "add", "--all");
                 Git(common, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm",
                     "unknown graphic control");
-                var withUnknownControl = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var withUnknownControl = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.True(withUnknownControl.Import.Succeeded);
                 Assert.Equal(4, withUnknownControl.Diagrams.Count);
                 Assert.Contains(withUnknownControl.GraphicDiagnostics,
@@ -401,7 +401,7 @@ namespace Heimdall.Tests
                 Git(common, "add", "--all");
                 Git(common, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm",
                     "broken graphic");
-                var withBrokenGraphic = await new ModuleWorkspaceLoader().LoadAsync(common, huey);
+                var withBrokenGraphic = await new DcsModuleWorkspaceLoader().LoadAsync(common, huey);
                 Assert.True(withBrokenGraphic.Import.Succeeded);
                 Assert.Single(withBrokenGraphic.Images);
                 Assert.Equal(result.UiCommands, withBrokenGraphic.UiCommands);
@@ -429,7 +429,7 @@ namespace Heimdall.Tests
                 foreach (var source in Directory.GetFiles(fixtures, "*", SearchOption.AllDirectories))
                     Copy(source, root, Path.GetRelativePath(fixtures, source));
                 Commit(root);
-                var preview = await new ModuleWorkspaceLoader().LoadAsync(BundledSharedCatalog.Root, root);
+                var preview = await new DcsModuleWorkspaceLoader().LoadAsync(BundledSharedCatalog.Root, root);
                 Assert.True(preview.Import.Succeeded, string.Join("; ", preview.Import.Diagnostics.Select(x => x.Message)));
                 Assert.NotEmpty(preview.Diagrams);
                 Assert.NotEmpty(preview.SharedLuaSources["config/ipia-hardware.json"]);
@@ -446,7 +446,7 @@ namespace Heimdall.Tests
             try
             {
                 Directory.CreateDirectory(path);
-                await Assert.ThrowsAsync<InvalidDataException>(() => new ModuleWorkspaceLoader().LoadAsync(path, path));
+                await Assert.ThrowsAsync<InvalidDataException>(() => new DcsModuleWorkspaceLoader().LoadAsync(path, path));
             }
             finally
             {
@@ -466,7 +466,7 @@ namespace Heimdall.Tests
                 foreach (var source in Directory.GetFiles(fixtures, "*", SearchOption.AllDirectories))
                     Copy(source, root, Path.GetRelativePath(fixtures, source));
                 Commit(root);
-                var loader = new ModuleWorkspaceLoader();
+                var loader = new DcsModuleWorkspaceLoader();
                 const string modifierSourcePath = "src/Config/Input/UH-1H/modifiers.lua";
                 var modifierPath = Path.Combine(root, modifierSourcePath);
                 var original = File.ReadAllText(modifierPath);
@@ -494,25 +494,25 @@ namespace Heimdall.Tests
                 Assert.Empty(refreshed.UncommittedSourcePaths);
                 Assert.DoesNotContain(refreshed.Import.Diagnostics, x => x.Code == "uncommitted-module-sources");
                 Assert.Equal(9, refreshed.Import.Configuration!.Modifiers.Count);
-                var snapshot = new EditorWorkspaceSnapshot(refreshed.Import.Configuration, refreshed.Import.Pages,
+                var snapshot = new DcsEditorWorkspaceSnapshot(refreshed.Import.Configuration, refreshed.Import.Pages,
                     refreshed.Images, refreshed.Diagrams, [], refreshed.UiCommands, [],
-                    KneeboardLabelImporter.Import(refreshed.Import.Metadata, refreshed.Import.Configuration),
+                    DcsKneeboardLabelImporter.Import(refreshed.Import.Metadata, refreshed.Import.Configuration),
                     refreshed.Import.Sources.Concat(refreshed.SharedLuaSources).ToDictionary(x => x.Key, x => x.Value));
                 var database = "Data Source=" + Path.Combine(root, "workspace.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(database).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(database);
+                var repository = new DcsSqliteEditorWorkspaceRepository(database);
                 await repository.SaveAsync(snapshot);
                 var reopened = await repository.GetAsync(snapshot.Configuration.Module.Id);
                 Assert.NotNull(reopened);
-                var managed = WorkspaceStructureEditor.Describe(reopened).Modifiers
+                var managed = DcsWorkspaceStructureEditor.Describe(reopened).Modifiers
                     .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
                 foreach (var key in keys)
                 {
                     var modifier = Assert.Single(managed, x => x.Name == key);
-                    Assert.True(WorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
-                    Assert.Throws<InvalidOperationException>(() => WorkspaceStructureEditor.RemoveModifier(reopened, modifier));
+                    Assert.True(DcsWorkspaceStructureEditor.IsDefaultKeyboardModifier(modifier));
+                    Assert.Throws<InvalidOperationException>(() => DcsWorkspaceStructureEditor.RemoveModifier(reopened, modifier));
                 }
-                var payload = SnapshotLuaPayloadRenderer.Generate(reopened);
+                var payload = DcsSnapshotLuaPayloadRenderer.Generate(reopened);
                 var output = DcsLuaParser.ParseModifiers(System.Text.Encoding.UTF8.GetString(payload["Config/Input/UH-1H/modifiers.lua"]));
                 Assert.Equal(keys.Order(StringComparer.Ordinal),
                     output.Where(x => x.Device == "Keyboard").Select(x => x.Name).Order(StringComparer.Ordinal));

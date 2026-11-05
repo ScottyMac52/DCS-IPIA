@@ -41,7 +41,7 @@ namespace Heimdall.App
             _setup = setup;
             _destination.Text = destination;
             _scanOnOpen = scanOnOpen;
-            _catalog = catalog ?? (ct => Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root, ct), ct));
+            _catalog = catalog ?? (ct => Task.Run(() => DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root, ct), ct));
             Title = setup is null ? "HEIMDALL — User hardware inventory" : "HEIMDALL — Hardware setup";
             if (setup is not null) { _save.Content = "_Confirm setup"; _save.IsDefault = true; }
             Width = 1200; Height = 740; MinWidth = 800; MinHeight = 500;

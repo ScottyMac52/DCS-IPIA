@@ -108,22 +108,22 @@ namespace Heimdall.Tests
         public void Snapshot_version_and_required_collections_are_validated()
         {
             Assert.Throws<ArgumentException>(() => Create(snapshot: new(99, "hash")));
-            Assert.Throws<ArgumentNullException>(() => new VersionedDomainSchema(null!, [], [], [], [], [], [], [], [],
+            Assert.Throws<ArgumentNullException>(() => new DcsVersionedDomainSchema(null!, [], [], [], [], [], [], [], [],
                                                                                  [], [], [], [], [], [], [],
                                                                                  new(1, "hash"), new(1, 0, 0)));
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static VersionedDomainSchema Create(
+        private static DcsVersionedDomainSchema Create(
             IEnumerable<PhysicalDevice>? devices = null, IEnumerable<DeviceControl>? controls = null,
             IEnumerable<DeviceInstance>? instances = null, IEnumerable<DcsCommandDefinition>? commands = null,
-            IEnumerable<BindingRelationship>? bindings = null, IEnumerable<UiLayerModuleUsage>? usage = null,
-            IEnumerable<UiLayerOverlay>? overlays = null, IEnumerable<UiLayerTombstone>? tombstones = null,
+            IEnumerable<BindingRelationship>? bindings = null, IEnumerable<DcsUiLayerModuleUsage>? usage = null,
+            IEnumerable<DcsUiLayerOverlay>? overlays = null, IEnumerable<DcsUiLayerTombstone>? tombstones = null,
             IEnumerable<KneeboardPage>? pages = null, IEnumerable<DocumentationMetadata>? documentation = null,
             IEnumerable<PackagingMetadata>? packages = null, SnapshotIdentity? snapshot = null)
         {
             var module = new DcsModule(ModuleId, "UH-1H", "Huey");
-            var profile = new DeviceProfile(ProfileId, "tm-mfd", "MFD1", "pilot-left", "MFD.diff.lua");
+            var profile = new DcsDeviceProfile(ProfileId, "tm-mfd", "MFD1", "pilot-left", "MFD.diff.lua");
             return new([module], devices ?? [new(DeviceId, "tm-mfd", "MFD", ["Thrustmaster MFD"])],
                        controls ?? [new(ControlId, DeviceId, "osb-1", "OSB 1", ControlKind.Button,
                                         new(0.1, 0.2, 0.3, 0.4, "normalized"))],

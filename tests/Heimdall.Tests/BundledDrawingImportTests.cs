@@ -97,28 +97,28 @@ namespace Heimdall.Tests
             var definition = Definition(inputs.Values.Append("JOY_BTN29")); // Exercise continuation rendering alongside shifted pairs.
             var revision = DrawioMappingFileImport.Load(Path.Combine(BundledSharedCatalog.Root, "assets/shared/hardware/drawio/tm-mfd.drawio"), definition, "test", inputs);
             var unit = GenericHardwareFixture.Unit(definition, "MFD3");
-            var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), unit, AssignmentLayer.Module);
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), unit, AssignmentLayer.Module);
             var profile = workspace.Configuration.Profiles.Single();
-            workspace = WorkspaceStructureEditor.SetModifier(workspace, null, new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN28", "Shift", ModifierMode.Hold, ""));
+            workspace = DcsWorkspaceStructureEditor.SetModifier(workspace, null, new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN28", "Shift", ModifierMode.Hold, ""));
             var key = revision.Controls.First(x => x.Control.EndsWith("-shifted", StringComparison.Ordinal)).InputKey;
             var assignments = new[] {
-                new DraftAssignment(new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, key),
+                new DcsDraftAssignment(new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, key),
                     new("d3001pnilu3001cdnilvd1vpnilvunil", "Base action", false, AssignmentLayer.Module)),
-                new DraftAssignment(new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, key, "SHIFT"),
+                new DcsDraftAssignment(new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, key, "SHIFT"),
                     new("d3002pnilu3002cdnilvd1vpnilvunil", "Shifted action", false, AssignmentLayer.Module))
             };
             workspace = workspace with { Assignments = assignments };
-            var adopted = UserMappingAdoption.Apply(workspace, profile.Id, revision);
+            var adopted = DcsUserMappingAdoption.Apply(workspace, profile.Id, revision);
             Assert.Same(workspace.Assignments, adopted.Assignments);
             var diagram = adopted.Diagrams.Single();
             var pair = diagram.Controls.Where(x => x.InputKey == key).ToArray();
             Assert.Equal(2, pair.Length);
             Assert.Contains(pair, x => x.Control.EndsWith("-shifted", StringComparison.Ordinal));
-            var composite = KneeboardDraftProjection.CreateCombined(adopted, diagram, adopted.Assignments, adopted.Labels);
+            var composite = DcsKneeboardDraftProjection.CreateCombined(adopted, diagram, adopted.Assignments, adopted.Labels);
             Assert.Contains(composite.Labels[pair.Single(x => x.Control.EndsWith("-shifted", StringComparison.Ordinal)).Control],
                 x => x.Text == "Shifted action");
             Assert.True(DeviceKneeboardPages.Render(diagram, composite).Count > 1);
-            var renamed = InventoryHardwareAuthoring.RenameControl(adopted, profile.Id, key, "OSB custom");
+            var renamed = DcsInventoryHardwareAuthoring.RenameControl(adopted, profile.Id, key, "OSB custom");
             Assert.All(renamed.Diagrams.Single().Controls.Where(x => x.InputKey == key), x => Assert.Equal("OSB custom", x.Label));
             var root = Path.Combine(Path.GetTempPath(), "ipia-mfd-pairs-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -126,11 +126,11 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(renamed);
                 var saved = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
                 Assert.Equal(assignments, saved.Assignments);
-                var reapplied = UserMappingAdoption.Apply(saved, profile.Id, revision);
+                var reapplied = DcsUserMappingAdoption.Apply(saved, profile.Id, revision);
                 Assert.All(reapplied.Diagrams.Single().Controls.Where(x => x.InputKey == key), x => Assert.Equal("OSB custom", x.Label));
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }

@@ -26,16 +26,16 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace();
             var adapter = new DcsSimProfileBackend();
-            var originalWorkspace = EditorSnapshotSerializer.Serialize(workspace);
-            var originalPackage = ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1"));
+            var originalWorkspace = DcsEditorSnapshotSerializer.Serialize(workspace);
+            var originalPackage = DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(workspace, "3.1.1"));
             var portable = adapter.Capture(workspace);
             portable = JsonSerializer.Deserialize<global::Heimdall.Domain.MultiSim.ProfileDocument>(JsonSerializer.Serialize(portable))!;
             var portableCatalog = adapter.GetCatalog(portable).Commands;
             foreach (var command in workspace.ModuleCommands)
                 Assert.Contains(portableCatalog, x => x.Context == portable.ContextId && x.Metadata["nativeId"] == command.Id && x.Category == command.Category && x.DisplayName == command.Name);
             workspace = DcsSimProfileBackend.Restore(portable);
-            Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
-            Assert.Equal(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(workspace, "3.1.1")).Bytes);
+            Assert.Equal(originalWorkspace.Sha256, DcsEditorSnapshotSerializer.Serialize(workspace).Sha256);
+            Assert.Equal(originalPackage.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(workspace, "3.1.1")).Bytes);
             var editedPortable = JsonSerializer.Deserialize<global::Heimdall.Domain.MultiSim.ProfileDocument>(JsonSerializer.Serialize(portable))!;
             var axisDevice = editedPortable.Devices.First(x => x.ContextId != "UiLayer" && x.Axes.Count > 0);
             axisDevice.Axes[0].Deadzone = 2.5f;
@@ -45,8 +45,8 @@ namespace Heimdall.Tests
             Assert.Equal(workspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.Module), editedWorkspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.Module));
             Assert.Equal(workspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.UiLayer) - 1, editedWorkspace.Assignments.Count(x => x.Slot.Layer == AssignmentLayer.UiLayer));
             Assert.Contains(editedWorkspace.Assignments, x => x.Slot.Layer == AssignmentLayer.Module && x.Filter?.Deadzone == 2.5);
-            Assert.Equal(originalWorkspace.Sha256, EditorSnapshotSerializer.Serialize(workspace).Sha256);
-            Assert.NotEqual(originalPackage.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(editedWorkspace, "3.1.1")).Bytes);
+            Assert.Equal(originalWorkspace.Sha256, DcsEditorSnapshotSerializer.Serialize(workspace).Sha256);
+            Assert.NotEqual(originalPackage.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(editedWorkspace, "3.1.1")).Bytes);
             Assert.True(adapter.Export(editedPortable).Succeeded);
             var unknownSources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
             var modifierSource = unknownSources.Keys.First(x => x.EndsWith("/modifiers.lua", StringComparison.Ordinal));
@@ -57,7 +57,7 @@ namespace Heimdall.Tests
             Assert.Contains("futureFlag", Assert.Single(unsafePlan.Diagnostics).Message);
             var export = adapter.Export(portable);
             Assert.True(export.Succeeded, string.Join("; ", export.Diagnostics.Select(x => x.Message)));
-            Assert.Equal(SnapshotLuaPayloadRenderer.Generate(workspace).OrderBy(x => x.Key).Select(x => (x.Key, Encoding.UTF8.GetString(x.Value))),
+            Assert.Equal(DcsSnapshotLuaPayloadRenderer.Generate(workspace).OrderBy(x => x.Key).Select(x => (x.Key, Encoding.UTF8.GetString(x.Value))),
                 export.Files.OrderBy(x => x.Key).Select(x => (x.Key, x.Value)));
             Assert.Equal(5, workspace.Configuration.Profiles.Count);
             Assert.Equal(6, workspace.Pages.Count);
@@ -69,8 +69,8 @@ namespace Heimdall.Tests
                 var repository = await RepositoryAsync(Path.Combine(root, "original.db"));
                 await repository.SaveAsync(workspace);
                 var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
-                Assert.Equal(EditorSnapshotSerializer.Serialize(workspace), EditorSnapshotSerializer.Serialize(reopened));
-                var lua = SnapshotLuaPayloadRenderer.Generate(reopened);
+                Assert.Equal(DcsEditorSnapshotSerializer.Serialize(workspace), DcsEditorSnapshotSerializer.Serialize(reopened));
+                var lua = DcsSnapshotLuaPayloadRenderer.Generate(reopened);
                 var reference = Directory.GetFiles(Path.Combine(FixtureRoot, "Expected"), "*.lua", SearchOption.AllDirectories);
                 foreach (var file in reference)
                 {
@@ -90,14 +90,14 @@ namespace Heimdall.Tests
                             Assert.Contains(actual, x => x.Name == modifier.Name && x.Device == modifier.Device && x.Key == modifier.Key && x.Mode == modifier.Mode);
                     }
                 }
-                var original = ModuleSnapshotWorkflow.Freeze(reopened, "3.1.1");
-                var ovgme = ModuleSnapshotWorkflow.Build(original);
-                var complete = ModuleCompleteReleaseWorkflow.Build(original);
-                Assert.Equal(original.Workspace, ModuleCompleteReleaseWorkflow.Verify(complete).Workspace);
-                Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(original).Bytes);
+                var original = DcsModuleSnapshotWorkflow.Freeze(reopened, "3.1.1");
+                var ovgme = DcsModuleSnapshotWorkflow.Build(original);
+                var complete = DcsModuleCompleteReleaseWorkflow.Build(original);
+                Assert.Equal(original.Workspace, DcsModuleCompleteReleaseWorkflow.Verify(complete).Workspace);
+                Assert.Equal(complete.Bytes, DcsModuleCompleteReleaseWorkflow.Build(original).Bytes);
                 var payload = Files(ovgme.Bytes);
-                var rendered = SnapshotDeviceKneeboardRenderer.Generate(reopened)
-                    .Concat(SnapshotSummaryKneeboardRenderer.Generate(reopened)).ToDictionary(x => x.Key, x => x.Value);
+                var rendered = DcsSnapshotDeviceKneeboardRenderer.Generate(reopened)
+                    .Concat(DcsSnapshotSummaryKneeboardRenderer.Generate(reopened)).ToDictionary(x => x.Key, x => x.Value);
                 var legacyPages = Directory.GetFiles(Path.Combine(FixtureRoot, "Expected", "KNEEBOARD"), "*.png", SearchOption.AllDirectories);
                 Assert.Equal(6, legacyPages.Length);
                 Assert.Equal(legacyPages.Select(x => Path.GetRelativePath(Path.Combine(FixtureRoot, "Expected"), x).Replace('\\', '/')).Order(StringComparer.Ordinal),
@@ -122,27 +122,27 @@ namespace Heimdall.Tests
                         exact = expectedBytes.SequenceEqual(rendered[path])
                     };
                 }).ToArray();
-                var guides = ModuleDocumentationWorkflow.Generate(original);
+                var guides = DcsModuleDocumentationWorkflow.Generate(original);
                 var integration = File.ReadAllText(Path.Combine(FixtureRoot, "Source", "docs", "OPENKNEEBOARD-VAICOM.md"));
-                Assert.Equal(integration, Assert.Single(ModuleIntegrationImport.Instructions(reopened)).Instructions);
+                Assert.Equal(integration, Assert.Single(DcsModuleIntegrationImport.Instructions(reopened)).Instructions);
                 foreach (var line in integration.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
                     Assert.Contains("    " + line, guides["INTEGRATIONS.md"], StringComparison.Ordinal);
                 Assert.Contains("INSTALLATION.md", guides.Keys);
                 Assert.Contains("CONTROL-MAPPINGS.md", guides.Keys);
                 Assert.Contains("THIRD-PARTY-ASSETS.md", guides.Keys);
                 var restoredRepository = await RepositoryAsync(Path.Combine(root, "restored.db"));
-                var restored = await ModuleSnapshotWorkflow.RestoreAsync(ModuleSnapshotWorkflow.Read(ModuleSnapshotWorkflow.Export(original)), restoredRepository);
-                Assert.Equal(original.Workspace, EditorSnapshotSerializer.Serialize(restored));
-                Assert.Equal(ovgme.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(restored, "3.1.1")).Bytes);
-                Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(ModuleSnapshotWorkflow.Freeze(restored, "3.1.1")).Bytes);
+                var restored = await DcsModuleSnapshotWorkflow.RestoreAsync(DcsModuleSnapshotWorkflow.Read(DcsModuleSnapshotWorkflow.Export(original)), restoredRepository);
+                Assert.Equal(original.Workspace, DcsEditorSnapshotSerializer.Serialize(restored));
+                Assert.Equal(ovgme.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(restored, "3.1.1")).Bytes);
+                Assert.Equal(complete.Bytes, DcsModuleCompleteReleaseWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(restored, "3.1.1")).Bytes);
                 var page = restored.Pages.First(x => x.Kind == KneeboardPageKind.Device);
-                var edited = ModuleKneeboardPageEditor.Set(restored, page,
-                    ModuleKneeboardPageEditor.Describe(restored, page) with { Title = "EDITED HUEY CONTROLS" });
+                var edited = DcsModuleKneeboardPageEditor.Set(restored, page,
+                    DcsModuleKneeboardPageEditor.Describe(restored, page) with { Title = "EDITED HUEY CONTROLS" });
                 await restoredRepository.SaveAsync(edited);
-                Assert.NotEqual(ovgme.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(edited, "3.1.1")).Bytes);
+                Assert.NotEqual(ovgme.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(edited, "3.1.1")).Bytes);
                 var rollbackRepository = await RepositoryAsync(Path.Combine(root, "rollback.db"));
-                var rollback = await ModuleSnapshotWorkflow.RestoreAsync(original, rollbackRepository);
-                Assert.Equal(complete.Bytes, ModuleCompleteReleaseWorkflow.Build(ModuleSnapshotWorkflow.Freeze(rollback, "3.1.1")).Bytes);
+                var rollback = await DcsModuleSnapshotWorkflow.RestoreAsync(original, rollbackRepository);
+                Assert.Equal(complete.Bytes, DcsModuleCompleteReleaseWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(rollback, "3.1.1")).Bytes);
                 Assert.Equal("EDITED HUEY CONTROLS", (await restoredRepository.GetAsync(edited.Configuration.Module.Id))!.Pages.Single(x => x.Id == page.Id).Title);
                 var report = new
                 {
@@ -191,7 +191,7 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
             var commit = BundledSharedCatalog.SourceCommit();
             string Read(string path) => BundledSharedCatalog.ReadTextAsync(path).GetAwaiter().GetResult();
@@ -202,33 +202,33 @@ namespace Heimdall.Tests
                 "assets/shared/hardware/scaffold-device-map.json", Read("assets/shared/hardware/scaffold-device-map.json")));
             Assert.True(catalog.Succeeded);
             var paths = BundledSharedCatalog.Paths("assets/shared/hardware/lua", "assets/shared/ui-layer/input/UiLayer");
-            var shared = new DcsCommonLuaImporter().Import(new(commit, catalog, paths.Select(x => new SharedLuaSource(x, Read(x))).ToArray()));
+            var shared = new DcsCommonLuaImporter().Import(new(commit, catalog, paths.Select(x => new DcsSharedLuaSource(x, Read(x))).ToArray()));
             Assert.True(shared.Succeeded);
             var sourceRoot = Path.Combine(FixtureRoot, "Source");
             var sources = Directory.GetFiles(sourceRoot, "*", SearchOption.AllDirectories)
-                .Select(x => new ConsumerSource(Path.GetRelativePath(sourceRoot, x).Replace('\\', '/'), File.ReadAllText(x)))
+                .Select(x => new DcsConsumerSource(Path.GetRelativePath(sourceRoot, x).Replace('\\', '/'), File.ReadAllText(x)))
                 .Where(x => x.Path != "LICENSE").ToArray();
-            var imported = new ConsumerSourceImporter().Import(new("77d924cce220355860e8f026cff3524bac531e29", catalog, shared, sources));
+            var imported = new DcsConsumerSourceImporter().Import(new("77d924cce220355860e8f026cff3524bac531e29", catalog, shared, sources));
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             var configuration = imported.Configuration!;
             var graphics = BundledSharedCatalog.Paths("assets/shared/hardware/svg").ToDictionary(x => x, Read);
-            var diagrams = UiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
+            var diagrams = DcsUiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
             var assignments = configuration.Bindings.Where(x => x.Disposition != BindingDisposition.Removed &&
                     diagrams.Any(d => d.ProfileId == x.ProfileId && d.Controls.Any(c => DcsInputKey.SamePhysicalInput(c.InputKey, x.InputKey))))
                 .Select(x => Assignment(x, configuration.Module.Id, AssignmentLayer.Module))
                 .Concat(diagrams.SelectMany(d => d.Callouts.Where(c => d.Controls.Any(x => x.Control == c.Control)).Select(c =>
-                    new DraftAssignment(new(configuration.Module.Id, d.ProfileId, AssignmentLayer.UiLayer, BindingSection.Key,
+                    new DcsDraftAssignment(new(configuration.Module.Id, d.ProfileId, AssignmentLayer.UiLayer, BindingSection.Key,
                         DcsInputKey.Resolve(configuration, d.ProfileId, BindingSection.Key, d.Controls.Single(x => x.Control == c.Control).InputKey),
                         c.Modifier.Replace(" + ", "+", StringComparison.Ordinal)), new(c.CommandId, c.Function, false, AssignmentLayer.UiLayer)))))
                 .GroupBy(x => x.Slot.Key, StringComparer.Ordinal).Select(x => x.First()).ToArray();
             var pinned = imported.Sources.Concat(paths.Select(x => new KeyValuePair<string, string>(x, Read(x)))).ToDictionary(x => x.Key, x => x.Value);
-            var workspace = new EditorWorkspaceSnapshot(configuration, imported.Pages, [], diagrams,
-                CommandPalette.FromBindings(configuration.Bindings), catalog.Commands, assignments,
-                KneeboardLabelImporter.Import(imported.Metadata, configuration), pinned);
-            return ModuleIntegrationImport.Apply(workspace, ModuleIntegrationImport.ReadFile(workspace,
+            var workspace = new DcsEditorWorkspaceSnapshot(configuration, imported.Pages, [], diagrams,
+                DcsCommandPalette.FromBindings(configuration.Bindings), catalog.Commands, assignments,
+                DcsKneeboardLabelImporter.Import(imported.Metadata, configuration), pinned);
+            return DcsModuleIntegrationImport.Apply(workspace, DcsModuleIntegrationImport.ReadFile(workspace,
                 Path.Combine(sourceRoot, "docs", "OPENKNEEBOARD-VAICOM.md")));
         }
-        private static DraftAssignment Assignment(DcsBinding binding, Guid module, AssignmentLayer layer) =>
+        private static DcsDraftAssignment Assignment(DcsBinding binding, Guid module, AssignmentLayer layer) =>
             new(new(module, binding.ProfileId, layer, binding.Section, binding.InputKey, string.Join("+", binding.Reformers)),
                 new(binding.CommandId, binding.CommandName, binding.Section == BindingSection.Axis, layer))
             { Filter = binding.Filter };
@@ -236,11 +236,11 @@ namespace Heimdall.Tests
             .Select(x => $"{x.Section}|{x.CommandId}|{x.Disposition}|{x.InputKey}|{string.Join("+", x.Reformers.Order(StringComparer.Ordinal))}|{JsonSerializer.Serialize(x.Filter)}")
             .Order(StringComparer.Ordinal).ToArray();
         private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
-        private static async Task<SqliteEditorWorkspaceRepository> RepositoryAsync(string path)
+        private static async Task<DcsSqliteEditorWorkspaceRepository> RepositoryAsync(string path)
         {
             var connection = "Data Source=" + path + ";Pooling=False";
             await new SqliteMigrationRunner(connection).MigrateAsync();
-            return new SqliteEditorWorkspaceRepository(connection);
+            return new DcsSqliteEditorWorkspaceRepository(connection);
         }
         private static Dictionary<string, byte[]> Files(byte[] archive)
         {

@@ -14,7 +14,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Loads the packaged catalog and renders every Sol-R grip layout.</summary>
         public static void Verify()
         {
-            var sources = ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
+            var sources = DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root).GetAwaiter().GetResult();
             var hardware = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!
                 .Where(x => x.DeviceId.StartsWith("tm-sol-r-ava-", StringComparison.Ordinal)).ToArray();
             if (hardware.Length != 4) throw new InvalidOperationException("The installed catalog must ship four Sol-R on AVA layouts.");

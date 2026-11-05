@@ -30,13 +30,13 @@ namespace Heimdall.App.Smoke
                 inventory.SaveAsync(new(1, [definition], [new(Guid.NewGuid(), "Repeated generic panel", definition.Id, "Left", "Pilot", true, []),
                     new(Guid.NewGuid(), "Repeated generic panel", definition.Id, "Right", "Pilot", true, [])], [])).GetAwaiter().GetResult();
                 var manager = new HardwareInventoryManager(inventory, new InventorySmokeDiscovery());
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var sources = new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" };
-                var defaults = new SharedUiLayerWorkspace(0, new string('a', 40), new Dictionary<string, string>
+                var defaults = new DcsSharedUiLayerWorkspace(0, new string('a', 40), new Dictionary<string, string>
                 {
                     ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"id":"pause","command":"d3001pnilu3001cdnilvd1vpnilvunil","label":"Pause","category":"General"}]}"""
                 });
-                var creation = new NewModuleWindow(repository, defaults, sources, inventory: manager);
+                var creation = new DcsNewModuleWindow(repository, defaults, sources, inventory: manager);
                 Exception? failure = null;
                 var submitted = false;
                 var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
@@ -80,7 +80,7 @@ namespace Heimdall.App.Smoke
                 if (workspace.Configuration.Profiles.Count != 2 || workspace.SharedDefault is not null || workspace.Assignments.Count != 0 ||
                     workspace.Diagrams.Any(x => x.GenericCapabilities is null))
                     throw new InvalidOperationException("Generic creation copied personal defaults or lost distinct physical units.");
-                var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), repository: repository, inventory: manager);
+                var editor = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository, inventory: manager);
                 editor.Show();
                 var units = (ComboBox)WorkspaceUi.Find(editor, "InventoryUnits")!;
                 Pump(editor, () => units.Items.Count == 2);
@@ -107,7 +107,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Saved generic pagination did not select the packaged second page.");
                 editor.Close();
                 var reopened = repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()!;
-                if (WorkspaceStructureEditor.Describe(reopened).Devices.Count != 3 ||
+                if (DcsWorkspaceStructureEditor.Describe(reopened).Devices.Count != 3 ||
                     reopened.Diagrams.Count(x => x.Controls.Any(control => control.Label == "Master arm")) != 1)
                     throw new InvalidOperationException("Generic aircraft/UI scope memberships did not survive SQLite reopen.");
             }

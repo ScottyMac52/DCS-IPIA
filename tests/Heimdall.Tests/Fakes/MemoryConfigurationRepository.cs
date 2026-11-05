@@ -7,9 +7,9 @@ using Heimdall.Domain;
 namespace Heimdall.Tests.Fakes
 {
     /// <summary>Represents memory configuration repository.</summary>
-    internal sealed class MemoryConfigurationRepository : IModuleConfigurationRepository
+    internal sealed class MemoryConfigurationRepository : IDcsModuleConfigurationRepository
     {
-        private readonly Dictionary<Guid, ModuleConfiguration> values = [];
+        private readonly Dictionary<Guid, DcsModuleConfiguration> values = [];
         #region BEGIN Public
         /// <summary>Gets the writes.</summary>
         public int Writes { get; private set; }
@@ -17,18 +17,18 @@ namespace Heimdall.Tests.Fakes
         /// <param name="id">The identifier.</param>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>The result of the operation.</returns>
-        public Task<ModuleConfiguration?> GetAsync(Guid id, CancellationToken ct = default) =>
+        public Task<DcsModuleConfiguration?> GetAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(values.GetValueOrDefault(id));
         /// <summary>Lists stored items.</summary>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>The result of the operation.</returns>
-        public Task<IReadOnlyList<ModuleConfiguration>> ListAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<ModuleConfiguration>>(values.Values.ToArray());
+        public Task<IReadOnlyList<DcsModuleConfiguration>> ListAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<DcsModuleConfiguration>>(values.Values.ToArray());
         /// <summary>Atomically replaces a module configuration.</summary>
         /// <param name="value">The value.</param>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>A task that completes when the operation finishes</returns>
-        public Task ReplaceAsync(ModuleConfiguration value, CancellationToken ct = default)
+        public Task ReplaceAsync(DcsModuleConfiguration value, CancellationToken ct = default)
         {
             Writes++;
             values[value.Module.Id] = value;

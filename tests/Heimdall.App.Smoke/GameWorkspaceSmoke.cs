@@ -39,7 +39,7 @@ namespace Heimdall.App.Smoke
                 EliteSystemInputSmoke.Verify(root);
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
-                var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
+                var sources = Task.Run(() => DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
                 EliteCombinationInputsSmoke.Verify(root, hardware);
                 EliteControllerIdentificationSmoke.Verify(root, hardware);
@@ -298,17 +298,17 @@ namespace Heimdall.App.Smoke
         }
         private static void VerifyDcsSelectors()
         {
-            var previewProfile = new global::Heimdall.Domain.DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
+            var previewProfile = new global::Heimdall.Domain.DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
             var preview = new DcsFolderImportResult("Game selection smoke", [previewProfile], [], [], []);
-            var choice = new SavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
-            var gameWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var choice = new DcsSavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
+            var gameWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
             if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 4)
                 throw new InvalidOperationException("DCS must offer all four game choices.");
-            var squadronsWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var squadronsWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             squadronsWindow.Show(); ThemeControlSmoke.Pump(squadronsWindow);
             Box<ComboBox>(squadronsWindow, "WorkspaceGamePicker").SelectedIndex = 2;
@@ -317,7 +317,7 @@ namespace Heimdall.App.Smoke
             Box<ComboBox>(gameWindow, "WorkspaceGamePicker").SelectedIndex = 1;
             if (gameWindow.IsVisible || gameWindow.RequestedGame != "elite-dangerous")
                 throw new InvalidOperationException("The DCS workspace did not request the selected game after closing.");
-            var profileWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var profileWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             profileWindow.Show(); ThemeControlSmoke.Pump(profileWindow);
             Box<ComboBox>(profileWindow, "WorkspaceProfilePicker").SelectedItem = choice;
@@ -329,8 +329,8 @@ namespace Heimdall.App.Smoke
             var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
             var settings = new FileAppSettingsService(Path.Combine(root, "defaults.json"), Path.Combine(root, "settings.json"), Path.Combine(root, "theme.txt"));
-            var window = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
-                new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery(), games: services);
+            var window = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
+                new DcsSqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery(), games: services);
             try
             {
                 window.Show(); ThemeControlSmoke.Pump(window);

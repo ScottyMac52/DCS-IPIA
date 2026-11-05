@@ -42,8 +42,8 @@ namespace Heimdall.App.Smoke
                 var manager = new HardwareInventoryManager(repository,fake);
                 var settings = new SqliteAppSettingsService(connection,Path.Combine(folder,"defaults.json"),
                     Path.Combine(folder,"settings.json"),Path.Combine(folder,"theme.txt"));
-                var main = new MainWindow(new ModuleWorkspaceLoader(),new DcsFolderImporter(),settings,
-                    new SqliteEditorWorkspaceRepository(connection),hardwareInventory:manager);
+                var main = new MainWindow(new DcsModuleWorkspaceLoader(),new DcsFolderImporter(),settings,
+                    new DcsSqliteEditorWorkspaceRepository(connection),hardwareInventory:manager);
                 main.Show();
                 if (!MainWindowCommands.DiscoverHardware.CanExecute(null,main) ||
                     !MainWindowCommands.ManageHardware.CanExecute(null,main))

@@ -46,7 +46,7 @@ namespace Heimdall.Tests
         public void PreservesOverlapAndIdentity()
         {
             var bindings = new[] { Bound("A"), Bound("B"), Bound("UI", AssignmentLayer.UiLayer), Bound("OLD", disposition: BindingDisposition.Removed) };
-            var session = new InputTestSession(bindings, []);
+            var session = new DcsInputTestSession(bindings, []);
             session.Process([Frame(Stick, 0), Frame(Throttle, 0)]);
             Assert.Empty(session.Process([Frame(Stick, 0), Frame(Throttle, 1)]).Single().Matches);
             Assert.Equal(3, session.Process([Frame(Stick, 1), Frame(Throttle, 1)]).Single().Matches.Count);
@@ -55,7 +55,7 @@ namespace Heimdall.Tests
         [Fact]
         public void ResolvesPovAndAxes()
         {
-            var session = new InputTestSession([new(Stick, AssignmentLayer.Module,
+            var session = new DcsInputTestSession([new(Stick, AssignmentLayer.Module,
                 new(Stick, BindingSection.Key, "HAT", "Hat", BindingDisposition.Added, "JOY_POV1_UR")),
                 new(Stick, AssignmentLayer.Module, new(Stick, BindingSection.Axis, "PITCH", "Pitch", BindingDisposition.Changed, "JOY_X", filter: new(Invert: true)))], []);
             var initial = session.Process([new(Stick, new Dictionary<string, double> { ["JOY_BTN_POV1_UR"] = 0, ["JOY_X"] = 0.5 })]);
@@ -80,7 +80,7 @@ namespace Heimdall.Tests
         [Fact]
         public void ResolvesKeyboardAndSortedChord()
         {
-            var session = new InputTestSession([Bound("CHORD", chord: ["Z", "A"])],
+            var session = new DcsInputTestSession([Bound("CHORD", chord: ["Z", "A"])],
                 [new(Guid.Empty, AssignmentLayer.Module, "Z", "LShift", ModifierMode.Hold), new(Throttle, AssignmentLayer.Module, "A", "JOY_BTN1", ModifierMode.Hold)]);
             session.Process([Frame(Stick, 0), Frame(Throttle, 0), new(Guid.Empty, new Dictionary<string, double> { ["LShift"] = 0 })]);
             var result = session.Process([Frame(Stick, 1), Frame(Throttle, 1), new(Guid.Empty, new Dictionary<string, double> { ["LShift"] = 1 })]);
@@ -113,7 +113,7 @@ namespace Heimdall.Tests
                 ["Config/Input/TEST/modifiers.lua"] = System.Text.Encoding.UTF8.GetBytes($"local modifiers = {{ [\"S3\"] = {{ [\"device\"] = \"Throttle {{{Throttle:D}}}\", [\"key\"] = \"JOY_BTN1\", [\"switch\"] = true }} }} return modifiers"),
                 ["Config/Input/TEST/joystick/Unknown.diff.lua"] = System.Text.Encoding.UTF8.GetBytes("local diff = {} return diff")
             };
-            var plan = GeneratedInputTestPlan.Read(payload);
+            var plan = DcsGeneratedInputTestPlan.Read(payload);
             Assert.Equal(Stick, Assert.Single(plan.Bindings).PhysicalGuid);
             Assert.Equal(Throttle, Assert.Single(plan.Modifiers).PhysicalGuid);
             Assert.Equal(ModifierMode.Toggle, plan.Modifiers[0].Mode);
@@ -169,21 +169,21 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + path + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var saved = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
-                var before = EditorSnapshotSerializer.Serialize(saved);
-                var payload = SnapshotLuaPayloadRenderer.Generate(saved);
-                var plan = GeneratedInputTestPlan.Create(saved);
-                var session = new InputTestSession(plan.Bindings, plan.Modifiers);
+                var before = DcsEditorSnapshotSerializer.Serialize(saved);
+                var payload = DcsSnapshotLuaPayloadRenderer.Generate(saved);
+                var plan = DcsGeneratedInputTestPlan.Create(saved);
+                var session = new DcsInputTestSession(plan.Bindings, plan.Modifiers);
                 session.Process([Frame(Stick, 0)]);
                 Assert.Equal("KEY", session.Process([Frame(Stick, 1)]).Single().Matches.Single().Binding.CommandId);
                 var edited = saved with { Assignments = [saved.Assignments[0] with { Command = saved.Assignments[0].Command with { Name = "Pending edit" } }] };
-                Assert.Equal("Pending edit", GeneratedInputTestPlan.Create(edited).Bindings.Single().Binding.CommandName);
+                Assert.Equal("Pending edit", DcsGeneratedInputTestPlan.Create(edited).Bindings.Single().Binding.CommandName);
                 Assert.Equal("Test action", plan.Bindings.Single().Binding.CommandName);
                 session.Reset();
-                Assert.Equal(before, EditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!));
-                foreach (var entry in payload) Assert.Equal(entry.Value, SnapshotLuaPayloadRenderer.Generate(saved)[entry.Key]);
+                Assert.Equal(before, DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!));
+                foreach (var entry in payload) Assert.Equal(entry.Value, DcsSnapshotLuaPayloadRenderer.Generate(saved)[entry.Key]);
             }
             finally { File.Delete(path); }
         }
@@ -191,7 +191,7 @@ namespace Heimdall.Tests
         [Fact]
         public void SelectedDeviceFeedbackKeepsCrossDeviceModifiers()
         {
-            var session = new InputTestSession([Bound("SHIFTED", chord: ["S3"])],
+            var session = new DcsInputTestSession([Bound("SHIFTED", chord: ["S3"])],
                 [new(Throttle, AssignmentLayer.Module, "S3", "JOY_BTN1", ModifierMode.Hold)]);
             var first = session.ProcessDevice([
                 new(Stick, new Dictionary<string, double> { ["JOY_BTN1"] = 0, ["JOY_X"] = 0.5 }),
@@ -226,7 +226,7 @@ namespace Heimdall.Tests
         [Fact]
         public void InitialStateAndUnchangedSamplesRemainSilent()
         {
-            var session = new InputTestSession([], []);
+            var session = new DcsInputTestSession([], []);
             var values = new Dictionary<string, double> { ["JOY_BTN1"] = 1, ["JOY_BTN_POV1_U"] = 1, ["JOY_X"] = 0.5, ["JOY_Y"] = 1 };
             Assert.Empty(session.Process([new(Stick, values)]));
             Assert.Empty(session.Process([new(Stick, values)]));
@@ -257,7 +257,7 @@ namespace Heimdall.Tests
         [Fact]
         public void AxisChangesAccumulateWithoutRepeatedPositions()
         {
-            var session = new InputTestSession([], []);
+            var session = new DcsInputTestSession([], []);
             DeviceInputFrame Axis(double value) => new(Stick, new Dictionary<string, double> { ["JOY_X"] = value });
             Assert.Empty(session.Process([Axis(0.5)]));
             Assert.Empty(session.Process([Axis(0.504)]));
@@ -269,18 +269,18 @@ namespace Heimdall.Tests
         #endregion END Public
         #region BEGIN private helpers
         private static DeviceInputFrame Frame(Guid guid, double value) => new(guid, new Dictionary<string, double> { ["JOY_BTN1"] = value });
-        private static InputTestBinding Bound(string command, AssignmentLayer layer = AssignmentLayer.Module,
+        private static DcsInputTestBinding Bound(string command, AssignmentLayer layer = AssignmentLayer.Module,
             BindingDisposition disposition = BindingDisposition.Added, string[]? chord = null) =>
             new(Stick, layer, new(Stick, BindingSection.Key, command, command, disposition, "JOY_BTN1", chord));
-        private static InputTestSession Session(ModifierMode mode = ModifierMode.Hold) => new([Bound("BASE"), Bound("SHIFTED", chord: ["S3"])],
+        private static DcsInputTestSession Session(ModifierMode mode = ModifierMode.Hold) => new([Bound("BASE"), Bound("SHIFTED", chord: ["S3"])],
             [new(Throttle, AssignmentLayer.Module, "S3", "JOY_BTN1", mode)]);
-        private static EditorWorkspaceSnapshot Workspace(Guid physical)
+        private static DcsEditorWorkspaceSnapshot Workspace(Guid physical)
         {
-            var profile = new DeviceProfile(Guid.NewGuid(), "test", null, "Test", $"Test {{{physical:D}}}.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "test", null, "Test", $"Test {{{physical:D}}}.diff.lua");
             var module = new DcsModule(Guid.NewGuid(), "INPUT_TEST", "Input test");
-            var command = new DraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
-            var assignment = new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""), command);
-            var configuration = new ModuleConfiguration(module, [profile], [], [], "Test fixture");
+            var command = new DcsDraftCommand("KEY", "Test action", false, AssignmentLayer.Module);
+            var assignment = new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", ""), command);
+            var configuration = new DcsModuleConfiguration(module, [profile], [], [], "Test fixture");
             var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
             {
                 ProfileId = profile.Id,

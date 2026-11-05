@@ -13,8 +13,8 @@ namespace Heimdall.Tests
         public void LabelsTogglePositionsWithoutReplacingCommandsOrAuthoredText()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var profile = new DeviceProfile(Guid.NewGuid(), "throttle", null, "Throttle", "Throttle {ABCD}.diff.lua");
-            var config = new ModuleConfiguration(module, [profile], [
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "throttle", null, "Throttle", "Throttle {ABCD}.diff.lua");
+            var config = new DcsModuleConfiguration(module, [profile], [
                 new DcsModifier("ARM_SELECT_1", "Throttle {abcd}", "JOY_BTN55", ModifierMode.Toggle),
                 new DcsModifier("ARM_SELECT_2", "Throttle {ABCD}", "JOY_BTN25", ModifierMode.Toggle)
             ], [], "fixture");
@@ -26,16 +26,16 @@ namespace Heimdall.Tests
                     new("axis", "Axis", "JOY_X", 0, 30, 10, 10)
                 ]
             };
-            var snapshot = new EditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
+            var snapshot = new DcsEditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] =
                     """{"profiles":{"throttle":"Throttle {ABCD}.diff.lua"},"pages":[{"profile":"throttle","labels":{"bit":"Physical selector"}}]}""" });
             var assignments = new[] {
-                new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN29", "ARM_SELECT_1"),
+                new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN29", "ARM_SELECT_1"),
                     new("ACTION", "Action", false, AssignmentLayer.Module)),
-                new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN25", ""),
+                new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN25", ""),
                     new("BASE", "Base action", false, AssignmentLayer.Module))
             };
-            var page = KneeboardDraftProjection.CreateCombined(snapshot, diagram, assignments, snapshot.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(snapshot, diagram, assignments, snapshot.Labels);
             Assert.Equal(["Physical selector", "ARM_SELECT_1 (Toggle)"], page.Labels["bit"].Select(x => x.Text));
             Assert.Equal(["Base action", "ARM_SELECT_2 (Toggle)"], page.Labels["one"].Select(x => x.Text));
             Assert.Equal("#dc2626", page.Labels["bit"][1].Color);
@@ -44,10 +44,10 @@ namespace Heimdall.Tests
             Assert.DoesNotContain("axis", page.Labels.Keys);
             Assert.Empty(snapshot.Assignments);
             Assert.Equal("Base action", assignments[1].Command.Name);
-            var renamed = new ModuleConfiguration(module, [profile], [
+            var renamed = new DcsModuleConfiguration(module, [profile], [
                 new DcsModifier("NEW_SELECTOR", "Throttle {ABCD}", "JOY_BTN25", ModifierMode.Hold)
             ], [], "fixture");
-            var edited = KneeboardDraftProjection.CreateCombined(snapshot with { Configuration = renamed }, diagram, [], snapshot.Labels);
+            var edited = DcsKneeboardDraftProjection.CreateCombined(snapshot with { Configuration = renamed }, diagram, [], snapshot.Labels);
             Assert.Equal("NEW_SELECTOR (Hold)", Assert.Single(edited.Labels["one"]).Text);
             Assert.DoesNotContain(edited.Legend, x => x.Label.Contains("ARM_SELECT", StringComparison.Ordinal));
         }
@@ -56,9 +56,9 @@ namespace Heimdall.Tests
         public void DescribesManagedModifiersAcrossDevicesAndScopes()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var target = new DeviceProfile(Guid.NewGuid(), "target", null, "Target", "Target.diff.lua");
-            var activator = new DeviceProfile(Guid.NewGuid(), "activator", null, "Activator", "Activator.diff.lua");
-            var config = new ModuleConfiguration(module, [target, activator], [], [], "fixture");
+            var target = new DcsDeviceProfile(Guid.NewGuid(), "target", null, "Target", "Target.diff.lua");
+            var activator = new DcsDeviceProfile(Guid.NewGuid(), "activator", null, "Activator", "Activator.diff.lua");
+            var config = new DcsModuleConfiguration(module, [target, activator], [], [], "fixture");
             var targetDiagram = new UiLayerDiagram("Target", null, "target.svg", 100, 100, [], []) {
                 ProfileId = target.Id, Controls = [new("action", "Action", "JOY_BTN1", 0, 0, 10, 10)]
             };
@@ -68,25 +68,25 @@ namespace Heimdall.Tests
                     new("hat-shifted", "Hat up shifted", "JOY_POV1_U", 0, 10, 10, 10)
                 ]
             };
-            var state = new WorkspaceManagement([], [
+            var state = new DcsWorkspaceManagement([], [
                 new(AssignmentLayer.Module, activator.Id, "MODULE", "JOY_BTN_POV1_U", "Module", ModifierMode.Hold, "Activator"),
                 new(AssignmentLayer.UiLayer, activator.Id, "UI", "JOY_BTN_POV1_U", "UI", ModifierMode.Toggle, "Activator"),
                 new(AssignmentLayer.Module, Guid.Empty, "UNRESOLVED", "K", "Unresolved", ModifierMode.Hold, "Keyboard")
             ]);
-            var snapshot = new EditorWorkspaceSnapshot(config, [], [], [targetDiagram, activatorDiagram], [], [], [], new Dictionary<string, string>(),
-                new Dictionary<string, string> { [WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state) });
-            var assigned = new DraftAssignment(new(module.Id, target.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "UI"),
+            var snapshot = new DcsEditorWorkspaceSnapshot(config, [], [], [targetDiagram, activatorDiagram], [], [], [], new Dictionary<string, string>(),
+                new Dictionary<string, string> { [DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state) });
+            var assigned = new DcsDraftAssignment(new(module.Id, target.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1", "UI"),
                 new("ACTION", "Action", false, AssignmentLayer.UiLayer));
-            var page = KneeboardDraftProjection.CreateCombined(snapshot, targetDiagram, [assigned], snapshot.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(snapshot, targetDiagram, [assigned], snapshot.Labels);
             Assert.Contains(page.Legend, x => x.Label == "UI Layer — UI — Activator / Hat up [JOY_BTN_POV1_U, Toggle]");
             Assert.DoesNotContain(page.Labels.Values.SelectMany(x => x), x => x.Text.Contains("(Toggle)", StringComparison.Ordinal));
-            var own = KneeboardDraftProjection.CreateCombined(snapshot, activatorDiagram, [], snapshot.Labels);
+            var own = DcsKneeboardDraftProjection.CreateCombined(snapshot, activatorDiagram, [], snapshot.Labels);
             Assert.Equal(["MODULE (Hold)", "UI: UI (Toggle)"], own.Labels["hat"].Select(x => x.Text));
             Assert.DoesNotContain("hat-shifted", own.Labels.Keys);
             Assert.DoesNotContain(own.Legend, x => x.Label.Contains("UNRESOLVED", StringComparison.Ordinal));
             var moduleAssignment = assigned with { Slot = assigned.Slot with { Layer = AssignmentLayer.Module, ModifierChord = "UNRESOLVED" },
                 Command = assigned.Command with { Layer = AssignmentLayer.Module } };
-            page = KneeboardDraftProjection.CreateCombined(snapshot, targetDiagram, [moduleAssignment], snapshot.Labels);
+            page = DcsKneeboardDraftProjection.CreateCombined(snapshot, targetDiagram, [moduleAssignment], snapshot.Labels);
             Assert.Contains(page.Legend, x => x.Label == "UNRESOLVED — Keyboard / K [K, Hold]");
         }
         /// <summary>A new shift assignment gets its own page while Base and UI Layer retain their independent labels.</summary>
@@ -94,24 +94,24 @@ namespace Heimdall.Tests
         public void Renders_every_used_layer_from_pending_assignments()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var profile = new DeviceProfile(Guid.NewGuid(), "test-device", null, "Device", "Device.diff.lua");
-            var configuration = new ModuleConfiguration(
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "test-device", null, "Device", "Device.diff.lua");
+            var configuration = new DcsModuleConfiguration(
                 module, [profile], [new DcsModifier("SHIFT", "test-device", "JOY_BTN7", ModifierMode.Hold)], [],
                 "fixture");
             var controls = new[] { new HardwareGraphicControl("one", "One", "JOY_BTN1", 10, 10, 40, 20),
                                    new HardwareGraphicControl("two", "Two", "JOY_BTN2", 10, 40, 40, 20) };
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [],
                                              []) { ProfileId = profile.Id, Controls = controls, Svg = "<svg/>" };
-            var snapshot = new EditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [],
+            var snapshot = new DcsEditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [],
                                                        new Dictionary<string, string>());
-            DraftAssignment Assigned(AssignmentLayer layer, string input, string id, string chord = "") =>
+            DcsDraftAssignment Assigned(AssignmentLayer layer, string input, string id, string chord = "") =>
                 new(new(module.Id, profile.Id, layer, BindingSection.Key, input, chord),
-                    new DraftCommand(id, id, false, layer));
+                    new DcsDraftCommand(id, id, false, layer));
             var original = Assigned(AssignmentLayer.Module, "JOY_BTN1", "BASE");
             var shifted = Assigned(AssignmentLayer.Module, "JOY_BTN2", "SHIFTED", "SHIFT");
             var ui = Assigned(AssignmentLayer.UiLayer, "JOY_BTN1", "UI");
             var labels = new Dictionary<string, string> { [shifted.Slot.Key] = "New shifted label" };
-            var pages = KneeboardDraftProjection.Create(snapshot, diagram, [original, shifted, ui], labels);
+            var pages = DcsKneeboardDraftProjection.Create(snapshot, diagram, [original, shifted, ui], labels);
             Assert.Equal(["Module · Base", "Module · SHIFT", "UI Layer · Base"], pages.Select(x => x.Title));
             Assert.Equal("BASE", pages[0].Captions["one"]);
             Assert.Equal("Unassigned", pages[0].Captions["two"]);
@@ -119,7 +119,7 @@ namespace Heimdall.Tests
             Assert.Equal("UI", pages[2].Captions["one"]);
             Assert.Equal("Unassigned", pages[2].Captions["two"]);
             Assert.DoesNotContain(pages, x => x.Title == "UI Layer · SHIFT");
-            var combined = KneeboardDraftProjection.CreateCombined(snapshot, diagram, [original, shifted, ui], labels);
+            var combined = DcsKneeboardDraftProjection.CreateCombined(snapshot, diagram, [original, shifted, ui], labels);
             Assert.Equal(["BASE", "UI"], combined.Labels["one"].Select(x => x.Text));
             Assert.Equal(["New shifted label"], combined.Labels["two"].Select(x => x.Text));
             Assert.Contains(combined.Legend, x => x.Label.Contains("SHIFT", StringComparison.Ordinal) &&
@@ -131,20 +131,20 @@ namespace Heimdall.Tests
         public void Combined_palette_matches_live_chords_and_reserves_blue_and_cyan_bases()
         {
             var module = new DcsModule(Guid.NewGuid(), "PALETTE", "Palette");
-            var profile = new DeviceProfile(Guid.NewGuid(), "device", null, "Device", "Device.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "device", null, "Device", "Device.diff.lua");
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], [])
             {
                 ProfileId = profile.Id, SupportsUiLayer = true,
                 Controls = [new("button", "Base", "JOY_BTN1", 0, 0, 40, 20), new("button-shifted", "Shift", "JOY_BTN1", 0, 25, 40, 20)]
             };
-            var snapshot = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "fixture"), [], [], [diagram], [], [], [],
+            var snapshot = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "fixture"), [], [], [diagram], [], [], [],
                 new Dictionary<string, string>());
-            DraftAssignment Assign(AssignmentLayer layer, string chord) => new(
+            DcsDraftAssignment Assign(AssignmentLayer layer, string chord) => new(
                 new(module.Id, profile.Id, layer, BindingSection.Key, "JOY_BTN1", chord), new(chord, chord, false, layer));
             var assignments = new[] { Assign(AssignmentLayer.Module, ""), Assign(AssignmentLayer.UiLayer, "") }
                 .Concat(Enumerable.Range(1, 6).Select(i => Assign(AssignmentLayer.Module, "SHIFT" + i)))
                 .Concat(Enumerable.Range(1, 3).Select(i => Assign(AssignmentLayer.UiLayer, "UI" + i))).ToArray();
-            var page = KneeboardDraftProjection.CreateCombined(snapshot, diagram, assignments, snapshot.Labels);
+            var page = DcsKneeboardDraftProjection.CreateCombined(snapshot, diagram, assignments, snapshot.Labels);
             Assert.Equal(["#dc2626", "#ea580c", "#c026d3", "#16a34a", "#9333ea", "#9333ea"],
                 page.Legend.Where(x => x.Layer == AssignmentLayer.Module && x.Chord.Length > 0).Select(x => x.Color));
             Assert.Equal(["#0891b2", "#7c3aed", "#be185d", "#0f766e"],
@@ -154,7 +154,7 @@ namespace Heimdall.Tests
                 var state = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "UNUSED", [entry.Layer] = entry.Chord };
                 var control = entry.Chord.Length == 0 ? "button" : "button-shifted";
                 var expected = entry.Layer == AssignmentLayer.Module && entry.Chord.Length == 0 ? "#007ACC" : entry.Color;
-                Assert.Equal(expected, KneeboardLiveProjection.ActiveColor(page, control, state));
+                Assert.Equal(expected, DcsKneeboardLiveProjection.ActiveColor(page, control, state));
             }
         }
         /// <summary>An unsupported UI Layer produces only module pages even when a stale UI assignment exists.</summary>
@@ -162,15 +162,15 @@ namespace Heimdall.Tests
         public void Unsupported_ui_layer_is_not_rendered()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var profile = new DeviceProfile(Guid.NewGuid(), "device", null, "Device", "Device.diff.lua");
-            var config = new ModuleConfiguration(module, [profile], [], [], "fixture");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "device", null, "Device", "Device.diff.lua");
+            var config = new DcsModuleConfiguration(module, [profile], [], [], "fixture");
             var diagram = new UiLayerDiagram("Device", null, "device.svg", 100, 100, [], []) {
                 ProfileId = profile.Id, SupportsUiLayer = false,
                 Controls = [new HardwareGraphicControl("one", "One", "JOY_BTN1", 10, 10, 40, 20)]
             };
             var snapshot =
-                new EditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>());
-            var pages = KneeboardDraftProjection.Create(snapshot, diagram, [], new Dictionary<string, string>());
+                new DcsEditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>());
+            var pages = DcsKneeboardDraftProjection.Create(snapshot, diagram, [], new Dictionary<string, string>());
             Assert.Single(pages);
             Assert.Equal("Module · Base", pages[0].Title);
         }
@@ -179,8 +179,8 @@ namespace Heimdall.Tests
         public void Combined_device_uses_authored_page_and_current_ui_assignments()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var profile = new DeviceProfile(Guid.NewGuid(), "test-device", null, "Device", "Device.diff.lua");
-            var config = new ModuleConfiguration(module, [profile], [], [], "fixture");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "test-device", null, "Device", "Device.diff.lua");
+            var config = new DcsModuleConfiguration(module, [profile], [], [], "fixture");
             var diagram = new UiLayerDiagram(
                 "Device", null, "device.svg", 100, 100, [],
                 []) { ProfileId = profile.Id, Controls = [
@@ -196,15 +196,15 @@ namespace Heimdall.Tests
                ]}
                """;
             var snapshot =
-                new EditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
+                new DcsEditorWorkspaceSnapshot(config, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
                                             new Dictionary<string, string> { ["config/kneeboard.json"] = source });
-            DraftAssignment Assigned(AssignmentLayer layer, string id, string chord = "") =>
+            DcsDraftAssignment Assigned(AssignmentLayer layer, string id, string chord = "") =>
                 new(new(module.Id, profile.Id, layer, BindingSection.Key, "JOY_BTN1", chord),
-                    new DraftCommand(id, id, false, layer));
+                    new DcsDraftCommand(id, id, false, layer));
             var moduleBase = Assigned(AssignmentLayer.Module, "Module");
             var uiShift = Assigned(AssignmentLayer.UiLayer, "UI shifted", "UI_BTN7");
             var overrides = new Dictionary<string, string> { [moduleBase.Slot.Key] = "Edited module" };
-            var page = KneeboardDraftProjection.CreateCombined(snapshot, diagram, [moduleBase, uiShift], overrides);
+            var page = DcsKneeboardDraftProjection.CreateCombined(snapshot, diagram, [moduleBase, uiShift], overrides);
             Assert.Equal("Authored device", page.Title);
             Assert.Equal("FLIGHT CONTROLS", page.Kicker);
             Assert.Equal("Edited module", Assert.Single(page.Labels["one"]).Text);
@@ -217,17 +217,17 @@ namespace Heimdall.Tests
             // One physical input has separate Module Base and UI Layer SHIFT callouts.
             // The live image must light exactly the one that applies, without changing the printed page.
             var neutral = new Dictionary<AssignmentLayer, string>();
-            Assert.Equal(KneeboardLiveProjection.BaseHighlightColor,
-                KneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, neutral));
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, neutral));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, neutral));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, neutral));
             var uiShifted = new Dictionary<AssignmentLayer, string> {
                 [AssignmentLayer.UiLayer] = "UI_BTN7"
             };
-            Assert.Null(KneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, uiShifted));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "one", diagram.Controls, uiShifted));
             Assert.Equal("#7c3aed",
-                KneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, uiShifted));
-            var live = KneeboardLiveProjection.Focus(page, diagram.Controls, uiShifted);
-            Assert.Equal(KneeboardLiveProjection.InactiveLabelColor, live.Labels["one"][0].Color);
+                DcsKneeboardLiveProjection.ActiveColor(page, "one-shifted", diagram.Controls, uiShifted));
+            var live = DcsKneeboardLiveProjection.Focus(page, diagram.Controls, uiShifted);
+            Assert.Equal(DcsKneeboardLiveProjection.InactiveLabelColor, live.Labels["one"][0].Color);
             Assert.Equal("#7c3aed", live.Labels["one-shifted"][0].Color);
             Assert.Equal("#ffffff", page.Labels["one"][0].Color);
         }

@@ -20,22 +20,22 @@ namespace Heimdall.Tests
             var request = Fixture();
             var shared = request.SharedLua!;
             var catalog = request.Catalog!;
-            var imported = new ConsumerSourceImporter().Import(request);
+            var imported = new DcsConsumerSourceImporter().Import(request);
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             var configuration = imported.Configuration!;
             var hornet = Assert.Single(configuration.Profiles, x => x.DeviceId == "moza-ab9-hornet-grip");
             var canonical = Assert.Single(shared.Profiles, x => x.SourceName == hornet.SourceName);
             Assert.Equal("moza-ab9", canonical.DeviceId);
-            Assert.Equal(canonical, ModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported, shared, hornet));
+            Assert.Equal(canonical, DcsModuleUiLayerBindingImporter.ResolveCanonicalProfile(imported, shared, hornet));
             var graphics = TestGraphics(request);
-            var diagrams = UiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
+            var diagrams = DcsUiLayerDiagramFactory.Create(imported, catalog, graphics, shared);
             var hornetDiagram = Assert.Single(diagrams, x => x.ProfileId == hornet.Id);
             Assert.EndsWith("/" + hornet.SourceName, hornetDiagram.CanonicalUiLayerSourcePath!, StringComparison.Ordinal);
             Assert.Equal(3, hornetDiagram.Callouts.Count);
             var assignments = diagrams.SelectMany(diagram => diagram.Callouts.Select(callout =>
             {
                 var control = diagram.Controls.Single(x => x.Control == callout.Control);
-                return new DraftAssignment(new(configuration.Module.Id, diagram.ProfileId, AssignmentLayer.UiLayer,
+                return new DcsDraftAssignment(new(configuration.Module.Id, diagram.ProfileId, AssignmentLayer.UiLayer,
                     BindingSection.Key, control.InputKey, callout.Modifier.Replace(" + ", "+", StringComparison.Ordinal)),
                     new(callout.CommandId, callout.Function, false, AssignmentLayer.UiLayer));
             })).ToArray();
@@ -47,25 +47,25 @@ namespace Heimdall.Tests
                 if (path.StartsWith("assets/shared/ui-layer/input/UiLayer/", StringComparison.Ordinal))
                     sources[path] = File.ReadAllText(file);
             }
-            var workspace = new EditorWorkspaceSnapshot(configuration, imported.Pages, [], diagrams, [],
-                catalog.Commands, assignments, KneeboardLabelImporter.Import(imported.Metadata, configuration), sources);
+            var workspace = new DcsEditorWorkspaceSnapshot(configuration, imported.Pages, [], diagrams, [],
+                catalog.Commands, assignments, DcsKneeboardLabelImporter.Import(imported.Metadata, configuration), sources);
             var database = Path.Combine(Path.GetTempPath(), "HueyUiLayer-" + Guid.NewGuid().ToString("N") + ".db");
             try
             {
                 var connection = "Data Source=" + database + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var reopened = await repository.GetAsync(configuration.Module.Id);
                 Assert.NotNull(reopened);
-                var output = SnapshotLuaPayloadRenderer.Generate(reopened);
+                var output = DcsSnapshotLuaPayloadRenderer.Generate(reopened);
                 var path = "Config/Input/UiLayer/joystick/" + hornet.SourceName;
                 var bindings = DcsLuaParser.ParseProfile(Encoding.UTF8.GetString(output[path]), hornet.Id);
                 Assert.All(assignments.Where(x => x.Slot.ProfileId == hornet.Id), assignment =>
                     Assert.Contains(bindings, x => x.CommandId == assignment.Command.Id && x.InputKey == assignment.Slot.InputKey));
                 var legacy = reopened with { Diagrams = reopened.Diagrams.Select(x => x.ProfileId == hornet.Id
                     ? x with { CanonicalUiLayerSourcePath = null } : x).ToArray() };
-                Assert.Equal(output[path], SnapshotLuaPayloadRenderer.Generate(legacy)[path]);
+                Assert.Equal(output[path], DcsSnapshotLuaPayloadRenderer.Generate(legacy)[path]);
             }
             finally
             {
@@ -78,7 +78,7 @@ namespace Heimdall.Tests
         public void Imports_real_huey_sources_without_losing_authored_metadata()
         {
             var request = Fixture();
-            var result = new ConsumerSourceImporter().Import(request);
+            var result = new DcsConsumerSourceImporter().Import(request);
             Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
             Assert.Equal(5, result.Configuration!.Profiles.Count);
             Assert.Equal(5, result.Instances.Count);
@@ -111,7 +111,7 @@ namespace Heimdall.Tests
         public void Preserves_committed_documentation_and_release_contract_texts()
         {
             var request = Fixture();
-            ConsumerSource[] references = [
+            DcsConsumerSource[] references = [
                 new("README.md", "# Huey\n"), new("docs/INSTALLATION.md", "Install notes\n"),
                 new("docs/devices/TM-MFD-1-MAPPINGS.md", "Device mappings\n"),
                 new("packaging/ovgme/README.TXT", "Package instructions\n"),
@@ -119,7 +119,7 @@ namespace Heimdall.Tests
                 new(".github/workflows/release.yml", "name: Release\n")
             ];
             var imported =
-                new ConsumerSourceImporter().Import(request with { Sources = [..request.Sources, ..references] });
+                new DcsConsumerSourceImporter().Import(request with { Sources = [..request.Sources, ..references] });
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             Assert.Equal(5, imported.Configuration!.Profiles.Count);
             Assert.Equal(request.Sources.Count + references.Length, imported.Provenance.Count);
@@ -136,7 +136,7 @@ namespace Heimdall.Tests
         public void Repeated_import_is_deterministic()
         {
             var request = Fixture();
-            var importer = new ConsumerSourceImporter();
+            var importer = new DcsConsumerSourceImporter();
             var first = importer.Import(request);
             var second = importer.Import(request);
             Assert.True(first.Succeeded);
@@ -164,8 +164,8 @@ namespace Heimdall.Tests
                                     ? x with { Content = x.Content.Replace(oldGuid, newGuid, StringComparison.Ordinal) }
                                     : x)
                     .ToArray();
-            var changed = new ConsumerSourceImporter().Import(request with { Sources = sources });
-            var original = new ConsumerSourceImporter().Import(request);
+            var changed = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
+            var original = new DcsConsumerSourceImporter().Import(request);
             Assert.True(changed.Succeeded, string.Join("; ", changed.Diagnostics.Select(x => x.Message)));
             Assert.Equal(original.Configuration!.Profiles.Single(x => x.Instance == "MFD1").Id,
                          changed.Configuration!.Profiles.Single(x => x.Instance == "MFD1").Id);
@@ -179,7 +179,7 @@ namespace Heimdall.Tests
             var request = Fixture();
             var sources =
                 request.Sources.Where(x => !x.Path.Contains("F16 MFD 1 ", StringComparison.Ordinal)).ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Null(result.Configuration);
             Assert.Empty(result.Provenance);
@@ -193,7 +193,7 @@ namespace Heimdall.Tests
             var request = Fixture();
             var sources = Replace(request, "config/scaffold-device-overrides.json",
                                   x => x.Replace("\"tm-mfd\"", "\"tm-warthog-throttle\"", StringComparison.Ordinal));
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Message.Contains("Device override", StringComparison.Ordinal));
         }
@@ -209,7 +209,7 @@ namespace Heimdall.Tests
                                       root["pages"]![0]!["controls"]!["mfd-osb-t3"]!["labelId"] = "missing-label";
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Message.Contains("missing-label", StringComparison.Ordinal));
         }
@@ -225,7 +225,7 @@ namespace Heimdall.Tests
                                       root["uiLayerUtilization"]!["bindings"]![0]!["functionId"] = "unknown-function";
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics,
                             x => x.Message.Contains("Unknown canonical UI Layer function", StringComparison.Ordinal));
@@ -243,7 +243,7 @@ namespace Heimdall.Tests
                                           "unknown-modifier";
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics,
                             x => x.Message.Contains("Unknown canonical UI Layer modifier", StringComparison.Ordinal));
@@ -256,7 +256,7 @@ namespace Heimdall.Tests
             var sources =
                 Replace(request, "config/ui-layer-overlay.json",
                         x => x.Replace("\"assignments\": []", "\"assignments\": [{}]", StringComparison.Ordinal));
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Code == "module-overlay-preserved");
         }
@@ -272,7 +272,7 @@ namespace Heimdall.Tests
                                                                         StringComparison.Ordinal) }
                                                     : source)
                               .ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Null(result.Configuration);
             Assert.Empty(result.Provenance);
@@ -294,7 +294,7 @@ namespace Heimdall.Tests
                                   })
                               .Where(x => x.Path != "config/scaffold-instance-roles.json")
                               .ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Null(result.Configuration);
             Assert.Empty(result.Provenance);
@@ -309,7 +309,7 @@ namespace Heimdall.Tests
             var request = Fixture();
             var sources = Replace(request, "config/kneeboard.json",
                                   _ => "{");
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Empty(result.Metadata);
             Assert.Empty(result.Sources);
@@ -320,7 +320,7 @@ namespace Heimdall.Tests
         public void Invalid_provenance_is_rejected()
         {
             var request = Fixture() with { Commit = "main", Sources = [new("../bad.json", "{}")] };
-            var result = new ConsumerSourceImporter().Import(request);
+            var result = new DcsConsumerSourceImporter().Import(request);
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Code == "invalid-commit");
         }
@@ -340,14 +340,14 @@ namespace Heimdall.Tests
                                           return source with { Content = root.ToJsonString() };
                                       })
                               .ToArray();
-            var imported = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var imported = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             var first = imported.Configuration!.Profiles.Single(x => x.Instance == "tm-mfd-1");
             var second = imported.Configuration.Profiles.Single(x => x.Instance == "tm-mfd-2");
             Assert.NotEqual(first.Id, second.Id);
             Assert.Contains(imported.Configuration.Bindings, x => x.ProfileId == first.Id);
             Assert.Contains(imported.Configuration.Bindings, x => x.ProfileId == second.Id);
-            var labels = KneeboardLabelImporter.Import(imported.Metadata, imported.Configuration);
+            var labels = DcsKneeboardLabelImporter.Import(imported.Metadata, imported.Configuration);
             Assert.Equal(101, labels.Count);
             Assert.Contains(labels.Keys, x => x.Split('\u001f')[1] == first.Id.ToString());
             Assert.Contains(labels.Keys, x => x.Split('\u001f')[1] == second.Id.ToString());
@@ -360,13 +360,13 @@ namespace Heimdall.Tests
             var common = Fixture();
             var root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "F4U");
             var sources = Directory.GetFiles(root, "*.*", SearchOption.AllDirectories)
-                              .Select(x => new ConsumerSource(Path.GetRelativePath(root, x).Replace('\\', '/'),
+                              .Select(x => new DcsConsumerSource(Path.GetRelativePath(root, x).Replace('\\', '/'),
                                                               File.ReadAllText(x)))
                               .OrderBy(x => x.Path, StringComparer.Ordinal)
                               .ToArray();
             var request = common with { Commit = "4cd755aa9dc36384e75d054893213b8a77bc26dc",
                                         Repository = "ScottyMac52/DCS-F4U-1D-Components", Sources = sources };
-            var imported = new ConsumerSourceImporter().Import(request);
+            var imported = new DcsConsumerSourceImporter().Import(request);
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             Assert.Equal("F4U-1D", imported.Configuration!.Module.DcsId);
             Assert.Equal(10, imported.Configuration.Profiles.Count);
@@ -377,7 +377,7 @@ namespace Heimdall.Tests
             Assert.All(quadrants, x => Assert.Contains(imported.Configuration.Bindings, y => y.ProfileId == x.Id));
             Assert.Contains(imported.Configuration.Bindings,
                             x => x.Disposition == BindingDisposition.Removed && x.Reformers.Contains("JOY_BTN3"));
-            var labels = KneeboardLabelImporter.Import(imported.Metadata, imported.Configuration);
+            var labels = DcsKneeboardLabelImporter.Import(imported.Metadata, imported.Configuration);
             Assert.All(quadrants, x => Assert.Contains(labels.Keys, key => key.Split('\u001f')[1] == x.Id.ToString()));
             Assert.Contains(imported.Diagnostics, x => x.Code == "module-overlay-preserved");
             var tinyImage = Convert.FromBase64String(
@@ -401,7 +401,7 @@ namespace Heimdall.Tests
                     $"assets/shared/hardware/svg/{device.StableKey}.svg",
                     $"<svg xmlns='http://www.w3.org/2000/svg' width='960' height='2000' viewBox='0 0 960 2000'><image href='data:image/png;base64,{Convert.ToBase64String(tinyImage)}' x='0' y='0' width='960' height='2000'/>{callouts}</svg>");
             }
-            var diagrams = UiLayerDiagramFactory.Create(imported, common.Catalog, graphics, common.SharedLua);
+            var diagrams = DcsUiLayerDiagramFactory.Create(imported, common.Catalog, graphics, common.SharedLua);
             Assert.Equal(imported.Configuration.Profiles.Count, diagrams.Count);
             Assert.All(diagrams, x => Assert.NotEmpty(x.Controls));
             var stick = imported.Configuration.Profiles.Single(x => x.DeviceId == "vkb-f14-gunfighter");
@@ -432,11 +432,11 @@ namespace Heimdall.Tests
             var sources =
                 request.Sources
                     .Concat([
-                        new ConsumerSource("src/Config/Input/UH-1H/joystick/Old Controller.diff.lua", "return {}"),
-                        new ConsumerSource("src/Config/Input/Other/joystick/Other Controller.diff.lua", "return {}")
+                        new DcsConsumerSource("src/Config/Input/UH-1H/joystick/Old Controller.diff.lua", "return {}"),
+                        new DcsConsumerSource("src/Config/Input/Other/joystick/Other Controller.diff.lua", "return {}")
                     ])
                     .ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
             Assert.Equal(5, result.Configuration!.Profiles.Count);
             Assert.Equal(request.Sources.Count + 2, result.Provenance.Count);
@@ -450,10 +450,10 @@ namespace Heimdall.Tests
             var request = Fixture();
             var missing = request.Sources.Single(x => x.Path.Contains("F16 MFD 1 ", StringComparison.Ordinal));
             var sources = request.Sources.Where(x => x != missing)
-                              .Append(new ConsumerSource("src/Config/Input/UH-1H/joystick/Other Controller.diff.lua",
+                              .Append(new DcsConsumerSource("src/Config/Input/UH-1H/joystick/Other Controller.diff.lua",
                                                          "return {}"))
                               .ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics,
                             x => x.Message.Contains("no supplied Lua source", StringComparison.Ordinal));
@@ -471,7 +471,7 @@ namespace Heimdall.Tests
                                       profiles["tm-mfd-2"] = profiles["tm-mfd-1"]!.GetValue<string>();
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics,
                             x => x.Message.Contains("Duplicate kneeboard profile path", StringComparison.Ordinal));
@@ -488,7 +488,7 @@ namespace Heimdall.Tests
                                       root["Other.diff.lua"] = "tm-mfd";
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Message.Contains("Device override references unknown profile",
                                                                         StringComparison.Ordinal));
@@ -500,7 +500,7 @@ namespace Heimdall.Tests
             var request = Fixture();
             var sources = Replace(request, "config/scaffold-instance-roles.json",
                                   x => x.Replace("\"MFD3\"", "\"MFD1\"", StringComparison.Ordinal));
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, x => x.Message.Contains("Instance role", StringComparison.Ordinal));
         }
@@ -516,7 +516,7 @@ namespace Heimdall.Tests
                                       root["pages"]![0]!["deviceId"] = "invented-device";
                                       return root.ToJsonString();
                                   });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics,
                             x => x.Message.Contains("Unknown shared device identity", StringComparison.Ordinal));
@@ -528,7 +528,7 @@ namespace Heimdall.Tests
             var request = Fixture();
             var sources = Replace(request, "src/Config/Input/UH-1H/modifiers.lua",
                                   _ => "return {}");
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.False(result.Succeeded);
             Assert.Empty(result.Provenance);
             Assert.Contains(result.Diagnostics, x => x.Code == "invalid-huey-source");
@@ -539,7 +539,7 @@ namespace Heimdall.Tests
         {
             var request = Fixture();
             var sources = request.Sources.Where(x => x.Path != "config/ui-layer-overlay.json").ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(result.Succeeded);
             Assert.False(result.Metadata.ContainsKey("config/ui-layer-overlay.json"));
         }
@@ -548,7 +548,7 @@ namespace Heimdall.Tests
         public void Unknown_source_path_is_rejected()
         {
             var request = Fixture();
-            var result = new ConsumerSourceImporter().Import(
+            var result = new DcsConsumerSourceImporter().Import(
                 request with { Sources =
                                    [..request.Sources, new("src/Config/Input/Other/unknown.diff.lua", "return {}")] });
             Assert.False(result.Succeeded);
@@ -559,7 +559,7 @@ namespace Heimdall.Tests
         public void Consumer_module_identity_is_derived_from_its_own_config()
         {
             var original = Fixture();
-            static string Rewrite(ConsumerSource source)
+            static string Rewrite(DcsConsumerSource source)
             {
                 var text = source.Path.EndsWith(".json", StringComparison.Ordinal)
                                ? source.Content.Replace("UH-1H", "F-14BU", StringComparison.Ordinal)
@@ -575,15 +575,15 @@ namespace Heimdall.Tests
                     .Where(x => x.Path is not("config/scaffold.dcs-scaffold.json" or "config/ui-layer-overlay.json" or
                                               "config/scaffold-device-overrides.json" or
                                               "config/scaffold-instance-roles.json"))
-                    .Select(x => new ConsumerSource(x.Path.Replace("UH-1H", "F-14BU", StringComparison.Ordinal),
+                    .Select(x => new DcsConsumerSource(x.Path.Replace("UH-1H", "F-14BU", StringComparison.Ordinal),
                                                     Rewrite(x)))
                     .ToArray();
             var result =
-                new ConsumerSourceImporter().Import(original with { Sources = sources, Repository = "F-14BU" });
+                new DcsConsumerSourceImporter().Import(original with { Sources = sources, Repository = "F-14BU" });
             Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
             Assert.Equal("F-14BU", result.Configuration!.Module.DcsId);
             Assert.Equal(5, result.Configuration.Profiles.Count);
-            Assert.Equal(101, KneeboardLabelImporter.Import(result.Metadata, result.Configuration).Count);
+            Assert.Equal(101, DcsKneeboardLabelImporter.Import(result.Metadata, result.Configuration).Count);
             Assert.Empty(result.Usage);
             Assert.All(result.Provenance, x => Assert.Equal("F-14BU", x.Repository));
         }
@@ -614,10 +614,10 @@ namespace Heimdall.Tests
                                           return source;
                                       })
                               .ToArray();
-            var imported = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var imported = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             Assert.Contains(imported.Diagnostics, x => x.Code == "module-overlay-preserved");
-            Assert.Equal(101, KneeboardLabelImporter.Import(imported.Metadata, imported.Configuration!).Count);
+            Assert.Equal(101, DcsKneeboardLabelImporter.Import(imported.Metadata, imported.Configuration!).Count);
             Assert.Contains("\"schemaVersion\":2", imported.Sources["config/ui-layer-overlay.json"],
                             StringComparison.Ordinal);
         }
@@ -639,7 +639,7 @@ namespace Heimdall.Tests
                return diff
                """;
             var sources = request.Sources.Select(x => x == source ? x with { Content = removedOnly } : x).ToArray();
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
             Assert.Equal(5, result.Configuration!.Profiles.Count);
             Assert.Contains(result.Configuration.Bindings,
@@ -662,12 +662,12 @@ namespace Heimdall.Tests
             var alternate = JsonNode.Parse(canonical.Content)!;
             alternate["import"]!["displayName"] = "Alternate saved solution";
             alternate["import"]!["profilesDirectory"] = "repo/joystick";
-            var variant = new ConsumerSource("config/UH-1H.repo.dcs-scaffold.dcs-scaffold.json", alternate.ToJsonString());
-            ConsumerSource[] sources = [..request.Sources, variant];
+            var variant = new DcsConsumerSource("config/UH-1H.repo.dcs-scaffold.dcs-scaffold.json", alternate.ToJsonString());
+            DcsConsumerSource[] sources = [..request.Sources, variant];
             if (reverse) Array.Reverse(sources);
 
-            var imported = new ConsumerSourceImporter().Import(request with { Sources = sources });
-            var expected = new ConsumerSourceImporter().Import(request);
+            var imported = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
+            var expected = new DcsConsumerSourceImporter().Import(request);
             Assert.True(imported.Succeeded, string.Join("; ", imported.Diagnostics.Select(x => x.Message)));
             Assert.Equal(expected.Configuration!.Module.DisplayName, imported.Configuration!.Module.DisplayName);
             Assert.Equal(expected.Configuration.Modifiers, imported.Configuration.Modifiers);
@@ -683,10 +683,10 @@ namespace Heimdall.Tests
             var first = canonical with { Path = "config/A.dcs-scaffold.json" };
             var alternate = JsonNode.Parse(canonical.Content)!;
             alternate["import"]!["displayName"] = "Alternate saved solution";
-            var second = new ConsumerSource("config/Z.dcs-scaffold.json", alternate.ToJsonString());
+            var second = new DcsConsumerSource("config/Z.dcs-scaffold.json", alternate.ToJsonString());
             var remaining = request.Sources.Where(x => x != canonical).ToArray();
-            var forward = new ConsumerSourceImporter().Import(request with { Sources = [first, second, ..remaining] });
-            var reverse = new ConsumerSourceImporter().Import(request with { Sources = [second, first, ..remaining] });
+            var forward = new DcsConsumerSourceImporter().Import(request with { Sources = [first, second, ..remaining] });
+            var reverse = new DcsConsumerSourceImporter().Import(request with { Sources = [second, first, ..remaining] });
             Assert.True(forward.Succeeded);
             Assert.True(reverse.Succeeded);
             Assert.Equal(forward.Configuration!.Module, reverse.Configuration!.Module);
@@ -709,7 +709,7 @@ namespace Heimdall.Tests
                 root[property] = JsonNode.Parse(value);
                 return root.ToJsonString();
             });
-            var result = new ConsumerSourceImporter().Import(request with { Sources = sources });
+            var result = new DcsConsumerSourceImporter().Import(request with { Sources = sources });
             AssertAtomicFailure(result, message);
         }
 
@@ -724,7 +724,7 @@ namespace Heimdall.Tests
         {
             var request = Fixture();
             var sources = Replace(request, path, _ => value);
-            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }), message);
+            AssertAtomicFailure(new DcsConsumerSourceImporter().Import(request with { Sources = sources }), message);
         }
 
         /// <summary>A device UI usage entry must reference an imported physical instance.</summary>
@@ -738,7 +738,7 @@ namespace Heimdall.Tests
                 root["uiLayerUtilization"]!["bindings"]![0]!["deviceInstance"] = "unknown-instance";
                 return root.ToJsonString();
             });
-            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }),
+            AssertAtomicFailure(new DcsConsumerSourceImporter().Import(request with { Sources = sources }),
                                 "UI Layer utilization has no matching module device instance");
         }
 
@@ -753,7 +753,7 @@ namespace Heimdall.Tests
                 root["uiLayerUtilization"]!["mode"] = "implicit";
                 return root.ToJsonString();
             });
-            AssertAtomicFailure(new ConsumerSourceImporter().Import(request with { Sources = sources }),
+            AssertAtomicFailure(new DcsConsumerSourceImporter().Import(request with { Sources = sources }),
                                 "Only explicit UI Layer utilization is supported.");
         }
 
@@ -762,7 +762,7 @@ namespace Heimdall.Tests
         public void Request_validation_accumulates_errors_in_original_order()
         {
             var request = Fixture() with { Commit = "invalid", Catalog = null!, SharedLua = null!, Sources = [] };
-            var result = new ConsumerSourceImporter().Import(request);
+            var result = new DcsConsumerSourceImporter().Import(request);
             Assert.Equal(RequestDiagnosticCodes,
                          result.Diagnostics.Select(x => x.Code));
             Assert.Null(result.Configuration);
@@ -775,7 +775,7 @@ namespace Heimdall.Tests
         public void Source_permutations_preserve_complete_import_result()
         {
             var request = Fixture();
-            var importer = new ConsumerSourceImporter();
+            var importer = new DcsConsumerSourceImporter();
             var forward = importer.Import(request);
             var reversed = importer.Import(request with { Sources = request.Sources.Reverse().ToArray() });
             Assert.True(forward.Succeeded);
@@ -795,7 +795,7 @@ namespace Heimdall.Tests
         public void Unsafe_source_paths_preserve_atomic_failure(string path)
         {
             var request = Fixture();
-            var result = new ConsumerSourceImporter().Import(request with
+            var result = new DcsConsumerSourceImporter().Import(request with
             {
                 Sources = [..request.Sources, new(path, "source text")]
             });
@@ -816,7 +816,7 @@ namespace Heimdall.Tests
         {
             var request = Fixture();
             const string text = "authored release script text";
-            var result = new ConsumerSourceImporter().Import(request with
+            var result = new DcsConsumerSourceImporter().Import(request with
             {
                 Sources = [..request.Sources, new(path, text)]
             });
@@ -836,10 +836,10 @@ namespace Heimdall.Tests
         public void Graphic_validation_preserves_per_device_failure_isolation(string fault)
         {
             var request = Fixture();
-            var imported = new ConsumerSourceImporter().Import(request);
+            var imported = new DcsConsumerSourceImporter().Import(request);
             Assert.True(imported.Succeeded);
             var graphics = TestGraphics(request);
-            var original = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua);
+            var original = DcsUiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua);
             Assert.Equal(imported.Configuration!.Profiles.Count, original.Count);
             var selected = imported.Configuration.Profiles[0];
             var path = original.Single(x => x.ProfileId == selected.Id).Path;
@@ -853,9 +853,9 @@ namespace Heimdall.Tests
                 "callout-size" => graphics[path].Replace("width='60'", "width='0'", StringComparison.Ordinal),
                 _ => graphics[path].Replace("</svg>", "<!-- box:unknown-control --><rect x='0' y='0' width='10' height='10'/></svg>", StringComparison.Ordinal)
             };
-            Assert.Throws<InvalidDataException>(() => UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua));
-            var errors = new List<DeviceProfile>();
-            var diagrams = UiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua,
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua));
+            var errors = new List<DcsDeviceProfile>();
+            var diagrams = DcsUiLayerDiagramFactory.Create(imported, request.Catalog!, graphics, request.SharedLua,
                 (profile, _) => errors.Add(profile));
             Assert.NotEmpty(errors);
             Assert.All(errors, profile => Assert.Equal(path, original.Single(x => x.ProfileId == profile.Id).Path));
@@ -864,7 +864,7 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static Dictionary<string, string> TestGraphics(ConsumerImportRequest request)
+        private static Dictionary<string, string> TestGraphics(DcsConsumerImportRequest request)
         {
             var catalog = request.Catalog!;
             var shared = request.SharedLua!;
@@ -880,7 +880,7 @@ namespace Heimdall.Tests
             return graphics;
         }
         private static readonly string[] RequestDiagnosticCodes = ["invalid-commit", "invalid-shared-input", "missing-sources"];
-        private static void AssertAtomicFailure(ConsumerImportResult result, string message)
+        private static void AssertAtomicFailure(DcsConsumerImportResult result, string message)
         {
             Assert.False(result.Succeeded);
             Assert.Null(result.Configuration);
@@ -894,10 +894,10 @@ namespace Heimdall.Tests
             Assert.Contains(result.Diagnostics, x => x.Code == "invalid-huey-source" && x.IsError &&
                                                      x.Message.Contains(message, StringComparison.Ordinal));
         }
-        private static ConsumerSource[] Replace(ConsumerImportRequest request, string path,
+        private static DcsConsumerSource[] Replace(DcsConsumerImportRequest request, string path,
                                                 Func<string, string> transform) =>
             request.Sources.Select(x => x.Path == path ? x with { Content = transform(x.Content) } : x).ToArray();
-        private static ConsumerImportRequest Fixture()
+        private static DcsConsumerImportRequest Fixture()
         {
             var root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DcsCommon");
             string Read(string name) => File.ReadAllText(Path.Combine(root, name));
@@ -909,7 +909,7 @@ namespace Heimdall.Tests
             Assert.True(catalog.Succeeded);
             var common = Path.Combine(root, "Lua");
             var lua = Directory.GetFiles(common, "*.lua", SearchOption.AllDirectories)
-                          .Select(x => new SharedLuaSource(Path.GetRelativePath(common, x).Replace('\\', '/'),
+                          .Select(x => new DcsSharedLuaSource(Path.GetRelativePath(common, x).Replace('\\', '/'),
                                                            File.ReadAllText(x)))
                           .ToArray();
             var shared =
@@ -917,7 +917,7 @@ namespace Heimdall.Tests
             Assert.True(shared.Succeeded);
             var sourceRoot = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Huey");
             var sources = Directory.GetFiles(sourceRoot, "*.*", SearchOption.AllDirectories)
-                              .Select(x => new ConsumerSource(Path.GetRelativePath(sourceRoot, x).Replace('\\', '/'),
+                              .Select(x => new DcsConsumerSource(Path.GetRelativePath(sourceRoot, x).Replace('\\', '/'),
                                                               File.ReadAllText(x)))
                               .OrderBy(x => x.Path, StringComparer.Ordinal)
                               .ToArray();

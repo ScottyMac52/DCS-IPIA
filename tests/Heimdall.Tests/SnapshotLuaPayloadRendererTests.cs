@@ -25,7 +25,7 @@ namespace Heimdall.Tests
                 new DcsBinding(ProfileId, BindingSection.Axis, "a2003cdnil", "Rudder", BindingDisposition.Added, "JOY_Z", [])
             };
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
-            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+            sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new DcsWorkspaceManagement([
                 new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
             ], []));
             var diagram = workspace.Diagrams[0] with { SupportsUiLayer = false, Controls = [
@@ -33,14 +33,14 @@ namespace Heimdall.Tests
                 new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true),
                 new("rudder", "Rudder", "JOY_Z", 0, 0, 10, 10, true)
             ] };
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
                 [], axes.Take(2).ToArray(), "Created in IPIA");
             var saved = workspace with { Configuration = config, Sources = sources, Diagrams = [diagram],
-                Assignments = axes.Select(axis => new DraftAssignment(
+                Assignments = axes.Select(axis => new DcsDraftAssignment(
                     new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Axis, axis.InputKey),
                     new(axis.CommandId, axis.CommandName, true, AssignmentLayer.Module))).ToArray()
             };
-            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             var exported = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
             Assert.Equal(3, exported.Count);
             foreach (var axis in axes)
@@ -68,18 +68,18 @@ namespace Heimdall.Tests
             if (managed)
             {
                 sources["config/ipia-ui-" + ProfileId.ToString("N") + ".lua"] = sources[UiPath];
-                var modifiers = new List<WorkspaceModifier> {
+                var modifiers = new List<DcsWorkspaceModifier> {
                     new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "Module", ModifierMode.Toggle, "Stick")
                 };
                 if (!emptyDefaults)
                     modifiers.Add(new(AssignmentLayer.UiLayer, ProfileId, "SHIFT", "JOY_BTN3", "UI", ModifierMode.Hold, "Stick"));
-                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new DcsWorkspaceManagement([
                     new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick"),
                     new(ProfileId, AssignmentLayer.UiLayer, "Stick.diff.lua", null, "Stick")
                 ], modifiers));
             }
             var saved = workspace with { Sources = sources };
-            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             foreach (var folder in new[] { "TEST", "UiLayer" })
             {
                 var modifiers = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/" + folder + "/modifiers.lua"));
@@ -102,28 +102,28 @@ namespace Heimdall.Tests
             const string oldName = "Viper TQS {C0A33440-3F54-11F1-8001-444553540000}";
             const string nativeName = "Viper TQS {C0A33440-3F54-11f1-8001-444553540000}";
             var saved = Workspace();
-            var profile = new DeviceProfile(ProfileId, "tqs", null, "TQS", oldName + ".diff.lua");
+            var profile = new DcsDeviceProfile(ProfileId, "tqs", null, "TQS", oldName + ".diff.lua");
             var modifiers = new[] { new DcsModifier("ARM_SELECT_1", oldName, "JOY_BTN55", ModifierMode.Toggle),
                 new DcsModifier("ARM_SELECT_2", oldName, "JOY_BTN25", ModifierMode.Toggle),
                 new DcsModifier("LCtrl", "Keyboard", "LCtrl", ModifierMode.Hold) };
-            var config = new ModuleConfiguration(saved.Configuration.Module, [profile], modifiers, [], "reported package");
+            var config = new DcsModuleConfiguration(saved.Configuration.Module, [profile], modifiers, [], "reported package");
             var canonical = "assets/shared/ui-layer/input/UiLayer/joystick/" + nativeName + ".diff.lua";
             var sources = saved.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources[canonical] = sources[UiPath];
             sources["config/ipia-ui-" + ProfileId.ToString("N") + ".lua"] = "local diff = { [\"keyDiffs\"] = {}, [\"axisDiffs\"] = {} } return diff";
             sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = sources["assets/shared/ui-layer/input/UiLayer/modifiers.lua"].Replace("Stick", nativeName, StringComparison.Ordinal);
             if (managed)
-                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new DcsWorkspaceManagement([
                     new(ProfileId, AssignmentLayer.Module, profile.SourceName, null, "TQS"),
                     new(ProfileId, AssignmentLayer.UiLayer, nativeName + ".diff.lua", null, "TQS")
-                ], modifiers.Select(x => new WorkspaceModifier(AssignmentLayer.Module,
+                ], modifiers.Select(x => new DcsWorkspaceModifier(AssignmentLayer.Module,
                     x.Device == "Keyboard" ? Guid.Empty : ProfileId, x.Name, x.Key, x.Name, x.Mode, x.Device)).ToArray()));
-            var assignments = modifiers.Select(x => new DraftAssignment(
+            var assignments = modifiers.Select(x => new DcsDraftAssignment(
                 new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", x.Name),
                 new(x.Name + "_COMMAND", x.Name, false, AssignmentLayer.Module))).ToArray();
             saved = saved with { Configuration = config, Sources = sources, Assignments = assignments,
                 Diagrams = [saved.Diagrams[0] with { CanonicalUiLayerSourcePath = canonical }] };
-            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains("Config/Input/TEST/joystick/" + nativeName + ".diff.lua", output.Keys, StringComparer.Ordinal);
             Assert.DoesNotContain("Config/Input/TEST/joystick/" + oldName + ".diff.lua", output.Keys, StringComparer.Ordinal);
             var exported = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
@@ -138,7 +138,7 @@ namespace Heimdall.Tests
             // Without an observed native spelling, retain the stored identity instead of guessing.
             var moduleOnly = saved with { Diagrams = [saved.Diagrams[0] with { SupportsUiLayer = false }] };
             if (!managed)
-                Assert.Contains("Config/Input/TEST/joystick/" + oldName + ".diff.lua", SnapshotLuaPayloadRenderer.Generate(moduleOnly).Keys, StringComparer.Ordinal);
+                Assert.Contains("Config/Input/TEST/joystick/" + oldName + ".diff.lua", DcsSnapshotLuaPayloadRenderer.Generate(moduleOnly).Keys, StringComparer.Ordinal);
         }
         /// <summary>Managed exports recover referenced declarations from current and pinned data while retaining exact names, keys, and modes.</summary>
         [Fact]
@@ -146,12 +146,12 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace();
             var arm1 = new DcsModifier("ARM_SELECT_1", "Stick", "JOY_BTN55", ModifierMode.Toggle);
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, [arm1], [], "fixture");
-            var state = new WorkspaceManagement([
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, [arm1], [], "fixture");
+            var state = new DcsWorkspaceManagement([
                 new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
             ], []);
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
-            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state);
+            sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state);
             sources["src/Config/Input/TEST/modifiers.lua"] = """
                 local modifiers = {
                   ["ARM_SELECT_2"] = { ["device"] = "Stick", ["key"] = "JOY_BTN25", ["switch"] = true }
@@ -162,23 +162,23 @@ namespace Heimdall.Tests
                   ["LCtrl"] = { ["device"] = "Keyboard", ["key"] = "LCtrl", ["switch"] = false }
                 } return modifiers
                 """;
-            var assignments = ReferencedNames.Select(name => new DraftAssignment(
+            var assignments = ReferencedNames.Select(name => new DcsDraftAssignment(
                 new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", name),
                 new(name + "_COMMAND", name, false, AssignmentLayer.Module))).ToArray();
             var saved = workspace with { Configuration = config, Sources = sources, Assignments = assignments };
-            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             var definitions = DcsLuaParser.ParseModifiers(Text(output, "Config/Input/TEST/modifiers.lua"));
             Assert.Contains(arm1, definitions);
             Assert.Contains(definitions, x => x.Name == "ARM_SELECT_2" && x.Key == "JOY_BTN25" && x.Mode == ModifierMode.Toggle);
             Assert.Contains(definitions, x => x.Name == "LCtrl" && x.Device == "Keyboard" && x.Mode == ModifierMode.Hold);
             var rendered = DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId);
             Assert.Equal(ReferencedNames, rendered.SelectMany(x => x.Reformers).Order(StringComparer.Ordinal));
-            Assert.Empty(WorkspaceManagement.Read(saved)!.Modifiers);
+            Assert.Empty(DcsWorkspaceManagement.Read(saved)!.Modifiers);
             Assert.Single(saved.Configuration.Modifiers);
             Assert.Equal(3, saved.Assignments.Count);
-            var explicitModifier = new WorkspaceModifier(AssignmentLayer.Module, ProfileId, arm1.Name, "JOY_BTN56", arm1.Name, ModifierMode.Hold, "Stick");
-            sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state with { Modifiers = [explicitModifier] });
-            var edited = SnapshotLuaPayloadRenderer.Generate(saved);
+            var explicitModifier = new DcsWorkspaceModifier(AssignmentLayer.Module, ProfileId, arm1.Name, "JOY_BTN56", arm1.Name, ModifierMode.Hold, "Stick");
+            sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(state with { Modifiers = [explicitModifier] });
+            var edited = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             Assert.Contains(DcsLuaParser.ParseModifiers(Text(edited, "Config/Input/TEST/modifiers.lua")),
                 x => x.Name == arm1.Name && x.Key == "JOY_BTN56" && x.Mode == ModifierMode.Hold);
         }
@@ -200,12 +200,12 @@ namespace Heimdall.Tests
             };
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             if (managed)
-                sources[WorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new WorkspaceManagement([
+                sources[DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(new DcsWorkspaceManagement([
                     new(ProfileId, AssignmentLayer.Module, "Stick.diff.lua", null, "Stick")
                 ], [new(AssignmentLayer.Module, ProfileId, "MOD", "JOY_BTN9", "MOD", ModifierMode.Toggle, "Stick")]));
-            var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key, "mod"),
+            var assignment = new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, section, key, "mod"),
                 new("COMMAND", "Command", axis, AssignmentLayer.Module));
-            var error = Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            var error = Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Sources = sources, Diagrams = [diagram], Assignments = [assignment] }));
             Assert.Contains("undeclared modifiers: mod", error.Message);
             Assert.Contains("Stick.diff.lua", error.Message);
@@ -220,12 +220,12 @@ namespace Heimdall.Tests
                 local modifiers = { ["UNKNOWN"] = { ["device"] = "Stick", ["key"] = "JOY_BTN55", ["switch"] = true } } return modifiers
                 """;
             sources["Config/Input/TEST/modifiers.lua"] = sources["src/Config/Input/TEST/modifiers.lua"].Replace("JOY_BTN55", "JOY_BTN25", StringComparison.Ordinal);
-            var assignment = new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "UNKNOWN"),
+            var assignment = new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1", "UNKNOWN"),
                 new("COMMAND", "Command", false, AssignmentLayer.Module));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources, Assignments = [assignment] }));
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources, Assignments = [assignment] }));
             var removed = new DcsBinding(ProfileId, BindingSection.Key, "OLD", "History", BindingDisposition.Removed, "JOY_BTN8", ["UNKNOWN"]);
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, [removed], "fixture");
-            var output = SnapshotLuaPayloadRenderer.Generate(workspace with { Configuration = config });
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles, workspace.Configuration.Modifiers, [removed], "fixture");
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(workspace with { Configuration = config });
             Assert.Contains(DcsLuaParser.ParseProfile(Text(output, "Config/Input/TEST/joystick/Stick.diff.lua"), ProfileId),
                 x => x.Disposition == BindingDisposition.Removed && x.Reformers.SequenceEqual(["UNKNOWN"]));
         }
@@ -234,25 +234,25 @@ namespace Heimdall.Tests
         public void RecoversSavedProfileLinkAndExportsEditedAssignments()
         {
             var original = Workspace();
-            var assignment = new DraftAssignment(
+            var assignment = new DcsDraftAssignment(
                 new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
                 new("EDITED_UI", "Edited UI", false, AssignmentLayer.UiLayer));
             var saved = original with {
                 Diagrams = [original.Diagrams[0] with { CanonicalUiLayerSourcePath = null }],
                 Assignments = [..original.Assignments, assignment]
             };
-            var recovered = PinnedUiLayerProfileRecovery.Restore(saved);
+            var recovered = DcsPinnedUiLayerProfileRecovery.Restore(saved);
             Assert.Equal(UiPath, recovered.Diagrams[0].CanonicalUiLayerSourcePath);
             Assert.Same(saved.Assignments, recovered.Assignments);
             Assert.Same(saved.Labels, recovered.Labels);
             Assert.Same(saved.Sources, recovered.Sources);
             Assert.Null(saved.Diagrams[0].CanonicalUiLayerSourcePath);
-            Assert.Same(recovered, PinnedUiLayerProfileRecovery.Restore(recovered));
-            SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
-            var output = SnapshotLuaPayloadRenderer.Generate(saved);
+            Assert.Same(recovered, DcsPinnedUiLayerProfileRecovery.Restore(recovered));
+            DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(saved);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(saved);
             var lua = Text(output, "Config/Input/UiLayer/joystick/Stick.diff.lua");
             Assert.Contains(DcsLuaParser.ParseProfile(lua, ProfileId), x => x.CommandId == "EDITED_UI");
-            Assert.Equal(lua, UiLayerLuaProfileRenderer.Render(saved, ProfileId));
+            Assert.Equal(lua, DcsUiLayerLuaProfileRenderer.Render(saved, ProfileId));
         }
 
         /// <summary>Recovery leaves disabled, unknown, unsafe, and unpinned profiles untouched and names unresolved devices.</summary>
@@ -262,29 +262,29 @@ namespace Heimdall.Tests
             var original = Workspace();
             var unpinned = original with { Diagrams = [original.Diagrams[0] with { CanonicalUiLayerSourcePath = null }] };
             var noSources = unpinned with { Sources = null };
-            Assert.Same(noSources, PinnedUiLayerProfileRecovery.Restore(noSources));
+            Assert.Same(noSources, DcsPinnedUiLayerProfileRecovery.Restore(noSources));
             var disabled = unpinned with { Diagrams = [unpinned.Diagrams[0] with { SupportsUiLayer = false }] };
-            Assert.Same(disabled, PinnedUiLayerProfileRecovery.Restore(disabled));
+            Assert.Same(disabled, DcsPinnedUiLayerProfileRecovery.Restore(disabled));
             var unknown = unpinned with { Diagrams = [unpinned.Diagrams[0] with { ProfileId = Guid.NewGuid() }] };
-            Assert.Same(unknown, PinnedUiLayerProfileRecovery.Restore(unknown));
+            Assert.Same(unknown, DcsPinnedUiLayerProfileRecovery.Restore(unknown));
             var sources = new Dictionary<string, string> {
                 ["assets/shared/ui-layer/input/UiLayer/joystick/../Stick.diff.lua"] = "return {}",
                 ["assets/shared/ui-layer/input/UiLayer/joystick/Other.diff.lua"] = "return {}"
             };
             var missing = unpinned with {
                 Sources = sources,
-                Assignments = [new DraftAssignment(
+                Assignments = [new DcsDraftAssignment(
                     new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
                     new("UI", "UI", false, AssignmentLayer.UiLayer))]
             };
-            Assert.Same(missing, PinnedUiLayerProfileRecovery.Restore(missing));
-            var error = Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(missing));
+            Assert.Same(missing, DcsPinnedUiLayerProfileRecovery.Restore(missing));
+            var error = Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(missing));
             Assert.Contains("Stick (Stick.diff.lua)", error.Message, StringComparison.Ordinal);
             var orphan = missing with { Assignments = [missing.Assignments[0] with {
                 Slot = missing.Assignments[0].Slot with { ProfileId = Guid.NewGuid() }
             }] };
             Assert.Contains(orphan.Assignments[0].Slot.ProfileId.ToString("D"),
-                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(orphan)).Message,
+                Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(orphan)).Message,
                 StringComparison.Ordinal);
         }
         /// <summary>Emits edited profiles and sorted modifier tables from the frozen workspace.</summary>
@@ -292,7 +292,7 @@ namespace Heimdall.Tests
         public void GeneratesModuleAndUiLuaWithEffectiveModifiers()
         {
             var workspace = Workspace();
-            var output = SnapshotLuaPayloadRenderer.Generate(workspace);
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(workspace);
             Assert.Equal(4, output.Count);
             var module = Text(output, "Config/Input/TEST/joystick/Stick.diff.lua");
             Assert.Contains(DcsLuaParser.ParseProfile(module, ProfileId), x => x.CommandId == "EDIT");
@@ -305,7 +305,7 @@ namespace Heimdall.Tests
             Assert.Equal(9, uiModifiers.Count);
             Assert.Contains(uiModifiers, x => x.Name == "SHIFT");
             Assert.Equal(output.Keys.Order(StringComparer.OrdinalIgnoreCase),
-                         SnapshotLuaPayloadRenderer.Generate(workspace).Keys.Order(StringComparer.OrdinalIgnoreCase));
+                         DcsSnapshotLuaPayloadRenderer.Generate(workspace).Keys.Order(StringComparer.OrdinalIgnoreCase));
         }
 
         /// <summary>An overlay removes the modifier and its canonical bindings from both generated files.</summary>
@@ -315,7 +315,7 @@ namespace Heimdall.Tests
             var workspace = Workspace();
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources["config/ui-layer-overlay.json"] = """{"removedModifiers":["SHIFT"]}""";
-            var output = SnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources });
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(workspace with { Sources = sources });
             Assert.Equal(8, DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua")).Count);
             Assert.DoesNotContain(DcsLuaParser.ParseModifiers(Text(output, "Config/Input/UiLayer/modifiers.lua")),
                 x => x.Name == "SHIFT");
@@ -328,21 +328,21 @@ namespace Heimdall.Tests
         public void RejectsUnresolvedAndCollidingProfiles()
         {
             var workspace = Workspace();
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Sources = null }));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Sources = workspace.Sources!.Where(x => x.Key != UiPath).ToDictionary(x => x.Key, x => x.Value),
                                  Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }],
                                  Assignments = [..workspace.Assignments,
-                                    new DraftAssignment(
+                                    new DcsDraftAssignment(
                                         new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
                                         new("UI", "UI", false, AssignmentLayer.UiLayer))] }));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Diagrams = [workspace.Diagrams[0], workspace.Diagrams[0]] }));
-            var other = new DeviceProfile(Guid.NewGuid(), "Other", null, "Other", "Stick.diff.lua");
-            var config = new ModuleConfiguration(workspace.Configuration.Module,
+            var other = new DcsDeviceProfile(Guid.NewGuid(), "Other", null, "Other", "Stick.diff.lua");
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module,
                 [workspace.Configuration.Profiles[0], other], workspace.Configuration.Modifiers, [], "test");
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Configuration = config }));
         }
         /// <summary>Validates paths and overlay removals before any archive is assembled.</summary>
@@ -350,16 +350,16 @@ namespace Heimdall.Tests
         public void RejectsUnsafePathsAndInvalidOverlay()
         {
             var workspace = Workspace();
-            var badModule = new ModuleConfiguration(new DcsModule(ModuleId, "../TEST", "Test"),
+            var badModule = new DcsModuleConfiguration(new DcsModule(ModuleId, "../TEST", "Test"),
                 workspace.Configuration.Profiles, workspace.Configuration.Modifiers, [], "test");
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Configuration = badModule }));
-            var badProfile = new DeviceProfile(ProfileId, "Stick", null, "Stick", "../Stick.diff.lua");
-            var badConfig = new ModuleConfiguration(workspace.Configuration.Module, [badProfile],
+            var badProfile = new DcsDeviceProfile(ProfileId, "Stick", null, "Stick", "../Stick.diff.lua");
+            var badConfig = new DcsModuleConfiguration(workspace.Configuration.Module, [badProfile],
                 workspace.Configuration.Modifiers, [], "test");
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Configuration = badConfig }));
-            Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                 workspace with { Diagrams = [workspace.Diagrams[0] with {
                     CanonicalUiLayerSourcePath = "assets/shared/ui-layer/input/UiLayer/other/Stick.diff.lua"
                 }] }));
@@ -369,7 +369,7 @@ namespace Heimdall.Tests
             {
                 var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
                 sources["config/ui-layer-overlay.json"] = overlay;
-                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(
+                Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(
                     workspace with { Sources = sources }));
             }
         }
@@ -383,13 +383,13 @@ namespace Heimdall.Tests
                 Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }],
                 Sources = workspace.Sources
             };
-            var result = SnapshotLuaPayloadRenderer.Generate(moduleOnly);
+            var result = DcsSnapshotLuaPayloadRenderer.Generate(moduleOnly);
             Assert.Equal(2, result.Count);
             Assert.DoesNotContain(result.Keys, x => x.Contains("UiLayer", StringComparison.Ordinal));
             var escaped = new DcsModifier("Quote \"Name\"", "Stick", "JOY_BTN9", ModifierMode.Hold);
-            var config = new ModuleConfiguration(workspace.Configuration.Module,
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module,
                 workspace.Configuration.Profiles, [escaped], [], "test");
-            var modified = SnapshotLuaPayloadRenderer.Generate(moduleOnly with { Configuration = config });
+            var modified = DcsSnapshotLuaPayloadRenderer.Generate(moduleOnly with { Configuration = config });
             Assert.Equal(escaped, Assert.Single(DcsLuaParser.ParseModifiers(
                 Text(modified, "Config/Input/TEST/modifiers.lua")), x => x.Name == escaped.Name));
         }
@@ -405,10 +405,10 @@ namespace Heimdall.Tests
                 "local modifiers = {\n" + string.Join("\n", names.Select(name =>
                     $"[\"{name}\"] = {{ [\"device\"] = \"Keyboard\", [\"key\"] = \"{name}\", [\"switch\"] = false }},")) +
                 "\n}\nreturn modifiers\n";
-            var config = new ModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
+            var config = new DcsModuleConfiguration(workspace.Configuration.Module, workspace.Configuration.Profiles,
                 [..workspace.Configuration.Modifiers, new DcsModifier("LCtrl", "Keyboard", "LCtrl", ModifierMode.Hold)],
                 [], "test");
-            var output = SnapshotLuaPayloadRenderer.Generate(workspace with {
+            var output = DcsSnapshotLuaPayloadRenderer.Generate(workspace with {
                 Configuration = config,
                 Sources = sources,
                 Diagrams = [workspace.Diagrams[0] with { SupportsUiLayer = false }]
@@ -424,18 +424,18 @@ namespace Heimdall.Tests
         #region BEGIN private helpers
         private static string Text(IReadOnlyDictionary<string, byte[]> output, string path) =>
             Encoding.UTF8.GetString(output[path]);
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
-            var profile = new DeviceProfile(ProfileId, "Stick", null, "Stick", "Stick.diff.lua");
+            var profile = new DcsDeviceProfile(ProfileId, "Stick", null, "Stick", "Stick.diff.lua");
             var modifier = new DcsModifier("MOD", "Stick", "JOY_BTN9", ModifierMode.Toggle);
-            var config = new ModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"),
+            var config = new DcsModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"),
                 [profile], [modifier], [], "test");
             var diagram = new UiLayerDiagram("Stick", null, "Stick.svg", 100, 100, [], []) {
                 ProfileId = ProfileId, CanonicalUiLayerSourcePath = UiPath,
                 Controls = [new("one", "One", "JOY_BTN1", 0, 0, 10, 10)]
             };
             var assignments = new[] {
-                new DraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1"),
+                new DcsDraftAssignment(new(ModuleId, ProfileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1"),
                                     new("EDIT", "Edit", false, AssignmentLayer.Module))
             };
             var sources = new Dictionary<string, string> {

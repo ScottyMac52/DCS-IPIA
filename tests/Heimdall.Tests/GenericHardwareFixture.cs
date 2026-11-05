@@ -28,12 +28,12 @@ namespace Heimdall.Tests
 
         /// <summary>Creates a neutral module while retaining the shared command palette.</summary>
         /// <returns>Empty independent workspace.</returns>
-        public static EditorWorkspaceSnapshot Workspace() => NewModuleWorkspaceFactory.Create("GENERIC", "Generic aircraft", Defaults(),
+        public static DcsEditorWorkspaceSnapshot Workspace() => DcsNewModuleWorkspaceFactory.Create("GENERIC", "Generic aircraft", Defaults(),
             new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" }, true);
 
         /// <summary>Creates a verified baseline with a personal controller modifier to catch silent adoption.</summary>
         /// <returns>Saved default revision.</returns>
-        public static SharedUiLayerWorkspace Defaults()
+        public static DcsSharedUiLayerWorkspace Defaults()
         {
             var sources = new SortedDictionary<string, string>(StringComparer.Ordinal)
             {

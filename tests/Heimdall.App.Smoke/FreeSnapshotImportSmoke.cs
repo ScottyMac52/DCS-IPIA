@@ -26,15 +26,15 @@ namespace Heimdall.App.Smoke
             {
                 EditionAccess.SetForTests(new EditionPolicy());
                 var workspace = MixedSnapshotFixture.Create();
-                var original = ModuleSnapshotWorkflow.Freeze(workspace, "1.2.3");
+                var original = DcsModuleSnapshotWorkflow.Freeze(workspace, "1.2.3");
                 Run(root, "cancel", original, 1);
                 Run(root, "close", original, 1);
                 Run(root, "accept", original, 1);
-                Run(root, "compatible", ModuleSnapshotEditionFilter.KeepSupported(original, new()), 0);
+                Run(root, "compatible", DcsModuleSnapshotEditionFilter.KeepSupported(original, new()), 0);
                 var none = workspace with { Configuration = new(workspace.Configuration.Module,
-                    workspace.Configuration.Profiles.Select(p => new DeviceProfile(p.Id, "reserved-" + p.DeviceId, p.Instance, p.Role, p.SourceName)),
+                    workspace.Configuration.Profiles.Select(p => new DcsDeviceProfile(p.Id, "reserved-" + p.DeviceId, p.Instance, p.Role, p.SourceName)),
                     workspace.Configuration.Modifiers, workspace.Configuration.Bindings, workspace.Configuration.Provenance) };
-                Run(root, "none", ModuleSnapshotWorkflow.Freeze(none, "1.2.3"), 2);
+                Run(root, "none", DcsModuleSnapshotWorkflow.Freeze(none, "1.2.3"), 2);
             }
             finally
             {
@@ -44,15 +44,15 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void Run(string root, string action, ModuleBuildSnapshot snapshot, int unsupportedCount)
+        private static void Run(string root, string action, DcsModuleBuildSnapshot snapshot, int unsupportedCount)
         {
             var folder = Path.Combine(root, action); Directory.CreateDirectory(folder);
-            var file = Path.Combine(folder, "module.heimdall-module.json"); var json = ModuleSnapshotWorkflow.Export(snapshot); File.WriteAllText(file, json);
+            var file = Path.Combine(folder, "module.heimdall-module.json"); var json = DcsModuleSnapshotWorkflow.Export(snapshot); File.WriteAllText(file, json);
             var connection = "Data Source=" + Path.Combine(folder, "state.db") + ";Pooling=False";
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
-            var repository = new SqliteEditorWorkspaceRepository(connection);
+            var repository = new DcsSqliteEditorWorkspaceRepository(connection);
             var settings = new FileAppSettingsService(Path.Combine(folder, "defaults.json"), Path.Combine(folder, "settings.json"), Path.Combine(folder, "theme.txt"));
-            var main = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
+            var main = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository,
                 snapshotFilePicker: () => file, deviceDiscovery: new EmptyDeviceDiscovery());
             var seen = false; string? promptError = null;
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
@@ -100,7 +100,7 @@ namespace Heimdall.App.Smoke
                     var saved = repository.GetAsync(imported[0]).GetAwaiter().GetResult()!;
                     if (!EditionAccess.AllowsWorkspace(saved) || saved.Configuration.Profiles.Count != 1 || saved.Assignments.Count != 3)
                         throw new InvalidOperationException("Accepted snapshot remained edition-locked or lost supported assignments.");
-                    var editor = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(saved), settings, repository, new EmptyDeviceDiscovery());
+                    var editor = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(saved), settings, repository, new EmptyDeviceDiscovery());
                     try
                     {
                         editor.Show(); ThemeControlSmoke.Pump(editor);
