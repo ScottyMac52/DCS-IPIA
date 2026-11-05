@@ -79,11 +79,11 @@ namespace Heimdall.App.Games
 
         /// <summary>Reports pending state using the adapter's own native session.</summary>
         protected abstract bool HasWorkspaceChanges { get; }
-        /// <summary>Reports whether a native session can be saved in the current edition.</summary>
+        /// <summary>Reports native save availability for common chrome and leave prompts.</summary>
         protected abstract bool CanSaveWorkspace { get; }
         /// <summary>Gets whether a common asynchronous action is executing.</summary>
         protected bool WorkspaceActionRunning => _runningAction;
-        /// <summary>Supplies the adapter's persistence operation.</summary>
+        /// <summary>Validates native write access and supplies persistence, throwing a specific reason on rejection.</summary>
         protected abstract Task SaveWorkspaceCoreAsync();
         /// <summary>Supplies the adapter's restoration operation.</summary>
         protected abstract void DiscardWorkspaceCore();
@@ -116,11 +116,7 @@ namespace Heimdall.App.Games
         }
 
         /// <summary>Saves through the adapter hook using the common action lifetime.</summary>
-        protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(() =>
-        {
-            if (!CanSaveWorkspace) throw new InvalidOperationException("This workspace cannot currently be saved.");
-            return SaveWorkspaceCoreAsync();
-        });
+        protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(SaveWorkspaceCoreAsync);
 
         /// <summary>Executes the shared Save button path and displays failures without losing pending state.</summary>
         protected async void SaveClicked(object sender, RoutedEventArgs e)

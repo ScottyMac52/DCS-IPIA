@@ -28,6 +28,7 @@ namespace Heimdall.App.Smoke
         internal Button Discard { get; } = new();
         internal TextBlock PendingStatus { get; } = new();
         internal bool Pending { get; set; }
+        internal bool SaveAvailable { get; set; } = true;
         internal bool CloseAllowed { get; set; }
         internal bool SecondAvailable { get; set; } = true;
         internal int FirstCreations { get; private set; }
@@ -42,7 +43,7 @@ namespace Heimdall.App.Smoke
         /// <inheritdoc/>
         protected override bool HasWorkspaceChanges => Pending;
         /// <inheritdoc/>
-        protected override bool CanSaveWorkspace => true;
+        protected override bool CanSaveWorkspace => SaveAvailable;
         /// <inheritdoc/>
         protected override Task SaveWorkspaceCoreAsync() => SaveAction();
         /// <inheritdoc/>

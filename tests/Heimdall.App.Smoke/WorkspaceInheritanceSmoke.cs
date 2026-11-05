@@ -35,6 +35,17 @@ namespace Heimdall.App.Smoke
                 window.Close();
                 Require(window.IsVisible && window.CleanupCount == 0, "A canceled close released the workspace.");
 
+                window.SaveAvailable = false; window.RefreshChrome();
+                Require(!window.Save.IsEnabled, "Unavailable native save left the common button enabled.");
+                var denial = new InvalidOperationException("Native policy denies saving this workspace.");
+                window.SaveAction = () => throw denial;
+                Exception? rejection = null;
+                try { window.SaveWorkspaceAsync().GetAwaiter().GetResult(); }
+                catch (InvalidOperationException error) { rejection = error; }
+                Require(ReferenceEquals(rejection, denial) && window.Pending && !window.Save.IsEnabled,
+                    "The base replaced the native save rejection or changed pending state/availability.");
+                window.SaveAvailable = true; window.RefreshChrome();
+
                 window.SaveAction = () => throw new InvalidOperationException("Expected persistence failure");
                 Require(!window.TryLeaveAsync(GameWorkspaceLeaveDecision.Save).GetAwaiter().GetResult() && window.Pending && window.Error is not null,
                     "A failed adapter save lost edits or allowed a switch.");

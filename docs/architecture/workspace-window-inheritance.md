@@ -50,7 +50,10 @@ refreshed after both successful and failed asynchronous actions.
 
 Blocked Save/Discard calls throw instead of completing as if persistence succeeded.
 The base rejects overlapping or closed-window actions; saving a workspace without
-write access also fails explicitly. DCS disables its feature content/actions while
+write access also fails explicitly. `CanSaveWorkspace` controls common chrome and
+leave prompts; the native `SaveWorkspaceCoreAsync` override validates direct save
+calls and supplies the specific rejection reason. The base preserves that reason
+rather than substituting a generic availability error. DCS disables its feature content/actions while
 saving, including after feature navigation. `DcsWorkspaceSession` guards label,
 structure and discard operations and holds a `DcsDraftAssignmentService.SuspendEditing`
 lease across persistence. The draft blocks every mutation path, including cached
