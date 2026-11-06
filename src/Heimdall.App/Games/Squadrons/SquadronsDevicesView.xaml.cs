@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Squadrons
 {
     /// <summary>Owns the simulator-native feature surface composed by the shared workspace host.</summary>
     public partial class SquadronsDevicesView : UserControl

@@ -61,13 +61,13 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertFalse((APP / 'Features/Assignments/Workflow/DcsAssignmentsView.cs').exists())
 
     def test_elite_uses_shared_workspace_and_assignment_algorithms(self):
-        window = (APP / 'Games/EliteWorkspaceWindow.xaml.cs').read_text()
-        assignments = (APP / 'Games/EliteAssignmentsView.xaml.cs').read_text()
+        window = (APP / 'Games/Elite/EliteWorkspaceWindow.xaml.cs').read_text()
+        assignments = (APP / 'Games/Elite/EliteAssignmentsView.xaml.cs').read_text()
         self.assertIn('EliteWorkspaceWindow : GameWorkspaceWindow', window)
         self.assertIn('EliteAssignmentsView : GameAssignmentsView', assignments)
         for filename, base in [('EliteWorkspaceWindow.xaml', 'GameWorkspaceWindow'),
                                ('EliteAssignmentsView.xaml', 'GameAssignmentsView')]:
-            root = ET.parse(APP / 'Games' / filename).getroot()
+            root = ET.parse(APP / 'Games' / 'Elite' / filename).getroot()
             self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
         for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
             self.assertIn(hook, window)
@@ -84,13 +84,13 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertLess(len(window.splitlines()), 450)
 
     def test_squadrons_uses_shared_workspace_and_assignment_algorithms(self):
-        window = (APP / 'Games/SquadronsWorkspaceWindow.xaml.cs').read_text()
-        assignments = (APP / 'Games/SquadronsAssignmentsView.xaml.cs').read_text()
+        window = (APP / 'Games/Squadrons/SquadronsWorkspaceWindow.xaml.cs').read_text()
+        assignments = (APP / 'Games/Squadrons/SquadronsAssignmentsView.xaml.cs').read_text()
         self.assertIn('SquadronsWorkspaceWindow : GameWorkspaceWindow', window)
         self.assertIn('SquadronsAssignmentsView : GameAssignmentsView', assignments)
         for filename, base in [('SquadronsWorkspaceWindow.xaml', 'GameWorkspaceWindow'),
                                ('SquadronsAssignmentsView.xaml', 'GameAssignmentsView')]:
-            root = ET.parse(APP / 'Games' / filename).getroot()
+            root = ET.parse(APP / 'Games' / 'Squadrons' / filename).getroot()
             self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
         for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
             self.assertIn(hook, window)
@@ -105,6 +105,20 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertNotIn('new WorkspaceAssignmentWorkflow', window)
         self.assertFalse((APP / 'Games/Squadrons/Workflow/SquadronsWorkspaceWindow.cs').exists())
         self.assertLess(len(window.splitlines()), 450)
+
+    def test_native_presentation_types_live_in_their_game_namespace(self):
+        self.assertFalse((APP / 'Games/GameExportResolution.cs').exists())
+        self.assertTrue((APP / 'Games/Elite/EliteExportResolution.cs').exists())
+        for game in ('Elite', 'Squadrons'):
+            self.assertEqual(list((APP / 'Games').glob(game + '*.cs')), [])
+            self.assertEqual(list((APP / 'Games').glob(game + '*.xaml')), [])
+            folder = APP / 'Games' / game
+            for source in folder.glob('*.cs'):
+                self.assertIn('namespace Heimdall.App.Games.' + game, source.read_text())
+            for view in folder.glob('*.xaml'):
+                root = ET.parse(view).getroot()
+                self.assertEqual(root.attrib['{http://schemas.microsoft.com/winfx/2006/xaml}Class'],
+                                 'Heimdall.App.Games.' + game + '.' + view.stem)
 
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
         for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):

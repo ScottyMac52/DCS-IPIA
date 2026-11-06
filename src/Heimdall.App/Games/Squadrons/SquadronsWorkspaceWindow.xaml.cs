@@ -9,9 +9,8 @@ using Heimdall.Application.Interfaces;
 using Heimdall.Infrastructure;
 using Heimdall.Squadrons;
 using Microsoft.Win32;
-using Heimdall.App.Games.Squadrons;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Squadrons
 {
     /// <summary>Assembles native Squadrons components over shared workspace navigation, persistence and lifetime.</summary>
     public sealed partial class SquadronsWorkspaceWindow : GameWorkspaceWindow, IDisposable

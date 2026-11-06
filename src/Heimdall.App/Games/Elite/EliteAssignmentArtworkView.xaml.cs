@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Owns the controller artwork and assignment table surface independently of workspace navigation.</summary>
     public partial class EliteAssignmentArtworkView : UserControl

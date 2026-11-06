@@ -1,3 +1,5 @@
+using Heimdall.App.Games.Squadrons;
+using Heimdall.App.Games.Elite;
 using System.Text.Json;
 using Heimdall.App.Games;
 using Heimdall.Application.Games;

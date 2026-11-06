@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Squadrons;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;

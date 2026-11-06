@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Edits the inversion and percentage deadzone supported by Elite's native axis bindings.</summary>
     internal sealed class EliteAxisTuningWindow

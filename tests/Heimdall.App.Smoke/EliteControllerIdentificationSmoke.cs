@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Elite;
 using System.IO;
 using System.Text.Json;
 using System.Windows;

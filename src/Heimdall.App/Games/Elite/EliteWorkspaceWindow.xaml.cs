@@ -6,9 +6,8 @@ using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Domain.MultiSim;
 using Heimdall.EliteDangerous;
-using Heimdall.App.Games.Elite;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Assembles ED-native collaborators and supplies native hooks to the shared workspace base.</summary>
     public sealed partial class EliteWorkspaceWindow : GameWorkspaceWindow, IDisposable
@@ -170,7 +169,7 @@ namespace Heimdall.App.Games
         internal HardwareDiagramInteractions DiagramInteractions() => _drawing.DiagramInteractions();
         internal Func<EliteAxisTuningWindow, bool?>? AxisTuningReview { get => _drawing.AxisTuningReview; set => _drawing.AxisTuningReview = value; }
         internal Func<string, bool>? ConfirmPresetReplacement { get => _profiles.ConfirmPresetReplacement; set => _profiles.ConfirmPresetReplacement = value; }
-        internal Func<IReadOnlyList<GameExportIssue>, GameExportResolution?>? ExportReview { get => _profiles.ExportReview; set => _profiles.ExportReview = value; }
+        internal Func<IReadOnlyList<GameExportIssue>, EliteExportResolution?>? ExportReview { get => _profiles.ExportReview; set => _profiles.ExportReview = value; }
         internal Func<string?>? BindingsDirectoryPicker { get => _profiles.BindingsDirectoryPicker; set => _profiles.BindingsDirectoryPicker = value; }
         internal Func<string, string, string?>? ConfigurationNamePicker { get => _profiles.ConfigurationNamePicker; set => _profiles.ConfigurationNamePicker = value; }
         internal Func<string, bool>? ConfirmConfigurationDeletion { get; set; }

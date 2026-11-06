@@ -1,10 +1,9 @@
 using System.Windows.Controls;
 using System.Text.Json;
 using Heimdall.Application;
-using Heimdall.App.Games.Elite;
 using Heimdall.Application.Games;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Composes independent command, artwork and selected-input surfaces without owning binding rules.</summary>
     public partial class EliteAssignmentsView : GameAssignmentsView

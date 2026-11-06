@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Owns the selected input inspector surface independently of workspace navigation.</summary>
     public partial class EliteAssignmentEditorView : UserControl
