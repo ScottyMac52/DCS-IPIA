@@ -133,7 +133,7 @@ namespace Heimdall.App.Games.Elite
         internal string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
         internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
-        internal Func<IReadOnlyList<GameExportIssue>, GameExportResolution?>? ExportReview { get; set; }
+        internal Func<IReadOnlyList<GameExportIssue>, EliteExportResolution?>? ExportReview { get; set; }
         internal Func<string?>? BindingsDirectoryPicker { get; set; }
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         #endregion END Public
@@ -186,7 +186,7 @@ namespace Heimdall.App.Games.Elite
 
         private void ResolveExportIssue(IReadOnlyList<GameExportIssue> issues)
         {
-            GameExportResolution? resolution;
+            EliteExportResolution? resolution;
             if (ExportReview is not null) resolution = ExportReview(issues);
             else
             {

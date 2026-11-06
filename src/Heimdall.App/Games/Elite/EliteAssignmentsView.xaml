@@ -1,4 +1,4 @@
-<games:GameAssignmentsView x:Class="Heimdall.App.Games.EliteAssignmentsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+<games:GameAssignmentsView x:Class="Heimdall.App.Games.Elite.EliteAssignmentsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:elite="clr-namespace:Heimdall.App.Games.Elite"
  pres:AppearanceManager.Target="EliteAssignmentsView" xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games"
  xmlns:local="clr-namespace:Heimdall.App.Games">
  <games:GameAssignmentsView.CommandsPanel>
@@ -15,7 +15,7 @@
 <Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
 </pres:ActionBar>
 
-   <local:EliteAssignmentArtworkView x:Name="Artwork"/>
+   <elite:EliteAssignmentArtworkView x:Name="Artwork"/>
   </Grid>
  </games:GameAssignmentsView.ControllerPanel>
  <games:GameAssignmentsView.EditorPanel>

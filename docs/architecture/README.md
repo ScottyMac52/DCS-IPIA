@@ -21,3 +21,5 @@ Workspace inheritance and the DCS implementation are described in [workspace win
 See [DCS type naming](dcs-type-naming.md) for the DCS ownership naming rules, rename inventory and persisted-identity compatibility.
 
 Native consumers are detailed in [ED workspace inheritance](elite-workspace-inheritance.md) and [Squadrons workspace inheritance](squadrons-workspace-inheritance.md).
+
+See [game presentation ownership](game-presentation-ownership.md) for ED and Squadrons folder/namespace boundaries and compatibility rules.

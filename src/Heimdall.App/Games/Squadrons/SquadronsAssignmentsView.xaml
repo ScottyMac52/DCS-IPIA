@@ -1,4 +1,4 @@
-<games:GameAssignmentsView x:Class="Heimdall.App.Games.SquadronsAssignmentsView"
+<games:GameAssignmentsView x:Class="Heimdall.App.Games.Squadrons.SquadronsAssignmentsView"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  pres:AppearanceManager.Target="SquadronsAssignmentsView" xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games">
  <games:GameAssignmentsView.Resources><Style x:Key="SquadronsCellText" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style></games:GameAssignmentsView.Resources>

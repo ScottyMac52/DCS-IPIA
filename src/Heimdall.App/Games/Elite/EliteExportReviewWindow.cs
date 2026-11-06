@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Shows every unresolved native reference and lets the user choose a reviewed repair or cancel export.</summary>
     internal sealed class EliteExportReviewWindow : Window
@@ -74,7 +74,7 @@ namespace Heimdall.App.Games
         }
         #region BEGIN Public
         /// <summary>Gets the explicit repair choice, or null when export was cancelled.</summary>
-        internal GameExportResolution? Resolution { get; private set; }
+        internal EliteExportResolution? Resolution { get; private set; }
         #endregion END Public
     }
 }

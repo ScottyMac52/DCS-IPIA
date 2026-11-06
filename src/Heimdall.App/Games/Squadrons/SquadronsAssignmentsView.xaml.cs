@@ -1,10 +1,9 @@
 using System.Windows.Controls;
 using System.Text.Json;
-using Heimdall.App.Games.Squadrons;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Squadrons
 {
     /// <summary>Owns the simulator-native feature surface composed by the shared workspace host.</summary>
     public partial class SquadronsAssignmentsView : GameAssignmentsView

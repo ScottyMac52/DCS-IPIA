@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Elite;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;

@@ -1,4 +1,4 @@
-<games:GameWorkspaceWindow x:Class="Heimdall.App.Games.SquadronsWorkspaceWindow"
+<games:GameWorkspaceWindow x:Class="Heimdall.App.Games.Squadrons.SquadronsWorkspaceWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games" pres:AppearanceManager.Target="SquadronsWorkspaceWindow" Title="HEIMDALL — Star Wars: Squadrons" Icon="{x:Static pres:ApplicationBranding.Icon}"
  Width="1340" Height="860" MinWidth="1050" MinHeight="650" WindowStartupLocation="CenterOwner">

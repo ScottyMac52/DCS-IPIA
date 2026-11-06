@@ -1,4 +1,4 @@
-<games:GameWorkspaceWindow x:Class="Heimdall.App.Games.EliteWorkspaceWindow"
+<games:GameWorkspaceWindow x:Class="Heimdall.App.Games.Elite.EliteWorkspaceWindow"
         pres:AppearanceManager.Target="EliteWorkspaceWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games" Title="HEIMDALL — Elite Dangerous" Icon="{x:Static pres:ApplicationBranding.Icon}"

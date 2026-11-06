@@ -1,6 +1,6 @@
 using Heimdall.Domain.MultiSim;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.Elite
 {
     /// <summary>Displays a cross-device native modifier without hiding its source identity.</summary>
     /// <param name="Modifier">Explicit captured source and key.</param>
