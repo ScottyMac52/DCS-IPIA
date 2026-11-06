@@ -16,6 +16,8 @@ namespace Heimdall.App.Smoke
         {
             var store = new InterceptedGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "SquadronsInheritance")));
             using var window = new SquadronsWorkspaceWindow(new(store, new GameSmokeDiscovery()), drawings: [], pendingChoice: () => MessageBoxResult.Cancel);
+            // Presentation changes in this fixture must not affect later native-layout scenarios.
+            WorkspaceLayout.SetPersistenceEnabled(window, false);
             window.Show(); ThemeControlSmoke.Pump(window);
             Window host = window;
             Require(host is GameWorkspaceWindow, "Squadrons did not instantiate the common window base.");
