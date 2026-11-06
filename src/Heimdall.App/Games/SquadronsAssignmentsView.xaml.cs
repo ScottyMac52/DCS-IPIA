@@ -55,7 +55,7 @@ namespace Heimdall.App.Games
         private void UpdateControllerReservation()
         {
             if (!Artwork.IsLoaded || Artwork.Viewport.Visibility != System.Windows.Visibility.Visible || Artwork.Viewport.ActualHeight <= 0) return;
-            ControllerReserveHeight = Math.Max(180, DrawingPanel.ActualHeight - Artwork.Viewport.ActualHeight + 160);
+            ControllerReserveHeight = Math.Max(180, DrawingPanel.ActualHeight + DrawingPanel.Margin.Top + DrawingPanel.Margin.Bottom - Artwork.Viewport.ActualHeight + 160);
         }
         internal ScrollViewer InspectorViewport => AssignmentInspectorViewport;
         internal Slider DrawingZoom => Artwork.Zoom;

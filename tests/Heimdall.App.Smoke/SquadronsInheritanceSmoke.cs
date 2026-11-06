@@ -32,14 +32,24 @@ namespace Heimdall.App.Smoke
             devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(item => item.Id == "system.2");
             assignments.CommandBrowser.CommandsList.SelectedIndex = 0;
             assignments.CapturedAssignments.IsExpanded = true;
+            assignments.DrawingPanel.IsExpanded = true;
             ThemeControlSmoke.Pump(window);
             Require(assignments.DrawingScroll.Visibility == Visibility.Visible && assignments.DrawingScroll.ActualHeight >= 150 &&
                 assignments.CommandBrowser.TranslatePoint(new Point(), window).X < assignments.DrawingScroll.TranslatePoint(new Point(), window).X,
-                "The inherited Squadrons layout did not preserve usable controller space beside the commands.");
+                $"The inherited Squadrons layout did not preserve usable controller space beside the commands. " +
+                $"Viewport visibility={assignments.DrawingScroll.Visibility}, height={assignments.DrawingScroll.ActualHeight:F1}, " +
+                $"commands X={assignments.CommandBrowser.TranslatePoint(new Point(), window).X:F1}, " +
+                $"drawing X={assignments.DrawingScroll.TranslatePoint(new Point(), window).X:F1}, " +
+                $"panel height={assignments.DrawingPanel.ActualHeight:F1}, view height={assignments.ActualHeight:F1}, " +
+                $"reserve={assignments.ControllerReserveHeight:F1}, expanded={assignments.DrawingPanel.IsExpanded}, " +
+                $"source={(devices.SelectedItem as GameDeviceChoice)?.Id}, status={((TextBlock)window.FindName("StatusText")).Text}.");
+            Require(assignments.DrawingScroll.TranslatePoint(new Point(0, assignments.DrawingScroll.ActualHeight), assignments.DrawingPanel).Y
+                <= assignments.DrawingPanel.ActualHeight + 1,
+                "The Squadrons drawing viewport extends outside its bounded controller panel.");
             assignments.ReverseAxisButton.BringIntoView(); ThemeControlSmoke.Pump(window);
             var inputBounds = assignments.ReverseAxisButton.TransformToAncestor(window).TransformBounds(new Rect(assignments.ReverseAxisButton.RenderSize));
             var inspectorBounds = assignments.InspectorViewport.TransformToAncestor(window).TransformBounds(new Rect(assignments.InspectorViewport.RenderSize));
-            Require(inspectorBounds.Contains(inputBounds), "The inherited Squadrons inspector could not scroll to its final native action.");
+            Require(inspectorBounds.Contains(inputBounds), $"The inherited Squadrons inspector could not scroll to its final native action. Input={inputBounds}; inspector={inspectorBounds}.");
             devices.SelectedIndex = 0;
             assignments.CapturedAssignments.IsExpanded = false;
             ThemeControlSmoke.Pump(window);

@@ -56,7 +56,10 @@ retain their current wrapping behavior.
 
 The shared assignment base supplies the inspector viewport instead of an unbounded
 native Auto-height row. Diagnostics and native fields can scroll while retaining
-usable controller space. A visible drawing reserves its chrome plus a 160-pixel
+usable controller space. The drawing expander uses a local Grid template with an
+Auto header and a star-sized content row, so the shared controller allocation
+reaches the artwork as a finite height. A visible drawing reserves its chrome
+(including its outer margin) plus a 160-pixel
 viewport where the window has sufficient height. System keyboard/mouse/gamepad
 surfaces remain read-only. Collapsed/fallback artwork does not cause reservation
 growth on repeated layout passes.
