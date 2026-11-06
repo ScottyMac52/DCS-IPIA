@@ -92,12 +92,17 @@ namespace Heimdall.App.Games
         /// <summary>Displays an action failure through the adapter's status surface.</summary>
         protected virtual void ReportWorkspaceError(Exception exception) => System.Diagnostics.Trace.TraceError("{0}", exception);
 
+        /// <summary>Supplies native pending-state wording while retaining the common refresh algorithm.</summary>
+        protected virtual string WorkspaceStateSummary => HasWorkspaceChanges ? "Pending assignment or authoring changes" : "No pending assignment changes";
+        /// <summary>Releases the mounted feature/action connections through the shared host.</summary>
+        protected void ClearWorkspaceFeatures() => _host?.Clear();
+
         /// <summary>Updates common pending and save/discard state, then invokes the adapter hook.</summary>
         protected void RefreshWorkspaceState()
         {
             if (_save is not null) _save.IsEnabled = !_runningAction && CanSaveWorkspace && HasWorkspaceChanges;
             if (_discard is not null) _discard.IsEnabled = !_runningAction && HasWorkspaceChanges;
-            if (_pending is not null) _pending.Text = HasWorkspaceChanges ? "Pending assignment or authoring changes" : "No pending assignment changes";
+            if (_pending is not null) _pending.Text = WorkspaceStateSummary;
             OnWorkspaceStateChanged();
         }
 
@@ -172,7 +177,7 @@ namespace Heimdall.App.Games
             if (!_closed)
             {
                 _closed = true;
-                try { _host?.Clear(); }
+                try { ClearWorkspaceFeatures(); }
                 catch (Exception exception) { System.Diagnostics.Trace.TraceError("Workspace feature cleanup failed: {0}", exception); }
                 finally
                 {

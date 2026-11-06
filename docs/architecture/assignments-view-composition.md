@@ -63,9 +63,10 @@ Existing named controls and the `SelectedCallout` / `AssignmentWorkspace` namesc
 entries remain available to training and smoke checks. The two named native
 Save/Discard buttons still address the Assignments handlers specifically.
 
-Elite Dangerous, Squadrons and War Thunder remain on their existing views. Their
-migration can supply different panels and override native behavior without
-putting their file formats, controller rules or catalogs in this base.
+Elite Dangerous now supplies its own browser, artwork and editor through this
+base; see [ED inheritance](elite-workspace-inheritance.md). Squadrons and War Thunder
+remain on their existing views. Their migration can supply native panels and
+overrides without putting file formats, controller rules or catalogs in the base.
 
 ## Acceptance
 
