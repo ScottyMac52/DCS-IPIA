@@ -19,3 +19,5 @@ The application now includes module/shared-default authoring, inventory/setup, c
 Workspace inheritance and the DCS implementation are described in [workspace window inheritance](workspace-window-inheritance.md), including the base algorithms, override hooks, ownership boundaries and migration acceptance.
 
 See [DCS type naming](dcs-type-naming.md) for the DCS ownership naming rules, rename inventory and persisted-identity compatibility.
+
+Native consumers are detailed in [ED workspace inheritance](elite-workspace-inheritance.md) and [Squadrons workspace inheritance](squadrons-workspace-inheritance.md).

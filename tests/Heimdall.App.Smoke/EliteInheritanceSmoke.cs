@@ -16,7 +16,14 @@ namespace Heimdall.App.Smoke
         {
             var store = new InterceptedGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "EliteInheritance")));
             using var window = new EliteWorkspaceWindow(new(store, new GameSmokeDiscovery()), [], pendingChoice: () => MessageBoxResult.Cancel);
+            window.Width = 1050; window.Height = 650;
             window.Show(); ThemeControlSmoke.Pump(window);
+            var save = (Button)window.FindName("SaveProfileButton");
+            var export = (Button)window.FindName("ExportPresetButton");
+            var game = (ComboBox)window.FindName("GamePicker");
+            Require(Math.Abs(save.TranslatePoint(new Point(), window).Y - export.TranslatePoint(new Point(), window).Y) < 1 &&
+                Math.Abs(game.TranslatePoint(new Point(), window).Y - export.TranslatePoint(new Point(), window).Y) < 3,
+                "The compact ED header orphaned an action below the selectors.");
             Window host = window;
             Require(host is GameWorkspaceWindow, "ED did not instantiate the common window base.");
             Require(!window.SaveProfile() && store.Writes == 0, "An unopened ED workspace reported a successful save.");

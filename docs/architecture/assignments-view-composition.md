@@ -64,8 +64,8 @@ entries remain available to training and smoke checks. The two named native
 Save/Discard buttons still address the Assignments handlers specifically.
 
 Elite Dangerous now supplies its own browser, artwork and editor through this
-base; see [ED inheritance](elite-workspace-inheritance.md). Squadrons and War Thunder
-remain on their existing views. Their migration can supply native panels and
+base; see [ED inheritance](elite-workspace-inheritance.md). War Thunder
+remains on its existing view. Its migration can supply native panels and
 overrides without putting file formats, controller rules or catalogs in the base.
 
 ## Acceptance
@@ -123,3 +123,5 @@ remain separated on one row and start at the same left edge when the profile
 selector wraps. `GameWorkspaceSmoke` checks full selector bounds and alignment
 at 1340/900/1340 widths and two font sizes while retaining the existing native
 game/profile switching scenarios.
+
+Squadrons now assembles its native panels and supplies native hooks through this base; see [Squadrons workspace inheritance](squadrons-workspace-inheritance.md).

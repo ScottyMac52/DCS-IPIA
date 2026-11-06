@@ -27,7 +27,7 @@ namespace Heimdall.App.Smoke
                 var requested = ""; cards.GameRequested += (_, game) => requested = game;
                 card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (requested.Length != 0) throw new InvalidOperationException("Disabled game card bypassed edition policy.");
-                EditionAccess.SetForTests(issuer.Policy); cards.SetRecent(new("star-wars-squadrons", DisplayName: "Space Controls"));
+                EditionAccess.SetForTests(issuer.Policy); SquadronsInheritanceSmoke.Verify(root); cards.SetRecent(new("star-wars-squadrons", DisplayName: "Space Controls"));
                 card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (!card.IsEnabled || requested != "star-wars-squadrons" || !((TextBlock)cards.FindName("RecentText")).Text.Contains("Squadrons", StringComparison.Ordinal))
                     throw new InvalidOperationException("Squadrons card or recent workspace label is not activated.");
