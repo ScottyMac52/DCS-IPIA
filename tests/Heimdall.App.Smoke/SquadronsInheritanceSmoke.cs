@@ -30,6 +30,13 @@ namespace Heimdall.App.Smoke
             var assignments = (SquadronsAssignmentsView)content.Content;
             Require(window.Session!.AccessMessage.Length == 0, "The Squadrons inheritance fixture is not writable.");
             window.Width = 1050; window.Height = 650;
+            ThemeControlSmoke.Pump(window);
+            var save = (Button)window.FindName("SaveButton");
+            var export = (Button)window.FindName("ExportButton");
+            var game = (ComboBox)window.FindName("GamePicker");
+            Require(Math.Abs(save.TranslatePoint(new Point(), window).Y - export.TranslatePoint(new Point(), window).Y) < 1 &&
+                Math.Abs(game.TranslatePoint(new Point(), window).Y - export.TranslatePoint(new Point(), window).Y) < 3,
+                "The compact Squadrons header orphaned an action below the selectors.");
             var devices = (ListBox)window.FindName("DevicePicker");
             devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(item => item.Id == "system.2");
             assignments.CommandBrowser.CommandsList.SelectedIndex = 0;

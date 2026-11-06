@@ -51,8 +51,9 @@ path clears an unsaved import from the window.
 The constructor and existing smoke entry points remain available. Root control
 names, native context-menu actions, appearance targets and the persisted
 `squadrons.assignments.split`, `squadrons.assignments.table` and
-`squadrons.diagram` keys are preserved. Header controls and shared feature actions
-retain their current wrapping behavior.
+`squadrons.diagram` keys are preserved. Header selectors wrap as one group; content-sized actions
+and save status wrap as another group. ED and Squadrons share the
+`WorkspaceHeaderActionButton` style. Feature toolbar sizing is independent.
 
 The shared assignment base supplies the inspector viewport instead of an unbounded
 native Auto-height row. Diagnostics and native fields can scroll while retaining
