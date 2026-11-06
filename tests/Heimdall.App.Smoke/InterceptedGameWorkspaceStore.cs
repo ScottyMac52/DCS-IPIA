@@ -18,7 +18,7 @@ namespace Heimdall.App.Smoke
         public string Save(GameWorkspace workspace, string? expectedRevision)
         {
             Writes++; BeforeSave?.Invoke();
-            if (FailSave) throw new System.IO.IOException("Synthetic ED save failure");
+            if (FailSave) throw new System.IO.IOException("Synthetic workspace save failure");
             return inner.Save(workspace, expectedRevision);
         }
         /// <inheritdoc/>

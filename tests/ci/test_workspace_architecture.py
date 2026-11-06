@@ -83,6 +83,29 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertFalse((APP / 'Games/Elite/Workflow/EliteWorkspaceWindow.cs').exists())
         self.assertLess(len(window.splitlines()), 450)
 
+    def test_squadrons_uses_shared_workspace_and_assignment_algorithms(self):
+        window = (APP / 'Games/SquadronsWorkspaceWindow.xaml.cs').read_text()
+        assignments = (APP / 'Games/SquadronsAssignmentsView.xaml.cs').read_text()
+        self.assertIn('SquadronsWorkspaceWindow : GameWorkspaceWindow', window)
+        self.assertIn('SquadronsAssignmentsView : GameAssignmentsView', assignments)
+        for filename, base in [('SquadronsWorkspaceWindow.xaml', 'GameWorkspaceWindow'),
+                               ('SquadronsAssignmentsView.xaml', 'GameAssignmentsView')]:
+            root = ET.parse(APP / 'Games' / filename).getroot()
+            self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
+        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+            self.assertIn(hook, window)
+        for collaborator in ('SquadronsControllerPresenter', 'SquadronsAssignmentEditing',
+                             'SquadronsAssignmentBrowser', 'SquadronsAssignmentDrawing',
+                             'SquadronsProfileOperations'):
+            self.assertIn(collaborator, window)
+            implementation = (APP / f'Games/Squadrons/{collaborator}.cs').read_text()
+            self.assertNotIn('SquadronsWorkspaceWindow', implementation)
+        self.assertNotIn('new GameWorkspaceFeatureHost', window)
+        self.assertNotIn('GameWorkspaceLeaveGuard.Confirm', window)
+        self.assertNotIn('new WorkspaceAssignmentWorkflow', window)
+        self.assertFalse((APP / 'Games/Squadrons/Workflow/SquadronsWorkspaceWindow.cs').exists())
+        self.assertLess(len(window.splitlines()), 450)
+
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
         for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):
             source = (APP / f'Games/Dcs/{name}.cs').read_text()
