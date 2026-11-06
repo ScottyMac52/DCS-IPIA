@@ -85,6 +85,29 @@
     <Style x:Key="FeatureActionButton" TargetType="Button" BasedOn="{StaticResource ToolbarActionButton}">
         <Setter Property="Margin" Value="0,0,8,4"/>
     </Style>
+    <Style x:Key="WorkspaceDrawingExpander" TargetType="Expander" BasedOn="{StaticResource {x:Type Expander}}">
+     <Setter Property="Template"><Setter.Value>
+      <ControlTemplate TargetType="Expander">
+       <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
+        <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                      Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Left">
+         <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+          <Border Background="Transparent" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="0,0,0,1" Padding="4">
+           <DockPanel><Path x:Name="Arrow" Data="M 0 0 L 4 4 L 0 8 Z" Fill="{TemplateBinding Foreground}" Margin="0,0,8,0" Stretch="None"/>
+            <ContentPresenter Content="{Binding Header, RelativeSource={RelativeSource AncestorType=Expander}}" RecognizesAccessKey="True"/>
+           </DockPanel>
+          </Border>
+          <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 4 Z"/></Trigger></ControlTemplate.Triggers>
+         </ControlTemplate></ToggleButton.Template>
+        </ToggleButton>
+        <ContentPresenter x:Name="DrawingBody" Grid.Row="1" ContentSource="Content" Visibility="Collapsed"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+       </Grid>
+       <ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="True"><Setter TargetName="DrawingBody" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate>
+     </Setter.Value></Setter>
+    </Style>
     <Style x:Key="DeviceSetupSection" TargetType="GroupBox">
         <Setter Property="Margin" Value="0,8,0,8"/>
         <Setter Property="Template">

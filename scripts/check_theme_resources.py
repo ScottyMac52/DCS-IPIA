@@ -49,9 +49,13 @@ if not menu_styles.exists():
 else:
     styles.update(keys(menu_styles))
 styles.update(keys(ROOT / "Themes" / "Controls.xaml"))
-# Migrated Squadrons surfaces use named styles resolved at runtime, which the
-# WPF compiler does not validate. Check their shared and local resource keys too.
-for filename in ("Games/Squadrons/SquadronsWorkspaceWindow.xaml", "Games/GameCommandBrowserView.xaml", "Games/Squadrons/SquadronsDevicesView.xaml", "Games/Squadrons/SquadronsAssignmentsView.xaml"):
+# Native surfaces use runtime resource keys that the WPF compiler does not validate.
+surfaces = ["Games/GameCommandBrowserView.xaml"] + [
+    str(path.relative_to(ROOT))
+    for game in ("Elite", "Squadrons", "WarThunder")
+    for path in (ROOT / "Games" / game).glob("*.xaml")
+]
+for filename in surfaces:
     path = ROOT / filename
     text = path.read_text(encoding="utf-8-sig")
     references = set(re.findall(r"\{StaticResource ([A-Za-z_]\w*)\}", text))

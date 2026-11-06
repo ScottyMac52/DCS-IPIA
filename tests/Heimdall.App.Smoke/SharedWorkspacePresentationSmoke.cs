@@ -1,3 +1,4 @@
+using Heimdall.App.Games.WarThunder;
 using Heimdall.App.Games.Squadrons;
 using Heimdall.App.Games.Elite;
 using System.Windows;

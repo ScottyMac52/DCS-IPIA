@@ -57,7 +57,7 @@ and save status wrap as another group. ED and Squadrons share the
 
 The shared assignment base supplies the inspector viewport instead of an unbounded
 native Auto-height row. Diagnostics and native fields can scroll while retaining
-usable controller space. The drawing expander uses a local Grid template with an
+usable controller space. The drawing expander uses the shared `WorkspaceDrawingExpander` Grid template with an
 Auto header and a star-sized content row, so the shared controller allocation
 reaches the artwork as a finite height. A visible drawing reserves its chrome
 (including its outer margin) plus a 160-pixel

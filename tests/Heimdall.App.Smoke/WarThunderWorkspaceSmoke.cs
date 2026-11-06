@@ -1,3 +1,4 @@
+using Heimdall.App.Games.WarThunder;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,7 +25,8 @@ namespace Heimdall.App.Smoke
             {
                 EditionAccess.SetForTests(new EditionPolicy()); var cards = new GameSelectionView();
                 if (Box<Button>(cards, "WarThunderCard").IsEnabled) throw new InvalidOperationException("Free edition exposed War Thunder.");
-                EditionAccess.SetForTests(issuer.Policy); cards.SetRecent(new("war-thunder"));
+                EditionAccess.SetForTests(issuer.Policy);
+                WarThunderInheritanceSmoke.Verify(root); cards.SetRecent(new("war-thunder"));
                 if (!Box<Button>(cards, "WarThunderCard").IsEnabled || !Box<TextBlock>(cards, "RecentText").Text.Contains("War Thunder", StringComparison.Ordinal))
                     throw new InvalidOperationException("War Thunder card or recent selection is unavailable.");
                 VerifyControllerAddition(root);
@@ -120,8 +122,11 @@ namespace Heimdall.App.Smoke
                     window.Width = width; window.Height = height; assignments.Zoom.Value = 2;
                     ThemeControlSmoke.Pump(window);
                     var scroll = assignments.DrawingScroll;
-                    if (scroll.ViewportHeight <= 0 || scroll.ScrollableHeight <= 0 || scroll.ScrollableWidth <= 0)
-                        throw new InvalidOperationException("War Thunder drawing has clipped content without reachable scroll extent.");
+                    if (scroll.ActualHeight < 150 || scroll.ViewportHeight <= 0 || scroll.ScrollableHeight <= 0 || scroll.ScrollableWidth <= 0 ||
+                        scroll.TranslatePoint(new Point(0, scroll.ActualHeight), assignments.DrawingPanel).Y > assignments.DrawingPanel.ActualHeight + 1)
+                        throw new InvalidOperationException($"War Thunder drawing has clipped content or insufficient controller space. " +
+                            $"Viewport height={scroll.ActualHeight:F1}, panel={assignments.DrawingPanel.ActualHeight:F1}, view={assignments.ActualHeight:F1}, " +
+                            $"reserve={assignments.ControllerReserveHeight:F1}, scroll extents={scroll.ScrollableWidth:F1}x{scroll.ScrollableHeight:F1}.");
                     scroll.ScrollToTop(); ThemeControlSmoke.Pump(window);
                     var down = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) { RoutedEvent = Mouse.PreviewMouseWheelEvent };
                     assignments.DrawingCanvas.RaiseEvent(down); ThemeControlSmoke.Pump(window);

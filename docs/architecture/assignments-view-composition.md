@@ -65,8 +65,8 @@ Save/Discard buttons still address the Assignments handlers specifically.
 
 Elite Dangerous now supplies its own browser, artwork and editor through this
 base; see [ED inheritance](elite-workspace-inheritance.md). War Thunder
-remains on its existing view. Its migration can supply native panels and
-overrides without putting file formats, controller rules or catalogs in the base.
+also supplies native panels and overrides; see [War Thunder inheritance](war-thunder-workspace-inheritance.md).
+File formats, controller rules and catalogs remain outside the base.
 
 ## Acceptance
 
