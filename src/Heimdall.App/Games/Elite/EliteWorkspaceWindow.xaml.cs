@@ -280,13 +280,14 @@ namespace Heimdall.App.Games.Elite
             if (WorkspaceActionRunning) return;
             if (_session is null) { UpdateAvailability(); return; }
             var document = _session.Snapshot;
-            var previousDevice = Device?.Id; var previousCommand = Command?.Id;
+            var displayedDevice = (DevicePicker.SelectedItem as GameDeviceChoice)?.Id; var previousDevice = Device?.Id; var previousCommand = Command?.Id;
             var previousCombinationDevice = (_assignmentsView.ModifierDevicePicker.SelectedItem as GameDeviceChoice)?.Id;
             _commands = _session.Catalog.Commands;
             _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
             _refreshing = true;
             var devices = GameControllerOrder.For(document).Select(id => new GameDeviceChoice(id, EliteWorkspaceContext.ControllerName(document, id))).ToArray();
-            DevicePicker.ItemsSource = devices; DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousDevice) ?? devices.FirstOrDefault();
+            DevicePicker.ItemsSource = devices; var retained = WorkspaceControllerRetention.Choose(devices.Select(x => x.Id).ToArray(), previousDevice, displayedDevice);
+            DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == retained);
             _assignmentsView.ModifierDevicePicker.ItemsSource = devices;
             _assignmentsView.ModifierDevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousCombinationDevice)
                 ?? devices.FirstOrDefault(x => x.Id == Device?.Id);
