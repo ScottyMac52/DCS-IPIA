@@ -1,0 +1,1534 @@
+{
+  "baseline": "0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0",
+  "extraction": "Lexical declaration index, not a semantic C# parser. Line numbers and blob IDs are authoritative source locators; method bodies and implicit/anonymous members must be read at the pinned source. Call-path and ownership analysis is in ../workspace-role-migration.md.",
+  "files": [
+    {
+      "path": "src/Heimdall.App/Games/ControllerLinkPresentation.cs",
+      "blob": "37c3f6e6407d6787b8cfab9661b282da48e3599d",
+      "lines": 29,
+      "declarations": [
+        [
+          7,
+          "internal static class ControllerLinkPresentation"
+        ],
+        [
+          9,
+          "internal static void OpenDrawingPicker(ComboBox picker)"
+        ],
+        [
+          16,
+          "internal static void ShowPhysical(ComboBox picker, DetectedDcsDevice? saved, IEnumerable<DetectedDcsDevice> observed)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameAssignmentEditorView.cs",
+      "blob": "f9b50325734e12a8e0c7626c92424ad87b601685",
+      "lines": 45,
+      "declarations": [
+        [
+          8,
+          "public sealed class GameAssignmentEditorView : UserControl"
+        ],
+        [
+          10,
+          "internal TextBlock AssignmentCommand { get; } = new() { Name = \"AssignmentCommand\", Text = \"No command selected.\", TextWrapping = TextWrapping.Wrap };"
+        ],
+        [
+          11,
+          "internal TextBlock AssignmentDraftStatus { get; } = new() { Name = \"AssignmentDraftStatus\", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };"
+        ],
+        [
+          12,
+          "private readonly ContentControl _nativeEditor = new();"
+        ],
+        [
+          15,
+          "public static readonly DependencyProperty NativeEditorProperty = DependencyProperty.Register( nameof(NativeEditor), typeof(UIElement), typeof(GameAssignmentEditorView), new PropertyMetadata(null, (owner, args) => ((GameAssignmentEditorView)owner)._nativeEditor.Content = args.NewValue));"
+        ],
+        [
+          19,
+          "public UIElement? NativeEditor"
+        ],
+        [
+          25,
+          "public GameAssignmentEditorView()"
+        ],
+        [
+          38,
+          "public void SetEditor(UIElement editor) => NativeEditor = editor;"
+        ],
+        [
+          40,
+          "public void ShowCommand(SimCommand? command) => ShowCommandLabel(command?.DisplayName);"
+        ],
+        [
+          42,
+          "public void ShowCommandLabel(string? label) => AssignmentCommand.Text = label ?? \"No command selected.\";"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameAssignmentsView.cs",
+      "blob": "2ed08e2e28ed6e0401830e1919708f76a5451d6d",
+      "lines": 176,
+      "declarations": [
+        [
+          10,
+          "public abstract class GameAssignmentsView : UserControl"
+        ],
+        [
+          12,
+          "private readonly ContentControl _commands = new()"
+        ],
+        [
+          14,
+          "private readonly ContentControl _controller = new()"
+        ],
+        [
+          16,
+          "private readonly ContentControl _editor = new()"
+        ],
+        [
+          18,
+          "private readonly Grid _right = new() { Margin = new Thickness(6, 0, 0, 0) };"
+        ],
+        [
+          19,
+          "private readonly ScrollViewer _editorViewport = new()"
+        ],
+        [
+          21,
+          "private Action<EventHandler>? _subscribe;"
+        ],
+        [
+          22,
+          "private Action<EventHandler>? _unsubscribe;"
+        ],
+        [
+          23,
+          "private bool _subscribed;"
+        ],
+        [
+          24,
+          "private bool _refreshing;"
+        ],
+        [
+          25,
+          "private bool _saving;"
+        ],
+        [
+          26,
+          "private bool _unmounted;"
+        ],
+        [
+          29,
+          "protected GameAssignmentsView()"
+        ],
+        [
+          46,
+          "public static readonly DependencyProperty ControllerReserveHeightProperty = DependencyProperty.Register( nameof(ControllerReserveHeight), typeof(double), typeof(GameAssignmentsView), new PropertyMetadata(180d, (owner, _) => ((GameAssignmentsView)owner).UpdatePanelAllocation()), value => double.IsFinite((double)value) && (double)value >= 0);"
+        ],
+        [
+          51,
+          "public double ControllerReserveHeight"
+        ],
+        [
+          57,
+          "public static readonly DependencyProperty CommandsPanelProperty = DependencyProperty.Register( nameof(CommandsPanel), typeof(UIElement), typeof(GameAssignmentsView), new PropertyMetadata(null, (owner, args) => ((GameAssignmentsView)owner)._commands.Content = args.NewValue));"
+        ],
+        [
+          61,
+          "public static readonly DependencyProperty ControllerPanelProperty = DependencyProperty.Register( nameof(ControllerPanel), typeof(UIElement), typeof(GameAssignmentsView), new PropertyMetadata(null, (owner, args) => ((GameAssignmentsView)owner)._controller.Content = args.NewValue));"
+        ],
+        [
+          65,
+          "public static readonly DependencyProperty EditorPanelProperty = DependencyProperty.Register( nameof(EditorPanel), typeof(UIElement), typeof(GameAssignmentsView), new PropertyMetadata(null, (owner, args) => ((GameAssignmentsView)owner)._editor.Content = args.NewValue));"
+        ],
+        [
+          69,
+          "public UIElement? CommandsPanel { get => (UIElement?)GetValue(CommandsPanelProperty); set => SetValue(CommandsPanelProperty, value); }"
+        ],
+        [
+          71,
+          "public UIElement? ControllerPanel { get => (UIElement?)GetValue(ControllerPanelProperty); set => SetValue(ControllerPanelProperty, value); }"
+        ],
+        [
+          73,
+          "public UIElement? EditorPanel { get => (UIElement?)GetValue(EditorPanelProperty); set => SetValue(EditorPanelProperty, value); }"
+        ],
+        [
+          77,
+          "protected GameWorkspaceSplit AssignmentWorkspace { get; } = new() { Margin = new Thickness(4), Background = System.Windows.Media.Brushes.Transparent };"
+        ],
+        [
+          79,
+          "protected ScrollViewer AssignmentInspectorViewport => _editorViewport;"
+        ],
+        [
+          81,
+          "protected internal GameAssignmentSelection AssignmentSelection { get; } = new();"
+        ],
+        [
+          83,
+          "protected internal WorkspaceAssignmentWorkflow AssignmentWorkflow { get; } = new();"
+        ],
+        [
+          85,
+          "protected abstract WorkspaceAssignmentContext CaptureAssignmentContext();"
+        ],
+        [
+          87,
+          "protected abstract string CaptureAssignmentSnapshot();"
+        ],
+        [
+          89,
+          "protected abstract Task SaveAssignmentsCoreAsync();"
+        ],
+        [
+          91,
+          "protected abstract void DiscardAssignmentsCore();"
+        ],
+        [
+          93,
+          "protected abstract void RefreshAssignmentsCore();"
+        ],
+        [
+          95,
+          "protected abstract void RefreshAssignmentDrawing();"
+        ],
+        [
+          97,
+          "protected abstract void ShowAssignmentStatus(string message);"
+        ],
+        [
+          100,
+          "protected virtual string SaveSuccessMessage => \"Assignments saved.\";"
+        ],
+        [
+          102,
+          "protected virtual string SaveFailurePrefix => \"Save failed: \";"
+        ],
+        [
+          105,
+          "protected void BindAssignmentChanges(Action<EventHandler> subscribe, Action<EventHandler> unsubscribe)"
+        ],
+        [
+          111,
+          "protected void RefreshAssignments()"
+        ],
+        [
+          119,
+          "protected bool AssignmentRefreshRunning => _refreshing;"
+        ],
+        [
+          121,
+          "protected WorkspaceAssignmentContext CurrentAssignmentContext"
+        ],
+        [
+          130,
+          "protected DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null) =>"
+        ],
+        [
+          134,
+          "protected internal async Task<bool> SaveAssignmentsAsync()"
+        ],
+        [
+          146,
+          "protected internal bool DiscardAssignments()"
+        ],
+        [
+          156,
+          "private void UpdatePanelAllocation()"
+        ],
+        [
+          163,
+          "private void Changed(object? sender, EventArgs args) => RefreshAssignments();"
+        ],
+        [
+          164,
+          "private void Attach()"
+        ],
+        [
+          169,
+          "private void Detach()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameCommandBrowserView.xaml",
+      "blob": "46165f64f03c15b4a6a2f244ff2bde19d3420467",
+      "lines": 25,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.GameCommandBrowserView\""
+        ],
+        [
+          5,
+          "x:Name=\"CommandCategoryPicker\""
+        ],
+        [
+          7,
+          "x:Name=\"CommandTypePicker\""
+        ],
+        [
+          9,
+          "x:Name=\"ClearCommandFiltersButton\""
+        ],
+        [
+          12,
+          "x:Name=\"AssignmentStatusPicker\""
+        ],
+        [
+          15,
+          "x:Name=\"CommandSearch\""
+        ],
+        [
+          16,
+          "x:Name=\"CommandCount\""
+        ],
+        [
+          17,
+          "x:Name=\"CommandEmptyHint\""
+        ],
+        [
+          18,
+          "x:Name=\"CommandsList\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameCommandBrowserView.xaml.cs",
+      "blob": "e6ac45552407a09825b9c354d7bc951b585b3c06",
+      "lines": 20,
+      "declarations": [
+        [
+          7,
+          "public partial class GameCommandBrowserView : UserControl"
+        ],
+        [
+          11,
+          "public GameCommandBrowserView() => InitializeComponent();"
+        ],
+        [
+          13,
+          "public void Configure(IReadOnlyList<GameCommandTypeOption> inputTypes, IReadOnlyList<GameCommandStatusOption> statuses)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameControllerIdentification.cs",
+      "blob": "128059ae8400095f55cebe236214018614d26566",
+      "lines": 92,
+      "declarations": [
+        [
+          10,
+          "internal sealed class GameControllerIdentification : IDisposable"
+        ],
+        [
+          12,
+          "private readonly Window _owner;"
+        ],
+        [
+          13,
+          "private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _factory;"
+        ],
+        [
+          14,
+          "private readonly Action<IReadOnlyDictionary<DetectedDcsDevice, string>> _activity;"
+        ],
+        [
+          15,
+          "private readonly Action _clear;"
+        ],
+        [
+          16,
+          "private readonly Action<string> _status;"
+        ],
+        [
+          17,
+          "private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };"
+        ],
+        [
+          18,
+          "private IDeviceInputSource? _source;"
+        ],
+        [
+          19,
+          "private ControllerInputIdentification? _identification;"
+        ],
+        [
+          20,
+          "private IReadOnlyList<DetectedDcsDevice> _devices = [];"
+        ],
+        [
+          21,
+          "internal GameControllerIdentification(Window owner, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> activity, Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)"
+        ],
+        [
+          32,
+          "internal bool Running => _source is not null;"
+        ],
+        [
+          34,
+          "internal void Start(IReadOnlyList<DetectedDcsDevice> observed)"
+        ],
+        [
+          49,
+          "internal void Sample()"
+        ],
+        [
+          60,
+          "internal void Stop()"
+        ],
+        [
+          65,
+          "public void Dispose()"
+        ],
+        [
+          74,
+          "private void Deactivated(object? sender, EventArgs e)"
+        ],
+        [
+          79,
+          "private void VisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)"
+        ],
+        [
+          85,
+          "private void Poll(object? sender, EventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameControllerReordering.cs",
+      "blob": "dacf5f0b356b6d5446eda58fe3f832cbd3ae06f9",
+      "lines": 90,
+      "declarations": [
+        [
+          8,
+          "internal sealed class GameControllerReordering : IDisposable"
+        ],
+        [
+          10,
+          "private readonly ListBox _list;"
+        ],
+        [
+          11,
+          "private readonly Func<string, bool> _eligible;"
+        ],
+        [
+          12,
+          "private readonly Action<string, string, bool> _move;"
+        ],
+        [
+          13,
+          "private readonly string _format = \"heimdall.controller.\" + Guid.NewGuid().ToString(\"N\");"
+        ],
+        [
+          14,
+          "private Point _origin;"
+        ],
+        [
+          15,
+          "private string? _source;"
+        ],
+        [
+          16,
+          "internal GameControllerReordering(ListBox list, Action<string, string, bool> move, Func<string, bool>? eligible = null)"
+        ],
+        [
+          25,
+          "public void Dispose()"
+        ],
+        [
+          32,
+          "internal void MoveSelected(int direction)"
+        ],
+        [
+          41,
+          "internal DataObject Payload(string id) => new(_format, id);"
+        ],
+        [
+          43,
+          "internal bool DropAt(IDataObject data, string target, bool after)"
+        ],
+        [
+          52,
+          "private ListBoxItem? Container(object original) => original is DependencyObject element"
+        ],
+        [
+          54,
+          "private void PointerDown(object sender, MouseButtonEventArgs e)"
+        ],
+        [
+          59,
+          "private void PointerMove(object sender, MouseEventArgs e)"
+        ],
+        [
+          68,
+          "private void DragOver(object sender, DragEventArgs e)"
+        ],
+        [
+          75,
+          "private void Drop(object sender, DragEventArgs e)"
+        ],
+        [
+          83,
+          "private void KeyDown(object sender, KeyEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameWorkspaceFeatureHost.cs",
+      "blob": "d4c13bb0198b6b5d6f18da5822c55c756a65bb92",
+      "lines": 31,
+      "declarations": [
+        [
+          7,
+          "public sealed class GameWorkspaceFeatureHost(ContentControl content, FeatureActionBar actions, Action? stopLiveInput = null)"
+        ],
+        [
+          12,
+          "public void Show(UIElement? feature, Action<UserControl>? prepare = null)"
+        ],
+        [
+          28,
+          "public void Clear() => Show(null);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameWorkspaceServices.cs",
+      "blob": "713ec7f6fd8ddaa386580f55a7d85ed2dc025e67",
+      "lines": 54,
+      "declarations": [
+        [
+          12,
+          "public sealed class GameWorkspaceServices"
+        ],
+        [
+          14,
+          "private readonly IConnectedDeviceDiscovery _discovery;"
+        ],
+        [
+          16,
+          "public GameWorkspaceServices(IGameWorkspaceStore store, IConnectedDeviceDiscovery discovery)"
+        ],
+        [
+          20,
+          "public IGameWorkspaceStore Store { get; }"
+        ],
+        [
+          22,
+          "public EliteDangerousProfileBackend Backend { get; } = new();"
+        ],
+        [
+          24,
+          "public EliteDeviceReferenceMatcher DeviceReferences { get; } = new();"
+        ],
+        [
+          26,
+          "public string? SelectionError { get; private set; }"
+        ],
+        [
+          28,
+          "public GameSelectionState Recent()"
+        ],
+        [
+          35,
+          "public void Remember(GameSelectionState selection)"
+        ],
+        [
+          42,
+          "public IReadOnlyList<DetectedDcsDevice> Discover() => _discovery.Discover();"
+        ],
+        [
+          44,
+          "public Task<IReadOnlyList<ControllerObservation>> DiscoverInputsAsync() => _discovery is IControllerCapabilityDiscovery inputs"
+        ],
+        [
+          47,
+          "public static async Task<IReadOnlyList<WorkspaceHardware>> HardwareAsync()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/GameWorkspaceWindow.cs",
+      "blob": "968832865bce3f29e8f299ce5e3bdd68a6ad2789",
+      "lines": 198,
+      "declarations": [
+        [
+          9,
+          "public abstract class GameWorkspaceWindow : Window"
+        ],
+        [
+          11,
+          "private readonly Dictionary<string, WorkspaceFeature> _features = new(StringComparer.Ordinal);"
+        ],
+        [
+          12,
+          "private readonly Dictionary<string, UserControl> _views = new(StringComparer.Ordinal);"
+        ],
+        [
+          13,
+          "private readonly List<Action> _cleanup = [];"
+        ],
+        [
+          14,
+          "private GameWorkspaceFeatureHost? _host;"
+        ],
+        [
+          15,
+          "private Action<UserControl>? _prepare;"
+        ],
+        [
+          16,
+          "private Action<string>? _selected;"
+        ],
+        [
+          17,
+          "private bool _closed;"
+        ],
+        [
+          18,
+          "private bool _confirmingLeave;"
+        ],
+        [
+          19,
+          "private bool _runningAction;"
+        ],
+        [
+          20,
+          "private Button? _save;"
+        ],
+        [
+          21,
+          "private Button? _discard;"
+        ],
+        [
+          22,
+          "private TextBlock? _pending;"
+        ],
+        [
+          26,
+          "public string? CurrentFeatureKey { get; private set; }"
+        ],
+        [
+          30,
+          "protected void ConfigureWorkspace(ContentControl content, FeatureActionBar actions, IEnumerable<WorkspaceFeature> features, Action<UserControl>? prepare = null, Action<string>? selected = null)"
+        ],
+        [
+          45,
+          "protected internal void NavigateToFeature(string key)"
+        ],
+        [
+          67,
+          "protected void RegisterWorkspaceCleanup(Action cleanup)"
+        ],
+        [
+          74,
+          "protected void ConfigureWorkspaceCommands(Button save, Button discard, TextBlock pending)"
+        ],
+        [
+          81,
+          "protected abstract bool HasWorkspaceChanges { get; }"
+        ],
+        [
+          83,
+          "protected abstract bool CanSaveWorkspace { get; }"
+        ],
+        [
+          85,
+          "protected bool WorkspaceActionRunning => _runningAction;"
+        ],
+        [
+          87,
+          "protected abstract Task SaveWorkspaceCoreAsync();"
+        ],
+        [
+          89,
+          "protected abstract void DiscardWorkspaceCore();"
+        ],
+        [
+          91,
+          "protected virtual void OnWorkspaceStateChanged() { }"
+        ],
+        [
+          93,
+          "protected virtual void ReportWorkspaceError(Exception exception) => System.Diagnostics.Trace.TraceError(\"{0}\", exception);"
+        ],
+        [
+          96,
+          "protected virtual string WorkspaceStateSummary => HasWorkspaceChanges ? \"Pending assignment or authoring changes\" : \"No pending assignment changes\";"
+        ],
+        [
+          98,
+          "protected void ClearWorkspaceFeatures() => _host?.Clear();"
+        ],
+        [
+          101,
+          "protected void RefreshWorkspaceState()"
+        ],
+        [
+          110,
+          "protected async Task RunWorkspaceActionAsync(Func<Task> action)"
+        ],
+        [
+          124,
+          "protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(SaveWorkspaceCoreAsync);"
+        ],
+        [
+          127,
+          "protected async void SaveClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          134,
+          "protected internal void DiscardClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          143,
+          "protected async Task<bool> ConfirmWorkspaceLeaveAsync(Func<GameWorkspaceLeaveDecision> choose)"
+        ],
+        [
+          161,
+          "protected virtual bool ConfirmDiscardWorkspaceChanges() => ThemeMessageBox.Show(this, \"Discard unsaved workspace changes?\", \"Pending changes\", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;"
+        ],
+        [
+          165,
+          "protected virtual bool CanCloseWorkspace() => !_runningAction && (!HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());"
+        ],
+        [
+          168,
+          "protected override void OnClosing(CancelEventArgs e)"
+        ],
+        [
+          175,
+          "protected override void OnClosed(EventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/HardwareDiagramPresenter.cs",
+      "blob": "80e6fb290eb19b63465925b380546bdab8f43b0d",
+      "lines": 128,
+      "declarations": [
+        [
+          14,
+          "internal sealed class HardwareDiagramPresenter(Canvas canvas)"
+        ],
+        [
+          18,
+          "internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];"
+        ],
+        [
+          20,
+          "internal void Show(UiLayerDiagram diagram, KneeboardComposite page, HardwareDiagramInteractions actions, double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null)"
+        ],
+        [
+          63,
+          "internal void RefreshActions(HardwareDiagramInteractions actions)"
+        ],
+        [
+          69,
+          "internal static void RefreshMenu(ContextMenu menu, HardwareGraphicControl control, HardwareDiagramInteractions actions)"
+        ],
+        [
+          114,
+          "internal static BitmapImage Image(byte[] bytes)"
+        ],
+        [
+          122,
+          "private static WorkspaceAssignmentActionState State(HardwareDiagramInteractions actions, HardwareGraphicControl control, WorkspaceAssignmentAction action, bool ready, string reason = \"\") => actions.ActionState?.Invoke(control, action)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/HardwareInputFeedback.cs",
+      "blob": "d533f247f262527a4d2e5a9a984433869f1a9489",
+      "lines": 100,
+      "declarations": [
+        [
+          12,
+          "internal sealed class HardwareInputFeedback : IDisposable"
+        ],
+        [
+          14,
+          "private readonly Window _owner;"
+        ],
+        [
+          15,
+          "private readonly HardwareDiagramPresenter _diagram;"
+        ],
+        [
+          16,
+          "private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };"
+        ],
+        [
+          17,
+          "private readonly Action<string> _status;"
+        ],
+        [
+          18,
+          "private readonly Action<string> _activity;"
+        ],
+        [
+          19,
+          "private InputActivityText? _activityText;"
+        ],
+        [
+          20,
+          "private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _factory;"
+        ],
+        [
+          21,
+          "private IDeviceInputSource? _source;"
+        ],
+        [
+          22,
+          "private Dictionary<string, double> _previous = new(StringComparer.Ordinal);"
+        ],
+        [
+          23,
+          "private readonly Dictionary<string, DateTime> _axisUntil = new(StringComparer.Ordinal);"
+        ],
+        [
+          24,
+          "private Guid _physical;"
+        ],
+        [
+          25,
+          "internal HardwareInputFeedback(Window owner, HardwareDiagramPresenter diagram, Action<string> status, Action<string> activity, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)"
+        ],
+        [
+          34,
+          "internal event EventHandler? StateChanged;"
+        ],
+        [
+          36,
+          "internal bool Running => _source is not null;"
+        ],
+        [
+          38,
+          "internal void Start(GameHardwarePin pin, IReadOnlyList<DetectedDcsDevice> observed)"
+        ],
+        [
+          50,
+          "internal void Stop()"
+        ],
+        [
+          59,
+          "public void Dispose() { Stop(); _timer.Tick -= Poll; _owner.Deactivated -= Deactivated; }"
+        ],
+        [
+          61,
+          "internal void Sample()"
+        ],
+        [
+          91,
+          "private void Deactivated(object? sender, EventArgs e) { if (!Running) return; Stop(); _status(\"Input test stopped on focus loss.\"); }"
+        ],
+        [
+          92,
+          "private void Poll(object? sender, EventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WorkspaceFeature.cs",
+      "blob": "cd37562d178727a6bf2768086a50aac4d1c93a7d",
+      "lines": 7,
+      "declarations": [
+        [
+          6,
+          "public sealed record WorkspaceFeature(string Key, Func<UserControl> Create, Func<string?>? UnavailableReason = null);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/GameAssignmentSelection.cs",
+      "blob": "1757f407bd01b1e3d64ee40e2c790c3c338150d9",
+      "lines": 85,
+      "declarations": [
+        [
+          7,
+          "public sealed class GameAssignmentSelection"
+        ],
+        [
+          11,
+          "public string Scope { get; private set; } = \"\";"
+        ],
+        [
+          13,
+          "public string? AlternativeId { get; private set; }"
+        ],
+        [
+          15,
+          "public string InputBlockedReason { get; private set; } = \"\";"
+        ],
+        [
+          17,
+          "public string? ControllerId { get; private set; }"
+        ],
+        [
+          19,
+          "public string? CommandId { get; private set; }"
+        ],
+        [
+          21,
+          "public string Slot { get; private set; } = \"Primary\";"
+        ],
+        [
+          23,
+          "public string? InputKey { get; private set; }"
+        ],
+        [
+          27,
+          "public void Refresh(string? controllerId, IReadOnlyList<SimCommand> commands, string? preferredCommandId = null, bool selectFirst = true)"
+        ],
+        [
+          34,
+          "public void SelectCommand(string? commandId)"
+        ],
+        [
+          40,
+          "public void SelectSlot(string slot)"
+        ],
+        [
+          46,
+          "public void SelectInput(string? inputKey)"
+        ],
+        [
+          52,
+          "public void SelectScope(string scope)"
+        ],
+        [
+          58,
+          "public void SelectController(string? controllerId)"
+        ],
+        [
+          64,
+          "public void SelectAlternative(string? alternativeId)"
+        ],
+        [
+          70,
+          "public void BlockInput(string reason)"
+        ],
+        [
+          75,
+          "public void Reset()"
+        ],
+        [
+          82,
+          "private void ClearInput() { InputKey = null; InputBlockedReason = \"\"; }"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/GameProfileSession.cs",
+      "blob": "088a446feb53be5c1731a28aee8cfcda479745a0",
+      "lines": 743,
+      "declarations": [
+        [
+          9,
+          "public sealed class GameProfileSession"
+        ],
+        [
+          11,
+          "private readonly ISimProfileBackend _backend;"
+        ],
+        [
+          12,
+          "private readonly ProfileValidationDefinition _validationDefinition;"
+        ],
+        [
+          13,
+          "private readonly EditionPolicy _policy;"
+        ],
+        [
+          14,
+          "private readonly ISimDeviceReferenceMatcher? _referenceMatcher;"
+        ],
+        [
+          15,
+          "private IReadOnlyCollection<string> _catalogIds;"
+        ],
+        [
+          16,
+          "private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;"
+        ],
+        [
+          17,
+          "private readonly Func<IReadOnlyList<ControllerObservation>> _controllerInputs;"
+        ],
+        [
+          18,
+          "private GameWorkspace _current;"
+        ],
+        [
+          19,
+          "private GameWorkspace _saved;"
+        ],
+        [
+          21,
+          "public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy, IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null, Func<IReadOnlyList<ControllerObservation>>? controllerInputs = null, ProfileValidationDefinition? validationDefinition = null)"
+        ],
+        [
+          34,
+          "public event EventHandler? Changed;"
+        ],
+        [
+          36,
+          "public GameWorkspace Snapshot => GameWorkspaceContract.Clone(_current);"
+        ],
+        [
+          38,
+          "public bool HasChanges => JsonSerializer.Serialize(_current) != JsonSerializer.Serialize(_saved);"
+        ],
+        [
+          40,
+          "public string AccessMessage"
+        ],
+        [
+          49,
+          "public ICommandCatalog Catalog => _backend.GetCatalog(_current.Profile);"
+        ],
+        [
+          51,
+          "public void AcceptSaved() { _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }"
+        ],
+        [
+          53,
+          "public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }"
+        ],
+        [
+          55,
+          "public void ApplyNativeEdit(ISimNativeEdit edit)"
+        ],
+        [
+          62,
+          "public bool CanEditNativeRecords => _backend is INativeRecordEditor;"
+        ],
+        [
+          64,
+          "public void RebindNative(string recordId, string logicalDeviceId, string key, CommandType type, int direction)"
+        ],
+        [
+          77,
+          "public void RebindNativeAxisPair(string positiveRecordId, string negativeRecordId, string logicalDeviceId, string axisKey)"
+        ],
+        [
+          93,
+          "public void ReverseNativeAxisPair(string positiveRecordId, string negativeRecordId, string logicalDeviceId, string axisKey)"
+        ],
+        [
+          110,
+          "public void AddSquadronsNativeBinding(string concept, string logicalDeviceId, string key, CommandType type, int direction)"
+        ],
+        [
+          125,
+          "public void ImportAssignmentTemplates(IReadOnlyDictionary<string, string> sources)"
+        ],
+        [
+          134,
+          "public void Rename(string name)"
+        ],
+        [
+          140,
+          "public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinkValidator;"
+        ],
+        [
+          142,
+          "public bool CanAddNativeControllers => _backend is INativeControllerCreator;"
+        ],
+        [
+          144,
+          "public GameControllerChange PreviewAddNativeController(Guid physicalGuid, string nativeName)"
+        ],
+        [
+          173,
+          "public bool CanRenameNativeControllers => _backend is INativeControllerNames;"
+        ],
+        [
+          175,
+          "public GameControllerChange PreviewRenameNativeController(string logicalId, string nativeName)"
+        ],
+        [
+          191,
+          "public GameControllerChange PreviewCapturedDeviceLink(string logicalId, Guid physicalGuid)"
+        ],
+        [
+          212,
+          "public GameControllerChange PreviewCapturedDeviceUnlink(string logicalId)"
+        ],
+        [
+          218,
+          "public GameControllerChange PreviewUnlinkController(string logicalId)"
+        ],
+        [
+          231,
+          "public GameControllerChange PreviewRemoveUnusedCapturedDevice(string logicalId)"
+        ],
+        [
+          248,
+          "public GameControllerChange PreviewClearCapturedRecord(string recordId) => PreviewClearCapturedRecords([recordId]);"
+        ],
+        [
+          251,
+          "public GameControllerChange PreviewClearCapturedRecords(IReadOnlyCollection<string> recordIds)"
+        ],
+        [
+          269,
+          "public GameControllerChange PreviewClearCapturedAssignments(string logicalId)"
+        ],
+        [
+          285,
+          "public GameControllerChange PreviewMoveCapturedSlot(string source, string target, bool after = false)"
+        ],
+        [
+          313,
+          "public void MoveController(string source, string target, bool after = false)"
+        ],
+        [
+          326,
+          "public void Associate(string logicalId, string hardwareId, Guid physicalGuid)"
+        ],
+        [
+          331,
+          "public IReadOnlyList<string> ControllerReferences(Guid physicalGuid)"
+        ],
+        [
+          337,
+          "public string ConnectController(Guid physicalGuid, string? hardwareId = null, string? logicalId = null)"
+        ],
+        [
+          371,
+          "public GameControllerChange PreviewRemoveController(string logicalId)"
+        ],
+        [
+          386,
+          "public GameControllerChange PreviewReplaceController(string logicalId, Guid physicalGuid, Func<IReadOnlyCollection<string>> nativeInputs, string? targetLogicalId = null, string? hardwareId = null)"
+        ],
+        [
+          431,
+          "public void ApplyControllerChange(GameControllerChange change)"
+        ],
+        [
+          452,
+          "public void SetDrawingCatalog(IReadOnlyCollection<string> hardwareIds)"
+        ],
+        [
+          461,
+          "public void ChangeDrawing(string logicalId, string? hardwareId)"
+        ],
+        [
+          479,
+          "public string? DrawingId(string logicalId) => _current.Hardware.TryGetValue(logicalId, out var pin)"
+        ],
+        [
+          482,
+          "public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft) => ReviewProfile(profile => { ApplyDraft(profile, draft); return profile; });"
+        ],
+        [
+          488,
+          "public GameAssignmentReview ReviewNativeEdit(ISimNativeEdit edit)"
+        ],
+        [
+          498,
+          "public void Assign(GameAssignmentEdit draft) => Edit(profile => ApplyDraft(profile, draft));"
+        ],
+        [
+          500,
+          "public void AssignButton(string deviceId, string commandId, string slot, string key, BindingMode mode, IReadOnlyList<Modifier> modifiers)"
+        ],
+        [
+          506,
+          "public void AssignAxis(string deviceId, string commandId, string key, bool invert, float deadzone) =>"
+        ],
+        [
+          509,
+          "public void Clear(string commandId, string slot) => Edit(profile => Remove(profile, commandId, slot));"
+        ],
+        [
+          511,
+          "public void SetToggle(string commandId, bool value) => Edit(profile => { var key = \"ed.toggle:\" + commandId; if (!profile.Metadata.ContainsKey(key)) throw new InvalidOperationException(\"This command has no native toggle setting.\"); profile.Metadata[key] = value ? \"1\" : \"0\"; });"
+        ],
+        [
+          518,
+          "public ProfileValidationResult Validate(CancellationToken cancellationToken = default) => _backend.Validate(Snapshot.Profile, _validationDefinition, cancellationToken);"
+        ],
+        [
+          520,
+          "public SimProfileExportPlan Export() { RequireAccess(); return ValidateProfile(_current.Profile); }"
+        ],
+        [
+          522,
+          "public IReadOnlyList<GameExportIssue> ReviewGameExport()"
+        ],
+        [
+          529,
+          "public SimProfileExportPlan ExportForGame()"
+        ],
+        [
+          539,
+          "private GameControllerChange PreviewNativeRemoval(ISimControllerRemoval adapter, string logicalId)"
+        ],
+        [
+          559,
+          "private GameAssignmentReview ReviewProfile(Func<ProfileDocument, ProfileDocument> edit)"
+        ],
+        [
+          575,
+          "private void RequireNativeEdit(ISimNativeEdit edit)"
+        ],
+        [
+          586,
+          "private void StageNativeProfile(Heimdall.Domain.MultiSim.ProfileDocument profile, string identityError)"
+        ],
+        [
+          595,
+          "private void RequireProfileIdentity(ProfileDocument profile, string message)"
+        ],
+        [
+          601,
+          "private void RequireCapturedDevice(string logicalId)"
+        ],
+        [
+          607,
+          "private GameControllerChange CapturedDeviceChange(string logicalId, GameWorkspace candidate, DetectedDcsDevice? target)"
+        ],
+        [
+          621,
+          "private ISimDeviceEditor DeviceEditor() => _backend as ISimDeviceEditor"
+        ],
+        [
+          623,
+          "private void ValidateControllerCandidate(GameWorkspace candidate)"
+        ],
+        [
+          630,
+          "private string DescribeControllerChange(string action, string logicalId, ProfileDocument after)"
+        ],
+        [
+          657,
+          "private DetectedDcsDevice Observed(Guid physicalGuid, IReadOnlyList<DetectedDcsDevice> observations)"
+        ],
+        [
+          664,
+          "private void RequireDrawing(string? hardwareId)"
+        ],
+        [
+          670,
+          "private static LogicalDevice? ChooseReference(GameWorkspace candidate, LogicalDevice[] matching, string? logicalId)"
+        ],
+        [
+          679,
+          "private static void ValidateLink(GameWorkspace candidate, LogicalDevice reference, DetectedDcsDevice observed, IReadOnlyList<DetectedDcsDevice> observations)"
+        ],
+        [
+          688,
+          "private void RequireAccess()"
+        ],
+        [
+          693,
+          "private SimProfileExportPlan ValidateProfile(ProfileDocument profile)"
+        ],
+        [
+          699,
+          "private void Edit(Action<ProfileDocument> edit)"
+        ],
+        [
+          709,
+          "private static void ApplyDraft(ProfileDocument profile, GameAssignmentEdit draft)"
+        ],
+        [
+          731,
+          "private static void Remove(ProfileDocument profile, string commandId, string slot)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/GameWorkspaceChromeState.cs",
+      "blob": "4a420e2f57dbf276531b7276d2ab16172d59bc85",
+      "lines": 22,
+      "declarations": [
+        [
+          5,
+          "public sealed record GameWorkspaceChromeState(bool HasProfile, bool Pending, bool CanSave, bool CanDiscard, bool CanExport, string Status)"
+        ],
+        [
+          10,
+          "public static GameWorkspaceChromeState For(GameProfileSession? session, string? revision, string? editedName, bool busy = false)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/GameWorkspaceLeaveGuard.cs",
+      "blob": "b8ad5a2e44af643a8f178ac357b9d02e71c777c4",
+      "lines": 41,
+      "declarations": [
+        [
+          4,
+          "public static class GameWorkspaceLeaveGuard"
+        ],
+        [
+          8,
+          "public static bool Confirm(bool pending, Func<GameWorkspaceLeaveDecision> choose, Func<bool> save, Action discard)"
+        ],
+        [
+          25,
+          "public static async Task<bool> ConfirmAsync(bool pending, Func<GameWorkspaceLeaveDecision> choose, Func<Task<bool>> save, Action discard)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/WorkspaceAssignmentActionState.cs",
+      "blob": "ac8f3849a18db803d9a76160a5a0aebe862d8beb",
+      "lines": 36,
+      "declarations": [
+        [
+          7,
+          "public sealed record WorkspaceAssignmentActionState(bool Supported, bool Enabled, string Reason)"
+        ],
+        [
+          11,
+          "public static WorkspaceAssignmentActionState For(WorkspaceAssignmentAction action, WorkspaceAssignmentContext context, WorkspaceAssignmentActionSupport support)"
+        ],
+        [
+          23,
+          "private static string Gate(WorkspaceAssignmentAction action, WorkspaceAssignmentContext context)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/WorkspaceAssignmentContext.cs",
+      "blob": "435944fa24bc404be970210a8bb9f1c7047eb045",
+      "lines": 14,
+      "declarations": [
+        [
+          4,
+          "public readonly record struct WorkspaceAssignmentContext(string Scope, bool Open, bool ReadOnly, bool Busy, bool Testing)"
+        ],
+        [
+          8,
+          "public string BlockedReason => !Open ? \"Open a configuration before editing assignments.\""
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/WorkspaceAssignmentHost.cs",
+      "blob": "4e39a85e5845e8923baa5c1102b94669a306c640",
+      "lines": 15,
+      "declarations": [
+        [
+          6,
+          "public sealed class WorkspaceAssignmentHost(Func<WorkspaceAssignmentContext> context, Func<string> snapshot) : IWorkspaceAssignmentHost"
+        ],
+        [
+          10,
+          "public WorkspaceAssignmentContext Context => context();"
+        ],
+        [
+          12,
+          "public string CaptureSnapshot() => snapshot();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/WorkspaceAssignmentOperation.cs",
+      "blob": "efe01528a50aac1af3bf93620e5b17f11259c848",
+      "lines": 17,
+      "declarations": [
+        [
+          6,
+          "public sealed class WorkspaceAssignmentOperation(WorkspaceAssignmentTarget target, Func<GameAssignmentReview> review, Func<DraftResult> apply) : IWorkspaceAssignmentOperation"
+        ],
+        [
+          10,
+          "public WorkspaceAssignmentTarget Target { get; } = target;"
+        ],
+        [
+          12,
+          "public GameAssignmentReview Review() => review();"
+        ],
+        [
+          14,
+          "public DraftResult Apply() => apply();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Games/WorkspaceAssignmentWorkflow.cs",
+      "blob": "b2585e310da6e49fa6cfd7a9219d4430c0a1c449",
+      "lines": 69,
+      "declarations": [
+        [
+          6,
+          "public sealed class WorkspaceAssignmentWorkflow"
+        ],
+        [
+          8,
+          "private int _executing;"
+        ],
+        [
+          11,
+          "public event EventHandler<DraftResult>? Completed;"
+        ],
+        [
+          13,
+          "public WorkspaceAssignmentTarget? Selection { get; private set; }"
+        ],
+        [
+          15,
+          "public DraftResult Execute(IWorkspaceAssignmentHost host, WorkspaceAssignmentTarget target, Func<GameAssignmentReview> review, Action apply)"
+        ],
+        [
+          26,
+          "public DraftResult Execute(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation)"
+        ],
+        [
+          43,
+          "private static DraftResult Run(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation)"
+        ],
+        [
+          60,
+          "private static DraftResult? Check(WorkspaceAssignmentContext context, WorkspaceAssignmentTarget target)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IConnectedDeviceDiscovery.cs",
+      "blob": "6560193d4e31f24e9f744df9e40e6cfdd7109334",
+      "lines": 12,
+      "declarations": [
+        [
+          4,
+          "public interface IConnectedDeviceDiscovery"
+        ],
+        [
+          9,
+          "IReadOnlyList<DetectedDcsDevice> Discover();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IControllerCapabilityDiscovery.cs",
+      "blob": "58501ac24ae622578eb8ee0c029d8bef4d65d0ca",
+      "lines": 13,
+      "declarations": [
+        [
+          4,
+          "public interface IControllerCapabilityDiscovery"
+        ],
+        [
+          10,
+          "Task<IReadOnlyList<ControllerObservation>> DiscoverAsync(CancellationToken ct = default);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IGameWorkspaceStore.cs",
+      "blob": "735aaf0b9196181a4867835074336759c4573c53",
+      "lines": 23,
+      "declarations": [
+        [
+          6,
+          "public interface IGameWorkspaceStore"
+        ],
+        [
+          10,
+          "IReadOnlyList<GameWorkspaceEntry> List();"
+        ],
+        [
+          12,
+          "GameWorkspaceRead Load(Guid id);"
+        ],
+        [
+          14,
+          "string Save(GameWorkspace workspace, string? expectedRevision);"
+        ],
+        [
+          16,
+          "void Delete(Guid id, string expectedRevision);"
+        ],
+        [
+          18,
+          "GameSelectionState ReadSelection();"
+        ],
+        [
+          20,
+          "void SaveSelection(GameSelectionState selection);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IWorkspaceAssignmentHost.cs",
+      "blob": "95f114eb7a0f286a47efae56bb94693339c7017d",
+      "lines": 15,
+      "declarations": [
+        [
+          6,
+          "public interface IWorkspaceAssignmentHost"
+        ],
+        [
+          10,
+          "WorkspaceAssignmentContext Context { get; }"
+        ],
+        [
+          12,
+          "string CaptureSnapshot();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IWorkspaceAssignmentOperation.cs",
+      "blob": "6ae671fb6e87ba225763eadf68d8a4806ab00fc8",
+      "lines": 17,
+      "declarations": [
+        [
+          6,
+          "public interface IWorkspaceAssignmentOperation"
+        ],
+        [
+          10,
+          "WorkspaceAssignmentTarget Target { get; }"
+        ],
+        [
+          12,
+          "GameAssignmentReview Review();"
+        ],
+        [
+          14,
+          "DraftResult Apply();"
+        ]
+      ],
+      "xaml_wiring": []
+    }
+  ]
+}

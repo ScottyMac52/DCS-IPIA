@@ -1,0 +1,2262 @@
+{
+  "baseline": "0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0",
+  "extraction": "Lexical declaration index, not a semantic C# parser. Line numbers and blob IDs are authoritative source locators; method bodies and implicit/anonymous members must be read at the pinned source. Call-path and ownership analysis is in ../workspace-role-migration.md.",
+  "files": [
+    {
+      "path": "src/Heimdall.App/DcsControllerSelection.cs",
+      "blob": "82d4b3db15bfd902937e22a6834ee9e22336d475",
+      "lines": 99,
+      "declarations": [
+        [
+          11,
+          "internal sealed class DcsControllerSelection : IDisposable"
+        ],
+        [
+          13,
+          "private Guid? _selectedController;"
+        ],
+        [
+          14,
+          "private bool _linkingController;"
+        ],
+        [
+          16,
+          "private readonly ListBox _picker;"
+        ],
+        [
+          17,
+          "private readonly Func<DcsEditorWorkspaceSnapshot?> _workspace;"
+        ],
+        [
+          18,
+          "private UserControl? _view;"
+        ],
+        [
+          22,
+          "internal DcsControllerSelection(ListBox picker, Func<DcsEditorWorkspaceSnapshot?> workspace)"
+        ],
+        [
+          29,
+          "internal void Link(UserControl view)"
+        ],
+        [
+          63,
+          "public void Dispose()"
+        ],
+        [
+          75,
+          "private static Selector? ControllerSelector(UserControl view) =>"
+        ],
+        [
+          78,
+          "private void ControllerSelectionChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          87,
+          "private void SelectControllerPage(UserControl view)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/DcsModuleWorkspaceViewModel.cs",
+      "blob": "a90eb85440a08bfd8dbd56bb3202e7f24b20e4fa",
+      "lines": 304,
+      "declarations": [
+        [
+          8,
+          "public sealed class DcsModuleWorkspaceViewModel"
+        ],
+        [
+          12,
+          "public DcsModuleWorkspaceViewModel(DcsModuleWorkspacePreview preview)"
+        ],
+        [
+          84,
+          "public DcsModuleWorkspaceViewModel(DcsEditorWorkspaceSnapshot saved)"
+        ],
+        [
+          118,
+          "public DcsModuleWorkspaceViewModel(DcsFolderImportResult folder)"
+        ],
+        [
+          171,
+          "public DcsEditorWorkspaceSnapshot? Workspace { get; }"
+        ],
+        [
+          173,
+          "public IReadOnlyDictionary<string, string> Labels { get; } = new Dictionary<string, string>();"
+        ],
+        [
+          175,
+          "public string? CommonRoot { get; set; }"
+        ],
+        [
+          177,
+          "public string? SourceFolder { get; set; }"
+        ],
+        [
+          179,
+          "public string? ModuleDcsId { get; }"
+        ],
+        [
+          181,
+          "public IReadOnlyList<DcsBinding> ImportedBindings { get; }"
+        ],
+        [
+          183,
+          "public Guid ModuleId { get; }"
+        ],
+        [
+          185,
+          "public string WindowTitle { get; }"
+        ],
+        [
+          187,
+          "public string Summary { get; }"
+        ],
+        [
+          189,
+          "public string Commit { get; }"
+        ],
+        [
+          191,
+          "public string SourceNote { get; }"
+        ],
+        [
+          193,
+          "public IReadOnlyList<string> Profiles { get; }"
+        ],
+        [
+          195,
+          "public IReadOnlyList<string> Bindings { get; }"
+        ],
+        [
+          197,
+          "public IReadOnlyList<string> Pages { get; }"
+        ],
+        [
+          199,
+          "public IReadOnlyList<string> PageKeys { get; }"
+        ],
+        [
+          201,
+          "public IReadOnlyList<KneeboardImageAsset> Images { get; }"
+        ],
+        [
+          203,
+          "public IReadOnlyList<UiLayerDiagram> UiDiagrams { get; }"
+        ],
+        [
+          205,
+          "public IReadOnlyList<DcsCommandPaletteEntry> ModuleCommands { get; }"
+        ],
+        [
+          207,
+          "public IReadOnlyList<DcsCommandPaletteEntry> UiCommands { get; }"
+        ],
+        [
+          209,
+          "public string PaletteSourceNote { get; }"
+        ],
+        [
+          211,
+          "public DcsDraftAssignmentService? Draft { get; }"
+        ],
+        [
+          213,
+          "public IReadOnlyList<string> ModuleModifierChoices { get; }"
+        ],
+        [
+          215,
+          "public IReadOnlyList<string> UiModifierChoices { get; }"
+        ],
+        [
+          217,
+          "public IReadOnlyList<string> ModifierChoices { get; }"
+        ],
+        [
+          219,
+          "public string DraftNote { get; }"
+        ],
+        [
+          221,
+          "public IReadOnlyList<string> UiUsage { get; }"
+        ],
+        [
+          223,
+          "public bool HasErrors { get; }"
+        ],
+        [
+          225,
+          "public IReadOnlyList<string> Diagnostics { get; }"
+        ],
+        [
+          227,
+          "public IReadOnlyList<string> Provenance { get; }"
+        ],
+        [
+          230,
+          "private static (DcsDraftAssignmentService?, string)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/DcsModuleWorkspaceWindow.xaml",
+      "blob": "0685eae73f36cdea123157933adcd87f88780059",
+      "lines": 142,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.DcsModuleWorkspaceWindow\""
+        ],
+        [
+          10,
+          "x:Name=\"WorkspaceRoot\""
+        ],
+        [
+          14,
+          "x:Name=\"GameWorkspaceSelectors\""
+        ],
+        [
+          15,
+          "x:Name=\"WorkspaceGamePicker\" SelectionChanged=\"WorkspaceGameChanged\""
+        ],
+        [
+          16,
+          "x:Name=\"WorkspaceProfilePicker\" SelectionChanged=\"WorkspaceProfileChanged\""
+        ],
+        [
+          19,
+          "x:Name=\"SaveWorkspaceButton\" Click=\"SaveClicked\""
+        ],
+        [
+          20,
+          "x:Name=\"DiscardWorkspaceButton\" Click=\"DiscardClicked\""
+        ],
+        [
+          21,
+          "x:Name=\"OutputMenuButton\""
+        ],
+        [
+          49,
+          "x:Name=\"FeatureNav\""
+        ],
+        [
+          50,
+          "SelectionChanged=\"FeatureNavChanged\""
+        ],
+        [
+          62,
+          "x:Name=\"AssignmentModes\""
+        ],
+        [
+          63,
+          "x:Name=\"AssignMode\" Click=\"AssignmentModeClicked\""
+        ],
+        [
+          64,
+          "x:Name=\"TestMode\" Click=\"AssignmentModeClicked\""
+        ],
+        [
+          68,
+          "x:Name=\"FeatureActions\""
+        ],
+        [
+          69,
+          "x:Name=\"ControllerPanes\""
+        ],
+        [
+          74,
+          "x:Name=\"ControllerPicker\""
+        ],
+        [
+          79,
+          "x:Name=\"FeatureContent\""
+        ],
+        [
+          85,
+          "x:Name=\"ModuleDetails\""
+        ],
+        [
+          97,
+          "x:Name=\"ImportDiagnostics\""
+        ],
+        [
+          104,
+          "x:Name=\"PendingSummary\""
+        ],
+        [
+          105,
+          "x:Name=\"EditorMessage\""
+        ],
+        [
+          106,
+          "x:Name=\"OutputFailureDiagnostic\""
+        ],
+        [
+          107,
+          "x:Name=\"BuildStatus\""
+        ],
+        [
+          116,
+          "x:Name=\"WorkspaceSettingsButton\" Click=\"SettingsClicked\""
+        ],
+        [
+          117,
+          "Click=\"Close_Click\""
+        ],
+        [
+          119,
+          "x:Name=\"OutputMenu\""
+        ],
+        [
+          127,
+          "x:Name=\"PackageVersion\""
+        ],
+        [
+          128,
+          "TextChanged=\"BuildVersionChanged\""
+        ],
+        [
+          129,
+          "x:Name=\"ValidateModuleButton\" Click=\"ValidateModuleClicked\""
+        ],
+        [
+          130,
+          "x:Name=\"ExportModuleSnapshotButton\" Click=\"ExportModuleSnapshotClicked\""
+        ],
+        [
+          131,
+          "x:Name=\"ExportModuleDocumentationButton\" Click=\"ExportModuleDocumentationClicked\""
+        ],
+        [
+          132,
+          "x:Name=\"ExportCompleteReleaseButton\" Click=\"ExportCompleteReleaseClicked\""
+        ],
+        [
+          133,
+          "x:Name=\"BuildButton\""
+        ],
+        [
+          134,
+          "Click=\"BuildClicked\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/DcsModuleWorkspaceWindow.xaml.cs",
+      "blob": "b60ec5af7b3c5af8134909188c08b56d526cdd3d",
+      "lines": 235,
+      "declarations": [
+        [
+          16,
+          "public partial class DcsModuleWorkspaceWindow : GameWorkspaceWindow"
+        ],
+        [
+          18,
+          "private bool _changingSelection;"
+        ],
+        [
+          19,
+          "private readonly DcsWindowContext _context;"
+        ],
+        [
+          20,
+          "private readonly DcsModuleWorkspaceViewModel _viewModel;"
+        ],
+        [
+          21,
+          "private readonly IAppSettingsService? _settings;"
+        ],
+        [
+          22,
+          "private readonly DcsWorkspaceOutput _output;"
+        ],
+        [
+          24,
+          "public DcsModuleWorkspaceWindow(DcsModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null, IDcsEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null, Func<bool, IReadOnlyList<string>?>? commandFilePicker = null, Func<bool, string?>? outputPathPicker = null, Func<string?>? documentationFolderPicker = null, Func<string?>? completeReleaseFolderPicker = null, Func<string?>? integrationFilePicker = null, Func<string?>? axisDefaultsFilePicker = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory = null, Action<string, string>? inputLogClipboardWriter = null, HardwareInventoryManager? inventory = null, IUserMappingLibrary? userMappings = null, Func<DcsMappingRevisionReview, bool>? mappingReviewConfirmation = null, ILogger<DcsModuleWorkspaceWindow>? logger = null, bool persistLayout = true, DcsTrainingEnvironment? training = null, bool allowGameSwitch = false, IReadOnlyList<DcsSavedModuleChoice>? moduleChoices = null)"
+        ],
+        [
+          81,
+          "public string? RequestedGame { get; private set; }"
+        ],
+        [
+          83,
+          "public Guid? RequestedModule { get; private set; }"
+        ],
+        [
+          84,
+          "internal DcsWorkspaceSession Session { get; }"
+        ],
+        [
+          85,
+          "internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => Session.RunStructureEdit(edit);"
+        ],
+        [
+          86,
+          "internal void UpdateBuildAvailability() => RefreshWorkspaceState();"
+        ],
+        [
+          90,
+          "protected override bool HasWorkspaceChanges => Session.HasPendingChanges;"
+        ],
+        [
+          92,
+          "protected override bool CanSaveWorkspace => Session.Repository is not null && Session.Saved is not null &&"
+        ],
+        [
+          95,
+          "protected override Task SaveWorkspaceCoreAsync() => Session.SaveAsync();"
+        ],
+        [
+          97,
+          "protected override void DiscardWorkspaceCore() => Session.Discard();"
+        ],
+        [
+          99,
+          "protected override void ReportWorkspaceError(Exception exception) => EditorMessage.Text = \"Unable to save workspace: \" + exception.Message;"
+        ],
+        [
+          101,
+          "protected override bool ConfirmDiscardWorkspaceChanges() => ThemeMessageBox.Show(this, \"Discard unsaved command, page, device, modifier, assignment, and label changes?\", \"Pending changes\", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;"
+        ],
+        [
+          105,
+          "protected override void OnWorkspaceStateChanged()"
+        ],
+        [
+          115,
+          "private void SessionChanged(object? sender, EventArgs e) => RefreshWorkspaceState();"
+        ],
+        [
+          116,
+          "private void SessionStatusChanged(object? sender, string message) => EditorMessage.Text = message;"
+        ],
+        [
+          117,
+          "private void OutputChanged(object? sender, EventArgs e)"
+        ],
+        [
+          123,
+          "private Task<bool> ConfirmWorkspaceSwitch() => ConfirmWorkspaceLeaveAsync(() => ThemeMessageBox.Show(this, \"Save pending edits before switching? Yes saves, No discards, Cancel stays here.\", \"Switch workspace\", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) switch { MessageBoxResult.Yes => GameWorkspaceLeaveDecision.Save, MessageBoxResult.No => GameWorkspaceLeaveDecision.Discard, _ => GameWorkspaceLeaveDecision.Cancel });"
+        ],
+        [
+          132,
+          "private async void WorkspaceGameChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          140,
+          "private async void WorkspaceProfileChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          152,
+          "private void FeatureSelected(string key)"
+        ],
+        [
+          160,
+          "private void RefreshFeatureAvailability()"
+        ],
+        [
+          168,
+          "private void FeatureNavChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          173,
+          "private void AssignmentModeClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          180,
+          "private void SettingsClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          187,
+          "private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();"
+        ],
+        [
+          188,
+          "private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(null);"
+        ],
+        [
+          189,
+          "private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(true);"
+        ],
+        [
+          190,
+          "private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false);"
+        ],
+        [
+          191,
+          "private async void ExportModuleDocumentationClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, true);"
+        ],
+        [
+          192,
+          "private async void ExportCompleteReleaseClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, false, true);"
+        ],
+        [
+          193,
+          "private Task RunOutputAsync(bool? snapshotExport, bool documentation = false, bool completeRelease = false)"
+        ],
+        [
+          200,
+          "private void OutputMenuOpened(object? sender, EventArgs e) => PackageVersion.Focus();"
+        ],
+        [
+          201,
+          "private void OutputMenuKeyDown(object sender, System.Windows.Input.KeyEventArgs e)"
+        ],
+        [
+          207,
+          "private string? ChooseOutputPath(bool snapshot)"
+        ],
+        [
+          220,
+          "private string? ChooseDocumentationFolder()"
+        ],
+        [
+          226,
+          "private string? ChooseCompleteReleaseFolder()"
+        ],
+        [
+          232,
+          "private void Close_Click(object sender, RoutedEventArgs e) => Close();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/DcsWindowContext.cs",
+      "blob": "4d55ea74e1a975eb8f15624347d615333c1b0838",
+      "lines": 97,
+      "declarations": [
+        [
+          9,
+          "public sealed class DcsWindowContext : IDcsModuleWorkspaceContext"
+        ],
+        [
+          11,
+          "private readonly DcsWorkspaceSession _session;"
+        ],
+        [
+          12,
+          "private readonly Func<Task> _save;"
+        ],
+        [
+          13,
+          "private readonly Action _discard;"
+        ],
+        [
+          17,
+          "public DcsWindowContext(DcsModuleWorkspaceWindow window)"
+        ],
+        [
+          25,
+          "internal DcsTrainingEnvironment? Training => _session.Training;"
+        ],
+        [
+          28,
+          "public DcsEditorWorkspaceSnapshot? Working => _session.Working;"
+        ],
+        [
+          30,
+          "public DcsDraftAssignmentService? Draft => _session.Draft;"
+        ],
+        [
+          32,
+          "public DcsEditorWorkspaceSnapshot? Saved => _session.Saved;"
+        ],
+        [
+          34,
+          "public IDcsEditorWorkspaceRepository? Repository => _session.Repository;"
+        ],
+        [
+          36,
+          "public IConnectedDeviceDiscovery DeviceDiscovery => _session.DeviceDiscovery;"
+        ],
+        [
+          38,
+          "public HardwareInventoryManager? Inventory => _session.Inventory;"
+        ],
+        [
+          40,
+          "public IUserMappingLibrary? UserMappings => _session.UserMappings;"
+        ],
+        [
+          42,
+          "public Func<DcsMappingRevisionReview, bool>? MappingReviewConfirmation => _session.MappingReviewConfirmation;"
+        ],
+        [
+          44,
+          "public Func<bool, IReadOnlyList<string>?>? CommandFilePicker => _session.CommandFilePicker;"
+        ],
+        [
+          46,
+          "public Func<string?>? IntegrationFilePicker => _session.IntegrationFilePicker;"
+        ],
+        [
+          48,
+          "public Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? InputSourceFactory => _session.InputSourceFactory;"
+        ],
+        [
+          50,
+          "public Action<string, string>? InputLogClipboardWriter => _session.InputLogClipboardWriter;"
+        ],
+        [
+          52,
+          "public Func<string?>? AxisDefaultsFilePicker => _session.AxisDefaultsFilePicker;"
+        ],
+        [
+          54,
+          "public string SavedGamesRoot"
+        ],
+        [
+          60,
+          "public IReadOnlyDictionary<string, string> Labels => _session.Labels;"
+        ],
+        [
+          63,
+          "public event EventHandler? StateChanged"
+        ],
+        [
+          69,
+          "public event EventHandler<string>? StatusChanged"
+        ],
+        [
+          76,
+          "public void RaiseStatus(string message) => _session.RaiseStatus(message);"
+        ],
+        [
+          78,
+          "public void RaiseStateChanged() => _session.RaiseStateChanged();"
+        ],
+        [
+          81,
+          "public void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)"
+        ],
+        [
+          85,
+          "public Task SaveAsync() => _save();"
+        ],
+        [
+          88,
+          "public void Discard() => _discard();"
+        ],
+        [
+          91,
+          "public void SetStatus(string message) => RaiseStatus(message);"
+        ],
+        [
+          94,
+          "public void SetLabel(string key, string? value) => _session.SetLabel(key, value);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentDiagram.cs",
+      "blob": "30434950e8ce137759d3252f58db2843a6b5ac75",
+      "lines": 207,
+      "declarations": [
+        [
+          17,
+          "internal sealed class DcsAssignmentDiagram( DcsAssignmentViewState state, FrameworkElement owner, Canvas Diagram, Slider Zoom, TextBlock DeviceTitle, AssignmentInputPicker InputPicker, DcsAssignmentInspector inspector, DcsAssignmentDragDrop drag, DcsAssignmentLabels labels, DcsAssignmentEditing editing, Func<WorkspaceAssignmentContext> AssignmentContext, Func<HardwareGraphicControl?, WorkspaceAssignmentAction, WorkspaceAssignmentActionState> actionState)"
+        ],
+        [
+          31,
+          "private readonly Dictionary<string, Action> _inputSelections = new(StringComparer.Ordinal);"
+        ],
+        [
+          32,
+          "private const string UnAssignedText = \"Unassigned\", SelectDeviceText = \"Select a device\", UnableToRenderMessage = \"Unable to render: \";"
+        ],
+        [
+          34,
+          "internal void InputPickerChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          41,
+          "internal void RefreshDiagram()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentDragDrop.cs",
+      "blob": "1d0c18290cf011eba2b589bde4cfff35158890af",
+      "lines": 212,
+      "declarations": [
+        [
+          12,
+          "internal sealed class DcsAssignmentDragDrop( DcsAssignmentViewState state, FrameworkElement owner, FrameworkElement AssignmentWorkspace, TextBlock SelectedCallout, DcsAssignmentEditing editing, Action refresh)"
+        ],
+        [
+          20,
+          "private Point? _calloutDragStart;"
+        ],
+        [
+          21,
+          "private HardwareGraphicControl? _calloutDragControl;"
+        ],
+        [
+          22,
+          "private TitleAdorner? _calloutAdorner;"
+        ],
+        [
+          23,
+          "private AdornerLayer? _calloutLayer;"
+        ],
+        [
+          25,
+          "internal void ClearStart() { _calloutDragStart = null; _calloutDragControl = null; }"
+        ],
+        [
+          26,
+          "internal void Start(HardwareGraphicControl control, MouseButtonEventArgs args, Border border)"
+        ],
+        [
+          30,
+          "internal void Move(Border border, HardwareGraphicControl control, MouseEventArgs args)"
+        ],
+        [
+          39,
+          "internal void WorkspacePreviewDragOver(object sender, DragEventArgs e)"
+        ],
+        [
+          47,
+          "internal void WorkspaceDragOver(object sender, DragEventArgs e)"
+        ],
+        [
+          54,
+          "internal void WorkspaceDrop(object sender, DragEventArgs e)"
+        ],
+        [
+          61,
+          "internal void DropOnCallout(HardwareGraphicControl control, DragEventArgs e)"
+        ],
+        [
+          147,
+          "private void CalloutDrag(Border source, HardwareGraphicControl control, MouseEventArgs e)"
+        ],
+        [
+          191,
+          "private void CalloutGiveFeedback(object sender, GiveFeedbackEventArgs e)"
+        ],
+        [
+          209,
+          "private static extern bool GetCursorPos(out NativeScreenPoint point);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentEditing.cs",
+      "blob": "cc35275505f316f3757652a619e83cd5a10571af",
+      "lines": 212,
+      "declarations": [
+        [
+          10,
+          "internal sealed class DcsAssignmentEditing( DcsAssignmentViewState state, FrameworkElement owner, TextBlock SelectedCallout, Func<DcsCommandPaletteEntry?> selectedCommand, Action refresh, Action clearLabel, Func<WorkspaceAssignmentContext> AssignmentContext, Func<string> AssignmentSnapshot, Func<DcsDraftAssignmentSlot, string, Func<DraftResult>, DraftResult> ExecuteAssignment)"
+        ],
+        [
+          22,
+          "internal void AssignClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          59,
+          "internal void ClearClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          93,
+          "internal void ClearLayerClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          112,
+          "internal void DropPaletteCommand(HardwareGraphicControl control, DcsCommandPaletteEntry command)"
+        ],
+        [
+          134,
+          "internal DraftResult AssignWithConfirmation(DcsDraftAssignmentSlot slot, DcsDraftCommand command) =>"
+        ],
+        [
+          137,
+          "internal DraftResult AssignWithConfirmationCore(DcsDraftAssignmentSlot slot, DcsDraftCommand command)"
+        ],
+        [
+          171,
+          "internal void UndoClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          178,
+          "internal Action<AxisTuningWindow>? AxisTuningPresenter { get; set; }"
+        ],
+        [
+          180,
+          "internal void TuneAxisClicked(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentInspector.cs",
+      "blob": "3b310d68311d031a68a0af2109e59dbfeb165da0",
+      "lines": 75,
+      "declarations": [
+        [
+          8,
+          "internal sealed class DcsAssignmentInspector( DcsAssignmentViewState state, AssignmentInputPicker InputPicker, TextBlock SelectedCallout, TextBlock InspectorDetails, TextBox LabelEditor, TextBox GenericControlName, Button RenameGenericControlButton, Action refreshActions)"
+        ],
+        [
+          18,
+          "private const string UnAssignedText = \"Unassigned\";"
+        ],
+        [
+          20,
+          "internal void Select(HardwareGraphicControl control, UiLayerDiagram diagram, string caption, bool protectedInput, string modifierDescription)"
+        ],
+        [
+          57,
+          "internal void Clear()"
+        ],
+        [
+          67,
+          "internal void ClearLabel()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentLabels.cs",
+      "blob": "f2f0d2b1aaa7f6cc257a731fb2fb9a9f2b194171",
+      "lines": 308,
+      "declarations": [
+        [
+          12,
+          "internal sealed class DcsAssignmentLabels( DcsAssignmentViewState state, FrameworkElement owner, TextBox LabelEditor, TextBox GenericControlName, TextBlock SelectedCallout, Action refresh)"
+        ],
+        [
+          21,
+          "internal void ChangeCalloutLabel(HardwareGraphicControl control)"
+        ],
+        [
+          82,
+          "internal void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          242,
+          "internal void LabelChanged(object sender, TextChangedEventArgs e)"
+        ],
+        [
+          255,
+          "internal void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          289,
+          "internal void RenameGenericControlClicked(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentPreview.cs",
+      "blob": "46115d4d945caa64e51483bdcfeafb22afc02a45",
+      "lines": 63,
+      "declarations": [
+        [
+          13,
+          "internal sealed class DcsAssignmentPreview(DcsAssignmentViewState state, FrameworkElement owner, TextBlock SelectedCallout)"
+        ],
+        [
+          16,
+          "internal void RenderClicked(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentViewState.cs",
+      "blob": "0d61e4b66eb73d2f95236c2d5631baa2a085b250",
+      "lines": 30,
+      "declarations": [
+        [
+          8,
+          "internal sealed class DcsAssignmentViewState(Func<UiLayerDiagram?> diagram, Func<AssignmentLayer> layer, Func<string?> chord)"
+        ],
+        [
+          11,
+          "internal IDcsModuleWorkspaceContext? Context { get; set; }"
+        ],
+        [
+          12,
+          "internal HardwareGraphicControl? Selected { get; set; }"
+        ],
+        [
+          13,
+          "internal string? InputKey { get; set; }"
+        ],
+        [
+          14,
+          "internal Guid? DeviceId { get; set; }"
+        ],
+        [
+          15,
+          "internal bool UpdatingLabel { get; set; }"
+        ],
+        [
+          16,
+          "internal UiLayerDiagram? Diagram => diagram();"
+        ],
+        [
+          17,
+          "internal AssignmentLayer Layer => layer();"
+        ],
+        [
+          18,
+          "internal string LayerName => chord() is { } value && value != \"Base\" ? value : \"\";"
+        ],
+        [
+          19,
+          "internal string Chord => chord() is { } value && value != \"Base\" ? value.Replace(\" + \", \"+\", StringComparison.Ordinal) : \"\";"
+        ],
+        [
+          20,
+          "internal IReadOnlyList<DcsWorkspaceModifier> Reserved(UiLayerDiagram target, string key) =>"
+        ],
+        [
+          23,
+          "internal string? ReservationError(UiLayerDiagram target, string key)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentsView.xaml",
+      "blob": "3a8efbdb55361f0eeea7bca34cfa0f9508e9cd2a",
+      "lines": 72,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Features.Assignments.DcsAssignmentsView\""
+        ],
+        [
+          7,
+          "x:Name=\"CommandManager\""
+        ],
+        [
+          12,
+          "x:Name=\"ControllerHeader\""
+        ],
+        [
+          13,
+          "x:Name=\"StatusText\""
+        ],
+        [
+          16,
+          "x:Name=\"DeviceChoice\" SelectionChanged=\"DeviceChanged\""
+        ],
+        [
+          18,
+          "x:Name=\"Scope\" SelectionChanged=\"ScopeChanged\""
+        ],
+        [
+          23,
+          "x:Name=\"Layers\" SelectionChanged=\"LayerChanged\""
+        ],
+        [
+          27,
+          "x:Name=\"DeviceTitle\""
+        ],
+        [
+          28,
+          "x:Name=\"FitDiagramButton\" Click=\"FitDiagramClicked\""
+        ],
+        [
+          30,
+          "x:Name=\"Zoom\" Click=\"Zoom_MouseDoubleClick\""
+        ],
+        [
+          31,
+          "x:Name=\"ZoomPercent\""
+        ],
+        [
+          34,
+          "x:Name=\"DiagramScroll\""
+        ],
+        [
+          35,
+          "x:Name=\"Diagram\""
+        ],
+        [
+          40,
+          "x:Name=\"SelectionEditor\""
+        ],
+        [
+          42,
+          "x:Name=\"InputPicker\""
+        ],
+        [
+          43,
+          "SelectionChanged=\"InputPickerChanged\""
+        ],
+        [
+          44,
+          "x:Name=\"InputDetails\""
+        ],
+        [
+          47,
+          "x:Name=\"LabelEditor\" TextChanged=\"LabelChanged\""
+        ],
+        [
+          50,
+          "x:Name=\"RenameGenericControlButton\" Click=\"RenameGenericControlClicked\""
+        ],
+        [
+          51,
+          "x:Name=\"GenericControlName\""
+        ],
+        [
+          53,
+          "x:Name=\"InspectorDetails\""
+        ],
+        [
+          57,
+          "Click=\"AssignClicked\""
+        ],
+        [
+          58,
+          "Click=\"ClearClicked\""
+        ],
+        [
+          59,
+          "Click=\"ClearLayerClicked\""
+        ],
+        [
+          60,
+          "Click=\"UndoClicked\""
+        ],
+        [
+          61,
+          "x:Name=\"SaveDraftButton\" Click=\"SaveClicked\""
+        ],
+        [
+          62,
+          "x:Name=\"DiscardDraftButton\" Click=\"DiscardClicked\""
+        ],
+        [
+          63,
+          "Click=\"TuneAxisClicked\""
+        ],
+        [
+          64,
+          "Click=\"RenderClicked\""
+        ],
+        [
+          65,
+          "Click=\"LoadAuthoredLabelsClicked\""
+        ],
+        [
+          66,
+          "Click=\"SearchReplaceLabelsClicked\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Features/Assignments/DcsAssignmentsView.xaml.cs",
+      "blob": "87611e28616827794c005533ac6b08921924e26e",
+      "lines": 242,
+      "declarations": [
+        [
+          16,
+          "public partial class DcsAssignmentsView : GameAssignmentsView"
+        ],
+        [
+          18,
+          "private readonly DcsAssignmentViewState _state;"
+        ],
+        [
+          19,
+          "private readonly DcsAssignmentInspector _inspector;"
+        ],
+        [
+          20,
+          "private readonly DcsAssignmentEditing _editing;"
+        ],
+        [
+          21,
+          "private readonly DcsAssignmentLabels _labels;"
+        ],
+        [
+          22,
+          "private readonly DcsAssignmentDragDrop _drag;"
+        ],
+        [
+          23,
+          "private readonly DcsAssignmentDiagram _diagram;"
+        ],
+        [
+          24,
+          "private readonly DcsAssignmentPreview _preview;"
+        ],
+        [
+          25,
+          "private readonly DiagramViewport _viewport;"
+        ],
+        [
+          26,
+          "private TextBlock SelectedCallout => SelectionEditor.AssignmentDraftStatus;"
+        ],
+        [
+          27,
+          "private Button? TuneAxisButton => ActionBar.FindButton(this, \"Tune axis\u2026\");"
+        ],
+        [
+          28,
+          "private Button? AssignButton => ActionBar.FindButton(this, \"Assign selected command\");"
+        ],
+        [
+          29,
+          "private const string BaseLayerName = \"Base\", LayerSeparator = \" + \", LayerSeparatorTrim = \"+\", NoWorkingSnapshotText = \"No working snapshot\";"
+        ],
+        [
+          30,
+          "public DcsAssignmentsView()"
+        ],
+        [
+          64,
+          "public void Initialize(IDcsModuleWorkspaceContext context)"
+        ],
+        [
+          75,
+          "internal Action<AxisTuningWindow>? AxisTuningPresenter"
+        ],
+        [
+          80,
+          "internal void DropPaletteCommand(HardwareGraphicControl control, DcsCommandPaletteEntry command) => _editing.DropPaletteCommand(control, command);"
+        ],
+        [
+          82,
+          "protected override WorkspaceAssignmentContext CaptureAssignmentContext() => new( (_state.Context?.Working?.Configuration.Module.Id.ToString(\"N\") ?? \"\") + \":\" + _state.Diagram?.ProfileId + \":\" + _state.Layer + \":\" + Layers.SelectedItem, _state.Context?.Draft is not null, false, false, false);"
+        ],
+        [
+          86,
+          "protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(new { Assignments = _state.Context?.Draft?.Snapshot, Labels = _state.Context?.Labels.OrderBy(item => item.Key, StringComparer.Ordinal).ToArray() });"
+        ],
+        [
+          91,
+          "protected override Task SaveAssignmentsCoreAsync() => _state.Context?.SaveAsync()"
+        ],
+        [
+          93,
+          "protected override void DiscardAssignmentsCore()"
+        ],
+        [
+          98,
+          "protected override void RefreshAssignmentDrawing() => RefreshDiagram();"
+        ],
+        [
+          99,
+          "protected override void ShowAssignmentStatus(string message) => SelectedCallout.Text = message;"
+        ],
+        [
+          100,
+          "protected override string SaveSuccessMessage => \"Saved to database.\";"
+        ],
+        [
+          101,
+          "protected override string SaveFailurePrefix => \"Database save failed: \";"
+        ],
+        [
+          103,
+          "private WorkspaceAssignmentContext AssignmentContext() => CurrentAssignmentContext;"
+        ],
+        [
+          104,
+          "private DraftResult ExecuteNativeAssignment(DcsDraftAssignmentSlot slot, string command, Func<DraftResult> apply) =>"
+        ],
+        [
+          106,
+          "private void RefreshDiagram() => _diagram?.RefreshDiagram();"
+        ],
+        [
+          107,
+          "private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();"
+        ],
+        [
+          108,
+          "private void InputPickerChanged(object sender, SelectionChangedEventArgs e) => _diagram?.InputPickerChanged(sender, e);"
+        ],
+        [
+          109,
+          "private void AssignClicked(object sender, RoutedEventArgs e) => _editing.AssignClicked(sender, e);"
+        ],
+        [
+          110,
+          "private void ClearClicked(object sender, RoutedEventArgs e) => _editing.ClearClicked(sender, e);"
+        ],
+        [
+          111,
+          "private void ClearLayerClicked(object sender, RoutedEventArgs e) => _editing.ClearLayerClicked(sender, e);"
+        ],
+        [
+          112,
+          "private void UndoClicked(object sender, RoutedEventArgs e) => _editing.UndoClicked(sender, e);"
+        ],
+        [
+          113,
+          "private async void SaveClicked(object sender, RoutedEventArgs e) => await SaveAssignmentsAsync();"
+        ],
+        [
+          114,
+          "private void DiscardClicked(object sender, RoutedEventArgs e) => DiscardAssignments();"
+        ],
+        [
+          115,
+          "private void TuneAxisClicked(object sender, RoutedEventArgs e) => _editing.TuneAxisClicked(sender, e);"
+        ],
+        [
+          116,
+          "private void RenderClicked(object sender, RoutedEventArgs e) => _preview.RenderClicked(sender, e);"
+        ],
+        [
+          117,
+          "private void LabelChanged(object sender, TextChangedEventArgs e) => _labels?.LabelChanged(sender, e);"
+        ],
+        [
+          118,
+          "private void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e) => _labels.SearchReplaceLabelsClicked(sender, e);"
+        ],
+        [
+          119,
+          "private void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e) => _labels.LoadAuthoredLabelsClicked(sender, e);"
+        ],
+        [
+          120,
+          "private void RenameGenericControlClicked(object sender, RoutedEventArgs e) => _labels.RenameGenericControlClicked(sender, e);"
+        ],
+        [
+          121,
+          "protected override void RefreshAssignmentsCore()"
+        ],
+        [
+          168,
+          "private void DeviceChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          178,
+          "private void ScopeChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          185,
+          "private void LayerChanged(object sender, SelectionChangedEventArgs e) { if (AssignmentRefreshRunning) return; _inspector.Clear(); RefreshAssignments(); }"
+        ],
+        [
+          187,
+          "private void ZoomChanged(object sender, RoutedPropertyChangedEventArgs<double> e)"
+        ],
+        [
+          194,
+          "private void ZoomPercentChanged(object sender, RoutedEventArgs e)"
+        ],
+        [
+          199,
+          "private void Zoom_MouseDoubleClick(object sender, MouseButtonEventArgs e)"
+        ],
+        [
+          204,
+          "private void SynchronizeAssignmentSelection()"
+        ],
+        [
+          212,
+          "private WorkspaceAssignmentActionState AssignmentAction(HardwareGraphicControl? control, WorkspaceAssignmentAction action)"
+        ],
+        [
+          233,
+          "private void RefreshAssignmentActions()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandUsageWindow.xaml",
+      "blob": "cc76fac6c172261b6e35efa38f951b05d2b6c2e0",
+      "lines": 13,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Features.Commands.DcsCommandUsageWindow\""
+        ],
+        [
+          9,
+          "x:Name=\"Header\""
+        ],
+        [
+          10,
+          "Click=\"CloseClicked\""
+        ],
+        [
+          11,
+          "x:Name=\"Usage\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandUsageWindow.xaml.cs",
+      "blob": "a3b04d48ca1ff37f0e1d2c878bd7a6ee48d34106",
+      "lines": 58,
+      "declarations": [
+        [
+          9,
+          "public partial class DcsCommandUsageWindow : Window"
+        ],
+        [
+          12,
+          "public DcsCommandUsageWindow( string commandName, string category, IReadOnlyList<DcsDraftAssignment> assignments, DcsEditorWorkspaceSnapshot workspace, IReadOnlyDictionary<string, string> labels)"
+        ],
+        [
+          55,
+          "private void CloseClicked(object sender, RoutedEventArgs e) => Close();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandsManagementView.xaml",
+      "blob": "8f5e21e48756285e1ec27bf25d85d3e0a53716b1",
+      "lines": 89,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Features.Commands.DcsCommandsManagementView\""
+        ],
+        [
+          6,
+          "x:Name=\"StatusText\""
+        ],
+        [
+          8,
+          "x:Name=\"CatalogEditor\""
+        ],
+        [
+          10,
+          "x:Name=\"CatalogFields\""
+        ],
+        [
+          24,
+          "x:Name=\"CommandId\""
+        ],
+        [
+          25,
+          "x:Name=\"CommandName\""
+        ],
+        [
+          26,
+          "x:Name=\"CommandCategory\""
+        ],
+        [
+          28,
+          "x:Name=\"CommandIsAxis\""
+        ],
+        [
+          34,
+          "x:Name=\"CatalogActionsBar\""
+        ],
+        [
+          35,
+          "Click=\"AddClicked\""
+        ],
+        [
+          36,
+          "Click=\"UpdateClicked\""
+        ],
+        [
+          37,
+          "Click=\"RemoveClicked\""
+        ],
+        [
+          38,
+          "Click=\"ImportJsonClicked\""
+        ],
+        [
+          39,
+          "Click=\"ImportHtmlClicked\""
+        ],
+        [
+          40,
+          "Click=\"ClearAllClicked\""
+        ],
+        [
+          41,
+          "Click=\"SaveClicked\""
+        ],
+        [
+          42,
+          "Click=\"DiscardClicked\""
+        ],
+        [
+          48,
+          "x:Name=\"CommandSearch\" TextChanged=\"FiltersChanged\""
+        ],
+        [
+          55,
+          "x:Name=\"CommandCategoryFilter\" SelectionChanged=\"FiltersChanged\""
+        ],
+        [
+          59,
+          "x:Name=\"CommandTypeFilter\" SelectionChanged=\"FiltersChanged\""
+        ],
+        [
+          67,
+          "x:Name=\"CommandStateFilter\" SelectionChanged=\"FiltersChanged\""
+        ],
+        [
+          78,
+          "x:Name=\"Commands\""
+        ],
+        [
+          79,
+          "SelectionChanged=\"CommandSelected\" Click=\"CommandDoubleClicked\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandsManagementView.xaml.cs",
+      "blob": "b1c7cad4de0541d7f753ba6bc5f86069d30899eb",
+      "lines": 346,
+      "declarations": [
+        [
+          18,
+          "public partial class DcsCommandsManagementView : UserControl"
+        ],
+        [
+          21,
+          "private UIElement? _previewHost;"
+        ],
+        [
+          22,
+          "private IDcsModuleWorkspaceContext? _context;"
+        ],
+        [
+          23,
+          "private readonly GameAssignmentSelection _selection = new();"
+        ],
+        [
+          24,
+          "private DcsCommandPaletteEntry? _selected => CurrentPalette().FirstOrDefault(x => x.Id == _selection.CommandId);"
+        ],
+        [
+          25,
+          "private Guid? _assignmentDeviceId;"
+        ],
+        [
+          26,
+          "private DcsCommandPaletteEntry? _displayedCommand;"
+        ],
+        [
+          27,
+          "private bool _updatingFilters;"
+        ],
+        [
+          28,
+          "private bool _refreshing;"
+        ],
+        [
+          29,
+          "private AssignmentLayer? _assignmentScope;"
+        ],
+        [
+          30,
+          "private static readonly string[] CatalogActions = [\"Add\", \"Update\", \"Remove\", \"Import JSON\u2026\", \"Import HTML\u2026\", \"Clear all\"];"
+        ],
+        [
+          31,
+          "private Point? _dragStart;"
+        ],
+        [
+          32,
+          "private TitleAdorner? _adorner;"
+        ],
+        [
+          33,
+          "private AdornerLayer? _layer;"
+        ],
+        [
+          37,
+          "public event EventHandler<DcsCommandPaletteEntry?>? SelectedCommandChanged;"
+        ],
+        [
+          39,
+          "public DcsCommandPaletteEntry? SelectedCommand => _selected;"
+        ],
+        [
+          41,
+          "public DcsCommandsManagementView()"
+        ],
+        [
+          52,
+          "public void Initialize(IDcsModuleWorkspaceContext context)"
+        ],
+        [
+          63,
+          "public void UseAssignmentPalette(AssignmentLayer scope)"
+        ],
+        [
+          77,
+          "public void UseAssignmentController(Guid? profileId)"
+        ],
+        [
+          88,
+          "private static extern bool GetCursorPos(out NativeScreenPoint point);"
+        ],
+        [
+          90,
+          "private void Refresh()"
+        ],
+        [
+          98,
+          "private void WorkspaceStateChanged(object? sender, EventArgs e) => Refresh();"
+        ],
+        [
+          100,
+          "private void RefreshCommands()"
+        ],
+        [
+          151,
+          "private void FiltersChanged(object sender, EventArgs e) { if (!_updatingFilters) Refresh(); }"
+        ],
+        [
+          153,
+          "private IReadOnlyList<DcsCommandPaletteEntry> CurrentPalette() => _context?.Working is not { } working ? [] :"
+        ],
+        [
+          156,
+          "private void CommandSelected(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          176,
+          "private void AddClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          189,
+          "private void UpdateClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          200,
+          "private void RemoveClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          211,
+          "private void ImportJsonClicked(object sender, RoutedEventArgs e) => ImportCommands(false);"
+        ],
+        [
+          212,
+          "private void ImportHtmlClicked(object sender, RoutedEventArgs e) => ImportCommands(true);"
+        ],
+        [
+          214,
+          "private void ImportCommands(bool html)"
+        ],
+        [
+          238,
+          "private void ClearAllClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          258,
+          "private async void SaveClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          269,
+          "private void DiscardClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          275,
+          "private void CommandDoubleClicked(object sender, MouseButtonEventArgs e)"
+        ],
+        [
+          282,
+          "private void CommandDragStart(object sender, MouseButtonEventArgs e) => _dragStart = e.GetPosition(this);"
+        ],
+        [
+          284,
+          "private void CommandDrag(object sender, MouseEventArgs e)"
+        ],
+        [
+          316,
+          "private UIElement FindPreviewHost()"
+        ],
+        [
+          330,
+          "private void UpdatePreviewPosition()"
+        ],
+        [
+          337,
+          "private void CommandGiveFeedback(object sender, GiveFeedbackEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandsView.xaml",
+      "blob": "f6eb1148ce7414924c8a0561ef983d5162908c6d",
+      "lines": 8,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Features.Commands.DcsCommandsView\""
+        ],
+        [
+          7,
+          "x:Name=\"Manager\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Features/Commands/DcsCommandsView.xaml.cs",
+      "blob": "0170518f11c1f75069f05d88fb32fb6855f9e0cd",
+      "lines": 16,
+      "declarations": [
+        [
+          7,
+          "public partial class DcsCommandsView : UserControl"
+        ],
+        [
+          10,
+          "public DcsCommandsView() => InitializeComponent();"
+        ],
+        [
+          13,
+          "public void Initialize(IDcsModuleWorkspaceContext context) => Manager.Initialize(context);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Features/Devices/DcsDevicesView.xaml",
+      "blob": "fd41f04da5e7d7fc4544e107d25222fea1fda461",
+      "lines": 102,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Features.Devices.DcsDevicesView\""
+        ],
+        [
+          13,
+          "x:Name=\"StatusText\""
+        ],
+        [
+          16,
+          "x:Name=\"DevicesScope\" SelectionChanged=\"ScopeChanged\""
+        ],
+        [
+          21,
+          "Click=\"LoadHardwareClicked\""
+        ],
+        [
+          22,
+          "Click=\"NewDeviceClicked\""
+        ],
+        [
+          23,
+          "Click=\"SaveClicked\""
+        ],
+        [
+          24,
+          "Click=\"DiscardClicked\""
+        ],
+        [
+          25,
+          "Click=\"ImportAxisDefaultsClicked\""
+        ],
+        [
+          30,
+          "x:Name=\"ManagedDevices\""
+        ],
+        [
+          43,
+          "x:Name=\"UnlinkPhysicalButton\" Click=\"UnlinkPhysicalClicked\""
+        ],
+        [
+          44,
+          "x:Name=\"DetectedDevice\" SelectionChanged=\"DetectedDeviceChanged\""
+        ],
+        [
+          47,
+          "x:Name=\"InventoryUnits\""
+        ],
+        [
+          48,
+          "Click=\"AddInventoryClicked\""
+        ],
+        [
+          50,
+          "x:Name=\"UnlinkDrawingButton\" Click=\"UnlinkDrawingClicked\""
+        ],
+        [
+          51,
+          "x:Name=\"UseRetainedDrawingButton\" Click=\"UseRetainedDrawingClicked\""
+        ],
+        [
+          52,
+          "x:Name=\"CustomMappingRevisions\""
+        ],
+        [
+          54,
+          "Click=\"RefreshUserMappingsClicked\""
+        ],
+        [
+          55,
+          "x:Name=\"ApplyCustomDrawingButton\" Click=\"AdoptCustomMappingClicked\""
+        ],
+        [
+          58,
+          "x:Name=\"ManagedHardware\""
+        ],
+        [
+          62,
+          "x:Name=\"ManagedFileName\""
+        ],
+        [
+          64,
+          "x:Name=\"ManagedInstance\""
+        ],
+        [
+          66,
+          "x:Name=\"ManagedRole\""
+        ],
+        [
+          67,
+          "x:Name=\"KneeboardTitleFields\""
+        ],
+        [
+          70,
+          "x:Name=\"ManagedKneeboardTitle\""
+        ],
+        [
+          72,
+          "x:Name=\"ManagedKneeboardSubtitle\""
+        ],
+        [
+          75,
+          "x:Name=\"MfdLabelFields\""
+        ],
+        [
+          78,
+          "x:Name=\"MfdLeft\""
+        ],
+        [
+          80,
+          "x:Name=\"MfdRight\""
+        ],
+        [
+          82,
+          "x:Name=\"MfdTop\""
+        ],
+        [
+          84,
+          "x:Name=\"MfdBottom\""
+        ],
+        [
+          89,
+          "Click=\"UpdateDeviceClicked\""
+        ],
+        [
+          90,
+          "Click=\"RemoveDeviceClicked\""
+        ],
+        [
+          91,
+          "Click=\"ClearDeviceAssignmentsClicked\""
+        ],
+        [
+          92,
+          "Click=\"AddDeviceClicked\""
+        ],
+        [
+          93,
+          "Click=\"RebindDeviceClicked\""
+        ],
+        [
+          95,
+          "x:Name=\"StatusMessage\""
+        ],
+        [
+          99,
+          "x:Name=\"ControllerPreview\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Features/Devices/DcsDevicesView.xaml.cs",
+      "blob": "76e2a1357e21237e7a86ef8238954237970b213b",
+      "lines": 503,
+      "declarations": [
+        [
+          13,
+          "public partial class DcsDevicesView : UserControl"
+        ],
+        [
+          15,
+          "private IDcsModuleWorkspaceContext? _context;"
+        ],
+        [
+          16,
+          "private bool _showingSavedLink;"
+        ],
+        [
+          17,
+          "private bool _refreshingDeviceList;"
+        ],
+        [
+          18,
+          "private AssignmentLayer _layer = AssignmentLayer.Module;"
+        ],
+        [
+          21,
+          "public DcsDevicesView()"
+        ],
+        [
+          29,
+          "public void Initialize(IDcsModuleWorkspaceContext context)"
+        ],
+        [
+          47,
+          "private void ScopeChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          56,
+          "private void Refresh()"
+        ],
+        [
+          82,
+          "private void ManagedDeviceSelected(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          87,
+          "private void RefreshSelectedDevice()"
+        ],
+        [
+          141,
+          "private void ApplyLinkState(DcsWorkspaceDevice? device)"
+        ],
+        [
+          155,
+          "private void UnlinkPhysicalClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          161,
+          "private void UnlinkDrawingClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          166,
+          "private void UseRetainedDrawingClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          171,
+          "private void UpdateDeviceClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          200,
+          "private void RemoveDeviceClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          217,
+          "private void ClearDeviceAssignmentsClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          231,
+          "private void DiscardClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          238,
+          "private async void SaveClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          250,
+          "private void NewDeviceClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          260,
+          "private void AddDeviceClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          282,
+          "private async void LoadHardwareClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          308,
+          "private async void RefreshDetectedDevicesClicked(object sender, RoutedEventArgs e) => await RefreshDetectedDevicesAsync();"
+        ],
+        [
+          310,
+          "private async Task RefreshDetectedDevicesAsync()"
+        ],
+        [
+          327,
+          "private void DetectedDeviceChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          333,
+          "private void RebindDeviceClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          367,
+          "private void UpdateMfdVisibility(DcsWorkspaceDevice? device)"
+        ],
+        [
+          376,
+          "private void ImportAxisDefaultsClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          410,
+          "private async Task LoadInventoryChoicesAsync()"
+        ],
+        [
+          424,
+          "private void AddInventoryClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          438,
+          "private async Task LoadUserMappingsAsync()"
+        ],
+        [
+          458,
+          "private async void RefreshUserMappingsClicked(object sender, RoutedEventArgs e) => await LoadUserMappingsAsync();"
+        ],
+        [
+          460,
+          "private void AdoptCustomMappingClicked(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Dcs/DcsWorkspaceFeatures.cs",
+      "blob": "e36a5c81e13ae221ed6304d962fb081ad3a5f5eb",
+      "lines": 41,
+      "declarations": [
+        [
+          15,
+          "internal static class DcsWorkspaceFeatures"
+        ],
+        [
+          18,
+          "internal static IReadOnlyList<WorkspaceFeature> Create(IDcsModuleWorkspaceContext context, bool persistLayout) =>"
+        ],
+        [
+          33,
+          "private static T Prepare<T>(T view, Action<T> initialize, bool persistLayout) where T : UserControl"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Dcs/DcsWorkspaceOutput.cs",
+      "blob": "7626881bdc015b911b4055bd2dbceb8ed2ecda67",
+      "lines": 78,
+      "declarations": [
+        [
+          8,
+          "internal sealed class DcsWorkspaceOutput(DcsWorkspaceSession session, Func<bool, string?> outputPath, Func<string?> documentationFolder, Func<string?> completeReleaseFolder, Action<string, DcsEditorWorkspaceSnapshot, string, Exception> logFailure)"
+        ],
+        [
+          13,
+          "internal string Status { get; private set; } = \"Build uses saved database state. Save pending edits first.\";"
+        ],
+        [
+          14,
+          "internal string FailureDiagnostic { get; private set; } = \"\";"
+        ],
+        [
+          15,
+          "internal event EventHandler? Changed;"
+        ],
+        [
+          17,
+          "internal bool CanRun(bool viewModelErrors, string version) => session.Repository is not null && session.Saved is not null &&"
+        ],
+        [
+          21,
+          "internal async Task RunAsync(string version, bool? snapshotExport, bool documentation = false, bool completeRelease = false)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Dcs/DcsWorkspaceSession.cs",
+      "blob": "a34c9e85505e437c014afe7a96ef1d6681795e7b",
+      "lines": 178,
+      "declarations": [
+        [
+          9,
+          "internal sealed class DcsWorkspaceSession : IDisposable"
+        ],
+        [
+          11,
+          "private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);"
+        ],
+        [
+          12,
+          "private bool _structureDirty;"
+        ],
+        [
+          13,
+          "private bool _disposed;"
+        ],
+        [
+          14,
+          "private bool _saving;"
+        ],
+        [
+          16,
+          "internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository, IConnectedDeviceDiscovery? deviceDiscovery, DcsTrainingEnvironment? training, HardwareInventoryManager? inventory, IUserMappingLibrary? userMappings, Func<DcsMappingRevisionReview, bool>? mappingReviewConfirmation, Func<bool, IReadOnlyList<string>?>? commandFilePicker, Func<string?>? integrationFilePicker, Func<string?>? axisDefaultsFilePicker, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputSourceFactory, Action<string, string>? inputLogClipboardWriter)"
+        ],
+        [
+          42,
+          "internal bool IsSaving => _saving;"
+        ],
+        [
+          43,
+          "internal DcsTrainingEnvironment? Training { get; }"
+        ],
+        [
+          44,
+          "internal IDcsEditorWorkspaceRepository? Repository { get; }"
+        ],
+        [
+          45,
+          "internal IConnectedDeviceDiscovery DeviceDiscovery { get; }"
+        ],
+        [
+          46,
+          "internal HardwareInventoryManager? Inventory { get; }"
+        ],
+        [
+          47,
+          "internal IUserMappingLibrary? UserMappings { get; }"
+        ],
+        [
+          48,
+          "internal Func<DcsMappingRevisionReview, bool>? MappingReviewConfirmation { get; }"
+        ],
+        [
+          49,
+          "internal Func<bool, IReadOnlyList<string>?>? CommandFilePicker { get; }"
+        ],
+        [
+          50,
+          "internal Func<string?>? IntegrationFilePicker { get; }"
+        ],
+        [
+          51,
+          "internal Func<string?>? AxisDefaultsFilePicker { get; }"
+        ],
+        [
+          52,
+          "internal Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? InputSourceFactory { get; }"
+        ],
+        [
+          53,
+          "internal Action<string, string>? InputLogClipboardWriter { get; }"
+        ],
+        [
+          54,
+          "internal string SavedGamesRoot { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), \"Saved Games\");"
+        ],
+        [
+          55,
+          "internal DcsEditorWorkspaceSnapshot? Saved { get; private set; }"
+        ],
+        [
+          56,
+          "internal DcsEditorWorkspaceSnapshot? Working { get; private set; }"
+        ],
+        [
+          57,
+          "internal DcsDraftAssignmentService? Draft { get; private set; }"
+        ],
+        [
+          58,
+          "internal IReadOnlyDictionary<string, string> Labels => _labels;"
+        ],
+        [
+          59,
+          "internal bool HasPendingChanges => _structureDirty || Draft?.HasChanges == true ||"
+        ],
+        [
+          62,
+          "internal event EventHandler? StateChanged;"
+        ],
+        [
+          63,
+          "internal event EventHandler<string>? StatusChanged;"
+        ],
+        [
+          65,
+          "internal void SetLabel(string key, string? value)"
+        ],
+        [
+          73,
+          "internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)"
+        ],
+        [
+          88,
+          "internal async Task SaveAsync()"
+        ],
+        [
+          116,
+          "internal void Discard()"
+        ],
+        [
+          126,
+          "internal void RaiseStatus(string message) => StatusChanged?.Invoke(this, message);"
+        ],
+        [
+          127,
+          "internal void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);"
+        ],
+        [
+          130,
+          "public void Dispose()"
+        ],
+        [
+          140,
+          "private void RequireEditable()"
+        ],
+        [
+          146,
+          "private DcsEditorWorkspaceSnapshot EditSnapshot()"
+        ],
+        [
+          153,
+          "private void RebuildDraft(DcsEditorWorkspaceSnapshot workspace)"
+        ],
+        [
+          161,
+          "private void SetDraft(DcsDraftAssignmentService? draft)"
+        ],
+        [
+          168,
+          "private void RestoreLabels(DcsEditorWorkspaceSnapshot? workspace)"
+        ],
+        [
+          175,
+          "private void DraftChanged(object? sender, EventArgs e) => RaiseStateChanged();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IDcsEditorWorkspaceRepository.cs",
+      "blob": "be942ee8a9b62f0c1636ae03445467de4a46fd67",
+      "lines": 28,
+      "declarations": [
+        [
+          4,
+          "public interface IDcsEditorWorkspaceRepository"
+        ],
+        [
+          11,
+          "Task<DcsEditorWorkspaceSnapshot?> GetAsync(Guid moduleId, CancellationToken ct = default);"
+        ],
+        [
+          15,
+          "Task<IReadOnlyList<Guid>> ListAsync(CancellationToken ct = default);"
+        ],
+        [
+          20,
+          "Task SaveAsync(DcsEditorWorkspaceSnapshot snapshot, CancellationToken ct = default);"
+        ],
+        [
+          25,
+          "Task<bool> DeleteAsync(Guid moduleId, CancellationToken ct = default);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.Application/Interfaces/IDcsModuleWorkspaceContext.cs",
+      "blob": "6ff9284d9e6fd1b3d05216616d2a32a1d664139f",
+      "lines": 57,
+      "declarations": [
+        [
+          4,
+          "public interface IDcsModuleWorkspaceContext"
+        ],
+        [
+          10,
+          "void SetLabel(string key, string? value);"
+        ],
+        [
+          12,
+          "DcsEditorWorkspaceSnapshot? Working { get; }"
+        ],
+        [
+          14,
+          "DcsDraftAssignmentService? Draft { get; }"
+        ],
+        [
+          16,
+          "DcsEditorWorkspaceSnapshot? Saved { get; }"
+        ],
+        [
+          19,
+          "IDcsEditorWorkspaceRepository? Repository { get; }"
+        ],
+        [
+          21,
+          "IConnectedDeviceDiscovery DeviceDiscovery { get; }"
+        ],
+        [
+          23,
+          "HardwareInventoryManager? Inventory { get; }"
+        ],
+        [
+          25,
+          "IUserMappingLibrary? UserMappings { get; }"
+        ],
+        [
+          31,
+          "Func<string?>? IntegrationFilePicker { get; }"
+        ],
+        [
+          37,
+          "Func<string?>? AxisDefaultsFilePicker { get; }"
+        ],
+        [
+          39,
+          "string SavedGamesRoot { get; set; }"
+        ],
+        [
+          42,
+          "event EventHandler? StateChanged;"
+        ],
+        [
+          45,
+          "event EventHandler<string>? StatusChanged;"
+        ],
+        [
+          48,
+          "void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit);"
+        ],
+        [
+          50,
+          "Task SaveAsync();"
+        ],
+        [
+          52,
+          "void Discard();"
+        ],
+        [
+          54,
+          "void SetStatus(string message);"
+        ]
+      ],
+      "xaml_wiring": []
+    }
+  ]
+}

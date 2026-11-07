@@ -1,0 +1,1086 @@
+{
+  "baseline": "0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0",
+  "extraction": "Lexical declaration index, not a semantic C# parser. Line numbers and blob IDs are authoritative source locators; method bodies and implicit/anonymous members must be read at the pinned source. Call-path and ownership analysis is in ../workspace-role-migration.md.",
+  "files": [
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAssignmentBrowser.cs",
+      "blob": "810ca3cb6f358cbc5bf0c5fedbddc60fe1bdd936",
+      "lines": 66,
+      "declarations": [
+        [
+          17,
+          "internal sealed class WarThunderAssignmentBrowser( WarThunderWorkspaceContext context, Func<WarThunderAssignmentEditing> editing, WarThunderAssignmentsView _assignments)"
+        ],
+        [
+          25,
+          "internal void RefreshCommands()"
+        ],
+        [
+          54,
+          "internal void RefreshRecords()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAssignmentDrawing.cs",
+      "blob": "b39997cf231fe23cde3cc011b7072b9194a31979",
+      "lines": 63,
+      "declarations": [
+        [
+          17,
+          "internal sealed class WarThunderAssignmentDrawing( WarThunderWorkspaceContext context, Func<WarThunderControllerPresenter> controllers, Func<WarThunderAssignmentEditing> editing, WarThunderDevicesView _devices, WarThunderAssignmentsView _assignments, Window owner)"
+        ],
+        [
+          25,
+          "private readonly HardwareDiagramPresenter _presenter = new(_assignments.DrawingCanvas);"
+        ],
+        [
+          26,
+          "private readonly DiagramViewport _viewport = new(_assignments.DrawingScroll, _assignments.DrawingCanvas, _assignments.Zoom, \"war-thunder.diagram\");"
+        ],
+        [
+          28,
+          "internal HardwareDiagramPresenter Presenter => _presenter;"
+        ],
+        [
+          29,
+          "internal DiagramViewport Viewport => _viewport;"
+        ],
+        [
+          30,
+          "internal void Start() => _viewport.EnablePanning();"
+        ],
+        [
+          33,
+          "internal void ShowDrawing()"
+        ],
+        [
+          53,
+          "internal void RefreshActions() => _presenter.RefreshActions(Interactions());"
+        ],
+        [
+          54,
+          "private HardwareDiagramInteractions Interactions() =>"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAssignmentEditing.cs",
+      "blob": "54e7ae7ddda7787090ba914f571d3dfad68a2699",
+      "lines": 276,
+      "declarations": [
+        [
+          17,
+          "internal sealed class WarThunderAssignmentEditing( WarThunderWorkspaceContext context, Action refreshChrome, Action<Action> run, TextBlock Status, WarThunderAssignmentsView _assignments, Window owner, Func<WarThunderControllerPresenter> controllers, Func<WarThunderAssignmentDrawing> drawing)"
+        ],
+        [
+          28,
+          "internal Action<AxisTuningWindow>? AxisTuningOpened { get; set; }"
+        ],
+        [
+          31,
+          "internal void RefreshEditor()"
+        ],
+        [
+          44,
+          "private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)"
+        ],
+        [
+          63,
+          "internal void RefreshInputState()"
+        ],
+        [
+          74,
+          "internal void SelectPhysicalControl(HardwareGraphicControl control)"
+        ],
+        [
+          94,
+          "internal void DropPhysicalCommand(HardwareGraphicControl control, string commandId) => run(() => { if (context.Session is null) return; _assignments.Browser.CommandsList.SelectedItem = _assignments.Browser.CommandsList.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>().FirstOrDefault(command => command.Id == commandId); var type = context.Session.Catalog.Find(commandId)?.Type; var input = context.PhysicalMap.Inputs.FirstOrDefault(candidate => candidate.Key == control.InputKey && candidate.Type == type) ?? throw new InvalidOperationException(\"This physical input has no verified native mapping.\"); ApplyPhysicalAssignment(commandId, input); });"
+        ],
+        [
+          104,
+          "internal bool CanDropPhysicalCommand(HardwareGraphicControl control, string commandId)"
+        ],
+        [
+          114,
+          "internal void ApplyPhysicalAssignment(string commandId, WarThunderPhysicalInput input)"
+        ],
+        [
+          122,
+          "internal void ApplyDrawingEdit(WarThunderNativeEdit edit)"
+        ],
+        [
+          130,
+          "private IReadOnlyList<WarThunderWorkspaceRow> PhysicalAssignments(HardwareGraphicControl control)"
+        ],
+        [
+          141,
+          "private WarThunderWorkspaceRow[] ClearableAssignments(HardwareGraphicControl control)"
+        ],
+        [
+          148,
+          "internal bool CanClearPhysicalControl(HardwareGraphicControl control) => ClearableAssignments(control).Length > 0;"
+        ],
+        [
+          150,
+          "internal HardwareDiagramClearChoice[] ClearPhysicalChoices(HardwareGraphicControl control) =>"
+        ],
+        [
+          155,
+          "internal void ClearPhysicalControl(HardwareGraphicControl control) => run(() => { var rows = ClearableAssignments(control); if (rows.Length != 1) throw new InvalidOperationException(\"Choose the native alternative in the Clear Assignment submenu.\"); ApplyDrawingEdit(new(WarThunderEditKind.Clear, rows[0].RecordId)); });"
+        ],
+        [
+          162,
+          "internal string ClearUnavailableReason(HardwareGraphicControl control)"
+        ],
+        [
+          173,
+          "internal bool CanTunePhysicalControl(HardwareGraphicControl control) => context.Session is not null && !controllers().Input.Running"
+        ],
+        [
+          180,
+          "internal void TunePhysicalControl(HardwareGraphicControl control) => run(() => { if (!ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled || context.Session is not { } session) return; var profile = session.Snapshot.Profile; var row = PhysicalAssignments(control).First(candidate => { var support = WarThunderProfileBackend.GetBindingCapabilities(profile, candidate.RecordId); return support.SetAxisInverse || support.EditableParameterAddresses.Count > 0; }); TuneNativeAxis(session, row, control.InputKey); });"
+        ],
+        [
+          192,
+          "internal void TuneSelectedNativeAxis() => run(() => { if (context.Session is { } session && _assignments.Records.SelectedItem is WarThunderWorkspaceRow row && _assignments.Editor.ActionState(WorkspaceAssignmentAction.TuneAxis).Enabled) TuneNativeAxis(session, row, \"\"); });"
+        ],
+        [
+          199,
+          "private void TuneNativeAxis(GameProfileSession session, WarThunderWorkspaceRow row, string inputKey)"
+        ],
+        [
+          239,
+          "internal void InspectPhysicalControl(HardwareGraphicControl control) => run(() => { var rows = PhysicalAssignments(control); context.SelectedPhysicalInput = null; context.Selection.SelectInput(null); context.Refreshing = true; try { _assignments.Browser.CommandsList.SelectedItem = null; _assignments.Records.ItemsSource = rows; _assignments.Records.SelectedItem = rows.Count > 0 ? rows[0] : null; _assignments.CapturedAssignments.IsExpanded = true; } finally { context.Refreshing = false; } RefreshEditor(); _assignments.Artwork.Feedback.Text = rows.Count == 0 ? \"No captured assignment on \" + control.Label + \".\" : \"Showing assignments on \" + control.Label + \".\"; });"
+        ],
+        [
+          256,
+          "private WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          259,
+          "internal WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action) =>"
+        ],
+        [
+          267,
+          "private DraftResult ExecuteAssignment(WarThunderNativeEdit edit)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAssignmentsView.xaml",
+      "blob": "a6caaa8ec8a28bcd1d6341c7795f4c079054d727",
+      "lines": 27,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.WarThunder.WarThunderAssignmentsView\""
+        ],
+        [
+          5,
+          "x:Name=\"ShowAssignments\" x:Name=\"AssignmentCount\""
+        ],
+        [
+          6,
+          "x:Name=\"Browser\""
+        ],
+        [
+          12,
+          "x:Name=\"Start\" x:Name=\"Stop\" x:Name=\"Fit\""
+        ],
+        [
+          14,
+          "x:Name=\"DrawingPanel\" x:Name=\"Artwork\""
+        ],
+        [
+          19,
+          "x:Name=\"CapturedAssignments\""
+        ],
+        [
+          20,
+          "x:Name=\"Records\""
+        ],
+        [
+          24,
+          "x:Name=\"Editor\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAssignmentsView.xaml.cs",
+      "blob": "84a77fa23160ce590c716e3bebd7b87c0e213bd0",
+      "lines": 68,
+      "declarations": [
+        [
+          9,
+          "public partial class WarThunderAssignmentsView : GameAssignmentsView"
+        ],
+        [
+          12,
+          "public WarThunderAssignmentsView()"
+        ],
+        [
+          21,
+          "private WarThunderWorkspaceContext? _context;"
+        ],
+        [
+          22,
+          "private Action? _refresh;"
+        ],
+        [
+          23,
+          "private Action? _drawingRefresh;"
+        ],
+        [
+          24,
+          "private Action<string>? _status;"
+        ],
+        [
+          25,
+          "private Func<Task>? _save;"
+        ],
+        [
+          26,
+          "private Action? _discard;"
+        ],
+        [
+          27,
+          "internal void Initialize(WarThunderWorkspaceContext context, Action refresh, Action drawingRefresh, Func<Task> save, Action discard, Action<string> status)"
+        ],
+        [
+          34,
+          "internal void RefreshNativeAssignments() => RefreshAssignments();"
+        ],
+        [
+          35,
+          "internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          37,
+          "internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          40,
+          "protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context?.AssignmentContext ?? new(\"\", false, false, false, false);"
+        ],
+        [
+          41,
+          "protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(_context?.Session?.Snapshot);"
+        ],
+        [
+          42,
+          "protected override Task SaveAssignmentsCoreAsync() => _save?.Invoke() ?? throw new InvalidOperationException(\"Open a WarThunder workspace before saving.\");"
+        ],
+        [
+          43,
+          "protected override void DiscardAssignmentsCore()"
+        ],
+        [
+          48,
+          "protected override void RefreshAssignmentsCore() => _refresh?.Invoke();"
+        ],
+        [
+          49,
+          "protected override void RefreshAssignmentDrawing() => _drawingRefresh?.Invoke();"
+        ],
+        [
+          50,
+          "protected override void ShowAssignmentStatus(string message)"
+        ],
+        [
+          54,
+          "private void UpdateControllerReservation()"
+        ],
+        [
+          59,
+          "internal ScrollViewer InspectorViewport => AssignmentInspectorViewport;"
+        ],
+        [
+          60,
+          "internal Slider Zoom => Artwork.Zoom;"
+        ],
+        [
+          61,
+          "internal WorkspaceAssignmentContext ActionContext => CurrentAssignmentContext;"
+        ],
+        [
+          62,
+          "internal TextBlock DrawingHint => Artwork.Hint;"
+        ],
+        [
+          63,
+          "internal TextBox Activity => Artwork.Activity;"
+        ],
+        [
+          64,
+          "internal ScrollViewer DrawingScroll => Artwork.Viewport;"
+        ],
+        [
+          65,
+          "internal Canvas DrawingCanvas => Artwork.Surface;"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderAxisTuningEdit.cs",
+      "blob": "a7edeccc257b33a88238184b4fe3d21d0b0a1222",
+      "lines": 18,
+      "declarations": [
+        [
+          8,
+          "internal sealed class WarThunderAxisTuningEdit(IReadOnlyList<WarThunderNativeEdit> changes) : ISimNativeEdit"
+        ],
+        [
+          12,
+          "public string BackendId => \"war-thunder\";"
+        ],
+        [
+          14,
+          "public ProfileDocument Apply(ProfileDocument profile) =>"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderControllerPresenter.cs",
+      "blob": "ce001096bd8beaa1d9d5b2e2bb32f6449e6458b8",
+      "lines": 149,
+      "declarations": [
+        [
+          17,
+          "internal sealed class WarThunderControllerPresenter( WarThunderWorkspaceContext context, Action<Exception, string> reportError, ListBox Controllers, WarThunderDevicesView _devices, Window owner, Func<GameControllerChange, bool>? _review, HardwareDiagramPresenter presenter, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory, TextBlock InputStatus, WarThunderAssignmentsView _assignments, Action refreshChrome) : IDisposable"
+        ],
+        [
+          30,
+          "private HardwareInputFeedback _input = null!;"
+        ],
+        [
+          31,
+          "private int _hardwareScan;"
+        ],
+        [
+          33,
+          "internal HardwareInputFeedback Input => _input;"
+        ],
+        [
+          34,
+          "internal void Start() => _input = new(owner, presenter, text => InputStatus.Text = text, text => _assignments.Activity.Text = text, inputFactory);"
+        ],
+        [
+          36,
+          "public void Dispose() { _hardwareScan++; _input.Dispose(); }"
+        ],
+        [
+          39,
+          "internal void AddController()"
+        ],
+        [
+          57,
+          "internal void UpdateAddController()"
+        ],
+        [
+          68,
+          "internal void Review(GameControllerChange change)"
+        ],
+        [
+          75,
+          "internal void RefreshDevices()"
+        ],
+        [
+          114,
+          "internal void RefreshPhysicalMap()"
+        ],
+        [
+          123,
+          "internal async Task RefreshHardwareAsync()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderDevicesView.xaml",
+      "blob": "3ba231b0ab49e83b313d4e204fa4f2b59759fab5",
+      "lines": 33,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.WarThunder.WarThunderDevicesView\""
+        ],
+        [
+          3,
+          "x:Name=\"Actions\""
+        ],
+        [
+          4,
+          "x:Name=\"Rescan\""
+        ],
+        [
+          5,
+          "x:Name=\"Add\""
+        ],
+        [
+          14,
+          "x:Name=\"Link\""
+        ],
+        [
+          15,
+          "x:Name=\"Unlink\""
+        ],
+        [
+          16,
+          "x:Name=\"Remove\""
+        ],
+        [
+          17,
+          "x:Name=\"Physical\""
+        ],
+        [
+          21,
+          "x:Name=\"ChooseDrawing\" x:Name=\"UnlinkDrawing\""
+        ],
+        [
+          22,
+          "x:Name=\"Drawing\""
+        ],
+        [
+          25,
+          "x:Name=\"NativeDetails\""
+        ],
+        [
+          26,
+          "x:Name=\"LayoutTrace\""
+        ],
+        [
+          30,
+          "x:Name=\"ControllerPreview\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderDevicesView.xaml.cs",
+      "blob": "233eb23185785e4d0d4fadccd3abf4b6b604ca7e",
+      "lines": 12,
+      "declarations": [
+        [
+          6,
+          "public partial class WarThunderDevicesView : UserControl"
+        ],
+        [
+          9,
+          "public WarThunderDevicesView() => InitializeComponent();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderNativeEditorView.xaml",
+      "blob": "85f9d884402c9bca0da2a6b85bc3cc1325c1514c",
+      "lines": 16,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.WarThunder.WarThunderNativeEditorView\""
+        ],
+        [
+          2,
+          "x:Name=\"Frame\""
+        ],
+        [
+          4,
+          "x:Name=\"Target\""
+        ],
+        [
+          5,
+          "x:Name=\"Index\""
+        ],
+        [
+          8,
+          "x:Name=\"Apply\" x:Name=\"Add\" x:Name=\"Clear\""
+        ],
+        [
+          9,
+          "x:Name=\"Tune\""
+        ],
+        [
+          11,
+          "x:Name=\"NativeDetails\""
+        ],
+        [
+          12,
+          "x:Name=\"Input\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderNativeEditorView.xaml.cs",
+      "blob": "9111a4b8035ae25d27d71d6160219dbb956e7438",
+      "lines": 201,
+      "declarations": [
+        [
+          11,
+          "public partial class WarThunderNativeEditorView : UserControl"
+        ],
+        [
+          13,
+          "internal Func<WorkspaceAssignmentContext>? CaptureContext { get; set; }"
+        ],
+        [
+          14,
+          "internal Func<string, IReadOnlyList<WarThunderPhysicalInput>>? MappedInputs { get; set; }"
+        ],
+        [
+          15,
+          "private GameProfileSession? _session;"
+        ],
+        [
+          16,
+          "private WarThunderWorkspaceRow? _row;"
+        ],
+        [
+          17,
+          "private SimCommand? _command;"
+        ],
+        [
+          18,
+          "private bool _refreshing;"
+        ],
+        [
+          19,
+          "private bool _busy;"
+        ],
+        [
+          20,
+          "private bool _physicalSelected;"
+        ],
+        [
+          21,
+          "private WarThunderNativeEdit? _physicalEdit;"
+        ],
+        [
+          22,
+          "private GameAssignmentSelection _selection = new();"
+        ],
+        [
+          23,
+          "private WarThunderBindingCapabilities? _capabilities;"
+        ],
+        [
+          24,
+          "public WarThunderNativeEditorView()"
+        ],
+        [
+          35,
+          "internal event EventHandler<WarThunderNativeEdit>? EditRequested;"
+        ],
+        [
+          36,
+          "internal event EventHandler? PhysicalApplyRequested;"
+        ],
+        [
+          37,
+          "internal void SelectPhysical(string deviceId, WarThunderPhysicalInput input)"
+        ],
+        [
+          54,
+          "internal void BlockPhysicalSelection(string message)"
+        ],
+        [
+          62,
+          "internal void Show(GameProfileSession? session, SimCommand? command, WarThunderWorkspaceRow? row, bool busy, GameAssignmentSelection? selection = null)"
+        ],
+        [
+          83,
+          "internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action)"
+        ],
+        [
+          105,
+          "internal void Submit(WarThunderEditKind kind)"
+        ],
+        [
+          119,
+          "private WarThunderNativeEdit CreateEdit(WarThunderEditKind kind)"
+        ],
+        [
+          129,
+          "private GameAssignmentReview ReviewInput()"
+        ],
+        [
+          137,
+          "private GameAssignmentReview ReviewEdit(WarThunderEditKind kind)"
+        ],
+        [
+          143,
+          "private void RefreshInputChoices(int? selected = null)"
+        ],
+        [
+          175,
+          "private void SelectInput()"
+        ],
+        [
+          189,
+          "private void UpdateActions()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderProfileOperations.cs",
+      "blob": "9c145a300a309e7a9e0024f45fedea054a61ca6d",
+      "lines": 105,
+      "declarations": [
+        [
+          17,
+          "internal sealed class WarThunderProfileOperations( WarThunderWorkspaceContext context, Action refresh, Func<bool> confirmLeave, TextBlock Status, TextBox ProfileName, ComboBox Profiles, Window owner, EventHandler sessionChanged, Func<WarThunderControllerPresenter> controllers, Action refreshChrome)"
+        ],
+        [
+          30,
+          "internal void SaveCore()"
+        ],
+        [
+          43,
+          "internal void ImportFile(string path)"
+        ],
+        [
+          54,
+          "internal void LoadWorkspace(Guid id)"
+        ],
+        [
+          61,
+          "internal string ExportReview(string parent)"
+        ],
+        [
+          70,
+          "private void Open(GameWorkspace workspace, string? revision)"
+        ],
+        [
+          81,
+          "internal void RefreshEntries()"
+        ],
+        [
+          89,
+          "internal void DuplicateCurrent()"
+        ],
+        [
+          98,
+          "internal void Remember()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderReferenceView.xaml",
+      "blob": "851b55364714f30bb986f4ccb6f829a92cacb31b",
+      "lines": 9,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.WarThunder.WarThunderReferenceView\""
+        ],
+        [
+          3,
+          "x:Name=\"Copy\""
+        ],
+        [
+          5,
+          "x:Name=\"Rows\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderReferenceView.xaml.cs",
+      "blob": "d0e8d9cd8301bd8913d0f63847d95f614ca49371",
+      "lines": 19,
+      "declarations": [
+        [
+          8,
+          "public partial class WarThunderReferenceView : UserControl"
+        ],
+        [
+          10,
+          "private IReadOnlyList<WarThunderWorkspaceRow> _rows = [];"
+        ],
+        [
+          11,
+          "public WarThunderReferenceView()"
+        ],
+        [
+          16,
+          "internal void Show(IReadOnlyList<WarThunderWorkspaceRow> rows) { _rows = rows; Rows.ItemsSource = rows; Copy.IsEnabled = rows.Count > 0; }"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderWorkspaceContext.cs",
+      "blob": "1f1d0a5128e7717675add6d753cf776f022d0191",
+      "lines": 37,
+      "declarations": [
+        [
+          8,
+          "internal sealed class WarThunderWorkspaceContext(GameWorkspaceServices services, Func<string?> selectedDevice, Func<string> editedName, Func<bool> busy)"
+        ],
+        [
+          11,
+          "internal GameWorkspaceServices Services { get; } = services;"
+        ],
+        [
+          12,
+          "internal WarThunderProfileBackend Backend { get; } = new();"
+        ],
+        [
+          13,
+          "internal GameProfileSession? Session { get; set; }"
+        ],
+        [
+          14,
+          "internal string? Revision { get; set; }"
+        ],
+        [
+          15,
+          "internal IReadOnlyList<WorkspaceHardware> Drawings { get; set; } = [];"
+        ],
+        [
+          16,
+          "internal IReadOnlyList<DetectedDcsDevice> Observed { get; set; } = [];"
+        ],
+        [
+          17,
+          "internal IReadOnlyList<ControllerObservation> ControllerInputs { get; set; } = [];"
+        ],
+        [
+          18,
+          "internal IReadOnlyList<WarThunderWorkspaceRow> Rows { get; set; } = [];"
+        ],
+        [
+          19,
+          "internal WarThunderPhysicalMap PhysicalMap { get; set; } = new([], \"Rescan controller inputs.\");"
+        ],
+        [
+          20,
+          "internal WarThunderPhysicalInput? SelectedPhysicalInput { get; set; }"
+        ],
+        [
+          21,
+          "internal GameAssignmentSelection Selection { get; set; } = null!;"
+        ],
+        [
+          22,
+          "internal Dictionary<string, IReadOnlyList<WarThunderWorkspaceRow>> DrawingAssignments { get; } = new(StringComparer.Ordinal);"
+        ],
+        [
+          23,
+          "internal bool Refreshing { get; set; } = true;"
+        ],
+        [
+          24,
+          "internal bool Disposed { get; set; }"
+        ],
+        [
+          25,
+          "internal bool ScanningHardware { get; set; }"
+        ],
+        [
+          26,
+          "internal bool Busy => busy();"
+        ],
+        [
+          27,
+          "internal string? SelectedDevice => selectedDevice();"
+        ],
+        [
+          28,
+          "internal string EditedName => editedName().Trim();"
+        ],
+        [
+          29,
+          "internal Func<bool> Testing { get; set; } = () => false;"
+        ],
+        [
+          30,
+          "internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, EditedName, Testing());"
+        ],
+        [
+          31,
+          "internal WorkspaceAssignmentContext AssignmentContext => new( (Session?.Snapshot.Id.ToString(\"N\") ?? \"\") + \":\" + (SelectedDevice ?? \"*\"), Session is not null, Session?.AccessMessage.Length > 0, Busy || ScanningHardware, Testing());"
+        ],
+        [
+          34,
+          "internal event EventHandler? Changed;"
+        ],
+        [
+          35,
+          "internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderWorkspaceWindow.xaml",
+      "blob": "881583ae1644ca201dd61f902b727eea63626e92",
+      "lines": 36,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.WarThunder.WarThunderWorkspaceWindow\""
+        ],
+        [
+          6,
+          "x:Name=\"GamePicker\""
+        ],
+        [
+          7,
+          "x:Name=\"Profiles\""
+        ],
+        [
+          10,
+          "x:Name=\"Save\" x:Name=\"Discard\" x:Name=\"Export\""
+        ],
+        [
+          11,
+          "x:Name=\"SavedState\""
+        ],
+        [
+          16,
+          "x:Name=\"Import\" x:Name=\"Duplicate\""
+        ],
+        [
+          17,
+          "x:Name=\"ProfileName\""
+        ],
+        [
+          23,
+          "x:Name=\"FeaturePicker\""
+        ],
+        [
+          24,
+          "x:Name=\"FeatureActions\""
+        ],
+        [
+          26,
+          "x:Name=\"Controllers\""
+        ],
+        [
+          27,
+          "x:Name=\"FeatureContent\""
+        ],
+        [
+          31,
+          "x:Name=\"ErrorPanel\" x:Name=\"ErrorDetails\""
+        ],
+        [
+          32,
+          "x:Name=\"InputStatus\""
+        ],
+        [
+          33,
+          "x:Name=\"Status\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/WarThunder/WarThunderWorkspaceWindow.xaml.cs",
+      "blob": "590cfac6eeea3df9b62b0f8447d2a093dd889ed8",
+      "lines": 278,
+      "declarations": [
+        [
+          17,
+          "public sealed partial class WarThunderWorkspaceWindow : GameWorkspaceWindow, IDisposable"
+        ],
+        [
+          19,
+          "private readonly WarThunderWorkspaceContext _context;"
+        ],
+        [
+          20,
+          "private readonly WarThunderDevicesView _devices = new();"
+        ],
+        [
+          21,
+          "private readonly WarThunderAssignmentsView _assignments = new();"
+        ],
+        [
+          22,
+          "private readonly WarThunderReferenceView _references = new();"
+        ],
+        [
+          23,
+          "private readonly WarThunderControllerPresenter _controllers;"
+        ],
+        [
+          24,
+          "private readonly WarThunderAssignmentBrowser _browser;"
+        ],
+        [
+          25,
+          "private readonly WarThunderAssignmentEditing _editing;"
+        ],
+        [
+          26,
+          "private readonly WarThunderAssignmentDrawing _drawing;"
+        ],
+        [
+          27,
+          "private readonly WarThunderProfileOperations _profiles;"
+        ],
+        [
+          28,
+          "private readonly GameCommandDragSource _commandDrag;"
+        ],
+        [
+          29,
+          "private readonly Func<MessageBoxResult>? _pendingChoice;"
+        ],
+        [
+          30,
+          "private bool _allowClose;"
+        ],
+        [
+          31,
+          "private bool _disposed;"
+        ],
+        [
+          34,
+          "public WarThunderWorkspaceWindow(GameWorkspaceServices services, Guid? initial = null, Func<MessageBoxResult>? pendingChoice = null, Func<GameControllerChange, bool>? reviewChange = null, IReadOnlyList<WorkspaceHardware>? drawings = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null)"
+        ],
+        [
+          104,
+          "public string? RequestedGame { get; private set; }"
+        ],
+        [
+          105,
+          "internal GameProfileSession? Session => _context.Session;"
+        ],
+        [
+          106,
+          "internal WarThunderAssignmentsView AssignmentView => _assignments;"
+        ],
+        [
+          107,
+          "internal WarThunderDevicesView DeviceView => _devices;"
+        ],
+        [
+          108,
+          "internal WorkspaceAssignmentWorkflow AssignmentWorkflow => _assignments.AssignmentWorkflow;"
+        ],
+        [
+          109,
+          "internal GameAssignmentSelection AssignmentSelection => _assignments.AssignmentSelection;"
+        ],
+        [
+          110,
+          "internal Action<AxisTuningWindow>? AxisTuningOpened { get => _editing.AxisTuningOpened; set => _editing.AxisTuningOpened = value; }"
+        ],
+        [
+          111,
+          "internal void SampleInput() => _controllers.Input.Sample();"
+        ],
+        [
+          112,
+          "internal void DropPhysicalCommand(HardwareGraphicControl control, string commandId) => _editing.DropPhysicalCommand(control, commandId);"
+        ],
+        [
+          113,
+          "internal void ImportFile(string path) => _profiles.ImportFile(path);"
+        ],
+        [
+          114,
+          "internal void LoadWorkspace(Guid id) => _profiles.LoadWorkspace(id);"
+        ],
+        [
+          115,
+          "internal string ExportReview(string parent) => _profiles.ExportReview(parent);"
+        ],
+        [
+          116,
+          "internal bool SaveCurrent()"
+        ],
+        [
+          122,
+          "public void Dispose()"
+        ],
+        [
+          133,
+          "protected override bool HasWorkspaceChanges => _context.Chrome.Pending;"
+        ],
+        [
+          134,
+          "protected override bool CanSaveWorkspace => _context.Session?.AccessMessage.Length == 0 && !_context.Testing() && !_context.ScanningHardware && _context.Chrome.CanSave;"
+        ],
+        [
+          135,
+          "protected override string WorkspaceStateSummary => _context.Chrome.Status;"
+        ],
+        [
+          136,
+          "protected override Task SaveWorkspaceCoreAsync() { _profiles.SaveCore(); return Task.CompletedTask; }"
+        ],
+        [
+          137,
+          "protected override void DiscardWorkspaceCore()"
+        ],
+        [
+          143,
+          "protected override void ReportWorkspaceError(Exception exception) => ReportError(exception, \"Save failed\");"
+        ],
+        [
+          144,
+          "protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());"
+        ],
+        [
+          145,
+          "private bool ConfirmLeave()"
+        ],
+        [
+          152,
+          "private string? SelectedDevice => (Controllers.SelectedItem as ListBoxItem)?.Tag as string;"
+        ],
+        [
+          153,
+          "private void SessionChanged(object? sender, EventArgs e) => Refresh();"
+        ],
+        [
+          154,
+          "private void InputStateChanged(object? sender, EventArgs e) { _controllers.RefreshDevices(); _editing.RefreshInputState(); }"
+        ],
+        [
+          155,
+          "private void RefreshChrome() => RefreshWorkspaceState();"
+        ],
+        [
+          156,
+          "protected override void OnWorkspaceStateChanged()"
+        ],
+        [
+          164,
+          "private void Run(Action action)"
+        ],
+        [
+          169,
+          "private void WireDevices()"
+        ],
+        [
+          199,
+          "private void WireAssignments()"
+        ],
+        [
+          256,
+          "private void Refresh()"
+        ],
+        [
+          270,
+          "private void ReportError(Exception error, string operation = \"Operation failed\")"
+        ]
+      ],
+      "xaml_wiring": []
+    }
+  ]
+}

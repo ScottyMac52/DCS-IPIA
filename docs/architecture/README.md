@@ -25,3 +25,5 @@ Native consumers are detailed in [ED workspace inheritance](elite-workspace-inhe
 See [game presentation ownership](game-presentation-ownership.md) for ED and Squadrons folder/namespace boundaries and compatibility rules.
 
 The final native consumer is described in [War Thunder workspace inheritance](war-thunder-workspace-inheritance.md).
+
+The proposed completion of the workspace collaborator contracts is specified in [ADR-0002](../adr/0002-enforced-game-workspace-role-contracts.md). Read the [exact role APIs and shared algorithms](workspace-role-contracts.md), [pinned source inventory and native migration map](workspace-role-migration.md), and [reusable/native acceptance design](workspace-role-acceptance.md). These documents are the specification for issue #357; they do not claim that the role migrations have been implemented.
