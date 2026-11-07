@@ -40,7 +40,7 @@ namespace Heimdall.App.Games.Squadrons
             _context = new(services);
             _context.Drawings = drawings ?? [];
             InitializeComponent(); AppearanceManager.Attach(this);
-            BindWorkspaceContext(_context, () => Refresh(false));
+            BindWorkspaceContext(_context, () => Refresh());
             BindWorkspaceStatus(StatusText);
             foreach (var (name, control) in new (string, object)[]
             {
@@ -263,7 +263,8 @@ namespace Heimdall.App.Games.Squadrons
             var target = (TargetDevice.SelectedItem as GameDeviceChoice)?.Id;
             _context.Refreshing = true;
             var snapshot = _context.Session?.Snapshot;
-            if (resetName) ProfileName.Text = snapshot?.Name ?? "";
+            // The context retains pending names on failure and restores the saved name on discard.
+            if (resetName) ProfileName.Text = _context.State.EditedName;
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
             var systemDevices = new[]
             {

@@ -90,6 +90,7 @@ namespace Heimdall.App.Smoke
             };
             Require(!window.SaveProfile() && store.Writes == 1, "Failed Squadrons persistence succeeded or performed an overlapping write.");
             Require(JsonSerializer.Serialize(window.Session.Snapshot) == before && name.Text == "Inherited Squadrons profile" &&
+                window.WorkspaceContext.State.EditedName == name.Text && window.WorkspaceContext.State.Dirty &&
                 ((TextBlock)window.FindName("SaveState")).Text == "Unsaved changes", "Squadrons save failure lost the reviewed pending state.");
             Require(!assignments.SaveAssignmentsAsync().GetAwaiter().GetResult() && store.Writes == 2,
                 "The Squadrons assignment view reported failed persistence as successful.");
@@ -103,13 +104,23 @@ namespace Heimdall.App.Smoke
             name.Text = "Unsaved rename"; window.Close();
             Require(window.IsVisible, "Squadrons ignored Cancel when closing with pending changes.");
             window.DiscardClicked(window, new());
-            Require(name.Text == "Inherited Squadrons profile" && ((TextBlock)window.FindName("SaveState")).Text == "Saved",
-                "Inherited Squadrons discard did not restore the native baseline and edited profile name.");
+            RequireRestoredName(window, name, beforeProfile);
+            ThemeControlSmoke.Pump(window);
+            RequireRestoredName(window, name, beforeProfile);
             window.Close();
             Require(!window.IsVisible && content.Content is null, "Closing Squadrons did not release the inherited feature host.");
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void RequireRestoredName(SquadronsWorkspaceWindow window, TextBox name, string profile)
+        {
+            var state = window.WorkspaceContext.State;
+            Require(name.Text == "Inherited Squadrons profile" && state.EditedName == name.Text && !state.Dirty &&
+                window.Session!.Snapshot.Name == name.Text && JsonSerializer.Serialize(window.Session.Snapshot.Profile) == profile &&
+                ((TextBlock)window.FindName("SaveState")).Text == "Saved",
+                $"Inherited Squadrons discard did not restore the native baseline and edited profile name. " +
+                $"Textbox='{name.Text}', context='{state.EditedName}', native='{window.Session?.Snapshot.Name}', dirty={state.Dirty}.");
+        }
         private static void VerifyControllerSelection(GameWorkspaceServices services)
         {
             using var context = new SquadronsWorkspaceContext(services);
