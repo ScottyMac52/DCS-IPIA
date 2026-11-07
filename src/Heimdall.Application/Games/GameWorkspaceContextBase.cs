@@ -158,10 +158,16 @@ namespace Heimdall.Application.Games
             if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
             if (_disposed) return new(false, "The workspace is closed.");
             RefreshNativeState();
-            if (_operation is not null || _activity is not null) return new(false, "Finish the current operation or input activity first.");
-            var eligible = kind switch { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
+            var replacesScan = kind == WorkspaceActivityKind.Scan && _activity?.Kind == WorkspaceActivityKind.Scan;
+            if (_operation is not null || _activity is not null && !replacesScan) return new(false, "Finish the current operation or input activity first.");
+            // A running scan suppresses UI capabilities; replacement must still satisfy the fresh native scan policy.
+            var eligible = replacesScan ? ReadNativeFacts().Capabilities.Scan : kind switch
+                { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
             if (!eligible.Enabled) return string.IsNullOrEmpty(eligible.Reason) ? eligible with { Reason = "This activity is unavailable." } : eligible;
+            var previous = _activity;
             _activity = new(State.Identity, kind, ActivityReleased); lease = _activity;
+            // Reserve the new lease first: old cleanup cannot publish an idle gap or admit a save between scans.
+            previous?.Dispose();
             RefreshNativeState(); return new(true, "");
         }
         /// <inheritdoc/>

@@ -33,7 +33,8 @@ namespace Heimdall.Application.Interfaces
         WorkspaceOperationResult RunOperation(WorkspaceOperationKind kind, Func<IWorkspaceOperationLease, WorkspaceOperationResult> action);
         /// <summary>Admits an asynchronous native operation using the same authority.</summary>
         Task<WorkspaceOperationResult> RunOperationAsync(WorkspaceOperationKind kind, Func<IWorkspaceOperationLease, Task<WorkspaceOperationResult>> action, CancellationToken cancellationToken);
-        /// <summary>Admits one cancellable activity or explains why it is unavailable.</summary>
+        /// <summary>Admits one cancellable activity or explains why it is unavailable. A supported scan replaces an older scan,
+        /// cancelling its lease before returning; identify/test activities and workspace operations remain exclusive.</summary>
         WorkspaceAvailability TryStartActivity(WorkspaceActivityKind kind, out IWorkspaceActivityLease? lease);
         /// <summary>Cancels active input and releases its native resources.</summary>
         void StopActivity();

@@ -66,8 +66,11 @@ namespace Heimdall.App.Smoke
                 var old = new TaskCompletionSource<IReadOnlyList<ControllerObservation>>();
                 discovery.InputScan = () => old.Task; var pending = window.RefreshControllerInputsAsync();
                 discovery.InputScan = null; window.RefreshControllerInputsAsync().GetAwaiter().GetResult();
+                if (inputs.Items.Count != 3 || pending.IsCompleted || window.Session.HasChanges)
+                    throw new InvalidOperationException("A newer scan did not publish current capabilities while the obsolete scan remained pending.");
                 old.SetResult([]); ThemeControlSmoke.Pump(window); pending.GetAwaiter().GetResult();
-                if (inputs.Items.Count != 3 || window.Session.HasChanges) throw new InvalidOperationException("An obsolete scan replaced newer capabilities or dirtied the profile.");
+                if (inputs.Items.Count != 3 || window.Session.HasChanges) throw new InvalidOperationException(
+                    $"An obsolete scan replaced newer capabilities or dirtied the profile. Inputs={inputs.Items.Count}, dirty={window.Session.HasChanges}.");
                 ThemeControlSmoke.SaveImage(window, "squadrons-pedals-input-review");
                 var closing = new TaskCompletionSource<IReadOnlyList<ControllerObservation>>();
                 discovery.InputScan = () => closing.Task; var finishing = window.RefreshControllerInputsAsync();

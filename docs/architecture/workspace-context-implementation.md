@@ -51,6 +51,8 @@ Window / assignment-feature Save → context admission → native window hook wi
 
 Admission reserves the operation *before* stopping foreground input, preventing cleanup callbacks from entering another write. Scan must finish/cancel before save admission. Native scan callbacks check lease cancellation and generation before installing results. Input resource cleanup is registered on the activity lease and runs once before the activity is released.
 
+A supported new scan replaces an outstanding scan through `TryStartActivity`. The context reserves the new lease before cancelling the old one, so stale cleanup cannot publish an idle gap or admit a save. Replacement rechecks native scan eligibility; it cannot replace identification, testing or a workspace operation. Native callbacks still check cancellation and generation before accepting results, so late completion of the older request cannot replace current capabilities.
+
 A direct distinct native change publishes one state transition, including changes while already dirty. Nested refresh scopes coalesce changes. An admitted operation publishes one busy transition and one final release transition; native changes during the operation are combined into that final publication. Blocked and pre-cancelled requests never invoke native actions or publish a false success. Repeated status text is not re-emitted; status never dirties data. Publication isolates listener failures and posts recursive refreshes. Disposal suppresses later UI publication and releases native lifetime once.
 
 ## Acceptance evidence and remaining Windows gate
