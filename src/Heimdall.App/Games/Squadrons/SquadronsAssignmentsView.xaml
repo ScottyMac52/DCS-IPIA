@@ -29,29 +29,9 @@
 <Button x:Name="StopInputButton" Style="{StaticResource ToolbarActionButton}" Content="Stop"/>
 <Button x:Name="FitDrawingButton" Style="{StaticResource ToolbarActionButton}" Content="Fit" ToolTip="Fit controller drawing to the available pane"/>
  </pres:ActionBar>
-    <Expander x:Name="DrawingPanel" Header="Controller drawing" IsExpanded="True" Margin="0,8,0,0">
+    <Expander Style="{StaticResource WorkspaceDrawingExpander}" x:Name="DrawingPanel" Header="Controller drawing" IsExpanded="True" Margin="0,8,0,0">
      <!-- Drawing content must receive the finite controller-row height, rather than a StackPanel measure. -->
-     <Expander.Template>
-      <ControlTemplate TargetType="Expander">
-       <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="0"/></Grid.RowDefinitions>
-        <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                      Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Left">
-         <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
-          <Border Background="Transparent" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="0,0,0,1" Padding="4">
-           <DockPanel><Path x:Name="Arrow" Data="M 0 0 L 4 4 L 0 8 Z" Fill="{TemplateBinding Foreground}" Margin="0,0,8,0" Stretch="None"/>
-            <ContentPresenter Content="{Binding Header, RelativeSource={RelativeSource AncestorType=Expander}}" RecognizesAccessKey="True"/>
-           </DockPanel>
-          </Border>
-          <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 4 Z"/></Trigger></ControlTemplate.Triggers>
-         </ControlTemplate></ToggleButton.Template>
-        </ToggleButton>
-        <ContentPresenter x:Name="DrawingBody" Grid.Row="1" ContentSource="Content" Visibility="Collapsed"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-       </Grid>
-       <ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="True"><Setter TargetName="DrawingBody" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
-      </ControlTemplate>
-     </Expander.Template>
+
      <games:GameDrawingView x:Name="Artwork" Margin="0,6,0,0"/>
     </Expander>
  </Grid>

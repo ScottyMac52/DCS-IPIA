@@ -8,6 +8,7 @@ Game-specific WPF types live beside their native presentation collaborators insi
 | Shared presentation | `src/Heimdall.App/Games/` | `Heimdall.App.Games` |
 | Elite Dangerous presentation | `src/Heimdall.App/Games/Elite/` | `Heimdall.App.Games.Elite` |
 | Squadrons presentation | `src/Heimdall.App/Games/Squadrons/` | `Heimdall.App.Games.Squadrons` |
+| War Thunder presentation | `src/Heimdall.App/Games/WarThunder/` | `Heimdall.App.Games.WarThunder` |
 
 ED's workspace, Devices, Assignments, artwork, editor, reference sheets, axis tuning,
 export review and modifier-choice types now live in its game area. Squadrons'
@@ -23,7 +24,8 @@ services and hardware drawing presenters remain in the shared area. The existing
 `GameWorkspaceServices` remains there because all native consumers use it; its
 legacy ED backend/reference-matcher properties are preserved by this organization
 change. Native backend projects continue to own file formats and rules rather than
-WPF controls. War Thunder's presentation migration is a separate phase.
+WPF controls. War Thunder now follows the same ownership rule; see its
+[workspace migration](war-thunder-workspace-inheritance.md).
 
 ## Compatibility
 

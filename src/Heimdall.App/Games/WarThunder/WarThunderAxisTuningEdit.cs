@@ -2,7 +2,7 @@ using Heimdall.Application.Interfaces;
 using Heimdall.Domain.MultiSim;
 using Heimdall.WarThunder;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.WarThunder
 {
     /// <summary>Applies all reviewed native axis fields to one candidate profile.</summary>
     internal sealed class WarThunderAxisTuningEdit(IReadOnlyList<WarThunderNativeEdit> changes) : ISimNativeEdit

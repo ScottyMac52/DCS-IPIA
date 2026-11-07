@@ -1,4 +1,4 @@
-<UserControl x:Class="Heimdall.App.Games.WarThunderNativeEditorView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:games="clr-namespace:Heimdall.App.Games" xmlns:pres="clr-namespace:Heimdall.App">
+<UserControl x:Class="Heimdall.App.Games.WarThunder.WarThunderNativeEditorView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:games="clr-namespace:Heimdall.App.Games" xmlns:pres="clr-namespace:Heimdall.App">
  <games:GameAssignmentEditorView x:Name="Frame"><games:GameAssignmentEditorView.NativeEditor>
   <StackPanel>
    <WrapPanel><StackPanel Width="210" Margin="0,0,8,0"><TextBlock Style="{StaticResource AppLabel}" Text="Controller"/><ComboBox Style="{StaticResource AppComboBox}" x:Name="Target" AutomationProperties.Name="Native target mapping"><ComboBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Id}" FontSize="10"/></StackPanel></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>

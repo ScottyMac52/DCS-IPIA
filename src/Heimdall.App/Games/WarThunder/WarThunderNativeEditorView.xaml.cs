@@ -5,11 +5,12 @@ using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
 using Heimdall.WarThunder;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.WarThunder
 {
     /// <summary>Presents native controller input choices; the adapter owns parsing, range checks and mutations.</summary>
     public partial class WarThunderNativeEditorView : UserControl
     {
+        internal Func<WorkspaceAssignmentContext>? CaptureContext { get; set; }
         internal Func<string, IReadOnlyList<WarThunderPhysicalInput>>? MappedInputs { get; set; }
         private GameProfileSession? _session;
         private WarThunderWorkspaceRow? _row;
@@ -81,7 +82,7 @@ namespace Heimdall.App.Games
         }
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action)
         {
-            var context = new WorkspaceAssignmentContext(_selection.Scope, _session is not null, _session?.AccessMessage.Length > 0, false, _busy);
+            var context = CaptureContext?.Invoke() ?? new WorkspaceAssignmentContext(_selection.Scope, _session is not null, _session?.AccessMessage.Length > 0, false, _busy);
             var review = action switch
             {
                 WorkspaceAssignmentAction.Apply => ReviewInput(),

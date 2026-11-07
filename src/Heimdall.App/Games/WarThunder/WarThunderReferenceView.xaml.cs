@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Heimdall.WarThunder;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.WarThunder
 {
     /// <summary>Exports the supported table reference without implying unverified diagram assignments.</summary>
     public partial class WarThunderReferenceView : UserControl

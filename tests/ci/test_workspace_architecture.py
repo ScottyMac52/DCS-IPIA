@@ -106,10 +106,33 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertFalse((APP / 'Games/Squadrons/Workflow/SquadronsWorkspaceWindow.cs').exists())
         self.assertLess(len(window.splitlines()), 450)
 
+    def test_war_thunder_uses_shared_workspace_and_assignment_algorithms(self):
+        window = (APP / 'Games/WarThunder/WarThunderWorkspaceWindow.xaml.cs').read_text()
+        assignments = (APP / 'Games/WarThunder/WarThunderAssignmentsView.xaml.cs').read_text()
+        self.assertIn('WarThunderWorkspaceWindow : GameWorkspaceWindow', window)
+        self.assertIn('WarThunderAssignmentsView : GameAssignmentsView', assignments)
+        for filename, base in [('WarThunderWorkspaceWindow.xaml', 'GameWorkspaceWindow'),
+                               ('WarThunderAssignmentsView.xaml', 'GameAssignmentsView')]:
+            root = ET.parse(APP / 'Games' / 'WarThunder' / filename).getroot()
+            self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
+        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+            self.assertIn(hook, window)
+        for collaborator in ('WarThunderControllerPresenter', 'WarThunderAssignmentEditing',
+                             'WarThunderAssignmentBrowser', 'WarThunderAssignmentDrawing',
+                             'WarThunderProfileOperations'):
+            self.assertIn(collaborator, window)
+            implementation = (APP / f'Games/WarThunder/{collaborator}.cs').read_text()
+            self.assertNotIn('WarThunderWorkspaceWindow', implementation)
+        self.assertNotIn('new GameWorkspaceFeatureHost', window)
+        self.assertNotIn('GameWorkspaceLeaveGuard.Confirm', window)
+        self.assertNotIn('new WorkspaceAssignmentWorkflow', window)
+        self.assertFalse((APP / 'Games/WarThunder/Workflow/WarThunderWorkspaceWindow.cs').exists())
+        self.assertLess(len(window.splitlines()), 450)
+
     def test_native_presentation_types_live_in_their_game_namespace(self):
         self.assertFalse((APP / 'Games/GameExportResolution.cs').exists())
         self.assertTrue((APP / 'Games/Elite/EliteExportResolution.cs').exists())
-        for game in ('Elite', 'Squadrons'):
+        for game in ('Elite', 'Squadrons', 'WarThunder'):
             self.assertEqual(list((APP / 'Games').glob(game + '*.cs')), [])
             self.assertEqual(list((APP / 'Games').glob(game + '*.xaml')), [])
             folder = APP / 'Games' / game

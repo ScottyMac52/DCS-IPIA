@@ -23,3 +23,5 @@ See [DCS type naming](dcs-type-naming.md) for the DCS ownership naming rules, re
 Native consumers are detailed in [ED workspace inheritance](elite-workspace-inheritance.md) and [Squadrons workspace inheritance](squadrons-workspace-inheritance.md).
 
 See [game presentation ownership](game-presentation-ownership.md) for ED and Squadrons folder/namespace boundaries and compatibility rules.
+
+The final native consumer is described in [War Thunder workspace inheritance](war-thunder-workspace-inheritance.md).

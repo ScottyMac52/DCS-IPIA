@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Heimdall.App.Games
+namespace Heimdall.App.Games.WarThunder
 {
     /// <summary>Shared-link presentation for saved native device mapping occurrences.</summary>
     public partial class WarThunderDevicesView : UserControl
