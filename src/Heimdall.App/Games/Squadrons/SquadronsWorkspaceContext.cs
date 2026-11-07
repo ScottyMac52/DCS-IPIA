@@ -33,7 +33,9 @@ namespace Heimdall.App.Games.Squadrons
         internal HardwareGraphicControl? InspectedControl { get; set; }
         internal string? AssignmentSource { get; set; }
         internal string DrawingSection { get; set; } = "All";
-        internal string? SelectedController => State.Selection.ControllerId is { } id && !id.StartsWith("system.", StringComparison.Ordinal) ? id : null;
+        internal string? SelectedController => State.Selection.ControllerId is { } id &&
+            id.StartsWith("squadrons.joystick.", StringComparison.Ordinal) &&
+            Session?.Snapshot.Profile.Devices.Any(device => device.LogicalId == id) == true ? id : null;
         internal bool ScanningInputs => State.Activity == WorkspaceActivityKind.Scan;
         internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
         #endregion END Public

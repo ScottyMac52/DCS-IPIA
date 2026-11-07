@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.App.Games;
 using Heimdall.Infrastructure;
 
@@ -16,6 +17,7 @@ namespace Heimdall.App.Smoke
         internal static void Verify(string root)
         {
             var store = new InterceptedGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "SquadronsInheritance")));
+            VerifyControllerSelection(new(store, new GameSmokeDiscovery()));
             using var window = new SquadronsWorkspaceWindow(new(store, new GameSmokeDiscovery()), drawings: [], pendingChoice: () => MessageBoxResult.Cancel);
             // Presentation changes in this fixture must not affect later native-layout scenarios.
             WorkspaceLayout.SetPersistenceEnabled(window, false);
@@ -24,6 +26,9 @@ namespace Heimdall.App.Smoke
             Require(host is GameWorkspaceWindow, "Squadrons did not instantiate the common window base.");
             Require(!window.SaveProfile() && store.Writes == 0, "An unopened Squadrons workspace reported a successful save.");
             window.ImportFile(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            Require(((ListBox)window.FindName("DevicePicker")).SelectedItem is GameDeviceChoice { Id: "all" } &&
+                !((Button)window.FindName("LinkControllerButton")).IsEnabled && !((Button)window.FindName("ClearSlotButton")).IsEnabled,
+                "Import did not retain aggregate browsing with controller-only actions disabled.");
             var feature = (GameFeatureNavigation)window.FindName("FeaturePicker");
             feature.SelectedIndex = 1; ThemeControlSmoke.Pump(window);
             var content = (ContentControl)window.FindName("FeatureContent");
@@ -105,6 +110,30 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyControllerSelection(GameWorkspaceServices services)
+        {
+            using var context = new SquadronsWorkspaceContext(services);
+            var profile = context.Backend.Import("controls", new Dictionary<string, string>
+            {
+                [Heimdall.Squadrons.SquadronsProfileBackend.FileName] = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced"))
+            });
+            context.Session = new(context.Backend, new(1, Guid.NewGuid(), "Selection", profile, new()), EditionAccess.Policy, [], () => []);
+            var frozen = JsonSerializer.Serialize(context.Session.Snapshot);
+            foreach (var id in new string?[] { null, "all", "system.0", "system.1", "system.2", "unknown", "squadrons.joystick.999" })
+            {
+                context.Select(context.State.Selection with { ControllerId = id });
+                Require(context.SelectedController is null, "A non-controller or missing slot became a selected native controller: " + id);
+                Require(context.State.Selection.ControllerId == id, "Controller eligibility changed the browser selection.");
+            }
+            foreach (var device in profile.Devices)
+            {
+                context.Select(context.State.Selection with { ControllerId = device.LogicalId });
+                Require(context.SelectedController == device.LogicalId, "An existing native slot was rejected.");
+            }
+            Require(JsonSerializer.Serialize(context.Session.Snapshot) == frozen, "Controller selection edited the native profile.");
+            context.Session = null;
+            Require(context.SelectedController is null, "Closing the profile retained a selected native slot.");
+        }
         private static void Require(bool condition, string message)
         {
             if (!condition) throw new InvalidOperationException(message);
