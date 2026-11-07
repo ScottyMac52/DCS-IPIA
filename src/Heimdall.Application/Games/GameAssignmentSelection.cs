@@ -109,6 +109,12 @@ namespace Heimdall.Application.Games
             InputKey = null; InputBlockedReason = reason;
                     });
         }
+        /// <summary>Applies several transitions as one; observers see only the final selection, never an intermediate reset.</summary>
+        public void Update(Action change)
+        {
+            ArgumentNullException.ThrowIfNull(change);
+            Change(change);
+        }
         /// <summary>Clears selection when closing or replacing a workspace.</summary>
         public void Reset()
         {
