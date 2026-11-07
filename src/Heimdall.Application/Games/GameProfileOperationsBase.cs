@@ -82,11 +82,12 @@ namespace Heimdall.Application.Games
             if (state.Operation is not null) return new(WorkspaceOperationOutcome.Blocked, "Another workspace operation is still running.");
             if (!state.Open) return new(WorkspaceOperationOutcome.Blocked, "Open a workspace before continuing.");
             _context.RefreshNativeState(); state = _context.State;
-            if (state.Dirty) return null;
+            // Dirty or read-only saves go to context admission, the single owner of native restriction reasons
+            // (for example an edition entitlement); admission blocks before any hook runs, so nothing is written.
+            if (state.Dirty || kind == WorkspaceOperationKind.Save && state.ReadOnly) return null;
             // Clean: an unsaveable workspace is Blocked rather than reporting NoChange. Activities suppress UI capabilities,
             // so only an idle state's capability is authoritative here; admission rechecks native facts for dirty work.
             var capability = kind == WorkspaceOperationKind.Save ? state.Capabilities.Save : state.Capabilities.Discard;
-            if (kind == WorkspaceOperationKind.Save && state.ReadOnly) return new(WorkspaceOperationOutcome.Blocked, "This workspace is read-only.");
             if (state.Activity is null && !capability.Enabled)
                 return new(WorkspaceOperationOutcome.Blocked, string.IsNullOrEmpty(capability.Reason) ? "This operation is unavailable." : capability.Reason);
             return new(WorkspaceOperationOutcome.NoChange, kind == WorkspaceOperationKind.Save ? "No profile changes to save." : "No profile changes to discard.");

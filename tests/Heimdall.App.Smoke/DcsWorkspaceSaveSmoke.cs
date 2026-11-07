@@ -90,7 +90,7 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
-        private static Task StartSave(DcsModuleWorkspaceWindow window)
+        private static Task<WorkspaceOperationResult> StartSave(DcsModuleWorkspaceWindow window)
         {
             var previous = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));

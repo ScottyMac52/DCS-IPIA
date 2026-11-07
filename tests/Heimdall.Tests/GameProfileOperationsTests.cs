@@ -54,6 +54,8 @@ namespace Heimdall.Tests
                 Assert.Equal(WorkspaceOperationOutcome.Blocked, blockedClean.Outcome);
                 Assert.Equal(WorkspaceOperationOutcome.Blocked, blockedDirty.Outcome);
                 Assert.Equal("Native readonly policy.", blockedDirty.Message);
+                // The native restriction reason must survive for clean saves too (EditionSmoke: reserved-hardware reason).
+                Assert.Equal("Native readonly policy.", blockedClean.Message);
                 context.ReadOnly = false; context.Supported = false; context.RefreshNativeState();
                 Assert.Equal(WorkspaceOperationOutcome.Blocked, (await profiles.SaveAsync(CancellationToken.None)).Outcome);
                 Assert.Equal(0, store.Writes); Assert.True(context.State.Dirty); Assert.NotEqual("Probe profile saved.", context.Status);
@@ -170,6 +172,24 @@ namespace Heimdall.Tests
                 Assert.Equal(context.Saved, context.Working); Assert.Equal("Profile", context.State.EditedName); Assert.False(context.State.Dirty);
                 Assert.True(context.State.Identity.Generation > generation);
                 Assert.Equal(0, store.Writes); Assert.Equal(2, input.Stops); Assert.Equal("Probe edits discarded.", context.Status);
+            }
+        }
+        /// <summary>A clean read-only save during input activity is Blocked with the native reason, never NoChange, and runs no hook.</summary>
+        [Fact]
+        public async Task Clean_readonly_save_during_activity_keeps_native_reason_and_writes_nothing()
+        {
+            var (context, store, _, profiles) = Open();
+            using (context) using (profiles)
+            {
+                Assert.True(context.TryStartActivity(WorkspaceActivityKind.Test, out var activity).Enabled);
+                using (activity)
+                {
+                    context.ReadOnly = true; context.RefreshNativeState();
+                    var result = await profiles.SaveAsync(CancellationToken.None);
+                    Assert.Equal(WorkspaceOperationOutcome.Blocked, result.Outcome);
+                    Assert.Equal("Native readonly policy.", result.Message);
+                    Assert.False(result.Committed); Assert.Equal(0, store.Writes); Assert.Equal(0, profiles.Accepts);
+                }
             }
         }
         /// <summary>Smoke-risk audit: one save publishes exactly admission and release, even when accept reopens the native session and refresh re-reads state.</summary>

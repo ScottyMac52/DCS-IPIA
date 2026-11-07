@@ -74,7 +74,11 @@ namespace Heimdall.App.Smoke
             Require(Await(profiles.DiscardAsync(default)).Outcome == WorkspaceOperationOutcome.NoChange, fixture, "Clean discard was not NoChange.");
             // P02: a restricted workspace is Blocked even when clean.
             fixture.MakeReadOnly();
-            Require(Await(profiles.SaveAsync(default)).Outcome == WorkspaceOperationOutcome.Blocked && fixture.Writes() == 1, fixture, "Readonly save was not blocked.");
+            var nativeReason = fixture.Context.State.Capabilities.Save.Reason;
+            var readOnly = Await(profiles.SaveAsync(default));
+            Require(readOnly.Outcome == WorkspaceOperationOutcome.Blocked && fixture.Writes() == 1, fixture, "Readonly save was not blocked.");
+            Require(fixture.Context.State.ReadOnly && nativeReason.Length > 0 && readOnly.Message == nativeReason && !readOnly.Committed, fixture,
+                "Readonly save lost the native restriction reason: " + readOnly.Message);
         }
         private static bool Throws<TException>(Action action) where TException : Exception
         {

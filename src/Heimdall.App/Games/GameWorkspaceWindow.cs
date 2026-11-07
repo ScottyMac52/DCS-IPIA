@@ -172,13 +172,16 @@ namespace Heimdall.App.Games
             if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
         }
 
-        /// <summary>Saves through the shared profile operations; Blocked and Cancelled surface as exceptions for existing error surfaces.</summary>
-        protected internal async Task SaveWorkspaceAsync()
+        /// <summary>Saves through the shared profile operations and returns the typed result: Applied (committed write) or NoChange
+        /// (nothing to write). Blocked surfaces as <see cref="InvalidOperationException"/> carrying the native reason and Cancelled as
+        /// <see cref="OperationCanceledException"/>, so a refused save is never reported as success and pending edits stay dirty.</summary>
+        protected internal async Task<WorkspaceOperationResult> SaveWorkspaceAsync()
         {
             if (_closed) throw new InvalidOperationException("The workspace is closed.");
             var result = await ProfileOperations.SaveAsync(CancellationToken.None);
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
             if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
+            return result;
         }
 
         /// <summary>Executes the shared Save button path and displays failures without losing pending state.</summary>
