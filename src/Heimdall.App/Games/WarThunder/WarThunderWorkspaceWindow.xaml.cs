@@ -159,7 +159,7 @@ namespace Heimdall.App.Games.WarThunder
             var editable = _context.Session?.AccessMessage.Length == 0 && !WorkspaceActionRunning && !_context.Testing() && !_context.ScanningHardware;
             Export.IsEnabled = editable && _context.Chrome.CanExport; Duplicate.IsEnabled = editable; ProfileName.IsEnabled = editable;
             Import.IsEnabled = !WorkspaceActionRunning && !_context.ScanningHardware;
-            _controllers.RefreshDevices(); _editing.RefreshEditor();
+            _controllers.RefreshDevices(); _editing.RefreshEditor(); _drawing.RefreshActions();
         }
         private void Run(Action action)
         {

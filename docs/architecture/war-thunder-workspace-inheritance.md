@@ -20,6 +20,11 @@ window partial is the code-behind required by its XAML and assembles those objec
 | Assignment save/discard | Delegates to the inherited window operations and reports their actual outcome |
 | Assignment refresh subscription | Connects native refresh notifications through the common view's loaded/unloaded lifetime |
 
+Mounted callout menus refresh through `HardwareDiagramPresenter.RefreshActions`
+when workspace availability changes. Menus rendered during a save remain blocked
+while it is active and regain their native clear alternatives when it ends,
+without rebuilding the artwork.
+
 The native editor retains its capability policy and reads the live common action
 context, so occurrence support and save/discovery/input gates are combined. Axis
 tuning uses the same inherited execution path as native Apply, physical drop and

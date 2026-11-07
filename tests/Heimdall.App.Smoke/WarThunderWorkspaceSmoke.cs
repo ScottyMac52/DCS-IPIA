@@ -38,7 +38,8 @@ namespace Heimdall.App.Smoke
                     new(Guid.NewGuid(), 4u, "Button 1"), new(Guid.NewGuid(), 260u, "Button 2"),
                     new(Guid.NewGuid(), 516u, "Button 3"), new(Guid.NewGuid(), 772u, "Button 4"),
                     new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 513u, "Recognized relative axis")]);
-                var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
+                var store = new InterceptedGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "store")));
+                var services = new GameWorkspaceServices(store, discovery);
                 var capture = Path.Combine(root, "capture"); Directory.CreateDirectory(capture);
                 var path = Path.Combine(capture, "Synthetic.blk");
                 File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WarThunder", "Synthetic.blk"), path);
@@ -86,7 +87,18 @@ namespace Heimdall.App.Smoke
                 AssertNative(window, "joyButton:i=0;activationType:i=9");
                 if (!window.Session.HasChanges || !Box<Button>(window, "Save").IsEnabled)
                     throw new InvalidOperationException("A changed drawing assignment did not enable Save on a saved profile.");
-                if (!window.SaveCurrent()) throw new InvalidOperationException("Drawing assignment could not be saved.");
+                var clearBlockedDuringSave = false;
+                store.BeforeSave = () =>
+                {
+                    var callout = assignments.DrawingCanvas.Children.OfType<Border>()
+                        .FirstOrDefault(border => border.Tag is HardwareGraphicControl control && control.InputKey == "JOY_BTN1");
+                    var clear = callout?.ContextMenu?.Items.OfType<MenuItem>().FirstOrDefault(item => item.Header as string == "Clear assignment");
+                    clearBlockedDuringSave = clear is { IsEnabled: false } && clear.Items.Count == 0;
+                };
+                var drawingSaved = window.SaveCurrent();
+                store.BeforeSave = null;
+                if (!drawingSaved) throw new InvalidOperationException("Drawing assignment could not be saved.");
+                if (!clearBlockedDuringSave) throw new InvalidOperationException("Shared clear retained executable alternatives while persistence was running.");
                 var savedDrawingText = AssertNative(window, "joyButton:i=0;activationType:i=9");
                 window.DropPhysicalCommand(diagram.Controls[0], fireCommand.Id);
                 if (window.Session.HasChanges || Box<Button>(window, "Save").IsEnabled
@@ -96,7 +108,8 @@ namespace Heimdall.App.Smoke
                 var menu = firstControl.ContextMenu ?? throw new InvalidOperationException("Assigned physical callout has no right-click menu.");
                 var clearChoice = menu.Items.OfType<MenuItem>().Single(item => item.Header as string == "Clear assignment");
                 if (!clearChoice.IsEnabled || clearChoice.Items.Count != 3)
-                    throw new InvalidOperationException("Shared clear did not enable choices for a joystick chord and multiple alternatives on one input.");
+                    throw new InvalidOperationException($"Shared clear did not enable choices for a joystick chord and multiple alternatives on one input. " +
+                        $"Enabled={clearChoice.IsEnabled}, alternatives={clearChoice.Items.Count}, reason={clearChoice.ToolTip}.");
                 clearChoice.Items.OfType<MenuItem>().Single(item => (item.Header as string)?.StartsWith("CLEAR CHORD", StringComparison.Ordinal) == true)
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 AssertNative(window, "ID_CLEAR_CHORD{}"); AssertNative(window, "ID_CLEAR_BUTTON{joyButton:i=0;}");

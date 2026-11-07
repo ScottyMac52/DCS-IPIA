@@ -41,12 +41,7 @@ namespace Heimdall.App.Games.WarThunder
             {
                 var page = WarThunderDrawingProjection.Diagram(hardware.Diagram, context.Session!.Snapshot.Profile, context.SelectedDevice!, context.PhysicalMap);
                 _devices.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(owner));
-                _presenter.Show(hardware.Diagram, page, new HardwareDiagramInteractions(
-                    editing().SelectPhysicalControl, context.PhysicalMap.Inputs.Count > 0 ? editing().DropPhysicalCommand : null,
-                    CanClear: editing().CanClearPhysicalControl, Clear: editing().ClearPhysicalControl,
-                    CanTune: editing().CanTunePhysicalControl, Tune: editing().TunePhysicalControl,
-                    DragFormat: "heimdall.war-thunder.command", Inspect: editing().InspectPhysicalControl, CanDrop: editing().CanDropPhysicalCommand,
-                    ClearChoices: editing().ClearPhysicalChoices, ClearUnavailableReason: editing().ClearUnavailableReason, ActionState: editing().ControlAction), AppearanceManager.ArtworkOpacityFor(owner));
+                _presenter.Show(hardware.Diagram, page, Interactions(), AppearanceManager.ArtworkOpacityFor(owner));
                 _assignments.Artwork.Feedback.Text = context.PhysicalMap.Message;
             }
             _assignments.Artwork.Viewport.Visibility = hardware is null ? Visibility.Collapsed : Visibility.Visible;
@@ -55,6 +50,14 @@ namespace Heimdall.App.Games.WarThunder
             if (hardware is null) _assignments.Artwork.Hint.Text = context.PhysicalMap.Message + " Choose a controller drawing on Devices.";
             editing().RefreshInputState();
         }
+        internal void RefreshActions() => _presenter.RefreshActions(Interactions());
+        private HardwareDiagramInteractions Interactions() =>
+            new HardwareDiagramInteractions(
+                    editing().SelectPhysicalControl, context.PhysicalMap.Inputs.Count > 0 ? editing().DropPhysicalCommand : null,
+                    CanClear: editing().CanClearPhysicalControl, Clear: editing().ClearPhysicalControl,
+                    CanTune: editing().CanTunePhysicalControl, Tune: editing().TunePhysicalControl,
+                    DragFormat: "heimdall.war-thunder.command", Inspect: editing().InspectPhysicalControl, CanDrop: editing().CanDropPhysicalCommand,
+                    ClearChoices: editing().ClearPhysicalChoices, ClearUnavailableReason: editing().ClearUnavailableReason, ActionState: editing().ControlAction);
         #endregion END private helpers
     }
 }

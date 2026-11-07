@@ -59,6 +59,12 @@ namespace Heimdall.App.Games
                 canvas.Children.Add(border); Regions.Add((control, border));
             }
         }
+        /// <summary>Refreshes mounted callout actions when shared availability changes without re-rendering artwork.</summary>
+        internal void RefreshActions(HardwareDiagramInteractions actions)
+        {
+            foreach (var (control, outline) in Regions)
+                if (outline.ContextMenu is { } menu) RefreshMenu(menu, control, actions);
+        }
         /// <summary>Refreshes real pointed-control actions at menu opening, independently of left-click selection.</summary>
         internal static void RefreshMenu(ContextMenu menu, HardwareGraphicControl control, HardwareDiagramInteractions actions)
         {
