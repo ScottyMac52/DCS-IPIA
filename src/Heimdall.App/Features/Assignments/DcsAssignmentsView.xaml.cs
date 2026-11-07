@@ -87,7 +87,7 @@ namespace Heimdall.App.Features.Assignments
                 {
                     ControllerId = _state.Diagram?.ProfileId.ToString("N"),
                     CommandId = CommandManager.SelectedCommand?.Id,
-                    NativeScope = _state.Layer + "|" + Layers.SelectedItem
+                    NativeScope = AssignmentScope()
                 });
             return context.Context;
         }
@@ -209,10 +209,14 @@ namespace Heimdall.App.Features.Assignments
             if (Zoom is null) return;
             Zoom.Value = 1.0;
         }
+        // Both selection writers must use one scope; differing encodings reset selection on every refresh and
+        // re-post context notifications indefinitely, starving lower-priority dispatcher work.
+        private string AssignmentScope() =>
+            (_state.Context?.Working?.Configuration.Module.Id.ToString("N") ?? "") + ":" + _state.Layer + ":" + Layers.SelectedItem;
         private void SynchronizeAssignmentSelection()
         {
             if (DeviceChoice is null || Layers is null || Scope is null || CommandManager is null) return;
-            AssignmentSelection.SelectScope((_state.Context?.Working?.Configuration.Module.Id.ToString("N") ?? "") + ":" + _state.Layer + ":" + Layers.SelectedItem);
+            AssignmentSelection.SelectScope(AssignmentScope());
             AssignmentSelection.SelectController(_state.Diagram?.ProfileId.ToString("N"));
             AssignmentSelection.SelectCommand(CommandManager.SelectedCommand?.Id);
             AssignmentSelection.SelectInput(_state.Selected?.InputKey);
