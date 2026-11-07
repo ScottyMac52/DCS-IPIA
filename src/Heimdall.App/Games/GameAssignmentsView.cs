@@ -162,12 +162,12 @@ namespace Heimdall.App.Games
         }
         private void Changed(object? sender, EventArgs args)
         {
-            // Selection transitions are published too; reloading native editors on them overwrites the pending
-            // input the user just picked (for example a clicked keyboard key) with the saved row.
+            // Selection and input-activity transitions are published too; reloading native editors on them overwrites the
+            // pending input the user just picked (a clicked key, or a choice made while sampling) with the saved row.
             if (_context is { } context)
             {
                 var state = context.State; var snapshot = context.CaptureSnapshot();
-                var selectionOnly = WorkspaceStateChange.IsSelectionOnly(_observedState, _observedSnapshot, state, snapshot);
+                var selectionOnly = WorkspaceStateChange.IsPresentationOnly(_observedState, _observedSnapshot, state, snapshot);
                 _observedState = state; _observedSnapshot = snapshot;
                 if (selectionOnly) return;
             }

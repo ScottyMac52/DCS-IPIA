@@ -1,4 +1,5 @@
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Xunit;
 
 namespace Heimdall.Tests
@@ -39,6 +40,38 @@ namespace Heimdall.Tests
             Assert.False(WorkspaceStateChange.IsSelectionOnly(before, snapshot, context.State, context.CaptureSnapshot()));
             Assert.False(WorkspaceStateChange.IsSelectionOnly(null, null, context.State, context.CaptureSnapshot()));
             Assert.False(WorkspaceStateChange.IsSelectionOnly(context.State, context.CaptureSnapshot(), context.State, context.CaptureSnapshot()));
+        }
+    
+        [Fact]
+        public void InputTestStartAndStopArePresentationOnly()
+        {
+            using var context = new WorkspaceContextProbe(new WorkspaceTestScheduler());
+            context.Open();
+            var idle = context.State; var snapshot = context.CaptureSnapshot();
+            Assert.True(context.TryStartActivity(WorkspaceActivityKind.Test, out var lease).Enabled);
+            var testing = context.State;
+            Assert.True(WorkspaceStateChange.IsPresentationOnly(idle, snapshot, testing, context.CaptureSnapshot()));
+            lease!.Dispose();
+            Assert.Null(context.State.Activity);
+            Assert.True(WorkspaceStateChange.IsPresentationOnly(testing, snapshot, context.State, context.CaptureSnapshot()));
+        }
+
+        [Fact]
+        public void ContentNameAndOperationChangesAreNotPresentationOnly()
+        {
+            using var context = new WorkspaceContextProbe(new WorkspaceTestScheduler());
+            context.Open();
+            var before = context.State; var snapshot = context.CaptureSnapshot();
+            context.Edit("staged");
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(before, snapshot, context.State, context.CaptureSnapshot()));
+            before = context.State; snapshot = context.CaptureSnapshot();
+            context.SetEditedName("Renamed");
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(before, snapshot, context.State, context.CaptureSnapshot()));
+            before = context.State; snapshot = context.CaptureSnapshot();
+            WorkspaceState? during = null;
+            context.RunOperation(WorkspaceOperationKind.Export, _ => { during = context.State; return new(WorkspaceOperationOutcome.Applied, ""); });
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(before, snapshot, during!, context.CaptureSnapshot()));
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(null, null, context.State, context.CaptureSnapshot()));
         }
     }
 }
