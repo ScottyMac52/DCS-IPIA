@@ -25,6 +25,8 @@ namespace Heimdall.App.Games
         private bool _refreshing;
         private IGameWorkspaceContext? _context;
         private bool _unmounted;
+        private WorkspaceState? _observedState;
+        private string? _observedSnapshot;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
@@ -160,12 +162,22 @@ namespace Heimdall.App.Games
         }
         private void Changed(object? sender, EventArgs args)
         {
+            // Selection transitions are published too; reloading native editors on them overwrites the pending
+            // input the user just picked (for example a clicked keyboard key) with the saved row.
+            if (_context is { } context)
+            {
+                var state = context.State; var snapshot = context.CaptureSnapshot();
+                var selectionOnly = WorkspaceStateChange.IsSelectionOnly(_observedState, _observedSnapshot, state, snapshot);
+                _observedState = state; _observedSnapshot = snapshot;
+                if (selectionOnly) return;
+            }
             if (_context?.State.Operation is not null) { RefreshAssignmentDrawing(); return; }
             RefreshAssignments();
         }
         private void Attach()
         {
             if (_subscribed || _subscribe is null) return;
+            _observedState = null; _observedSnapshot = null;
             _subscribe(Changed); _subscribed = true;
         }
         private void Detach()
