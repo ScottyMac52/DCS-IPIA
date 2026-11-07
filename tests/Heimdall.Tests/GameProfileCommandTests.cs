@@ -16,7 +16,13 @@ namespace Heimdall.Tests
             public List<string> Calls { get; } = [];
             protected override WorkspaceOperationKind Kind => WorkspaceOperationKind.Export;
             protected override WorkspaceAvailability ReadAvailability() => Native;
-            protected override string Prepare(string request) { Calls.Add("prepare"); DuringReview?.Invoke(); return request + ":reviewed"; }
+            public WorkspaceOperationKind? PreparedUnder { get; private set; }
+            public int StopsAtPrepare { get; private set; } = -1;
+            protected override string Prepare(string request)
+            {
+                Calls.Add("prepare"); PreparedUnder = context.State.Operation; StopsAtPrepare = input.Stops;
+                DuringReview?.Invoke(); return request + ":reviewed";
+            }
             protected override async Task<bool> RunNativeAsync(string prepared, IWorkspaceOperationLease lease)
             {
                 Calls.Add("run:" + prepared);
@@ -38,6 +44,8 @@ namespace Heimdall.Tests
             Assert.True(contract.Availability.Enabled);
             Assert.True(await contract.ExecuteAsync("out", CancellationToken.None));
             Assert.Equal(["prepare", "run:out:reviewed", "accept"], command.Calls); Assert.Equal(1, input.Stops); Assert.Null(context.State.Operation);
+            // Spec order: admission, then stop input, then prepare/review inside the one operation.
+            Assert.Equal(WorkspaceOperationKind.Export, command.PreparedUnder); Assert.Equal(1, command.StopsAtPrepare);
         }
         /// <summary>Unavailable, stale-reviewed, unsuccessful, cancelled and reentrant commands never accept native output.</summary>
         [Fact]

@@ -59,6 +59,8 @@ namespace Heimdall.Tests
         public bool FailRestore { get; set; }
         /// <summary>Throws from the post-commit panel refresh.</summary>
         public bool FailRefresh { get; set; }
+        /// <summary>Installs accepted commits as a fresh native session instead of accepting into the open one.</summary>
+        public bool ReopenOnAccept { get; set; }
         /// <summary>Counts accepted receipts and panel refreshes.</summary>
         public int Accepts { get; private set; }
         /// <summary>Counts panel refreshes.</summary>
@@ -81,7 +83,10 @@ namespace Heimdall.Tests
             => new(candidate, await store.WriteAsync(candidate, Revision, lease.Cancellation));
         /// <inheritdoc/>
         protected override void AcceptCommit(WorkspaceCommit<WorkspaceTestSnapshot, int> commit, IWorkspaceOperationLease lease)
-        { Accepts++; Revision = commit.Receipt; context.Install(commit.Snapshot); }
+        {
+            Accepts++; Revision = commit.Receipt;
+            if (ReopenOnAccept) context.Reopen(commit.Snapshot); else context.Install(commit.Snapshot);
+        }
         /// <inheritdoc/>
         protected override void RestoreSaved(IWorkspaceOperationLease lease)
         {
@@ -92,6 +97,7 @@ namespace Heimdall.Tests
         protected override void RefreshAfterPersistence(WorkspaceOperationKind completed)
         {
             Refreshes++;
+            context.RefreshNativeState(); // Native panels re-read state during refresh, as the window adapters do.
             if (FailRefresh) throw new InvalidOperationException("Panel refresh failed.");
         }
     }

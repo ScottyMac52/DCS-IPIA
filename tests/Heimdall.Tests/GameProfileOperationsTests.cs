@@ -172,6 +172,44 @@ namespace Heimdall.Tests
                 Assert.Equal(0, store.Writes); Assert.Equal(2, input.Stops); Assert.Equal("Probe edits discarded.", context.Status);
             }
         }
+        /// <summary>Smoke-risk audit: one save publishes exactly admission and release, even when accept reopens the native session and refresh re-reads state.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Save_publishes_exactly_admission_and_release(bool reopen)
+        {
+            var (context, store, _, profiles) = Open();
+            using (context) using (profiles)
+            {
+                profiles.ReopenOnAccept = reopen;
+                context.Edit("staged"); context.SetEditedName("Renamed");
+                var published = new List<WorkspaceOperationKind?>();
+                context.StateChanged += (_, _) => published.Add(context.State.Operation);
+                var result = await profiles.SaveAsync(CancellationToken.None);
+                Assert.True(result.Committed); Assert.Equal(1, store.Writes);
+                Assert.Equal([WorkspaceOperationKind.Save, null], published);
+                Assert.False(context.State.Dirty); Assert.Equal("Renamed", context.State.EditedName);
+            }
+        }
+        /// <summary>Smoke-risk audit: discard after a save restores exactly the post-save baseline (including the saved name) for both accept styles.</summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Discard_after_save_restores_the_exact_post_save_baseline(bool reopen)
+        {
+            var (context, store, _, profiles) = Open();
+            using (context) using (profiles)
+            {
+                profiles.ReopenOnAccept = reopen;
+                context.Edit("staged"); context.SetEditedName("Renamed");
+                await profiles.SaveAsync(CancellationToken.None);
+                var baseline = context.Working; var fingerprint = context.CaptureSnapshot();
+                context.Edit("discard me"); context.SetEditedName("Other");
+                Assert.Equal(WorkspaceOperationOutcome.Applied, (await profiles.DiscardAsync(CancellationToken.None)).Outcome);
+                Assert.Equal(baseline, context.Working); Assert.Equal(fingerprint, context.CaptureSnapshot());
+                Assert.Equal(store.Read("native:key"), context.Working); Assert.Equal(1, store.Writes);
+            }
+        }
         #endregion END Public
     }
 }

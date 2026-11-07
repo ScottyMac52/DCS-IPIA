@@ -3,7 +3,7 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.Application.Games
 {
     /// <summary>Owns availability, stale-review rejection and one admitted operation for typed native profile commands.</summary>
-    /// <remarks>Sequence: availability → capture fingerprint → native prepare/review → admission → reject stale review → stop input → run native once → accept only a successful result for the live lease.</remarks>
+    /// <remarks>Sequence: availability → admission → stop input → capture fingerprint → native prepare/review → reject stale lease/fingerprint → run native once → accept only a successful result for the live lease → refresh → release.</remarks>
     public abstract class GameProfileCommandBase<TRequest, TPrepared, TResult> : IGameProfileCommand<TRequest, TResult>
     {
         private readonly IGameWorkspaceContext _context;
@@ -31,17 +31,20 @@ namespace Heimdall.Application.Games
         {
             var availability = Availability;
             if (!availability.Enabled) throw new InvalidOperationException(availability.Reason);
-            var reviewed = _context.CaptureSnapshot();
-            var prepared = Prepare(request);
             var result = default(TResult);
             var outcome = await _context.RunOperationAsync(Kind, async lease =>
             {
-                if (!string.Equals(_context.CaptureSnapshot(), reviewed, StringComparison.Ordinal))
-                    throw new InvalidOperationException("The workspace changed during review. Review the command again.");
                 _input.Stop();
+                var reviewed = _context.CaptureSnapshot();
+                var prepared = Prepare(request);
+                // Review dialogs may pump messages: the lease and fingerprint must still match before native work.
+                if (!_context.OwnsOperation(lease) || _context.State.Identity != lease.Identity
+                    || !string.Equals(_context.CaptureSnapshot(), reviewed, StringComparison.Ordinal))
+                    throw new InvalidOperationException("The workspace changed during review. Review the command again.");
+                lease.Cancellation.ThrowIfCancellationRequested();
                 result = await RunNativeAsync(prepared, lease);
                 if (!IsSuccessful(result)) return new(WorkspaceOperationOutcome.NoChange, "");
-                if (_context.OwnsOperation(lease) && _context.State.Identity == lease.Identity) Accept(result, lease);
+                if (_context.OwnsOperation(lease) && _context.State.Identity == lease.Identity) { Accept(result, lease); _context.RefreshNativeState(); }
                 return new(WorkspaceOperationOutcome.Applied, "");
             }, cancellationToken);
             if (outcome.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(outcome.Message);
@@ -53,7 +56,7 @@ namespace Heimdall.Application.Games
         protected abstract WorkspaceOperationKind Kind { get; }
         /// <summary>Reads native edition, platform and source availability.</summary>
         protected abstract WorkspaceAvailability ReadAvailability();
-        /// <summary>Prepares and reviews native input before admission; throw OperationCanceledException when the user cancels review.</summary>
+        /// <summary>Prepares and reviews native input inside the admitted operation; a picker/review cancellation is a typed unsuccessful result, not an exception.</summary>
         protected abstract TPrepared Prepare(TRequest request);
         /// <summary>Runs the native command once for the admitted lease.</summary>
         protected abstract Task<TResult> RunNativeAsync(TPrepared prepared, IWorkspaceOperationLease lease);

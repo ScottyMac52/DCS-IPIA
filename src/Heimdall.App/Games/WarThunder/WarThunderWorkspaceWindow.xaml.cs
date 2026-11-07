@@ -73,7 +73,7 @@ namespace Heimdall.App.Games.WarThunder
             Import.Click += (_, _) => Run(() => { var picker = new OpenFileDialog { Filter = "War Thunder controls (*.blk)|*.blk" }; if (picker.ShowDialog(this) == true) ImportFile(picker.FileName); });
             Save.Click += SaveClicked;
             Discard.Click += DiscardClicked;
-            Export.Click += (_, _) => Run(() => { var picker = new OpenFolderDialog { Title = "Choose a folder for a separate War Thunder review copy" }; if (picker.ShowDialog(this) == true) Status.Text = "Review copy: " + ExportReview(picker.FolderName); });
+            Export.Click += (_, _) => Run(() => { var picker = new OpenFolderDialog { Title = "Choose a folder for a separate War Thunder review copy" }; if (picker.ShowDialog(this) == true) ExportReview(picker.FolderName); });
             Duplicate.Click += (_, _) => Run(_profiles.DuplicateCurrent);
             ProfileName.TextChanged += (_, _) => { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); RefreshChrome(); } };
             Profiles.SelectionChanged += (_, _) =>
@@ -197,11 +197,14 @@ namespace Heimdall.App.Games.WarThunder
                 if (_context.Refreshing || _context.Session is null || SelectedDevice is not { } id || _devices.Drawing.SelectedItem is not WorkspaceHardware hardware) return;
                 Run(() => { _controllers.Input.Stop(); _context.Session.ChangeDrawing(id, hardware.DeviceId); });
             };
-            _devices.Physical.SelectionChanged += (_, _) => { if (!_context.Refreshing)
+            _devices.Physical.SelectionChanged += (_, _) =>
+            {
+                if (!_context.Refreshing)
                 {
                     _devices.Link.IsEnabled = SelectedDevice is not null && _devices.Physical.IsEnabled && _devices.Physical.SelectedItem is DetectedDcsDevice;
                     _controllers.UpdateAddController();
-                } };
+                }
+            };
         }
 
         private void WireAssignments()

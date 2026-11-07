@@ -20,7 +20,7 @@ namespace Heimdall.App
         private readonly DcsProfileOperations _profiles;
         private readonly DcsModuleWorkspaceViewModel _viewModel;
         private readonly IAppSettingsService? _settings;
-        private readonly DcsWorkspaceOutput _output;
+        private readonly DcsOutputCommand _output;
 
         public DcsModuleWorkspaceWindow(DcsModuleWorkspaceViewModel viewModel, IAppSettingsService? settings = null,
                                      IDcsEditorWorkspaceRepository? repository = null, IConnectedDeviceDiscovery? deviceDiscovery = null,
@@ -42,7 +42,7 @@ namespace Heimdall.App
             BindWorkspaceContext(_context);
             BindWorkspaceStatus(EditorMessage);
             var outputLogger = logger ?? NullLogger<DcsModuleWorkspaceWindow>.Instance;
-            _output = new(Session,
+            _output = new(_context, Session, () => _viewModel.HasErrors,
                 training is null ? outputPathPicker ?? ChooseOutputPath : snapshot => snapshot
                     ? Path.Combine(training.Outputs, "training.heimdall-module.json") : training.Outputs,
                 training is null ? documentationFolderPicker ?? ChooseDocumentationFolder : () => training.Outputs,
@@ -111,7 +111,7 @@ namespace Heimdall.App
         {
             RefreshFeatureAvailability();
             if (_output is null || BuildButton is null || PackageVersion is null) return;
-            BuildButton.IsEnabled = !WorkspaceActionRunning && _output.CanRun(_viewModel.HasErrors, PackageVersion.Text);
+            BuildButton.IsEnabled = !WorkspaceActionRunning && _output.Availability.Enabled && !string.IsNullOrWhiteSpace(PackageVersion.Text);
             ValidateModuleButton.IsEnabled = ExportModuleSnapshotButton.IsEnabled = ExportModuleDocumentationButton.IsEnabled =
                 ExportCompleteReleaseButton.IsEnabled = BuildButton.IsEnabled;
         }
@@ -191,16 +191,16 @@ namespace Heimdall.App
         }
 
         private void BuildVersionChanged(object sender, TextChangedEventArgs e) => UpdateBuildAvailability();
-        private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(null);
-        private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(true);
-        private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false);
-        private async void ExportModuleDocumentationClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, true);
-        private async void ExportCompleteReleaseClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(false, false, true);
-        private Task RunOutputAsync(bool? snapshotExport, bool documentation = false, bool completeRelease = false)
+        private async void ValidateModuleClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(DcsOutputKind.Validate);
+        private async void ExportModuleSnapshotClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(DcsOutputKind.ModuleSnapshot);
+        private async void BuildClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(DcsOutputKind.Package);
+        private async void ExportModuleDocumentationClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(DcsOutputKind.Documentation);
+        private async void ExportCompleteReleaseClicked(object sender, RoutedEventArgs e) => await RunOutputAsync(DcsOutputKind.CompleteRelease);
+        private async Task RunOutputAsync(DcsOutputKind kind)
         {
-            if (!BuildButton.IsEnabled) return Task.CompletedTask;
-            var version = PackageVersion.Text.Trim();
-            return RunWorkspaceActionAsync(() => _output.RunAsync(version, snapshotExport, documentation, completeRelease), WorkspaceOperationKind.Export);
+            if (!BuildButton.IsEnabled) return;
+            try { await _output.ExecuteAsync(new(PackageVersion.Text.Trim(), kind), CancellationToken.None); }
+            catch (Exception error) when (error is InvalidOperationException or OperationCanceledException) { BuildStatus.Text = error.Message; }
         }
 
         private void OutputMenuOpened(object? sender, EventArgs e) => PackageVersion.Focus();
@@ -214,9 +214,14 @@ namespace Heimdall.App
         {
             if (snapshot)
             {
-                var picker = new ThemeBrowseDialog { Save = true, Title = "Export module snapshot to a new file",
+                var picker = new ThemeBrowseDialog
+                {
+                    Save = true,
+                    Title = "Export module snapshot to a new file",
                     Filter = "HEIMDALL module snapshot|*.heimdall-module.json",
-                    FileName = Session.Saved!.Configuration.Module.DcsId + ".heimdall-module.json", OverwritePrompt = false };
+                    FileName = Session.Saved!.Configuration.Module.DcsId + ".heimdall-module.json",
+                    OverwritePrompt = false
+                };
                 return picker.ShowDialog(this) == true ? picker.FileName : null;
             }
             var folder = new ThemeBrowseDialog { SelectFolder = true, Title = "Select output folder for the OvGME ZIP and SHA256SUMS.txt" };

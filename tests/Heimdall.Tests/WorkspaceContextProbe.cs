@@ -22,6 +22,8 @@ namespace Heimdall.Tests
         public void Accept() { _working = _working! with { Name = State.EditedName }; _saved = _working; NativeStateChanged(); }
         /// <summary>Installs a durable persisted candidate as both working and saved baseline.</summary>
         public void Install(WorkspaceTestSnapshot persisted) { _saved = _working = persisted; NativeStateChanged(); }
+        /// <summary>Installs a persisted candidate as a fresh native session (the Elite reopen-after-save path).</summary>
+        public void Reopen(WorkspaceTestSnapshot persisted) => ReplaceNativeSession(() => _saved = _working = persisted);
         /// <summary>Restores the native saved baseline and invalidates old review targets.</summary>
         public void Restore() { _working = _saved; InvalidateNativeScope(); NativeStateChanged(); }
         #endregion END Public

@@ -48,11 +48,24 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         services = (APP / 'Games/GameWorkspaceServices.cs').read_text(encoding='utf-8-sig')
         for moved in ('EliteDangerousProfileBackend', 'EliteDeviceReferenceMatcher', 'Heimdall.EliteDangerous'):
             self.assertNotIn(moved, services)
+        self.assertFalse((APP / 'Games/Dcs/DcsWorkspaceOutput.cs').exists())
+        commands = {
+            'Dcs/DcsOutputCommand.cs': ('DcsOutputCommand',),
+            'Elite/EliteProfileCommands.cs': ('EliteImportCommand', 'EliteCreateConfigurationCommand',
+                                              'EliteDeleteConfigurationCommand', 'EliteExportCommand'),
+            'Squadrons/SquadronsProfileCommands.cs': ('SquadronsImportCommand', 'SquadronsNewProfileCommand', 'SquadronsExportCommand'),
+            'WarThunder/WarThunderProfileCommands.cs': ('WarThunderImportCommand', 'WarThunderDuplicateCommand', 'WarThunderExportCommand'),
+        }
+        for path, names in commands.items():
+            source = (APP / 'Games' / path).read_text(encoding='utf-8-sig')
+            for name in names:
+                self.assertRegex(source, rf'class {name}\b[^{{]*:\s*GameProfileCommandBase<')
+            self.assertNotRegex(source, r'throw new NotImplementedException|throw new NotSupportedException')
         self.assertIn('interface IEliteWorkspaceServices', (APP / 'Games/Elite/IEliteWorkspaceServices.cs').read_text(encoding='utf-8-sig'))
 
     def test_dcs_window_delegates_editing_output_and_feature_construction(self):
         source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
-        for collaborator in ('DcsWorkspaceSession', 'DcsWorkspaceOutput', 'DcsWorkspaceFeatures'):
+        for collaborator in ('DcsWorkspaceSession', 'DcsOutputCommand', 'DcsWorkspaceFeatures'):
             self.assertIn(collaborator, source)
         for hook in ('OnWorkspaceStateChanged',):
             self.assertRegex(source, rf'override \w+(?:<[^>]+>)? {hook}\(')
@@ -179,7 +192,7 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                                  'Heimdall.App.Games.' + game + '.' + view.stem)
 
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
-        for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):
+        for name in ('DcsWorkspaceSession', 'DcsOutputCommand'):
             source = (APP / f'Games/Dcs/{name}.cs').read_text()
             self.assertNotRegex(source, r'\b(?:DcsModuleWorkspaceWindow|System.Windows|FindName|TextBlock)\b')
 

@@ -2,6 +2,7 @@ using Heimdall.Application.Interfaces;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.App.Games.Profiles;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
@@ -21,14 +22,14 @@ namespace Heimdall.App.Games.Elite
         TextBlock ExportState,
         Func<string?>? _importPicker,
         Func<string?>? _exportPicker,
-        Action<GameWorkspace, string?> OpenSession,
+        Func<GameWorkspace, GameProfileSession> CreateSession,
+        Action<GameSessionInstall> InstallSession,
         Action<Guid?> ReloadChoices,
         Action<GameWorkspace> Remember,
         Func<bool> ConfirmLeave,
         Action StopLiveInput,
         Func<Guid, string[]> ReadReplacementInputs,
         Action<GameControllerChange> ReviewControllerChange,
-        Action<Action> RunBusy,
         Action<Action> Run,
         Action<string> Status)
     {
@@ -39,15 +40,13 @@ namespace Heimdall.App.Games.Elite
         private GameWorkspaceServices _services => context.Services;
         private bool Pending => context.Chrome.Pending;
         #region BEGIN Public
-        internal void ImportFile(string path)
+        internal void ImportFile(string path) => Import.ExecuteAsync(path, CancellationToken.None).GetAwaiter().GetResult();
+
+        /// <summary>Deletes the open saved configuration through the reviewed delete command.</summary>
+        internal void DeleteConfiguration(Func<string, bool> confirm, Action deleted)
         {
-            var profile = context.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
-            var baseName = profile.Name.Length > 80 ? profile.Name[..80] + " Controls" : profile.Name + " Controls";
-            var used = _services.Store.List().Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var name = baseName; var suffix = 2;
-            while (used.Contains(name)) name = baseName + " " + suffix++;
-            var workspace = new GameWorkspace(1, Guid.NewGuid(), name, profile, new());
-            OpenSession(workspace, null); Status("Imported bindings. Associate your hardware drawing, then review and save this profile.");
+            if (_session is null || _revision is null || _busy) return;
+            new EliteDeleteConfigurationCommand(context, Input, confirm, deleted).ExecuteAsync(_session.Snapshot.Id, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         internal void SetBindingsDirectory(string? directory)
@@ -86,39 +85,16 @@ namespace Heimdall.App.Games.Elite
             Run(() => { var path = _importPicker is null ? PickImport() : _importPicker(); if (path is not null) { ImportFile(path); ProfilePicker.SelectedIndex = -1; } });
         }
 
-        internal void ExportClicked(object sender, RoutedEventArgs e) => Run(() => RunBusy(() =>
+        internal void ExportClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             if (_session is null || Pending) return;
             StopLiveInput();
+            // Reference repair is a reviewed controller change, a separate operation that must complete before export admission.
             var issues = _session.ReviewGameExport();
             if (issues.Count > 0) { ResolveExportIssue(issues); return; }
-            var plan = _session.ExportForGame();
-            if (ExportToReviewFolder.IsChecked == true)
-            {
-                var parent = _exportPicker is null ? PickExportFolder() : _exportPicker();
-                if (parent is null) return;
-                plan = _session.ExportForGame();
-                var active = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
-                var output = GameReviewExport.Write(parent, plan.Files, [active, BindingsDirectory]);
-                ExportState.Text = "Exported separate review copy: " + output + "\nInstallation into ED is manual. With ED closed, copy the reviewed preset into Bindings, restart ED and select " + _session.Snapshot.Name + ".";
-            }
-            else
-            {
-                var prepared = GameBindingsExport.Prepare(BindingsDirectory, plan.Files);
-                var target = Path.Combine(prepared.Directory, prepared.FileName);
-                if (prepared.ExpectedHash is not null && !(ConfirmPresetReplacement?.Invoke(target) ?? ThemeMessageBox.Show(owner,
-                    "Replace " + target + "? An exact backup will be created. Close Elite Dangerous before continuing.",
-                    "Export preset", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes))
-                { Status("Export cancelled; existing preset unchanged."); return; }
-                var fresh = _session.ExportForGame();
-                if (Pending || !fresh.Files.TryGetValue(prepared.FileName, out var content) || content != prepared.Content)
-                    throw new InvalidOperationException("The profile changed during export. Save and export again.");
-                var backup = GameBindingsExport.Write(prepared);
-                ExportState.Text = "Exported: " + target + (backup is null ? "" : "\nBackup: " + backup)
-                    + "\nRestart ED and select " + _session.Snapshot.Name + ". Existing preset selectors are unchanged.";
-            }
-            Status("Export complete. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
-        }));
+            var receipt = Export.ExecuteAsync(new(ExportToReviewFolder.IsChecked == true), CancellationToken.None).GetAwaiter().GetResult();
+            if (!receipt.Succeeded && receipt.Message.Length > 0) Status(receipt.Message);
+        });
 
         /// <summary>Native post-commit refresh for the shared save sequence; persistence itself is owned by <see cref="EliteProfileSaving"/>.</summary>
         internal void AfterSave()
@@ -134,7 +110,7 @@ namespace Heimdall.App.Games.Elite
         /// <summary>Gets the trimmed native configuration name.</summary>
         internal string CandidateName => ProfileName.Text.Trim();
         /// <summary>Installs a persisted preset model as a fresh native session.</summary>
-        internal void Reopen(GameWorkspace workspace, string revision) => OpenSession(workspace, revision);
+        internal void Reopen(GameWorkspace workspace, string revision) => InstallSession(new(CreateSession(workspace), revision));
         internal string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
         internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
@@ -143,6 +119,21 @@ namespace Heimdall.App.Games.Elite
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
         #endregion END Public
         #region BEGIN private helpers
+        private EliteImportCommand? _import;
+        private EliteExportCommand? _export;
+        private EliteCreateConfigurationCommand? _create;
+        private IWorkspaceInputLifetime Input => new DelegateInputLifetime(StopLiveInput);
+        private EliteImportCommand Import => _import ??= new(context, Input, CreateSession, InstallSession, Status);
+        private EliteCreateConfigurationCommand Create => _create ??= new(context, Input, CreateSession, installed =>
+        {
+            InstallSession(installed); var workspace = installed.Session.Snapshot; ReloadChoices(workspace.Id); Remember(workspace);
+        }, Status);
+        private EliteExportCommand Export => _export ??= new(context, Input, () => BindingsDirectory,
+            () => _exportPicker is null ? PickExportFolder() : _exportPicker(),
+            target => ConfirmPresetReplacement?.Invoke(target) ?? ThemeMessageBox.Show(owner,
+                "Replace " + target + "? An exact backup will be created. Close Elite Dangerous before continuing.",
+                "Export preset", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes,
+            text => ExportState.Text = text, Status);
         private string? ChooseConfigurationName(string action, string initial)
         {
             if (ConfigurationNamePicker is not null) return ConfigurationNamePicker(action, initial);
@@ -175,17 +166,17 @@ namespace Heimdall.App.Games.Elite
             // Duplicate includes the visible pending draft; New resolves it before leaving.
             if (clear && !ConfirmLeave()) return;
             if (clear && _session is not null) source = _session.Snapshot;
-            var workspace = GameConfigurations.Create(source, name, clear);
-            var revision = _services.Store.Save(workspace, null);
-            OpenSession(workspace, revision); ReloadChoices(workspace.Id); Remember(workspace);
-            Status(clear ? "New configuration saved with assignments cleared. Controller setup and game settings retained."
-                : "Independent configuration copy saved, including your current assignment edits.");
+            Create.ExecuteAsync(new(source, name, clear), CancellationToken.None).GetAwaiter().GetResult();
         }
 
         private string? PickImport()
         {
-            var dialog = new OpenFileDialog { Filter = "Elite bindings (*.binds)|*.binds", Title = "Import Elite controls preset",
-                InitialDirectory = BindingsDirectory };
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Elite bindings (*.binds)|*.binds",
+                Title = "Import Elite controls preset",
+                InitialDirectory = BindingsDirectory
+            };
             return dialog.ShowDialog(owner) == true ? dialog.FileName : null;
         }
 

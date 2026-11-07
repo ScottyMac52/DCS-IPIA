@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.App.Games.Profiles;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
@@ -31,15 +32,19 @@ namespace Heimdall.App.Games.WarThunder
         internal void AfterSave() { Remember(); RefreshEntries(); refreshChrome(); Status.Text = "War Thunder profile saved."; }
         #endregion END Public
         #region BEGIN private helpers
+        private WarThunderImportCommand? _import;
+        private WarThunderExportCommand? _export;
+        private WarThunderDuplicateCommand? _duplicate;
+        private IWorkspaceInputLifetime Input => new DelegateInputLifetime(() => controllers().Input.Stop());
+        private WarThunderImportCommand Import => _import ??= new(context, Input, CreateSession, Install, message => Status.Text = message);
+        private WarThunderExportCommand Export => _export ??= new(context, Input, message => Status.Text = message);
+        private WarThunderDuplicateCommand Duplicate => _duplicate ??= new(context, Input, CreateSession, Install);
         internal void ImportFile(string path)
         {
             controllers().Input.Stop();
-            var full = Path.GetFullPath(path);
-            if (new FileInfo(full).Length > 8 * 1024 * 1024) throw new InvalidDataException("Controls capture exceeds 8 MiB.");
-            var profile = context.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(full)] = File.ReadAllText(full) });
+            var request = WarThunderImportRequest.Read(context.Backend, path);
             if (!confirmLeave()) return;
-            Open(new(1, Guid.NewGuid(), Path.GetFileNameWithoutExtension(full), profile, new()) { SourceDirectory = Path.GetDirectoryName(full) }, null);
-            Status.Text = "Imported captured commands. Save this profile, then export a separate review copy.";
+            Import.ExecuteAsync(request, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         internal void LoadWorkspace(Guid id)
@@ -49,22 +54,19 @@ namespace Heimdall.App.Games.WarThunder
             Open(saved.Workspace, saved.Revision);
         }
 
-        internal string ExportReview(string parent)
-        {
-            if (context.Busy || context.Session is null || context.Chrome.Pending) throw new InvalidOperationException("Save the profile before exporting.");
-            controllers().Input.Stop();
-            var plan = context.Session.Export();
-            return GameReviewExport.Write(parent, plan.Files,
-                context.Session.Snapshot.SourceDirectory is { } source ? [source] : [], "war-thunder");
-        }
+        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Detail;
 
-        private void Open(GameWorkspace workspace, string? revision)
+        private void Open(GameWorkspace workspace, string? revision) => Install(new(CreateSession(workspace), revision));
+
+        private GameProfileSession CreateSession(GameWorkspace workspace) => new(context.Backend, workspace, EditionAccess.Policy, context.Drawings.Select(item => item.DeviceId).ToArray(),
+            () => context.Observed, new WarThunderDeviceReferenceMatcher(), controllerInputs: () => context.ControllerInputs);
+
+        private void Install(GameSessionInstall installed)
         {
             controllers().Input.Stop(); context.SelectedPhysicalInput = null; context.Selection.Reset();
-            var session = new GameProfileSession(context.Backend, workspace, EditionAccess.Policy, context.Drawings.Select(item => item.DeviceId).ToArray(),
-                () => context.Observed, new WarThunderDeviceReferenceMatcher(), controllerInputs: () => context.ControllerInputs);
+            var workspace = installed.Session.Snapshot;
             if (context.Session is not null) context.Session.Changed -= sessionChanged;
-            context.Session = session; context.Revision = revision; context.Session.Changed += sessionChanged;
+            context.Session = installed.Session; context.Revision = installed.Revision; context.Session.Changed += sessionChanged;
             context.Refreshing = true; ProfileName.Text = workspace.Name; context.Refreshing = false;
             RefreshEntries(); refresh(); Remember();
         }
@@ -82,8 +84,7 @@ namespace Heimdall.App.Games.WarThunder
             if (context.Session is null || !confirmLeave()) return;
             var dialog = new GameConfigurationNameWindow(owner, "Duplicate", context.Session.Snapshot.Name + " copy");
             if (dialog.ShowDialog() != true) return;
-            var copy = GameConfigurations.Create(context.Session.Snapshot, dialog.ConfigurationName, false);
-            Open(copy, null);
+            Duplicate.ExecuteAsync(dialog.ConfigurationName, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         internal void Remember()
