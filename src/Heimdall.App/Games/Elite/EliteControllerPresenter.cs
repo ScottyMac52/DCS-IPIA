@@ -34,7 +34,6 @@ namespace Heimdall.App.Games.Elite
         private readonly System.Windows.Threading.DispatcherTimer _readinessTimer = new() { Interval = TimeSpan.FromSeconds(1) };
         private bool _lastReady;
         private IReadOnlyList<ControllerObservation> _inputEvidence = [];
-        private int _inputEvidenceScan;
         private GameProfileSession? _session => context.Session;
         private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }
         private bool _busy => context.Busy;
@@ -298,7 +297,7 @@ namespace Heimdall.App.Games.Elite
         });
 
         internal void StopInputClicked(object sender, RoutedEventArgs e) { StopLiveInput(); Status("Input test stopped."); }
-        internal HardwareInputFeedback Input { get; } = new(owner, drawing, Status, activity, inputFactory);
+        internal HardwareInputFeedback Input { get; } = new(owner, drawing, Status, activity, inputFactory, context);
         internal bool Identifying => _identification.Running;
         internal IReadOnlyList<ControllerObservation> Evidence => _inputEvidence;
         internal void SampleIdentification() => _identification.Sample();
@@ -310,7 +309,7 @@ namespace Heimdall.App.Games.Elite
         /// <summary>Releases native discovery timers and input handles.</summary>
         public void Dispose()
         {
-            _inputEvidenceScan++; _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
+            context.StopActivity(); _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
             Input.StateChanged -= InputStateChanged; _identification.Dispose(); Input.Dispose();
         }
         #endregion END Public
@@ -333,18 +332,19 @@ namespace Heimdall.App.Games.Elite
 
         private async Task RefreshInputEvidenceAsync()
         {
-            var scan = ++_inputEvidenceScan;
+            if (!context.TryStartActivity(WorkspaceActivityKind.Scan, out var lease).Enabled) return;
+            using var scan = lease!;
             _inputEvidence = [];
             try
             {
                 var observations = await _services.DiscoverInputsAsync();
-                if (scan != _inputEvidenceScan) return;
+                if (scan.Cancellation.IsCancellationRequested || scan.Identity != context.State.Identity) return;
                 _inputEvidence = observations;
                 refreshInputs();
             }
             catch (Exception error)
             {
-                if (scan == _inputEvidenceScan) Status("Controller input scan failed: " + error.Message);
+                if (!scan.Cancellation.IsCancellationRequested) Status("Controller input scan failed: " + error.Message);
             }
         }
 
@@ -362,7 +362,7 @@ namespace Heimdall.App.Games.Elite
         }
 
         private HardwareInputFeedback _input => Input;
-        private readonly GameControllerIdentification _identification = new(owner, observations, clearIdentification, Status, inputFactory);
+        private readonly GameControllerIdentification _identification = new(owner, observations, clearIdentification, Status, inputFactory, context);
         #endregion END private helpers
     }
 }

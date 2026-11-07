@@ -107,11 +107,11 @@ namespace Heimdall.App.Smoke
                 var clear = ActionBar.FindButton(view, "Clear assignment")!;
                 clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, clear));
                 if (!((TextBlock)Callout("reserved").Child).Text.Contains("MODIFIER", StringComparison.Ordinal) ||
-                    new DcsWindowContext(window).Draft?.Snapshot.Any(a =>
+                    window.DcsContext.Draft?.Snapshot.Any(a =>
                         DcsInputKey.SamePhysicalInput(a.Slot.InputKey, "JOY_BTN7")) != false)
                     throw new InvalidOperationException("Legacy assignment could not be cleared independently.");
 
-                var context = new DcsWindowContext(window);
+                var context = window.DcsContext;
                 // The color fixture uses S3; release that binding before testing modifier removal.
                 context.Draft!.Remove(slot with { InputKey = "JOY_BTN8", ModifierChord = "S3" });
                 context.RunStructureEdit(w => DcsWorkspaceStructureEditor.RemoveModifier(w,

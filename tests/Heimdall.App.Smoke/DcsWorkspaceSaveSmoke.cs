@@ -32,7 +32,7 @@ namespace Heimdall.App.Smoke
                 repository = new PausedDcsRepository(inner);
                 window = new(new DcsModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
                 window.Show();
-                var context = new DcsWindowContext(window);
+                var context = window.DcsContext;
                 var draft = context.Draft!;
                 var removed = draft.Snapshot[0].Slot;
                 draft.Remove(removed);
@@ -80,7 +80,7 @@ namespace Heimdall.App.Smoke
                 {
                     if (save is { IsCompleted: false }) { repository?.Release(); Pump(window, save); }
                     if (save?.IsFaulted == true) _ = save.Exception;
-                    new DcsWindowContext(window).Discard(); window.Close();
+                    window.DcsContext.Discard(); window.Close();
                 }
                 EditionAccess.SetForTests(previous);
                 File.Delete(path);

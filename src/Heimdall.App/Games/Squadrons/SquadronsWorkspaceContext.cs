@@ -1,42 +1,43 @@
 using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.Squadrons;
+using System.Windows.Threading;
 
 namespace Heimdall.App.Games.Squadrons
 {
-    /// <summary>Shares the native session, verified evidence and selection scope among independently composed presenters.</summary>
-    internal sealed class SquadronsWorkspaceContext(GameWorkspaceServices services,
-        Func<string?> selectedController, Func<string?> assignmentSource, Func<string> drawingSection,
-        Func<string> editedName, Func<bool> busy)
+    /// <summary>Supplies typed native projections and policy to the common workspace state and lifetime.</summary>
+    internal sealed class SquadronsWorkspaceContext(GameWorkspaceServices services, IWorkspaceScheduler? scheduler = null)
+        : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
+          ISquadronsWorkspaceContext<SquadronsProfileBackend, SquadronsWorkspaceRow>
     {
-        internal const string CommandDragFormat = "heimdall.squadrons.command";
+        #region BEGIN Public
         internal GameWorkspaceServices Services { get; } = services;
-        internal SquadronsProfileBackend Backend { get; } = new();
-        internal GameProfileSession? Session { get; set; }
-        internal string? Revision { get; set; }
-        internal string? SourceDirectory { get; set; }
+        /// <inheritdoc/>
+        public SquadronsProfileBackend Backend { get; } = new();
         internal IReadOnlyList<WorkspaceHardware> Drawings { get; set; } = [];
-        internal IReadOnlyList<SquadronsWorkspaceRow> Rows { get; set; } = [];
+        /// <inheritdoc/>
+        public IReadOnlyList<SquadronsWorkspaceRow> Rows { get; set; } = [];
         internal IReadOnlyList<ControllerObservation> ControllerInputs { get; set; } = [];
-        internal GameAssignmentSelection Selection { get; set; } = null!;
+        internal GameAssignmentSelection Selection => NativeSelection;
+        internal bool Refreshing { get; set; } = true;
+        internal bool Disposed => IsDisposed;
+        internal bool Busy => State.Operation is not null;
+        internal bool Testing => State.Activity == WorkspaceActivityKind.Test;
+        internal string EditedName => State.EditedName.Trim();
+        internal WorkspaceAssignmentContext AssignmentContext => Context;
+        internal void NotifyChanged() => RefreshNativeState();
+        internal const string CommandDragFormat = "heimdall.squadrons.command";
+        internal string? SourceDirectory { get; set; }
         internal string? FocusedConcept { get; set; }
         internal HardwareGraphicControl? InspectedControl { get; set; }
-        internal bool Refreshing { get; set; } = true;
-        internal bool ScanningInputs { get; set; }
-        internal bool Disposed { get; set; }
-        internal bool Busy => busy();
-        internal string EditedName => editedName();
-        internal string? SelectedController => selectedController();
-        internal string? AssignmentSource => assignmentSource();
-        internal string DrawingSection => drawingSection();
-        internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, editedName());
-        internal Func<bool> Identifying { get; set; } = () => false;
-        internal Func<bool> Testing { get; set; } = () => false;
-        internal WorkspaceAssignmentContext AssignmentContext => new(
-            (Session?.Snapshot.Id.ToString("N") ?? "") + ":" + AssignmentSource + ":" + DrawingSection,
-            Session is not null, Session?.AccessMessage.Length > 0 || AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) == true,
-            Busy || ScanningInputs || Identifying(), Testing());
-        internal event EventHandler? Changed;
-        internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+        internal string? AssignmentSource { get; set; }
+        internal string DrawingSection { get; set; } = "All";
+        internal string? SelectedController => State.Selection.ControllerId is { } id && !id.StartsWith("system.", StringComparison.Ordinal) ? id : null;
+        internal bool ScanningInputs => State.Activity == WorkspaceActivityKind.Scan;
+        internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
+        #endregion END Public
+        protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, Session?.CanLinkCapturedDevices == true));
+        protected override bool SelectionReadOnly => AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) == true;
     }
 }

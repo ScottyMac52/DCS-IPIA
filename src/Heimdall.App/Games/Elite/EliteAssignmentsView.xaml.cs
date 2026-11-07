@@ -41,7 +41,7 @@ namespace Heimdall.App.Games.Elite
         {
             _context = context; _refresh = refresh; _drawingRefresh = drawingRefresh;
             _save = save; _discard = discard; _status = status;
-            BindAssignmentChanges(handler => context.Changed += handler, handler => context.Changed -= handler);
+            BindAssignmentContext(context);
         }
         internal void RefreshNativeAssignments() => RefreshAssignments();
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = "") =>

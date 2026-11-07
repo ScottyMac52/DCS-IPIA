@@ -32,7 +32,7 @@ namespace Heimdall.App.Games.Elite
         private bool _busy => WorkspaceActionRunning;
         private GameWorkspaceServices _services => _context.Services;
         private IReadOnlyList<WorkspaceHardware> _hardware => _context.Hardware;
-        private GameAssignmentSelection _selection => _assignmentsView.AssignmentSelection;
+        private GameAssignmentSelection _selection => _context.Selection;
         private IReadOnlyList<SimCommand> _commands { get => _context.Commands; set => _context.Commands = value; }
         private IReadOnlyList<EliteAssignmentRow> _rows { get => _context.Rows; set => _context.Rows = value; }
         private GameDeviceChoice? Device => _context.Device;
@@ -46,12 +46,10 @@ namespace Heimdall.App.Games.Elite
         {
             EditionAccess.Policy.RequireSimulator(services.Backend.SimId);
             _pendingChoice = pendingChoice;
-            _context = new(services, hardware, _assignmentsView.AssignmentSelection,
-                () => DevicePicker?.SelectedItem as GameDeviceChoice,
-                () => (SectionPicker?.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All",
-                () => ProfileName?.Text.Trim() ?? "", () => FeaturePicker?.SelectedIndex ?? -1,
-                () => WorkspaceActionRunning, () => _controllers?.Input.Running == true, () => _controllers?.Identifying == true);
+            _context = new(services, hardware);
             InitializeComponent();
+            BindWorkspaceContext(_context, Refresh);
+            BindWorkspaceStatus(WorkspaceStatus);
             _assignmentsView.ConfigureBrowser(EliteCommandBrowser.InputTypes, EliteCommandBrowser.AssignmentStatuses);
             RegisterFeatureNames(_devicesView); RegisterFeatureNames(_assignmentsView); RegisterFeatureNames(_referenceView);
             RegisterName("DiagramZoom", _assignmentsView.DiagramZoom);
@@ -146,6 +144,7 @@ namespace Heimdall.App.Games.Elite
             _disposed = true;
             ClearWorkspaceFeatures(); _browser.Dispose(); _reordering.Dispose(); _controllers.Dispose();
             if (_session is not null) _session.Changed -= SessionChanged;
+            _context.Dispose();
             GC.SuppressFinalize(this);
         }
         /// <summary>Gets a guarded request to return to DCS.</summary>
@@ -182,16 +181,24 @@ namespace Heimdall.App.Games.Elite
         protected override bool HasWorkspaceChanges => Pending;
         protected override bool CanSaveWorkspace => Chrome.CanSave;
         protected override string WorkspaceStateSummary => Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync() { _profiles.SaveCore(); return Task.CompletedTask; }
-        protected override void DiscardWorkspaceCore()
+        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) { _profiles.SaveCore(lease); return Task.CompletedTask; }
+        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
         {
-            _session?.Discard();
+            _session?.Discard(lease);
             if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Snapshot.Name; _refreshing = false; }
         }
         protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());
         protected override void ReportWorkspaceError(Exception exception) => Status("Save failed; pending edits are retained: " + exception.Message);
         protected override void OnWorkspaceStateChanged() => UpdateNativeAvailability();
         #region BEGIN private helpers
+        private void SyncContextSelection()
+        {
+            if (WorkspaceActionRunning) return;
+            _context.Section = (SectionPicker.SelectedItem as ListBoxItem)?.Content.ToString() ?? "All";
+            _context.Feature = FeaturePicker.SelectedIndex;
+            _context.Select(_context.State.Selection with { ControllerId = (DevicePicker.SelectedItem as GameDeviceChoice)?.Id });
+        }
+
         private void RegisterFeatureNames(DependencyObject root)
         {
             if (root is FrameworkElement { Name.Length: > 0 } element) RegisterName(element.Name, element);
@@ -270,6 +277,7 @@ namespace Heimdall.App.Games.Elite
 
         private void Refresh()
         {
+            if (WorkspaceActionRunning) return;
             if (_session is null) { UpdateAvailability(); return; }
             var document = _session.Snapshot;
             var previousDevice = Device?.Id; var previousCommand = Command?.Id;
@@ -283,6 +291,7 @@ namespace Heimdall.App.Games.Elite
             _assignmentsView.ModifierDevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == previousCombinationDevice)
                 ?? devices.FirstOrDefault(x => x.Id == Device?.Id);
             _refreshing = false;
+            SyncContextSelection();
             _editing.RefreshCombinationInputs();
             _browser.FilterCommands(previousCommand); _drawing.RenderDevice(); _controllers.UpdateReplacementReferences(); UpdateAvailability();
         }
@@ -305,13 +314,14 @@ namespace Heimdall.App.Games.Elite
             _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Snapshot.Id); _refreshing = false;
         }
 
-        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _references.MarkDirty(); UpdateAvailability(); } }
+        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && !WorkspaceActionRunning && SaveState is not null) { _context.SetEditedName(ProfileName.Text); _references.MarkDirty(); UpdateAvailability(); } }
 
-        private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _references.MarkDirty(); _browser.FilterCommands(); _drawing.RenderDevice(); }); }
+        private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && !WorkspaceActionRunning && _session is not null) Run(() => { SyncContextSelection(); _references.MarkDirty(); _browser.FilterCommands(); _drawing.RenderDevice(); }); }
 
         private void DeviceChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_refreshing || _session is null) return;
+            if (_refreshing || WorkspaceActionRunning || _session is null) return;
+            SyncContextSelection();
             Run(() =>
             {
                 _references.MarkDirty(); _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
@@ -336,6 +346,7 @@ namespace Heimdall.App.Games.Elite
         private void FeatureChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_controllers is null) return;
+            _context.Feature = FeaturePicker.SelectedIndex;
             var key = FeaturePicker.SelectedIndex switch { 1 => "Assignments", 2 => "Reference", _ => "Devices" };
             if (CurrentFeatureKey != key) StopLiveInput();
             NavigateToFeature(key); UpdateAvailability();

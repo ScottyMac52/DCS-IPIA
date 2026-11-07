@@ -31,7 +31,10 @@ namespace Heimdall.App.Games.Elite
         internal void FilterCommands(string? selected = null)
         {
             if (_session is null) return;
+            var controller = Device?.Id;
             _selection.SelectScope(_session.Snapshot.Id.ToString("N") + ":" + Section);
+            _selection.SelectController(controller);
+
             var previousCategory = CommandCategory;
             var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();
             _refreshing = true;

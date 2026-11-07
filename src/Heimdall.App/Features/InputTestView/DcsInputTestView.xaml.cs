@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using System.Windows.Input;
 using System.Text.Json;
 using Heimdall.Application;
@@ -20,6 +21,7 @@ namespace Heimdall.App.Features.InputTest
     public partial class DcsInputTestView : UserControl, IDisposable
     {
         private IDcsModuleWorkspaceContext? _context;
+        private IWorkspaceActivityLease? _activityLease;
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private IDeviceInputSource? _inputSource;
@@ -107,6 +109,9 @@ namespace Heimdall.App.Features.InputTest
             try
             {
                 EditionAccess.RequireInputTest(_context);
+                var available = _context!.TryStartActivity(WorkspaceActivityKind.Test, out _activityLease);
+                if (!available.Enabled) throw new InvalidOperationException(available.Reason);
+                _activityLease!.RegisterCleanup(() => Stop("Stopped by workspace operation."));
                 var snapshot = InputTestSnapshotChoice.SelectedIndex == 1 ? _context!.Saved ?? throw new InvalidOperationException("No saved profile.") : (_context!.Working! with { Assignments = _context.Draft?.Snapshot ?? _context.Working!.Assignments, Labels = _context.Labels });
                 var plan = DcsGeneratedInputTestPlan.Create(snapshot);
                 var required = plan.Bindings.Select(x => x.PhysicalGuid).Concat(plan.Modifiers.Select(x => x.PhysicalGuid))
@@ -151,13 +156,14 @@ namespace Heimdall.App.Features.InputTest
         private void StopInputTestClicked(object sender, RoutedEventArgs e) => Stop("Stopped. Start again to capture a fresh generated profile.");
         private void Stop(string status)
         {
+            var lease = _activityLease; _activityLease = null;
             _timer.Stop();
             _session?.Reset(); _session = null; _plan = null;
             _testSnapshot = null;
             UpdateModifierLegend();
             RefreshLiveArtwork();
             _inputFeedbackDevice = null;
-            _inputSource?.Dispose(); _inputSource = null;
+            _inputSource?.Dispose(); _inputSource = null; lease?.Dispose();
             _testKeyboard.Clear(); _liveAxisUntil.Clear(); _livePressedInputs.Clear();
             ClearInputHighlights();
             if (StartInputTestButton is null) return;

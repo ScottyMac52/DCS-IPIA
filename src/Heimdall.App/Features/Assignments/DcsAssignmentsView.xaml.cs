@@ -66,7 +66,7 @@ namespace Heimdall.App.Features.Assignments
             ArgumentNullException.ThrowIfNull(context);
             if (ReferenceEquals(_state.Context, context)) return;
             _state.Context = context;
-            BindAssignmentChanges(handler => context.StateChanged += handler, handler => context.StateChanged -= handler);
+            BindAssignmentContext(context);
             Scope.SelectedIndex = 0;
             RefreshAssignments();
             CommandManager.Initialize(context);
@@ -79,10 +79,18 @@ namespace Heimdall.App.Features.Assignments
         }
         internal void DropPaletteCommand(HardwareGraphicControl control, DcsCommandPaletteEntry command) => _editing.DropPaletteCommand(control, command);
         #endregion END Public
-        protected override WorkspaceAssignmentContext CaptureAssignmentContext() => new(
-            (_state.Context?.Working?.Configuration.Module.Id.ToString("N") ?? "") + ":" +
-            _state.Diagram?.ProfileId + ":" + _state.Layer + ":" + Layers.SelectedItem,
-            _state.Context?.Draft is not null, false, false, false);
+        protected override WorkspaceAssignmentContext CaptureAssignmentContext()
+        {
+            if (_state.Context is not { } context) return new("", false, false, false, false);
+            if (context.State.Operation is null)
+                context.Select(context.State.Selection with
+                {
+                    ControllerId = _state.Diagram?.ProfileId.ToString("N"),
+                    CommandId = CommandManager.SelectedCommand?.Id,
+                    NativeScope = _state.Layer + "|" + Layers.SelectedItem
+                });
+            return context.Context;
+        }
         protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(new
         {
             Assignments = _state.Context?.Draft?.Snapshot,

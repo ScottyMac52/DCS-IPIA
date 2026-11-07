@@ -22,9 +22,12 @@ namespace Heimdall.App.Games
         private Dictionary<string, double> _previous = new(StringComparer.Ordinal);
         private readonly Dictionary<string, DateTime> _axisUntil = new(StringComparer.Ordinal);
         private Guid _physical;
+        private readonly IGameWorkspaceContext? _context;
+        private IWorkspaceActivityLease? _lease;
         internal HardwareInputFeedback(Window owner, HardwareDiagramPresenter diagram, Action<string> status, Action<string> activity,
-            Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
+            Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null, IGameWorkspaceContext? context = null)
         {
+            _context = context;
             _owner = owner; _diagram = diagram; _status = status; _activity = activity;
             _factory = factory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _timer.Tick += Poll; owner.Deactivated += Deactivated;
@@ -40,8 +43,15 @@ namespace Heimdall.App.Games
             Stop(); EditionAccess.Policy.RequirePremium();
             if (!GameInputReadiness.Ready(pin, observed))
                 throw new InvalidOperationException("Connect the explicitly associated controller and rescan before testing.");
+            if (_context is not null)
+            {
+                var ready = _context.TryStartActivity(WorkspaceActivityKind.Test, out _lease);
+                if (!ready.Enabled) throw new InvalidOperationException(ready.Reason);
+                _lease!.RegisterCleanup(Stop);
+            }
             _physical = pin.Device.PhysicalGuid;
-            _source = _factory(new WindowInteropHelper(_owner).EnsureHandle(), [_physical]);
+            try { _source = _factory(new WindowInteropHelper(_owner).EnsureHandle(), [_physical]); }
+            catch { Stop(); throw; }
             _activityText = new(pin.Device.Name, _physical); _activity(_activityText.Text);
             StateChanged?.Invoke(this, EventArgs.Empty);
             _timer.Start(); _status("Live hardware feedback · " + pin.Device.Name + ". Move an axis or press a button; feedback appears on the drawing or in the activity text.");
@@ -49,9 +59,10 @@ namespace Heimdall.App.Games
         /// <summary>Stops sampling and clears feedback before view, device, profile or focus changes.</summary>
         internal void Stop()
         {
+            var lease = _lease; _lease = null;
             var wasRunning = _source is not null;
             _timer.Stop(); _source?.Dispose(); _source = null; _previous.Clear(); _axisUntil.Clear();
-            _activityText = null; _activity("");
+            _activityText = null; _activity(""); lease?.Dispose();
             foreach (var region in _diagram.Regions) region.Outline.BorderBrush = Brushes.Transparent;
             if (wasRunning) { _status("Input test stopped."); StateChanged?.Invoke(this, EventArgs.Empty); }
         }

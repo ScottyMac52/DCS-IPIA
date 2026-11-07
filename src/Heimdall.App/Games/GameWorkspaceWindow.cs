@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
 {
@@ -16,7 +17,11 @@ namespace Heimdall.App.Games
         private Action<string>? _selected;
         private bool _closed;
         private bool _confirmingLeave;
-        private bool _runningAction;
+        private IGameWorkspaceContext? _workspaceContext;
+        private Action? _refreshNative;
+        private bool _refreshingNative;
+        private bool _refreshingChrome;
+        private WorkspaceOperationKind? _previousOperation;
         private Button? _save;
         private Button? _discard;
         private TextBlock? _pending;
@@ -25,6 +30,38 @@ namespace Heimdall.App.Games
         /// <summary>Gets the selected registered feature, or null before first navigation.</summary>
         public string? CurrentFeatureKey { get; private set; }
         #endregion END Public
+
+        /// <summary>Gets the common context for conformance checks and contract-typed consumers.</summary>
+        internal IGameWorkspaceContext WorkspaceContext => _workspaceContext ?? throw new InvalidOperationException("Workspace context is not bound.");
+        /// <summary>Binds one state authority; native callbacks only refresh panels after the shared operation releases.</summary>
+        protected void BindWorkspaceContext(IGameWorkspaceContext context, Action? refreshNative = null)
+        {
+            if (_workspaceContext is not null) throw new InvalidOperationException("Workspace context is already bound.");
+            _workspaceContext = context; _refreshNative = refreshNative;
+            context.StateChanged += ContextChanged;
+            RegisterWorkspaceCleanup(() => { context.StateChanged -= ContextChanged; context.Dispose(); });
+        }
+        /// <summary>Projects legacy native status surfaces into the common status notification contract.</summary>
+        protected void BindWorkspaceStatus(TextBlock surface)
+        {
+            var context = WorkspaceContext;
+            var descriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
+            EventHandler changed = (_, _) => context.ReportStatus(surface.Text);
+            EventHandler<string> reported = (_, message) => surface.Text = message;
+            descriptor.AddValueChanged(surface, changed); context.StatusChanged += reported;
+            RegisterWorkspaceCleanup(() => { descriptor.RemoveValueChanged(surface, changed); context.StatusChanged -= reported; });
+        }
+        private void ContextChanged(object? sender, EventArgs e)
+        {
+            var operation = _workspaceContext?.State.Operation;
+            var released = _previousOperation is not null && operation is null;
+            _previousOperation = operation;
+            RefreshWorkspaceState();
+            if (!released || _refreshingNative || operation is not null || _closed) return;
+            _refreshingNative = true;
+            try { _refreshNative?.Invoke(); }
+            finally { _refreshingNative = false; }
+        }
 
         /// <summary>Installs the feature registrations once, after the derived XAML has initialized.</summary>
         protected void ConfigureWorkspace(ContentControl content, FeatureActionBar actions,
@@ -82,11 +119,11 @@ namespace Heimdall.App.Games
         /// <summary>Reports native save availability for common chrome and leave prompts.</summary>
         protected abstract bool CanSaveWorkspace { get; }
         /// <summary>Gets whether a common asynchronous action is executing.</summary>
-        protected bool WorkspaceActionRunning => _runningAction;
+        protected bool WorkspaceActionRunning => _workspaceContext?.State.Operation is not null;
         /// <summary>Validates native write access and supplies persistence, throwing a specific reason on rejection.</summary>
-        protected abstract Task SaveWorkspaceCoreAsync();
+        protected abstract Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease);
         /// <summary>Supplies the adapter's restoration operation.</summary>
-        protected abstract void DiscardWorkspaceCore();
+        protected abstract void DiscardWorkspaceCore(IWorkspaceOperationLease lease);
         /// <summary>Refreshes adapter-specific actions after the base has refreshed common chrome.</summary>
         protected virtual void OnWorkspaceStateChanged() { }
         /// <summary>Displays an action failure through the adapter's status surface.</summary>
@@ -100,28 +137,40 @@ namespace Heimdall.App.Games
         /// <summary>Updates common pending and save/discard state, then invokes the adapter hook.</summary>
         protected void RefreshWorkspaceState()
         {
-            if (_save is not null) _save.IsEnabled = !_runningAction && CanSaveWorkspace && HasWorkspaceChanges;
-            if (_discard is not null) _discard.IsEnabled = !_runningAction && HasWorkspaceChanges;
-            if (_pending is not null) _pending.Text = WorkspaceStateSummary;
-            OnWorkspaceStateChanged();
+            if (_refreshingChrome) return;
+            _refreshingChrome = true;
+            try
+            {
+                _workspaceContext?.RefreshNativeState();
+                if (_save is not null) _save.IsEnabled = !WorkspaceActionRunning && CanSaveWorkspace && HasWorkspaceChanges;
+                if (_discard is not null) _discard.IsEnabled = !WorkspaceActionRunning && HasWorkspaceChanges;
+                if (_pending is not null) _pending.Text = WorkspaceStateSummary;
+                OnWorkspaceStateChanged();
+            }
+            finally { _refreshingChrome = false; }
         }
 
         /// <summary>Serializes asynchronous workspace actions and restores common availability even after failure.</summary>
-        protected async Task RunWorkspaceActionAsync(Func<Task> action)
+        protected async Task RunWorkspaceActionAsync(Func<Task> action, WorkspaceOperationKind kind = WorkspaceOperationKind.Replace)
         {
             if (_closed) throw new InvalidOperationException("The workspace is closed.");
-            if (_runningAction) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
-            _runningAction = true;
-            try
+            var context = _workspaceContext ?? throw new InvalidOperationException("Bind the workspace context before running actions.");
+            var result = await context.RunOperationAsync(kind, async _ =>
             {
-                RefreshWorkspaceState();
-                await action();
-            }
-            finally { _runningAction = false; RefreshWorkspaceState(); }
+                await action(); return new(WorkspaceOperationOutcome.Applied, "", kind == WorkspaceOperationKind.Save);
+            }, CancellationToken.None);
+            if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
+            if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
         }
 
         /// <summary>Saves through the adapter hook using the common action lifetime.</summary>
-        protected internal Task SaveWorkspaceAsync() => RunWorkspaceActionAsync(SaveWorkspaceCoreAsync);
+        protected internal async Task SaveWorkspaceAsync()
+        {
+            var result = await WorkspaceContext.RunOperationAsync(WorkspaceOperationKind.Save, async lease =>
+            { await SaveWorkspaceCoreAsync(lease); return new(WorkspaceOperationOutcome.Applied, "", true); }, CancellationToken.None);
+            if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
+            if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
+        }
 
         /// <summary>Executes the shared Save button path and displays failures without losing pending state.</summary>
         protected async void SaveClicked(object sender, RoutedEventArgs e)
@@ -134,15 +183,17 @@ namespace Heimdall.App.Games
         protected internal void DiscardClicked(object sender, RoutedEventArgs e)
         {
             if (_closed) throw new InvalidOperationException("The workspace is closed.");
-            if (_runningAction) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
-            DiscardWorkspaceCore();
-            RefreshWorkspaceState();
+            if (WorkspaceActionRunning) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
+            var context = _workspaceContext ?? throw new InvalidOperationException("Bind the workspace context before discarding.");
+            var result = context.RunOperation(WorkspaceOperationKind.Discard, lease =>
+            { DiscardWorkspaceCore(lease); return new(WorkspaceOperationOutcome.Applied, "Pending edits discarded."); });
+            if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
         }
 
         /// <summary>Runs the common save/discard/cancel sequence before a game or profile switch.</summary>
         protected async Task<bool> ConfirmWorkspaceLeaveAsync(Func<GameWorkspaceLeaveDecision> choose)
         {
-            if (_confirmingLeave || _runningAction || _closed) return false;
+            if (_confirmingLeave || WorkspaceActionRunning || _closed) return false;
             _confirmingLeave = true;
             try
             {
@@ -162,7 +213,7 @@ namespace Heimdall.App.Games
             "Discard unsaved workspace changes?", "Pending changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
         /// <summary>Guards closing with shared pending and operation state.</summary>
-        protected virtual bool CanCloseWorkspace() => !_runningAction && (!HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
+        protected virtual bool CanCloseWorkspace() => !WorkspaceActionRunning && (!HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
 
         /// <inheritdoc/>
         protected override void OnClosing(CancelEventArgs e)

@@ -15,7 +15,13 @@ namespace Heimdall.Application.Games
         private IReadOnlyCollection<string> _catalogIds;
         private readonly Func<IReadOnlyList<DetectedDcsDevice>> _observed;
         private readonly Func<IReadOnlyList<ControllerObservation>> _controllerInputs;
-        private GameWorkspace _current;
+        private GameWorkspace _currentValue = null!;
+        internal IGameWorkspaceContext? WorkspaceContext { get; set; }
+        private GameWorkspace _current
+        {
+            get => _currentValue;
+            set { RequireWorkspaceMutation(); _currentValue = value; }
+        }
         private GameWorkspace _saved;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
@@ -48,7 +54,21 @@ namespace Heimdall.Application.Games
         /// <summary>Gets the captured native catalog.</summary>
         public ICommandCatalog Catalog => _backend.GetCatalog(_current.Profile);
         /// <summary>Marks the current state saved only after persistence succeeds.</summary>
-        public void AcceptSaved() { _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
+        public void AcceptSaved() { RequireWorkspaceMutation(); _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
+        /// <summary>Accepts a successfully persisted candidate only for the context-issued save lease.</summary>
+        public void AcceptSaved(GameWorkspace persisted, IWorkspaceOperationLease lease)
+        {
+            RequireLease(lease, WorkspaceOperationKind.Save);
+            if (persisted.Id != _current.Id) throw new InvalidOperationException("The saved candidate belongs to another workspace.");
+            _currentValue = GameWorkspaceContract.Clone(persisted); _saved = GameWorkspaceContract.Clone(persisted);
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        /// <summary>Restores the native saved baseline inside the already-admitted discard operation.</summary>
+        public void Discard(IWorkspaceOperationLease lease)
+        {
+            RequireLease(lease, WorkspaceOperationKind.Discard);
+            _currentValue = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty);
+        }
         /// <summary>Restores the exact saved document and associations.</summary>
         public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }
         /// <summary>Stages an adapter-owned operation atomically, preserving identity and validating its exported result.</summary>
@@ -684,6 +704,22 @@ namespace Heimdall.Application.Games
             if (observations.Count(x => x.Connected && x.ProductGuid == observed.ProductGuid) > 1
                 && !reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"))
                 throw new InvalidOperationException("ED's reference has no DeviceIndex for these identical controllers. Bind each controller in Elite and reimport its indexed references first.");
+        }
+        private void RequireWorkspaceMutation()
+        {
+            if (WorkspaceContext is not { } context) return;
+            if (!context.State.Open || context.State.Identity.Key != _currentValue.Id.ToString("N") ||
+                context is IGameProfileSessionOwner owner && !ReferenceEquals(owner.Session, this))
+                throw new InvalidOperationException("This native session is no longer mounted in its workspace.");
+            if (context.State.Operation is WorkspaceOperationKind.Save or WorkspaceOperationKind.Discard || context.State.Activity is not null)
+                throw new InvalidOperationException("Finish the workspace operation or input activity before editing.");
+        }
+        private void RequireLease(IWorkspaceOperationLease lease, WorkspaceOperationKind kind)
+        {
+            ArgumentNullException.ThrowIfNull(lease);
+            if (WorkspaceContext is not { } context || context.State.Operation != kind || lease.Kind != kind ||
+                !context.OwnsOperation(lease) || context is IGameProfileSessionOwner owner && !ReferenceEquals(owner.Session, this))
+                throw new InvalidOperationException("Use the current workspace operation lease.");
         }
         private void RequireAccess()
         {

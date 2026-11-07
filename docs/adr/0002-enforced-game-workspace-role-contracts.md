@@ -1,6 +1,6 @@
 # ADR-0002: Enforced workspace roles and inherited behavior for all four games
 
-- Status: Proposed — architecture review required before issue #357 PR 2
+- Status: Accepted — owner approved and merged #358; PR 2 API clarifications are documented for review
 - Date: 2026-11-07
 - Baseline: `0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0` (main after PR #356)
 - Tracking: [issue #357](https://github.com/ScottyMac52/DCS-IPIA/issues/357), PR 1
@@ -21,7 +21,7 @@ Application owns UI-free contracts and algorithms. App owns WPF bases, view comp
 
 Migrate one role across all four games per PR, in issue order. The [migration map](../architecture/workspace-role-migration.md) identifies DCS adapters and exact source transitions. Required native-only panels and features remain; identical file counts are not a requirement. A wrapper that forwards the entire old duplicated sequence, marker inheritance, a second assignment engine or a shared game-ID switch fails acceptance.
 
-PR 1 adds documentation and a source index only. The APIs in the specification are normative proposed signatures, not production declarations. PR 2 is blocked until the owner accepts this design or the documents are revised to resolve requested changes. Any later signature/ownership change must update this ADR's linked specification and acceptance mapping in that same PR.
+PR 1 adds documentation and a source index only. The APIs in the specification are normative proposed signatures, not production declarations. The owner accepted the PR 1 design by merging #358 and requesting PR 2. PR 2 implementation details and narrow API clarifications are recorded in the linked context implementation document. Any later signature/ownership change must update this ADR's linked specification and acceptance mapping in that same PR.
 
 ## Consequences
 

@@ -1,3 +1,4 @@
+using Heimdall.Application.Interfaces;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -119,7 +120,7 @@ namespace Heimdall.App.Games.Elite
             Status("Export complete. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
         }));
 
-        internal void SaveCore()
+        internal void SaveCore(IWorkspaceOperationLease lease)
         {
             if (_session is null) throw new InvalidOperationException("Open an Elite configuration before saving.");
                 var workspace = _session.Snapshot with { Name = ProfileName.Text.Trim() };

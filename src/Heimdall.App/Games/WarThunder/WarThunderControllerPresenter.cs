@@ -28,12 +28,11 @@ namespace Heimdall.App.Games.WarThunder
         Action refreshChrome) : IDisposable
     {
         private HardwareInputFeedback _input = null!;
-        private int _hardwareScan;
         #region BEGIN Public
         internal HardwareInputFeedback Input => _input;
-        internal void Start() => _input = new(owner, presenter, text => InputStatus.Text = text, text => _assignments.Activity.Text = text, inputFactory);
+        internal void Start() => _input = new(owner, presenter, text => InputStatus.Text = text, text => _assignments.Activity.Text = text, inputFactory, context);
         /// <summary>Invalidates discovery scans and releases foreground input resources.</summary>
-        public void Dispose() { _hardwareScan++; _input.Dispose(); }
+        public void Dispose() { context.StopActivity(); _input.Dispose(); }
         #endregion END Public
         #region BEGIN private helpers
         internal void AddController()
@@ -123,25 +122,26 @@ namespace Heimdall.App.Games.WarThunder
         internal async Task RefreshHardwareAsync()
         {
             if (context.Disposed || context.Busy) return;
-            var scan = ++_hardwareScan;
-            context.ScanningHardware = true;
+            _input.Stop();
+            if (!context.TryStartActivity(WorkspaceActivityKind.Scan, out var lease).Enabled) return;
+            using var scan = lease!;
             refreshChrome();
             _input.Stop();
             try
             {
                 context.Observed = context.Services.Discover();
                 var inputs = await context.Services.DiscoverInputsAsync();
-                if (context.Disposed || scan != _hardwareScan) return;
+                if (context.Disposed || scan.Cancellation.IsCancellationRequested || scan.Identity != context.State.Identity) return;
                 context.ControllerInputs = inputs;
             }
             catch (Exception error)
             {
-                if (context.Disposed || scan != _hardwareScan) return;
+                if (context.Disposed || scan.Cancellation.IsCancellationRequested || scan.Identity != context.State.Identity) return;
                 context.ControllerInputs = []; reportError(error, "Controller input scan failed");
             }
             finally
             {
-                if (!context.Disposed && scan == _hardwareScan) { context.ScanningHardware = false; refreshChrome(); }
+                scan.Dispose(); if (!context.Disposed) refreshChrome();
             }
         }
         #endregion END private helpers

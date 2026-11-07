@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
@@ -310,10 +311,14 @@ namespace Heimdall.App.Features.Devices
         private async Task RefreshDetectedDevicesAsync()
         {
             if (_context is null) return;
+            var admitted = _context.TryStartActivity(WorkspaceActivityKind.Scan, out var lease);
+            if (!admitted.Enabled) { StatusMessage.Text = admitted.Reason; return; }
+            using var scan = lease!;
             try
             {
                 StatusMessage.Text = "Reading connected controllers…";
                 var connected = await Task.Run(() => _context.DeviceDiscovery.Discover());
+                if (scan.Cancellation.IsCancellationRequested || scan.Identity != _context.State.Identity) return;
                 DetectedDevice.ItemsSource = connected.Where(device => EditionAccess.Policy.AllowsDevice(device)).ToArray();
                 RefreshSelectedDevice();
                 StatusMessage.Text = $"{connected.Count} connected device(s).";

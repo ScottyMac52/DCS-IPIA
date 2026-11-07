@@ -82,7 +82,7 @@ namespace Heimdall.App.Smoke
                 window.Content = view; ThemeControlSmoke.Pump(window);
                 Require(source.Subscribers == 1 && view.Refreshes > before, "A cached view did not reattach and refresh on remount.");
             }
-            finally { window.Close(); ThemeControlSmoke.Pump(window); }
+            finally { window.Close(); ThemeControlSmoke.Pump(window); view.Dispose(); }
             Require(source.Subscribers == 0, "Closing retained the assignment state subscription.");
         }
         #endregion END Public

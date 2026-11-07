@@ -1,37 +1,39 @@
 using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.WarThunder;
+using System.Windows.Threading;
 
 namespace Heimdall.App.Games.WarThunder
 {
-    /// <summary>Shares native session state, verified input evidence and selection scope without depending on a concrete window.</summary>
-    internal sealed class WarThunderWorkspaceContext(GameWorkspaceServices services, Func<string?> selectedDevice,
-        Func<string> editedName, Func<bool> busy)
+    /// <summary>Supplies typed native projections and policy to the common workspace state and lifetime.</summary>
+    internal sealed class WarThunderWorkspaceContext(GameWorkspaceServices services, IWorkspaceScheduler? scheduler = null)
+        : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
+          IWarThunderWorkspaceContext<WarThunderProfileBackend, WarThunderWorkspaceRow>
     {
+        #region BEGIN Public
         internal GameWorkspaceServices Services { get; } = services;
-        internal WarThunderProfileBackend Backend { get; } = new();
-        internal GameProfileSession? Session { get; set; }
-        internal string? Revision { get; set; }
+        /// <inheritdoc/>
+        public WarThunderProfileBackend Backend { get; } = new();
         internal IReadOnlyList<WorkspaceHardware> Drawings { get; set; } = [];
-        internal IReadOnlyList<DetectedDcsDevice> Observed { get; set; } = [];
+        /// <inheritdoc/>
+        public IReadOnlyList<WarThunderWorkspaceRow> Rows { get; set; } = [];
         internal IReadOnlyList<ControllerObservation> ControllerInputs { get; set; } = [];
-        internal IReadOnlyList<WarThunderWorkspaceRow> Rows { get; set; } = [];
+        internal GameAssignmentSelection Selection => NativeSelection;
+        internal bool Refreshing { get; set; } = true;
+        internal bool Disposed => IsDisposed;
+        internal bool Busy => State.Operation is not null;
+        internal bool Testing => State.Activity == WorkspaceActivityKind.Test;
+        internal string EditedName => State.EditedName.Trim();
+        internal WorkspaceAssignmentContext AssignmentContext => Context;
+        internal void NotifyChanged() => RefreshNativeState();
+        internal IReadOnlyList<DetectedDcsDevice> Observed { get; set; } = [];
         internal WarThunderPhysicalMap PhysicalMap { get; set; } = new([], "Rescan controller inputs.");
         internal WarThunderPhysicalInput? SelectedPhysicalInput { get; set; }
-        internal GameAssignmentSelection Selection { get; set; } = null!;
         internal Dictionary<string, IReadOnlyList<WarThunderWorkspaceRow>> DrawingAssignments { get; } = new(StringComparer.Ordinal);
-        internal bool Refreshing { get; set; } = true;
-        internal bool Disposed { get; set; }
-        internal bool ScanningHardware { get; set; }
-        internal bool Busy => busy();
-        internal string? SelectedDevice => selectedDevice();
-        internal string EditedName => editedName().Trim();
-        internal Func<bool> Testing { get; set; } = () => false;
-        internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, EditedName, Testing());
-        internal WorkspaceAssignmentContext AssignmentContext => new(
-            (Session?.Snapshot.Id.ToString("N") ?? "") + ":" + (SelectedDevice ?? "*"),
-            Session is not null, Session?.AccessMessage.Length > 0, Busy || ScanningHardware, Testing());
-        internal event EventHandler? Changed;
-        internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+        internal string? SelectedDevice => State.Selection.ControllerId;
+        internal bool ScanningHardware => State.Activity == WorkspaceActivityKind.Scan;
+        #endregion END Public
+        protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, Session?.CanLinkCapturedDevices == true));
     }
 }

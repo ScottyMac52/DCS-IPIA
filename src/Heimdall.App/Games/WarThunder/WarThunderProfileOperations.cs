@@ -27,15 +27,15 @@ namespace Heimdall.App.Games.WarThunder
         Action refreshChrome)
     {
         #region BEGIN Public
-        internal void SaveCore()
+        internal void SaveCore(IWorkspaceOperationLease lease)
         {
-            if (context.Session is not { } session || session.AccessMessage.Length != 0 || context.Testing() || context.ScanningHardware)
+            if (context.Session is not { } session || session.AccessMessage.Length != 0 || context.Testing || context.ScanningHardware)
                 throw new InvalidOperationException("This War Thunder workspace cannot currently be saved.");
             var workspace = session.Snapshot with { Name = context.EditedName };
             GameConfigurationName.Validate(workspace.Name);
             controllers().Input.Stop();
             var revision = context.Services.Store.Save(workspace, context.Revision);
-            session.Rename(workspace.Name); session.AcceptSaved(); context.Revision = revision;
+            session.AcceptSaved(workspace, lease); context.Revision = revision;
             Remember(); RefreshEntries(); refreshChrome(); Status.Text = "War Thunder profile saved.";
         }
         #endregion END Public

@@ -113,7 +113,7 @@ namespace Heimdall.App.Smoke
                 window.Show(); ThemeControlSmoke.Pump(window);
                 try
                 {
-                    var view = new DcsInputTestView(); view.Initialize(new DcsWindowContext(window));
+                    var view = new DcsInputTestView(); view.Initialize(window.DcsContext);
                     ((Button)view.FindName("StartInputTestButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     if (!((TextBlock)view.FindName("InputTestStatus")!).Text.Contains("reserved", StringComparison.Ordinal))
                         throw new InvalidOperationException("Free direct input-test handler escaped the edition boundary.");

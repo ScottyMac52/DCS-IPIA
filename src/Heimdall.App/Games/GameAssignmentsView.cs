@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
 {
@@ -22,7 +23,7 @@ namespace Heimdall.App.Games
         private Action<EventHandler>? _unsubscribe;
         private bool _subscribed;
         private bool _refreshing;
-        private bool _saving;
+        private IGameWorkspaceContext? _context;
         private bool _unmounted;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
@@ -78,9 +79,9 @@ namespace Heimdall.App.Games
         /// <summary>Gets the common inspector viewport for native namescope compatibility and focus checks.</summary>
         protected ScrollViewer AssignmentInspectorViewport => _editorViewport;
         /// <summary>Gets the common selection state reused by adapter action policies.</summary>
-        protected internal GameAssignmentSelection AssignmentSelection { get; } = new();
+        protected internal GameAssignmentSelection AssignmentSelection => _context is IWorkspaceSelectionEngineOwner owner ? owner.SelectionEngine : throw new InvalidOperationException("Use the bound context selection contract.");
         /// <summary>Gets the common execution boundary shared by all native entry points.</summary>
-        protected internal WorkspaceAssignmentWorkflow AssignmentWorkflow { get; } = new();
+        protected internal WorkspaceAssignmentWorkflow AssignmentWorkflow => _context?.AssignmentWorkflow ?? throw new InvalidOperationException("Bind a workspace context before assigning.");
         /// <summary>Reads fresh native editing gates and scope.</summary>
         protected abstract WorkspaceAssignmentContext CaptureAssignmentContext();
         /// <summary>Captures native draft identity for review/change checks.</summary>
@@ -101,6 +102,12 @@ namespace Heimdall.App.Games
         /// <summary>Supplies native failure wording while retaining the underlying explanation.</summary>
         protected virtual string SaveFailurePrefix => "Save failed: ";
 
+        /// <summary>Shares the context engine and notification lifetime rather than creating view-owned state.</summary>
+        protected void BindAssignmentContext(IGameWorkspaceContext context)
+        {
+            _context = context;
+            BindAssignmentChanges(handler => context.StateChanged += handler, handler => context.StateChanged -= handler);
+        }
         /// <summary>Rebinds state notifications without retaining the previous workspace or duplicating subscriptions.</summary>
         protected void BindAssignmentChanges(Action<EventHandler> subscribe, Action<EventHandler> unsubscribe)
         {
@@ -118,36 +125,27 @@ namespace Heimdall.App.Games
         /// <summary>Gets whether native choice updates are in progress.</summary>
         protected bool AssignmentRefreshRunning => _refreshing;
         /// <summary>Combines native gates with an in-progress assignment save.</summary>
-        protected WorkspaceAssignmentContext CurrentAssignmentContext
-        {
-            get
-            {
-                var native = CaptureAssignmentContext();
-                return native with { Busy = native.Busy || _saving };
-            }
-        }
+        protected WorkspaceAssignmentContext CurrentAssignmentContext => CaptureAssignmentContext();
         /// <summary>Runs a native mutation against fresh common gates and draft/scope checks.</summary>
         protected DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null) =>
-            AssignmentWorkflow.Execute(new WorkspaceAssignmentHost(() => CurrentAssignmentContext, CaptureAssignmentSnapshot),
+            AssignmentWorkflow.Execute(new WorkspaceAssignmentHost(() => CurrentAssignmentContext, () => _context?.CaptureSnapshot() ?? CaptureAssignmentSnapshot()),
                 new WorkspaceAssignmentOperation(target, review ?? (() => new(true, true, "")), apply));
         /// <summary>Reports success only after the native save completes; all failures preserve their explanation.</summary>
         protected internal async Task<bool> SaveAssignmentsAsync()
         {
-            if (_saving) { ShowAssignmentStatus(SaveFailurePrefix + "Another assignment save is still running."); return false; }
-            _saving = true;
+            if (_context?.State.Operation is not null) { ShowAssignmentStatus(SaveFailurePrefix + "Another assignment save is still running."); return false; }
             try
             {
                 await SaveAssignmentsCoreAsync(); RefreshAssignmentDrawing(); ShowAssignmentStatus(SaveSuccessMessage); return true;
             }
             catch (Exception error) { ShowAssignmentStatus(SaveFailurePrefix + error.Message); return false; }
-            finally { _saving = false; }
         }
         /// <summary>Reports restoration only after the native discard succeeds.</summary>
         protected internal bool DiscardAssignments()
         {
             try
             {
-                if (_saving) throw new InvalidOperationException("Another assignment save is still running.");
+                if (_context?.State.Operation is not null) throw new InvalidOperationException("Another assignment save is still running.");
                 DiscardAssignmentsCore(); RefreshAssignmentDrawing(); ShowAssignmentStatus("Pending edits discarded."); return true;
             }
             catch (Exception error) { ShowAssignmentStatus("Discard failed: " + error.Message); return false; }
@@ -160,7 +158,11 @@ namespace Heimdall.App.Games
             // Keep the inspector reachable even when the entire pane is shorter than the requested reservation.
             _editorViewport.MaxHeight = Math.Min(available, Math.Max(32, available - ControllerReserveHeight));
         }
-        private void Changed(object? sender, EventArgs args) => RefreshAssignments();
+        private void Changed(object? sender, EventArgs args)
+        {
+            if (_context?.State.Operation is not null) { RefreshAssignmentDrawing(); return; }
+            RefreshAssignments();
+        }
         private void Attach()
         {
             if (_subscribed || _subscribe is null) return;

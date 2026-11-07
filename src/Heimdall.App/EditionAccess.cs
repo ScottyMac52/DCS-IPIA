@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Dcs;
 using System.IO;
 using System.Text.Json;
 using Heimdall.Application;
@@ -42,7 +43,7 @@ namespace Heimdall.App
         internal static IEnumerable<WorkspaceHardware> Hardware(IEnumerable<WorkspaceHardware> hardware, DcsTrainingEnvironment? training = null) =>
             hardware.Where(item => training is null ? Policy.AllowsHardware(item.DeviceId) : item.DeviceId == "training-joystick");
         /// <summary>Gets the explicit training scope of a mounted workspace, never a process-wide entitlement.</summary>
-        internal static DcsTrainingEnvironment? Training(IDcsModuleWorkspaceContext? context) => (context as DcsWindowContext)?.Training;
+        internal static DcsTrainingEnvironment? Training(IDcsModuleWorkspaceContext? context) => (context as DcsWorkspaceContext)?.Training;
         /// <summary>Gets whether this specific view can run the real or isolated simulated tester.</summary>
         internal static bool AllowsInputTest(IDcsModuleWorkspaceContext? context) => Policy.HasPremium || Training(context) is { IsActive: true };
         /// <summary>Requires Premium/Owner for ordinary views, or validates the owned sample for training views.</summary>
