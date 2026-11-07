@@ -8,18 +8,18 @@ using Heimdall.Dcs;
 namespace Heimdall.App
 {
     /// <summary>Coordinates controller selection across existing DCS views without owning native profile edits.</summary>
-    internal sealed class DcsControllerSelection
+    internal sealed class DcsControllerSelection : IDisposable
     {
         private Guid? _selectedController;
         private bool _linkingController;
 
         private readonly ListBox _picker;
-        private readonly Func<EditorWorkspaceSnapshot?> _workspace;
+        private readonly Func<DcsEditorWorkspaceSnapshot?> _workspace;
         private UserControl? _view;
 
         #region BEGIN Public
         /// <summary>Connects the persistent rail to the current native workspace snapshot.</summary>
-        internal DcsControllerSelection(ListBox picker, Func<EditorWorkspaceSnapshot?> workspace)
+        internal DcsControllerSelection(ListBox picker, Func<DcsEditorWorkspaceSnapshot?> workspace)
         {
             _picker = picker; _workspace = workspace;
             _picker.SelectionChanged += ControllerSelectionChanged;
@@ -38,14 +38,14 @@ namespace Heimdall.App
                 if (selector is null)
                 {
                     var snapshot = _workspace();
-                    _picker.ItemsSource = snapshot is null ? null : WorkspaceStructureEditor.Describe(snapshot).Devices
+                    _picker.ItemsSource = snapshot is null ? null : DcsWorkspaceStructureEditor.Describe(snapshot).Devices
                         .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
                     _picker.SelectedValue = _selectedController;
                     SelectControllerPage(view);
                     return;
                 }
-                if (view is Features.InputTest.InputTestView && _workspace() is { } current)
-                    selector.ItemsSource = WorkspaceStructureEditor.Describe(current).Devices
+                if (view is Features.InputTest.DcsInputTestView && _workspace() is { } current)
+                    selector.ItemsSource = DcsWorkspaceStructureEditor.Describe(current).Devices
                         .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
                 if (_selectedController is { } selected) selector.SelectedValue = selected;
                 if (selector.SelectedIndex < 0 && selector.Items.Count > 0) selector.SelectedIndex = 0;
@@ -57,6 +57,16 @@ namespace Heimdall.App
                 if (_picker.SelectedValue is Guid id) _selectedController = id;
             }
             finally { _linkingController = false; }
+        }
+
+        /// <summary>Releases rail bindings and its selection subscription when the workspace closes.</summary>
+        public void Dispose()
+        {
+            _picker.SelectionChanged -= ControllerSelectionChanged;
+            BindingOperations.ClearBinding(_picker, Selector.SelectedValueProperty);
+            BindingOperations.ClearBinding(_picker, ItemsControl.ItemsSourceProperty);
+            _picker.ItemsSource = null;
+            _view = null;
         }
 
         #endregion END Public
@@ -78,7 +88,7 @@ namespace Heimdall.App
         {
             var snapshot = _workspace();
             if (snapshot is null || _selectedController is not { } selected || view.FindName("KneeboardList") is not ListBox pages) return;
-            var key = KneeboardPageLocator.PageKeyForProfile(snapshot, selected);
+            var key = DcsKneeboardPageLocator.PageKeyForProfile(snapshot, selected);
             if (key is null) return;
             var index = Array.FindIndex(snapshot.Pages.OrderBy(x => x.Order).ToArray(), x => x.StableKey == key);
             if (index >= 0) pages.SelectedIndex = index;

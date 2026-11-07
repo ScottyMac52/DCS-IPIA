@@ -19,8 +19,8 @@ namespace Heimdall.Tests
         public void BuildsCompleteDeterministicArchiveFromSavedState()
         {
             var workspace = Workspace();
-            var first = SnapshotOvGmeComposer.Build(workspace, "v1");
-            var second = SnapshotOvGmeComposer.Build(workspace with { Images = [] }, "v1");
+            var first = DcsSnapshotOvGmeComposer.Build(workspace, "v1");
+            var second = DcsSnapshotOvGmeComposer.Build(workspace with { Images = [] }, "v1");
             Assert.Equal(first.Bytes, second.Bytes);
             Assert.Equal("DCS-TEST-Components-v1-OVGME.zip", first.FileName);
             Assert.Contains(first.Sha256, first.ChecksumLine);
@@ -55,12 +55,12 @@ namespace Heimdall.Tests
             Directory.CreateDirectory(folder);
             try
             {
-                var package = SnapshotOvGmeComposer.Build(Workspace(), "v1");
-                var paths = OvGmeArtifactWriter.Write(package, folder);
+                var package = DcsSnapshotOvGmeComposer.Build(Workspace(), "v1");
+                var paths = DcsOvGmeArtifactWriter.Write(package, folder);
                 Assert.Equal(package.Bytes, File.ReadAllBytes(paths.ArchivePath));
                 Assert.Equal(package.ChecksumLine, File.ReadAllText(paths.ChecksumPath));
                 Assert.Equal(package.Sha256, paths.Sha256);
-                Assert.Throws<IOException>(() => OvGmeArtifactWriter.Write(package, folder));
+                Assert.Throws<IOException>(() => DcsOvGmeArtifactWriter.Write(package, folder));
                 Assert.Equal(package.Bytes, File.ReadAllBytes(paths.ArchivePath));
                 Assert.Equal(2, Directory.GetFiles(folder).Length);
             }
@@ -78,9 +78,9 @@ namespace Heimdall.Tests
             Directory.CreateDirectory(folder);
             try
             {
-                var package = SnapshotOvGmeComposer.Build(Workspace(), "v1");
+                var package = DcsSnapshotOvGmeComposer.Build(Workspace(), "v1");
                 Assert.Throws<InvalidDataException>(() =>
-                    OvGmeArtifactWriter.Write(package with { Sha256 = new string('0', 64) }, folder));
+                    DcsOvGmeArtifactWriter.Write(package with { Sha256 = new string('0', 64) }, folder));
                 Assert.Empty(Directory.GetFiles(folder));
             }
             finally
@@ -94,13 +94,13 @@ namespace Heimdall.Tests
         public void EditsChangeLuaAndPngAndMissingAssetsRejectBuild()
         {
             var workspace = Workspace();
-            var first = SnapshotOvGmeComposer.Build(workspace, "v1");
+            var first = DcsSnapshotOvGmeComposer.Build(workspace, "v1");
             var changed = workspace with {
                 Assignments = [workspace.Assignments[0] with {
                     Command = new("M2", "Changed action", false, AssignmentLayer.Module)
                 }, workspace.Assignments[1]]
             };
-            var second = SnapshotOvGmeComposer.Build(changed, "v1");
+            var second = DcsSnapshotOvGmeComposer.Build(changed, "v1");
             Assert.NotEqual(first.Bytes, second.Bytes);
             using var oldStream = new MemoryStream(first.Bytes);
             using var newStream = new MemoryStream(second.Bytes);
@@ -111,9 +111,9 @@ namespace Heimdall.Tests
                             Bytes(newZip, root + "Config/Input/TEST/joystick/Stick.diff.lua"));
             Assert.NotEqual(Bytes(oldZip, root + "KNEEBOARD/TEST/01-DEVICE.png"),
                             Bytes(newZip, root + "KNEEBOARD/TEST/01-DEVICE.png"));
-            Assert.Throws<InvalidDataException>(() => SnapshotOvGmeComposer.Build(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotOvGmeComposer.Build(
                 workspace with { Sources = null }, "v1"));
-            Assert.Throws<InvalidDataException>(() => SnapshotOvGmeComposer.Build(
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotOvGmeComposer.Build(
                 workspace with { Pages = [workspace.Pages[0]] }, "v1"));
         }
         #endregion END Public
@@ -126,23 +126,23 @@ namespace Heimdall.Tests
             return output.ToArray();
         }
         private static string Text(ZipArchive zip, string path) => Encoding.UTF8.GetString(Bytes(zip, path));
-        private static EditorWorkspaceSnapshot Workspace()
+        private static DcsEditorWorkspaceSnapshot Workspace()
         {
-            var profile = new DeviceProfile(ProfileId, "stick", null, "Stick", "Stick.diff.lua");
-            var config = new ModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"),
+            var profile = new DcsDeviceProfile(ProfileId, "stick", null, "Stick", "Stick.diff.lua");
+            var config = new DcsModuleConfiguration(new DcsModule(ModuleId, "TEST", "Test"),
                                                  [profile], [], [], "fixture");
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
                 ProfileId = ProfileId, CanonicalUiLayerSourcePath = UiPath,
                 Controls = [new("one", "One", "JOY_BTN1", 0, 0, 10, 10)],
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-one' x='20' y='20' fill='white'>Old</text></svg>"
             };
-            var moduleSlot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module,
+            var moduleSlot = new DcsDraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.Module,
                                                      BindingSection.Key, "JOY_BTN1");
-            var uiSlot = new DraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.UiLayer,
+            var uiSlot = new DcsDraftAssignmentSlot(ModuleId, ProfileId, AssignmentLayer.UiLayer,
                                                  BindingSection.Key, "JOY_BTN1", "SHIFT");
             var assignments = new[] {
-                new DraftAssignment(moduleSlot, new("M", "Module action", false, AssignmentLayer.Module)),
-                new DraftAssignment(uiSlot, new("U", "UI action", false, AssignmentLayer.UiLayer))
+                new DcsDraftAssignment(moduleSlot, new("M", "Module action", false, AssignmentLayer.Module)),
+                new DcsDraftAssignment(uiSlot, new("U", "UI action", false, AssignmentLayer.UiLayer))
             };
             var pages = new[] {
                 new KneeboardPage(Guid.NewGuid(), ModuleId, null, KneeboardPageKind.Device,

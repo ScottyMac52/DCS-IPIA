@@ -1,0 +1,24 @@
+<games:GameAssignmentsView x:Class="Heimdall.App.Games.Elite.EliteAssignmentsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:elite="clr-namespace:Heimdall.App.Games.Elite"
+ pres:AppearanceManager.Target="EliteAssignmentsView" xmlns:pres="clr-namespace:Heimdall.App" xmlns:games="clr-namespace:Heimdall.App.Games"
+ xmlns:local="clr-namespace:Heimdall.App.Games">
+ <games:GameAssignmentsView.CommandsPanel>
+   <local:GameCommandBrowserView x:Name="CommandBrowser" Margin="0,0,6,0"/>
+ </games:GameAssignmentsView.CommandsPanel>
+ <games:GameAssignmentsView.ControllerPanel>
+  <Grid>
+
+ <pres:ActionBar IsFeatureActions="True" Visibility="Collapsed">
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ApplyAssignmentButton" Content="Apply assignment"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="ClearAssignmentButton" Content="Clear slot"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StartInputButton" Content="Start input test"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="StopInputButton" Content="Stop"/>
+<Button Style="{StaticResource ToolbarActionButton}" x:Name="FitDiagramButton" Content="Fit"/>
+</pres:ActionBar>
+
+   <elite:EliteAssignmentArtworkView x:Name="Artwork"/>
+  </Grid>
+ </games:GameAssignmentsView.ControllerPanel>
+ <games:GameAssignmentsView.EditorPanel>
+   <local:GameAssignmentEditorView x:Name="SelectionEditor"/>
+ </games:GameAssignmentsView.EditorPanel>
+</games:GameAssignmentsView>

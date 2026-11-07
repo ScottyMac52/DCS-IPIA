@@ -23,7 +23,7 @@ namespace Heimdall.Tests
             var sources = workspace.Sources!.ToDictionary(x => x.Key, x => x.Value);
             sources["config/kneeboard.json"] = """{"uiLayerUtilization":{"mode":"explicit","bindings":[]}}""";
             if (!represented) workspace = workspace with { Diagrams = [workspace.Diagrams[0] with { Callouts = [] }] };
-            var parsed = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId), ProfileId);
+            var parsed = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId), ProfileId);
             Assert.Contains(parsed, x => x.CommandId == "EDIT");
             Assert.Contains(parsed, x => x.CommandId == "REMOVED" && x.Disposition == BindingDisposition.Removed);
             Assert.DoesNotContain(parsed, x => x.CommandId == "UNMAPPED");
@@ -35,8 +35,8 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace([Assigned("EDIT", "Edited", "JOY_BTN1"),
                                        Assigned("SHIFTED", "Shifted", "JOY_BTN2", "SHIFT")]);
-            var lua = UiLayerLuaProfileRenderer.Render(workspace, ProfileId);
-            Assert.Equal(lua, UiLayerLuaProfileRenderer.Render(workspace, ProfileId));
+            var lua = DcsUiLayerLuaProfileRenderer.Render(workspace, ProfileId);
+            Assert.Equal(lua, DcsUiLayerLuaProfileRenderer.Render(workspace, ProfileId));
             var bindings = DcsLuaParser.ParseProfile(lua, ProfileId);
             Assert.Contains(bindings, x => x.CommandId == "EDIT" && x.InputKey == "JOY_BTN1");
             Assert.Contains(bindings, x => x.CommandId == "SHIFTED" && x.Reformers.SequenceEqual(["SHIFT"]));
@@ -49,7 +49,7 @@ namespace Heimdall.Tests
         [Fact]
         public void ClearsRepresentedSlotOnly()
         {
-            var parsed = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(Workspace([]), ProfileId), ProfileId);
+            var parsed = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(Workspace([]), ProfileId), ProfileId);
             Assert.DoesNotContain(parsed, x => x.CommandId == "ORIGINAL");
             Assert.Contains(parsed, x => x.CommandId == "UNMAPPED");
             Assert.Contains(parsed, x => x.CommandId == "REMOVED");
@@ -60,17 +60,17 @@ namespace Heimdall.Tests
         public void RejectsMissingOrAmbiguousSourcesAndAssignments()
         {
             var workspace = Workspace([Assigned("EDIT", "Edited", "JOY_BTN1")]);
-            Assert.Throws<ArgumentException>(() => UiLayerLuaProfileRenderer.Render(workspace, Guid.NewGuid()));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<ArgumentException>(() => DcsUiLayerLuaProfileRenderer.Render(workspace, Guid.NewGuid()));
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 workspace with { Sources = null }, ProfileId));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 workspace with { Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = "../bad.diff.lua" }] },
                 ProfileId));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 workspace with { Assignments = [.. workspace.Assignments, workspace.Assignments[0]] }, ProfileId));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 Workspace([Assigned("UNKNOWN", "Unknown", "JOY_BTN1", "NOPE")]), ProfileId));
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 Workspace([Assigned("UNMAPPED", "Unmapped", "JOY_BTN88")]), ProfileId));
         }
 
@@ -90,9 +90,9 @@ namespace Heimdall.Tests
                 Callouts = [workspace.Diagrams[0].Callouts[0]]
             }]
             };
-            var parsed = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(removed, ProfileId), ProfileId);
+            var parsed = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(removed, ProfileId), ProfileId);
             Assert.DoesNotContain(parsed, x => x.CommandId == "UNMAPPED");
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 removed with { Assignments = [Assigned("NEW", "New", "JOY_BTN2", "SHIFT")] }, ProfileId));
         }
         /// <summary>Canonical source paths must retain their pinned root, Lua suffix and input family.</summary>
@@ -104,7 +104,7 @@ namespace Heimdall.Tests
         public void Rejects_invalid_canonical_profile_paths(string? path)
         {
             var workspace = Workspace([]);
-            var error = Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(
+            var error = Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(
                 workspace with { Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = path }] }, ProfileId));
             Assert.Contains("No unambiguous pinned UI Layer source", error.Message, StringComparison.Ordinal);
         }
@@ -120,7 +120,7 @@ namespace Heimdall.Tests
                 [callout, callout],
                 [callout with { Modifier = "UNKNOWN" }]
             })
-                Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(workspace with {
+                Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(workspace with {
                     Diagrams = [workspace.Diagrams[0] with { Callouts = callouts }]
                 }, ProfileId));
         }
@@ -135,7 +135,7 @@ namespace Heimdall.Tests
         {
             var workspace = Workspace([]);
             var sources = new Dictionary<string, string>(workspace.Sources!) { ["config/ui-layer-overlay.json"] = overlay };
-            Assert.Throws<InvalidDataException>(() => UiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId));
+            Assert.Throws<InvalidDataException>(() => DcsUiLayerLuaProfileRenderer.Render(workspace with { Sources = sources }, ProfileId));
         }
         /// <summary>A missing canonical link is recovered from an unambiguous pinned native source.</summary>
         [Fact]
@@ -145,20 +145,20 @@ namespace Heimdall.Tests
             var recovered = workspace with {
                 Diagrams = [workspace.Diagrams[0] with { CanonicalUiLayerSourcePath = null }]
             };
-            Assert.Equal(UiLayerLuaProfileRenderer.Render(workspace, ProfileId),
-                UiLayerLuaProfileRenderer.Render(recovered, ProfileId));
+            Assert.Equal(DcsUiLayerLuaProfileRenderer.Render(workspace, ProfileId),
+                DcsUiLayerLuaProfileRenderer.Render(recovered, ProfileId));
             Assert.Null(recovered.Diagrams[0].CanonicalUiLayerSourcePath);
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static DraftAssignment Assigned(string id, string name, string key, string chord = "") =>
+        private static DcsDraftAssignment Assigned(string id, string name, string key, string chord = "") =>
             new(new(ModuleId, ProfileId, AssignmentLayer.UiLayer, BindingSection.Key, key, chord),
                 new(id, name, false, AssignmentLayer.UiLayer));
-        private static EditorWorkspaceSnapshot Workspace(IReadOnlyList<DraftAssignment> assignments)
+        private static DcsEditorWorkspaceSnapshot Workspace(IReadOnlyList<DcsDraftAssignment> assignments)
         {
             var module = new DcsModule(ModuleId, "TEST", "Test");
-            var profile = new DeviceProfile(ProfileId, "stick", null, "Stick", "Stick.diff.lua");
-            var configuration = new ModuleConfiguration(module, [profile], [], [], "fixture");
+            var profile = new DcsDeviceProfile(ProfileId, "stick", null, "Stick", "Stick.diff.lua");
+            var configuration = new DcsModuleConfiguration(module, [profile], [], [], "fixture");
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [],
                 [new(1, "one", "Original", "", 0, 0, 10, 10) { CommandId = "ORIGINAL" },
                  new(2, "two", "Shifted", "SHIFT", 10, 0, 10, 10) { CommandId = "SHIFTED" }])

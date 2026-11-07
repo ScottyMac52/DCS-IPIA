@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Elite;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,10 +26,10 @@ namespace Heimdall.App.Smoke
                 ProfileId = x.Id,
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 120'><rect x='20' y='20' width='200' height='80' fill='#263b58'/></svg>"
             }).ToArray();
-            var workspace = new EditorWorkspaceSnapshot(new(module, profiles, [], [], "smoke"), [], [], diagrams, [], [], [],
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, profiles, [], [], "smoke"), [], [], diagrams, [], [], [],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var original = EditorSnapshotSerializer.Serialize(workspace);
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
+            var original = DcsEditorSnapshotSerializer.Serialize(workspace);
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
             try
             {
                 window.Show(); ThemeControlSmoke.Pump(window);
@@ -44,14 +45,14 @@ namespace Heimdall.App.Smoke
                 var assignments = WorkspaceUi.Navigate(window, "Assignments"); ThemeControlSmoke.Pump(window);
                 VerifyDivider(window, Box<Grid>(assignments, "AssignmentWorkspace"));
                 Box<RadioButton>(window, "TestMode").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-                if (Box<ContentControl>(window, "FeatureContent").Content is not Heimdall.App.Features.InputTest.InputTestView)
+                if (Box<ContentControl>(window, "FeatureContent").Content is not Heimdall.App.Features.InputTest.DcsInputTestView)
                     throw new InvalidOperationException("Test inputs did not open the native DCS test feature.");
                 Box<RadioButton>(window, "AssignMode").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 if (!ReferenceEquals(assignments, Box<ContentControl>(window, "FeatureContent").Content))
                     throw new InvalidOperationException("Assign/Test mode discarded the cached assignment surface.");
                 ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "unified-dcs-assignments");
-                if (EditorSnapshotSerializer.Serialize(window._working!) != original ||
-                    !window._draft!.Snapshot.SequenceEqual(workspace.Assignments) || window._labels.Count != workspace.Labels.Count)
+                if (DcsEditorSnapshotSerializer.Serialize(window.Session.Working!) != original ||
+                    !window.Session.Draft!.Snapshot.SequenceEqual(workspace.Assignments) || window.Session.Labels.Count != workspace.Labels.Count)
                     throw new InvalidOperationException("Presentation geometry or selection changed the DCS snapshot.");
                 var added = Profile("New");
                 window.RunStructureEdit(current => current with
@@ -65,7 +66,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Cached input testing omitted a newly added DCS controller.");
                 window.DiscardClicked(window, new RoutedEventArgs());
                 WorkspaceUi.Navigate(window, "Devices"); WorkspaceUi.Navigate(window, "InputTest"); ThemeControlSmoke.Pump(window);
-                if (rail.Items.Count != 2 || EditorSnapshotSerializer.Serialize(window._working!) != original)
+                if (rail.Items.Count != 2 || DcsEditorSnapshotSerializer.Serialize(window.Session.Working!) != original)
                     throw new InvalidOperationException("Cached input testing retained a discarded controller or changed native state.");
             }
             finally { window.Close(); }
@@ -129,7 +130,7 @@ namespace Heimdall.App.Smoke
             return input.IsVisible && available.Contains(bounds);
         }
 
-        private static DeviceProfile Profile(string name) => new(Guid.NewGuid(), "tm-tpr", name, name, name + ".diff.lua");
+        private static DcsDeviceProfile Profile(string name) => new(Guid.NewGuid(), "tm-tpr", name, name, name + ".diff.lua");
         private static T Box<T>(FrameworkElement view, string name) where T : FrameworkElement => (T)view.FindName(name);
         private static void VerifyDivider(Window window, Grid grid)
         {

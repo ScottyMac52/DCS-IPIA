@@ -32,8 +32,8 @@ namespace Heimdall.App.Smoke
                 var lifecycle = new UserDataProfileService(profile, "1");
                 var settings = new SqliteAppSettingsService(connection, Path.Combine(root, "defaults.json"),
                     Path.Combine(profile.DataDirectory, "settings.json"), Path.Combine(root, "theme.txt"));
-                MainWindow Main() => new(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
-                    new SqliteEditorWorkspaceRepository(connection), profile: profile, profileService: lifecycle,
+                MainWindow Main() => new(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
+                    new DcsSqliteEditorWorkspaceRepository(connection), profile: profile, profileService: lifecycle,
                     hardwareInventory: manager, setup: setup);
 
                 var first = Main();

@@ -26,9 +26,9 @@ namespace Heimdall.Tests
         [InlineData("")]
         public void Unsafe_identity_is_rejected(string id)
         {
-            Assert.Throws<ArgumentException>(() => NewModuleWorkspaceFactory.ValidateIdentity(id, "Aircraft"));
-            Assert.Throws<ArgumentException>(() => NewModuleWorkspaceFactory.ValidateIdentity("AIRCRAFT", ""));
-            Assert.Throws<ArgumentException>(() => NewModuleWorkspaceFactory.ValidateIdentity("AIRCRAFT", "bad\nname"));
+            Assert.Throws<ArgumentException>(() => DcsNewModuleWorkspaceFactory.ValidateIdentity(id, "Aircraft"));
+            Assert.Throws<ArgumentException>(() => DcsNewModuleWorkspaceFactory.ValidateIdentity("AIRCRAFT", ""));
+            Assert.Throws<ArgumentException>(() => DcsNewModuleWorkspaceFactory.ValidateIdentity("AIRCRAFT", "bad\nname"));
         }
 
         /// <summary>Creates and reopens distinct local modules without consumer repositories, preserving their default pins.</summary>
@@ -41,7 +41,7 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var sources = new SortedDictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers",
@@ -49,10 +49,10 @@ namespace Heimdall.Tests
                 };
                 var commit = new string('a', 40);
                 var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(commit + "\n" + JsonSerializer.Serialize(sources))));
-                var defaults = new SharedUiLayerWorkspace(1, commit, sources, digest);
+                var defaults = new DcsSharedUiLayerWorkspace(1, commit, sources, digest);
                 var hardware = new Dictionary<string, string> { ["config/ipia-hardware.json"] = "[]" };
-                var first = NewModuleWorkspaceFactory.Create("TEST-A", "Test aircraft A", defaults, hardware);
-                var second = NewModuleWorkspaceFactory.Create("TEST-B", "Test aircraft B", defaults, hardware);
+                var first = DcsNewModuleWorkspaceFactory.Create("TEST-A", "Test aircraft A", defaults, hardware);
+                var second = DcsNewModuleWorkspaceFactory.Create("TEST-B", "Test aircraft B", defaults, hardware);
                 Assert.NotEqual(first.Configuration.Module.Id, second.Configuration.Module.Id);
                 Assert.Empty(first.ModuleCommands);
                 Assert.Empty(first.Assignments);
@@ -64,13 +64,13 @@ namespace Heimdall.Tests
                 Assert.Equal("TEST-A", reopened.Configuration.Module.DcsId);
                 Assert.Equal(digest, reopened.SharedDefault!.ContentSha256);
                 Assert.Equal(first.Sources!["config/kneeboard.json"], reopened.Sources!["config/kneeboard.json"]);
-                var duplicate = NewModuleWorkspaceFactory.Create("test-a", "Duplicate", defaults, hardware);
+                var duplicate = DcsNewModuleWorkspaceFactory.Create("test-a", "Duplicate", defaults, hardware);
                 await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => repository.SaveAsync(duplicate));
                 Assert.Equal(2, (await repository.ListAsync()).Count);
                 Assert.Equal("Test aircraft A", (await repository.GetAsync(first.Configuration.Module.Id))!.Configuration.Module.DisplayName);
                 sources["assets/shared/ui-layer/functions.json"] = "{}";
                 Assert.Equal(digest, (await repository.GetAsync(second.Configuration.Module.Id))!.SharedDefault!.ContentSha256);
-                Assert.Throws<InvalidDataException>(() => NewModuleWorkspaceFactory.Create("TEST-C", "Corrupt baseline", defaults, hardware));
+                Assert.Throws<InvalidDataException>(() => DcsNewModuleWorkspaceFactory.Create("TEST-C", "Corrupt baseline", defaults, hardware));
             }
             finally
             {
@@ -87,11 +87,11 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var defaults = await new SqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(
-                    await SharedUiLayerWorkspaceFactory.CreateAsync());
-                var hardware = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var first = NewModuleWorkspaceFactory.Create("NEW-ONE", "First aircraft", defaults, hardware);
-                var second = NewModuleWorkspaceFactory.Create("NEW-TWO", "Second aircraft", defaults, hardware);
+                var defaults = await new DcsSqliteSharedUiLayerWorkspaceRepository(connection).SaveAsync(
+                    await DcsSharedUiLayerWorkspaceFactory.CreateAsync());
+                var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                var first = DcsNewModuleWorkspaceFactory.Create("NEW-ONE", "First aircraft", defaults, hardware);
+                var second = DcsNewModuleWorkspaceFactory.Create("NEW-TWO", "Second aircraft", defaults, hardware);
                 Assert.NotEmpty(first.Configuration.Profiles);
                 Assert.NotEmpty(first.Assignments);
                 Assert.Empty(first.Configuration.Profiles.Select(x => x.Id).Intersect(second.Configuration.Profiles.Select(x => x.Id)));
@@ -99,29 +99,29 @@ namespace Heimdall.Tests
                 foreach (var profile in first.Configuration.Profiles)
                 {
                     var diagram = first.Diagrams.Single(x => x.ProfileId == profile.Id);
-                    Assert.Contains(WorkspaceStructureEditor.Hardware(first), x => x.DeviceId == profile.DeviceId);
+                    Assert.Contains(DcsWorkspaceStructureEditor.Hardware(first), x => x.DeviceId == profile.DeviceId);
                     Assert.Equal(defaults.Sources[diagram.CanonicalUiLayerSourcePath!],
                         first.Sources!["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"]);
-                    Assert.NotEmpty(UiLayerLuaProfileRenderer.Render(first, profile.Id));
+                    Assert.NotEmpty(DcsUiLayerLuaProfileRenderer.Render(first, profile.Id));
                 }
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(first);
                 await repository.SaveAsync(second);
-                var selected = WorkspaceStructureEditor.Hardware(first)[0];
+                var selected = DcsWorkspaceStructureEditor.Hardware(first)[0];
                 var fileName = new DetectedDcsDevice(Guid.NewGuid(), "Offline test controller", false).FileName;
                 var existing = first.Configuration.Profiles.FirstOrDefault(x => x.DeviceId == selected.DeviceId &&
                     x.SourceName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
-                var edited = WorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
+                var edited = DcsWorkspaceStructureEditor.AddDevice(first, selected, AssignmentLayer.Module,
                     existing?.SourceName ?? fileName, existing?.Instance, null);
                 await repository.SaveAsync(edited);
-                Assert.Contains(WorkspaceStructureEditor.Describe((await repository.GetAsync(first.Configuration.Module.Id))!).Devices,
+                Assert.Contains(DcsWorkspaceStructureEditor.Describe((await repository.GetAsync(first.Configuration.Module.Id))!).Devices,
                     x => x.Layer == AssignmentLayer.Module);
-                Assert.DoesNotContain(WorkspaceStructureEditor.Describe((await repository.GetAsync(second.Configuration.Module.Id))!).Devices,
+                Assert.DoesNotContain(DcsWorkspaceStructureEditor.Describe((await repository.GetAsync(second.Configuration.Module.Id))!).Devices,
                     x => x.Layer == AssignmentLayer.Module);
-                Assert.Throws<InvalidDataException>(() => SnapshotLuaPayloadRenderer.Generate(edited));
-                foreach (var device in WorkspaceStructureEditor.Describe(edited).Devices.DistinctBy(x => x.ProfileId).ToArray())
-                    edited = WorkspaceStructureEditor.RebindDevice(edited, device, device.FileName, device.Instance, device.Role);
-                Assert.NotEmpty(SnapshotLuaPayloadRenderer.Generate(edited));
+                Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(edited));
+                foreach (var device in DcsWorkspaceStructureEditor.Describe(edited).Devices.DistinctBy(x => x.ProfileId).ToArray())
+                    edited = DcsWorkspaceStructureEditor.RebindDevice(edited, device, device.FileName, device.Instance, device.Role);
+                Assert.NotEmpty(DcsSnapshotLuaPayloadRenderer.Generate(edited));
             }
             finally
             {

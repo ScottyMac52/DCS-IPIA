@@ -29,7 +29,7 @@ namespace Heimdall.Tests
         [Fact]
         public void Records_normalize_values()
         {
-            var profile = new DeviceProfile(ProfileId, " tm-mfd ", " MFD1 ", " panel ", " source.lua ");
+            var profile = new DcsDeviceProfile(ProfileId, " tm-mfd ", " MFD1 ", " panel ", " source.lua ");
             var modifier = new DcsModifier(" Shift ", " Stick ", " BTN3 ", ModifierMode.Hold);
             var binding = new DcsBinding(ProfileId, BindingSection.Axis, " axis ", " Roll ", BindingDisposition.Changed,
                                          " JOY_X ", ["Shift"], new(Invert: true));
@@ -43,10 +43,10 @@ namespace Heimdall.Tests
         [Fact]
         public void Invalid_records_are_rejected()
         {
-            Assert.Throws<ArgumentException>(() => new DeviceProfile(Guid.Empty, "x", null, "r", "s"));
-            Assert.Throws<ArgumentException>(() => new DeviceProfile(ProfileId, "", "", "r", "s"));
-            Assert.Throws<ArgumentException>(() => new DeviceProfile(ProfileId, "x", null, "", "s"));
-            Assert.Throws<ArgumentException>(() => new DeviceProfile(ProfileId, "x", null, "r", ""));
+            Assert.Throws<ArgumentException>(() => new DcsDeviceProfile(Guid.Empty, "x", null, "r", "s"));
+            Assert.Throws<ArgumentException>(() => new DcsDeviceProfile(ProfileId, "", "", "r", "s"));
+            Assert.Throws<ArgumentException>(() => new DcsDeviceProfile(ProfileId, "x", null, "", "s"));
+            Assert.Throws<ArgumentException>(() => new DcsDeviceProfile(ProfileId, "x", null, "r", ""));
             Assert.Throws<ArgumentException>(() => new DcsModifier("", "d", "k", ModifierMode.Hold));
             Assert.Throws<ArgumentException>(() => new DcsModifier("m", "", "k", ModifierMode.Hold));
             Assert.Throws<ArgumentException>(() => new DcsModifier("m", "d", "", ModifierMode.Hold));
@@ -69,48 +69,48 @@ namespace Heimdall.Tests
         public void Configuration_enforces_identity_and_reference_integrity()
         {
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
-            var profile = new DeviceProfile(ProfileId, "mfd", "MFD1", "panel", "mfd.lua");
+            var profile = new DcsDeviceProfile(ProfileId, "mfd", "MFD1", "panel", "mfd.lua");
             var modifier = new DcsModifier("Shift", "Stick", "BTN3", ModifierMode.Hold);
             var binding = new DcsBinding(ProfileId, BindingSection.Key, "c", "Command", BindingDisposition.Added,
                                          "BTN1", ["Shift"]);
-            var value = new ModuleConfiguration(module, [profile], [modifier], [binding], "repo@sha");
+            var value = new DcsModuleConfiguration(module, [profile], [modifier], [binding], "repo@sha");
             Assert.Equal("repo@sha", value.Provenance);
-            Assert.Throws<ArgumentNullException>(() => new ModuleConfiguration(null!, [], [], [], "p"));
-            Assert.Throws<ArgumentNullException>(() => new ModuleConfiguration(module, null!, [], [], "p"));
-            Assert.Throws<ArgumentNullException>(() => new ModuleConfiguration(module, [], null!, [], "p"));
-            Assert.Throws<ArgumentNullException>(() => new ModuleConfiguration(module, [], [], null!, "p"));
-            Assert.Throws<ArgumentException>(() => new ModuleConfiguration(module, [profile, profile], [], [], "p"));
+            Assert.Throws<ArgumentNullException>(() => new DcsModuleConfiguration(null!, [], [], [], "p"));
+            Assert.Throws<ArgumentNullException>(() => new DcsModuleConfiguration(module, null!, [], [], "p"));
+            Assert.Throws<ArgumentNullException>(() => new DcsModuleConfiguration(module, [], null!, [], "p"));
+            Assert.Throws<ArgumentNullException>(() => new DcsModuleConfiguration(module, [], [], null!, "p"));
+            Assert.Throws<ArgumentException>(() => new DcsModuleConfiguration(module, [profile, profile], [], [], "p"));
             Assert.Throws<ArgumentException>(
-                () => new ModuleConfiguration(module, [profile, new(Guid.NewGuid(), "MFD", "mfd1", "panel", "two")], [],
+                () => new DcsModuleConfiguration(module, [profile, new(Guid.NewGuid(), "MFD", "mfd1", "panel", "two")], [],
                                               [], "p"));
             Assert.Throws<ArgumentException>(
-                () => new ModuleConfiguration(module, [profile],
+                () => new DcsModuleConfiguration(module, [profile],
                                               [modifier, new("shift", "Other", "BTN4", ModifierMode.Hold)], [], "p"));
             Assert.Throws<ArgumentException>(
-                () => new ModuleConfiguration(module, [profile],
+                () => new DcsModuleConfiguration(module, [profile],
                                               [modifier, new("Other", "stick", "btn3", ModifierMode.Hold)], [], "p"));
-            Assert.Throws<ArgumentException>(() => new ModuleConfiguration(module, [profile], [], [binding], "p"));
+            Assert.Throws<ArgumentException>(() => new DcsModuleConfiguration(module, [profile], [], [binding], "p"));
             Assert.Throws<ArgumentException>(
-                () => new ModuleConfiguration(
+                () => new DcsModuleConfiguration(
                     module, [profile], [modifier],
                     [new(Guid.NewGuid(), BindingSection.Key, "c", "n", BindingDisposition.Added, "k")], "p"));
-            Assert.Throws<ArgumentException>(() => new ModuleConfiguration(module, [profile], [], [], ""));
+            Assert.Throws<ArgumentException>(() => new DcsModuleConfiguration(module, [profile], [], [], ""));
         }
         /// <summary>Historical removed inputs may mention a modifier absent from the current DCS modifiers file.</summary>
         [Fact]
         public void Removed_binding_retains_historical_reformer_without_declaring_it()
         {
             var module = new DcsModule(Guid.NewGuid(), "F4U-1D", "F4U-1D");
-            var profile = new DeviceProfile(ProfileId, "tm-mfd", "MFD3", "MFD3", "mfd.diff.lua");
+            var profile = new DcsDeviceProfile(ProfileId, "tm-mfd", "MFD3", "MFD3", "mfd.diff.lua");
             var removed = new DcsBinding(ProfileId, BindingSection.Key, "old", "Old", BindingDisposition.Removed,
                                          "JOY_BTN24", ["JOY_BTN3"]);
             var current = new DcsBinding(ProfileId, BindingSection.Key, "new", "New", BindingDisposition.Added,
                                          "JOY_BTN24", ["JOY_BTN7"]);
             var modifier = new DcsModifier("JOY_BTN7", "Stick", "JOY_BTN7", ModifierMode.Hold);
-            var configuration = new ModuleConfiguration(module, [profile], [modifier], [removed, current], "repo@sha");
+            var configuration = new DcsModuleConfiguration(module, [profile], [modifier], [removed, current], "repo@sha");
             Assert.Contains(removed, configuration.Bindings);
             Assert.Throws<ArgumentException>(
-                () => new ModuleConfiguration(module, [profile], [modifier],
+                () => new DcsModuleConfiguration(module, [profile], [modifier],
                                               [new DcsBinding(ProfileId, BindingSection.Key, "new", "New",
                                                               BindingDisposition.Added, "JOY_BTN24", ["JOY_BTN3"])],
                                               "repo@sha"));

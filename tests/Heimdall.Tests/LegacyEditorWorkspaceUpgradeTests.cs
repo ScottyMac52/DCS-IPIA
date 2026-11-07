@@ -22,10 +22,10 @@ namespace Heimdall.Tests
             {
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
                 var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
-                var profile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "MFD", "MFD.diff.lua");
-                var configuration = new ModuleConfiguration(
+                var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", null, "MFD", "MFD.diff.lua");
+                var configuration = new DcsModuleConfiguration(
                     module, [profile], [new DcsModifier("Shift", "MFD", "JOY_BTN7", ModifierMode.Hold)], [], "import");
-                await new SqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
+                await new DcsSqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
                 const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>" +
                                    "<!-- box:osb-1 --><rect x='10' y='10' width='25' height='20'/>" +
                                    "<!-- box:osb-1-shifted --><rect x='40' y='10' width='25' height='20'/>" +
@@ -36,23 +36,23 @@ namespace Heimdall.Tests
                     Svg = svg, ProfileId = profile.Id,
                     Controls = [new HardwareGraphicControl("osb-1", "OSB 1", "JOY_BTN1", 10, 10, 25, 20)]
                 };
-                var baseSlot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
+                var baseSlot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
                                                        BindingSection.Key, "JOY_BTN1");
                 var shiftSlot = baseSlot with { ModifierChord = "Shift" };
-                var baseCommand = new DraftCommand("BASE", "Module base", false, AssignmentLayer.Module);
-                var shiftCommand = new DraftCommand("SHIFT", "Module shifted", false, AssignmentLayer.Module);
+                var baseCommand = new DcsDraftCommand("BASE", "Module base", false, AssignmentLayer.Module);
+                var shiftCommand = new DcsDraftCommand("SHIFT", "Module shifted", false, AssignmentLayer.Module);
                 var uiCommand = new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "UI_SHIFT", "UI shifted",
                                                          "General", false);
-                var initial = new EditorWorkspaceSnapshot(
+                var initial = new DcsEditorWorkspaceSnapshot(
                     configuration, [], [], [diagram],
                     [
-                        new CommandPaletteEntry("BASE", "Module base", "General", false),
-                        new CommandPaletteEntry("SHIFT", "Module shifted", "General", false)
+                        new DcsCommandPaletteEntry("BASE", "Module base", "General", false),
+                        new DcsCommandPaletteEntry("SHIFT", "Module shifted", "General", false)
                     ],
                     [uiCommand],
-                    [new DraftAssignment(baseSlot, baseCommand), new DraftAssignment(shiftSlot, shiftCommand)],
+                    [new DcsDraftAssignment(baseSlot, baseCommand), new DcsDraftAssignment(shiftSlot, shiftCommand)],
                     new Dictionary<string, string> { [baseSlot.Key] = "Custom base" });
-                var repository = new SqliteEditorWorkspaceRepository(connectionString);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connectionString);
                 await repository.SaveAsync(initial);
                 await using (var connection = new SqliteConnection(connectionString))
                 {
@@ -78,11 +78,11 @@ namespace Heimdall.Tests
                 var uiSlot = shiftSlot with { Layer = AssignmentLayer.UiLayer };
                 Assert.Equal("UI shifted", restored.Assignments.Single(x => x.Slot.Key == uiSlot.Key).Command.Name);
                 Assert.Equal("Custom base", restored.Labels[baseSlot.Key]);
-                var draft = new DraftAssignmentService(
+                var draft = new DcsDraftAssignmentService(
                     configuration,
                     [
                         baseCommand, shiftCommand,
-                        new DraftCommand("UI_SHIFT", "UI shifted", false, AssignmentLayer.UiLayer)
+                        new DcsDraftCommand("UI_SHIFT", "UI shifted", false, AssignmentLayer.UiLayer)
                     ],
                     restored.Assignments);
                 Assert.Equal(DraftOutcome.Applied, draft.Remove(uiSlot).Outcome);
@@ -106,13 +106,13 @@ namespace Heimdall.Tests
             {
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
                 var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
-                var profile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
+                var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
                 var binding = new DcsBinding(profile.Id, BindingSection.Key, "MODULE_BASE", "Base action",
                                              BindingDisposition.Added, "JOY_BTN1");
-                var configuration = new ModuleConfiguration(
+                var configuration = new DcsModuleConfiguration(
                     module, [profile], [new DcsModifier("MOZA_F16_F18_BTN3", "MOZA", "JOY_BTN3", ModifierMode.Hold)],
                     [binding], "import");
-                await new SqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
+                await new DcsSqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
                 var diagram = new UiLayerDiagram(
                     "MFD", "MFD3", "assets/shared/hardware/svg/tm-mfd.svg", 100, 100, [],
                     [new UiLayerCallout(1, "osb-1-shifted", "VR Zoom", "MOZA_MODIFIER_BTN3", 40, 10, 25, 20) {
@@ -122,12 +122,12 @@ namespace Heimdall.Tests
                               new("osb-1", "OSB 1", "JOY_BTN1", 10, 10, 25, 20),
                               new("osb-1-shifted", "OSB 1", "JOY_BTN1", 40, 10, 25, 20)
                           ] };
-                var initial = new EditorWorkspaceSnapshot(
+                var initial = new DcsEditorWorkspaceSnapshot(
                     configuration, [], [], [diagram],
-                    [new CommandPaletteEntry("MODULE_BASE", "Base action", "General", false)],
+                    [new DcsCommandPaletteEntry("MODULE_BASE", "Base action", "General", false)],
                     [new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "UI_ZOOM", "VR Zoom", "VR", false)], [],
                     new Dictionary<string, string>());
-                var repository = new SqliteEditorWorkspaceRepository(connectionString);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connectionString);
                 await repository.SaveAsync(initial);
                 await using (var connection = new SqliteConnection(connectionString))
                 {
@@ -152,11 +152,11 @@ namespace Heimdall.Tests
                                                            x.Command.Id == "UI_ZOOM");
                 var allowed =
                     restored.ModuleCommands
-                        .Select(x => new DraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
+                        .Select(x => new DcsDraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module))
                         .Concat(restored.UiCommands.Select(
-                            x => new DraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer)));
+                            x => new DcsDraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer)));
                 var draft =
-                    new DraftAssignmentService(configuration, allowed, restored.Assignments, ["MOZA_MODIFIER_BTN3"]);
+                    new DcsDraftAssignmentService(configuration, allowed, restored.Assignments, ["MOZA_MODIFIER_BTN3"]);
                 Assert.Equal(
                     DraftOutcome.Applied,
                     draft.Remove(restored.Assignments.Single(x => x.Slot.Layer == AssignmentLayer.UiLayer).Slot)
@@ -181,8 +181,8 @@ namespace Heimdall.Tests
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
                 var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
                 var profile =
-                    new DeviceProfile(Guid.NewGuid(), "moza-ab9-hornet-grip", null, "Hornet grip", "MOZA.diff.lua");
-                var configuration = new ModuleConfiguration(
+                    new DcsDeviceProfile(Guid.NewGuid(), "moza-ab9-hornet-grip", null, "Hornet grip", "MOZA.diff.lua");
+                var configuration = new DcsModuleConfiguration(
                     module, [profile], [new DcsModifier("SHIFT", "MOZA", "JOY_BTN3", ModifierMode.Hold)],
                     [
                         new DcsBinding(profile.Id, BindingSection.Key, "BASE", "Pilot Trimmer",
@@ -193,7 +193,7 @@ namespace Heimdall.Tests
                                        "JOY_BTN11")
                     ],
                     "import");
-                await new SqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
+                await new DcsSqliteConfigurationRepository(connectionString).ReplaceAsync(configuration);
                 var diagram =
                     new UiLayerDiagram("Hornet grip", null, "assets/shared/hardware/svg/grip-f18c.svg", 100, 100, [],
                                        []) { Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'/>",
@@ -201,11 +201,11 @@ namespace Heimdall.Tests
                                                  new("hornet-grip-trim-up", "Trim up", "JOY_POV1_U", 10, 10, 25, 20),
                                                  new("hornet-grip-vr-up", "VR up", "JOY_BTN11", 40, 10, 25, 20)
                                              ] };
-                var otherSlot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
+                var otherSlot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module,
                                                         BindingSection.Key, "JOY_BTN11");
-                var oldUiSlot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.UiLayer,
+                var oldUiSlot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.UiLayer,
                                                         BindingSection.Key, "JOY_POV1_U");
-                var initial = new EditorWorkspaceSnapshot(
+                var initial = new DcsEditorWorkspaceSnapshot(
                     configuration, [], [], [diagram],
                     [
                         new("BASE", "Pilot Trimmer", "Flight", false),
@@ -218,7 +218,7 @@ namespace Heimdall.Tests
                         new(oldUiSlot, new("UI", "UI action", false, AssignmentLayer.UiLayer))
                     ],
                     new Dictionary<string, string> { [oldUiSlot.Key] = "UI custom" });
-                var repository = new SqliteEditorWorkspaceRepository(connectionString);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connectionString);
                 await repository.SaveAsync(initial);
                 await using (var connection = new SqliteConnection(connectionString))
                 {

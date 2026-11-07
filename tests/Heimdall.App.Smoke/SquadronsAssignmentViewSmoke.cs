@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Squadrons;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,14 +32,20 @@ namespace Heimdall.App.Smoke
                 var path = Path.Combine(root, "ProfileOptions_profile_synced"); File.WriteAllText(path, source);
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "store")), discovery);
                 using var window = new SquadronsWorkspaceWindow(services, pendingChoice: () => MessageBoxResult.No, reviewChange: _ => true);
+                // This scenario verifies clean defaults, not previously saved disclosure preferences.
+                WorkspaceLayout.SetPersistenceEnabled(window, false);
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(path);
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
+                ThemeControlSmoke.Pump(window);
                 Box<Expander>(window, "CapturedAssignments").IsExpanded = true;
                 ThemeControlSmoke.Pump(window);
                 var review = Box<CheckBox>(window, "ReviewCaptured"); var setup = Box<Expander>(window, "ControllerSetup");
                 var section = Box<ComboBox>(window, "SectionPicker"); var grid = Box<DataGrid>(window, "BindingsGrid");
                 if (review.IsChecked != false || section.SelectedItem as string != "All" || grid.Items.Count != 0 || !Box<TextBlock>(window, "EmptyState").IsVisible)
-                    throw new InvalidOperationException("The normal view opened as a raw-record dump or failed to explain unverified hardware.");
+                    throw new InvalidOperationException($"The normal view opened as a raw-record dump or failed to explain unverified hardware. " +
+                        $"Review={review.IsChecked}, section={section.SelectedItem}, rows={grid.Items.Count}, " +
+                        $"empty visibility={Box<TextBlock>(window, "EmptyState").Visibility}, empty visible={Box<TextBlock>(window, "EmptyState").IsVisible}, " +
+                        $"diagnostics expanded={Box<Expander>(window, "CapturedAssignments").IsExpanded}.");
                 var empty = Box<TextBlock>(window, "EmptyState");
                 var panel = (UIElement)(grid.Parent ?? throw new InvalidOperationException("The assignment table has no layout parent."));
                 if (empty.TranslatePoint(new Point(0, 0), panel).Y <

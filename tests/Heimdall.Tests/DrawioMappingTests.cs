@@ -169,57 +169,57 @@ namespace Heimdall.Tests
                 var revision = DrawioMappingFixture.Revision();
                 var left = GenericHardwareFixture.Unit(revision.Definition, "Left");
                 var right = GenericHardwareFixture.Unit(revision.Definition, "Right");
-                var workspace = InventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), left, AssignmentLayer.Module);
-                workspace = InventoryHardwareAuthoring.Add(workspace, left, AssignmentLayer.UiLayer);
-                workspace = InventoryHardwareAuthoring.Add(workspace, right, AssignmentLayer.Module);
+                var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), left, AssignmentLayer.Module);
+                workspace = DcsInventoryHardwareAuthoring.Add(workspace, left, AssignmentLayer.UiLayer);
+                workspace = DcsInventoryHardwareAuthoring.Add(workspace, right, AssignmentLayer.Module);
                 var profile = workspace.Configuration.Profiles.Single(x => x.SourceName == left.FileName);
-                workspace = WorkspaceStructureEditor.SetModifier(workspace, null, new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN2", "Shift", ModifierMode.Hold, ""));
-                workspace = InventoryHardwareAuthoring.RenameControl(workspace, profile.Id, "JOY_BTN1", "My trigger");
-                workspace = ModuleCommandCatalogImport.Apply(workspace, ModuleCommandCatalogImport.Review(workspace,
+                workspace = DcsWorkspaceStructureEditor.SetModifier(workspace, null, new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN2", "Shift", ModifierMode.Hold, ""));
+                workspace = DcsInventoryHardwareAuthoring.RenameControl(workspace, profile.Id, "JOY_BTN1", "My trigger");
+                workspace = DcsModuleCommandCatalogImport.Apply(workspace, DcsModuleCommandCatalogImport.Review(workspace,
                     [new("commands.json", """{"schemaVersion":1,"moduleId":"GENERIC","commands":[{"bindingKey":"a2001cdnil","name":"Pitch","categoryPath":["Flight"],"type":"axis"}]}""")], false));
                 var module = workspace.Configuration.Module.Id;
-                var axis = new DraftAssignment(new(module, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", "SHIFT"),
+                var axis = new DcsDraftAssignment(new(module, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X", "SHIFT"),
                     new("a2001cdnil", "Pitch", true, AssignmentLayer.Module)) { Filter = new(Deadzone: 3, Curvature: [12], Invert: true) };
-                var ui = new DraftAssignment(new(module, profile.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
+                var ui = new DcsDraftAssignment(new(module, profile.Id, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN1"),
                     new(workspace.UiCommands.Single().DcsCommandId, "Pause", false, AssignmentLayer.UiLayer));
                 workspace = workspace with { Assignments = [axis, ui], Labels = new Dictionary<string, string> { [axis.Slot.Key] = "Pitch custom" } };
-                workspace = ModuleKneeboardPageEditor.Set(workspace, null, new(KneeboardPageKind.Summary, null, "00-OVERVIEW", "OVERVIEW", "CONTROLS", 0, [new("CONTROLS", "Custom", "cyan")]));
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                workspace = DcsModuleKneeboardPageEditor.Set(workspace, null, new(KneeboardPageKind.Summary, null, "00-OVERVIEW", "OVERVIEW", "CONTROLS", 0, [new("CONTROLS", "Custom", "cyan")]));
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var library = new FileUserMappingLibrary(data); await library.SaveAsync(revision);
-                var original = EditorSnapshotSerializer.Serialize(workspace);
-                var adopted = UserMappingAdoption.Apply(workspace, profile.Id, revision);
+                var original = DcsEditorSnapshotSerializer.Serialize(workspace);
+                var adopted = DcsUserMappingAdoption.Apply(workspace, profile.Id, revision);
                 Assert.Same(workspace.Configuration, adopted.Configuration);
                 Assert.Same(workspace.Assignments, adopted.Assignments); Assert.Same(workspace.Pages, adopted.Pages);
                 Assert.Same(workspace.Labels, adopted.Labels); Assert.Same(workspace.Sources, adopted.Sources);
-                Assert.Equal(original, EditorSnapshotSerializer.Serialize(workspace));
+                Assert.Equal(original, DcsEditorSnapshotSerializer.Serialize(workspace));
                 Assert.Equal(workspace.Diagrams.Single(x => x.ProfileId != profile.Id), adopted.Diagrams.Single(x => x.ProfileId != profile.Id));
                 Assert.Equal("My trigger", adopted.Diagrams.Single(x => x.ProfileId == profile.Id).Controls.Single(x => x.InputKey == "JOY_BTN1").Label);
-                var renamed = InventoryHardwareAuthoring.RenameControl(adopted, profile.Id, "JOY_BTN1", "After adoption");
+                var renamed = DcsInventoryHardwareAuthoring.RenameControl(adopted, profile.Id, "JOY_BTN1", "After adoption");
                 Assert.Equal(revision.Id, renamed.Diagrams.Single(x => x.ProfileId == profile.Id).CustomMapping!.Id);
                 Assert.Equal(revision.Svg, renamed.Diagrams.Single(x => x.ProfileId == profile.Id).Svg);
                 Assert.Equal("After adoption", renamed.Diagrams.Single(x => x.ProfileId == profile.Id).Controls.Single(x => x.InputKey == "JOY_BTN1").Label);
                 adopted = renamed;
                 await repository.SaveAsync(adopted);
                 var saved = (await repository.GetAsync(module))!;
-                var snapshot = ModuleSnapshotWorkflow.Freeze(saved, "1.0");
-                var package = ModuleSnapshotWorkflow.Build(snapshot);
-                var generated = SnapshotDeviceKneeboardRenderer.Generate(saved);
+                var snapshot = DcsModuleSnapshotWorkflow.Freeze(saved, "1.0");
+                var package = DcsModuleSnapshotWorkflow.Build(snapshot);
+                var generated = DcsSnapshotDeviceKneeboardRenderer.Generate(saved);
                 Assert.Contains(generated.Keys, x => x.EndsWith("-002.png", StringComparison.Ordinal));
                 var target = Path.Combine(root, "portable"); Directory.CreateDirectory(target);
                 await new SqliteMigrationRunner(Connection(target)).MigrateAsync();
-                var targetRepository = new SqliteEditorWorkspaceRepository(Connection(target));
-                await ModuleSnapshotWorkflow.RestoreAsync(ModuleSnapshotWorkflow.Read(ModuleSnapshotWorkflow.Export(snapshot)), targetRepository);
+                var targetRepository = new DcsSqliteEditorWorkspaceRepository(Connection(target));
+                await DcsModuleSnapshotWorkflow.RestoreAsync(DcsModuleSnapshotWorkflow.Read(DcsModuleSnapshotWorkflow.Export(snapshot)), targetRepository);
                 Assert.False(Directory.Exists(Path.Combine(target, "UserMappings")));
-                Assert.Equal(package.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze((await targetRepository.GetAsync(module))!, "1.0")).Bytes);
+                Assert.Equal(package.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze((await targetRepository.GetAsync(module))!, "1.0")).Bytes);
                 var archive = Path.Combine(root, "backup.zip");
                 new UserDataRecoveryService(data, "1.0").Backup(archive);
                 var recovered = Path.Combine(root, "recovered");
                 new UserDataRecoveryService(recovered, "1.0").Restore(archive);
                 Assert.Single(await new FileUserMappingLibrary(recovered).ListAsync());
-                var recoveredWorkspace = (await new SqliteEditorWorkspaceRepository(Connection(recovered)).GetAsync(module))!;
-                Assert.Equal(package.Bytes, ModuleSnapshotWorkflow.Build(ModuleSnapshotWorkflow.Freeze(recoveredWorkspace, "1.0")).Bytes);
-                Assert.Throws<InvalidDataException>(() => EditorSnapshotSerializer.Serialize(adopted with
+                var recoveredWorkspace = (await new DcsSqliteEditorWorkspaceRepository(Connection(recovered)).GetAsync(module))!;
+                Assert.Equal(package.Bytes, DcsModuleSnapshotWorkflow.Build(DcsModuleSnapshotWorkflow.Freeze(recoveredWorkspace, "1.0")).Bytes);
+                Assert.Throws<InvalidDataException>(() => DcsEditorSnapshotSerializer.Serialize(adopted with
                 { Diagrams = adopted.Diagrams.Select(x => x.ProfileId == profile.Id ? x with { Svg = "forged" } : x).ToArray() }));
             }
             finally { SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }

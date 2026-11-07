@@ -4,7 +4,7 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.Tests
 {
     /// <summary>Supplies controllable native payloads for filesystem and SQLite acceptance tests.</summary>
-    public sealed class FlyNowTestPayloadBuilder : IFlyNowPayloadBuilder
+    public sealed class FlyNowTestPayloadBuilder : IDcsFlyNowPayloadBuilder
     {
         #region BEGIN Public
         /// <summary>Gets or sets the deployable files.</summary>
@@ -15,8 +15,8 @@ namespace Heimdall.Tests
             ["KNEEBOARD/Test/page.png"] = [6, 7]
         };
         /// <inheritdoc/>
-        public Task<FlyNowPayload> BuildAsync(Guid moduleId, CancellationToken ct = default) =>
-            Task.FromResult(new FlyNowPayload("Test", Files));
+        public Task<DcsFlyNowPayload> BuildAsync(Guid moduleId, CancellationToken ct = default) =>
+            Task.FromResult(new DcsFlyNowPayload("Test", Files));
         #endregion END Public
     }
 }

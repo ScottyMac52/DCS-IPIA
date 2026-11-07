@@ -9,14 +9,14 @@ namespace Heimdall.Dcs
     {
         #region BEGIN Public
         /// <summary>Maps a native command for shared presentation; native codes remain opaque identities.</summary>
-        public static SimCommand Describe(CommandPaletteEntry command) => new()
+        public static SimCommand Describe(DcsCommandPaletteEntry command) => new()
         {
             Id = command.Id, DisplayName = command.Name, Category = command.Category,
             Type = command.IsAxis ? CommandType.Axis : CommandType.Button
         };
         /// <summary>Intersects display filters with native layer/controller ownership, retaining the every-device filter.</summary>
-        public static IReadOnlyList<CommandPaletteEntry> Filter(IReadOnlyList<CommandPaletteEntry> commands,
-            IReadOnlyList<DraftAssignment> assignments, AssignmentLayer? layer, Guid? controllerId,
+        public static IReadOnlyList<DcsCommandPaletteEntry> Filter(IReadOnlyList<DcsCommandPaletteEntry> commands,
+            IReadOnlyList<DcsDraftAssignment> assignments, AssignmentLayer? layer, Guid? controllerId,
             IReadOnlyCollection<Guid> devices, string? category = null, CommandType? type = null,
             string search = "", DcsCommandAssignmentStatus status = DcsCommandAssignmentStatus.All)
         {

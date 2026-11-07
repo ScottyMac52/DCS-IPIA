@@ -46,7 +46,7 @@ namespace Heimdall.App.Games
         /// <summary>Loads the same verified bundled drawings used by DCS.</summary>
         public static async Task<IReadOnlyList<WorkspaceHardware>> HardwareAsync()
         {
-            var sources = await ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+            var sources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
             return JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
         }
         #endregion END Public

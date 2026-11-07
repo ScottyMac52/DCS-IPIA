@@ -104,9 +104,9 @@ namespace Heimdall.Tests
             var moduleSources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
             foreach (var source in sources) moduleSources[source.Key] = source.Value;
             workspace = workspace with { Sources = moduleSources };
-            Assert.Equal("ava-base-f18c", DetectedDeviceHardwareMatcher.Match(workspace, native)?.DeviceId);
-            workspace = InventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module, hardware);
-            workspace = ModuleKneeboardPageEditor.Set(workspace, null,
+            Assert.Equal("ava-base-f18c", DcsDetectedDeviceHardwareMatcher.Match(workspace, native)?.DeviceId);
+            workspace = DcsInventoryHardwareAuthoring.Add(workspace, choice, AssignmentLayer.Module, hardware);
+            workspace = DcsModuleKneeboardPageEditor.Set(workspace, null,
                 new(KneeboardPageKind.Summary, null, "00-OVERVIEW", "HORNET", "AVA GRIP", 0,
                     [new("STICK", "Hornet grip on AVA", "cyan")]));
             var profile = Assert.Single(workspace.Configuration.Profiles);
@@ -114,7 +114,7 @@ namespace Heimdall.Tests
             Assert.Equal(choice.FileName, profile.SourceName);
             Assert.Equal(native.PhysicalGuid, DcsPhysicalIdentity.FromFileName(profile.SourceName));
             var before = JsonSerializer.Serialize(workspace);
-            Assert.Null(DetectedDeviceHardwareMatcher.Match(workspace, native with { Name = "AVA [L] Hornet", Connected = false }));
+            Assert.Null(DcsDetectedDeviceHardwareMatcher.Match(workspace, native with { Name = "AVA [L] Hornet", Connected = false }));
             Assert.Equal(before, JsonSerializer.Serialize(workspace));
             var root = Path.Combine(Path.GetTempPath(), "heimdall-ava-hornet-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -122,7 +122,7 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + Path.Combine(root, "module.db") + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(workspace);
                 var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
                 var drawing = Assert.Single(reopened.Diagrams);
@@ -130,8 +130,8 @@ namespace Heimdall.Tests
                 Assert.Equal(hardware.Diagram.Svg, drawing.Svg);
                 Assert.Null(drawing.CustomMapping);
                 Assert.Equal(native.PhysicalGuid, DcsPhysicalIdentity.FromFileName(Assert.Single(reopened.Configuration.Profiles).SourceName));
-                Assert.NotEmpty(SnapshotDeviceKneeboardRenderer.Generate(reopened));
-                Assert.NotNull(ModuleSnapshotWorkflow.Read(ModuleSnapshotWorkflow.Export(ModuleSnapshotWorkflow.Freeze(reopened, "1.0"))));
+                Assert.NotEmpty(DcsSnapshotDeviceKneeboardRenderer.Generate(reopened));
+                Assert.NotNull(DcsModuleSnapshotWorkflow.Read(DcsModuleSnapshotWorkflow.Export(DcsModuleSnapshotWorkflow.Freeze(reopened, "1.0"))));
             }
             finally { Directory.Delete(root, true); }
         }

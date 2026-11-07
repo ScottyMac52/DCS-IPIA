@@ -23,7 +23,7 @@ namespace Heimdall.App.Smoke
             var editionBefore = EditionAccess.Policy;
             var layoutBefore = File.Exists(WorkspaceLayoutStore.FilePath) ? File.ReadAllText(WorkspaceLayoutStore.FilePath) : null;
             var existingWindows = System.Windows.Application.Current.Windows.Cast<Window>().ToHashSet();
-            var window = new TrainingWindow();
+            var window = new DcsTrainingWindow();
             window.Show();
             PumpUntil(() => window.Runner is not null, "Training did not initialize.");
             if (!((TextBlock)window.FindName("EditionExplanation")).Text.Contains("Premium", StringComparison.Ordinal))
@@ -107,7 +107,7 @@ namespace Heimdall.App.Smoke
                     Directory.GetFiles(Path.Combine(root, "Outputs"), "*.zip").Length == 0)
                     throw new InvalidOperationException("Training did not generate its real snapshot/package outputs.");
                 var profile = Directory.GetFiles(root, "*.diff.lua", SearchOption.AllDirectories).Single();
-                if (File.ReadAllText(profile) != TrainingAssets.Read("profile.lua"))
+                if (File.ReadAllText(profile) != DcsTrainingAssets.Read("profile.lua"))
                     throw new InvalidOperationException("Training changed imported source data.");
                 Click(restart);
                 PumpUntil(() => window.Runner!.State == TrainingState.Ready, "Completed scenario did not restart.");
@@ -140,7 +140,7 @@ namespace Heimdall.App.Smoke
         {
             // The axis editor replaces the creation form reference while a dirty workspace is still mounted.
             // Exiting at this checkpoint must close all three unshown host windows without a discard prompt.
-            var window = new TrainingWindow();
+            var window = new DcsTrainingWindow();
             window.Show();
             PumpUntil(() => window.Runner is not null, "Early-exit training did not initialize.");
             var next = (Button)window.FindName("NextButton");
@@ -160,7 +160,7 @@ namespace Heimdall.App.Smoke
             CheckRetainedWindows(existingWindows);
             if (Directory.Exists(directory)) throw new InvalidOperationException("Early exit retained training data.");
         }
-        private static void CheckTrainingState(TrainingWindow window, string action)
+        private static void CheckTrainingState(DcsTrainingWindow window, string action)
         {
             var root = (FrameworkElement)((ContentControl)window.FindName("ApplicationView")).Content;
             if (action == "base")
@@ -195,13 +195,13 @@ namespace Heimdall.App.Smoke
             if (action == "toggle")
             {
                 var feature = (FrameworkElement)((ContentControl)root.FindName("FeatureContent")).Content;
-                var modifiers = ((DataGrid)feature.FindName("ManagedModifiers")).Items.Cast<WorkspaceModifier>().ToArray();
+                var modifiers = ((DataGrid)feature.FindName("ManagedModifiers")).Items.Cast<DcsWorkspaceModifier>().ToArray();
                 if (!modifiers.Any(x => x.Name == "TRAIN_SHIFT" && x.Mode == ModifierMode.Hold) ||
                     !modifiers.Any(x => x.Name == "TRAIN_TOGGLE" && x.Mode == ModifierMode.Toggle))
                     throw new InvalidOperationException("Training did not create both modifier modes.");
             }
             if (!action.StartsWith("test-", StringComparison.Ordinal)) return;
-            var view = (InputTestView)((ContentControl)root.FindName("FeatureContent")).Content;
+            var view = (DcsInputTestView)((ContentControl)root.FindName("FeatureContent")).Content;
             var log = ((ListBox)view.FindName("InputTestLog")).Items.Cast<InputTestLogEntry>().ToArray();
             var legend = ((ItemsControl)view.FindName("ModifierLegend")).Items.Cast<InputTestLegendItem>().ToArray();
             bool Active(string chord) => legend.Any(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == chord && x.IsActive);

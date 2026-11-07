@@ -24,12 +24,12 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var defaults = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await defaults.SaveAsync(Defaults(false));
                 var target = await defaults.SaveAsync(Defaults(true) with { Revision = baseline.Revision });
                 var module = Module(baseline, managed);
-                var original = EditorSnapshotSerializer.Serialize(module);
-                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
+                var original = DcsEditorSnapshotSerializer.Serialize(module);
+                var plan = DcsSharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
                 var assignments = plan.Workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.UiLayer).ToArray();
                 Assert.Contains(assignments, x => x.Slot.InputKey == "JOY_BTN1" && x.Command.Id == "NEW");
                 Assert.Contains(assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
@@ -42,21 +42,21 @@ namespace Heimdall.Tests
                 Assert.Equal(module.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module),
                     plan.Workspace.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module));
                 Assert.Same(module.Configuration, plan.Workspace.Configuration);
-                var lua = UiLayerLuaProfileRenderer.Render(plan.Workspace, module.Diagrams[0].ProfileId);
+                var lua = DcsUiLayerLuaProfileRenderer.Render(plan.Workspace, module.Diagrams[0].ProfileId);
                 var rows = DcsLuaParser.ParseProfile(lua, module.Diagrams[0].ProfileId);
                 Assert.Contains(rows, x => x.InputKey == "JOY_BTN1" && x.CommandId == "NEW");
                 Assert.Contains(rows, x => x.CommandId == "HISTORY" && x.Disposition == BindingDisposition.Removed);
                 Assert.Contains(rows, x => x.InputKey == "JOY_BTN99" && x.CommandId == "NEW");
-                Assert.Equal(original.Content, EditorSnapshotSerializer.Serialize(module).Content);
-                var exported = EditorSnapshotSerializer.Serialize(plan.Workspace);
-                Assert.Equal(exported.Content, EditorSnapshotSerializer.Serialize(EditorSnapshotSerializer.Deserialize(exported)).Content);
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                Assert.Equal(original.Content, DcsEditorSnapshotSerializer.Serialize(module).Content);
+                var exported = DcsEditorSnapshotSerializer.Serialize(plan.Workspace);
+                Assert.Equal(exported.Content, DcsEditorSnapshotSerializer.Serialize(DcsEditorSnapshotSerializer.Deserialize(exported)).Content);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 await repository.SaveAsync(module);
                 var expected = (await repository.GetAsync(module.Configuration.Module.Id))!;
                 await repository.SaveIfUnchangedAsync(expected, plan.Workspace);
                 await repository.SaveIfUnchangedAsync((await repository.GetAsync(module.Configuration.Module.Id))!,
                     (await repository.GetPriorAsync(module.Configuration.Module.Id))!);
-                Assert.Equal(original.Content, EditorSnapshotSerializer.Serialize((await repository.GetAsync(module.Configuration.Module.Id))!).Content);
+                Assert.Equal(original.Content, DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(module.Configuration.Module.Id))!).Content);
                 Assert.Equal(target.ContentSha256, (await defaults.GetAsync())!.ContentSha256);
             }
             finally { File.Delete(file); }
@@ -70,7 +70,7 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var defaults = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await defaults.SaveAsync(Defaults(false));
                 var draft = Defaults(false) with { Revision = baseline.Revision };
                 var sources = new Dictionary<string, string>(draft.Sources) {
@@ -79,20 +79,20 @@ namespace Heimdall.Tests
                 };
                 var target = await defaults.SaveAsync(draft with { Sources = sources });
                 var module = Module(baseline);
-                var plan = SharedUiLayerSemanticAdoption.Review(module, target,
+                var plan = DcsSharedUiLayerSemanticAdoption.Review(module, target,
                     [Root + "functions.json", Root + "input/UiLayer/modifiers.lua"]);
                 Assert.Equal("Renamed", plan.Workspace.UiCommands.Single(x => x.DcsCommandId == "OLD").Name);
                 Assert.Equal("Renamed", plan.Workspace.Assignments.Single(x => x.Slot.InputKey == "JOY_BTN1").Command.Name);
                 Assert.Equal("my label", plan.Workspace.Labels[module.Assignments[0].Slot.Key]);
-                var modifier = WorkspaceManagement.Read(plan.Workspace)!.Modifiers.Single();
+                var modifier = DcsWorkspaceManagement.Read(plan.Workspace)!.Modifiers.Single();
                 Assert.Equal(ModifierMode.Toggle, modifier.Mode);
                 Assert.Equal("RShift", modifier.Key);
                 Assert.Contains(plan.Changes, x => x.Kind == "Modifier" && x.Decision == "Apply inherited change");
                 Assert.Contains(plan.Changes, x => x.Identity == "UNRELATED" && x.Decision == "Keep absent device");
                 Assert.Contains(plan.Changes, x => x.Kind == "Catalog" && x.Decision == "Apply inherited change");
-                Assert.Throws<ArgumentNullException>(() => SharedUiLayerSemanticAdoption.Review(module, target, null!));
-                Assert.Throws<ArgumentException>(() => SharedUiLayerSemanticAdoption.Review(module, target, ["not-selected"]));
-                Assert.Empty(SharedUiLayerSemanticAdoption.Review(module, target, []).Changes);
+                Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerSemanticAdoption.Review(module, target, null!));
+                Assert.Throws<ArgumentException>(() => DcsSharedUiLayerSemanticAdoption.Review(module, target, ["not-selected"]));
+                Assert.Empty(DcsSharedUiLayerSemanticAdoption.Review(module, target, []).Changes);
             }
             finally { File.Delete(file); }
         }
@@ -110,7 +110,7 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + file + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await repository.SaveAsync(Defaults(false));
                 var module = WithFallbackIdentity(Module(baseline), moduleFile);
                 var draft = Defaults(true);
@@ -120,11 +120,11 @@ namespace Heimdall.Tests
                 var path = Root + "input/UiLayer/joystick/" + sharedFile;
                 sources[path] = lua;
                 var target = await repository.SaveAsync(draft with { Revision = baseline.Revision, Sources = sources });
-                var original = EditorSnapshotSerializer.Serialize(module).Content;
-                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [path]);
+                var original = DcsEditorSnapshotSerializer.Serialize(module).Content;
+                var plan = DcsSharedUiLayerSemanticAdoption.Review(module, target, [path]);
                 Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN1" && x.Command.Id == "NEW");
                 Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
-                Assert.Equal(original, EditorSnapshotSerializer.Serialize(module).Content);
+                Assert.Equal(original, DcsEditorSnapshotSerializer.Serialize(module).Content);
             }
             finally { File.Delete(file); }
         }
@@ -138,7 +138,7 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + file + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await repository.SaveAsync(Defaults(false));
                 var module = WithFallbackIdentity(Module(baseline), "Stick {33333333-3333-3333-3333-333333333333}.diff.lua");
                 var draft = Defaults(true);
@@ -149,10 +149,10 @@ namespace Heimdall.Tests
                 sources[first] = lua;
                 sources[Root + "input/UiLayer/joystick/Stick {22222222-2222-2222-2222-222222222222}.diff.lua"] = lua;
                 var target = await repository.SaveAsync(draft with { Revision = baseline.Revision, Sources = sources });
-                var original = EditorSnapshotSerializer.Serialize(module).Content;
-                var error = Assert.Throws<InvalidDataException>(() => SharedUiLayerSemanticAdoption.Review(module, target, [first]));
+                var original = DcsEditorSnapshotSerializer.Serialize(module).Content;
+                var error = Assert.Throws<InvalidDataException>(() => DcsSharedUiLayerSemanticAdoption.Review(module, target, [first]));
                 Assert.Contains("Ambiguous shared default profile", error.Message, StringComparison.Ordinal);
-                Assert.Equal(original, EditorSnapshotSerializer.Serialize(module).Content);
+                Assert.Equal(original, DcsEditorSnapshotSerializer.Serialize(module).Content);
             }
             finally { File.Delete(file); }
         }
@@ -165,28 +165,28 @@ namespace Heimdall.Tests
             {
                 var connection = "Data Source=" + file + ";Pooling=False";
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var baseline = await repository.SaveAsync(Defaults(false));
                 var module = WithFallbackIdentity(Module(baseline), "Stick.diff.lua");
                 var sources = new Dictionary<string, string>(baseline.Sources);
                 sources.Remove(ProfilePath);
                 var target = await repository.SaveAsync(baseline with { Sources = sources });
-                var plan = SharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
+                var plan = DcsSharedUiLayerSemanticAdoption.Review(module, target, [ProfilePath]);
                 Assert.DoesNotContain(plan.Workspace.Assignments, x => x.Slot.Layer == AssignmentLayer.UiLayer && x.Command.Id == "OLD");
                 Assert.Contains(plan.Workspace.Assignments, x => x.Slot.InputKey == "JOY_BTN2" && x.Command.Id == "CUSTOM");
                 var profile = module.Diagrams[0].ProfileId;
-                var rows = DcsLuaParser.ParseProfile(UiLayerLuaProfileRenderer.Render(plan.Workspace, profile), profile);
+                var rows = DcsLuaParser.ParseProfile(DcsUiLayerLuaProfileRenderer.Render(plan.Workspace, profile), profile);
                 Assert.Contains(rows, x => x.CommandId == "HISTORY" && x.Disposition == BindingDisposition.Removed);
             }
             finally { File.Delete(file); }
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot WithFallbackIdentity(EditorWorkspaceSnapshot module, string file)
+        private static DcsEditorWorkspaceSnapshot WithFallbackIdentity(DcsEditorWorkspaceSnapshot module, string file)
         {
-            var state = WorkspaceManagement.Read(module)!;
+            var state = DcsWorkspaceManagement.Read(module)!;
             var sources = new Dictionary<string, string>(module.Sources!) {
-                [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state with {
+                [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state with {
                     Devices = state.Devices.Select(x => x.Layer == AssignmentLayer.UiLayer ? x with { FileName = file } : x).ToArray()
                 })
             };
@@ -197,20 +197,20 @@ namespace Heimdall.Tests
         {
             var id = rows[0].ProfileId;
             var module = new DcsModule(Guid.NewGuid(), "Test", "Test");
-            var config = new ModuleConfiguration(module, [new(id, "stick", null, "stick", "Stick.diff.lua")], [], rows, "test");
+            var config = new DcsModuleConfiguration(module, [new(id, "stick", null, "stick", "Stick.diff.lua")], [], rows, "test");
             var axes = rows.Where(x => x.Section == BindingSection.Axis && x.Disposition != BindingDisposition.Removed).ToArray();
-            var assignments = axes.Select(x => new DraftAssignment(new(module.Id, id, AssignmentLayer.Module, BindingSection.Axis, x.InputKey),
+            var assignments = axes.Select(x => new DcsDraftAssignment(new(module.Id, id, AssignmentLayer.Module, BindingSection.Axis, x.InputKey),
                 new(x.CommandId, x.CommandName, true, AssignmentLayer.Module)) { Filter = x.Filter }).ToArray();
-            var snapshot = new EditorWorkspaceSnapshot(config, [], [],
+            var snapshot = new DcsEditorWorkspaceSnapshot(config, [], [],
                 [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = id,
                     Controls = axes.Select(x => new HardwareGraphicControl(x.InputKey, x.InputKey, x.InputKey, 0, 0, 10, 10, true)).ToArray() }],
                 [], [], assignments, new Dictionary<string, string>());
-            return ModuleLuaProfileRenderer.Render(snapshot, id);
+            return DcsModuleLuaProfileRenderer.Render(snapshot, id);
         }
         private static string Catalog(string name) => JsonSerializer.Serialize(new { schema = 1, functions = new[] {
             new { id = "old", command = "OLD", label = name, category = "UI" },
             new { id = "new", command = "NEW", label = "New", category = "UI" } } });
-        private static SharedUiLayerWorkspace Defaults(bool changed)
+        private static DcsSharedUiLayerWorkspace Defaults(bool changed)
         {
             var id = Guid.NewGuid();
             var rows = new List<DcsBinding>();
@@ -225,20 +225,20 @@ namespace Heimdall.Tests
                 [Root + "input/UiLayer/modifiers.lua"] = "local modifiers = { [\"SHIFT\"] = { [\"device\"] = \"Keyboard\", [\"key\"] = \"LShift\", [\"switch\"] = false } }\nreturn modifiers"
             });
         }
-        private static EditorWorkspaceSnapshot Module(SharedUiLayerWorkspace baseline, bool managed = true)
+        private static DcsEditorWorkspaceSnapshot Module(DcsSharedUiLayerWorkspace baseline, bool managed = true)
         {
             var module = new DcsModule(Guid.NewGuid(), "Test", "Test");
-            var profile = new DeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
             var rows = DcsLuaParser.ParseProfile(baseline.Sources[ProfilePath], profile.Id).Where(x => x.InputKey != "JOY_BTN3")
                 .Select(x => x.InputKey == "JOY_BTN2" ? new DcsBinding(x.ProfileId, x.Section, "CUSTOM", "Custom", x.Disposition, x.InputKey) : x).ToArray();
             var assignments = rows.Where(x => x.Disposition != BindingDisposition.Removed && x.InputKey != "JOY_BTN99")
-                .Select(x => new DraftAssignment(new(module.Id, profile.Id, AssignmentLayer.UiLayer, x.Section, x.InputKey, ""),
+                .Select(x => new DcsDraftAssignment(new(module.Id, profile.Id, AssignmentLayer.UiLayer, x.Section, x.InputKey, ""),
                     new(x.CommandId, x.CommandName, x.Section == BindingSection.Axis, AssignmentLayer.UiLayer)) { Filter = x.Filter }).ToArray();
-            var state = new WorkspaceManagement([new(profile.Id, AssignmentLayer.Module, profile.SourceName, null, "base"),
+            var state = new DcsWorkspaceManagement([new(profile.Id, AssignmentLayer.Module, profile.SourceName, null, "base"),
                 new(profile.Id, AssignmentLayer.UiLayer, profile.SourceName, null, "ui-layer")],
                 [new(AssignmentLayer.UiLayer, Guid.Empty, "SHIFT", "LShift", "SHIFT", ModifierMode.Hold, "Keyboard")]);
             var sources = new Dictionary<string, string>(baseline.Sources) {
-                [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state),
+                [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(state),
                 ["config/ipia-ui-" + profile.Id.ToString("N") + ".lua"] = Write(rows)
             };
             var controls = rows.Where(x => x.Disposition != BindingDisposition.Removed && x.InputKey != "JOY_BTN99")
@@ -246,16 +246,16 @@ namespace Heimdall.Tests
                 .Concat(new[] { new HardwareGraphicControl("JOY_BTN3", "3", "JOY_BTN3", 0, 0, 10, 10),
                     new HardwareGraphicControl("JOY_BTN5", "5", "JOY_BTN5", 0, 0, 10, 10) }).ToArray();
             var catalog = StableIdentity.Create("catalog", "dcs-common-ui-layer");
-            var snapshot = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "test"), [], [],
+            var snapshot = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "test"), [], [],
                 [new("Stick", null, "stick.svg", 100, 100, [], []) { ProfileId = profile.Id, CanonicalUiLayerSourcePath = ProfilePath, Controls = controls }],
                 [], [new(StableIdentity.Create("ui-function", "old"), catalog, "OLD", "Old", "UI", false),
                     new(StableIdentity.Create("ui-function", "new"), catalog, "NEW", "New", "UI", false)], assignments,
                 new Dictionary<string, string> { [assignments[0].Slot.Key] = "my label" }, sources) { SharedDefault = baseline };
-            snapshot = snapshot with { Assignments = snapshot.Assignments.Append(new DraftAssignment(
+            snapshot = snapshot with { Assignments = snapshot.Assignments.Append(new DcsDraftAssignment(
                 new(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN2", ""),
                 new("AIRCRAFT", "Aircraft function", false, AssignmentLayer.Module))).ToArray() };
             if (managed) return snapshot;
-            sources.Remove(WorkspaceManagement.SourcePath);
+            sources.Remove(DcsWorkspaceManagement.SourcePath);
             sources.Remove("config/ipia-ui-" + profile.Id.ToString("N") + ".lua");
             return snapshot with { Diagrams = [snapshot.Diagrams[0] with {
                 Callouts = controls.Select((x, i) => new UiLayerCallout(i + 1, x.Control, "Imported", "", x.X, x.Y, x.Width, x.Height)).ToArray()

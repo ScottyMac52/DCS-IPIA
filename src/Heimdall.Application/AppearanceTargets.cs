@@ -11,7 +11,8 @@ namespace Heimdall.Application
             ["GameSelectionView"] = "Game selection",
             ["EliteWorkspaceWindow"] = "Elite Dangerous workspace",
             ["SquadronsWorkspaceWindow"] = "Star Wars: Squadrons workspace",
-            ["ModuleWorkspaceWindow"] = "Module workspace",
+            // Persisted identity predates the DcsModuleWorkspaceWindow class name.
+            ["ModuleWorkspaceWindow"] = "DCS module workspace",
             ["NewModuleWindow"] = "New module",
             ["SharedUiLayerWorkspaceWindow"] = "Shared UI layer workspace",
             ["SettingsWindow"] = "Settings",

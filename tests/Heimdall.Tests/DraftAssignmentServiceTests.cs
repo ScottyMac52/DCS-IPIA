@@ -18,7 +18,7 @@ namespace Heimdall.Tests
         public void Applied_mutations_notify_once_after_state_and_history_are_updated(string operation)
         {
             var (service, source, target, _, first, second) = Fixture();
-            var observed = new List<(bool Dirty, int History, DraftAssignment[] Assignments)>();
+            var observed = new List<(bool Dirty, int History, DcsDraftAssignment[] Assignments)>();
             service.Changed += (_, _) => observed.Add((service.HasChanges, service.History.Count, service.Snapshot.ToArray()));
             var result = operation switch
             {
@@ -67,9 +67,9 @@ namespace Heimdall.Tests
         {
             var (_, source, _, _, _, _) = Fixture();
             var axisSlot = source with { Section = BindingSection.Axis, InputKey = "JOY_X" };
-            var axis = new DraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module);
+            var axis = new DcsDraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module);
             var config = BuildModule(source.ModuleId, source.ProfileId, Guid.NewGuid());
-            var service = new DraftAssignmentService(config, [axis], [new(axisSlot, axis)]);
+            var service = new DcsDraftAssignmentService(config, [axis], [new(axisSlot, axis)]);
             var dirty = new List<bool>();
             service.Changed += (_, _) => dirty.Add(service.HasChanges);
             var filter = new AxisFilter(5);
@@ -93,7 +93,7 @@ namespace Heimdall.Tests
         public void Imported_catalog_command_is_assignable_without_losing_history()
         {
             var (service, source, _, _, _, _) = Fixture();
-            var incoming = new DraftCommand("NEW_COMMAND", "New module command", false, AssignmentLayer.Module);
+            var incoming = new DcsDraftCommand("NEW_COMMAND", "New module command", false, AssignmentLayer.Module);
             service.AddCommands([incoming]);
             var empty = source with { InputKey = "JOY_BTN9" };
             Assert.Equal(DraftOutcome.Applied,
@@ -236,7 +236,7 @@ namespace Heimdall.Tests
         {
             var (service, source, _, _, first, _) = Fixture();
             var uiSlot = source with { Layer = AssignmentLayer.UiLayer, ModifierChord = "S3" };
-            var ui = new DraftCommand("UI_ZOOM", "VR Zoom", false, AssignmentLayer.UiLayer);
+            var ui = new DcsDraftCommand("UI_ZOOM", "VR Zoom", false, AssignmentLayer.UiLayer);
             Assert.Equal(DraftOutcome.Applied, service.Assign(uiSlot, ui, OccupiedDestinationBehavior.Ask).Outcome);
             Assert.Equal(DraftOutcome.Blocked, service.Assign(source, ui, OccupiedDestinationBehavior.Ask).Outcome);
             Assert.Equal(DraftOutcome.Blocked, service.Assign(uiSlot, first, OccupiedDestinationBehavior.Ask).Outcome);
@@ -251,11 +251,11 @@ namespace Heimdall.Tests
         {
             var (service, source, _, _, first, _) = Fixture();
             var module = BuildModule(source.ModuleId, source.ProfileId, Guid.NewGuid());
-            var assignments = new[] { new DraftAssignment(source, first), new DraftAssignment(source, first) };
-            Assert.Throws<ArgumentException>(() => new DraftAssignmentService(module, [first], assignments));
-            Assert.Throws<ArgumentException>(() => new DraftAssignmentService(module, [first, first], []));
+            var assignments = new[] { new DcsDraftAssignment(source, first), new DcsDraftAssignment(source, first) };
+            Assert.Throws<ArgumentException>(() => new DcsDraftAssignmentService(module, [first], assignments));
+            Assert.Throws<ArgumentException>(() => new DcsDraftAssignmentService(module, [first, first], []));
             Assert.Throws<ArgumentException>(
-                () => new DraftAssignmentService(module, [first], [new(source, first with { Id = "missing" })]));
+                () => new DcsDraftAssignmentService(module, [first], [new(source, first with { Id = "missing" })]));
             Assert.NotNull(service);
         }
         /// <summary>Imported display labels may differ from the catalog name while command identity and type stay validated.</summary>
@@ -266,10 +266,10 @@ namespace Heimdall.Tests
             var profileId = Guid.NewGuid();
             var module = BuildModule(moduleId, profileId, Guid.NewGuid());
             var slot =
-                new DraftAssignmentSlot(moduleId, profileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN7");
-            var canonical = new DraftCommand("UI_COMMAND", "Catalog name", false, AssignmentLayer.UiLayer);
+                new DcsDraftAssignmentSlot(moduleId, profileId, AssignmentLayer.UiLayer, BindingSection.Key, "JOY_BTN7");
+            var canonical = new DcsDraftCommand("UI_COMMAND", "Catalog name", false, AssignmentLayer.UiLayer);
             var labeled = canonical with { Name = "Kneeboard label" };
-            var service = new DraftAssignmentService(module, [canonical], [new(slot, labeled)]);
+            var service = new DcsDraftAssignmentService(module, [canonical], [new(slot, labeled)]);
             Assert.Equal(labeled, Assert.Single(service.Snapshot).Command);
             Assert.Equal(
                 DraftOutcome.Applied,
@@ -292,13 +292,13 @@ namespace Heimdall.Tests
             var moduleId = Guid.NewGuid();
             var profileId = Guid.NewGuid();
             var module = BuildModule(moduleId, profileId, Guid.NewGuid());
-            var command = new DraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module);
+            var command = new DcsDraftCommand("PITCH", "Pitch", true, AssignmentLayer.Module);
             var source =
-                new DraftAssignmentSlot(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
+                new DcsDraftAssignmentSlot(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             var target = source with { InputKey = "JOY_Y" };
             var initial = new AxisFilter(0.03, 1, 0.8, [0.2], true, false);
-            var draft = new DraftAssignmentService(module, [command],
-                                                   [new DraftAssignment(source, command) { Filter = initial }]);
+            var draft = new DcsDraftAssignmentService(module, [command],
+                                                   [new DcsDraftAssignment(source, command) { Filter = initial }]);
             Assert.Equal(initial, Assert.Single(draft.Snapshot).Filter);
             var tuned = new AxisFilter(0.05, 1, 0.9, [0.3], false, true);
             Assert.Equal(DraftOutcome.Applied, draft.TuneAxis(source, tuned).Outcome);
@@ -318,16 +318,16 @@ namespace Heimdall.Tests
         public void Distinct_scope_modifiers_keep_their_own_assignments()
         {
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
-            var profile = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
-            var configuration = new ModuleConfiguration(
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua");
+            var configuration = new DcsModuleConfiguration(
                 module, [profile], [new DcsModifier("MOZA_F16_F18_BTN3", "MOZA", "JOY_BTN3", ModifierMode.Hold)], [],
                 "import");
-            var moduleCommand = new DraftCommand("MODULE", "Module command", false, AssignmentLayer.Module);
-            var uiCommand = new DraftCommand("UI", "UI command", false, AssignmentLayer.UiLayer);
-            var moduleSlot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key,
+            var moduleCommand = new DcsDraftCommand("MODULE", "Module command", false, AssignmentLayer.Module);
+            var uiCommand = new DcsDraftCommand("UI", "UI command", false, AssignmentLayer.UiLayer);
+            var moduleSlot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key,
                                                      "JOY_BTN1", "MOZA_F16_F18_BTN3");
             var uiSlot = moduleSlot with { Layer = AssignmentLayer.UiLayer, ModifierChord = "MOZA_MODIFIER_BTN3" };
-            var service = new DraftAssignmentService(configuration, [moduleCommand, uiCommand],
+            var service = new DcsDraftAssignmentService(configuration, [moduleCommand, uiCommand],
                                                      [new(moduleSlot, moduleCommand), new(uiSlot, uiCommand)],
                                                      ["MOZA_MODIFIER_BTN3"]);
             Assert.Equal(2, service.Snapshot.Count);
@@ -340,31 +340,77 @@ namespace Heimdall.Tests
                                                            uiCommand, OccupiedDestinationBehavior.Ask)
                                                    .Outcome);
         }
+        /// <summary>Persistence suspends every write path without losing assignments, undo history or dirty state.</summary>
+        [Fact]
+        public void Suspended_draft_blocks_all_mutations_until_the_save_releases_it()
+        {
+            var (service, source, target, _, first, _) = Fixture();
+            service.Remove(source);
+            var before = service.Snapshot.ToArray();
+            var history = service.History.ToArray();
+            var notifications = 0;
+            service.Changed += (_, _) => notifications++;
+            using (service.SuspendEditing())
+            {
+                var results = new[]
+                {
+                    service.Assign(source, first, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Move(target, source, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Copy(target, source, OccupiedDestinationBehavior.ReplaceInDraft),
+                    service.Swap(source, target), service.TuneAxis(source, null),
+                    service.Remove(target), service.Restore(source), service.Undo()
+                };
+                Assert.All(results, result => Assert.Equal(DraftOutcome.Blocked, result.Outcome));
+                Assert.Throws<InvalidOperationException>(() => service.AddCommands([first]));
+                Assert.Throws<InvalidOperationException>(service.Discard);
+                Assert.Equal(before, service.Snapshot);
+                Assert.Equal(history, service.History);
+                Assert.True(service.HasChanges);
+                Assert.Equal(0, notifications);
+            }
+            Assert.Equal(DraftOutcome.Applied, service.Undo().Outcome);
+            Assert.False(service.HasChanges);
+            service.AddCommands([first]);
+            service.Discard();
+        }
+
+        /// <summary>Nested suspensions cannot unlock each other and a lease can safely be disposed twice.</summary>
+        [Fact]
+        public void Editing_resumes_only_after_every_save_lease_is_released()
+        {
+            var (service, source, _, _, _, _) = Fixture();
+            var outer = service.SuspendEditing();
+            var inner = service.SuspendEditing();
+            outer.Dispose(); outer.Dispose();
+            Assert.Equal(DraftOutcome.Blocked, service.Remove(source).Outcome);
+            inner.Dispose();
+            Assert.Equal(DraftOutcome.Applied, service.Remove(source).Outcome);
+        }
         #endregion END Public
         #region BEGIN private helpers
-        private static (DraftAssignmentService Service, DraftAssignmentSlot Source, DraftAssignmentSlot Target,
-                        DraftAssignmentSlot Other, DraftCommand First, DraftCommand Second) Fixture()
+        private static (DcsDraftAssignmentService Service, DcsDraftAssignmentSlot Source, DcsDraftAssignmentSlot Target,
+                        DcsDraftAssignmentSlot Other, DcsDraftCommand First, DcsDraftCommand Second) Fixture()
         {
             var moduleId = Guid.NewGuid();
             var profileId = Guid.NewGuid();
             var otherId = Guid.NewGuid();
             var module = BuildModule(moduleId, profileId, otherId);
             var source =
-                new DraftAssignmentSlot(moduleId, profileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN13");
+                new DcsDraftAssignmentSlot(moduleId, profileId, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN13");
             var target = source with { InputKey = "JOY_BTN03" };
             var other = target with { ProfileId = otherId };
-            var first = new DraftCommand("MODULE_ZOOM", "Zoom", false, AssignmentLayer.Module);
-            var second = new DraftCommand("MODULE_PAUSE", "Pause", false, AssignmentLayer.Module);
-            var ui = new DraftCommand("UI_ZOOM", "VR Zoom", false, AssignmentLayer.UiLayer);
+            var first = new DcsDraftCommand("MODULE_ZOOM", "Zoom", false, AssignmentLayer.Module);
+            var second = new DcsDraftCommand("MODULE_PAUSE", "Pause", false, AssignmentLayer.Module);
+            var ui = new DcsDraftCommand("UI_ZOOM", "VR Zoom", false, AssignmentLayer.UiLayer);
             var service =
-                new DraftAssignmentService(module, [first, second, ui], [new(source, first), new(target, second)]);
+                new DcsDraftAssignmentService(module, [first, second, ui], [new(source, first), new(target, second)]);
             return (service, source, target, other, first, second);
         }
-        private static ModuleConfiguration BuildModule(Guid moduleId, Guid profileId, Guid otherId) =>
+        private static DcsModuleConfiguration BuildModule(Guid moduleId, Guid profileId, Guid otherId) =>
             new(new DcsModule(moduleId, "UH-1H", "Huey"),
                 [
-                    new DeviceProfile(profileId, "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua"),
-                    new DeviceProfile(otherId, "tm-mfd", "MFD1", "MFD", "MFD1.diff.lua")
+                    new DcsDeviceProfile(profileId, "tm-mfd", "MFD3", "MFD", "MFD3.diff.lua"),
+                    new DcsDeviceProfile(otherId, "tm-mfd", "MFD1", "MFD", "MFD1.diff.lua")
                 ],
                 [new DcsModifier("S3", "tm-mfd", "JOY_BTN5", ModifierMode.Hold)], [], "fixture");
         #endregion END private helpers

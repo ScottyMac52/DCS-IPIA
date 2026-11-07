@@ -15,8 +15,8 @@ namespace Heimdall.App.Smoke
         public static void Verify()
         {
             var module = new DcsModule(Guid.NewGuid(), "REPLACE", "Label replacement regression");
-            var profile = new DeviceProfile(Guid.NewGuid(), "tm-tpr", null, "Rudder", "Rudder.diff.lua");
-            var first = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-tpr", null, "Rudder", "Rudder.diff.lua");
+            var first = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             var second = first with { InputKey = "JOY_Y" };
             var graphic = new UiLayerDiagram("Rudder", null, "rudder.svg", 240, 180, [], [])
             {
@@ -24,14 +24,14 @@ namespace Heimdall.App.Smoke
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 180'><rect width='240' height='180' fill='black'/></svg>",
                 Controls = [new("x", "X", "JOY_X", 20, 20, 200, 50, true), new("y", "Y", "JOY_Y", 20, 90, 200, 50, true)]
             };
-            var workspace = new EditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [], [], [graphic],
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [], [], [graphic],
                 [new("X", "Alpha 12", "Axis", true), new("Y", "Alpha 34", "Axis", true)], [],
                 [new(first, new("X", "Alpha 12", true, AssignmentLayer.Module)),
                  new(second, new("Y", "Alpha 34", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
-            var context = new WindowContext(window);
+            var context = new DcsWindowContext(window);
             try
             {
                 window.Show();

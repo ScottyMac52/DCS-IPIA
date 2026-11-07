@@ -15,7 +15,7 @@ Wheel up moves toward the top or left and increases zoom; down moves toward the 
 
 - `Heimdall.Application.DiagramWheelNavigation` contains pure modifier priority, scroll step, zoom factor, and cursor-offset calculations. Its unit tests lock that behavior independently of WPF.
 - `Heimdall.App.DiagramViewport` attaches one `PreviewMouseWheel` routed event handler to each drawing `ScrollViewer`, using the shared policy; no simulator owns a separate wheel handler.
-- Mainline consumers already include DCS `AssignmentsView`, Elite's assignments drawing, and the kneeboard drawing/preview surfaces.
+- Mainline consumers already include DCS `DcsAssignmentsView`, Elite's assignments drawing, and the kneeboard drawing/preview surfaces.
 - The active `fix/squadrons-controller-associations` branch has a newer drawing than main; **do not cherry-pick this into its old divergent code**. When Squadrons' drawing is migrated under #323, use the shared `DiagramViewport` contract and remove any one-off wheel handlers.
 
 ## Windows smoke acceptance matrix

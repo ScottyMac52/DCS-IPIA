@@ -15,12 +15,13 @@ namespace Heimdall.App.Smoke
         /// <summary>Exercises real action sets, original callbacks, and inactive command disposal.</summary>
         public static void Verify()
         {
+            FeatureActionLayoutSmoke.Verify();
             VerifyAssignmentAvailability();
             var module = new DcsModule(Guid.NewGuid(), "ACTION-TEST", "Action test");
-            var workspace = new EditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [], [], [], "smoke"), [], [], [], [], [], [],
                 new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
-            var window = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(workspace),
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery());
             try
             {
@@ -30,12 +31,7 @@ namespace Heimdall.App.Smoke
                 AssertActions(bar, "Load built-in hardware", "New", "Save to database", "Discard draft",
                     "Import DCS axis defaults…");
                 var contentHost = (ContentControl)window.FindName("FeatureContent")!;
-                var scroll = (ScrollViewer)bar.FindName("ActionScroll")!;
-                if (scroll.HorizontalScrollBarVisibility != ScrollBarVisibility.Auto ||
-                    scroll.VerticalScrollBarVisibility != ScrollBarVisibility.Disabled)
-                    throw new InvalidOperationException("The feature action strip should scroll horizontally, not wrap.");
-                var top = contentHost.TranslatePoint(new Point(), window).Y;
-                var height = contentHost.ActualHeight;
+                AssertLayoutFits(window, contentHost, bar);
                 var oldCommand = bar.Actions.Single(x => x.Label == "New").Command;
                 Click(bar, "New");
                 var device = (UserControl)((ContentControl)window.FindName("FeatureContent")!).Content;
@@ -43,7 +39,7 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("The shared action did not invoke the Devices handler.");
 
                 WorkspaceUi.Navigate(window, "Pages");
-                AssertLayoutStable(window, contentHost, top, height);
+                AssertLayoutFits(window, contentHost, bar);
                 if (oldCommand.CanExecute(null))
                     throw new InvalidOperationException("The inactive feature command was not detached.");
                 AssertActions(bar, "New page", "Add missing device pages", "Generate Summary",
@@ -54,11 +50,11 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("The shared action did not invoke the Pages handler.");
 
                 WorkspaceUi.Navigate(window, "Kneeboards");
-                AssertLayoutStable(window, contentHost, top, height);
+                AssertLayoutFits(window, contentHost, bar);
                 if (bar.Actions.Length != 0 || bar.Visibility != Visibility.Visible)
                     throw new InvalidOperationException("The empty feature retained inactive actions.");
                 WorkspaceUi.Navigate(window, "Devices");
-                AssertLayoutStable(window, contentHost, top, height);
+                AssertLayoutFits(window, contentHost, bar);
                 AssertActions(bar, "Load built-in hardware", "New", "Save to database", "Discard draft",
                     "Import DCS axis defaults…");
             }
@@ -123,13 +119,13 @@ namespace Heimdall.App.Smoke
                 if (FindActionButton(System.Windows.Media.VisualTreeHelper.GetChild(root, index)) is { } found) return found;
             return null;
         }
-        private static void AssertLayoutStable(Window window, ContentControl content, double top, double height)
+        private static void AssertLayoutFits(Window window, ContentControl content, FeatureActionBar bar)
         {
-            window.UpdateLayout();
-            var currentTop = content.TranslatePoint(new Point(), window).Y;
-            if (Math.Abs(currentTop - top) > 0.5 || Math.Abs(content.ActualHeight - height) > 0.5)
-                throw new InvalidOperationException(
-                    $"Navigation shifted the content host: top {top} to {currentTop}, height {height} to {content.ActualHeight}.");
+            ThemeControlSmoke.Pump(window);
+            var actionsBottom = bar.TranslatePoint(new Point(0, bar.ActualHeight), window).Y;
+            var contentTop = content.TranslatePoint(new Point(), window).Y;
+            if (contentTop < actionsBottom - .5 || content.ActualHeight < 100)
+                throw new InvalidOperationException("The wrapped action bar overlaps or crushes the feature content.");
         }
 
         private static void AssertActions(FeatureActionBar bar, params string[] expected)

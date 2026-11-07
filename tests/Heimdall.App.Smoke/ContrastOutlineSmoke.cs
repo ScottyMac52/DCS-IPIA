@@ -10,7 +10,7 @@ namespace Heimdall.App.Smoke
     /// <summary>Checks actual outline pixels on black and white artwork for every live input-state color.</summary>
     public static class ContrastOutlineSmoke
     {
-        private static readonly string[] Colors = [KneeboardLiveProjection.BaseHighlightColor, "#dc2626", "#ea580c", "#c026d3",
+        private static readonly string[] Colors = [DcsKneeboardLiveProjection.BaseHighlightColor, "#dc2626", "#ea580c", "#c026d3",
             "#16a34a", "#9333ea", "#0891b2", "#7c3aed", "#be185d", "#0f766e"];
         #region BEGIN Public
         /// <summary>Verifies color, white and black rings, unobscured centers, invisible inactive outlines, and matching swatches.</summary>

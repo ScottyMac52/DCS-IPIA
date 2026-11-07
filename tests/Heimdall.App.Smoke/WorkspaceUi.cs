@@ -81,7 +81,7 @@ namespace Heimdall.App.Smoke
 
         #region BEGIN Public
         /// <summary>Selects a workspace feature and returns its active user control.</summary>
-        public static UserControl Navigate(ModuleWorkspaceWindow window, string feature)
+        public static UserControl Navigate(DcsModuleWorkspaceWindow window, string feature)
         {
             var nav = (ListBox)window.FindName("FeatureNav");
             nav.SelectedItem = nav.Items.Cast<ListBoxItem>().Single(x => Equals(x.Tag, feature));
@@ -92,7 +92,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Finds a host or feature control using the smoke test control-name mapping.</summary>
         public static object Find(FrameworkElement root, string name)
         {
-            if (root is not ModuleWorkspaceWindow window) return root.FindName(name)!;
+            if (root is not DcsModuleWorkspaceWindow window) return root.FindName(name)!;
             if (window.FindName(name) is { } hostControl) return hostControl;
             var current = (UserControl)((ContentControl)window.FindName("FeatureContent")).Content;
             if (name is "SaveAuthoringButton" or "DiscardAuthoringButton")
@@ -115,8 +115,8 @@ namespace Heimdall.App.Smoke
         }
 
         /// <summary>Reads the displayed command palette entries from a grid.</summary>
-        public static IReadOnlyList<CommandPaletteEntry> Entries(DataGrid grid) => grid.Items.Cast<object>().Select(row =>
-            new CommandPaletteEntry((string)row.GetType().GetProperty("Id")!.GetValue(row)!,
+        public static IReadOnlyList<DcsCommandPaletteEntry> Entries(DataGrid grid) => grid.Items.Cast<object>().Select(row =>
+            new DcsCommandPaletteEntry((string)row.GetType().GetProperty("Id")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Name")!.GetValue(row)!,
                 (string)row.GetType().GetProperty("Category")!.GetValue(row)!,
                 (bool)row.GetType().GetProperty("IsAxis")!.GetValue(row)!)).ToArray();

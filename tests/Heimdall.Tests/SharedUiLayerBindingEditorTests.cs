@@ -17,65 +17,65 @@ namespace Heimdall.Tests
         public void PreservesUnrelatedSourcesAndBindings()
         {
             var baseline = Workspace();
-            var old = SharedUiLayerBindingEditor.Bindings(baseline, PathKey).Single(x => x.CommandId == "OLD");
-            var edited = SharedUiLayerBindingEditor.Set(baseline, PathKey, old, "NEW", "JOY_BTN3", ["SHIFT"]);
+            var old = DcsSharedUiLayerBindingEditor.Bindings(baseline, PathKey).Single(x => x.CommandId == "OLD");
+            var edited = DcsSharedUiLayerBindingEditor.Set(baseline, PathKey, old, "NEW", "JOY_BTN3", ["SHIFT"]);
             Assert.Equal(baseline.Revision, edited.Revision);
             Assert.Null(edited.ContentSha256);
             Assert.Equal(baseline.Sources.Where(x => x.Key != PathKey), edited.Sources.Where(x => x.Key != PathKey));
             Assert.Contains("OLD", baseline.Sources[PathKey]);
-            Assert.Contains(SharedUiLayerBindingEditor.Bindings(edited, PathKey), x => x.CommandId == "NEW" && x.InputKey == "JOY_BTN3" && x.Reformers.SequenceEqual(["SHIFT"]));
-            var protectedRows = SharedUiLayerBindingEditor.Bindings(baseline, PathKey).Where(x => x.CommandId != "OLD");
+            Assert.Contains(DcsSharedUiLayerBindingEditor.Bindings(edited, PathKey), x => x.CommandId == "NEW" && x.InputKey == "JOY_BTN3" && x.Reformers.SequenceEqual(["SHIFT"]));
+            var protectedRows = DcsSharedUiLayerBindingEditor.Bindings(baseline, PathKey).Where(x => x.CommandId != "OLD");
             foreach (var row in protectedRows)
-                Assert.Contains(SharedUiLayerBindingEditor.Bindings(edited, PathKey), x => JsonSerializer.Serialize(x) == JsonSerializer.Serialize(row));
-            edited = SharedUiLayerBindingEditor.Set(edited, PathKey, null, "NEW", "JOY_BTN4", []);
-            SharedUiLayerBindingEditor.Validate(edited);
-            var added = SharedUiLayerBindingEditor.Bindings(edited, PathKey).Single(x => x.InputKey == "JOY_BTN4");
-            edited = SharedUiLayerBindingEditor.Remove(edited, PathKey, added);
-            Assert.DoesNotContain(SharedUiLayerBindingEditor.Bindings(edited, PathKey), x => x.InputKey == "JOY_BTN4");
-            Assert.Contains(SharedUiLayerBindingEditor.Commands(edited), x => x.Id == "UNMAPPED");
+                Assert.Contains(DcsSharedUiLayerBindingEditor.Bindings(edited, PathKey), x => JsonSerializer.Serialize(x) == JsonSerializer.Serialize(row));
+            edited = DcsSharedUiLayerBindingEditor.Set(edited, PathKey, null, "NEW", "JOY_BTN4", []);
+            DcsSharedUiLayerBindingEditor.Validate(edited);
+            var added = DcsSharedUiLayerBindingEditor.Bindings(edited, PathKey).Single(x => x.InputKey == "JOY_BTN4");
+            edited = DcsSharedUiLayerBindingEditor.Remove(edited, PathKey, added);
+            Assert.DoesNotContain(DcsSharedUiLayerBindingEditor.Bindings(edited, PathKey), x => x.InputKey == "JOY_BTN4");
+            Assert.Contains(DcsSharedUiLayerBindingEditor.Commands(edited), x => x.Id == "UNMAPPED");
         }
         /// <summary>Bulk clearing includes unmapped keys and axes while preserving history, other chords, and profiles.</summary>
         [Fact]
         public void ClearsOnlySelectedProfileLayer()
         {
             var baseline = Workspace();
-            var shifted = SharedUiLayerBindingEditor.Set(baseline, PathKey, null, "NEW", "JOY_BTN3", ["SHIFT"]);
+            var shifted = DcsSharedUiLayerBindingEditor.Set(baseline, PathKey, null, "NEW", "JOY_BTN3", ["SHIFT"]);
             var sources = new Dictionary<string, string>(shifted.Sources) { [PathKey.Replace("Stick", "Other", StringComparison.Ordinal)] = shifted.Sources[PathKey] };
             shifted = shifted with { Sources = sources };
-            var cleared = SharedUiLayerBindingEditor.ClearLayerAssignments(shifted, PathKey, "");
-            var rows = SharedUiLayerBindingEditor.Bindings(cleared, PathKey);
+            var cleared = DcsSharedUiLayerBindingEditor.ClearLayerAssignments(shifted, PathKey, "");
+            var rows = DcsSharedUiLayerBindingEditor.Bindings(cleared, PathKey);
             Assert.Equal(2, rows.Count);
             Assert.Contains(rows, x => x.Disposition == BindingDisposition.Removed);
             Assert.Contains(rows, x => x.CommandId == "NEW");
             Assert.Equal(shifted.Sources.Where(x => x.Key != PathKey), cleared.Sources.Where(x => x.Key != PathKey));
-            Assert.Equal(4, SharedUiLayerBindingEditor.Bindings(baseline, PathKey).Count);
-            cleared = SharedUiLayerBindingEditor.ClearLayerAssignments(cleared, PathKey, " SHIFT ");
-            Assert.Single(SharedUiLayerBindingEditor.Bindings(cleared, PathKey));
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.ClearLayerAssignments(baseline, "unknown", ""));
-            SharedUiLayerBindingEditor.Validate(cleared);
+            Assert.Equal(4, DcsSharedUiLayerBindingEditor.Bindings(baseline, PathKey).Count);
+            cleared = DcsSharedUiLayerBindingEditor.ClearLayerAssignments(cleared, PathKey, " SHIFT ");
+            Assert.Single(DcsSharedUiLayerBindingEditor.Bindings(cleared, PathKey));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.ClearLayerAssignments(baseline, "unknown", ""));
+            DcsSharedUiLayerBindingEditor.Validate(cleared);
         }
         /// <summary>Unsafe conflicts, unknown modifiers/commands, invalid selections, and protected rows fail without mutating defaults.</summary>
         [Fact]
         public void RejectsInvalidEditsAndProtectsHistory()
         {
             var workspace = Workspace();
-            var rows = SharedUiLayerBindingEditor.Bindings(workspace, PathKey);
+            var rows = DcsSharedUiLayerBindingEditor.Bindings(workspace, PathKey);
             var current = rows.Single(x => x.CommandId == "OLD");
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Bindings(workspace, "unknown"));
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, null, "UNKNOWN", "JOY_BTN3", []));
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "\n", []));
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN3", ["UNKNOWN"]));
-            Assert.Throws<ArgumentException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN3", ["SHIFT", "SHIFT"]));
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN1", []));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Bindings(workspace, "unknown"));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, null, "UNKNOWN", "JOY_BTN3", []));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "\n", []));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN3", ["UNKNOWN"]));
+            Assert.Throws<ArgumentException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN3", ["SHIFT", "SHIFT"]));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, null, "NEW", "JOY_BTN1", []));
             foreach (var row in rows.Where(x => x.Section == BindingSection.Axis || x.Disposition == BindingDisposition.Removed))
             {
-                Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Set(workspace, PathKey, row, "NEW", "JOY_BTN3", []));
-                Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Remove(workspace, PathKey, row));
+                Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, row, "NEW", "JOY_BTN3", []));
+                Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Remove(workspace, PathKey, row));
             }
-            var changed = SharedUiLayerBindingEditor.Set(workspace, PathKey, current, "NEW", "JOY_BTN3", []);
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Remove(changed, PathKey, current));
+            var changed = DcsSharedUiLayerBindingEditor.Set(workspace, PathKey, current, "NEW", "JOY_BTN3", []);
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Remove(changed, PathKey, current));
             var sources = new Dictionary<string, string>(workspace.Sources) { [PathKey] = workspace.Sources[PathKey].Replace("JOY_BTN99", "JOY_BTN1", StringComparison.Ordinal) };
-            Assert.Throws<InvalidOperationException>(() => SharedUiLayerBindingEditor.Validate(workspace with { Sources = sources }));
+            Assert.Throws<InvalidOperationException>(() => DcsSharedUiLayerBindingEditor.Validate(workspace with { Sources = sources }));
         }
         /// <summary>Edited defaults reopen as a new revision, retaining history and leaving module sources intact.</summary>
         /// <returns>Completion of the real SQLite round trip.</returns>
@@ -87,20 +87,20 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var modules = new SqliteEditorWorkspaceRepository(connection);
-                var module = new EditorWorkspaceSnapshot(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "pinned"),
+                var modules = new DcsSqliteEditorWorkspaceRepository(connection);
+                var module = new DcsEditorWorkspaceSnapshot(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "TEST", "Test"), [], [], [], "pinned"),
                     [], [], [], [], [], [], new Dictionary<string, string>(), new Dictionary<string, string> { [PathKey] = "module override" });
                 await modules.SaveAsync(module);
-                var repository = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var repository = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var first = await repository.SaveAsync(Workspace() with { Revision = 0 });
-                var current = SharedUiLayerBindingEditor.Bindings(first, PathKey).Single(x => x.CommandId == "OLD");
-                var draft = SharedUiLayerBindingEditor.Set(first, PathKey, current, "NEW", "JOY_BTN3", ["SHIFT"]);
-                SharedUiLayerBindingEditor.Validate(draft);
+                var current = DcsSharedUiLayerBindingEditor.Bindings(first, PathKey).Single(x => x.CommandId == "OLD");
+                var draft = DcsSharedUiLayerBindingEditor.Set(first, PathKey, current, "NEW", "JOY_BTN3", ["SHIFT"]);
+                DcsSharedUiLayerBindingEditor.Validate(draft);
                 var saved = await repository.SaveAsync(draft);
                 var reopened = (await repository.GetAsync())!;
                 Assert.Equal(2, reopened.Revision);
                 Assert.Equal(saved.ContentSha256, reopened.ContentSha256);
-                Assert.Contains(SharedUiLayerBindingEditor.Bindings(reopened, PathKey), x => x.CommandId == "NEW");
+                Assert.Contains(DcsSharedUiLayerBindingEditor.Bindings(reopened, PathKey), x => x.CommandId == "NEW");
                 Assert.Equal(first.Sources[PathKey], (await repository.GetAsync(1))!.Sources[PathKey]);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => repository.SaveAsync(draft));
                 Assert.Equal("module override", (await modules.GetAsync(module.Configuration.Module.Id))!.Sources![PathKey]);
@@ -112,13 +112,13 @@ namespace Heimdall.Tests
         [Fact]
         public async Task AcceptsBundledDefaultBindings()
         {
-            var workspace = await SharedUiLayerWorkspaceFactory.CreateAsync();
-            SharedUiLayerBindingEditor.Validate(workspace);
-            Assert.NotEmpty(SharedUiLayerBindingEditor.Commands(workspace));
+            var workspace = await DcsSharedUiLayerWorkspaceFactory.CreateAsync();
+            DcsSharedUiLayerBindingEditor.Validate(workspace);
+            Assert.NotEmpty(DcsSharedUiLayerBindingEditor.Commands(workspace));
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static SharedUiLayerWorkspace Workspace() => new(1, new string('a', 40), new Dictionary<string, string> {
+        private static DcsSharedUiLayerWorkspace Workspace() => new(1, new string('a', 40), new Dictionary<string, string> {
             ["assets/shared/ui-layer/functions.json"] = """{"functions":[{"id":"new","command":"NEW","label":"New command","category":"General"}]}""",
             ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = """local modifiers = { ["SHIFT"] = { ["device"] = "Stick", ["key"] = "JOY_BTN2", ["switch"] = false } } return modifiers""",
             [PathKey] = """

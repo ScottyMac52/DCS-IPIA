@@ -10,5 +10,5 @@ namespace Heimdall.Dcs
     /// <param name="Commands">Pinned, explicitly scoped catalog.</param>
     /// <param name="Workspace">Verified legacy editor snapshot with artwork, labels, provenance and recovery state.</param>
     internal sealed record DcsNativeProfileState(string ContextId, string ProfileId, Dictionary<string, string> Sources,
-        List<LogicalDevice> Baseline, List<SimCommand> Commands, ImmutableSnapshot? Workspace = null);
+        List<LogicalDevice> Baseline, List<SimCommand> Commands, DcsImmutableSnapshot? Workspace = null);
 }

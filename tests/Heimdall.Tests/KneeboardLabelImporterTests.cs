@@ -15,8 +15,8 @@ namespace Heimdall.Tests
         {
             var module = new DcsModule(Guid.NewGuid(), "UH-1H", "Huey");
             var profile =
-                new DeviceProfile(Guid.NewGuid(), "moza-ab9-hornet-grip", null, "Hornet grip", "MOZA.diff.lua");
-            var configuration = new ModuleConfiguration(
+                new DcsDeviceProfile(Guid.NewGuid(), "moza-ab9-hornet-grip", null, "Hornet grip", "MOZA.diff.lua");
+            var configuration = new DcsModuleConfiguration(
                 module, [profile], [new DcsModifier("MOZA_F16_F18_BTN3", "MOZA", "JOY_BTN3", ModifierMode.Hold)],
                 [
                     new DcsBinding(profile.Id, BindingSection.Key, "TRIM_BASE", "Pilot Trimmer",
@@ -48,10 +48,10 @@ namespace Heimdall.Tests
                }
                """;
             using var document = JsonDocument.Parse(json);
-            var labels = KneeboardLabelImporter.Import(
+            var labels = DcsKneeboardLabelImporter.Import(
                 new Dictionary<string, JsonElement> { ["config/kneeboard.json"] = document.RootElement },
                 configuration);
-            var baseTrim = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key,
+            var baseTrim = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key,
                                                    "JOY_BTN_POV1_U");
             Assert.Equal("Pilot", labels[baseTrim.Key]);
             Assert.Equal("Pilot Sight Elevation Increase",

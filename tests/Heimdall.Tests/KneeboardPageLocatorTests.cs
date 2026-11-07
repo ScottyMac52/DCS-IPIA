@@ -13,11 +13,11 @@ namespace Heimdall.Tests
         public void Selected_profile_resolves_its_own_rendered_page()
         {
             var module = new DcsModule(Guid.NewGuid(), "TEST", "Test");
-            var one = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD1", "MFD1", "MFD 1.diff.lua");
-            var two = new DeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD2", "MFD2", "MFD 2.diff.lua");
-            var config = new ModuleConfiguration(module, [one, two], [], [], "test");
+            var one = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD1", "MFD1", "MFD 1.diff.lua");
+            var two = new DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", "MFD2", "MFD2", "MFD 2.diff.lua");
+            var config = new DcsModuleConfiguration(module, [one, two], [], [], "test");
             const string source = """{"profiles":{"first":"src/Config/Input/TEST/joystick/MFD 1.diff.lua","second":"src/Config/Input/TEST/joystick/MFD 2.diff.lua"},"pages":[{"profile":"first","file":"page-1"},{"profile":"second","file":"page-2"}]}""";
-            var snapshot = new EditorWorkspaceSnapshot(
+            var snapshot = new DcsEditorWorkspaceSnapshot(
                 config, [],
                 [
                     new KneeboardImageAsset("page-1", "kneeboard/TEST/page-1.png", [1], "one"),
@@ -25,10 +25,10 @@ namespace Heimdall.Tests
                 ],
                 [], [], [], [], new Dictionary<string, string>(),
                 new Dictionary<string, string> { ["config/kneeboard.json"] = source });
-            Assert.Equal("page-2", KneeboardPageLocator.ForProfile(snapshot, two.Id)?.PageKey);
-            Assert.Equal("page-1", KneeboardPageLocator.ForProfile(snapshot, one.Id)?.PageKey);
-            Assert.Null(KneeboardPageLocator.ForProfile(snapshot, Guid.NewGuid()));
-            Assert.Equal("page-2", KneeboardPageLocator.PageKeyForProfile(snapshot with { Images = [] }, two.Id));
+            Assert.Equal("page-2", DcsKneeboardPageLocator.ForProfile(snapshot, two.Id)?.PageKey);
+            Assert.Equal("page-1", DcsKneeboardPageLocator.ForProfile(snapshot, one.Id)?.PageKey);
+            Assert.Null(DcsKneeboardPageLocator.ForProfile(snapshot, Guid.NewGuid()));
+            Assert.Equal("page-2", DcsKneeboardPageLocator.PageKeyForProfile(snapshot with { Images = [] }, two.Id));
         }
         #endregion END Public
     }

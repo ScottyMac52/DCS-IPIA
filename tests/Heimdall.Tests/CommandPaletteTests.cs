@@ -19,17 +19,17 @@ namespace Heimdall.Tests
                                                   BindingDisposition.Added, "JOY_BTN2"),
                                    new DcsBinding(profile, BindingSection.Axis, "iCommandAxis", "Collective",
                                                   BindingDisposition.Added, "JOY_X") };
-            var aircraft = CommandPalette.FromBindings(bindings);
+            var aircraft = DcsCommandPalette.FromBindings(bindings);
             var ui =
-                CommandPalette.FromUiLayer([new(Guid.NewGuid(), Guid.NewGuid(), "UI_ZOOM", "VR Zoom", "View", false)]);
+                DcsCommandPalette.FromUiLayer([new(Guid.NewGuid(), Guid.NewGuid(), "UI_ZOOM", "VR Zoom", "View", false)]);
             Assert.Equal(2, aircraft.Count);
             Assert.Equal("Collective", aircraft[0].Name);
             Assert.True(aircraft[0].IsAxis);
             Assert.All(aircraft, x => Assert.Equal("Uncategorized", x.Category));
-            Assert.Single(CommandPalette.Search(aircraft, "FOO"));
-            Assert.Empty(CommandPalette.Search(aircraft, "VR Zoom"));
-            Assert.Single(CommandPalette.Search(ui, "view"));
-            Assert.Empty(CommandPalette.Search(ui, "Trim"));
+            Assert.Single(DcsCommandPalette.Search(aircraft, "FOO"));
+            Assert.Empty(DcsCommandPalette.Search(aircraft, "VR Zoom"));
+            Assert.Single(DcsCommandPalette.Search(ui, "view"));
+            Assert.Empty(DcsCommandPalette.Search(ui, "Trim"));
         }
         /// <summary>Named catalog categories stay separate from key/axis command type.</summary>
         [Fact]
@@ -39,32 +39,32 @@ namespace Heimdall.Tests
                                                   BindingDisposition.Added, "JOY_BTN1"),
                                    new DcsBinding(Guid.NewGuid(), BindingSection.Axis, "aMissing", "Throttle",
                                                   BindingDisposition.Added, "JOY_X") };
-            var catalog = new[] { new CommandPaletteEntry("dAuto", "Autopilot On", "Autopilot / Modes", false),
-                                  new CommandPaletteEntry("aCollective", "Collective", "Flight Controls", true) };
-            var entries = CommandPalette.FromBindings(bindings, catalog);
+            var catalog = new[] { new DcsCommandPaletteEntry("dAuto", "Autopilot On", "Autopilot / Modes", false),
+                                  new DcsCommandPaletteEntry("aCollective", "Collective", "Flight Controls", true) };
+            var entries = DcsCommandPalette.FromBindings(bindings, catalog);
             Assert.Equal(3, entries.Count);
             Assert.Equal("Autopilot / Modes",
-                         Assert.Single(CommandPalette.Filter(entries, null, "Autopilot / Modes")).Category);
+                         Assert.Single(DcsCommandPalette.Filter(entries, null, "Autopilot / Modes")).Category);
             Assert.Equal("Autopilot On", Assert.Single(entries, x => x.Id == "dAuto").Name);
             Assert.Equal("Uncategorized", Assert.Single(entries, x => x.Id == "aMissing").Category);
             Assert.True(Assert.Single(entries, x => x.Id == "aCollective").IsAxis);
             Assert.Throws<ArgumentException>(
-                () => CommandPalette.FromBindings(bindings,
-                                                  [new CommandPaletteEntry("dAuto", "Wrong type", "Autopilot", true)]));
+                () => DcsCommandPalette.FromBindings(bindings,
+                                                  [new DcsCommandPaletteEntry("dAuto", "Wrong type", "Autopilot", true)]));
         }
         /// <summary>Exact category and free-text search combine without leaking commands from another scope.</summary>
         [Fact]
         public void Filters_exact_category_and_search_together()
         {
-            var entries = CommandPalette.FromUiLayer([
+            var entries = DcsCommandPalette.FromUiLayer([
                 new(Guid.NewGuid(), Guid.NewGuid(), "ZOOM", "VR Zoom", "VR", false),
                 new(Guid.NewGuid(), Guid.NewGuid(), "PAUSE", "Active Pause", "General", false),
                 new(Guid.NewGuid(), Guid.NewGuid(), "RECENTER", "Recenter VR", "VR", false)
             ]);
-            Assert.Equal(2, CommandPalette.Filter(entries, null, "VR").Count);
-            Assert.Equal("VR Zoom", Assert.Single(CommandPalette.Filter(entries, "zoom", "VR")).Name);
-            Assert.Empty(CommandPalette.Filter(entries, "zoom", "General"));
-            Assert.Equal(3, CommandPalette.Filter(entries, " ", null).Count);
+            Assert.Equal(2, DcsCommandPalette.Filter(entries, null, "VR").Count);
+            Assert.Equal("VR Zoom", Assert.Single(DcsCommandPalette.Filter(entries, "zoom", "VR")).Name);
+            Assert.Empty(DcsCommandPalette.Filter(entries, "zoom", "General"));
+            Assert.Equal(3, DcsCommandPalette.Filter(entries, " ", null).Count);
         }
         /// <summary>Search keeps category and command ID semantics and does not reorder the input palette.</summary>
         [Fact]
@@ -74,12 +74,12 @@ namespace Heimdall.Tests
                 new[] { new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "ZOOM", "VR Zoom", "View", false),
                         new DcsCommandDefinition(Guid.NewGuid(), Guid.NewGuid(), "PAUSE", "Active Pause", "Simulation",
                                                  false) };
-            var entries = CommandPalette.FromUiLayer(catalog);
+            var entries = DcsCommandPalette.FromUiLayer(catalog);
             Assert.Equal("Active Pause", entries[0].Name);
             Assert.Equal("VR Zoom", entries[1].Name);
-            Assert.Equal("VR Zoom", Assert.Single(CommandPalette.Search(entries, "zoom")).Name);
-            Assert.Equal("Active Pause", Assert.Single(CommandPalette.Search(entries, "simulation")).Name);
-            Assert.Equal(2, CommandPalette.Search(entries, " ").Count);
+            Assert.Equal("VR Zoom", Assert.Single(DcsCommandPalette.Search(entries, "zoom")).Name);
+            Assert.Equal("Active Pause", Assert.Single(DcsCommandPalette.Search(entries, "simulation")).Name);
+            Assert.Equal(2, DcsCommandPalette.Search(entries, " ").Count);
         }
         #endregion END Public
     }

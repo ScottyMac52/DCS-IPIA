@@ -22,15 +22,15 @@ namespace Heimdall.Tests
             var sources = new Dictionary<string, string> { [PathKey] = "defaults" };
             var revision = Saved(sources);
             var module = Module();
-            var captured = SharedUiLayerRevisionReference.Attach(module, revision);
+            var captured = DcsSharedUiLayerRevisionReference.Attach(module, revision);
             Assert.Same(module.Sources, captured.Sources);
             Assert.Same(module.Assignments, captured.Assignments);
             Assert.Same(module.Labels, captured.Labels);
             sources[PathKey] = "later mutation";
             Assert.Equal("defaults", captured.SharedDefault!.Sources[PathKey]);
             Assert.Equal(revision.ContentSha256, captured.SharedDefault.ContentSha256);
-            Assert.Throws<ArgumentNullException>(() => SharedUiLayerRevisionReference.Freeze(null!));
-            Assert.Throws<ArgumentNullException>(() => SharedUiLayerRevisionReference.Attach(null!, revision));
+            Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerRevisionReference.Freeze(null!));
+            Assert.Throws<ArgumentNullException>(() => DcsSharedUiLayerRevisionReference.Attach(null!, revision));
         }
         /// <summary>Unsigned drafts, invalid provenance and changed reference content fail verification.</summary>
         /// <param name="scenario">Invalid revision evidence.</param>
@@ -52,8 +52,8 @@ namespace Heimdall.Tests
                 "blank" => valid with { Sources = new Dictionary<string, string> { [PathKey] = " " } },
                 _ => valid with { ContentSha256 = new string('0', 64) }
             };
-            Assert.Throws<InvalidDataException>(() => SharedUiLayerRevisionReference.Freeze(invalid));
-            Assert.Throws<InvalidDataException>(() => EditorSnapshotSerializer.Serialize(Module() with { SharedDefault = invalid }));
+            Assert.Throws<InvalidDataException>(() => DcsSharedUiLayerRevisionReference.Freeze(invalid));
+            Assert.Throws<InvalidDataException>(() => DcsEditorSnapshotSerializer.Serialize(Module() with { SharedDefault = invalid }));
         }
         /// <summary>SQLite and frozen exports retain baseline identity independently of later defaults or an empty restore DB.</summary>
         [Fact]
@@ -65,21 +65,21 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connection).MigrateAsync();
-                var defaults = new SqliteSharedUiLayerWorkspaceRepository(connection);
+                var defaults = new DcsSqliteSharedUiLayerWorkspaceRepository(connection);
                 var first = await defaults.SaveAsync(new(0, new string('a', 40), new Dictionary<string, string> { [PathKey] = "defaults" }));
-                var repository = new SqliteEditorWorkspaceRepository(connection);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
                 var original = Module();
                 await repository.SaveAsync(original);
-                var oldExport = EditorSnapshotSerializer.Serialize(original);
-                Assert.Null(EditorSnapshotSerializer.Deserialize(oldExport).SharedDefault);
-                var pinned = SharedUiLayerRevisionReference.Attach(original, first);
+                var oldExport = DcsEditorSnapshotSerializer.Serialize(original);
+                Assert.Null(DcsEditorSnapshotSerializer.Deserialize(oldExport).SharedDefault);
+                var pinned = DcsSharedUiLayerRevisionReference.Attach(original, first);
                 await repository.SaveAsync(pinned);
                 var reopened = (await repository.GetAsync(original.Configuration.Module.Id))!;
                 Assert.Equal(first.ContentSha256, reopened.SharedDefault!.ContentSha256);
                 Assert.Equal("module override", reopened.Sources![PathKey]);
-                var frozen = EditorSnapshotSerializer.Serialize(reopened);
-                var restored = EditorSnapshotSerializer.Deserialize(frozen);
-                Assert.Equal(frozen.Content, EditorSnapshotSerializer.Serialize(restored).Content);
+                var frozen = DcsEditorSnapshotSerializer.Serialize(reopened);
+                var restored = DcsEditorSnapshotSerializer.Deserialize(frozen);
+                Assert.Equal(frozen.Content, DcsEditorSnapshotSerializer.Serialize(restored).Content);
                 Assert.Equal(first.ContentSha256, restored.SharedDefault!.ContentSha256);
                 var next = await defaults.SaveAsync(first with { Sources = new Dictionary<string, string> { [PathKey] = "new defaults" } });
                 Assert.Equal(1, (await repository.GetAsync(original.Configuration.Module.Id))!.SharedDefault!.Revision);
@@ -88,10 +88,10 @@ namespace Heimdall.Tests
                 Assert.Equal(first.ContentSha256, (await repository.GetAsync(original.Configuration.Module.Id))!.SharedDefault!.ContentSha256);
                 var restoreConnection = "Data Source=" + restoredFile + ";Pooling=False";
                 await new SqliteMigrationRunner(restoreConnection).MigrateAsync();
-                await new SqliteEditorWorkspaceRepository(restoreConnection).SaveAsync(restored);
-                var emptyDbRestore = (await new SqliteEditorWorkspaceRepository(restoreConnection).GetAsync(original.Configuration.Module.Id))!;
-                Assert.Equal(frozen.Content, EditorSnapshotSerializer.Serialize(emptyDbRestore).Content);
-                Assert.Null(await new SqliteSharedUiLayerWorkspaceRepository(restoreConnection).GetAsync());
+                await new DcsSqliteEditorWorkspaceRepository(restoreConnection).SaveAsync(restored);
+                var emptyDbRestore = (await new DcsSqliteEditorWorkspaceRepository(restoreConnection).GetAsync(original.Configuration.Module.Id))!;
+                Assert.Equal(frozen.Content, DcsEditorSnapshotSerializer.Serialize(emptyDbRestore).Content);
+                Assert.Null(await new DcsSqliteSharedUiLayerWorkspaceRepository(restoreConnection).GetAsync());
                 Assert.True(await repository.DeleteAsync(original.Configuration.Module.Id));
                 Assert.NotNull(await defaults.GetAsync(1));
                 await using var database = new SqliteConnection(restoreConnection);
@@ -99,21 +99,21 @@ namespace Heimdall.Tests
                 await using var tamper = database.CreateCommand();
                 tamper.CommandText = "UPDATE editor_workspaces SET snapshot_json=replace(snapshot_json,'defaults','changed')";
                 await tamper.ExecuteNonQueryAsync();
-                await Assert.ThrowsAsync<InvalidDataException>(() => new SqliteEditorWorkspaceRepository(restoreConnection).GetAsync(original.Configuration.Module.Id));
+                await Assert.ThrowsAsync<InvalidDataException>(() => new DcsSqliteEditorWorkspaceRepository(restoreConnection).GetAsync(original.Configuration.Module.Id));
             }
             finally { File.Delete(file); File.Delete(restoredFile); }
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static SharedUiLayerWorkspace Saved(IReadOnlyDictionary<string, string> sources)
+        private static DcsSharedUiLayerWorkspace Saved(IReadOnlyDictionary<string, string> sources)
         {
             var sorted = new SortedDictionary<string, string>(sources.ToDictionary(x => x.Key, x => x.Value), StringComparer.Ordinal);
             var commit = new string('a', 40);
             var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(commit + "\n" + JsonSerializer.Serialize(sorted))));
             return new(1, commit, sources, hash);
         }
-        private static EditorWorkspaceSnapshot Module() =>
-            new(new ModuleConfiguration(new DcsModule(Guid.NewGuid(), "REFERENCE", "Reference"), [], [], [], "test"),
+        private static DcsEditorWorkspaceSnapshot Module() =>
+            new(new DcsModuleConfiguration(new DcsModule(Guid.NewGuid(), "REFERENCE", "Reference"), [], [], [], "test"),
                 [], [], [], [], [], [], new Dictionary<string, string> { ["label"] = "authored" },
                 new Dictionary<string, string> { [PathKey] = "module override" });
         #endregion END private helpers

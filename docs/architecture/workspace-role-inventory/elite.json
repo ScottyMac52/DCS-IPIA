@@ -1,0 +1,2114 @@
+{
+  "baseline": "0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0",
+  "extraction": "Lexical declaration index, not a semantic C# parser. Line numbers and blob IDs are authoritative source locators; method bodies and implicit/anonymous members must be read at the pinned source. Call-path and ownership analysis is in ../workspace-role-migration.md.",
+  "files": [
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentArtworkView.xaml",
+      "blob": "e2dc19255aaea3756649bb01f8cf74bc488e7c3b",
+      "lines": 13,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteAssignmentArtworkView\""
+        ],
+        [
+          4,
+          "x:Name=\"ExportSheetButton\""
+        ],
+        [
+          6,
+          "x:Name=\"DrawingSurface\""
+        ],
+        [
+          7,
+          "x:Name=\"AssignmentsGrid\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentArtworkView.xaml.cs",
+      "blob": "a70946ecd6f7458da65b7dd26371c4631b577488",
+      "lines": 23,
+      "declarations": [
+        [
+          6,
+          "public partial class EliteAssignmentArtworkView : UserControl"
+        ],
+        [
+          10,
+          "public EliteAssignmentArtworkView()"
+        ],
+        [
+          15,
+          "internal Slider DiagramZoom => DrawingSurface.Zoom;"
+        ],
+        [
+          16,
+          "internal TextBlock InputActivityHint => DrawingSurface.Feedback;"
+        ],
+        [
+          17,
+          "internal TextBox InputActivity => DrawingSurface.Activity;"
+        ],
+        [
+          18,
+          "internal TextBlock DiagramHint => DrawingSurface.Hint;"
+        ],
+        [
+          19,
+          "internal ScrollViewer DiagramScroll => DrawingSurface.Viewport;"
+        ],
+        [
+          20,
+          "internal Canvas DiagramCanvas => DrawingSurface.Surface;"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentBrowser.cs",
+      "blob": "328895c8b848cb236115829b387a60af1549aed0",
+      "lines": 96,
+      "declarations": [
+        [
+          12,
+          "internal sealed class EliteAssignmentBrowser( EliteWorkspaceContext context, EliteAssignmentsView _assignmentsView, Action UpdateAvailability, Action<string> Status) : IDisposable"
+        ],
+        [
+          18,
+          "private readonly GameCommandDragSource _commandDrag = new(_assignmentsView.CommandsList, \"heimdall.elite.command\", () => context.Session?.AccessMessage.Length == 0);"
+        ],
+        [
+          19,
+          "private string? CommandCategory => _assignmentsView.CommandCategoryPicker.SelectedItem is string category && category != \"All categories\" ? category : null;"
+        ],
+        [
+          20,
+          "private CommandType? InputType => (_assignmentsView.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Type;"
+        ],
+        [
+          21,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          22,
+          "private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }"
+        ],
+        [
+          23,
+          "private IReadOnlyList<SimCommand> _commands => context.Commands;"
+        ],
+        [
+          24,
+          "private IReadOnlyList<EliteAssignmentRow> _rows => context.Rows;"
+        ],
+        [
+          25,
+          "private GameAssignmentSelection _selection => context.Selection;"
+        ],
+        [
+          26,
+          "private GameDeviceChoice? Device => context.Device;"
+        ],
+        [
+          27,
+          "private SimCommand? Command => context.Command;"
+        ],
+        [
+          28,
+          "private string Section => context.Section;"
+        ],
+        [
+          29,
+          "private string Slot => context.Selection.Slot;"
+        ],
+        [
+          31,
+          "internal void FilterCommands(string? selected = null)"
+        ],
+        [
+          56,
+          "internal void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }"
+        ],
+        [
+          58,
+          "internal void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }"
+        ],
+        [
+          60,
+          "internal void ClearCommandFiltersClicked(object sender, RoutedEventArgs e) => ClearCommandFilters(Command?.Id);"
+        ],
+        [
+          62,
+          "internal void CommandChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          69,
+          "internal void SlotChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) _assignmentsView.RefreshNativeAssignments(); }"
+        ],
+        [
+          71,
+          "internal void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _assignmentsView.AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }"
+        ],
+        [
+          73,
+          "internal void SelectRow(EliteAssignmentRow row)"
+        ],
+        [
+          85,
+          "public void Dispose() => _commandDrag.Dispose();"
+        ],
+        [
+          88,
+          "private void ClearCommandFilters(string? selected)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentDrawing.cs",
+      "blob": "2ea960a797b680ec6f7f6105c03ae14fb6823c9f",
+      "lines": 160,
+      "declarations": [
+        [
+          11,
+          "internal sealed class EliteAssignmentDrawing( EliteWorkspaceContext context, Window owner, EliteAssignmentsView _assignmentsView, EliteDevicesView _devicesView, Action StopLiveInput, Action<EliteAssignmentRow> SelectRow, Action<string> SelectInput, Action Apply, Action Clear, Action<Action> Run, Action<string> Status)"
+        ],
+        [
+          24,
+          "private readonly HardwareDiagramPresenter _diagram = new(_assignmentsView.DiagramCanvas);"
+        ],
+        [
+          25,
+          "private readonly DiagramViewport _viewport = new(_assignmentsView.DiagramScroll, _assignmentsView.DiagramCanvas, _assignmentsView.DiagramZoom, \"elite.diagram\");"
+        ],
+        [
+          26,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          27,
+          "private bool _busy => context.Busy;"
+        ],
+        [
+          28,
+          "private IReadOnlyList<SimCommand> _commands => context.Commands;"
+        ],
+        [
+          29,
+          "private IReadOnlyList<EliteAssignmentRow> _rows => context.Rows;"
+        ],
+        [
+          30,
+          "private GameDeviceChoice? Device => context.Device;"
+        ],
+        [
+          31,
+          "private SimCommand? Command => context.Command;"
+        ],
+        [
+          32,
+          "private string Section => context.Section;"
+        ],
+        [
+          33,
+          "private string Slot => context.Selection.Slot;"
+        ],
+        [
+          35,
+          "internal byte[] RenderDrawing(WorkspaceHardware hardware, KneeboardComposite page, string footer)"
+        ],
+        [
+          43,
+          "internal void RenderDevice()"
+        ],
+        [
+          64,
+          "internal HardwareDiagramInteractions DiagramInteractions() => new( Select: SelectControl, Drop: DropCommand, CanClear: CanEditControl, Clear: ClearControl, CanTune: control => control.IsAxis && CanEditControl(control) && AssignmentForControl(control)?.IsAxis == true, Tune: TuneControl, CanDrop: CanDropCommand, ActionState: ControlAction);"
+        ],
+        [
+          70,
+          "internal void UpdateInputActivityVisibility()"
+        ],
+        [
+          77,
+          "internal void ShowInputActivity(string text)"
+        ],
+        [
+          83,
+          "internal void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();"
+        ],
+        [
+          84,
+          "internal HardwareDiagramPresenter Presenter => _diagram;"
+        ],
+        [
+          85,
+          "internal Func<EliteAxisTuningWindow, bool?>? AxisTuningReview { get; set; }"
+        ],
+        [
+          88,
+          "private EliteAssignmentRow? AssignmentForControl(HardwareGraphicControl control)"
+        ],
+        [
+          96,
+          "private bool CanEditControl(HardwareGraphicControl control) =>"
+        ],
+        [
+          100,
+          "private void ClearControl(HardwareGraphicControl control) => Run(() => { if (!CanEditControl(control) || AssignmentForControl(control) is not { } row) return; SelectRow(row); Clear(); });"
+        ],
+        [
+          107,
+          "private void TuneControl(HardwareGraphicControl control) => Run(() => { if (!control.IsAxis || !CanEditControl(control) || AssignmentForControl(control) is not { IsAxis: true } row) return; SelectRow(row); var dialog = new EliteAxisTuningWindow(owner, row.CommandName, row.Invert, row.Deadzone); var session = _session!; var invert = row.Invert; var deadzone = row.Deadzone; var result = ExecuteAssignment(row.CommandId, row.Input, row.Slot, () => { var accepted = AxisTuningReview is { } review ? review(dialog) : dialog.ShowDialog(); if (accepted != true || !dialog.TryRead(out invert, out deadzone)) return new(false, false, \"Axis tuning canceled.\"); return new(true, invert != row.Invert || deadzone != row.Deadzone, \"\"); }, () => session.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone)); AssignmentFeedback(result); });"
+        ],
+        [
+          125,
+          "private void SelectControl(HardwareGraphicControl control)"
+        ],
+        [
+          134,
+          "private void DropCommand(HardwareGraphicControl control, string id) => Run(() => { var command = _commands.Single(x => x.Id == id); if (control.IsAxis != (command.Type == CommandType.Axis)) throw new InvalidOperationException(\"Choose an axis command for an axis, or a button command for a button.\"); _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().First(x => x.Id == id); SelectInput(context.DrawingKey(control) ?? throw new InvalidOperationException(\"Unsupported drawing input; choose an explicit native key.\")); Apply(); });"
+        ],
+        [
+          143,
+          "private bool CanDropCommand(HardwareGraphicControl control, string commandId) =>"
+        ],
+        [
+          145,
+          "private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action) =>"
+        ],
+        [
+          152,
+          "private DraftResult ExecuteAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          154,
+          "private void AssignmentFeedback(DraftResult result)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentEditing.cs",
+      "blob": "e6ad3cfb2f99c783a55c72f96d725fe02910593d",
+      "lines": 206,
+      "declarations": [
+        [
+          13,
+          "internal sealed class EliteAssignmentEditing( EliteWorkspaceContext context, EliteAssignmentsView _assignmentsView, ListBox DevicePicker, Func<IReadOnlyList<ControllerObservation>> evidence, Action refreshAvailability, Action<Action> Run, Action<string> Status)"
+        ],
+        [
+          22,
+          "private readonly List<EliteModifierChoice> _modifiers = [];"
+        ],
+        [
+          23,
+          "private bool _loadingAssignment;"
+        ],
+        [
+          24,
+          "private GameAssignmentActions _actions = new(false, false, false, false);"
+        ],
+        [
+          25,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          26,
+          "private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }"
+        ],
+        [
+          27,
+          "private bool _busy => context.Busy;"
+        ],
+        [
+          28,
+          "private IReadOnlyList<EliteAssignmentRow> _rows => context.Rows;"
+        ],
+        [
+          29,
+          "private GameAssignmentSelection _selection => context.Selection;"
+        ],
+        [
+          30,
+          "private GameWorkspaceServices _services => context.Services;"
+        ],
+        [
+          31,
+          "private IReadOnlyList<WorkspaceHardware> _hardware => context.Hardware;"
+        ],
+        [
+          32,
+          "private GameDeviceChoice? Device => context.Device;"
+        ],
+        [
+          33,
+          "private SimCommand? Command => context.Command;"
+        ],
+        [
+          34,
+          "private string Slot => context.Selection.Slot;"
+        ],
+        [
+          36,
+          "internal void AssignmentTextChanged(object sender, TextChangedEventArgs e) => DraftChanged();"
+        ],
+        [
+          38,
+          "internal void AssignmentModeChanged(object sender, SelectionChangedEventArgs e) => DraftChanged();"
+        ],
+        [
+          40,
+          "internal void AssignmentOptionChanged(object sender, RoutedEventArgs e) => DraftChanged();"
+        ],
+        [
+          42,
+          "internal void LoadAssignment()"
+        ],
+        [
+          72,
+          "internal void ApplyClicked(object sender, RoutedEventArgs e) => Run(() => { refreshAvailability(); if (_session is not { } session || Draft() is not { } draft) return; AssignmentFeedback(ExecuteAssignment(draft.CommandId, draft.Key, draft.Slot, () => session.ReviewAssignment(draft), () => session.Assign(draft))); });"
+        ],
+        [
+          80,
+          "internal void ClearClicked(object sender, RoutedEventArgs e) => Run(() => { refreshAvailability(); if (_session is not { } session || Command is not { } command) return; var slot = Slot; var assigned = _rows.Any(row => row.CommandId == command.Id && row.Slot == slot); AssignmentFeedback(ExecuteAssignment(command.Id, \"\", slot, () => new(true, assigned, \"\"), () => session.Clear(command.Id, slot))); });"
+        ],
+        [
+          90,
+          "internal void AddModifierClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          99,
+          "internal void SelectInput(string key)"
+        ],
+        [
+          106,
+          "internal void RefreshCombinationInputs()"
+        ],
+        [
+          112,
+          "internal void RemoveModifierClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          114,
+          "internal void RefreshInputChoices()"
+        ],
+        [
+          127,
+          "internal void UpdateAvailability()"
+        ],
+        [
+          156,
+          "internal GameAssignmentActions Actions => _actions;"
+        ],
+        [
+          159,
+          "private void DraftChanged()"
+        ],
+        [
+          166,
+          "private GameAssignmentEdit? Draft()"
+        ],
+        [
+          178,
+          "private static string NativeInput(ComboBox picker) => picker.SelectedItem is EliteInputChoice choice && picker.Text == choice.DisplayName"
+        ],
+        [
+          181,
+          "private IReadOnlyList<EliteInputChoice> DeviceInputs(string deviceId, bool axes = false)"
+        ],
+        [
+          196,
+          "private WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          198,
+          "private DraftResult ExecuteAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          200,
+          "private void AssignmentFeedback(DraftResult result)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentEditorView.xaml",
+      "blob": "97dc642d2acccafc7f9ef75210df36dad4c0bb96",
+      "lines": 29,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteAssignmentEditorView\""
+        ],
+        [
+          4,
+          "x:Name=\"AssignmentEditor\""
+        ],
+        [
+          7,
+          "x:Name=\"InputKey\""
+        ],
+        [
+          11,
+          "x:Name=\"CommandSlotSummary\""
+        ],
+        [
+          13,
+          "x:Name=\"AxisSlotLabel\""
+        ],
+        [
+          14,
+          "x:Name=\"SlotPicker\""
+        ],
+        [
+          15,
+          "x:Name=\"ModePicker\""
+        ],
+        [
+          17,
+          "x:Name=\"AxisTools\" x:Name=\"InvertAxis\" x:Name=\"AxisDeadzone\""
+        ],
+        [
+          18,
+          "x:Name=\"ModifierTools\""
+        ],
+        [
+          19,
+          "x:Name=\"ModifierDevicePicker\""
+        ],
+        [
+          20,
+          "x:Name=\"ModifierKey\""
+        ],
+        [
+          23,
+          "x:Name=\"AddCombinationButton\" x:Name=\"RemoveCombinationButton\""
+        ],
+        [
+          24,
+          "x:Name=\"ModifiersList\""
+        ],
+        [
+          26,
+          "x:Name=\"CommandToggle\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentEditorView.xaml.cs",
+      "blob": "b51eda52339bf1193c6d271174737de0929a2750",
+      "lines": 13,
+      "declarations": [
+        [
+          6,
+          "public partial class EliteAssignmentEditorView : UserControl"
+        ],
+        [
+          10,
+          "public EliteAssignmentEditorView() => InitializeComponent();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentsView.xaml",
+      "blob": "38cce1c33b388d910f63159c74047b8f5adc718a",
+      "lines": 24,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteAssignmentsView\""
+        ],
+        [
+          5,
+          "x:Name=\"CommandBrowser\""
+        ],
+        [
+          11,
+          "x:Name=\"ApplyAssignmentButton\""
+        ],
+        [
+          12,
+          "x:Name=\"ClearAssignmentButton\""
+        ],
+        [
+          13,
+          "x:Name=\"StartInputButton\""
+        ],
+        [
+          14,
+          "x:Name=\"StopInputButton\""
+        ],
+        [
+          15,
+          "x:Name=\"FitDiagramButton\""
+        ],
+        [
+          18,
+          "x:Name=\"Artwork\""
+        ],
+        [
+          22,
+          "x:Name=\"SelectionEditor\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAssignmentsView.xaml.cs",
+      "blob": "fa2e182e794401d3da2a4a967641acec2b5a9d0c",
+      "lines": 110,
+      "declarations": [
+        [
+          9,
+          "public partial class EliteAssignmentsView : GameAssignmentsView"
+        ],
+        [
+          13,
+          "public EliteAssignmentsView()"
+        ],
+        [
+          29,
+          "internal void ConfigureBrowser(IReadOnlyList<GameCommandTypeOption> inputTypes, IReadOnlyList<GameCommandStatusOption> statuses) =>"
+        ],
+        [
+          31,
+          "internal GameAssignmentEditorView Selection => SelectionEditor;"
+        ],
+        [
+          32,
+          "private readonly EliteAssignmentEditorView _editor = new();"
+        ],
+        [
+          33,
+          "private EliteWorkspaceContext? _context;"
+        ],
+        [
+          34,
+          "private Action? _refresh;"
+        ],
+        [
+          35,
+          "private Action? _drawingRefresh;"
+        ],
+        [
+          36,
+          "private Action<string>? _status;"
+        ],
+        [
+          37,
+          "private Func<Task>? _save;"
+        ],
+        [
+          38,
+          "private Action? _discard;"
+        ],
+        [
+          39,
+          "internal void Initialize(EliteWorkspaceContext context, Action refresh, Action drawingRefresh, Func<Task> save, Action discard, Action<string> status)"
+        ],
+        [
+          46,
+          "internal void RefreshNativeAssignments() => RefreshAssignments();"
+        ],
+        [
+          47,
+          "internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          49,
+          "internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          52,
+          "protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context?.AssignmentContext ?? new(\"\", false, false, false, false);"
+        ],
+        [
+          53,
+          "protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(_context?.Session?.Snapshot);"
+        ],
+        [
+          54,
+          "protected override Task SaveAssignmentsCoreAsync() => _save?.Invoke() ?? throw new InvalidOperationException(\"Open an Elite workspace before saving.\");"
+        ],
+        [
+          55,
+          "protected override void DiscardAssignmentsCore()"
+        ],
+        [
+          60,
+          "protected override void RefreshAssignmentsCore() => _refresh?.Invoke();"
+        ],
+        [
+          61,
+          "protected override void RefreshAssignmentDrawing() => _drawingRefresh?.Invoke();"
+        ],
+        [
+          62,
+          "protected override void ShowAssignmentStatus(string message)"
+        ],
+        [
+          67,
+          "private void UpdateControllerReservation()"
+        ],
+        [
+          74,
+          "internal ComboBox CommandCategoryPicker => CommandBrowser.CommandCategoryPicker;"
+        ],
+        [
+          75,
+          "internal ComboBox CommandTypePicker => CommandBrowser.CommandTypePicker;"
+        ],
+        [
+          76,
+          "internal Button ClearCommandFiltersButton => CommandBrowser.ClearCommandFiltersButton;"
+        ],
+        [
+          77,
+          "internal ComboBox AssignmentStatusPicker => CommandBrowser.AssignmentStatusPicker;"
+        ],
+        [
+          78,
+          "internal TextBox CommandSearch => CommandBrowser.CommandSearch;"
+        ],
+        [
+          79,
+          "internal TextBlock CommandCount => CommandBrowser.CommandCount;"
+        ],
+        [
+          80,
+          "internal TextBlock CommandEmptyHint => CommandBrowser.CommandEmptyHint;"
+        ],
+        [
+          81,
+          "internal ListBox CommandsList => CommandBrowser.CommandsList;"
+        ],
+        [
+          82,
+          "internal TextBlock AssignmentDraftStatus => SelectionEditor.AssignmentDraftStatus;"
+        ],
+        [
+          83,
+          "internal StackPanel AssignmentEditor => _editor.AssignmentEditor;"
+        ],
+        [
+          84,
+          "internal TextBlock AssignmentCommand => SelectionEditor.AssignmentCommand;"
+        ],
+        [
+          85,
+          "internal ComboBox InputKey => _editor.InputKey;"
+        ],
+        [
+          86,
+          "internal TextBlock CommandSlotSummary => _editor.CommandSlotSummary;"
+        ],
+        [
+          87,
+          "internal TextBlock AxisSlotLabel => _editor.AxisSlotLabel;"
+        ],
+        [
+          88,
+          "internal ComboBox SlotPicker => _editor.SlotPicker;"
+        ],
+        [
+          89,
+          "internal ComboBox ModePicker => _editor.ModePicker;"
+        ],
+        [
+          90,
+          "internal StackPanel AxisTools => _editor.AxisTools;"
+        ],
+        [
+          91,
+          "internal CheckBox InvertAxis => _editor.InvertAxis;"
+        ],
+        [
+          92,
+          "internal TextBox AxisDeadzone => _editor.AxisDeadzone;"
+        ],
+        [
+          93,
+          "internal Expander ModifierTools => _editor.ModifierTools;"
+        ],
+        [
+          94,
+          "internal ComboBox ModifierDevicePicker => _editor.ModifierDevicePicker;"
+        ],
+        [
+          95,
+          "internal ComboBox ModifierKey => _editor.ModifierKey;"
+        ],
+        [
+          96,
+          "internal Button AddCombinationButton => _editor.AddCombinationButton;"
+        ],
+        [
+          97,
+          "internal Button RemoveCombinationButton => _editor.RemoveCombinationButton;"
+        ],
+        [
+          98,
+          "internal ListBox ModifiersList => _editor.ModifiersList;"
+        ],
+        [
+          99,
+          "internal CheckBox CommandToggle => _editor.CommandToggle;"
+        ],
+        [
+          100,
+          "internal Button ExportSheetButton => Artwork.ExportSheetButton;"
+        ],
+        [
+          101,
+          "internal Slider DiagramZoom => Artwork.DiagramZoom;"
+        ],
+        [
+          102,
+          "internal TextBlock InputActivityHint => Artwork.InputActivityHint;"
+        ],
+        [
+          103,
+          "internal TextBox InputActivity => Artwork.InputActivity;"
+        ],
+        [
+          104,
+          "internal ScrollViewer DiagramScroll => Artwork.DiagramScroll;"
+        ],
+        [
+          105,
+          "internal TextBlock DiagramHint => Artwork.DiagramHint;"
+        ],
+        [
+          106,
+          "internal Canvas DiagramCanvas => Artwork.DiagramCanvas;"
+        ],
+        [
+          107,
+          "internal DataGrid AssignmentsGrid => Artwork.AssignmentsGrid;"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteAxisTuningWindow.cs",
+      "blob": "c1e39be889c10d1d7188cc01cb0fd0bf6737f4a5",
+      "lines": 43,
+      "declarations": [
+        [
+          8,
+          "internal sealed class EliteAxisTuningWindow"
+        ],
+        [
+          10,
+          "internal CheckBox Invert { get; }"
+        ],
+        [
+          11,
+          "internal TextBox Deadzone { get; }"
+        ],
+        [
+          12,
+          "private readonly AxisTuningWindow _dialog;"
+        ],
+        [
+          14,
+          "internal EliteAxisTuningWindow(Window owner, string command, bool invert, float deadzone)"
+        ],
+        [
+          29,
+          "internal bool? ShowDialog() => _dialog.ShowDialog();"
+        ],
+        [
+          31,
+          "internal bool TryRead(out bool invert, out float deadzone)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteControllerPresenter.cs",
+      "blob": "f410f92666bd2bdeaf786e78ab212fb704ead696",
+      "lines": 368,
+      "declarations": [
+        [
+          13,
+          "internal sealed class EliteControllerPresenter( EliteWorkspaceContext context, Window owner, EliteDevicesView _devicesView, ListBox DevicePicker, HardwareDiagramPresenter drawing, Action<string> activity, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> observations, Action clearIdentification, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory, Func<GameControllerChange, bool> _reviewControllerChange, Action refreshInputs, Func<bool> canStart, Action<Action> RunBusy, Action UpdateAvailability, Action<Action> Run, Action<string> Status) : IDisposable"
+        ],
+        [
+          31,
+          "private DetectedDcsDevice? _identifiedController;"
+        ],
+        [
+          32,
+          "private GameControllerActions _controllerActions = new(false, false, false, false, false, false, false, false);"
+        ],
+        [
+          33,
+          "private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));"
+        ],
+        [
+          34,
+          "private readonly System.Windows.Threading.DispatcherTimer _readinessTimer = new() { Interval = TimeSpan.FromSeconds(1) };"
+        ],
+        [
+          35,
+          "private bool _lastReady;"
+        ],
+        [
+          36,
+          "private IReadOnlyList<ControllerObservation> _inputEvidence = [];"
+        ],
+        [
+          37,
+          "private int _inputEvidenceScan;"
+        ],
+        [
+          38,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          39,
+          "private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }"
+        ],
+        [
+          40,
+          "private bool _busy => context.Busy;"
+        ],
+        [
+          41,
+          "private GameWorkspaceServices _services => context.Services;"
+        ],
+        [
+          42,
+          "private IReadOnlyList<WorkspaceHardware> _hardware => context.Hardware;"
+        ],
+        [
+          43,
+          "private GameDeviceChoice? Device => context.Device;"
+        ],
+        [
+          45,
+          "internal void ClearIdentification()"
+        ],
+        [
+          52,
+          "internal void IdentifyControllerClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_controllerActions.Start) return; StopLiveInput(); EditionAccess.Policy.RequirePremium(); if (_session is null || Device is null || context.Feature != 0) throw new InvalidOperationException(\"Select a controller reference on Devices before identifying it.\"); _identification.Start(_services.Discover()); UpdateControllerAvailability(); _devicesView.IdentificationStatus.Text = \"Listening to all connected controllers. Press a button, move a hat, or move an axis noticeably. Held switches are ignored until pressed again.\"; Status(\"Identify \" + Device.Name + \": operate the physical controller you want to check.\"); });"
+        ],
+        [
+          65,
+          "internal void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)"
+        ],
+        [
+          86,
+          "internal void ConfirmIdentificationClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_controllerActions.Confirm) return; EditionAccess.Policy.RequirePremium(); if (_session is null || Device is null || _identifiedController is null || context.Feature != 0) throw new InvalidOperationException(\"Identify a matching controller before confirming its link.\"); var physical = _identifiedController.PhysicalGuid; var id = Device.Id; StopLiveInput(); var connected = _services.Discover().Single(x => x.Connected && x.PhysicalGuid == physical); ConnectController(connected, id); });"
+        ],
+        [
+          99,
+          "internal void CancelIdentificationClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          102,
+          "internal void UpdateControllerAvailability()"
+        ],
+        [
+          157,
+          "internal void Rescan() => Run(() => { StopLiveInput(); _devicesView.ConnectedPicker.ItemsSource = _services.Discover() .Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray(); _devicesView.ConnectedPicker.SelectedIndex = -1; _ = RefreshInputEvidenceAsync(); });"
+        ],
+        [
+          166,
+          "internal void RescanClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (_controllerActions.Rescan) { Rescan(); UpdateControllerAvailability(); } });"
+        ],
+        [
+          169,
+          "internal void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_controllerActions.Add) return; if (Device is not null && _session?.Snapshot.Hardware.ContainsKey(Device.Id) == true) { DevicePicker.SelectedIndex = -1; _devicesView.ConnectedPicker.SelectedItem = null; UpdateControllerAvailability(); Status(\"Choose a connected controller, then Add controller. Existing links are retained.\"); return; } StopLiveInput(); if (_session is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected) throw new InvalidOperationException(\"Choose the connected controller you want to add.\"); var document = _session.Snapshot; var already = document.Hardware.FirstOrDefault(x => x.Value.Device.PhysicalGuid == connected.PhysicalGuid).Key; if (already is not null) { _devicesView.ReferenceChoiceTools.Visibility = Visibility.Collapsed; DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == already); Status(\"This controller is already in the profile. Its existing link and drawing choice are retained.\"); return; } var references = _session.ControllerReferences(connected.PhysicalGuid); var available = references.Where(x => !document.Hardware.ContainsKey(x)).ToArray(); if (references.Count == 0 || available.Length == 1) { ConnectController(connected, available.SingleOrDefault()); return; } _devicesView.ReferencePicker.ItemsSource = references.Select(id => new GameDeviceChoice(id, EliteWorkspaceContext.ControllerName(document, id))).ToArray(); _devicesView.ReferencePicker.SelectedIndex = -1; _devicesView.ReferenceChoiceTools.Visibility = Visibility.Visible; Status(\"Choose which captured ED reference belongs to this controller. Existing links are retained until an explicit choice succeeds.\"); });"
+        ],
+        [
+          199,
+          "internal void ConnectedChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          202,
+          "internal void UpdateReplacementReferences()"
+        ],
+        [
+          215,
+          "internal void RemoveControllerClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_controllerActions.Remove) return; StopLiveInput(); if (_session is null || Device is null) throw new InvalidOperationException(\"Select the profile controller to remove.\"); ReviewControllerChange(_session.PreviewRemoveController(Device.Id)); });"
+        ],
+        [
+          223,
+          "internal void ReplaceControllerClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_controllerActions.Replace) return; StopLiveInput(); if (_session is null || Device is null || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected) throw new InvalidOperationException(\"Select the old profile controller and its connected replacement.\"); var target = (_devicesView.ReplacementReferencePicker.SelectedItem as GameDeviceChoice)?.Id; var drawing = GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected); var change = _session.PreviewReplaceController(Device.Id, connected.PhysicalGuid, () => ReadReplacementInputs(connected.PhysicalGuid), target, drawing); ReviewControllerChange(change); });"
+        ],
+        [
+          236,
+          "internal string[] ReadReplacementInputs(Guid physicalGuid)"
+        ],
+        [
+          245,
+          "internal void ReviewControllerChange(GameControllerChange change)"
+        ],
+        [
+          257,
+          "internal void LinkReferenceClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_devicesView.LinkReferenceButton.IsEnabled) return; if (_devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice connected || _devicesView.ReferencePicker.SelectedItem is not GameDeviceChoice reference) throw new InvalidOperationException(\"Choose the connected controller and its captured ED reference.\"); ConnectController(connected, reference.Id); });"
+        ],
+        [
+          265,
+          "internal void UnlinkControllerClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (_devicesView.UnlinkControllerButton.IsEnabled && _session is not null && Device is not null) ReviewControllerChange(_session.PreviewUnlinkController(Device.Id)); });"
+        ],
+        [
+          272,
+          "internal void ChangeDrawingClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (!_devicesView.ChangeDrawingButton.IsEnabled) return; if (_session is null || Device is null) return; _devicesView.DrawingTools.Visibility = Visibility.Visible; });"
+        ],
+        [
+          279,
+          "internal void UseDrawingClicked(object sender, RoutedEventArgs e) => Run(() => { if (!_devicesView.UseDrawingButton.IsEnabled) return; if (_session is null || Device is null || _devicesView.HardwarePicker.SelectedItem is not WorkspaceHardware drawing) throw new InvalidOperationException(\"Choose an optional drawing first.\"); _session.ChangeDrawing(Device.Id, drawing.DeviceId); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; });"
+        ],
+        [
+          287,
+          "internal void NoDrawingClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateControllerAvailability(); if (_devicesView.NoDrawingButton.IsEnabled && _session is not null && Device is not null) { _session.ChangeDrawing(Device.Id, null); _devicesView.DrawingTools.Visibility = Visibility.Collapsed; } });"
+        ],
+        [
+          290,
+          "internal void StartInputClicked(object sender, RoutedEventArgs e) => Run(() => { UpdateAvailability(); if (!canStart()) throw new InvalidOperationException(\"Choose one linked connected controller and stop any current test before starting.\"); _identification.Stop(); if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin)) throw new InvalidOperationException(\"On Devices, select this reference and use Identify Controller to discover and confirm its physical controller first.\"); _input.Start(pin, _services.Discover()); });"
+        ],
+        [
+          300,
+          "internal void StopInputClicked(object sender, RoutedEventArgs e) { StopLiveInput(); Status(\"Input test stopped.\"); }"
+        ],
+        [
+          301,
+          "internal HardwareInputFeedback Input { get; } = new(owner, drawing, Status, activity, inputFactory);"
+        ],
+        [
+          302,
+          "internal bool Identifying => _identification.Running;"
+        ],
+        [
+          303,
+          "internal IReadOnlyList<ControllerObservation> Evidence => _inputEvidence;"
+        ],
+        [
+          304,
+          "internal void SampleIdentification() => _identification.Sample();"
+        ],
+        [
+          305,
+          "internal void Start()"
+        ],
+        [
+          311,
+          "public void Dispose()"
+        ],
+        [
+          318,
+          "private void HardwareReadinessChanged(object? sender, EventArgs e)"
+        ],
+        [
+          330,
+          "private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }"
+        ],
+        [
+          332,
+          "internal void StopLiveInput() { _input.Stop(); _identification.Stop(); }"
+        ],
+        [
+          334,
+          "private async Task RefreshInputEvidenceAsync()"
+        ],
+        [
+          351,
+          "private void ConnectController(DetectedDcsDevice connected, string? logicalId)"
+        ],
+        [
+          364,
+          "private HardwareInputFeedback _input => Input;"
+        ],
+        [
+          365,
+          "private readonly GameControllerIdentification _identification = new(owner, observations, clearIdentification, Status, inputFactory);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteDevicesView.xaml",
+      "blob": "6468ca5240749e2cae9bd959e3f7ff8b177fe45b",
+      "lines": 52,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteDevicesView\""
+        ],
+        [
+          6,
+          "x:Name=\"IdentifyControllerButton\""
+        ],
+        [
+          7,
+          "x:Name=\"CancelIdentificationButton\""
+        ],
+        [
+          8,
+          "x:Name=\"ConfirmIdentificationButton\""
+        ],
+        [
+          9,
+          "x:Name=\"AddControllerButton\""
+        ],
+        [
+          12,
+          "x:Name=\"RescanControllerButton\""
+        ],
+        [
+          16,
+          "x:Name=\"DeviceTools\""
+        ],
+        [
+          18,
+          "x:Name=\"IdentificationStatus\""
+        ],
+        [
+          20,
+          "x:Name=\"UnlinkControllerButton\""
+        ],
+        [
+          21,
+          "x:Name=\"ReplaceControllerButton\""
+        ],
+        [
+          22,
+          "x:Name=\"RemoveControllerButton\""
+        ],
+        [
+          23,
+          "x:Name=\"ConnectedPicker\""
+        ],
+        [
+          25,
+          "x:Name=\"ReplacementReferenceTools\""
+        ],
+        [
+          27,
+          "x:Name=\"ReplacementReferencePicker\""
+        ],
+        [
+          29,
+          "x:Name=\"ReferenceChoiceTools\""
+        ],
+        [
+          31,
+          "x:Name=\"ReferencePicker\""
+        ],
+        [
+          32,
+          "x:Name=\"LinkReferenceButton\""
+        ],
+        [
+          36,
+          "x:Name=\"DrawingStatus\""
+        ],
+        [
+          38,
+          "x:Name=\"ChangeDrawingButton\""
+        ],
+        [
+          39,
+          "x:Name=\"NoDrawingButton\""
+        ],
+        [
+          42,
+          "x:Name=\"DrawingTools\""
+        ],
+        [
+          43,
+          "x:Name=\"HardwarePicker\""
+        ],
+        [
+          44,
+          "x:Name=\"UseDrawingButton\""
+        ],
+        [
+          49,
+          "x:Name=\"ControllerPreview\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteDevicesView.xaml.cs",
+      "blob": "5f91e006475ca11bdc3ea0204ef5b82f55221865",
+      "lines": 11,
+      "declarations": [
+        [
+          6,
+          "public partial class EliteDevicesView : UserControl"
+        ],
+        [
+          9,
+          "public EliteDevicesView() => InitializeComponent();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteExportResolution.cs",
+      "blob": "bb3045cdbdcb75a163ea660871294619797adff7",
+      "lines": 9,
+      "declarations": [
+        [
+          8,
+          "internal sealed record EliteExportResolution(string DeviceId, bool Clear, Guid PhysicalGuid = default, string? TargetReference = null);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteExportReviewWindow.cs",
+      "blob": "c2006cc20245c85b13e626426992c9fd98c1a0ed",
+      "lines": 80,
+      "declarations": [
+        [
+          9,
+          "internal sealed class EliteExportReviewWindow : Window"
+        ],
+        [
+          11,
+          "internal EliteExportReviewWindow(Window owner, IReadOnlyList<GameExportIssue> issues, IReadOnlyList<DetectedDcsDevice> connected, Func<Guid, IReadOnlyList<GameDeviceChoice>> references, bool canReplace)"
+        ],
+        [
+          77,
+          "internal EliteExportResolution? Resolution { get; private set; }"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteModifierChoice.cs",
+      "blob": "6fb59cec9832e02d734e48e1709f41ad8f9d8faa",
+      "lines": 15,
+      "declarations": [
+        [
+          8,
+          "internal sealed record EliteModifierChoice(Modifier Modifier, string Name)"
+        ],
+        [
+          12,
+          "public override string ToString() => Name;"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteProfileOperations.cs",
+      "blob": "3247aadd4b4ff71d8c88aea92a4a7b2b56c425f5",
+      "lines": 214,
+      "declarations": [
+        [
+          13,
+          "internal sealed class EliteProfileOperations( EliteWorkspaceContext context, Window owner, ComboBox ProfilePicker, TextBox ProfileName, TextBox BindingsDirectoryText, CheckBox ExportToReviewFolder, TextBlock ExportState, Func<string?>? _importPicker, Func<string?>? _exportPicker, Action<GameWorkspace, string?> OpenSession, Action<Guid?> ReloadChoices, Action<GameWorkspace> Remember, Func<bool> ConfirmLeave, Action StopLiveInput, Func<Guid, string[]> ReadReplacementInputs, Action<GameControllerChange> ReviewControllerChange, Action<Action> RunBusy, Action<Action> Run, Action<string> Status)"
+        ],
+        [
+          34,
+          "private string? _bindingsDirectoryOverride = context.Services.Recent().EliteBindingsDirectory;"
+        ],
+        [
+          35,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          36,
+          "private string? _revision { get => context.Revision; set => context.Revision = value; }"
+        ],
+        [
+          37,
+          "private bool _busy => context.Busy;"
+        ],
+        [
+          38,
+          "private GameWorkspaceServices _services => context.Services;"
+        ],
+        [
+          39,
+          "private bool Pending => context.Chrome.Pending;"
+        ],
+        [
+          41,
+          "internal void ImportFile(string path)"
+        ],
+        [
+          52,
+          "internal void SetBindingsDirectory(string? directory)"
+        ],
+        [
+          60,
+          "internal void NewConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => CreateConfiguration(true));"
+        ],
+        [
+          62,
+          "internal void DuplicateConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => CreateConfiguration(false));"
+        ],
+        [
+          64,
+          "internal void RenameConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => { if (_session is null || _busy) return; var name = ChooseConfigurationName(\"Rename\", ProfileName.Text.Trim()); if (name is null) return; RequireUniqueName(name, _session.Snapshot.Id); ProfileName.Text = name; Status(\"Configuration name staged. Save to keep it; Export uses the saved name. Previously exported presets are retained.\"); });"
+        ],
+        [
+          73,
+          "internal void BrowseBindingsDirectoryClicked(object sender, RoutedEventArgs e) => Run(() => { var picker = new OpenFolderDialog { Title = \"Choose Elite bindings export directory\", InitialDirectory = BindingsDirectory }; var path = BindingsDirectoryPicker is null ? picker.ShowDialog(owner) == true ? picker.FolderName : null : BindingsDirectoryPicker(); if (path is not null) SetBindingsDirectory(path); });"
+        ],
+        [
+          80,
+          "internal void ResetBindingsDirectoryClicked(object sender, RoutedEventArgs e) => Run(() => SetBindingsDirectory(null));"
+        ],
+        [
+          82,
+          "internal void ImportClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          88,
+          "internal void ExportClicked(object sender, RoutedEventArgs e) => Run(() => RunBusy(() => { if (_session is null || Pending) return; StopLiveInput(); var issues = _session.ReviewGameExport(); if (issues.Count > 0) { ResolveExportIssue(issues); return; } var plan = _session.ExportForGame(); if (ExportToReviewFolder.IsChecked == true) { var parent = _exportPicker is null ? PickExportFolder() : _exportPicker(); if (parent is null) return; plan = _session.ExportForGame(); var active = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), \"Frontier Developments\", \"Elite Dangerous\", \"Options\", \"Bindings\"); var output = GameReviewExport.Write(parent, plan.Files, [active, BindingsDirectory]); ExportState.Text = \"Exported separate review copy: \" + output + \"\\nInstallation into ED is manual. With ED closed, copy the reviewed preset into Bindings, restart ED and select \" + _session.Snapshot.Name + \".\"; } else { var prepared = GameBindingsExport.Prepare(BindingsDirectory, plan.Files); var target = Path.Combine(prepared.Directory, prepared.FileName); if (prepared.ExpectedHash is not null && !(ConfirmPresetReplacement?.Invoke(target) ?? ThemeMessageBox.Show(owner, \"Replace \" + target + \"? An exact backup will be created. Close Elite Dangerous before continuing.\", \"Export preset\", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes)) { Status(\"Export cancelled; existing preset unchanged.\"); return; } var fresh = _session.ExportForGame(); if (Pending || !fresh.Files.TryGetValue(prepared.FileName, out var content) || content != prepared.Content) throw new InvalidOperationException(\"The profile changed during export. Save and export again.\"); var backup = GameBindingsExport.Write(prepared); ExportState.Text = \"Exported: \" + target + (backup is null ? \"\" : \"\\nBackup: \" + backup) + \"\\nRestart ED and select \" + _session.Snapshot.Name + \". Existing preset selectors are unchanged.\"; } Status(\"Export complete. \" + string.Join(\" \", plan.Diagnostics.Select(x => x.Message))); }));"
+        ],
+        [
+          122,
+          "internal void SaveCore()"
+        ],
+        [
+          133,
+          "internal string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), \"Frontier Developments\", \"Elite Dangerous\", \"Options\", \"Bindings\");"
+        ],
+        [
+          135,
+          "internal Func<string, bool>? ConfirmPresetReplacement { get; set; }"
+        ],
+        [
+          136,
+          "internal Func<IReadOnlyList<GameExportIssue>, EliteExportResolution?>? ExportReview { get; set; }"
+        ],
+        [
+          137,
+          "internal Func<string?>? BindingsDirectoryPicker { get; set; }"
+        ],
+        [
+          138,
+          "internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }"
+        ],
+        [
+          141,
+          "private string? ChooseConfigurationName(string action, string initial)"
+        ],
+        [
+          148,
+          "private void RequireUniqueName(string name, Guid? except = null)"
+        ],
+        [
+          156,
+          "private void CreateConfiguration(bool clear)"
+        ],
+        [
+          180,
+          "private string? PickImport()"
+        ],
+        [
+          187,
+          "private void ResolveExportIssue(IReadOnlyList<GameExportIssue> issues)"
+        ],
+        [
+          207,
+          "private string? PickExportFolder()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteReferencePresenter.cs",
+      "blob": "a82e6ab654f290139356a1c4e4e223478084869e",
+      "lines": 141,
+      "declarations": [
+        [
+          13,
+          "internal sealed class EliteReferencePresenter( EliteWorkspaceContext context, Window owner, EliteReferenceSheetsView _referenceView, Func<WorkspaceHardware, KneeboardComposite, string, byte[]> RenderDrawing, Action<Action> Run, Action<string> Status)"
+        ],
+        [
+          21,
+          "private ReferenceSheetDocument? _referenceSheets;"
+        ],
+        [
+          22,
+          "private bool _referenceDirty = true;"
+        ],
+        [
+          23,
+          "private bool _renderingReference;"
+        ],
+        [
+          24,
+          "private int _referencePage;"
+        ],
+        [
+          25,
+          "private GameProfileSession? _session => context.Session;"
+        ],
+        [
+          26,
+          "private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }"
+        ],
+        [
+          27,
+          "private IReadOnlyList<EliteAssignmentRow> _rows => context.Rows;"
+        ],
+        [
+          28,
+          "private GameDeviceChoice? Device => context.Device;"
+        ],
+        [
+          29,
+          "private string Section => context.Section;"
+        ],
+        [
+          31,
+          "internal void ExportReference(string path)"
+        ],
+        [
+          41,
+          "internal byte[] ReferencePdf()"
+        ],
+        [
+          47,
+          "internal byte[] ReferencePng()"
+        ],
+        [
+          53,
+          "internal void ExportSheetClicked(object sender, RoutedEventArgs e) => Run(() => { if (_session is null || Device is null) return; var dialog = new SaveFileDialog { Filter = \"PNG reference sheet (*.png)|*.png\", FileName = \"Elite-controller-reference.png\" }; if (dialog.ShowDialog(owner) == true) { ExportReference(dialog.FileName); Status(\"Reference sheet exported.\"); } });"
+        ],
+        [
+          60,
+          "internal void InvalidateReferenceSheets()"
+        ],
+        [
+          63,
+          "internal void ReferenceOptionsChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          66,
+          "internal void ReferenceAssignedChanged(object sender, RoutedEventArgs e) => InvalidateReferenceSheets();"
+        ],
+        [
+          68,
+          "internal void RefreshReferenceSheets()"
+        ],
+        [
+          97,
+          "internal void ReferencePreviousClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          100,
+          "internal void ReferenceNextClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          103,
+          "internal void ReferencePdfClicked(object sender, RoutedEventArgs e) => Run(() => { var data = ReferencePdf(); var dialog = new SaveFileDialog { Filter = \"PDF reference (*.pdf)|*.pdf\", FileName = \"Elite-controller-reference.pdf\" }; if (dialog.ShowDialog(owner) == true) { File.WriteAllBytes(dialog.FileName, data); Status(\"Reference PDF exported.\"); } });"
+        ],
+        [
+          110,
+          "internal void ReferencePngClicked(object sender, RoutedEventArgs e) => Run(() => { var data = ReferencePng(); var dialog = new SaveFileDialog { Filter = \"PNG reference page (*.png)|*.png\", FileName = \"Elite-reference-page-\" + (_referencePage + 1) + \".png\" }; if (dialog.ShowDialog(owner) == true) { File.WriteAllBytes(dialog.FileName, data); Status(\"Current reference page exported.\"); } });"
+        ],
+        [
+          116,
+          "internal void MarkDirty() => _referenceDirty = true;"
+        ],
+        [
+          117,
+          "internal void Clear()"
+        ],
+        [
+          124,
+          "private void ShowReferencePage()"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteReferenceSheetsView.xaml",
+      "blob": "858d19067fc0a79deb1e07d035132fc92c51f9e4",
+      "lines": 48,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteReferenceSheetsView\""
+        ],
+        [
+          6,
+          "x:Name=\"ReferencePreviousButton\""
+        ],
+        [
+          7,
+          "x:Name=\"ReferenceNextButton\""
+        ],
+        [
+          8,
+          "x:Name=\"ReferencePdfButton\""
+        ],
+        [
+          9,
+          "x:Name=\"ReferencePngButton\""
+        ],
+        [
+          11,
+          "x:Name=\"ReferenceSheetsPanel\""
+        ],
+        [
+          19,
+          "x:Name=\"ReferenceLayoutPicker\""
+        ],
+        [
+          20,
+          "x:Name=\"ReferenceArtworkOption\""
+        ],
+        [
+          23,
+          "x:Name=\"ReferencePaperPicker\""
+        ],
+        [
+          26,
+          "x:Name=\"ReferenceOrientationPicker\""
+        ],
+        [
+          29,
+          "x:Name=\"ReferenceAssignedOnly\""
+        ],
+        [
+          31,
+          "x:Name=\"ReferenceStatus\""
+        ],
+        [
+          36,
+          "x:Name=\"ReferencePreview\""
+        ],
+        [
+          41,
+          "x:Name=\"ReferencePageLabel\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteReferenceSheetsView.xaml.cs",
+      "blob": "0eed5bd24be36641bd98c85ab5b7fcb688190f9b",
+      "lines": 11,
+      "declarations": [
+        [
+          6,
+          "public partial class EliteReferenceSheetsView : UserControl"
+        ],
+        [
+          9,
+          "public EliteReferenceSheetsView() => InitializeComponent();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteWorkspaceContext.cs",
+      "blob": "35e01b5711b959975a99d6c205a63dc57f88ab50",
+      "lines": 60,
+      "declarations": [
+        [
+          9,
+          "internal sealed class EliteWorkspaceContext( GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware, GameAssignmentSelection selection, Func<GameDeviceChoice?> device, Func<string> section, Func<string> editedName, Func<int> feature, Func<bool> busy, Func<bool> testing, Func<bool> identifying)"
+        ],
+        [
+          15,
+          "internal GameWorkspaceServices Services => services;"
+        ],
+        [
+          16,
+          "internal IReadOnlyList<WorkspaceHardware> Hardware => hardware;"
+        ],
+        [
+          17,
+          "internal GameAssignmentSelection Selection => selection;"
+        ],
+        [
+          18,
+          "internal GameProfileSession? Session { get; set; }"
+        ],
+        [
+          19,
+          "internal string? Revision { get; set; }"
+        ],
+        [
+          20,
+          "internal bool Refreshing { get; set; } = true;"
+        ],
+        [
+          21,
+          "internal IReadOnlyList<SimCommand> Commands { get; set; } = [];"
+        ],
+        [
+          22,
+          "internal IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];"
+        ],
+        [
+          23,
+          "internal GameDeviceChoice? Device => device();"
+        ],
+        [
+          24,
+          "internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == Selection.CommandId);"
+        ],
+        [
+          25,
+          "internal string Section => section();"
+        ],
+        [
+          26,
+          "internal string EditedName => editedName();"
+        ],
+        [
+          27,
+          "internal int Feature => feature();"
+        ],
+        [
+          28,
+          "internal bool Busy => busy();"
+        ],
+        [
+          29,
+          "internal bool Testing => testing();"
+        ],
+        [
+          30,
+          "internal bool Identifying => identifying();"
+        ],
+        [
+          31,
+          "internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, EditedName, Busy);"
+        ],
+        [
+          32,
+          "internal WorkspaceAssignmentContext AssignmentContext => new( (Session?.Snapshot.Id.ToString(\"N\") ?? \"\") + \":\" + Device?.Id + \":\" + Section + \":\" + Selection.Slot, Session is not null, Session?.AccessMessage.Length > 0, Busy || Identifying, Testing);"
+        ],
+        [
+          35,
+          "internal event EventHandler? Changed;"
+        ],
+        [
+          36,
+          "internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);"
+        ],
+        [
+          37,
+          "internal WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)"
+        ],
+        [
+          45,
+          "internal string? DrawingKey(HardwareGraphicControl control)"
+        ],
+        [
+          51,
+          "internal static string ControllerName(GameWorkspace workspace, string id)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteWorkspaceWindow.xaml",
+      "blob": "7984abcadc24d63704c7952a6b8797a4facdc436",
+      "lines": 87,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Elite.EliteWorkspaceWindow\""
+        ],
+        [
+          6,
+          "x:Name=\"WorkspaceRoot\""
+        ],
+        [
+          9,
+          "x:Name=\"GamePicker\" SelectionChanged=\"GameChanged\""
+        ],
+        [
+          10,
+          "x:Name=\"ProfilePicker\" SelectionChanged=\"ProfileChanged\""
+        ],
+        [
+          13,
+          "x:Name=\"SaveProfileButton\" Click=\"SaveClicked\""
+        ],
+        [
+          14,
+          "x:Name=\"DiscardProfileButton\" Click=\"DiscardClicked\""
+        ],
+        [
+          15,
+          "x:Name=\"ExportPresetButton\" Click=\"ExportClicked\""
+        ],
+        [
+          16,
+          "x:Name=\"SaveState\""
+        ],
+        [
+          23,
+          "x:Name=\"ImportPresetButton\" Click=\"ImportClicked\""
+        ],
+        [
+          25,
+          "x:Name=\"NewConfigurationButton\" Click=\"NewConfigurationClicked\""
+        ],
+        [
+          26,
+          "x:Name=\"DuplicateConfigurationButton\" Click=\"DuplicateConfigurationClicked\""
+        ],
+        [
+          27,
+          "x:Name=\"RenameConfigurationButton\" Click=\"RenameConfigurationClicked\""
+        ],
+        [
+          28,
+          "x:Name=\"DeleteConfigurationButton\" Click=\"DeleteConfigurationClicked\""
+        ],
+        [
+          30,
+          "x:Name=\"ProfileName\" TextChanged=\"ProfileNameChanged\""
+        ],
+        [
+          37,
+          "x:Name=\"BindingsDirectoryText\""
+        ],
+        [
+          38,
+          "x:Name=\"BrowseBindingsDirectoryButton\" Click=\"BrowseBindingsDirectoryClicked\""
+        ],
+        [
+          39,
+          "x:Name=\"ResetBindingsDirectoryButton\" Click=\"ResetBindingsDirectoryClicked\""
+        ],
+        [
+          41,
+          "x:Name=\"ExportToReviewFolder\""
+        ],
+        [
+          47,
+          "x:Name=\"SectionPicker\" SelectionChanged=\"SectionChanged\""
+        ],
+        [
+          56,
+          "x:Name=\"FeaturePicker\" SelectionChanged=\"FeatureChanged\""
+        ],
+        [
+          59,
+          "x:Name=\"FeatureActions\""
+        ],
+        [
+          60,
+          "x:Name=\"ControllerPanes\""
+        ],
+        [
+          68,
+          "x:Name=\"MoveControllerUpButton\" Click=\"MoveControllerUpClicked\""
+        ],
+        [
+          69,
+          "x:Name=\"MoveControllerDownButton\" Click=\"MoveControllerDownClicked\""
+        ],
+        [
+          71,
+          "x:Name=\"DevicePicker\" SelectionChanged=\"DeviceChanged\" Drop=\"True\""
+        ],
+        [
+          76,
+          "x:Name=\"FeatureContent\""
+        ],
+        [
+          81,
+          "x:Name=\"ExportState\""
+        ],
+        [
+          83,
+          "x:Name=\"AccessStatus\""
+        ],
+        [
+          84,
+          "x:Name=\"WorkspaceStatus\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Elite/EliteWorkspaceWindow.xaml.cs",
+      "blob": "87ad765b1c90d013eff494bb290a48ee6e5f904f",
+      "lines": 373,
+      "declarations": [
+        [
+          13,
+          "public sealed partial class EliteWorkspaceWindow : GameWorkspaceWindow, IDisposable"
+        ],
+        [
+          15,
+          "private readonly EliteDevicesView _devicesView = new();"
+        ],
+        [
+          16,
+          "private readonly EliteAssignmentsView _assignmentsView = new();"
+        ],
+        [
+          17,
+          "private readonly EliteReferenceSheetsView _referenceView = new();"
+        ],
+        [
+          18,
+          "private readonly EliteWorkspaceContext _context;"
+        ],
+        [
+          19,
+          "private readonly EliteControllerPresenter _controllers;"
+        ],
+        [
+          20,
+          "private readonly EliteAssignmentEditing _editing;"
+        ],
+        [
+          21,
+          "private readonly EliteAssignmentBrowser _browser;"
+        ],
+        [
+          22,
+          "private readonly EliteAssignmentDrawing _drawing;"
+        ],
+        [
+          23,
+          "private readonly EliteReferencePresenter _references;"
+        ],
+        [
+          24,
+          "private readonly EliteProfileOperations _profiles;"
+        ],
+        [
+          25,
+          "private readonly GameControllerReordering _reordering;"
+        ],
+        [
+          26,
+          "private readonly Func<MessageBoxResult>? _pendingChoice;"
+        ],
+        [
+          27,
+          "private bool _allowClose;"
+        ],
+        [
+          28,
+          "private bool _disposed;"
+        ],
+        [
+          29,
+          "private GameProfileSession? _session { get => _context.Session; set => _context.Session = value; }"
+        ],
+        [
+          30,
+          "private string? _revision { get => _context.Revision; set => _context.Revision = value; }"
+        ],
+        [
+          31,
+          "private bool _refreshing { get => _context.Refreshing; set => _context.Refreshing = value; }"
+        ],
+        [
+          32,
+          "private bool _busy => WorkspaceActionRunning;"
+        ],
+        [
+          33,
+          "private GameWorkspaceServices _services => _context.Services;"
+        ],
+        [
+          34,
+          "private IReadOnlyList<WorkspaceHardware> _hardware => _context.Hardware;"
+        ],
+        [
+          35,
+          "private GameAssignmentSelection _selection => _assignmentsView.AssignmentSelection;"
+        ],
+        [
+          36,
+          "private IReadOnlyList<SimCommand> _commands { get => _context.Commands; set => _context.Commands = value; }"
+        ],
+        [
+          37,
+          "private IReadOnlyList<EliteAssignmentRow> _rows { get => _context.Rows; set => _context.Rows = value; }"
+        ],
+        [
+          38,
+          "private GameDeviceChoice? Device => _context.Device;"
+        ],
+        [
+          39,
+          "private SimCommand? Command => _context.Command;"
+        ],
+        [
+          40,
+          "private GameWorkspaceChromeState Chrome => _context.Chrome;"
+        ],
+        [
+          41,
+          "private bool Pending => Chrome.Pending;"
+        ],
+        [
+          43,
+          "public EliteWorkspaceWindow(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware, Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null, Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null)"
+        ],
+        [
+          143,
+          "public void Dispose()"
+        ],
+        [
+          152,
+          "public bool DcsRequested { get; private set; }"
+        ],
+        [
+          154,
+          "public bool SquadronsRequested { get; private set; }"
+        ],
+        [
+          156,
+          "public bool WarThunderRequested { get; private set; }"
+        ],
+        [
+          157,
+          "internal GameProfileSession? Session => _session;"
+        ],
+        [
+          158,
+          "internal WorkspaceAssignmentWorkflow AssignmentWorkflow => _assignmentsView.AssignmentWorkflow;"
+        ],
+        [
+          159,
+          "internal GameAssignmentSelection AssignmentSelection => _assignmentsView.AssignmentSelection;"
+        ],
+        [
+          160,
+          "internal DataObject ControllerDrag(string id) => _reordering.Payload(id);"
+        ],
+        [
+          161,
+          "internal bool DropController(IDataObject data, string target, bool after) => _reordering.DropAt(data, target, after);"
+        ],
+        [
+          162,
+          "internal void SampleInput() => _controllers.Input.Sample();"
+        ],
+        [
+          163,
+          "internal void SampleIdentification() => _controllers.SampleIdentification();"
+        ],
+        [
+          164,
+          "internal void ImportFile(string path) => _profiles.ImportFile(path);"
+        ],
+        [
+          165,
+          "internal void ExportReference(string path) => _references.ExportReference(path);"
+        ],
+        [
+          166,
+          "internal byte[] ReferencePdf() => _references.ReferencePdf();"
+        ],
+        [
+          167,
+          "internal byte[] ReferencePng() => _references.ReferencePng();"
+        ],
+        [
+          168,
+          "internal void SetBindingsDirectory(string? path) => _profiles.SetBindingsDirectory(path);"
+        ],
+        [
+          169,
+          "internal HardwareDiagramInteractions DiagramInteractions() => _drawing.DiagramInteractions();"
+        ],
+        [
+          170,
+          "internal Func<EliteAxisTuningWindow, bool?>? AxisTuningReview { get => _drawing.AxisTuningReview; set => _drawing.AxisTuningReview = value; }"
+        ],
+        [
+          171,
+          "internal Func<string, bool>? ConfirmPresetReplacement { get => _profiles.ConfirmPresetReplacement; set => _profiles.ConfirmPresetReplacement = value; }"
+        ],
+        [
+          172,
+          "internal Func<IReadOnlyList<GameExportIssue>, EliteExportResolution?>? ExportReview { get => _profiles.ExportReview; set => _profiles.ExportReview = value; }"
+        ],
+        [
+          173,
+          "internal Func<string?>? BindingsDirectoryPicker { get => _profiles.BindingsDirectoryPicker; set => _profiles.BindingsDirectoryPicker = value; }"
+        ],
+        [
+          174,
+          "internal Func<string, string, string?>? ConfigurationNamePicker { get => _profiles.ConfigurationNamePicker; set => _profiles.ConfigurationNamePicker = value; }"
+        ],
+        [
+          175,
+          "internal Func<string, bool>? ConfirmConfigurationDeletion { get; set; }"
+        ],
+        [
+          176,
+          "internal bool SaveProfile()"
+        ],
+        [
+          182,
+          "protected override bool HasWorkspaceChanges => Pending;"
+        ],
+        [
+          183,
+          "protected override bool CanSaveWorkspace => Chrome.CanSave;"
+        ],
+        [
+          184,
+          "protected override string WorkspaceStateSummary => Chrome.Status;"
+        ],
+        [
+          185,
+          "protected override Task SaveWorkspaceCoreAsync() { _profiles.SaveCore(); return Task.CompletedTask; }"
+        ],
+        [
+          186,
+          "protected override void DiscardWorkspaceCore()"
+        ],
+        [
+          191,
+          "protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());"
+        ],
+        [
+          192,
+          "protected override void ReportWorkspaceError(Exception exception) => Status(\"Save failed; pending edits are retained: \" + exception.Message);"
+        ],
+        [
+          193,
+          "protected override void OnWorkspaceStateChanged() => UpdateNativeAvailability();"
+        ],
+        [
+          195,
+          "private void RegisterFeatureNames(DependencyObject root)"
+        ],
+        [
+          202,
+          "private void DeleteConfigurationClicked(object sender, RoutedEventArgs e) => Run(() => { if (_session is null || _revision is null || _busy) return; var workspace = _session.Snapshot; var confirmed = ConfirmConfigurationDeletion?.Invoke(workspace.Name) ?? ThemeMessageBox.Show(this, \"Delete HEIMDALL configuration: \" + workspace.Name + \"? Pending edits will also be discarded. Exported ED preset files remain in place.\", \"Delete configuration\", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes; if (!confirmed) return; StopLiveInput(); _services.Store.Delete(workspace.Id, _revision); _session.Changed -= SessionChanged; _session = null; _revision = null; _refreshing = true; ProfileName.Text = \"\"; DevicePicker.ItemsSource = null; _assignmentsView.CommandsList.ItemsSource = null; _assignmentsView.AssignmentsGrid.ItemsSource = null; _refreshing = false; _assignmentsView.ModifierDevicePicker.ItemsSource = null; _editing.RefreshCombinationInputs(); _assignmentsView.DiagramCanvas.Children.Clear(); _drawing.Presenter.Regions.Clear(); _selection.Reset(); _assignmentsView.Selection.ShowCommand(null); _assignmentsView.AssignmentDraftStatus.Text = \"Choose a configuration.\"; _rows = []; _commands = []; _references.Clear(); _references.MarkDirty(); ReloadChoices(null); var next = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(); if (next is not null) { LoadProfile(next.Id); ReloadChoices(next.Id); } else _services.Remember(_services.Recent() with { BackendId = \"elite-dangerous\", WorkspaceId = null, DisplayName = \"\" }); UpdateAvailability(); Status(\"HEIMDALL configuration deleted. Exported ED presets remain in place.\"); });"
+        ],
+        [
+          226,
+          "private void MoveControllerUpClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(-1);"
+        ],
+        [
+          228,
+          "private void MoveControllerDownClicked(object sender, RoutedEventArgs e) => _reordering.MoveSelected(1);"
+        ],
+        [
+          230,
+          "private void Run(Action action) { try { action(); } catch (Exception error) { Status(error.Message); } }"
+        ],
+        [
+          232,
+          "private void OpenSession(GameWorkspace workspace, string? revision)"
+        ],
+        [
+          244,
+          "private void SessionChanged(object? sender, EventArgs e) { StopLiveInput(); _references.MarkDirty(); Refresh(); _context.NotifyChanged(); }"
+        ],
+        [
+          246,
+          "private void ReloadChoices(Guid? selected)"
+        ],
+        [
+          264,
+          "private void LoadProfile(Guid id)"
+        ],
+        [
+          269,
+          "private void Remember(GameWorkspace workspace) => _services.Remember(_services.Recent() with { BackendId = \"elite-dangerous\", WorkspaceId = workspace.Id, DisplayName = workspace.Name });"
+        ],
+        [
+          271,
+          "private void Refresh()"
+        ],
+        [
+          290,
+          "private void GameChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          297,
+          "private void ProfileChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          308,
+          "private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && SaveState is not null) { _references.MarkDirty(); UpdateAvailability(); } }"
+        ],
+        [
+          310,
+          "private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _session is not null) Run(() => { _references.MarkDirty(); _browser.FilterCommands(); _drawing.RenderDevice(); }); }"
+        ],
+        [
+          312,
+          "private void DeviceChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          323,
+          "private void Status(string message) => WorkspaceStatus.Text = message;"
+        ],
+        [
+          324,
+          "private void UpdateAvailability() => RefreshWorkspaceState();"
+        ],
+        [
+          325,
+          "private void StopLiveInput() => _controllers?.StopLiveInput();"
+        ],
+        [
+          326,
+          "private void RunBusy(Action action) => RunWorkspaceActionAsync(() => { action(); return Task.CompletedTask; }).GetAwaiter().GetResult();"
+        ],
+        [
+          327,
+          "private bool ConfirmLeave()"
+        ],
+        [
+          336,
+          "private void FeatureChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          343,
+          "private void NewConfigurationClicked(object sender, RoutedEventArgs e) => _profiles.NewConfigurationClicked(sender, e);"
+        ],
+        [
+          344,
+          "private void DuplicateConfigurationClicked(object sender, RoutedEventArgs e) => _profiles.DuplicateConfigurationClicked(sender, e);"
+        ],
+        [
+          345,
+          "private void RenameConfigurationClicked(object sender, RoutedEventArgs e) => _profiles.RenameConfigurationClicked(sender, e);"
+        ],
+        [
+          346,
+          "private void ImportClicked(object sender, RoutedEventArgs e) => _profiles.ImportClicked(sender, e);"
+        ],
+        [
+          347,
+          "private void ExportClicked(object sender, RoutedEventArgs e) => _profiles.ExportClicked(sender, e);"
+        ],
+        [
+          348,
+          "private void BrowseBindingsDirectoryClicked(object sender, RoutedEventArgs e) => _profiles.BrowseBindingsDirectoryClicked(sender, e);"
+        ],
+        [
+          349,
+          "private void ResetBindingsDirectoryClicked(object sender, RoutedEventArgs e) => _profiles.ResetBindingsDirectoryClicked(sender, e);"
+        ],
+        [
+          350,
+          "private void UpdateNativeAvailability()"
+        ]
+      ],
+      "xaml_wiring": []
+    }
+  ]
+}

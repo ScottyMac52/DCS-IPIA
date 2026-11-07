@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Elite;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,11 +36,12 @@ namespace Heimdall.App.Smoke
                     Enumerable.Range(27, 3).Select(number => new ControllerObject(Guid.NewGuid(),
                         (uint)((number - 1) * 256 + 4), "Button " + number.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray());
                 var services = new GameWorkspaceServices(new FileGameWorkspaceStore(root), discovery);
+                EliteInheritanceSmoke.Verify(root);
                 EliteConfigurationsSmoke.Verify(root);
                 EliteSystemInputSmoke.Verify(root);
                 VerifyCards(root, services);
                 VerifyDcsSelectors();
-                var sources = Task.Run(() => ModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
+                var sources = Task.Run(() => DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root)).GetAwaiter().GetResult();
                 var hardware = System.Text.Json.JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
                 EliteCombinationInputsSmoke.Verify(root, hardware);
                 EliteControllerIdentificationSmoke.Verify(root, hardware);
@@ -296,19 +298,52 @@ namespace Heimdall.App.Smoke
             if (commands.ItemsSource is not System.Windows.Data.ListCollectionView view || view.Groups?.Count != 4)
                 throw new InvalidOperationException("The command palette did not group commands by display category.");
         }
+        private static void VerifyDcsSelectorLayout(DcsModuleWorkspaceWindow window)
+        {
+            var selectors = Box<WrapPanel>(window, "GameWorkspaceSelectors");
+            var game = Box<ComboBox>(window, "WorkspaceGamePicker");
+            var profile = Box<ComboBox>(window, "WorkspaceProfilePicker");
+            var previousWidth = window.Width;
+            var previousFont = window.FontSize;
+            try
+            {
+                foreach (var font in new[] { 12d, 18d })
+                {
+                    window.FontSize = font;
+                    foreach (var width in new[] { 1340d, 900d, 1340d })
+                    {
+                        window.Width = width; ThemeControlSmoke.Pump(window);
+                        var first = new Rect(game.TranslatePoint(new Point(), selectors), game.RenderSize);
+                        var second = new Rect(profile.TranslatePoint(new Point(), selectors), profile.RenderSize);
+                        if (game.ActualHeight < 29.5 || profile.ActualHeight < 29.5 ||
+                            first.Left < -.5 || second.Left < -.5 || first.Right > selectors.ActualWidth + .5 ||
+                            second.Right > selectors.ActualWidth + .5 || second.Bottom > selectors.ActualHeight + .5)
+                            throw new InvalidOperationException("A DCS header selector was clipped by its wrapping layout.");
+                        var aligned = width == 900
+                            ? Math.Abs(second.Left - first.Left) <= .5 && second.Top >= first.Bottom + 3.5
+                            : Math.Abs(second.Top - first.Top) <= .5 && second.Left >= first.Right + 7.5;
+                        if (!aligned)
+                            throw new InvalidOperationException($"DCS selector spacing failed at width {width}: game={first}, profile={second}.");
+                    }
+                }
+            }
+            finally { window.Width = previousWidth; window.FontSize = previousFont; }
+        }
+
         private static void VerifyDcsSelectors()
         {
-            var previewProfile = new global::Heimdall.Domain.DeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
+            var previewProfile = new global::Heimdall.Domain.DcsDeviceProfile(Guid.NewGuid(), "tm-mfd", null, "Preview", "Preview.diff.lua");
             var preview = new DcsFolderImportResult("Game selection smoke", [previewProfile], [], [], []);
-            var choice = new SavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
-            var gameWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var choice = new DcsSavedModuleChoice(Guid.NewGuid(), "Saved DCS aircraft");
+            var gameWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             gameWindow.Show(); ThemeControlSmoke.Pump(gameWindow);
+            VerifyDcsSelectorLayout(gameWindow);
             if (!Box<WrapPanel>(gameWindow, "GameWorkspaceSelectors").IsVisible)
                 throw new InvalidOperationException("The production DCS game/profile selectors are unavailable.");
             if (((ComboBox)gameWindow.FindName("WorkspaceGamePicker")).Items.Count != 4)
                 throw new InvalidOperationException("DCS must offer all four game choices.");
-            var squadronsWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var squadronsWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             squadronsWindow.Show(); ThemeControlSmoke.Pump(squadronsWindow);
             Box<ComboBox>(squadronsWindow, "WorkspaceGamePicker").SelectedIndex = 2;
@@ -317,7 +352,7 @@ namespace Heimdall.App.Smoke
             Box<ComboBox>(gameWindow, "WorkspaceGamePicker").SelectedIndex = 1;
             if (gameWindow.IsVisible || gameWindow.RequestedGame != "elite-dangerous")
                 throw new InvalidOperationException("The DCS workspace did not request the selected game after closing.");
-            var profileWindow = new ModuleWorkspaceWindow(new ModuleWorkspaceViewModel(preview), persistLayout: false,
+            var profileWindow = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(preview), persistLayout: false,
                 allowGameSwitch: true, moduleChoices: [choice]);
             profileWindow.Show(); ThemeControlSmoke.Pump(profileWindow);
             Box<ComboBox>(profileWindow, "WorkspaceProfilePicker").SelectedItem = choice;
@@ -329,8 +364,8 @@ namespace Heimdall.App.Smoke
             var connection = "Data Source=" + Path.Combine(root, "ipia.db") + ";Pooling=False";
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
             var settings = new FileAppSettingsService(Path.Combine(root, "defaults.json"), Path.Combine(root, "settings.json"), Path.Combine(root, "theme.txt"));
-            var window = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
-                new SqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery(), games: services);
+            var window = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings,
+                new DcsSqliteEditorWorkspaceRepository(connection), deviceDiscovery: new EmptyDeviceDiscovery(), games: services);
             try
             {
                 window.Show(); ThemeControlSmoke.Pump(window);

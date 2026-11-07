@@ -246,7 +246,7 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static SharedCatalogImportRequest Fixture()
+        private static DcsSharedCatalogImportRequest Fixture()
         {
             var root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DcsCommon");
             return new("dd3d9cff8997c57ebfad36066ec4caf06bdbe52e", "assets/shared/hardware/manifest.json",

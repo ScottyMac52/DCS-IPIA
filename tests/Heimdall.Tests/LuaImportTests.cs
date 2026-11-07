@@ -112,14 +112,14 @@ namespace Heimdall.Tests
         public async Task Importer_is_idempotent_and_reports_source_errors()
         {
             var module = new DcsModule(Guid.Parse("11111111-1111-1111-1111-111111111111"), "UH-1H", "Huey");
-            var request = new ModuleImportRequest(module, [new("tm-mfd", "MFD1", "panel", "mfd.lua", Profile)],
+            var request = new DcsModuleImportRequest(module, [new("tm-mfd", "MFD1", "panel", "mfd.lua", Profile)],
                                                   Modifiers, "Huey@abc");
             var importer = new DcsLuaImporter();
             var first = await importer.ImportAsync(request);
             var second = await importer.ImportAsync(request);
             Assert.True(first.Succeeded);
-            Assert.Equal(ConfigurationSnapshotSerializer.Serialize([first.Configuration!]).Content,
-                         ConfigurationSnapshotSerializer.Serialize([second.Configuration!]).Content);
+            Assert.Equal(DcsConfigurationSnapshotSerializer.Serialize([first.Configuration!]).Content,
+                         DcsConfigurationSnapshotSerializer.Serialize([second.Configuration!]).Content);
             Assert.Contains(first.Diagnostics, x => x.Code == "imported" && !x.IsError);
             var badModifiers = await importer.ImportAsync(request with { ModifiersContent = "bad" });
             Assert.False(badModifiers.Succeeded);

@@ -1,0 +1,1466 @@
+{
+  "baseline": "0fa0e28b8e50c23d57a3d14b4d47d35b7c1d3db0",
+  "extraction": "Lexical declaration index, not a semantic C# parser. Line numbers and blob IDs are authoritative source locators; method bodies and implicit/anonymous members must be read at the pinned source. Call-path and ownership analysis is in ../workspace-role-migration.md.",
+  "files": [
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsAssignmentBrowser.cs",
+      "blob": "28dfd267047bec0f4c268a1da9f9848b1fd1fecd",
+      "lines": 295,
+      "declarations": [
+        [
+          16,
+          "internal sealed class SquadronsAssignmentBrowser( SquadronsWorkspaceContext context, Func<SquadronsControllerPresenter> controllers, Func<SquadronsAssignmentEditing> editing, Func<SquadronsAssignmentDrawing> drawing, Action<Action> run, ListBox DevicePicker, SquadronsDevicesView _devicesView, SquadronsAssignmentsView _assignmentsView)"
+        ],
+        [
+          29,
+          "internal void RefreshRows()"
+        ],
+        [
+          69,
+          "internal void CaptureReviewChanged(object sender, RoutedEventArgs e)"
+        ],
+        [
+          76,
+          "internal void CommandChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          98,
+          "private void UpdateCommandHint(Heimdall.Domain.MultiSim.SimCommand? command)"
+        ],
+        [
+          110,
+          "internal void ShowCommandClicked(object sender, RoutedEventArgs e) => run(() => { if (_assignmentsView.CommandBrowser.CommandsList.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command) return; context.InspectedControl = null; _assignmentsView.SectionPicker.SelectedItem = command.Category; _assignmentsView.ReviewCaptured.IsChecked = true; _assignmentsView.CapturedAssignments.IsExpanded = true; context.FocusedConcept = command.Metadata[\"squadrons.concept\"]; RefreshRows(); var match = context.Rows.FirstOrDefault(row => row.Native.Concept == context.FocusedConcept && (context.SelectedController is null || row.DeviceId == context.SelectedController)); if (match is not null) _assignmentsView.BindingsGrid.SelectedItem = _assignmentsView.BindingsGrid.Items.Cast<SquadronsWorkspaceRow>() .FirstOrDefault(row => row.RecordId == match.RecordId); if (_assignmentsView.BindingsGrid.SelectedItem is not null) _assignmentsView.BindingsGrid.ScrollIntoView(_assignmentsView.BindingsGrid.SelectedItem); else _assignmentsView.CommandHint.Text = \"No captured assignment matches this command and controller. No new native records were written.\"; });"
+        ],
+        [
+          128,
+          "internal void RecordContextOpening(object sender, ContextMenuEventArgs e)"
+        ],
+        [
+          138,
+          "internal void RecordRightClicked(object sender, MouseButtonEventArgs e)"
+        ],
+        [
+          145,
+          "internal void EditSelectedClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          151,
+          "internal void FilterChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          181,
+          "internal void SearchChanged(object sender, TextChangedEventArgs e) { if (!context.Refreshing) { context.InspectedControl = null; RefreshRows(); } }"
+        ],
+        [
+          183,
+          "internal void BindingChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          188,
+          "internal void SelectRecord(SquadronsWorkspaceRow row)"
+        ],
+        [
+          202,
+          "internal void SelectCommandConcept(string concept)"
+        ],
+        [
+          228,
+          "internal void RefreshCommandCatalog(GameWorkspace? snapshot, string? preferredCommandId = null)"
+        ],
+        [
+          259,
+          "internal void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          273,
+          "internal void CommandSearchChanged(object sender, TextChangedEventArgs e)"
+        ],
+        [
+          278,
+          "internal void ResetCommandFiltersClicked(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsAssignmentDrawing.cs",
+      "blob": "c656d3bdf324455455c081d283cf0fa5209cb8cc",
+      "lines": 199,
+      "declarations": [
+        [
+          16,
+          "internal sealed class SquadronsAssignmentDrawing( SquadronsWorkspaceContext context, Func<SquadronsAssignmentEditing> editing, Action<bool> refresh, Action<Action> run, ListBox DevicePicker, TextBlock StatusText, SquadronsDevicesView _devicesView, SquadronsAssignmentsView _assignmentsView, Window owner, Func<SquadronsControllerPresenter> controllers)"
+        ],
+        [
+          28,
+          "private readonly HardwareDiagramPresenter _drawingPresenter = new(_assignmentsView.DrawingCanvas);"
+        ],
+        [
+          29,
+          "private readonly DiagramViewport _drawingViewport = new(_assignmentsView.DrawingScroll, _assignmentsView.DrawingCanvas, _assignmentsView.DrawingZoom, \"squadrons.diagram\");"
+        ],
+        [
+          32,
+          "internal HardwareDiagramPresenter Presenter => _drawingPresenter;"
+        ],
+        [
+          33,
+          "internal void Start()"
+        ],
+        [
+          58,
+          "internal void RenderDrawing()"
+        ],
+        [
+          137,
+          "private void ShowSystemDrawing(string title, string deviceId, UiLayerDiagram diagram)"
+        ],
+        [
+          169,
+          "internal void DrawingChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          181,
+          "internal void ClearDrawingClicked(object sender, RoutedEventArgs e) => run(() => { if (!_devicesView.ClearDrawingButton.IsEnabled || context.Session is null || context.SelectedController is not { } slot) return; context.Session.ChangeDrawing(slot, null); refresh(false); StatusText.Text = \"Drawing unlinked. Choose another drawing or save this change.\"; });"
+        ],
+        [
+          189,
+          "internal void FitDrawingClicked(object sender, RoutedEventArgs e) => _drawingViewport.Fit();"
+        ],
+        [
+          191,
+          "internal void DrawingExpanded(object sender, RoutedEventArgs e)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsAssignmentEditing.cs",
+      "blob": "bc434b2a5ad5d374b8ef308a63fd2a82d0b94cdf",
+      "lines": 325,
+      "declarations": [
+        [
+          16,
+          "internal sealed class SquadronsAssignmentEditing( SquadronsWorkspaceContext context, Func<SquadronsControllerPresenter> controllers, Func<SquadronsAssignmentBrowser> browser, Action<bool> refresh, Action<Action> run, TextBlock StatusText, SquadronsAssignmentsView _assignmentsView, Window owner)"
+        ],
+        [
+          29,
+          "internal void UpdateEditor()"
+        ],
+        [
+          44,
+          "private void UpdateInputChoices()"
+        ],
+        [
+          74,
+          "internal void UpdateApplyAvailability()"
+        ],
+        [
+          83,
+          "private bool CanReverseSelectedAxis()"
+        ],
+        [
+          91,
+          "internal void TargetChanged(object sender, SelectionChangedEventArgs e) { if (!context.Refreshing) run(UpdateInputChoices); }"
+        ],
+        [
+          93,
+          "internal void InputChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          100,
+          "internal void ClearSelectedClicked(object sender, RoutedEventArgs e) => run(() => { if (_assignmentsView.BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Native.Type: 3 } row) throw new InvalidOperationException(\"Choose an existing joystick assignment to clear.\"); controllers().ReviewNativeChange(context.Session!.PreviewClearCapturedRecord(row.RecordId)); });"
+        ],
+        [
+          107,
+          "internal void ApplyClicked(object sender, RoutedEventArgs e) => RunAssignment(() => { if (!_assignmentsView.ApplyButton.IsEnabled || _assignmentsView.CommandBrowser.CommandsList.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command || _assignmentsView.TargetDevice.SelectedItem is not GameDeviceChoice device || _assignmentsView.InputPicker.SelectedItem is not SquadronsInput input) return; StageAssignment(command.Id, device.Id, input); });"
+        ],
+        [
+          115,
+          "internal void ReverseAxisClicked(object sender, RoutedEventArgs e) => RunAssignment(() => { if (!_assignmentsView.ReverseAxisButton.IsEnabled || context.Session is null || _assignmentsView.CommandBrowser.CommandsList.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command || _assignmentsView.TargetDevice.SelectedItem is not GameDeviceChoice device || _assignmentsView.InputPicker.SelectedItem is not SquadronsInput { Type: CommandType.Axis } input) return; var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.ReverseAxis, command.Id, device.Id, input.Key, input.Type); var result = ExecuteNativeAssignment(edit); refresh(false); AssignmentFeedback(result); });"
+        ],
+        [
+          127,
+          "internal void ApplyNativeRecordClicked(object sender, RoutedEventArgs e) => RunAssignment(() => { if (!_assignmentsView.ApplyButton.IsEnabled || _assignmentsView.BindingsGrid.SelectedItem is not SquadronsWorkspaceRow { Editable: true } row || _assignmentsView.CommandBrowser.CommandsList.SelectedItem is not Heimdall.Domain.MultiSim.SimCommand command || _assignmentsView.TargetDevice.SelectedItem is not GameDeviceChoice device || _assignmentsView.InputPicker.SelectedItem is not SquadronsInput input) return; var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.AssignRecord, command.Id, device.Id, input.Key, input.Type, row.RecordId); var result = ExecuteNativeAssignment(edit); refresh(false); AssignmentFeedback(result); });"
+        ],
+        [
+          140,
+          "private void SelectDrawingInput(HardwareGraphicControl control)"
+        ],
+        [
+          149,
+          "private void InspectDrawingInput(HardwareGraphicControl control) => SelectDrawingControl(control, showRecords: true);"
+        ],
+        [
+          151,
+          "internal void SelectDrawingControl(HardwareGraphicControl control, bool showRecords)"
+        ],
+        [
+          185,
+          "private void DropDrawingCommand(HardwareGraphicControl control, string commandId) => RunAssignment(() => { if (context.SelectedController is not { } slot) throw new InvalidOperationException(\"Select a linked joystick controller.\"); StageAssignment(commandId, slot, SquadronsInputCodec.FromDrawing(control.InputKey, control.IsAxis)); });"
+        ],
+        [
+          192,
+          "private void RunAssignment(Action action)"
+        ],
+        [
+          202,
+          "private void StageAssignment(string commandId, string slot, SquadronsInput input)"
+        ],
+        [
+          220,
+          "private bool CanClearDrawingInput(HardwareGraphicControl control) =>"
+        ],
+        [
+          225,
+          "private void ClearDrawingInput(HardwareGraphicControl control) => run(() => { if (!CanClearDrawingInput(control) || context.SelectedController is not { } slot) return; var records = SquadronsDrawingProjection.ForControl(control, context.Rows, slot, context.DrawingSection); controllers().ReviewNativeChange(context.Session!.PreviewClearCapturedRecords(records.Select(row => row.RecordId).ToArray())); });"
+        ],
+        [
+          232,
+          "internal WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          235,
+          "private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action)"
+        ],
+        [
+          247,
+          "private SquadronsAxisPair? DrawingAxisPair(HardwareGraphicControl control)"
+        ],
+        [
+          255,
+          "private void TuneDrawingAxis(HardwareGraphicControl control) => RunAssignment(() => { if (!ControlAction(control, WorkspaceAssignmentAction.TuneAxis).Enabled || DrawingAxisPair(control) is not { } pair || context.Session is not { } session) return;  var reverse = new CheckBox { Content = \"Reverse the saved axis directions\" }; reverse.SetResourceReference(FrameworkElement.StyleProperty, \"AppCheckBox\"); var dialog = new AxisTuningWindow(owner, pair.Positive.CommandName, reverse, () => null); var command = session.Catalog.Commands.Single(item => item.Metadata[\"squadrons.concept\"] == pair.Positive.Native.Concept); var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.ReverseAxis, command.Id, pair.Positive.DeviceId, control.InputKey, CommandType.Axis); var result = ExecuteAssignment(command.Id, control.InputKey, pair.Positive.RecordId, () => dialog.ShowDialog() == true ? reverse.IsChecked == true ? session.ReviewNativeEdit(edit) : new(true, false, \"\") : new(false, false, \"Axis tuning canceled.\"), () => session.ApplyNativeEdit(edit)); refresh(false); AssignmentFeedback(result); });"
+        ],
+        [
+          275,
+          "private bool CanDropCommand(HardwareGraphicControl control, string commandId)"
+        ],
+        [
+          285,
+          "private GameAssignmentReview ReviewAssignmentTarget()"
+        ],
+        [
+          294,
+          "internal DraftResult ExecuteNativeAssignment(SquadronsCommandEdit edit)"
+        ],
+        [
+          310,
+          "internal DraftResult ExecuteAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          314,
+          "internal void AssignmentFeedback(DraftResult result)"
+        ],
+        [
+          319,
+          "internal HardwareDiagramInteractions DrawingInteractions() =>"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsAssignmentsView.xaml",
+      "blob": "aa6d382c1ba154df8945f15079c5e6c2991810c6",
+      "lines": 75,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Squadrons.SquadronsAssignmentsView\""
+        ],
+        [
+          9,
+          "x:Name=\"ShowCommandButton\""
+        ],
+        [
+          10,
+          "x:Name=\"CommandHint\""
+        ],
+        [
+          13,
+          "x:Name=\"SectionPicker\""
+        ],
+        [
+          14,
+          "x:Name=\"TypePicker\""
+        ],
+        [
+          15,
+          "x:Name=\"Search\""
+        ],
+        [
+          16,
+          "x:Name=\"ReviewCaptured\""
+        ],
+        [
+          19,
+          "x:Name=\"CountText\""
+        ],
+        [
+          21,
+          "x:Name=\"CommandBrowser\""
+        ],
+        [
+          27,
+          "x:Name=\"ApplyButton\""
+        ],
+        [
+          28,
+          "x:Name=\"StartInputButton\""
+        ],
+        [
+          29,
+          "x:Name=\"StopInputButton\""
+        ],
+        [
+          30,
+          "x:Name=\"FitDrawingButton\""
+        ],
+        [
+          32,
+          "x:Name=\"DrawingPanel\""
+        ],
+        [
+          35,
+          "x:Name=\"Artwork\""
+        ],
+        [
+          41,
+          "x:Name=\"CapturedAssignments\""
+        ],
+        [
+          43,
+          "x:Name=\"BindingsGrid\""
+        ],
+        [
+          46,
+          "x:Name=\"EditNativeRecordItem\""
+        ],
+        [
+          47,
+          "x:Name=\"ApplyNativeRecordItem\""
+        ],
+        [
+          48,
+          "x:Name=\"ClearNativeRecordItem\""
+        ],
+        [
+          53,
+          "x:Name=\"ContextColumn\""
+        ],
+        [
+          54,
+          "x:Name=\"HardwareColumn\""
+        ],
+        [
+          55,
+          "x:Name=\"ControllerColumn\""
+        ],
+        [
+          57,
+          "x:Name=\"BindingColumn\""
+        ],
+        [
+          60,
+          "x:Name=\"EmptyState\""
+        ],
+        [
+          62,
+          "x:Name=\"SelectionEditor\""
+        ],
+        [
+          63,
+          "x:Name=\"AssignmentEditor\""
+        ],
+        [
+          64,
+          "x:Name=\"AssignmentHint\""
+        ],
+        [
+          66,
+          "x:Name=\"TargetDevice\""
+        ],
+        [
+          67,
+          "x:Name=\"InputPicker\""
+        ],
+        [
+          68,
+          "x:Name=\"ReverseAxisButton\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsAssignmentsView.xaml.cs",
+      "blob": "51d5f38a8ccf238c5006947c98436d9be8d92b79",
+      "lines": 68,
+      "declarations": [
+        [
+          9,
+          "public partial class SquadronsAssignmentsView : GameAssignmentsView"
+        ],
+        [
+          12,
+          "public SquadronsAssignmentsView()"
+        ],
+        [
+          21,
+          "private SquadronsWorkspaceContext? _context;"
+        ],
+        [
+          22,
+          "private Action? _refresh;"
+        ],
+        [
+          23,
+          "private Action? _drawingRefresh;"
+        ],
+        [
+          24,
+          "private Action<string>? _status;"
+        ],
+        [
+          25,
+          "private Func<Task>? _save;"
+        ],
+        [
+          26,
+          "private Action? _discard;"
+        ],
+        [
+          27,
+          "internal void Initialize(SquadronsWorkspaceContext context, Action refresh, Action drawingRefresh, Func<Task> save, Action discard, Action<string> status)"
+        ],
+        [
+          34,
+          "internal void RefreshNativeAssignments() => RefreshAssignments();"
+        ],
+        [
+          35,
+          "internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = \"\") =>"
+        ],
+        [
+          37,
+          "internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>"
+        ],
+        [
+          40,
+          "protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context?.AssignmentContext ?? new(\"\", false, false, false, false);"
+        ],
+        [
+          41,
+          "protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(_context?.Session?.Snapshot);"
+        ],
+        [
+          42,
+          "protected override Task SaveAssignmentsCoreAsync() => _save?.Invoke() ?? throw new InvalidOperationException(\"Open a Squadrons workspace before saving.\");"
+        ],
+        [
+          43,
+          "protected override void DiscardAssignmentsCore()"
+        ],
+        [
+          48,
+          "protected override void RefreshAssignmentsCore() => _refresh?.Invoke();"
+        ],
+        [
+          49,
+          "protected override void RefreshAssignmentDrawing() => _drawingRefresh?.Invoke();"
+        ],
+        [
+          50,
+          "protected override void ShowAssignmentStatus(string message)"
+        ],
+        [
+          54,
+          "private void UpdateControllerReservation()"
+        ],
+        [
+          59,
+          "internal ScrollViewer InspectorViewport => AssignmentInspectorViewport;"
+        ],
+        [
+          60,
+          "internal Slider DrawingZoom => Artwork.Zoom;"
+        ],
+        [
+          61,
+          "internal TextBlock DrawingDropFeedback => Artwork.Feedback;"
+        ],
+        [
+          62,
+          "internal TextBlock DrawingHint => Artwork.Hint;"
+        ],
+        [
+          63,
+          "internal TextBox InputActivity => Artwork.Activity;"
+        ],
+        [
+          64,
+          "internal ScrollViewer DrawingScroll => Artwork.Viewport;"
+        ],
+        [
+          65,
+          "internal Canvas DrawingCanvas => Artwork.Surface;"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsControllerPresenter.cs",
+      "blob": "fd803045ffa91b5865d366a4fc250041fe41f9ef",
+      "lines": 296,
+      "declarations": [
+        [
+          16,
+          "internal sealed class SquadronsControllerPresenter( SquadronsWorkspaceContext context, Func<SquadronsAssignmentEditing> editing, Action<bool> refresh, Action<Action> run, ListBox DevicePicker, TextBlock StatusText, TextBlock ControllerSummary, GameFeatureNavigation FeaturePicker, SquadronsDevicesView _devicesView, SquadronsAssignmentsView _assignmentsView, Window owner, Func<GameControllerChange, bool>? _reviewChange, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? identificationFactory, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory, HardwareDiagramPresenter drawingPresenter) : IDisposable"
+        ],
+        [
+          33,
+          "private HardwareInputFeedback _input = null!;"
+        ],
+        [
+          34,
+          "private GameControllerIdentification _identification = null!;"
+        ],
+        [
+          35,
+          "private int _inputScan;"
+        ],
+        [
+          37,
+          "internal HardwareInputFeedback Input => _input;"
+        ],
+        [
+          38,
+          "internal GameControllerIdentification Identification => _identification;"
+        ],
+        [
+          39,
+          "internal void Start()"
+        ],
+        [
+          46,
+          "public void Dispose()"
+        ],
+        [
+          54,
+          "internal async Task RefreshControllerInputsAsync()"
+        ],
+        [
+          71,
+          "internal void RescanControllers()"
+        ],
+        [
+          80,
+          "internal void UpdateControllerAvailability()"
+        ],
+        [
+          125,
+          "internal void SetupCollapsed(object sender, RoutedEventArgs e) { if (!context.Refreshing && ReferenceEquals(e.OriginalSource, _devicesView.ControllerSetup)) StopLiveInput(); }"
+        ],
+        [
+          127,
+          "private void ClearIdentification()"
+        ],
+        [
+          133,
+          "private void ShowIdentification(IReadOnlyDictionary<DetectedDcsDevice, string> activity)"
+        ],
+        [
+          144,
+          "private void ReviewLink(GameControllerChange change)"
+        ],
+        [
+          151,
+          "internal void LinkClicked(object sender, RoutedEventArgs e) => run(() => { if (!_devicesView.LinkControllerButton.IsEnabled || context.SelectedController is not { } id || _devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return; ReviewLink(context.Session!.PreviewCapturedDeviceLink(id, device.PhysicalGuid)); });"
+        ],
+        [
+          157,
+          "internal void UnlinkClicked(object sender, RoutedEventArgs e) => run(() => { if (_devicesView.UnlinkControllerButton.IsEnabled && context.SelectedController is { } id) ReviewLink(context.Session!.PreviewCapturedDeviceUnlink(id)); });"
+        ],
+        [
+          162,
+          "internal void ReviewNativeChange(GameControllerChange change)"
+        ],
+        [
+          177,
+          "internal void ClearSlotClicked(object sender, RoutedEventArgs e) => run(() => { if (_devicesView.ClearSlotButton.IsEnabled && context.SelectedController is { } id) ReviewNativeChange(context.Session!.PreviewClearCapturedAssignments(id)); });"
+        ],
+        [
+          183,
+          "internal void RemoveUnusedSlotClicked(object sender, RoutedEventArgs e) => run(() => { if (!_devicesView.RemoveUnusedSlotButton.IsEnabled || context.SelectedController is not { } id) return; var change = context.Session!.PreviewRemoveUnusedCapturedDevice(id); if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(owner, change).ShowDialog() == true)) return; context.Session.ApplyControllerChange(change); refresh(false); StatusText.Text = \"Unused slot removed from staged profile. Save before exporting.\"; });"
+        ],
+        [
+          193,
+          "internal void IdentifyClicked(object sender, RoutedEventArgs e) => run(() => { if (!_devicesView.IdentifyControllerButton.IsEnabled) return; _identification.Start(context.Services.Discover()); UpdateControllerAvailability(); _devicesView.IdentificationStatus.Text = \"Press a button, move a hat or move an axis noticeably on one controller. Held switches are ignored until pressed again.\"; });"
+        ],
+        [
+          200,
+          "internal void StopIdentificationClicked(object sender, RoutedEventArgs e) => StopLiveInput();"
+        ],
+        [
+          202,
+          "internal async void RescanClicked(object sender, RoutedEventArgs e)"
+        ],
+        [
+          208,
+          "internal void ConnectedChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          214,
+          "internal void RefreshNativeControllerName()"
+        ],
+        [
+          229,
+          "internal void RenameControllerClicked(object sender, RoutedEventArgs e) => run(() => { if (_devicesView.RenameControllerButton.IsEnabled && context.SelectedController is { } slot) ReviewNativeChange(context.Session!.PreviewRenameNativeController(slot, _devicesView.NativeControllerName.Text)); });"
+        ],
+        [
+          235,
+          "internal void AddControllerClicked(object sender, RoutedEventArgs e) => run(() => { if (!_devicesView.AddControllerButton.IsEnabled) return; if (context.SelectedController is { } slot && context.Session!.Snapshot.Hardware.ContainsKey(slot)) { DevicePicker.SelectedIndex = 0; _devicesView.ConnectedPicker.SelectedIndex = -1; _devicesView.ConnectedPicker.Focus(); _devicesView.ConnectedPicker.IsDropDownOpen = true; return; } if (_devicesView.ConnectedPicker.SelectedItem is not DetectedDcsDevice device) return; ReviewNativeChange(context.Session!.PreviewAddNativeController(device.PhysicalGuid, _devicesView.NativeControllerName.Text)); });"
+        ],
+        [
+          250,
+          "private void StopSamplingForReview()"
+        ],
+        [
+          256,
+          "internal void StopLiveInput()"
+        ],
+        [
+          262,
+          "private void InputStateChanged(object? sender, EventArgs e)"
+        ],
+        [
+          267,
+          "private void UpdateInputAvailability()"
+        ],
+        [
+          278,
+          "internal void StartInputClicked(object sender, RoutedEventArgs e) => run(() => { UpdateInputAvailability(); if (!_assignmentsView.StartInputButton.IsEnabled || context.SelectedController is not { } slot || context.Session?.Snapshot.Hardware.GetValueOrDefault(slot) is not { } pin) return; _identification.Stop(); _input.Start(pin, context.Services.Discover()); });"
+        ],
+        [
+          287,
+          "internal void StopInputClicked(object sender, RoutedEventArgs e) => StopLiveInput();"
+        ],
+        [
+          289,
+          "private void ShowInputActivity(string text)"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsDevicesView.xaml",
+      "blob": "617e4b0557c14422e97937b39d1e1f844d75c5d0",
+      "lines": 55,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Squadrons.SquadronsDevicesView\""
+        ],
+        [
+          7,
+          "x:Name=\"RescanControllerButton\""
+        ],
+        [
+          8,
+          "x:Name=\"IdentifyControllerButton\""
+        ],
+        [
+          9,
+          "x:Name=\"CancelIdentificationButton\""
+        ],
+        [
+          10,
+          "x:Name=\"AddControllerButton\""
+        ],
+        [
+          11,
+          "x:Name=\"RemoveUnusedSlotButton\""
+        ],
+        [
+          14,
+          "x:Name=\"RenameControllerButton\""
+        ],
+        [
+          15,
+          "x:Name=\"ClearSlotButton\""
+        ],
+        [
+          24,
+          "x:Name=\"LinkControllerButton\""
+        ],
+        [
+          25,
+          "x:Name=\"UnlinkControllerButton\""
+        ],
+        [
+          26,
+          "x:Name=\"ConnectedPicker\""
+        ],
+        [
+          31,
+          "x:Name=\"ChooseDrawingButton\" x:Name=\"ClearDrawingButton\""
+        ],
+        [
+          32,
+          "x:Name=\"DrawingPicker\""
+        ],
+        [
+          34,
+          "x:Name=\"ControllerSetup\""
+        ],
+        [
+          37,
+          "x:Name=\"LinkStatus\""
+        ],
+        [
+          41,
+          "x:Name=\"NativeControllerName\""
+        ],
+        [
+          43,
+          "x:Name=\"IdentificationStatus\""
+        ],
+        [
+          52,
+          "x:Name=\"ControllerPreview\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsDevicesView.xaml.cs",
+      "blob": "6e7dc9a65709c3c558d27cf0d67fff34d1a828bc",
+      "lines": 11,
+      "declarations": [
+        [
+          6,
+          "public partial class SquadronsDevicesView : UserControl"
+        ],
+        [
+          9,
+          "public SquadronsDevicesView() => InitializeComponent();"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsProfileOperations.cs",
+      "blob": "1de7db68bd3cb93fbaa9abf08aee5d116737eafe",
+      "lines": 183,
+      "declarations": [
+        [
+          16,
+          "internal sealed class SquadronsProfileOperations( SquadronsWorkspaceContext context, Func<SquadronsControllerPresenter> controllers, Action<bool> refresh, Action<Action> run, Func<bool> confirmLeave, TextBlock StatusText, ComboBox ProfilePicker, Button NewProfileButton, SquadronsAssignmentsView _assignmentsView, Window owner)"
+        ],
+        [
+          30,
+          "internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }"
+        ],
+        [
+          31,
+          "internal void SaveCore()"
+        ],
+        [
+          45,
+          "internal void ImportFile(string path)"
+        ],
+        [
+          65,
+          "internal void ImportTemplatesFile(string path)"
+        ],
+        [
+          76,
+          "internal bool NewProfile(string name)"
+        ],
+        [
+          100,
+          "internal string ExportReview(string parent)"
+        ],
+        [
+          115,
+          "private GameProfileSession CreateSession(GameWorkspace workspace)"
+        ],
+        [
+          121,
+          "internal void LoadProfile(Guid id)"
+        ],
+        [
+          134,
+          "internal void Remember()"
+        ],
+        [
+          139,
+          "internal void ReloadChoices()"
+        ],
+        [
+          150,
+          "internal void ImportTemplatesClicked(object sender, RoutedEventArgs e) => run(() => { var dialog = new OpenFileDialog { Title = \"Import assignment templates from an original Squadrons capture\", Filter = \"Squadrons controls|ProfileOptions_profile_synced|All files|*.*\" }; if (dialog.ShowDialog(owner) == true) ImportTemplatesFile(dialog.FileName); });"
+        ],
+        [
+          156,
+          "internal void ImportClicked(object sender, RoutedEventArgs e) => run(() => { var dialog = new OpenFileDialog { Title = \"Import Squadrons controls\", Filter = \"Squadrons controls|ProfileOptions_profile_synced|All files|*.*\" }; if (dialog.ShowDialog(owner) == true) ImportFile(dialog.FileName); });"
+        ],
+        [
+          162,
+          "internal void ExportClicked(object sender, RoutedEventArgs e) => run(() => { var dialog = new OpenFolderDialog { Title = \"Choose a folder for a separate Squadrons review copy\" }; if (dialog.ShowDialog(owner) == true) ExportReview(dialog.FolderName); });"
+        ],
+        [
+          168,
+          "internal void NewProfileClicked(object sender, RoutedEventArgs e) => run(() => { if (!NewProfileButton.IsEnabled) return; controllers().StopLiveInput(); string? name; if (ConfigurationNamePicker is not null) name = ConfigurationNamePicker(\"New\", \"New Controls\"); else { var dialog = new GameConfigurationNameWindow(owner, \"New\", \"New Controls\"); name = dialog.ShowDialog() == true ? dialog.ConfigurationName : null; } if (name is not null) NewProfile(name); });"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsWorkspaceContext.cs",
+      "blob": "925415f4158c9de1ddb989da609d10c492f111b1",
+      "lines": 42,
+      "declarations": [
+        [
+          8,
+          "internal sealed class SquadronsWorkspaceContext(GameWorkspaceServices services, Func<string?> selectedController, Func<string?> assignmentSource, Func<string> drawingSection, Func<string> editedName, Func<bool> busy)"
+        ],
+        [
+          12,
+          "internal const string CommandDragFormat = \"heimdall.squadrons.command\";"
+        ],
+        [
+          13,
+          "internal GameWorkspaceServices Services { get; } = services;"
+        ],
+        [
+          14,
+          "internal SquadronsProfileBackend Backend { get; } = new();"
+        ],
+        [
+          15,
+          "internal GameProfileSession? Session { get; set; }"
+        ],
+        [
+          16,
+          "internal string? Revision { get; set; }"
+        ],
+        [
+          17,
+          "internal string? SourceDirectory { get; set; }"
+        ],
+        [
+          18,
+          "internal IReadOnlyList<WorkspaceHardware> Drawings { get; set; } = [];"
+        ],
+        [
+          19,
+          "internal IReadOnlyList<SquadronsWorkspaceRow> Rows { get; set; } = [];"
+        ],
+        [
+          20,
+          "internal IReadOnlyList<ControllerObservation> ControllerInputs { get; set; } = [];"
+        ],
+        [
+          21,
+          "internal GameAssignmentSelection Selection { get; set; } = null!;"
+        ],
+        [
+          22,
+          "internal string? FocusedConcept { get; set; }"
+        ],
+        [
+          23,
+          "internal HardwareGraphicControl? InspectedControl { get; set; }"
+        ],
+        [
+          24,
+          "internal bool Refreshing { get; set; } = true;"
+        ],
+        [
+          25,
+          "internal bool ScanningInputs { get; set; }"
+        ],
+        [
+          26,
+          "internal bool Disposed { get; set; }"
+        ],
+        [
+          27,
+          "internal bool Busy => busy();"
+        ],
+        [
+          28,
+          "internal string EditedName => editedName();"
+        ],
+        [
+          29,
+          "internal string? SelectedController => selectedController();"
+        ],
+        [
+          30,
+          "internal string? AssignmentSource => assignmentSource();"
+        ],
+        [
+          31,
+          "internal string DrawingSection => drawingSection();"
+        ],
+        [
+          32,
+          "internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, editedName());"
+        ],
+        [
+          33,
+          "internal Func<bool> Identifying { get; set; } = () => false;"
+        ],
+        [
+          34,
+          "internal Func<bool> Testing { get; set; } = () => false;"
+        ],
+        [
+          35,
+          "internal WorkspaceAssignmentContext AssignmentContext => new( (Session?.Snapshot.Id.ToString(\"N\") ?? \"\") + \":\" + AssignmentSource + \":\" + DrawingSection, Session is not null, Session?.AccessMessage.Length > 0 || AssignmentSource?.StartsWith(\"system.\", StringComparison.Ordinal) == true, Busy || ScanningInputs || Identifying(), Testing());"
+        ],
+        [
+          39,
+          "internal event EventHandler? Changed;"
+        ],
+        [
+          40,
+          "internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);"
+        ]
+      ],
+      "xaml_wiring": []
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsWorkspaceWindow.xaml",
+      "blob": "99ef70a89e80960d077e6c960cc2da3c53ba3707",
+      "lines": 45,
+      "declarations": [],
+      "xaml_wiring": [
+        [
+          1,
+          "x:Class=\"Heimdall.App.Games.Squadrons.SquadronsWorkspaceWindow\""
+        ],
+        [
+          5,
+          "x:Name=\"WorkspaceRoot\""
+        ],
+        [
+          8,
+          "x:Name=\"GamePicker\" SelectionChanged=\"GameChanged\""
+        ],
+        [
+          9,
+          "x:Name=\"ProfilePicker\" SelectionChanged=\"ProfileChanged\""
+        ],
+        [
+          12,
+          "x:Name=\"NewProfileButton\" Click=\"NewProfileClicked\""
+        ],
+        [
+          13,
+          "x:Name=\"SaveButton\" Click=\"SaveClicked\""
+        ],
+        [
+          14,
+          "x:Name=\"DiscardButton\" Click=\"DiscardClicked\""
+        ],
+        [
+          15,
+          "x:Name=\"ExportButton\" Click=\"ExportClicked\""
+        ],
+        [
+          16,
+          "x:Name=\"SaveState\""
+        ],
+        [
+          21,
+          "x:Name=\"ImportTemplatesButton\" Click=\"ImportTemplatesClicked\""
+        ],
+        [
+          22,
+          "x:Name=\"ImportButton\" Click=\"ImportClicked\""
+        ],
+        [
+          24,
+          "x:Name=\"ProfileName\" TextChanged=\"NameChanged\""
+        ],
+        [
+          30,
+          "x:Name=\"FeaturePicker\" SelectionChanged=\"FeatureChanged\""
+        ],
+        [
+          33,
+          "x:Name=\"FeatureActions\""
+        ],
+        [
+          37,
+          "x:Name=\"ControllerSummary\""
+        ],
+        [
+          38,
+          "x:Name=\"DevicePicker\" Drop=\"True\" SelectionChanged=\"FilterChanged\""
+        ],
+        [
+          40,
+          "x:Name=\"FeatureContent\""
+        ],
+        [
+          43,
+          "x:Name=\"StatusText\""
+        ]
+      ]
+    },
+    {
+      "path": "src/Heimdall.App/Games/Squadrons/SquadronsWorkspaceWindow.xaml.cs",
+      "blob": "df3d06e680efcb72c1d3a5b8903b7127f4f246fa",
+      "lines": 367,
+      "declarations": [
+        [
+          16,
+          "public sealed partial class SquadronsWorkspaceWindow : GameWorkspaceWindow, IDisposable"
+        ],
+        [
+          18,
+          "private readonly SquadronsDevicesView _devicesView = new();"
+        ],
+        [
+          19,
+          "private readonly SquadronsAssignmentsView _assignmentsView = new();"
+        ],
+        [
+          20,
+          "private readonly SquadronsWorkspaceContext _context;"
+        ],
+        [
+          21,
+          "private readonly SquadronsControllerPresenter _controllers;"
+        ],
+        [
+          22,
+          "private readonly SquadronsAssignmentBrowser _browser;"
+        ],
+        [
+          23,
+          "private readonly SquadronsAssignmentEditing _editing;"
+        ],
+        [
+          24,
+          "private readonly SquadronsAssignmentDrawing _drawing;"
+        ],
+        [
+          25,
+          "private readonly SquadronsProfileOperations _profiles;"
+        ],
+        [
+          26,
+          "private readonly GameCommandDragSource _commandDrag;"
+        ],
+        [
+          27,
+          "private readonly GameControllerReordering _reordering;"
+        ],
+        [
+          28,
+          "private readonly Func<MessageBoxResult>? _pendingChoice;"
+        ],
+        [
+          29,
+          "private bool _disposed;"
+        ],
+        [
+          30,
+          "private bool _allowClose;"
+        ],
+        [
+          33,
+          "public SquadronsWorkspaceWindow(GameWorkspaceServices services, Guid? initial = null, Func<MessageBoxResult>? pendingChoice = null, Func<GameControllerChange, bool>? reviewChange = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? identificationFactory = null, IReadOnlyList<WorkspaceHardware>? drawings = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null)"
+        ],
+        [
+          166,
+          "internal Func<string, string, string?>? ConfigurationNamePicker { get => _profiles.ConfigurationNamePicker; set => _profiles.ConfigurationNamePicker = value; }"
+        ],
+        [
+          168,
+          "public string? RequestedGame { get; private set; }"
+        ],
+        [
+          169,
+          "internal GameProfileSession? Session => _context.Session;"
+        ],
+        [
+          170,
+          "internal WorkspaceAssignmentWorkflow AssignmentWorkflow => _assignmentsView.AssignmentWorkflow;"
+        ],
+        [
+          171,
+          "internal GameAssignmentSelection AssignmentSelection => _assignmentsView.AssignmentSelection;"
+        ],
+        [
+          172,
+          "internal void SampleIdentification() => _controllers.Identification.Sample();"
+        ],
+        [
+          173,
+          "internal void SampleInput() => _controllers.Input.Sample();"
+        ],
+        [
+          174,
+          "internal Task RefreshControllerInputsAsync() => _controllers.RefreshControllerInputsAsync();"
+        ],
+        [
+          175,
+          "internal HardwareDiagramInteractions DrawingInteractions() => _editing.DrawingInteractions();"
+        ],
+        [
+          176,
+          "internal void ImportFile(string path) => _profiles.ImportFile(path);"
+        ],
+        [
+          177,
+          "internal void ImportTemplatesFile(string path) => _profiles.ImportTemplatesFile(path);"
+        ],
+        [
+          178,
+          "internal bool NewProfile(string name) => _profiles.NewProfile(name);"
+        ],
+        [
+          179,
+          "internal string ExportReview(string parent) => _profiles.ExportReview(parent);"
+        ],
+        [
+          181,
+          "internal bool SaveProfile()"
+        ],
+        [
+          187,
+          "public void Dispose()"
+        ],
+        [
+          196,
+          "protected override bool HasWorkspaceChanges => _context.Chrome.Pending;"
+        ],
+        [
+          197,
+          "protected override bool CanSaveWorkspace => _context.Chrome.CanSave;"
+        ],
+        [
+          198,
+          "protected override string WorkspaceStateSummary => _context.Chrome.Status;"
+        ],
+        [
+          199,
+          "protected override Task SaveWorkspaceCoreAsync()"
+        ],
+        [
+          204,
+          "protected override void DiscardWorkspaceCore()"
+        ],
+        [
+          212,
+          "protected override void ReportWorkspaceError(Exception exception) => StatusText.Text = \"Unable to save: \" + exception.Message;"
+        ],
+        [
+          213,
+          "private bool ConfirmLeave()"
+        ],
+        [
+          224,
+          "protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());"
+        ],
+        [
+          225,
+          "private void FeatureChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          233,
+          "private void Run(Action action)"
+        ],
+        [
+          238,
+          "private string? SelectedController => DevicePicker.SelectedItem is GameDeviceChoice choice &&"
+        ],
+        [
+          240,
+          "private string? SelectedAssignmentSource => (DevicePicker.SelectedItem as GameDeviceChoice)?.Id;"
+        ],
+        [
+          241,
+          "private string DrawingSection => CommandContextFilter.SelectedItem as string ?? \"All\";"
+        ],
+        [
+          242,
+          "private void ImportTemplatesClicked(object sender, RoutedEventArgs e) => _profiles.ImportTemplatesClicked(sender, e);"
+        ],
+        [
+          243,
+          "private void ImportClicked(object sender, RoutedEventArgs e) => _profiles.ImportClicked(sender, e);"
+        ],
+        [
+          244,
+          "private void ExportClicked(object sender, RoutedEventArgs e) => _profiles.ExportClicked(sender, e);"
+        ],
+        [
+          245,
+          "private void NewProfileClicked(object sender, RoutedEventArgs e) => _profiles.NewProfileClicked(sender, e);"
+        ],
+        [
+          246,
+          "private void FilterChanged(object sender, SelectionChangedEventArgs e) => _browser.FilterChanged(sender, e);"
+        ],
+        [
+          247,
+          "private void Refresh(bool resetName = true)"
+        ],
+        [
+          276,
+          "private void UpdateAvailability()"
+        ],
+        [
+          281,
+          "protected override void OnWorkspaceStateChanged()"
+        ],
+        [
+          293,
+          "private void ProfileChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          300,
+          "private void GameChanged(object sender, SelectionChangedEventArgs e)"
+        ],
+        [
+          307,
+          "private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing) UpdateAvailability(); }"
+        ],
+        [
+          308,
+          "private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;"
+        ],
+        [
+          309,
+          "private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;"
+        ],
+        [
+          310,
+          "private ComboBox CommandStatusFilter => CommandBrowser.AssignmentStatusPicker;"
+        ],
+        [
+          311,
+          "private TextBox CommandSearch => CommandBrowser.CommandSearch;"
+        ],
+        [
+          312,
+          "private ListBox CommandPicker => CommandBrowser.CommandsList;"
+        ],
+        [
+          313,
+          "private TextBlock CommandFilterCount => CommandBrowser.CommandCount;"
+        ],
+        [
+          314,
+          "private Button RescanControllerButton => _devicesView.RescanControllerButton;"
+        ],
+        [
+          315,
+          "private Button IdentifyControllerButton => _devicesView.IdentifyControllerButton;"
+        ],
+        [
+          316,
+          "private Button CancelIdentificationButton => _devicesView.CancelIdentificationButton;"
+        ],
+        [
+          317,
+          "private Button RenameControllerButton => _devicesView.RenameControllerButton;"
+        ],
+        [
+          318,
+          "private Button AddControllerButton => _devicesView.AddControllerButton;"
+        ],
+        [
+          319,
+          "private TextBox NativeControllerName => _devicesView.NativeControllerName;"
+        ],
+        [
+          320,
+          "private Button LinkControllerButton => _devicesView.LinkControllerButton;"
+        ],
+        [
+          321,
+          "private Button UnlinkControllerButton => _devicesView.UnlinkControllerButton;"
+        ],
+        [
+          322,
+          "private Button ClearSlotButton => _devicesView.ClearSlotButton;"
+        ],
+        [
+          323,
+          "private Button RemoveUnusedSlotButton => _devicesView.RemoveUnusedSlotButton;"
+        ],
+        [
+          324,
+          "private Button ClearDrawingButton => _devicesView.ClearDrawingButton;"
+        ],
+        [
+          325,
+          "private Expander ControllerSetup => _devicesView.ControllerSetup;"
+        ],
+        [
+          326,
+          "private TextBlock LinkStatus => _devicesView.LinkStatus;"
+        ],
+        [
+          327,
+          "private ComboBox ConnectedPicker => _devicesView.ConnectedPicker;"
+        ],
+        [
+          328,
+          "private TextBlock IdentificationStatus => _devicesView.IdentificationStatus;"
+        ],
+        [
+          329,
+          "private ComboBox DrawingPicker => _devicesView.DrawingPicker;"
+        ],
+        [
+          330,
+          "private Button FitDrawingButton => _assignmentsView.FitDrawingButton;"
+        ],
+        [
+          331,
+          "private Button ApplyButton => _assignmentsView.ApplyButton;"
+        ],
+        [
+          332,
+          "private Button StartInputButton => _assignmentsView.StartInputButton;"
+        ],
+        [
+          333,
+          "private Button StopInputButton => _assignmentsView.StopInputButton;"
+        ],
+        [
+          334,
+          "private Button ShowCommandButton => _assignmentsView.ShowCommandButton;"
+        ],
+        [
+          335,
+          "private TextBlock CommandHint => _assignmentsView.CommandHint;"
+        ],
+        [
+          336,
+          "private ComboBox SectionPicker => _assignmentsView.SectionPicker;"
+        ],
+        [
+          337,
+          "private ComboBox TypePicker => _assignmentsView.TypePicker;"
+        ],
+        [
+          338,
+          "private TextBox Search => _assignmentsView.Search;"
+        ],
+        [
+          339,
+          "private CheckBox ReviewCaptured => _assignmentsView.ReviewCaptured;"
+        ],
+        [
+          340,
+          "private TextBlock CountText => _assignmentsView.CountText;"
+        ],
+        [
+          341,
+          "private GameCommandBrowserView CommandBrowser => _assignmentsView.CommandBrowser;"
+        ],
+        [
+          342,
+          "private Expander CapturedAssignments => _assignmentsView.CapturedAssignments;"
+        ],
+        [
+          343,
+          "private DataGrid BindingsGrid => _assignmentsView.BindingsGrid;"
+        ],
+        [
+          344,
+          "private MenuItem EditNativeRecordItem => _assignmentsView.EditNativeRecordItem;"
+        ],
+        [
+          345,
+          "private MenuItem ClearNativeRecordItem => _assignmentsView.ClearNativeRecordItem;"
+        ],
+        [
+          346,
+          "private MenuItem ApplyNativeRecordItem => _assignmentsView.ApplyNativeRecordItem;"
+        ],
+        [
+          347,
+          "private DataGridTextColumn ContextColumn => _assignmentsView.ContextColumn;"
+        ],
+        [
+          348,
+          "private DataGridTextColumn HardwareColumn => _assignmentsView.HardwareColumn;"
+        ],
+        [
+          349,
+          "private DataGridTextColumn ControllerColumn => _assignmentsView.ControllerColumn;"
+        ],
+        [
+          350,
+          "private DataGridTextColumn BindingColumn => _assignmentsView.BindingColumn;"
+        ],
+        [
+          351,
+          "private TextBlock EmptyState => _assignmentsView.EmptyState;"
+        ],
+        [
+          352,
+          "private Expander DrawingPanel => _assignmentsView.DrawingPanel;"
+        ],
+        [
+          353,
+          "private Slider DrawingZoom => _assignmentsView.DrawingZoom;"
+        ],
+        [
+          354,
+          "private TextBlock DrawingDropFeedback => _assignmentsView.DrawingDropFeedback;"
+        ],
+        [
+          355,
+          "private ScrollViewer DrawingScroll => _assignmentsView.DrawingScroll;"
+        ],
+        [
+          356,
+          "private Canvas DrawingCanvas => _assignmentsView.DrawingCanvas;"
+        ],
+        [
+          357,
+          "private TextBox InputActivity => _assignmentsView.InputActivity;"
+        ],
+        [
+          358,
+          "private TextBlock DrawingHint => _assignmentsView.DrawingHint;"
+        ],
+        [
+          359,
+          "private Button ReverseAxisButton => _assignmentsView.ReverseAxisButton;"
+        ],
+        [
+          360,
+          "private GameAssignmentEditorView SelectionEditor => _assignmentsView.SelectionEditor;"
+        ],
+        [
+          361,
+          "private StackPanel AssignmentEditor => _assignmentsView.AssignmentEditor;"
+        ],
+        [
+          362,
+          "private TextBlock AssignmentHint => _assignmentsView.AssignmentHint;"
+        ],
+        [
+          363,
+          "private ComboBox TargetDevice => _assignmentsView.TargetDevice;"
+        ],
+        [
+          364,
+          "private ComboBox InputPicker => _assignmentsView.InputPicker;"
+        ]
+      ],
+      "xaml_wiring": []
+    }
+  ]
+}

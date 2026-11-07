@@ -19,7 +19,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Captures native units without first opening the module editor.</summary>
         /// <param name="connection">Migrated smoke database.</param>
         /// <param name="repository">Saved module repository.</param>
-        public static void Verify(string connection, IEditorWorkspaceRepository repository)
+        public static void Verify(string connection, IDcsEditorWorkspaceRepository repository)
         {
             var root = Path.Combine(Path.GetTempPath(), "ipia-axis-fly-" + Guid.NewGuid().ToString("N"));
             MainWindow? window = null;
@@ -28,7 +28,7 @@ namespace Heimdall.App.Smoke
                 var saved = Workspace(Guid.NewGuid());
                 repository.SaveAsync(saved).GetAwaiter().GetResult();
                 // Fail before a UI error dialog if selecting this catalog-free imported module cannot reopen its draft.
-                _ = new ModuleWorkspaceViewModel(repository.GetAsync(saved.Configuration.Module.Id).GetAwaiter().GetResult()!);
+                _ = new DcsModuleWorkspaceViewModel(repository.GetAsync(saved.Configuration.Module.Id).GetAwaiter().GetResult()!);
                 var destination = Path.Combine(root, "DCS");
                 var unused = new DetectedDcsDevice(Guid.NewGuid(), "Unused quadrant", false).FileName;
                 var target = Path.Combine(destination, "Config", "Input", saved.Configuration.Module.DcsId, "joystick", unused);
@@ -36,12 +36,12 @@ namespace Heimdall.App.Smoke
                 File.WriteAllText(target, "local diff = {} return diff");
                 var settings = new SqliteAppSettingsService(connection, Path.Combine(root, "defaults.json"), Path.Combine(root, "settings.json"), Path.Combine(root, "theme.txt"));
                 settings.TryUpdateSavedGamesDcsFolder(destination);
-                var service = new SqliteFlyNowService(connection, Path.Combine(root, "backups"), new FlyNowPayloadBuilder(repository));
-                window = new MainWindow(new ModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository, flyNow: service, deviceDiscovery: new EmptyDeviceDiscovery());
+                var service = new DcsSqliteFlyNowService(connection, Path.Combine(root, "backups"), new DcsFlyNowPayloadBuilder(repository));
+                window = new MainWindow(new DcsModuleWorkspaceLoader(), new DcsFolderImporter(), settings, repository, flyNow: service, deviceDiscovery: new EmptyDeviceDiscovery());
                 window.Show();
                 var modules = (ComboBox)window.FindName("SavedModules")!;
                 Wait(window, () => modules.Items.Count > 0 && ((TextBlock)window.FindName("FlyNowStatus")!).Text.StartsWith("No module", StringComparison.Ordinal));
-                modules.SelectedItem = modules.Items.Cast<SavedModuleChoice>().Single(x => x.Id == saved.Configuration.Module.Id);
+                modules.SelectedItem = modules.Items.Cast<DcsSavedModuleChoice>().Single(x => x.Id == saved.Configuration.Module.Id);
                 var previous = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
                 try { ((Button)window.FindName("FlyNowButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
@@ -73,17 +73,17 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        internal static EditorWorkspaceSnapshot Workspace(Guid moduleId, string dcsId = "AXIS-TEST")
+        internal static DcsEditorWorkspaceSnapshot Workspace(Guid moduleId, string dcsId = "AXIS-TEST")
         {
             var profileId = Guid.NewGuid();
             var file = new DetectedDcsDevice(Guid.NewGuid(), "Authored stick", false).FileName;
-            var profile = new DeviceProfile(profileId, "stick", null, "Stick", file);
+            var profile = new DcsDeviceProfile(profileId, "stick", null, "Stick", file);
             var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
                 ProfileId = profileId, Controls = [new("pitch", "Pitch", "JOY_Y", 0, 0, 10, 10, true)],
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text id='lbl-pitch' x='10' y='20' fill='white'>Pitch</text></svg>"
             };
             var sources = new Dictionary<string, string> {
-                [WorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new WorkspaceManagement([
+                [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new DcsWorkspaceManagement([
                     new(profileId, AssignmentLayer.Module, file, null, "Stick")], [])),
                 ["config/kneeboard.json"] = JsonSerializer.Serialize(new {
                     profiles = new Dictionary<string, string> { ["stick"] = file },
@@ -101,11 +101,11 @@ namespace Heimdall.App.Smoke
                 new(profileId, BindingSection.Axis, "a2001cdnil", "Pitch", BindingDisposition.Added, "JOY_Y"),
                 new(profileId, BindingSection.Axis, "a2002cdnil", "Roll", BindingDisposition.Added, "JOY_Y")
             };
-            var workspace = new EditorWorkspaceSnapshot(new(new DcsModule(moduleId, dcsId, "Axis test"), [profile], [], original, "Imported from Saved Games"),
+            var workspace = new DcsEditorWorkspaceSnapshot(new(new DcsModule(moduleId, dcsId, "Axis test"), [profile], [], original, "Imported from Saved Games"),
                 pages, [], [diagram], [], [],
                 [new(new(moduleId, profileId, AssignmentLayer.Module, BindingSection.Axis, "JOY_Y"), new("a2001cdnil", "Pitch", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), sources);
-            return ModulePhysicalBindingReview.Confirm(workspace, profileId, DcsPhysicalIdentity.FromFileName(file)!.Value);
+            return DcsModulePhysicalBindingReview.Confirm(workspace, profileId, DcsPhysicalIdentity.FromFileName(file)!.Value);
         }
         private static void Wait(MainWindow window, Func<bool> ready)
         {

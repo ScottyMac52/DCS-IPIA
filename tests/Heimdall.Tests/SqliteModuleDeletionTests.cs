@@ -21,7 +21,7 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connectionString);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connectionString);
                 var deleted = Workspace("UH-1H");
                 var retained = Workspace("F-14BU");
                 await repository.SaveAsync(deleted);
@@ -30,7 +30,7 @@ namespace Heimdall.Tests
                 await connection.OpenAsync();
                 await ExecuteAsync(connection, "INSERT INTO app_preferences VALUES(1,1,'Dark','Ask'); " +
                     "INSERT INTO shared_ui_layer_revisions VALUES(1,'shared','{}','hash');");
-                var retainedJson = EditorSnapshotSerializer.Serialize((await repository.GetAsync(retained.Configuration.Module.Id))!);
+                var retainedJson = DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(retained.Configuration.Module.Id))!);
                 Assert.True(await repository.DeleteAsync(deleted.Configuration.Module.Id));
                 foreach (var table in new[] { "modules", "device_profiles", "modifiers", "bindings", "editor_workspaces" })
                 {
@@ -41,9 +41,9 @@ namespace Heimdall.Tests
                     Assert.Equal(0L, (long)(await command.ExecuteScalarAsync())!);
                 }
                 Assert.Null(await repository.GetAsync(deleted.Configuration.Module.Id));
-                Assert.Null(await new SqliteConfigurationRepository(connectionString).GetAsync(deleted.Configuration.Module.Id));
+                Assert.Null(await new DcsSqliteConfigurationRepository(connectionString).GetAsync(deleted.Configuration.Module.Id));
                 Assert.Equal(retained.Configuration.Module.Id, Assert.Single(await repository.ListAsync()));
-                Assert.Equal(retainedJson, EditorSnapshotSerializer.Serialize((await repository.GetAsync(retained.Configuration.Module.Id))!));
+                Assert.Equal(retainedJson, DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(retained.Configuration.Module.Id))!));
                 foreach (var table in new[] { "app_preferences", "shared_ui_layer_revisions" })
                 {
                     await using var command = connection.CreateCommand();
@@ -76,16 +76,16 @@ namespace Heimdall.Tests
             try
             {
                 await new SqliteMigrationRunner(connectionString).MigrateAsync();
-                var repository = new SqliteEditorWorkspaceRepository(connectionString);
+                var repository = new DcsSqliteEditorWorkspaceRepository(connectionString);
                 var workspace = Workspace("UH-1H");
                 await repository.SaveAsync(workspace);
-                var original = EditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!);
+                var original = DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!);
                 await using var connection = new SqliteConnection(connectionString);
                 await connection.OpenAsync();
                 await ExecuteAsync(connection, "CREATE TRIGGER reject_binding_delete BEFORE DELETE ON bindings " +
                     "BEGIN SELECT RAISE(ABORT,'test cascade failure'); END;");
                 await Assert.ThrowsAsync<SqliteException>(() => repository.DeleteAsync(workspace.Configuration.Module.Id));
-                Assert.Equal(original, EditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!));
+                Assert.Equal(original, DcsEditorSnapshotSerializer.Serialize((await repository.GetAsync(workspace.Configuration.Module.Id))!));
                 Assert.False(await repository.DeleteAsync(Guid.NewGuid()));
                 await Assert.ThrowsAsync<ArgumentException>(() => repository.DeleteAsync(Guid.Empty));
                 await ExecuteAsync(connection, "DROP TRIGGER reject_binding_delete;");
@@ -100,16 +100,16 @@ namespace Heimdall.Tests
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static EditorWorkspaceSnapshot Workspace(string dcsId)
+        private static DcsEditorWorkspaceSnapshot Workspace(string dcsId)
         {
             var module = new DcsModule(Guid.NewGuid(), dcsId, dcsId);
-            var profile = new DeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
+            var profile = new DcsDeviceProfile(Guid.NewGuid(), "stick", null, "Stick", "Stick.diff.lua");
             var binding = new DcsBinding(profile.Id, BindingSection.Key, "FIRE", "Fire", BindingDisposition.Added, "JOY_BTN1");
-            var config = new ModuleConfiguration(module, [profile],
+            var config = new DcsModuleConfiguration(module, [profile],
                 [new DcsModifier("SHIFT", "Stick", "JOY_BTN2", ModifierMode.Hold)], [binding], "import");
-            var slot = new DraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
-            return new(config, [], [], [], [new CommandPaletteEntry("FIRE", "Fire", "Weapons", false)], [],
-                [new DraftAssignment(slot, new DraftCommand("FIRE", "Fire", false, AssignmentLayer.Module))],
+            var slot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1");
+            return new(config, [], [], [], [new DcsCommandPaletteEntry("FIRE", "Fire", "Weapons", false)], [],
+                [new DcsDraftAssignment(slot, new DcsDraftCommand("FIRE", "Fire", false, AssignmentLayer.Module))],
                 new Dictionary<string, string> { [slot.Key] = "Edited label" },
                 new Dictionary<string, string> { ["config/kneeboard.json"] = "old import" });
         }

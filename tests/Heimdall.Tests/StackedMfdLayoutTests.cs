@@ -98,9 +98,9 @@ namespace Heimdall.Tests
                 Svg = "<svg xmlns='http://www.w3.org/2000/svg'><text id='lbl-trigger' x='50' y='50'>Trigger</text></svg>",
                 Controls = [new("trigger", "Trigger", "JOY_BTN1", 20, 20, 60, 30)]
             };
-            var configuration = new ModuleConfiguration(new(Guid.NewGuid(), "TEST", "Test"), [], [], [], "test");
-            var workspace = new EditorWorkspaceSnapshot(configuration, [], [], [selected, stick], [], [], [], new Dictionary<string, string>());
-            var adopted = UserMappingAdoption.Apply(workspace, selected.ProfileId, revision);
+            var configuration = new DcsModuleConfiguration(new(Guid.NewGuid(), "TEST", "Test"), [], [], [], "test");
+            var workspace = new DcsEditorWorkspaceSnapshot(configuration, [], [], [selected, stick], [], [], [], new Dictionary<string, string>());
+            var adopted = DcsUserMappingAdoption.Apply(workspace, selected.ProfileId, revision);
             Assert.Same(stick, adopted.Diagrams.Single(x => x.ProfileId == stick.ProfileId));
             Assert.Same(workspace.Configuration, adopted.Configuration);
             Assert.Same(workspace.Assignments, adopted.Assignments);

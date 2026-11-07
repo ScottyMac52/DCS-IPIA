@@ -19,13 +19,13 @@ namespace Heimdall.App.Smoke
             var previous = EditionAccess.Policy;
             using var issuer = new OwnerLicenseTestIssuer();
             EditionAccess.SetForTests(issuer.PremiumPolicy);
-            ModuleWorkspaceWindow? window = null;
+            DcsModuleWorkspaceWindow? window = null;
             try
             {
                 var module = new DcsModule(Guid.NewGuid(), "CONSUMERS", "Consumer parity");
-                var left = new DeviceProfile(Guid.NewGuid(), "test", "left", "Left", "Left.diff.lua");
-                var right = new DeviceProfile(Guid.NewGuid(), "test", "right", "Right", "Right.diff.lua");
-                var workspace = new EditorWorkspaceSnapshot(new(module, [left, right], [], [], "Smoke"), [], [],
+                var left = new DcsDeviceProfile(Guid.NewGuid(), "test", "left", "Left", "Left.diff.lua");
+                var right = new DcsDeviceProfile(Guid.NewGuid(), "test", "right", "Right", "Right.diff.lua");
+                var workspace = new DcsEditorWorkspaceSnapshot(new(module, [left, right], [], [], "Smoke"), [], [],
                     [Diagram(left), Diagram(right)],
                     [new("left", "Left action", "Buttons", false), new("right", "Right action", "Buttons", false)], [],
                     [Assignment(module.Id, left.Id, "left", "Left action"), Assignment(module.Id, right.Id, "right", "Right action")],
@@ -35,7 +35,11 @@ namespace Heimdall.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                     });
                 var frozen = JsonSerializer.Serialize(workspace);
-                window = new(new ModuleWorkspaceViewModel(workspace), persistLayout: false);
+                window = new(new DcsModuleWorkspaceViewModel(workspace), persistLayout: false);
+                if (typeof(DcsModuleWorkspaceWindow).BaseType != typeof(GameWorkspaceWindow))
+                    throw new InvalidOperationException("DCS does not inherit the shared workspace algorithms.");
+                if (AppearanceManager.GetTarget(window) != "ModuleWorkspaceWindow")
+                    throw new InvalidOperationException("The DCS window rename lost the persisted appearance identity.");
                 window.Show(); ThemeControlSmoke.Pump(window);
                 if (window.FindName("WorkspaceRoot") is not GameWorkspaceShell { SeparateFeatureActions: true })
                     throw new InvalidOperationException("DCS is not using the shared workspace shell.");
@@ -58,25 +62,25 @@ namespace Heimdall.App.Smoke
                 if (!((TextBlock)view.FindName("InspectorDetails")).Text.Contains("Saved: Right action", StringComparison.Ordinal) ||
                     ((TextBox)view.FindName("LabelEditor")).Text != "Right action")
                     throw new InvalidOperationException("Right controller inspection did not reload its native binding and label.");
-                if (JsonSerializer.Serialize(new WindowContext(window).Working) != frozen)
+                if (JsonSerializer.Serialize(new DcsWindowContext(window).Working) != frozen)
                     throw new InvalidOperationException("Shared consumer selection changed the native DCS workspace.");
                 window.Close(); window = null;
             }
             finally
             {
-                if (window is not null) { new WindowContext(window).Discard(); window.Close(); }
+                if (window is not null) { new DcsWindowContext(window).Discard(); window.Close(); }
                 EditionAccess.SetForTests(previous);
             }
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static UiLayerDiagram Diagram(DeviceProfile profile) => new(profile.Role, null, "test.svg", 120, 100, [], [])
+        private static UiLayerDiagram Diagram(DcsDeviceProfile profile) => new(profile.Role, null, "test.svg", 120, 100, [], [])
         {
             ProfileId = profile.Id,
             Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'><rect width='120' height='100'/></svg>",
             Controls = [new("button", "Button", "JOY_BTN1", 10, 10, 40, 30)]
         };
-        private static DraftAssignment Assignment(Guid module, Guid profile, string command, string name) =>
+        private static DcsDraftAssignment Assignment(Guid module, Guid profile, string command, string name) =>
             new(new(module, profile, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1"), new(command, name, false, AssignmentLayer.Module));
         private static void SelectCallout(UserControl view)
         {

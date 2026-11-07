@@ -13,10 +13,10 @@ namespace Heimdall.Tests
         public void BaseAndShiftChordsFollowHoldAndToggleStates()
         {
             var physical = Guid.NewGuid();
-            var session = new InputTestSession([], [
-                new InputTestModifier(physical, AssignmentLayer.Module, "SHIFT", "JOY_BTN7", ModifierMode.Hold),
-                new InputTestModifier(physical, AssignmentLayer.Module, "ARM", "JOY_BTN8", ModifierMode.Toggle),
-                new InputTestModifier(physical, AssignmentLayer.UiLayer, "UI", "JOY_BTN9", ModifierMode.Toggle)
+            var session = new DcsInputTestSession([], [
+                new DcsInputTestModifier(physical, AssignmentLayer.Module, "SHIFT", "JOY_BTN7", ModifierMode.Hold),
+                new DcsInputTestModifier(physical, AssignmentLayer.Module, "ARM", "JOY_BTN8", ModifierMode.Toggle),
+                new DcsInputTestModifier(physical, AssignmentLayer.UiLayer, "UI", "JOY_BTN9", ModifierMode.Toggle)
             ]);
             var baseEntry = new KneeboardModifierLegend("Base (no modifier)", "#ffffff");
             var shift = new KneeboardModifierLegend("SHIFT", "#dc2626", AssignmentLayer.Module, "SHIFT");

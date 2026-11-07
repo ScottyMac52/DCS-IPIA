@@ -8,19 +8,19 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.Dcs
 {
     /// <summary>Imports DCS Lua source into module configurations.</summary>
-    public sealed class DcsLuaImporter : IModuleConfigurationImporter
+    public sealed class DcsLuaImporter : IDcsModuleConfigurationImporter
     {
         #region BEGIN Public
         /// <summary>Imports the requested configuration.</summary>
         /// <param name="request">The request.</param>
         /// <param name="ct">Cancellation token for the operation.</param>
         /// <returns>The result of the operation.</returns>
-        public Task<ModuleImportResult> ImportAsync(ModuleImportRequest request, CancellationToken ct = default)
+        public Task<DcsModuleImportResult> ImportAsync(DcsModuleImportRequest request, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ct.ThrowIfCancellationRequested();
             var diagnostics = new List<ImportDiagnostic>();
-            var profiles = new List<DeviceProfile>();
+            var profiles = new List<DcsDeviceProfile>();
             var bindings = new List<DcsBinding>();
             IReadOnlyList<DcsModifier> modifiers = [];
             try
@@ -46,12 +46,12 @@ namespace Heimdall.Dcs
                 }
             }
             if (diagnostics.Any(x => x.IsError))
-                return Task.FromResult(new ModuleImportResult(null, diagnostics));
+                return Task.FromResult(new DcsModuleImportResult(null, diagnostics));
             var configuration =
-                new ModuleConfiguration(request.Module, profiles, modifiers, bindings, request.Provenance);
+                new DcsModuleConfiguration(request.Module, profiles, modifiers, bindings, request.Provenance);
             diagnostics.Add(
                 new("imported", $"Imported {profiles.Count} profiles and {bindings.Count} bindings.", false));
-            return Task.FromResult(new ModuleImportResult(configuration, diagnostics));
+            return Task.FromResult(new DcsModuleImportResult(configuration, diagnostics));
         }
         #endregion END Public
     }
