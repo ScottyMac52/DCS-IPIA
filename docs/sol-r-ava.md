@@ -14,8 +14,8 @@ revisions. No personal database or draw.io import is required to distribute them
 | `AVA [L] Sol-R` | `tm-sol-r-ava-l-buttons` | `tm-sol-r-ava-l-pov` |
 
 These layouts cover the grip on AVA only. They contain no Sol-R base buttons or
-throttle and do not establish Warthog or MOZA AB9 support. Hornet catalog work
-and the full remaining acceptance checklist are tracked separately in #282.
+throttle and do not establish Warthog or MOZA AB9 support. See [AVA grip setup](ava-grip-setup.md)
+for Hornet recognition, current limitations and the physical acceptance record for #282.
 
 ## Configure and adopt
 

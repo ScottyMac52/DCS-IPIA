@@ -29,8 +29,8 @@ namespace Heimdall.Dcs
             if (!choice.Instance.Selected)
                 throw new InvalidOperationException("Adopt this physical unit in hardware inventory before using it in a module.");
             hardware ??= GenericHardwareLayout.Create(choice.Definition);
-            if (!hardware.Diagram.Controls.Select(x => x.InputKey).ToHashSet(StringComparer.Ordinal)
-                .SetEquals(choice.Definition.Capabilities.DcsKeys))
+            if (!DcsInputKey.SamePhysicalInputs(hardware.Diagram.Controls.Select(x => x.InputKey),
+                choice.Definition.Capabilities.DcsKeys))
                 throw new InvalidOperationException("The selected layout must match the inventory's actual supported controls.");
             return DcsWorkspaceStructureEditor.AddDevice(workspace, hardware, layer, choice.FileName,
                 choice.Instance.Label, choice.Instance.Role);
@@ -64,4 +64,3 @@ namespace Heimdall.Dcs
         #endregion END Public
     }
 }
-

@@ -18,6 +18,8 @@ namespace Heimdall.Tests
         [InlineData("tm-sol-r-ava", false)][InlineData("tm-sol-r-base", false)]
         [InlineData("tm-sol-r-warthog-r-pov", false)][InlineData("tm-sol-r-moza-r-pov", false)]
         [InlineData("TM-SOL-R-AVA-R-POV", false)]
+        [InlineData("ava-base-f18c", true)][InlineData("ava-base-f18c-left", false)]
+        [InlineData("AVA-BASE-F18C", false)]
         [InlineData("grip-f18c", false)][InlineData("moza-ab9-warthog-grip", false)][InlineData("moza-ab9-hornet-grip", false)]
         [InlineData("moza-ab9", false)][InlineData("vkb-f14-gunfighter", false)][InlineData("winctrl-icp", false)]
         [InlineData("generic-anything", false)][InlineData("tm-fake", false)][InlineData("TM-MFD", false)]

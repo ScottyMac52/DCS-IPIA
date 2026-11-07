@@ -14,6 +14,16 @@ namespace Heimdall.Application
                                                                                            ToDcsKey(second),
                                                                                            StringComparison.Ordinal);
 
+        /// <summary>Requires the same physical control set while accepting the two known POV key spellings.</summary>
+        /// <param name="first">Authored or observed physical inputs.</param>
+        /// <param name="second">Inputs to compare without changing their stored spelling.</param>
+        /// <returns>True only when neither set has missing or additional physical controls.</returns>
+        public static bool SamePhysicalInputs(IEnumerable<string> first, IEnumerable<string> second)
+        {
+            ArgumentNullException.ThrowIfNull(first); ArgumentNullException.ThrowIfNull(second);
+            return first.Select(ToDcsKey).ToHashSet(StringComparer.Ordinal).SetEquals(second.Select(ToDcsKey));
+        }
+
         /// <summary>Gets a comparison key that treats known POV spellings as one assignment slot.</summary>
         /// <param name="slot">Module, device, scope, section, input, and modifier chord.</param>
         /// <returns>Physical slot identity without changing the stored input spelling.</returns>
@@ -73,4 +83,3 @@ namespace Heimdall.Application
         #endregion END private helpers
     }
 }
-
