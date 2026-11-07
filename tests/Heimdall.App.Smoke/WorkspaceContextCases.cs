@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using System.Windows.Threading;
 using Heimdall.App.Games;
 using Heimdall.App.Games.Dcs;
@@ -52,7 +53,8 @@ namespace Heimdall.App.Smoke
                 context.Session.AcceptSaved(candidate, lease); context.Revision = revision; workspace = candidate;
                 if (services.Store.Load(candidate.Id).Workspace.Name != candidate.Name) throw new InvalidOperationException("Native persisted baseline was not accepted.");
                 return Task.CompletedTask;
-            }, lease => context.Session!.Discard(lease), () => context.Session = Open(owner), () => context.Session = Open(new()));
+            }, lease => context.Session!.Discard(lease), () => context.Session = Open(owner), () => context.Session = Open(new()),
+                () => JsonSerializer.Serialize(context.Session?.Snapshot));
         }
         private static WorkspaceContextCase Dcs(string root)
         {
@@ -65,7 +67,8 @@ namespace Heimdall.App.Smoke
                 () => throw new InvalidOperationException("Use the context-issued lease in this conformance fixture."), () => throw new InvalidOperationException("Use the context-issued lease."));
             return new("DCS", context, text => session.SetLabel("context-conformance", text), session.SaveAsync, session.Discard,
                 () => context.RunOperation(WorkspaceOperationKind.Discard, lease => { session.Discard(lease); return new(WorkspaceOperationOutcome.Applied, ""); }),
-                () => { EditionAccess.SetForTests(new()); context.RefreshNativeState(); });
+                () => { EditionAccess.SetForTests(new()); context.RefreshNativeState(); },
+                () => JsonSerializer.Serialize(new { session.Working, Assignments = session.Draft?.Snapshot, session.Labels }));
         }
         #endregion END private helpers
     }

@@ -47,7 +47,7 @@ namespace Heimdall.App.Games.WarThunder
             _drawing = new(_context, () => _controllers!, () => _editing!, _devices, _assignments, this);
             _controllers = new(_context, ReportError, Controllers, _devices, this, reviewChange, _drawing.Presenter, inputFactory, InputStatus, _assignments, RefreshChrome);
             _drawing.Start(); _controllers.Start();
-            _assignments.Initialize(_context, _editing.RefreshEditor, _drawing.ShowDrawing,
+            _assignments.Initialize(_context, _editing.RefreshEditor, _editing.RefreshAvailability, _drawing.ShowDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => Status.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devices), new("assignments", () => _assignments), new("references", () => _references)]);
@@ -166,7 +166,7 @@ namespace Heimdall.App.Games.WarThunder
             var editable = _context.Session?.AccessMessage.Length == 0 && !WorkspaceActionRunning && !_context.Testing && !_context.ScanningHardware;
             Export.IsEnabled = editable && _context.Chrome.CanExport; Duplicate.IsEnabled = editable; ProfileName.IsEnabled = editable;
             Import.IsEnabled = !WorkspaceActionRunning && !_context.ScanningHardware;
-            _controllers.RefreshDevices(); _editing.RefreshEditor(); _drawing.RefreshActions();
+            _controllers.RefreshDevices(); _editing.RefreshAvailability(); _drawing.RefreshActions();
         }
         private void Run(Action action)
         {
@@ -207,6 +207,7 @@ namespace Heimdall.App.Games.WarThunder
         private void WireAssignments()
         {
             _assignments.Editor.CaptureContext = () => _assignments.ActionContext;
+            _assignments.Editor.NativeSelectionChanged += (_, _) => _context.SelectedPhysicalInput = null;
             var browser = _assignments.Browser;
             _assignments.ShowAssignments.Click += (_, _) => { browser.CommandsList.SelectedItem = null; _assignments.CapturedAssignments.IsExpanded = true; _browser.RefreshRecords(); };
             browser.Configure([new("All", null), new("Buttons", CommandType.Button), new("Axes", CommandType.Axis)],

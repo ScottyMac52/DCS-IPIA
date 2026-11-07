@@ -217,8 +217,31 @@ namespace Heimdall.App.Smoke
                 browser.CommandsList.SelectedItem = browser.CommandsList.Items.Cast<SimCommand>().Single();
                 assignments.CapturedAssignments.IsExpanded = true;
                 assignments.Records.SelectedItem = assignments.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Binding.Fields.Any(scalar => scalar.Path.EndsWith("/joyButton", StringComparison.Ordinal)));
-                assignments.Editor.Index.SelectedValue = 3; Click(assignments.Editor.Apply);
+                var sourceController = window.WorkspaceContext.State.Selection.ControllerId;
+                var unchangedNative = window.Session.Export().Files.Single().Value;
+                assignments.Editor.Index.SelectedValue = 3;
+                var profileName = Box<TextBox>(window, "ProfileName"); var originalName = profileName.Text;
+                profileName.Text = originalName + " pending";
+                store.FailSave = true;
+                try
+                {
+                    if (window.SaveCurrent()) throw new InvalidOperationException("The pending-index fixture accepted a failed save.");
+                }
+                finally { store.FailSave = false; }
+                ThemeControlSmoke.Pump(window);
+                if (!Equals(assignments.Editor.Index.SelectedValue, 3) || !assignments.Editor.Apply.IsEnabled ||
+                    profileName.Text != originalName + " pending" || window.WorkspaceContext.State.EditedName != profileName.Text ||
+                    window.WorkspaceContext.State.Selection.ControllerId != sourceController ||
+                    window.Session.Export().Files.Single().Value != unchangedNative)
+                    throw new InvalidOperationException("Context notifications reset the pending native index, changed its browser controller, or edited data before Apply.");
+                profileName.Text = originalName;
+                var editsBeforeIndex = workflowCompletions;
+                Click(assignments.Editor.Apply);
                 AssertNative(window, "joyButton:i=3");
+                if (workflowCompletions != editsBeforeIndex + 1)
+                    throw new InvalidOperationException("The native index edit did not execute exactly once through the shared workflow.");
+                if (!Equals(assignments.Editor.Index.SelectedValue, 3) || assignments.Editor.Apply.IsEnabled)
+                    throw new InvalidOperationException("The applied native index was replaced by an old physical selection or remained falsely actionable.");
                 ((MenuItem)assignments.Records.ContextMenu.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 if (!((WarThunderWorkspaceRow)assignments.Records.SelectedItem).Binding.Empty) throw new InvalidOperationException("Context clear did not empty the selected joystick alternative.");
                 assignments.Editor.Index.SelectedValue = 3;

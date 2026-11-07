@@ -11,7 +11,7 @@ namespace Heimdall.App.Smoke
         internal WorkspaceBaseProbe()
         {
             var context = new WorkspaceSmokeContext(() => Pending, () => Pending.ToString(), () => SaveAvailable);
-            context.Open(); BindWorkspaceContext(context);
+            context.Open(); BindWorkspaceContext(context, () => NativeRefreshes++);
             Content = Surface;
             ConfigureWorkspace(Surface, Actions,
             [
@@ -36,6 +36,7 @@ namespace Heimdall.App.Smoke
         internal bool SecondAvailable { get; set; } = true;
         internal int FirstCreations { get; private set; }
         internal int CleanupCount { get; private set; }
+        internal int NativeRefreshes { get; private set; }
         internal Func<Task> SaveAction { get; set; } = () => Task.CompletedTask;
         internal Action DiscardAction { get; set; } = () => { };
         internal Exception? Error { get; private set; }

@@ -63,6 +63,7 @@ namespace Heimdall.App.Smoke
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
         }
         protected override void RefreshAssignmentsCore() { Refreshes++; RefreshAction?.Invoke(); }
+        protected override void RefreshAssignmentAvailability() { }
         protected override void RefreshAssignmentDrawing() => DrawingRefreshes++;
         protected override void ShowAssignmentStatus(string message) => Status = message;
     }

@@ -11,14 +11,14 @@ namespace Heimdall.Application.Games
             if (previous is null || previousSnapshot is null || !string.Equals(previousSnapshot, currentSnapshot, StringComparison.Ordinal)) return false;
             return previous.Selection != current.Selection && previous with { Version = 0, Selection = current.Selection } == current with { Version = 0 };
         }
-        /// <summary>Returns whether a notification changed only selection or input activity (and the capabilities that follow it).
-        /// Native editors must keep pending drafts across these; availability is refreshed separately by the window.</summary>
+        /// <summary>Returns whether a distinct notification leaves native content and mounted identity unchanged.
+        /// Pass a native-data snapshot, excluding pending name/selection overlays. Gates and name overlays refresh
+        /// availability; native target-selection handlers explicitly load the chosen record.</summary>
         public static bool IsPresentationOnly(WorkspaceState? previous, string? previousSnapshot, WorkspaceState current, string currentSnapshot)
         {
             ArgumentNullException.ThrowIfNull(current); ArgumentNullException.ThrowIfNull(currentSnapshot);
             if (previous is null || previousSnapshot is null || !string.Equals(previousSnapshot, currentSnapshot, StringComparison.Ordinal)) return false;
-            var normalized = previous with { Version = 0, Selection = current.Selection, Activity = current.Activity, Capabilities = current.Capabilities };
-            return previous != current && normalized == current with { Version = 0 };
+            return previous != current && previous.Identity == current.Identity && previous.Open == current.Open;
         }
         #endregion END Public
     }

@@ -94,6 +94,8 @@ namespace Heimdall.App.Games
         protected abstract void DiscardAssignmentsCore();
         /// <summary>Refreshes native panels from authoritative state.</summary>
         protected abstract void RefreshAssignmentsCore();
+        /// <summary>Updates action gates without loading saved values over a pending native editor.</summary>
+        protected abstract void RefreshAssignmentAvailability();
         /// <summary>Refreshes native drawing after successful persistence or discard.</summary>
         protected abstract void RefreshAssignmentDrawing();
         /// <summary>Displays feedback beside the adapter's editor.</summary>
@@ -121,7 +123,7 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             _refreshing = true;
-            try { RefreshAssignmentsCore(); }
+            try { RefreshAssignmentsCore(); RefreshAssignmentAvailability(); ObserveContext(); }
             finally { _refreshing = false; }
         }
         /// <summary>Gets whether native choice updates are in progress.</summary>
@@ -167,22 +169,35 @@ namespace Heimdall.App.Games
         }
         private void Changed(object? sender, EventArgs args)
         {
-            // Selection and input-activity transitions are published too; reloading native editors on them overwrites the
-            // pending input the user just picked (a clicked key, or a choice made while sampling) with the saved row.
+            if (_refreshing) return;
+            // A context notification is not a request to reload the native editor. Pending inputs and names,
+            // activity gates and failed operations must preserve its fields; actual native changes reload it.
             if (_context is { } context)
             {
-                var state = context.State; var snapshot = context.CaptureSnapshot();
-                var selectionOnly = WorkspaceStateChange.IsPresentationOnly(_observedState, _observedSnapshot, state, snapshot);
+                if (context.State.Operation is not null) { RefreshAvailabilityOnly(); return; }
+                var state = context.State; var snapshot = CaptureAssignmentSnapshot();
+                var alreadyObserved = ReferenceEquals(sender, context) && _observedState == state && _observedSnapshot == snapshot;
+                var presentationOnly = alreadyObserved || WorkspaceStateChange.IsPresentationOnly(_observedState, _observedSnapshot, state, snapshot);
                 _observedState = state; _observedSnapshot = snapshot;
-                if (selectionOnly) return;
+                if (presentationOnly) { RefreshAvailabilityOnly(); return; }
             }
-            if (_context?.State.Operation is not null) { RefreshAssignmentDrawing(); return; }
             RefreshAssignments();
+        }
+        private void RefreshAvailabilityOnly()
+        {
+            _refreshing = true;
+            try { RefreshAssignmentAvailability(); }
+            finally { _refreshing = false; }
+        }
+        private void ObserveContext()
+        {
+            _observedState = _context?.State;
+            _observedSnapshot = _context is null ? null : CaptureAssignmentSnapshot();
         }
         private void Attach()
         {
             if (_subscribed || _subscribe is null) return;
-            _observedState = null; _observedSnapshot = null;
+            ObserveContext();
             _subscribe(Changed); _subscribed = true;
         }
         private void Detach()

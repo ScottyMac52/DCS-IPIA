@@ -104,6 +104,7 @@ namespace Heimdall.App.Features.Assignments
             _state.Context.Discard();
         }
         protected override void RefreshAssignmentDrawing() => RefreshDiagram();
+        protected override void RefreshAssignmentAvailability() => ShowAssignmentActions();
         protected override void ShowAssignmentStatus(string message) => SelectedCallout.Text = message;
         protected override string SaveSuccessMessage => "Saved to database.";
         protected override string SaveFailurePrefix => "Database save failed: ";
@@ -216,10 +217,13 @@ namespace Heimdall.App.Features.Assignments
         private void SynchronizeAssignmentSelection()
         {
             if (DeviceChoice is null || Layers is null || Scope is null || CommandManager is null) return;
-            AssignmentSelection.SelectScope(AssignmentScope());
-            AssignmentSelection.SelectController(_state.Diagram?.ProfileId.ToString("N"));
-            AssignmentSelection.SelectCommand(CommandManager.SelectedCommand?.Id);
-            AssignmentSelection.SelectInput(_state.Selected?.InputKey);
+            AssignmentSelection.Update(() =>
+            {
+                AssignmentSelection.SelectScope(AssignmentScope());
+                AssignmentSelection.SelectController(_state.Diagram?.ProfileId.ToString("N"));
+                AssignmentSelection.SelectCommand(CommandManager.SelectedCommand?.Id);
+                AssignmentSelection.SelectInput(_state.Selected?.InputKey);
+            });
         }
         private WorkspaceAssignmentActionState AssignmentAction(HardwareGraphicControl? control, WorkspaceAssignmentAction action)
         {
@@ -245,6 +249,10 @@ namespace Heimdall.App.Features.Assignments
         private void RefreshAssignmentActions()
         {
             SynchronizeAssignmentSelection();
+            ShowAssignmentActions();
+        }
+        private void ShowAssignmentActions()
+        {
             if (AssignButton is { } assign) AssignmentActionPresentation.Show(assign, AssignmentAction(_state.Selected, WorkspaceAssignmentAction.Apply));
             if (ActionBar.FindButton(this, "Clear assignment") is { } clear) AssignmentActionPresentation.Show(clear, AssignmentAction(_state.Selected, WorkspaceAssignmentAction.Clear));
             if (TuneAxisButton is { } tune) AssignmentActionPresentation.Show(tune, AssignmentAction(_state.Selected, WorkspaceAssignmentAction.TuneAxis));

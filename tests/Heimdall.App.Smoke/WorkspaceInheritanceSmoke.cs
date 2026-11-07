@@ -50,6 +50,7 @@ namespace Heimdall.App.Smoke
                 Require(!window.TryLeaveAsync(GameWorkspaceLeaveDecision.Save).GetAwaiter().GetResult() && window.Pending && window.Error is not null,
                     "A failed adapter save lost edits or allowed a switch.");
                 Require(window.Save.IsEnabled && window.Discard.IsEnabled, "Failure did not restore base command availability.");
+                Require(window.NativeRefreshes == 0, "A rejected or failed save reloaded native panels despite retaining the same draft.");
 
                 var pendingSave = new TaskCompletionSource();
                 var saves = 0;

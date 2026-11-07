@@ -22,6 +22,8 @@ namespace Heimdall.App.Games
         private bool _refreshingNative;
         private bool _refreshingChrome;
         private WorkspaceOperationKind? _previousOperation;
+        private WorkspaceIdentity? _operationIdentity;
+        private string? _operationSnapshot;
         private Button? _save;
         private Button? _discard;
         private TextBlock? _pending;
@@ -53,11 +55,20 @@ namespace Heimdall.App.Games
         }
         private void ContextChanged(object? sender, EventArgs e)
         {
-            var operation = _workspaceContext?.State.Operation;
+            var context = _workspaceContext!;
+            var operation = context.State.Operation;
+            if (_previousOperation is null && operation is not null)
+            {
+                _operationIdentity = context.State.Identity;
+                _operationSnapshot = context.CaptureSnapshot();
+            }
             var released = _previousOperation is not null && operation is null;
+            var nativeChanged = released && (_operationIdentity != context.State.Identity || _operationSnapshot != context.CaptureSnapshot());
+            if (released) { _operationIdentity = null; _operationSnapshot = null; }
             _previousOperation = operation;
             RefreshWorkspaceState();
-            if (!released || _refreshingNative || operation is not null || _closed) return;
+            // Failed/no-change operations update gates, not the editor's pending native choices.
+            if (!nativeChanged || _refreshingNative || operation is not null || _closed) return;
             _refreshingNative = true;
             try { _refreshNative?.Invoke(); }
             finally { _refreshingNative = false; }

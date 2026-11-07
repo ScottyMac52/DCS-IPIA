@@ -69,7 +69,7 @@ namespace Heimdall.App.Games.Squadrons
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
             _drawing.Start();
             _controllers.Start();
-            _assignmentsView.Initialize(_context, _editing.UpdateEditor, _drawing.RenderDrawing,
+            _assignmentsView.Initialize(_context, _editing.UpdateEditor, _editing.UpdateApplyAvailability, _drawing.RenderDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => StatusText.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devicesView), new("assignments", () => _assignmentsView)]);

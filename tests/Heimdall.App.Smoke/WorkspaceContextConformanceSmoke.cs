@@ -16,14 +16,23 @@ namespace Heimdall.App.Smoke
             var previous = EditionAccess.Policy; using var issuer = new OwnerLicenseTestIssuer();
             var root = Path.Combine(Path.GetTempPath(), "heimdall-contexts-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
             IReadOnlyList<WorkspaceContextCase> cases = [];
+            IReadOnlyList<WorkspaceContextCase> presentationCases = [];
             try
             {
                 EditionAccess.SetForTests(issuer.PremiumPolicy); cases = WorkspaceContextCases.Create(root, issuer.PremiumPolicy);
                 foreach (var fixture in cases) { EditionAccess.SetForTests(issuer.PremiumPolicy); Verify(fixture); }
+                var presentationRoot = Path.Combine(root, "presentation"); Directory.CreateDirectory(presentationRoot);
+                EditionAccess.SetForTests(issuer.PremiumPolicy); presentationCases = WorkspaceContextCases.Create(presentationRoot, issuer.PremiumPolicy);
+                foreach (var fixture in presentationCases)
+                {
+                    EditionAccess.SetForTests(issuer.PremiumPolicy); WorkspacePresentationConformanceSmoke.Verify(fixture);
+                    Console.WriteLine("Presentation conformance: " + fixture.Name + " passed.");
+                }
             }
             finally
             {
                 foreach (var fixture in cases) fixture.Context.Dispose();
+                foreach (var fixture in presentationCases) fixture.Context.Dispose();
                 EditionAccess.SetForTests(previous); Directory.Delete(root, true);
             }
         }

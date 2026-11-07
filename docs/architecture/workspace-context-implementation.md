@@ -57,6 +57,8 @@ A direct distinct native change publishes one state transition, including change
 
 ## Acceptance evidence and remaining Windows gate
 
+The [context integration review](workspace-context-integration-review.md) records the cross-game consumer audit and the distinction between native-data reloads and availability updates. Every assignment-view inheritor implements the required availability hook. Selection/name/activity/operation-only notifications preserve pending fields; native snapshot or mount-identity changes reload them. Reload observation uses native snapshots, while assignment review still uses the full context fingerprint for stale-review protection.
+
 `WorkspaceContextTests` tests common C01–C09 algorithms, including review fingerprints, distinct scope encoding, cross-context epochs, input-cleanup reentry, cancellation, publication recursion, wrong-owner calls and disposal during a durable receipt. `ProfileWorkspaceContextTests` uses real native sessions to exercise borrowed leases, failure/retry, baseline acceptance, readonly/empty sessions and retired-reference rejection.
 
 `WorkspaceContextConformanceSmoke` runs one reusable set of assertions against **all four production context adapters**, real native sessions and isolated stores/repository. It checks inherited type identity, dirty/name/selection state, same-key invalidation, failed/reentrant saves, native-reference bypass rejection, native baseline readback/acceptance, discard, activity cleanup, scan gating, readonly state, subscription detach and disposal. Existing native window/assignment/training smoke cases remain wired in. Existing probe smoke cases now bind actual common contexts instead of relying on window/view-owned flags.

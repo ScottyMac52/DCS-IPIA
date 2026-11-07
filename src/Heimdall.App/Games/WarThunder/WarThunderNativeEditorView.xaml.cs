@@ -27,13 +27,14 @@ namespace Heimdall.App.Games.WarThunder
             Apply.Click += (_, _) => { if (_physicalSelected) PhysicalApplyRequested?.Invoke(this, EventArgs.Empty); else Submit(_capabilities?.RebindNativeInputs == true ? WarThunderEditKind.Rebind : WarThunderEditKind.Add); };
             Add.Click += (_, _) => Submit(WarThunderEditKind.Add);
             Clear.Click += (_, _) => Submit(WarThunderEditKind.Clear);
-            Input.SelectionChanged += (_, _) => { if (!_refreshing) SelectInput(); };
-            Target.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectController((Target.SelectedItem as WarThunderDevice)?.Id); RefreshInputChoices(); } UpdateActions(); };
-            Index.SelectionChanged += (_, _) => { if (!_refreshing) { _physicalSelected = false; _selection.SelectInput((Index.SelectedValue as int?)?.ToString(CultureInfo.InvariantCulture)); } UpdateActions(); };
+            Input.SelectionChanged += (_, _) => { if (!_refreshing) { NativeChoiceChanged(); SelectInput(); } };
+            Target.SelectionChanged += (_, _) => { if (!_refreshing) { NativeChoiceChanged(); RefreshInputChoices(); _selection.SelectInput(null); } UpdateActions(); };
+            Index.SelectionChanged += (_, _) => { if (!_refreshing) { NativeChoiceChanged(); _selection.SelectInput((Index.SelectedValue as int?)?.ToString(CultureInfo.InvariantCulture)); } UpdateActions(); };
         }
         #region BEGIN Public
         internal event EventHandler<WarThunderNativeEdit>? EditRequested;
         internal event EventHandler? PhysicalApplyRequested;
+        internal event EventHandler? NativeSelectionChanged;
         internal void SelectPhysical(string deviceId, WarThunderPhysicalInput input)
         {
             _physicalEdit = null;
@@ -46,9 +47,12 @@ namespace Heimdall.App.Games.WarThunder
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().SingleOrDefault(device => device.Id == deviceId);
             RefreshInputChoices(input.Index);
             _refreshing = false; _physicalSelected = true;
-            _selection.SelectController(deviceId); _selection.SelectAlternative(_row?.RecordId);
-            if (_physicalEdit is null) _selection.BlockInput("This physical input has no verified native mapping.");
-            else _selection.SelectInput(input.Key);
+            _selection.Update(() =>
+            {
+                _selection.SelectAlternative(_row?.RecordId);
+                if (_physicalEdit is null) _selection.BlockInput("This physical input has no verified native mapping.");
+                else _selection.SelectInput(input.Key);
+            });
             UpdateActions();
         }
         internal void BlockPhysicalSelection(string message)
@@ -102,6 +106,8 @@ namespace Heimdall.App.Games.WarThunder
                 !targetCurrent ? _selection.InputBlockedReason : action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.AddAlternative
                     ? review.Valid ? "Assignment unchanged." : review.Message : "Select an editable native assignment that supports this operation."));
         }
+        /// <summary>Updates gates without reloading the pending native field, target or index.</summary>
+        internal void RefreshAvailability(bool busy) { _busy = busy; UpdateActions(); }
         internal void Submit(WarThunderEditKind kind)
         {
             if (_refreshing || _session is null || _busy || (_physicalSelected && (_physicalEdit is null || _selection.InputBlockedReason.Length > 0))) return;
@@ -116,6 +122,11 @@ namespace Heimdall.App.Games.WarThunder
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void NativeChoiceChanged()
+        {
+            _physicalSelected = false; _physicalEdit = null;
+            NativeSelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
         private WarThunderNativeEdit CreateEdit(WarThunderEditKind kind)
         {
             var index = Index.SelectedValue as int?;
@@ -182,7 +193,7 @@ namespace Heimdall.App.Games.WarThunder
                 Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().Single(device => device.Id == target.DeviceId);
                 RefreshInputChoices(target.Index);
                 _refreshing = false;
-                _selection.SelectController(target.DeviceId); _selection.SelectAlternative(_row?.RecordId); _selection.SelectInput(scalar.Address);
+                _selection.Update(() => { _selection.SelectAlternative(_row?.RecordId); _selection.SelectInput(scalar.Address); });
             }
             UpdateActions();
         }

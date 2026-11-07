@@ -57,7 +57,7 @@ namespace Heimdall.Tests
         }
 
         [Fact]
-        public void ContentNameAndOperationChangesAreNotPresentationOnly()
+        public void NativeFingerprintChangesReloadButOperationGatesDoNot()
         {
             using var context = new WorkspaceContextProbe(new WorkspaceTestScheduler());
             context.Open();
@@ -70,8 +70,33 @@ namespace Heimdall.Tests
             before = context.State; snapshot = context.CaptureSnapshot();
             WorkspaceState? during = null;
             context.RunOperation(WorkspaceOperationKind.Export, _ => { during = context.State; return new(WorkspaceOperationOutcome.Applied, ""); });
-            Assert.False(WorkspaceStateChange.IsPresentationOnly(before, snapshot, during!, context.CaptureSnapshot()));
+            Assert.True(WorkspaceStateChange.IsPresentationOnly(before, snapshot, during!, context.CaptureSnapshot()));
             Assert.False(WorkspaceStateChange.IsPresentationOnly(null, null, context.State, context.CaptureSnapshot()));
+        }
+
+        [Fact]
+        public void PendingNameAndAccessChangesPreserveEditorsWhenNativeDataIsUnchanged()
+        {
+            using var context = new WorkspaceContextProbe(new()); context.Open();
+            var before = context.State; var native = context.Working!.ToString();
+            context.SetEditedName("Pending name");
+            Assert.True(context.State.Dirty); Assert.Equal(native, context.Working.ToString());
+            Assert.True(WorkspaceStateChange.IsPresentationOnly(before, native, context.State, context.Working.ToString()));
+            before = context.State;
+            context.ReadOnly = true; context.RefreshNativeState();
+            Assert.True(WorkspaceStateChange.IsPresentationOnly(before, native, context.State, context.Working.ToString()));
+        }
+
+        [Fact]
+        public void SameContentWithANewMountOrOpenStateStillReloads()
+        {
+            using var context = new WorkspaceContextProbe(new()); context.Open();
+            var before = context.State; var native = context.Working!.ToString();
+            context.Open();
+            Assert.Equal(native, context.Working!.ToString());
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(before, native, context.State, context.Working.ToString()));
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(context.State, native, context.State with { Open = false }, native));
+            Assert.False(WorkspaceStateChange.IsPresentationOnly(context.State, native, context.State, native));
         }
     }
 }

@@ -71,7 +71,7 @@ namespace Heimdall.App.Games.Elite
             _profiles = new(_context, this, ProfilePicker, ProfileName, BindingsDirectoryText, ExportToReviewFolder, ExportState,
                 importPicker, exportPicker, OpenSession, ReloadChoices, Remember, ConfirmLeave, StopLiveInput,
                 _controllers.ReadReplacementInputs, _controllers.ReviewControllerChange, RunBusy, Run, Status);
-            _assignmentsView.Initialize(_context, _editing.LoadAssignment, _drawing.RenderDevice,
+            _assignmentsView.Initialize(_context, _editing.LoadAssignment, _editing.UpdateAvailability, _drawing.RenderDevice,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), Status);
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("Devices", () => _devicesView), new("Assignments", () => _assignmentsView), new("Reference", () => _referenceView)]);
