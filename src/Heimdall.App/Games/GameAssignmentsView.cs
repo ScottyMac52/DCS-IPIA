@@ -129,9 +129,14 @@ namespace Heimdall.App.Games
         /// <summary>Combines native gates with an in-progress assignment save.</summary>
         protected WorkspaceAssignmentContext CurrentAssignmentContext => CaptureAssignmentContext();
         /// <summary>Runs a native mutation against fresh common gates and draft/scope checks.</summary>
-        protected DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null) =>
-            AssignmentWorkflow.Execute(new WorkspaceAssignmentHost(() => CurrentAssignmentContext, () => _context?.CaptureSnapshot() ?? CaptureAssignmentSnapshot()),
+        protected DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null)
+        {
+            // Native sessions notify their context before the window rebuilds its rows. Publish only after all
+            // native change handlers finish, so editors cannot reload the previous binding during the mutation.
+            using var refresh = _context?.DeferRefresh();
+            return AssignmentWorkflow.Execute(new WorkspaceAssignmentHost(() => CurrentAssignmentContext, () => _context?.CaptureSnapshot() ?? CaptureAssignmentSnapshot()),
                 new WorkspaceAssignmentOperation(target, review ?? (() => new(true, true, "")), apply));
+        }
         /// <summary>Reports success only after the native save completes; all failures preserve their explanation.</summary>
         protected internal async Task<bool> SaveAssignmentsAsync()
         {

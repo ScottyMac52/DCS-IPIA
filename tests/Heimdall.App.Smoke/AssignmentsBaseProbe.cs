@@ -25,6 +25,7 @@ namespace Heimdall.App.Smoke
         internal int DrawingRefreshes { get; private set; }
         internal int Saves { get; private set; }
         internal int Discards { get; private set; }
+        internal int ProjectedValue { get; private set; }
         internal bool Busy { get; set; }
         internal string Status { get; private set; } = "";
         internal Func<Task> SaveAction { get; set; } = () => Task.CompletedTask;
@@ -39,6 +40,15 @@ namespace Heimdall.App.Smoke
         internal DraftResult ApplyAfterReview(Action review) => ExecuteAssignment(new(_context.Context.Scope, "command", "input", "slot"),
             () => { Value++; return new(DraftOutcome.Applied, "staged"); },
             () => { review(); return new(true, true, ""); });
+        internal DraftResult ApplyWithNativeNotification(bool fail = false) => ExecuteAssignment(new(_context.Context.Scope, "command", "input", "slot"), () =>
+        {
+            Value++;
+            // Match a native session: context is notified before the window rebuilds its projection.
+            _context.NotifyNativeChanged();
+            ProjectedValue = Value;
+            if (fail) throw new InvalidOperationException("native assignment failure");
+            return new(DraftOutcome.Applied, "staged");
+        });
         #endregion END Public
         protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context.Context with { Busy = Busy || _context.Context.Busy };
         protected override string CaptureAssignmentSnapshot() => Value.ToString(System.Globalization.CultureInfo.InvariantCulture);

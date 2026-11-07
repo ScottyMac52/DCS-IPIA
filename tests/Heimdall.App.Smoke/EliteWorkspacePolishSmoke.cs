@@ -51,7 +51,15 @@ namespace Heimdall.App.Smoke
             // Editing is allowed during sampling, but applying and clearing must wait for Stop.
             input.SelectedValue = "Joy_28"; AssertActions(window, false, false, false, true);
             Action(window, "StopInputButton"); AssertActions(window, true, true, true, false);
-            Action(window, "ApplyAssignmentButton"); AssertActions(window, false, true, true, false);
+            Action(window, "ApplyAssignmentButton");
+            var applied = EliteWorkspaceProjection.Rows(window.Session.Snapshot.Profile, window.Session.Catalog)
+                .Single(row => row.CommandId == ((SimCommand)commands.SelectedItem).Id && row.Slot == "Primary");
+            if (applied.DeviceId != selected || applied.Input != "Joy_28" || !Equals(input.SelectedValue, "Joy_28")
+                || window.AssignmentSelection.InputKey != "Joy_28")
+                throw new InvalidOperationException("Apply after input testing did not preserve Joy_28 in both the native binding and editor selection.");
+            AssertActions(window, false, true, true, false);
+            ThemeControlSmoke.Pump(window);
+            AssertActions(window, false, true, true, false);
             input.SelectedIndex = -1; Action(window, "ClearAssignmentButton"); AssertActions(window, false, false, true, false);
             window.Session.Discard();
             commands.SelectedItem = commands.Items.Cast<SimCommand>().Single(x => x.DisplayName == "Pitch Axis Raw");
@@ -99,7 +107,9 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("The input test slot must show only Start or Stop.");
             for (var i = 0; i < names.Length; i++)
                 if (Box<Button>(window, names[i]).IsEnabled != expected[i] || actions.Single(x => x.Id == names[i]).Command.CanExecute(null) != expected[i])
-                    throw new InvalidOperationException(names[i] + " did not update its source and shared action state.");
+                    throw new InvalidOperationException(names[i] + " did not update its source and shared action state. Expected " + expected[i]
+                        + ", source " + Box<Button>(window, names[i]).IsEnabled + ", command " + actions.Single(x => x.Id == names[i]).Command.CanExecute(null)
+                        + ". " + Box<TextBlock>(window, "AssignmentDraftStatus").Text);
         }
         private static void Action(EliteWorkspaceWindow window, string name) => Box<FeatureActionBar>(window, "FeatureActions").Actions.Single(x => x.Id == name).Command.Execute(null);
         private static T Box<T>(FrameworkElement window, string name) where T : FrameworkElement => (T)window.FindName(name);

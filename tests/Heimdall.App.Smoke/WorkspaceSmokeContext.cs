@@ -9,6 +9,7 @@ namespace Heimdall.App.Smoke
         : GameWorkspaceContextBase<string>(new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher))
     {
         internal void Open() => ReplaceNativeSession(() => { });
+        internal void NotifyNativeChanged() => NativeStateChanged();
         protected override NativeWorkspaceFacts ReadNativeFacts()
         {
             var yes = new WorkspaceAvailability(true, "");

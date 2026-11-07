@@ -12,6 +12,7 @@ namespace Heimdall.App.Smoke
         internal static void Verify()
         {
             AssignmentsPanelLayoutSmoke.Verify();
+            VerifyAtomicAssignment();
             var source = new AssignmentChangeSource();
             var replacement = new AssignmentChangeSource();
             var view = new AssignmentsBaseProbe();
@@ -87,6 +88,23 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyAtomicAssignment()
+        {
+            using var view = new AssignmentsBaseProbe();
+            var staleProjectionObserved = false;
+            view.RefreshAction = () => staleProjectionObserved |= view.ProjectedValue != view.Value;
+            var before = view.Refreshes;
+            Require(view.ApplyWithNativeNotification().Outcome == DraftOutcome.Applied, "The native assignment did not apply.");
+            Require(!staleProjectionObserved && view.Refreshes == before + 1 && view.ProjectedValue == view.Value,
+                "The shared assignment view refreshed before the native projection was rebuilt.");
+            before = view.Refreshes;
+            try { view.ApplyWithNativeNotification(fail: true); throw new InvalidOperationException("The native failure was swallowed."); }
+            catch (InvalidOperationException error) when (error.Message == "native assignment failure") { }
+            Require(!staleProjectionObserved && view.Refreshes == before + 1, "A failed assignment retained deferred notifications or refreshed stale rows.");
+            before = view.Refreshes;
+            Require(view.ApplyWithNativeNotification().Outcome == DraftOutcome.Applied && view.Refreshes == before + 1,
+                "The shared assignment notification boundary did not recover after failure.");
+        }
         private static bool IsInside(DependencyObject child, DependencyObject ancestor)
         {
             for (DependencyObject? item = child; item is not null; item = VisualTreeHelper.GetParent(item))
