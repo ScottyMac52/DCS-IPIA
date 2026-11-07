@@ -1,3 +1,5 @@
+using Heimdall.Application.Games;
+
 namespace Heimdall.Application.Interfaces
 {
     /// <summary>Shares workspace state, edit operations and service boundaries among feature views.</summary>
@@ -35,8 +37,8 @@ namespace Heimdall.Application.Interfaces
         string SavedGamesRoot { get; set; }
 
 
-        /// <summary>Stages a structural workspace edit using the shared draft workflow.</summary>
-        void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit);
+        /// <summary>Stages a structural workspace edit using the shared operation gate, preserving native rejection reasons.</summary>
+        WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit);
         /// <summary>Saves the current workspace draft to its repository.</summary>
         Task SaveAsync();
         /// <summary>Discards pending workspace edits.</summary>

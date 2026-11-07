@@ -72,7 +72,7 @@ namespace Heimdall.App.Games.Dcs
             RaiseStateChanged();
         }
 
-        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        internal WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
         {
             try
             {
@@ -83,8 +83,9 @@ namespace Heimdall.App.Games.Dcs
                 Working = updated; _structureDirty = true;
                 RestoreLabels(updated);
                 RaiseStateChanged();
+                return new(WorkspaceOperationOutcome.Applied, "Workspace edit staged.");
             }
-            catch (Exception error) { RaiseStatus(error.Message); }
+            catch (Exception error) { RaiseStatus(error.Message); return new(WorkspaceOperationOutcome.Blocked, error.Message); }
         }
 
         internal async Task SaveAsync(IWorkspaceOperationLease lease)

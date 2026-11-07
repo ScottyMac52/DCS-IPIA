@@ -480,7 +480,7 @@ namespace Heimdall.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository,
-                    commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
+                    deviceDiscovery: new EmptyDeviceDiscovery(), commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
                     axisDefaultsFilePicker: () => Path.Combine(htmlRoot, "axes.diff.lua"));
                 window.Show();
                 window.UpdateLayout();
@@ -498,8 +498,10 @@ namespace Heimdall.App.Smoke
                 var palette = (DataGrid)WorkspaceUi.Find(window, "Commands")!;
                 if (commands.Items.Count != 1 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "KEY"))
                     throw new InvalidOperationException("Authored aircraft command did not refresh the assignment palette.");
+                DcsCommandImportStateSmoke.Verify(window);
                 foreach (var buttonName in CommandImportButtons)
                 {
+                    var beforeImport = window.DcsContext.Working!.ModuleCommands.Count;
                     window.Dispatcher.BeginInvoke(new Action(() => {
                         var reviewWindow = System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single();
                         if (((DataGrid)WorkspaceUi.Find(reviewWindow, "ImportChanges")!).Items.Count != 1 ||
@@ -508,10 +510,17 @@ namespace Heimdall.App.Smoke
                         ((Button)WorkspaceUi.Find(reviewWindow, "StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }));
                     ((Button)WorkspaceUi.Find(window, buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (window.DcsContext.Working!.ModuleCommands.Count != beforeImport + 1)
+                        throw new InvalidOperationException(buttonName + " did not stage its reviewed native command. " + window.DcsContext.Status);
                 }
+                // Remount the assignments surface before inspecting its cached palette and category controls.
+                var commandCategories = (ComboBox)WorkspaceUi.Find(window, "CommandCategory")!;
                 if (commands.Items.Count != 3 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "a2001cdnil") ||
-                    !((ComboBox)WorkspaceUi.Find(window, "CommandCategory")!).Items.Cast<string>().Contains("Flight"))
-                    throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
+                    !commandCategories.Items.Cast<string>().Contains("Flight"))
+                    throw new InvalidOperationException($"JSON/HTML load did not refresh aircraft catalog, palette and categories. " +
+                        $"Native={window.DcsContext.Working!.ModuleCommands.Count}, catalog={commands.Items.Count}, " +
+                        $"palette={string.Join(",", WorkspaceUi.Entries(palette).Select(entry => entry.Id))}, " +
+                        $"categories={string.Join(",", commandCategories.Items.Cast<string>())}.");
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single().DialogResult = false;
                 }));

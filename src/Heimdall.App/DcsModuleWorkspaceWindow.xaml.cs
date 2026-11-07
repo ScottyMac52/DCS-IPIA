@@ -87,7 +87,7 @@ namespace Heimdall.App
         public Guid? RequestedModule { get; private set; }
         internal DcsWorkspaceSession Session { get; }
         internal DcsWorkspaceContext DcsContext => _context;
-        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => _context.RunStructureEdit(edit);
+        internal WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => _context.RunStructureEdit(edit);
         internal void UpdateBuildAvailability() => RefreshWorkspaceState();
         #endregion END Public
 
@@ -166,7 +166,8 @@ namespace Heimdall.App
         {
             if (FeatureContent is null || FeatureActions is null) return;
             var allowed = EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
-            FeatureContent.IsEnabled = FeatureActions.IsEnabled = allowed && !WorkspaceActionRunning && !Session.IsSaving;
+            FeatureContent.IsEnabled = FeatureActions.IsEnabled = allowed && !WorkspaceActionRunning && !Session.IsSaving &&
+                _context.State.Activity != WorkspaceActivityKind.Scan;
             if (!allowed) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
         }
 

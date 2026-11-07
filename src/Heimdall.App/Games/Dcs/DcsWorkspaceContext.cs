@@ -61,10 +61,11 @@ namespace Heimdall.App.Games.Dcs
         /// <summary>Recomputes native state without multiplying subscribers.</summary>
         public void RaiseStateChanged() => RefreshNativeState();
         /// <inheritdoc/>
-        public void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        public WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
         {
-            var result = RunOperation(WorkspaceOperationKind.NativeEdit, _ => { _session.RunStructureEdit(edit); return new(WorkspaceOperationOutcome.Applied, ""); });
+            var result = RunOperation(WorkspaceOperationKind.NativeEdit, _ => _session.RunStructureEdit(edit));
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) ReportStatus(result.Message);
+            return result;
         }
         /// <inheritdoc/>
         public Task SaveAsync() => _save();

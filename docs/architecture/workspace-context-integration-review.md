@@ -33,6 +33,14 @@ This common consumer supplements the native window smoke cases; it does not subs
 
 `WorkspaceStateChangeTests` verifies native fingerprints versus presentation overlays, operation gates, readonly changes, fresh identity and real content changes. `WorkspaceScanReplacementTests` protects late-result/failure cancellation and lease lifetime. Existing all-adapter context, native save/discard, busy/reentrant mutation, training-isolation and selection tests remain enabled.
 
+## DCS command-authoring follow-up
+
+The next Windows run passed all four context/presentation cases and all three non-DCS game workflows, then failed the DCS JSON/HTML authoring scenario. DCS startup discovery was queued asynchronously, and a modal import review could pump that queued scan before staging. The shared context correctly blocks native edits during scanning, but DCS feature content/actions did not project that scan gate. Its structural-edit wrapper also discarded rejection results, allowing command management to display success after a blocked import.
+
+DCS now disables feature editing while scanning, while retaining input-test Stop availability during testing. The native structural-edit port returns the existing `WorkspaceOperationResult`; the context preserves both admission and native validation rejections, and command management consumes that result before reporting success. Compatibility callers may still ignore the return value as before; no second operation owner is introduced.
+
+The authoring fixture injects `EmptyDeviceDiscovery` and the shared smoke navigation helper pumps queued startup work and waits for the explicit scan activity to end, with a bounded timeout. A controlled scan/import smoke deliberately bypasses disabled controls to verify that the underlying modal path still rejects the edit, preserves the native snapshot and displays its rejection reason. It also checks native rejection and recovery. The original JSON/HTML catalog, palette and category assertions remain; new checks verify native command counts after each import and remount the cached assignment surface before examining it.
+
 ## Validation boundary
 
 The ordinary .NET coverage/CRAP gates measure the nine inner production assemblies, **excluding `Heimdall.App`**. Passing those gates is evidence for the measured code only. A Windows-targeted build establishes compilation, not WPF runtime behavior.
