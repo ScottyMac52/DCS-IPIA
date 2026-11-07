@@ -78,11 +78,11 @@ namespace Heimdall.App.Games.Dcs
         protected override NativeWorkspaceFacts ReadNativeFacts()
         {
             var opened = _session.Saved is not null;
-            var allowed = EditionAccess.AllowsWorkspace(_session.Working, _session.Training);
-            var edit = new WorkspaceAvailability(opened && allowed, "This DCS workspace is read-only in the current edition.");
+            var access = EditionAccess.WorkspaceAccess(_session.Working, _session.Training);
+            var edit = new WorkspaceAvailability(opened && access.Enabled, opened ? access.Reason : "Open a DCS workspace before editing.");
             var save = new WorkspaceAvailability(edit.Enabled && _session.Repository is not null, "Open a writable DCS workspace before saving.");
             var input = new WorkspaceAvailability(opened && (_session.Training is not null || EditionAccess.Policy.HasPremium), "Owner entitlement or an isolated training workspace is required for input testing.");
-            return new(_session.Saved?.Configuration.Module.Id.ToString("N") ?? "", opened, opened && !allowed, edit.Reason,
+            return new(_session.Saved?.Configuration.Module.Id.ToString("N") ?? "", opened, opened && !access.Enabled, access.Reason,
                 _session.HasPendingChanges, false, _session.Saved?.Configuration.Module.DisplayName ?? "",
                 new(save, new(opened, "Open a DCS workspace."), edit, new(true, ""), input, input, edit));
         }
