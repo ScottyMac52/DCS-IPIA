@@ -25,6 +25,7 @@ namespace Heimdall.App.Games.WarThunder
         private readonly WarThunderAssignmentEditing _editing;
         private readonly WarThunderAssignmentDrawing _drawing;
         private readonly WarThunderProfileOperations _profiles;
+        private readonly WarThunderProfileSaving _saving;
         private readonly GameCommandDragSource _commandDrag;
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private bool _allowClose;
@@ -46,6 +47,11 @@ namespace Heimdall.App.Games.WarThunder
             _editing = new(_context, RefreshChrome, Run, Status, _assignments, this, () => _controllers!, () => _drawing!);
             _drawing = new(_context, () => _controllers!, () => _editing!, _devices, _assignments, this);
             _controllers = new(_context, ReportError, Controllers, _devices, this, reviewChange, _drawing.Presenter, inputFactory, InputStatus, _assignments, RefreshChrome);
+            _saving = new(_context, () => _controllers.Input.Stop(), _profiles.AfterSave, () =>
+            {
+                if (_context.Session is not null) ProfileName.Text = _context.Session.Snapshot.Name;
+                Refresh();
+            });
             _drawing.Start(); _controllers.Start();
             _assignments.Initialize(_context, _editing.RefreshEditor, _editing.RefreshAvailability, _drawing.ShowDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => Status.Text = message);
@@ -126,7 +132,7 @@ namespace Heimdall.App.Games.WarThunder
             _controllers.Input.StateChanged -= InputStateChanged;
             _commandDrag.Dispose(); _controllers.Dispose(); ClearWorkspaceFeatures();
             if (_context.Session is not null) _context.Session.Changed -= SessionChanged;
-            _context.Dispose();
+            _saving.Dispose(); _context.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion END Public
@@ -140,13 +146,7 @@ namespace Heimdall.App.Games.WarThunder
         protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
         protected override bool CanSaveWorkspace => _context.Session?.AccessMessage.Length == 0 && !_context.Testing && !_context.ScanningHardware && _context.Chrome.CanSave;
         protected override string WorkspaceStateSummary => _context.Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) { _profiles.SaveCore(lease); return Task.CompletedTask; }
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
-        {
-            _controllers.Input.Stop(); _context.Session?.Discard(lease);
-            if (_context.Session is not null) ProfileName.Text = _context.Session.Snapshot.Name;
-            Refresh();
-        }
+        protected override IGameProfileOperations ProfileOperations => _saving;
         protected override void ReportWorkspaceError(Exception exception) => ReportError(exception, "Save failed");
         protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());
         private bool ConfirmLeave()

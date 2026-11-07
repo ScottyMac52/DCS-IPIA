@@ -72,7 +72,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is null || Device is null) return;
             var detected = activity.Single();
             var identity = _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!;
-            var matches = _services.DeviceReferences.Matches(identity, detected.Key);
+            var matches = context.Elite.DeviceReferences.Matches(identity, detected.Key);
             _devicesView.IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + Environment.NewLine + detected.Key.PhysicalGuid +
                 Environment.NewLine + (matches ? "Matches selected ED reference: " : "Does not match selected ED reference: ") + Device.Name;
             if (!matches) return;
@@ -117,7 +117,7 @@ namespace Heimdall.App.Games.Elite
             var alreadyLinked = connected && document is not null && document.Hardware.Values.Any(x => x.Device.PhysicalGuid == selected!.PhysicalGuid);
             var candidate = _identifiedController;
             var confirm = pin is null && document is not null && reference is not null && physical && EditionAccess.Policy.HasPremium && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
-                && _services.DeviceReferences.Matches(reference!.Identity!, candidate)
+                && context.Elite.DeviceReferences.Matches(reference!.Identity!, candidate)
                 && !document!.Hardware.Any(x => x.Key != reference.LogicalId && x.Value.Device.PhysicalGuid == candidate.PhysicalGuid)
                 && (pin is null || pin.Device.PhysicalGuid == candidate.PhysicalGuid || !GameInputReadiness.Ready(pin, observed))
                 && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"));

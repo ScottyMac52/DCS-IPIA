@@ -22,6 +22,7 @@ namespace Heimdall.App.Games.Elite
         private readonly EliteAssignmentDrawing _drawing;
         private readonly EliteReferencePresenter _references;
         private readonly EliteProfileOperations _profiles;
+        private readonly EliteProfileSaving _saving;
         private readonly GameControllerReordering _reordering;
         private readonly Func<MessageBoxResult>? _pendingChoice;
         private bool _allowClose;
@@ -44,9 +45,10 @@ namespace Heimdall.App.Games.Elite
             Guid? initial = null, Func<string?>? importPicker = null, Func<string?>? exportPicker = null,
             Func<MessageBoxResult>? pendingChoice = null, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? inputFactory = null, Func<GameControllerChange, bool>? controllerReview = null)
         {
-            EditionAccess.Policy.RequireSimulator(services.Backend.SimId);
+            var elite = new EliteWorkspaceServices();
+            EditionAccess.Policy.RequireSimulator(elite.Backend.SimId);
             _pendingChoice = pendingChoice;
-            _context = new(services, hardware);
+            _context = new(services, hardware, elite: elite);
             InitializeComponent();
             BindWorkspaceContext(_context, Refresh);
             BindWorkspaceStatus(WorkspaceStatus);
@@ -71,6 +73,10 @@ namespace Heimdall.App.Games.Elite
             _profiles = new(_context, this, ProfilePicker, ProfileName, BindingsDirectoryText, ExportToReviewFolder, ExportState,
                 importPicker, exportPicker, OpenSession, ReloadChoices, Remember, ConfirmLeave, StopLiveInput,
                 _controllers.ReadReplacementInputs, _controllers.ReviewControllerChange, RunBusy, Run, Status);
+            _saving = new(_context, StopLiveInput, () => _profiles.CandidateName, _profiles.Reopen, () => _profiles.SavedMessage, _profiles.AfterSave, () =>
+            {
+                if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Snapshot.Name; _refreshing = false; }
+            });
             _assignmentsView.Initialize(_context, _editing.LoadAssignment, _editing.UpdateAvailability, _drawing.RenderDevice,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), Status);
             ConfigureWorkspace(FeatureContent, FeatureActions,
@@ -144,7 +150,7 @@ namespace Heimdall.App.Games.Elite
             _disposed = true;
             ClearWorkspaceFeatures(); _browser.Dispose(); _reordering.Dispose(); _controllers.Dispose();
             if (_session is not null) _session.Changed -= SessionChanged;
-            _context.Dispose();
+            _saving.Dispose(); _context.Dispose();
             GC.SuppressFinalize(this);
         }
         /// <summary>Gets a guarded request to return to DCS.</summary>
@@ -181,12 +187,7 @@ namespace Heimdall.App.Games.Elite
         protected override bool HasWorkspaceChanges => Pending;
         protected override bool CanSaveWorkspace => Chrome.CanSave;
         protected override string WorkspaceStateSummary => Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) { _profiles.SaveCore(lease); return Task.CompletedTask; }
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
-        {
-            _session?.Discard(lease);
-            if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Snapshot.Name; _refreshing = false; }
-        }
+        protected override IGameProfileOperations ProfileOperations => _saving;
         protected override bool CanCloseWorkspace() => !WorkspaceActionRunning && (_allowClose || ConfirmLeave());
         protected override void ReportWorkspaceError(Exception exception) => Status("Save failed; pending edits are retained: " + exception.Message);
         protected override void OnWorkspaceStateChanged() => UpdateNativeAvailability();
@@ -240,7 +241,7 @@ namespace Heimdall.App.Games.Elite
         {
             StopLiveInput(); _selection.Reset(); _references.MarkDirty();
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
-            var opened = new GameProfileSession(_services.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _services.DeviceReferences);
+            var opened = new GameProfileSession(_context.Backend, workspace, EditionAccess.Policy, _hardware.Select(x => x.DeviceId).ToArray(), _services.Discover, _context.Elite.DeviceReferences);
             if (_session is not null) _session.Changed -= SessionChanged;
             ExportState.Text = "Workspace open in HEIMDALL. Export writes a named ED preset to the selected destination.";
             _session = opened; _revision = revision; _session.Changed += SessionChanged;

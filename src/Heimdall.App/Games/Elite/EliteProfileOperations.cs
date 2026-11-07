@@ -41,7 +41,7 @@ namespace Heimdall.App.Games.Elite
         #region BEGIN Public
         internal void ImportFile(string path)
         {
-            var profile = _services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
+            var profile = context.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
             var baseName = profile.Name.Length > 80 ? profile.Name[..80] + " Controls" : profile.Name + " Controls";
             var used = _services.Store.List().Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var name = baseName; var suffix = 2;
@@ -120,17 +120,21 @@ namespace Heimdall.App.Games.Elite
             Status("Export complete. " + string.Join(" ", plan.Diagnostics.Select(x => x.Message)));
         }));
 
-        internal void SaveCore(IWorkspaceOperationLease lease)
+        /// <summary>Native post-commit refresh for the shared save sequence; persistence itself is owned by <see cref="EliteProfileSaving"/>.</summary>
+        internal void AfterSave()
         {
-            if (_session is null) throw new InvalidOperationException("Open an Elite configuration before saving.");
-                var workspace = _session.Snapshot with { Name = ProfileName.Text.Trim() };
-                GameWorkspaceContract.Validate(workspace);
-                GameConfigurationName.Validate(workspace.Name);
-                _revision = _services.Store.Save(workspace, _revision);
-                OpenSession(workspace, _revision); ReloadChoices(workspace.Id); Remember(workspace);
-                ExportState.Text = "Saved in HEIMDALL. Export writes the named ED preset to your selected destination.";
-                Status("Saved in your HEIMDALL data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : ""));
+            if (_session is not { } session) return;
+            var workspace = session.Snapshot;
+            ReloadChoices(workspace.Id); Remember(workspace);
+            ExportState.Text = "Saved in HEIMDALL. Export writes the named ED preset to your selected destination.";
+            Status(SavedMessage);
         }
+        /// <summary>Gets the native saved status, including a best-effort recent-selection failure.</summary>
+        internal string SavedMessage => "Saved in your HEIMDALL data profile. Active Elite bindings are unchanged." + (_services.SelectionError is { } error ? " Recent selection was not saved: " + error : "");
+        /// <summary>Gets the trimmed native configuration name.</summary>
+        internal string CandidateName => ProfileName.Text.Trim();
+        /// <summary>Installs a persisted preset model as a fresh native session.</summary>
+        internal void Reopen(GameWorkspace workspace, string revision) => OpenSession(workspace, revision);
         internal string BindingsDirectory => _bindingsDirectoryOverride ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
         internal Func<string, bool>? ConfirmPresetReplacement { get; set; }
@@ -162,7 +166,7 @@ namespace Heimdall.App.Games.Elite
             {
                 var path = _importPicker is null ? PickImport() : _importPicker();
                 if (path is null) return;
-                var profile = _services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
+                var profile = context.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(path)] = File.ReadAllText(path) });
                 source = new(1, Guid.NewGuid(), "Template", profile, new());
             }
             var name = ChooseConfigurationName(clear ? "New" : "Duplicate", clear ? "New Controls" : ProfileName.Text.Trim() + " Copy");

@@ -31,8 +31,8 @@ namespace Heimdall.App.Smoke
             }
             finally
             {
-                foreach (var fixture in cases) fixture.Context.Dispose();
-                foreach (var fixture in presentationCases) fixture.Context.Dispose();
+                foreach (var fixture in cases) { fixture.Profiles.Dispose(); fixture.Context.Dispose(); }
+                foreach (var fixture in presentationCases) { fixture.Profiles.Dispose(); fixture.Context.Dispose(); }
                 EditionAccess.SetForTests(previous); Directory.Delete(root, true);
             }
         }
@@ -74,11 +74,11 @@ namespace Heimdall.App.Smoke
             catch (IOException) { }
             Require(context.CaptureSnapshot() == pending && context.State.Dirty && context.State.Operation is null, fixture, "Failed save lost a draft/name or retained the busy gate.");
             var events = notifications;
-            var saved = Await(context.RunOperationAsync(WorkspaceOperationKind.Save, async lease =>
-            { await fixture.Save(lease); return new(WorkspaceOperationOutcome.Applied, "Saved", true); }, default));
+            var saved = Await(fixture.Profiles.SaveAsync(default));
+            Require(fixture.PersistedName() == context.State.EditedName, fixture, "Native persisted baseline was not accepted.");
             Require(saved.Committed && !context.State.Dirty && notifications == events + 2, fixture, "Successful save did not establish one baseline with admission/release events.");
             fixture.Edit("Discard me");
-            context.RunOperation(WorkspaceOperationKind.Discard, lease => { fixture.Discard(lease); return new(WorkspaceOperationOutcome.Applied, ""); });
+            Require(Await(fixture.Profiles.DiscardAsync(default)).Outcome == WorkspaceOperationOutcome.Applied, fixture, "Shared discard was not applied.");
             Require(!context.State.Dirty, fixture, "Discard failed to restore the exact native baseline.");
             if (context.TryStartActivity(WorkspaceActivityKind.Test, out var input).Enabled)
             {

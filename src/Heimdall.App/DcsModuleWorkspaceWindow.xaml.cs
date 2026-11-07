@@ -17,6 +17,7 @@ namespace Heimdall.App
     {
         private bool _changingSelection;
         private readonly DcsWorkspaceContext _context;
+        private readonly DcsProfileOperations _profiles;
         private readonly DcsModuleWorkspaceViewModel _viewModel;
         private readonly IAppSettingsService? _settings;
         private readonly DcsWorkspaceOutput _output;
@@ -36,6 +37,7 @@ namespace Heimdall.App
             Session = new(viewModel, repository, deviceDiscovery, training, inventory, userMappings, mappingReviewConfirmation,
                 commandFilePicker, integrationFilePicker, axisDefaultsFilePicker, inputSourceFactory, inputLogClipboardWriter);
             _context = new DcsWorkspaceContext(Session, new DispatcherWorkspaceScheduler(Dispatcher), SaveWorkspaceAsync, () => DiscardClicked(null!, null!));
+            _profiles = new DcsProfileOperations(_context, Session);
             InitializeComponent();
             BindWorkspaceContext(_context);
             BindWorkspaceStatus(EditorMessage);
@@ -80,7 +82,7 @@ namespace Heimdall.App
 
         #region BEGIN Public
         /// <summary>Releases the single context and all mounted input features when this native workspace is disposed.</summary>
-        public void Dispose() { ClearWorkspaceFeatures(); _context.Dispose(); GC.SuppressFinalize(this); }
+        public void Dispose() { ClearWorkspaceFeatures(); _profiles.Dispose(); _context.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Gets the explicit requested game after a guarded close.</summary>
         public string? RequestedGame { get; private set; }
         /// <summary>Gets an explicit requested saved DCS profile after a guarded close.</summary>
@@ -97,9 +99,7 @@ namespace Heimdall.App
         protected override bool CanSaveWorkspace => Session.Repository is not null && Session.Saved is not null &&
             EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
         /// <inheritdoc/>
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) => Session.SaveAsync(lease);
-        /// <inheritdoc/>
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease) => Session.Discard(lease);
+        protected override IGameProfileOperations ProfileOperations => _profiles;
         /// <inheritdoc/>
         protected override void ReportWorkspaceError(Exception exception) => EditorMessage.Text = "Unable to save workspace: " + exception.Message;
         /// <inheritdoc/>

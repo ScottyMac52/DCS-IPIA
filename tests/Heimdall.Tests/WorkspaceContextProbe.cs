@@ -20,6 +20,8 @@ namespace Heimdall.Tests
         public void Edit(string data) { _working = _working! with { Data = data }; NativeStateChanged(); }
         /// <summary>Marks a baseline only after a test persistence step succeeds.</summary>
         public void Accept() { _working = _working! with { Name = State.EditedName }; _saved = _working; NativeStateChanged(); }
+        /// <summary>Installs a durable persisted candidate as both working and saved baseline.</summary>
+        public void Install(WorkspaceTestSnapshot persisted) { _saved = _working = persisted; NativeStateChanged(); }
         /// <summary>Restores the native saved baseline and invalidates old review targets.</summary>
         public void Restore() { _working = _saved; InvalidateNativeScope(); NativeStateChanged(); }
         #endregion END Public

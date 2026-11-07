@@ -23,38 +23,39 @@ namespace Heimdall.App.Smoke
         #region BEGIN Public
         internal static IReadOnlyList<WorkspaceContextCase> Create(string root, EditionPolicy owner)
         {
-            var services = new GameWorkspaceServices(new FileGameWorkspaceStore(Path.Combine(root, "profiles")), new EmptyDeviceDiscovery());
+            var store = new CountingGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "profiles")));
+            var services = new GameWorkspaceServices(store, new EmptyDeviceDiscovery());
             var elite = new EliteWorkspaceContext(services, []);
             var squadrons = new SquadronsWorkspaceContext(services);
             var thunder = new WarThunderWorkspaceContext(services);
-            var edProfile = services.Backend.Import("controls", new Dictionary<string, string>
+            var edProfile = elite.Backend.Import("controls", new Dictionary<string, string>
             { ["controls.binds"] = "<Root PresetName=\"Context\" MajorVersion=\"4\" MinorVersion=\"0\" />" });
             var sqProfile = squadrons.Backend.Import("controls", new Dictionary<string, string>
             { [SquadronsProfileBackend.FileName] = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Squadrons", "Synthetic_profile_synced")) });
             var wtProfile = thunder.Backend.Import("controls", new Dictionary<string, string>
             { ["controls.blk"] = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WarThunder", "Synthetic.blk")) });
+            // Production native adapters supply the hooks; post-commit window refreshes are not part of the context contract.
             return [Dcs(root),
-                Profile("Elite", elite, services, edProfile, services.Backend, owner),
-                Profile("Squadrons", squadrons, services, sqProfile, squadrons.Backend, owner),
-                Profile("War Thunder", thunder, services, wtProfile, thunder.Backend, owner)];
+                Profile("Elite", elite, services, store, edProfile, elite.Backend, owner, open => new EliteProfileSaving(elite, () => { },
+                    () => elite.State.EditedName.Trim(), (saved, revision) => { elite.Session = open(saved); elite.Revision = revision; }, () => "Elite saved.", () => { }, () => { })),
+                Profile("Squadrons", squadrons, services, store, sqProfile, squadrons.Backend, owner, _ => new SquadronsProfileSaving(squadrons, () => { }, () => { }, () => { })),
+                Profile("War Thunder", thunder, services, store, wtProfile, thunder.Backend, owner, _ => new WarThunderProfileSaving(thunder, () => { }, () => { }, () => { }))];
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static WorkspaceContextCase Profile(string name, GameProfileWorkspaceContextBase context, GameWorkspaceServices services,
-            Heimdall.Domain.MultiSim.ProfileDocument profile, ISimProfileBackend backend, EditionPolicy owner)
+        private static WorkspaceContextCase Profile(string name, GameProfileWorkspaceContextBase context, GameWorkspaceServices services, CountingGameWorkspaceStore store,
+            Heimdall.Domain.MultiSim.ProfileDocument profile, ISimProfileBackend backend, EditionPolicy owner,
+            Func<Func<GameWorkspace, GameProfileSession>, IGameProfileOperations> profiles)
         {
             var workspace = new GameWorkspace(1, Guid.NewGuid(), name + " context", profile, new());
             GameProfileSession Open(EditionPolicy policy) => new(backend, workspace, policy, [], () => []);
             context.Session = Open(owner); context.Revision = services.Store.Save(workspace, null);
-            return new(name, context, text => context.Session!.Rename(text), lease =>
-            {
-                var candidate = context.Session!.Snapshot with { Name = context.State.EditedName };
-                var revision = services.Store.Save(candidate, context.Revision);
-                context.Session.AcceptSaved(candidate, lease); context.Revision = revision; workspace = candidate;
-                if (services.Store.Load(candidate.Id).Workspace.Name != candidate.Name) throw new InvalidOperationException("Native persisted baseline was not accepted.");
-                return Task.CompletedTask;
-            }, lease => context.Session!.Discard(lease), () => context.Session = Open(owner), () => context.Session = Open(new()),
-                () => JsonSerializer.Serialize(context.Session?.Snapshot));
+            var writes = store.Writes;
+            return new(name, context, text => context.Session!.Rename(text),
+                profiles(saved => new(backend, saved, owner, [], () => [])),
+                () => context.Session = Open(owner), () => context.Session = Open(new()),
+                () => JsonSerializer.Serialize(context.Session?.Snapshot), () => store.Writes - writes, error => store.Fail = error,
+                () => store.Load(workspace.Id).Workspace.Name);
         }
         private static WorkspaceContextCase Dcs(string root)
         {
@@ -62,13 +63,15 @@ namespace Heimdall.App.Smoke
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
             var repository = new DcsSqliteEditorWorkspaceRepository(connection);
             var workspace = MixedSnapshotFixture.Create(); repository.SaveAsync(workspace).GetAwaiter().GetResult();
-            var session = new DcsWorkspaceSession(new(workspace), repository, new EmptyDeviceDiscovery(), null, null, null, null, null, null, null, null, null);
+            var counter = new CountingDcsRepository(repository);
+            var session = new DcsWorkspaceSession(new(workspace), counter, new EmptyDeviceDiscovery(), null, null, null, null, null, null, null, null, null);
             var context = new DcsWorkspaceContext(session, new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher),
                 () => throw new InvalidOperationException("Use the context-issued lease in this conformance fixture."), () => throw new InvalidOperationException("Use the context-issued lease."));
-            return new("DCS", context, text => session.SetLabel("context-conformance", text), session.SaveAsync, session.Discard,
+            return new("DCS", context, text => session.SetLabel("context-conformance", text), new DcsProfileOperations(context, session),
                 () => context.RunOperation(WorkspaceOperationKind.Discard, lease => { session.Discard(lease); return new(WorkspaceOperationOutcome.Applied, ""); }),
                 () => { EditionAccess.SetForTests(new()); context.RefreshNativeState(); },
-                () => JsonSerializer.Serialize(new { session.Working, Assignments = session.Draft?.Snapshot, session.Labels }));
+                () => JsonSerializer.Serialize(new { session.Working, Assignments = session.Draft?.Snapshot, session.Labels }), () => counter.Writes, error => counter.Fail = error,
+                () => repository.GetAsync(workspace.Configuration.Module.Id).GetAwaiter().GetResult()?.Configuration.Module.DisplayName);
         }
         #endregion END private helpers
     }

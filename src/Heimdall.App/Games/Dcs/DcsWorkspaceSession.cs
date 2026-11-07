@@ -13,6 +13,7 @@ namespace Heimdall.App.Games.Dcs
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private bool _structureDirty;
         private bool _disposed;
+        private IDisposable? _saveLock;
         internal IGameWorkspaceContext? Context { get; set; }
 
         internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
@@ -88,14 +89,15 @@ namespace Heimdall.App.Games.Dcs
             catch (Exception error) { RaiseStatus(error.Message); return new(WorkspaceOperationOutcome.Blocked, error.Message); }
         }
 
-        internal async Task SaveAsync(IWorkspaceOperationLease lease)
+        /// <summary>Native save hook 1: suspends draft editing and builds the edition-checked, pinned and validated candidate.</summary>
+        internal DcsEditorWorkspaceSnapshot PrepareSave()
         {
-            if (Context?.State.Operation != WorkspaceOperationKind.Save || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            if (Context?.State.Operation != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
             if (Repository is null || Saved is null || Draft is null)
                 throw new InvalidOperationException("Open a writable DCS workspace before saving.");
+            IDisposable? editingLock = Draft.SuspendEditing();
             try
             {
-                using var editingLock = Draft.SuspendEditing();
                 RaiseStateChanged();
                 var updated = EditSnapshot();
                 if (Context.State.EditedName != Saved.Configuration.Module.DisplayName)
@@ -110,16 +112,27 @@ namespace Heimdall.App.Games.Dcs
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 DcsModuleIntegrationImport.Instructions(updated);
-                await Repository.SaveAsync(updated);
-                Saved = updated; Working = updated; _structureDirty = false;
-                RebuildDraft(updated);
+                _saveLock = editingLock; editingLock = null;
+                return updated;
             }
-            catch (Exception error)
-            {
-                RaiseStatus("Database save failed: " + error.Message);
-                throw;
-            }
-            finally { RaiseStateChanged(); }
+            catch (Exception error) { RaiseStatus("Database save failed: " + error.Message); RaiseStateChanged(); throw; }
+            finally { editingLock?.Dispose(); }
+        }
+        /// <summary>Native save hook 2: the one repository write, with draft editing still suspended.</summary>
+        internal async Task PersistAsync(DcsEditorWorkspaceSnapshot candidate, IWorkspaceOperationLease lease)
+        {
+            if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            try { await Repository!.SaveAsync(candidate); }
+            catch (Exception error) { RaiseStatus("Database save failed: " + error.Message); throw; }
+            finally { ReleaseSaveLock(); RaiseStateChanged(); }
+        }
+        /// <summary>Native save hook 3: installs the durable snapshot as saved, working and draft baseline.</summary>
+        internal void AcceptSaved(DcsEditorWorkspaceSnapshot persisted, IWorkspaceOperationLease lease)
+        {
+            if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            Saved = persisted; Working = persisted; _structureDirty = false;
+            RebuildDraft(persisted);
+            RaiseStateChanged();
         }
 
         internal void Discard(IWorkspaceOperationLease lease)
@@ -142,12 +155,13 @@ namespace Heimdall.App.Games.Dcs
         {
             if (_disposed) return;
             _disposed = true;
-            SetDraft(null);
+            ReleaseSaveLock(); SetDraft(null);
             StateChanged = null; StatusChanged = null;
         }
         #endregion END Public
 
         #region BEGIN private helpers
+        private void ReleaseSaveLock() { var held = _saveLock; _saveLock = null; held?.Dispose(); }
         private void RequireEditable()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);

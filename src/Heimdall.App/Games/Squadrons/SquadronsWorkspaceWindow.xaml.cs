@@ -23,6 +23,7 @@ namespace Heimdall.App.Games.Squadrons
         private readonly SquadronsAssignmentEditing _editing;
         private readonly SquadronsAssignmentDrawing _drawing;
         private readonly SquadronsProfileOperations _profiles;
+        private readonly SquadronsProfileSaving _saving;
         private readonly GameCommandDragSource _commandDrag;
         private readonly GameControllerReordering _reordering;
         private readonly Func<MessageBoxResult>? _pendingChoice;
@@ -67,6 +68,11 @@ namespace Heimdall.App.Games.Squadrons
             _editing = new(_context, () => _controllers!, () => _browser!, resetName => Refresh(resetName), Run, StatusText, _assignmentsView, this);
             _drawing = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, _devicesView, _assignmentsView, this, () => _controllers!);
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
+            _saving = new(_context, () => _controllers.StopLiveInput(), _profiles.AfterSave, () =>
+            {
+                Refresh(); StatusText.Text = "Draft changes discarded.";
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
+            });
             _drawing.Start();
             _controllers.Start();
             _assignmentsView.Initialize(_context, _editing.UpdateEditor, _editing.UpdateApplyAvailability, _drawing.RenderDrawing,
@@ -188,7 +194,7 @@ namespace Heimdall.App.Games.Squadrons
             if (_disposed) return;
             _disposed = true;
             ClearWorkspaceFeatures(); _commandDrag.Dispose(); _controllers.Dispose(); _reordering.Dispose();
-            _context.Dispose();
+            _saving.Dispose(); _context.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion END Public
@@ -204,19 +210,7 @@ namespace Heimdall.App.Games.Squadrons
         protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
         protected override bool CanSaveWorkspace => _context.Chrome.CanSave;
         protected override string WorkspaceStateSummary => _context.Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease)
-        {
-            _profiles.SaveCore(lease);
-            return Task.CompletedTask;
-        }
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
-        {
-            _controllers.StopLiveInput();
-            _context.Session?.Discard(lease);
-            if (_context.Revision is null) _context.Session = null;
-            Refresh(); StatusText.Text = "Draft changes discarded.";
-            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
-        }
+        protected override IGameProfileOperations ProfileOperations => _saving;
         protected override void ReportWorkspaceError(Exception exception) => StatusText.Text = "Unable to save: " + exception.Message;
         private bool ConfirmLeave()
         {

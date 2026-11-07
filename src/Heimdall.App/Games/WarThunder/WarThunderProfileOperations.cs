@@ -27,17 +27,8 @@ namespace Heimdall.App.Games.WarThunder
         Action refreshChrome)
     {
         #region BEGIN Public
-        internal void SaveCore(IWorkspaceOperationLease lease)
-        {
-            if (context.Session is not { } session || session.AccessMessage.Length != 0 || context.Testing || context.ScanningHardware)
-                throw new InvalidOperationException("This War Thunder workspace cannot currently be saved.");
-            var workspace = session.Snapshot with { Name = context.EditedName };
-            GameConfigurationName.Validate(workspace.Name);
-            controllers().Input.Stop();
-            var revision = context.Services.Store.Save(workspace, context.Revision);
-            session.AcceptSaved(workspace, lease); context.Revision = revision;
-            Remember(); RefreshEntries(); refreshChrome(); Status.Text = "War Thunder profile saved.";
-        }
+        /// <summary>Native post-commit refresh for the shared save sequence; persistence itself is owned by <see cref="WarThunderProfileSaving"/>.</summary>
+        internal void AfterSave() { Remember(); RefreshEntries(); refreshChrome(); Status.Text = "War Thunder profile saved."; }
         #endregion END Public
         #region BEGIN private helpers
         internal void ImportFile(string path)

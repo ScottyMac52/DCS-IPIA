@@ -46,6 +46,7 @@ namespace Heimdall.App.Smoke
             GameWorkspaceSmoke.Verify();
             SharedConsumerHostSmoke.Verify();
             WorkspaceContextConformanceSmoke.Verify();
+            ProfileOperationsConformanceSmoke.Verify();
             WorkspaceInheritanceSmoke.Verify();
             AssignmentsInheritanceSmoke.Verify();
             DcsWorkspaceSaveSmoke.Verify();

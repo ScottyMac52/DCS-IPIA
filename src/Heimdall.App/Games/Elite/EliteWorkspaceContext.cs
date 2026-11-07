@@ -9,13 +9,15 @@ namespace Heimdall.App.Games.Elite
 {
     /// <summary>Provides ED session facts and typed artwork projections to the inherited workspace context.</summary>
     internal sealed class EliteWorkspaceContext(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
-        IWorkspaceScheduler? scheduler = null) : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
+        IWorkspaceScheduler? scheduler = null, IEliteWorkspaceServices? elite = null) : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
         IEliteWorkspaceContext<EliteDangerousProfileBackend, EliteAssignmentRow>
     {
         #region BEGIN Public
         internal GameWorkspaceServices Services => services;
         /// <inheritdoc/>
-        public EliteDangerousProfileBackend Backend => services.Backend;
+        public EliteDangerousProfileBackend Backend => Elite.Backend;
+        /// <summary>Gets ED-only native services owned at the ED edge.</summary>
+        internal IEliteWorkspaceServices Elite { get; } = elite ?? new EliteWorkspaceServices();
         internal IReadOnlyList<WorkspaceHardware> Hardware => hardware;
         internal GameAssignmentSelection Selection => NativeSelection;
         internal bool Refreshing { get; set; } = true;

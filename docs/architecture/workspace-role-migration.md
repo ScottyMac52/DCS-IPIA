@@ -144,3 +144,13 @@ flowchart TD
 ```
 
 Discard follows the same role entry with atomic native restore and no write. Assignment entry is native request builder → IGameAssignmentEditing.Execute → existing context-owned workflow → native Review/Apply → existing actual-change check → common result/refresh. No save is nested in an assignment operation, and no window/feature route manufactures a second operation lease.
+
+## PR 3 implementation notes (draft)
+
+- Shared contracts live in `Heimdall.Application`: `IGameProfileOperations`, `IWorkspaceInputLifetime`, `WorkspaceCommit<TSnapshot,TCommit>`, `IGameProfileCommand<TRequest,TResult>`, `GameProfileOperationsBase<TSnapshot,TCommit>` (the only save/discard sequence), `GameStoreProfileOperationsBase` (optimistic-revision store hooks) and `GameProfileCommandBase<TRequest,TPrepared,TResult>`.
+- Native hooks: `DcsProfileOperations` (pinned/edition-checked candidate, one repository write with draft editing suspended, draft rebuild), `EliteProfileSaving` (reopens the persisted preset model as before), `SquadronsProfileSaving` (an unsaved import discards to no session as before) and `WarThunderProfileSaving`.
+- `GameWorkspaceWindow` no longer declares `SaveWorkspaceCoreAsync`/`DiscardWorkspaceCore`; its Save/Discard buttons, feature save/discard delegates and the leave guard all call `ProfileOperations`.
+- Contract clarifications: `AcceptCommit` and `RestoreSaved` receive the lease because native session acceptance requires it; `RefreshAfterPersistence` receives the completed kind; status messages are read after refresh so best-effort preference failures are included; an empty native message leaves the existing status surface untouched (DCS).
+- Intentional behavior changes: a clean writable save now returns NoChange without writing; a War Thunder save while input testing now stops input and saves (shared sequence) instead of rejecting.
+- `IEliteWorkspaceServices` now owns the ED backend and device-reference matcher; `GameWorkspaceServices` no longer exposes them.
+- Remaining in PR 3 scope before ready: native import/export/configuration commands still run through their existing routes; they have not yet been migrated to `GameProfileCommandBase`. Assignment-view save/discard hooks remain a transitional route through the window entry point until PR 9.

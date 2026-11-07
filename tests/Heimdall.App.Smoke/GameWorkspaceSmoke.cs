@@ -102,7 +102,7 @@ namespace Heimdall.App.Smoke
                 EliteDiagramContextSmoke.Verify(window);
                 Click(window, "ExportPresetButton");
                 var exported = Directory.GetFiles(Path.Combine(root, "Review"), "*.binds", SearchOption.AllDirectories).Single();
-                var native = services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });
+                var native = new Heimdall.EliteDangerous.EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
@@ -196,7 +196,7 @@ namespace Heimdall.App.Smoke
                 if (input.IsEditable || !Equals(input.SelectedValue, "Joy_4"))
                     throw new InvalidOperationException("An unillustrated controller did not expose its verified input in a selection-only picker.");
                 Click(window, "ApplyAssignmentButton");
-                if (!window.SaveProfile() || !services.Backend.Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
+                if (!window.SaveProfile() || !new Heimdall.EliteDangerous.EliteDangerousProfileBackend().Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
                     throw new InvalidOperationException("A new unillustrated controller did not save and export.");
                 var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);
                 Click(window, "ChangeDrawingButton"); Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware[0]; Click(window, "UseDrawingButton");
