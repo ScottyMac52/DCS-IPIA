@@ -180,7 +180,7 @@ namespace Heimdall.App.Features.Commands
             if (id.Length == 0 || name.Length == 0) { StatusText.Text = "Enter an id and a name."; return; }
             try
             {
-                _context.RunStructureEdit(w => DcsModuleCommandCatalogEditor.Set(w, null, new(id, name, CommandCategory.Text.Trim(), CommandIsAxis.IsChecked == true)));
+                if (!StageCatalogEdit(w => DcsModuleCommandCatalogEditor.Set(w, null, new(id, name, CommandCategory.Text.Trim(), CommandIsAxis.IsChecked == true)))) return;
                 StatusText.Text = "Command added and staged."; CommandId.Text = ""; CommandName.Text = "";
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
@@ -191,7 +191,7 @@ namespace Heimdall.App.Features.Commands
             if (_context is null || _selected is null) { StatusText.Text = "Select a command to update."; return; }
             try
             {
-                _context.RunStructureEdit(w => DcsModuleCommandCatalogEditor.Set(w, _selected, new(_selected.Id, CommandName.Text.Trim(), CommandCategory.Text.Trim(), CommandIsAxis.IsChecked == true)));
+                if (!StageCatalogEdit(w => DcsModuleCommandCatalogEditor.Set(w, _selected, new(_selected.Id, CommandName.Text.Trim(), CommandCategory.Text.Trim(), CommandIsAxis.IsChecked == true)))) return;
                 StatusText.Text = "Command updated and staged.";
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
@@ -202,7 +202,7 @@ namespace Heimdall.App.Features.Commands
             if (_context is null || _selected is null) { StatusText.Text = "Select a command to remove."; return; }
             try
             {
-                _context.RunStructureEdit(w => DcsModuleCommandCatalogEditor.Remove(w, _selected));
+                if (!StageCatalogEdit(w => DcsModuleCommandCatalogEditor.Remove(w, _selected))) return;
                 StatusText.Text = "Command removed and staged."; _selection.SelectCommand(null);
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
@@ -229,7 +229,7 @@ namespace Heimdall.App.Features.Commands
                 var review = DcsModuleCommandCatalogImport.ReadFiles(_context.Working, paths, html);
                 var dialog = new DcsCommandImportReviewWindow(_context.Working.Configuration.Module.DisplayName, review) { Owner = Window.GetWindow(this) };
                 if (dialog.ShowDialog() != true) return;
-                _context.RunStructureEdit(w => DcsModuleCommandCatalogImport.Apply(w, review));
+                if (!StageCatalogEdit(w => DcsModuleCommandCatalogImport.Apply(w, review))) return;
                 StatusText.Text = "Commands imported and staged.";
             }
             catch (Exception ex) { StatusText.Text = "Import failed: " + ex.Message; }
@@ -244,15 +244,23 @@ namespace Heimdall.App.Features.Commands
                 "Clear all commands", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             try
             {
-                _context.RunStructureEdit(w =>
+                if (!StageCatalogEdit(w =>
                 {
                     var current = w;
                     foreach (var command in w.ModuleCommands.ToArray()) current = DcsModuleCommandCatalogEditor.Remove(current, command);
                     return current;
-                });
+                })) return;
                 StatusText.Text = "All commands cleared and staged.";
             }
             catch (Exception ex) { StatusText.Text = "Clear failed: " + ex.Message; }
+        }
+
+        private bool StageCatalogEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        {
+            var result = _context!.RunStructureEdit(edit);
+            if (result.Outcome == WorkspaceOperationOutcome.Applied) return true;
+            StatusText.Text = result.Message;
+            return false;
         }
 
         private async void SaveClicked(object sender, RoutedEventArgs e)

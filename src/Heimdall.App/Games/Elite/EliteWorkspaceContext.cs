@@ -1,39 +1,38 @@
 using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.Domain.MultiSim;
 using Heimdall.EliteDangerous;
+using System.Windows.Threading;
 
 namespace Heimdall.App.Games.Elite
 {
-    /// <summary>Current ED session/projection and native selection access, independent of the concrete window.</summary>
-    internal sealed class EliteWorkspaceContext(
-        GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware, GameAssignmentSelection selection,
-        Func<GameDeviceChoice?> device, Func<string> section, Func<string> editedName, Func<int> feature,
-        Func<bool> busy, Func<bool> testing, Func<bool> identifying)
+    /// <summary>Provides ED session facts and typed artwork projections to the inherited workspace context.</summary>
+    internal sealed class EliteWorkspaceContext(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
+        IWorkspaceScheduler? scheduler = null) : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
+        IEliteWorkspaceContext<EliteDangerousProfileBackend, EliteAssignmentRow>
     {
         #region BEGIN Public
         internal GameWorkspaceServices Services => services;
+        /// <inheritdoc/>
+        public EliteDangerousProfileBackend Backend => services.Backend;
         internal IReadOnlyList<WorkspaceHardware> Hardware => hardware;
-        internal GameAssignmentSelection Selection => selection;
-        internal GameProfileSession? Session { get; set; }
-        internal string? Revision { get; set; }
+        internal GameAssignmentSelection Selection => NativeSelection;
         internal bool Refreshing { get; set; } = true;
         internal IReadOnlyList<SimCommand> Commands { get; set; } = [];
-        internal IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];
-        internal GameDeviceChoice? Device => device();
-        internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == Selection.CommandId);
-        internal string Section => section();
-        internal string EditedName => editedName();
-        internal int Feature => feature();
-        internal bool Busy => busy();
-        internal bool Testing => testing();
-        internal bool Identifying => identifying();
-        internal GameWorkspaceChromeState Chrome => GameWorkspaceChromeState.For(Session, Revision, EditedName, Busy);
-        internal WorkspaceAssignmentContext AssignmentContext => new(
-            (Session?.Snapshot.Id.ToString("N") ?? "") + ":" + Device?.Id + ":" + Section + ":" + Selection.Slot,
-            Session is not null, Session?.AccessMessage.Length > 0, Busy || Identifying, Testing);
-        internal event EventHandler? Changed;
-        internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+        /// <inheritdoc/>
+        public IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];
+        internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id && Session?.Snapshot is { } document && document.Profile.Devices.Any(x => x.LogicalId == id)
+            ? new(id, ControllerName(document, id)) : null;
+        internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == State.Selection.CommandId);
+        internal string Section { get; set; } = "All";
+        internal int Feature { get; set; }
+        internal string EditedName => State.EditedName.Trim();
+        internal bool Busy => State.Operation is not null;
+        internal bool Testing => State.Activity == WorkspaceActivityKind.Test;
+        internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
+        internal WorkspaceAssignmentContext AssignmentContext => Context;
+        internal void NotifyChanged() => RefreshNativeState();
         internal WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)
         {
             var system = EliteSystemInputDrawings.Create(document.Profile, deviceId);
@@ -56,5 +55,6 @@ namespace Heimdall.App.Games.Elite
             return workspace.Hardware.TryGetValue(id, out var pin) ? pin.Device.Name + " · " + token + suffix : token + suffix;
         }
         #endregion END Public
+        protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, true));
     }
 }

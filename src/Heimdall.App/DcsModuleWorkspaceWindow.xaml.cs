@@ -13,10 +13,10 @@ using System.Windows.Controls;
 namespace Heimdall.App
 {
     /// <summary>Supplies DCS actions and feature registrations to the inherited workspace lifecycle.</summary>
-    public partial class DcsModuleWorkspaceWindow : GameWorkspaceWindow
+    public partial class DcsModuleWorkspaceWindow : GameWorkspaceWindow, IDisposable
     {
         private bool _changingSelection;
-        private readonly DcsWindowContext _context;
+        private readonly DcsWorkspaceContext _context;
         private readonly DcsModuleWorkspaceViewModel _viewModel;
         private readonly IAppSettingsService? _settings;
         private readonly DcsWorkspaceOutput _output;
@@ -35,8 +35,10 @@ namespace Heimdall.App
             _settings = training is null ? settings : null;
             Session = new(viewModel, repository, deviceDiscovery, training, inventory, userMappings, mappingReviewConfirmation,
                 commandFilePicker, integrationFilePicker, axisDefaultsFilePicker, inputSourceFactory, inputLogClipboardWriter);
-            _context = new DcsWindowContext(this);
+            _context = new DcsWorkspaceContext(Session, new DispatcherWorkspaceScheduler(Dispatcher), SaveWorkspaceAsync, () => DiscardClicked(null!, null!));
             InitializeComponent();
+            BindWorkspaceContext(_context);
+            BindWorkspaceStatus(EditorMessage);
             var outputLogger = logger ?? NullLogger<DcsModuleWorkspaceWindow>.Instance;
             _output = new(Session,
                 training is null ? outputPathPicker ?? ChooseOutputPath : snapshot => snapshot
@@ -50,15 +52,15 @@ namespace Heimdall.App
             WorkspaceLayout.SetPersistenceEnabled(WorkspaceRoot, persistence);
             ConfigureWorkspace(FeatureContent, FeatureActions, DcsWorkspaceFeatures.Create(_context, persistence),
                 controllerSelection.Link, FeatureSelected);
-            RegisterWorkspaceCleanup(Session.Dispose);
+            RegisterWorkspaceCleanup(Dispose);
             RegisterWorkspaceCleanup(controllerSelection.Dispose);
-            Session.StateChanged += SessionChanged;
-            Session.StatusChanged += SessionStatusChanged;
+            _context.StateChanged += SessionChanged;
+            _context.StatusChanged += SessionStatusChanged;
             _output.Changed += OutputChanged;
             RegisterWorkspaceCleanup(() =>
             {
-                Session.StateChanged -= SessionChanged;
-                Session.StatusChanged -= SessionStatusChanged;
+                _context.StateChanged -= SessionChanged;
+                _context.StatusChanged -= SessionStatusChanged;
                 _output.Changed -= OutputChanged;
             });
             ConfigureWorkspaceCommands(SaveWorkspaceButton, DiscardWorkspaceButton, PendingSummary);
@@ -77,12 +79,15 @@ namespace Heimdall.App
         }
 
         #region BEGIN Public
+        /// <summary>Releases the single context and all mounted input features when this native workspace is disposed.</summary>
+        public void Dispose() { ClearWorkspaceFeatures(); _context.Dispose(); GC.SuppressFinalize(this); }
         /// <summary>Gets the explicit requested game after a guarded close.</summary>
         public string? RequestedGame { get; private set; }
         /// <summary>Gets an explicit requested saved DCS profile after a guarded close.</summary>
         public Guid? RequestedModule { get; private set; }
         internal DcsWorkspaceSession Session { get; }
-        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => Session.RunStructureEdit(edit);
+        internal DcsWorkspaceContext DcsContext => _context;
+        internal WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit) => _context.RunStructureEdit(edit);
         internal void UpdateBuildAvailability() => RefreshWorkspaceState();
         #endregion END Public
 
@@ -92,9 +97,9 @@ namespace Heimdall.App
         protected override bool CanSaveWorkspace => Session.Repository is not null && Session.Saved is not null &&
             EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
         /// <inheritdoc/>
-        protected override Task SaveWorkspaceCoreAsync() => Session.SaveAsync();
+        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) => Session.SaveAsync(lease);
         /// <inheritdoc/>
-        protected override void DiscardWorkspaceCore() => Session.Discard();
+        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease) => Session.Discard(lease);
         /// <inheritdoc/>
         protected override void ReportWorkspaceError(Exception exception) => EditorMessage.Text = "Unable to save workspace: " + exception.Message;
         /// <inheritdoc/>
@@ -161,7 +166,8 @@ namespace Heimdall.App
         {
             if (FeatureContent is null || FeatureActions is null) return;
             var allowed = EditionAccess.AllowsWorkspace(Session.Working, Session.Training);
-            FeatureContent.IsEnabled = FeatureActions.IsEnabled = allowed && !WorkspaceActionRunning && !Session.IsSaving;
+            FeatureContent.IsEnabled = FeatureActions.IsEnabled = allowed && !WorkspaceActionRunning && !Session.IsSaving &&
+                _context.State.Activity != WorkspaceActivityKind.Scan;
             if (!allowed) EditorMessage.Text = "Reserved hardware: this workspace is read-only in Free Edition. Saved data is retained. Premium availability TBA.";
         }
 
@@ -194,7 +200,7 @@ namespace Heimdall.App
         {
             if (!BuildButton.IsEnabled) return Task.CompletedTask;
             var version = PackageVersion.Text.Trim();
-            return RunWorkspaceActionAsync(() => _output.RunAsync(version, snapshotExport, documentation, completeRelease));
+            return RunWorkspaceActionAsync(() => _output.RunAsync(version, snapshotExport, documentation, completeRelease), WorkspaceOperationKind.Export);
         }
 
         private void OutputMenuOpened(object? sender, EventArgs e) => PackageVersion.Focus();

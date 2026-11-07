@@ -34,9 +34,9 @@ namespace Heimdall.App.Games.WarThunder
             var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
             var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command;
             if (context.Selection.CommandId != command?.Id || context.Selection.AlternativeId != row?.RecordId) context.SelectedPhysicalInput = null;
-            context.Selection.SelectCommand(command?.Id); context.Selection.SelectAlternative(row?.RecordId);
+            context.Selection.Update(() => { context.Selection.SelectCommand(command?.Id); context.Selection.SelectAlternative(row?.RecordId); });
             var blocked = context.Selection.InputBlockedReason;
-            _assignments.Editor.Show(context.Session, command, row, controllers().Input.Running, context.Selection);
+            _assignments.Editor.Show(context.Session, command, row, context.Testing || context.Busy || context.ScanningHardware, context.Selection);
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
             else if (context.SelectedPhysicalInput is not null && context.SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, context.SelectedPhysicalInput);
         }
@@ -68,8 +68,10 @@ namespace Heimdall.App.Games.WarThunder
             AssignmentActionPresentation.Show(_assignments.Stop, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));
             FeatureActionBar.ShowAlternate(_assignments.Start, _assignments.Stop, controllers().Input.Running);
             _assignments.Fit.IsEnabled = drawing().Presenter.Regions.Count > 0;
-            refreshChrome(); RefreshEditor();
+            refreshChrome(); RefreshAvailability();
         }
+
+        internal void RefreshAvailability() => _assignments.Editor.RefreshAvailability(context.Testing || context.Busy || context.ScanningHardware);
 
         internal void SelectPhysicalControl(HardwareGraphicControl control)
         {

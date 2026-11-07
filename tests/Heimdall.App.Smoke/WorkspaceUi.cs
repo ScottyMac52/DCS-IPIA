@@ -1,7 +1,9 @@
 using Heimdall.Application;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Heimdall.App;
+using Heimdall.Application.Games;
 
 namespace Heimdall.App.Smoke
 {
@@ -86,7 +88,25 @@ namespace Heimdall.App.Smoke
             var nav = (ListBox)window.FindName("FeatureNav");
             nav.SelectedItem = nav.Items.Cast<ListBoxItem>().Single(x => Equals(x.Tag, feature));
             window.UpdateLayout();
+            WaitForDiscovery(window);
             return (UserControl)((ContentControl)window.FindName("FeatureContent")).Content;
+        }
+
+        /// <summary>Processes queued startup discovery and waits for its advertised scan gate before authoring.</summary>
+        public static void WaitForDiscovery(DcsModuleWorkspaceWindow window)
+        {
+            window.Dispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (window.WorkspaceContext.State.Activity == WorkspaceActivityKind.Scan)
+            {
+                if (DateTime.UtcNow >= deadline) throw new TimeoutException("DCS controller discovery did not release its scan gate.");
+                var frame = new DispatcherFrame();
+                var timer = new DispatcherTimer(DispatcherPriority.Background, window.Dispatcher) { Interval = TimeSpan.FromMilliseconds(10) };
+                timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+                timer.Start();
+                try { Dispatcher.PushFrame(frame); }
+                finally { timer.Stop(); }
+            }
         }
 
         /// <summary>Finds a host or feature control using the smoke test control-name mapping.</summary>

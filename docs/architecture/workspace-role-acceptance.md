@@ -153,6 +153,6 @@ Prepared against the user's requirement: shared functions live in bases, native 
 - [x] Save/discard/assignment paths and duplicate sequence removal are mapped; DCS transitions are assigned to PRs 2–9.
 - [x] Shared/native/compile-time/dependency acceptance is specified before migrations; common behavior experiments cover every role.
 - [x] PR 1 introduces no production contract, marker inheritance or unused interface.
-- [ ] Owner accepts architecture and exact signatures independently of test results. **Required before PR 2.** Any requested design correction is resolved in these documents before migration starts.
+- [x] Owner accepted the PR 1 architecture independently of tests by merging #358 and requesting PR 2. Context API clarifications and remaining Windows acceptance are recorded in [context implementation](workspace-context-implementation.md).
 
 No runtime conformance cases above have been executed by PR 1. Final architecture acceptance and issue completion remain in PR 10; this review gate is deliberately separate from smoke/build success.

@@ -27,7 +27,9 @@ namespace Heimdall.App.Games.WarThunder
             var browser = _assignments.Browser;
             var scope = (context.Session?.Snapshot.Id.ToString("N") ?? "") + ":" + context.SelectedDevice + ":" + browser.CommandCategoryPicker.SelectedItem + ":" + browser.CommandTypePicker.SelectedIndex;
             if (context.Selection.Scope != scope) context.SelectedPhysicalInput = null;
-            context.Selection.SelectScope(scope);
+            var controller = context.SelectedDevice;
+            context.Selection.Update(() => { context.Selection.SelectScope(scope); context.Selection.SelectController(controller); });
+
             var selected = (browser.CommandsList.SelectedItem as SimCommand)?.Id;
             var catalog = context.Session?.Catalog.Commands ?? [];
             var owned = context.Rows.Where(row => context.SelectedDevice is null || row.DeviceIds.Contains(context.SelectedDevice)).ToArray();

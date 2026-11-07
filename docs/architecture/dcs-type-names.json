@@ -1397,9 +1397,9 @@
   },
   {
     "old": "WindowContext",
-    "new": "DcsWindowContext",
+    "new": "DcsWorkspaceContext",
     "files": [
-      "src/Heimdall.App/DcsWindowContext.cs"
+      "src/Heimdall.App/Games/Dcs/DcsWorkspaceContext.cs"
     ]
   },
   {

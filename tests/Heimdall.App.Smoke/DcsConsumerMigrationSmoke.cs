@@ -62,13 +62,13 @@ namespace Heimdall.App.Smoke
                 if (!((TextBlock)view.FindName("InspectorDetails")).Text.Contains("Saved: Right action", StringComparison.Ordinal) ||
                     ((TextBox)view.FindName("LabelEditor")).Text != "Right action")
                     throw new InvalidOperationException("Right controller inspection did not reload its native binding and label.");
-                if (JsonSerializer.Serialize(new DcsWindowContext(window).Working) != frozen)
+                if (JsonSerializer.Serialize(window.DcsContext.Working) != frozen)
                     throw new InvalidOperationException("Shared consumer selection changed the native DCS workspace.");
                 window.Close(); window = null;
             }
             finally
             {
-                if (window is not null) { new DcsWindowContext(window).Discard(); window.Close(); }
+                if (window is not null) { window.DcsContext.Discard(); window.Close(); }
                 EditionAccess.SetForTests(previous);
             }
         }

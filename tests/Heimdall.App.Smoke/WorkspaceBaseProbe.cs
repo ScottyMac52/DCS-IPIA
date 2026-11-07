@@ -1,3 +1,4 @@
+using Heimdall.Application.Interfaces;
 using System.Windows.Controls;
 using Heimdall.App.Games;
 using Heimdall.Application.Games;
@@ -9,6 +10,8 @@ namespace Heimdall.App.Smoke
     {
         internal WorkspaceBaseProbe()
         {
+            var context = new WorkspaceSmokeContext(() => Pending, () => Pending.ToString(), () => SaveAvailable);
+            context.Open(); BindWorkspaceContext(context, () => NativeRefreshes++);
             Content = Surface;
             ConfigureWorkspace(Surface, Actions,
             [
@@ -33,6 +36,7 @@ namespace Heimdall.App.Smoke
         internal bool SecondAvailable { get; set; } = true;
         internal int FirstCreations { get; private set; }
         internal int CleanupCount { get; private set; }
+        internal int NativeRefreshes { get; private set; }
         internal Func<Task> SaveAction { get; set; } = () => Task.CompletedTask;
         internal Action DiscardAction { get; set; } = () => { };
         internal Exception? Error { get; private set; }
@@ -45,9 +49,9 @@ namespace Heimdall.App.Smoke
         /// <inheritdoc/>
         protected override bool CanSaveWorkspace => SaveAvailable;
         /// <inheritdoc/>
-        protected override Task SaveWorkspaceCoreAsync() => SaveAction();
+        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) => SaveAction();
         /// <inheritdoc/>
-        protected override void DiscardWorkspaceCore() => DiscardAction();
+        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease) => DiscardAction();
         /// <inheritdoc/>
         protected override bool ConfirmDiscardWorkspaceChanges() => CloseAllowed;
         /// <inheritdoc/>

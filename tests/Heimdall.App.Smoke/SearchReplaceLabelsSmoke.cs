@@ -31,7 +31,7 @@ namespace Heimdall.App.Smoke
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
             var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
                 deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
-            var context = new DcsWindowContext(window);
+            var context = window.DcsContext;
             try
             {
                 window.Show();

@@ -37,17 +37,17 @@ namespace Heimdall.App.Games.WarThunder
         {
             EditionAccess.Policy.RequireSimulator("war-thunder");
             _pendingChoice = pendingChoice;
-            _context = new(services, () => SelectedDevice, () => ProfileName.Text, () => WorkspaceActionRunning);
-            _context.Selection = _assignments.AssignmentSelection;
+            _context = new(services);
             InitializeComponent(); AppearanceManager.Attach(this);
+            BindWorkspaceContext(_context, Refresh);
+            BindWorkspaceStatus(Status);
             _profiles = new(_context, Refresh, ConfirmLeave, Status, ProfileName, Profiles, this, SessionChanged, () => _controllers!, RefreshChrome);
             _browser = new(_context, () => _editing!, _assignments);
             _editing = new(_context, RefreshChrome, Run, Status, _assignments, this, () => _controllers!, () => _drawing!);
             _drawing = new(_context, () => _controllers!, () => _editing!, _devices, _assignments, this);
             _controllers = new(_context, ReportError, Controllers, _devices, this, reviewChange, _drawing.Presenter, inputFactory, InputStatus, _assignments, RefreshChrome);
             _drawing.Start(); _controllers.Start();
-            _context.Testing = () => _controllers.Input.Running;
-            _assignments.Initialize(_context, _editing.RefreshEditor, _drawing.ShowDrawing,
+            _assignments.Initialize(_context, _editing.RefreshEditor, _editing.RefreshAvailability, _drawing.ShowDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => Status.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devices), new("assignments", () => _assignments), new("references", () => _references)]);
@@ -69,7 +69,7 @@ namespace Heimdall.App.Games.WarThunder
             Discard.Click += DiscardClicked;
             Export.Click += (_, _) => Run(() => { var picker = new OpenFolderDialog { Title = "Choose a folder for a separate War Thunder review copy" }; if (picker.ShowDialog(this) == true) Status.Text = "Review copy: " + ExportReview(picker.FolderName); });
             Duplicate.Click += (_, _) => Run(_profiles.DuplicateCurrent);
-            ProfileName.TextChanged += (_, _) => { if (!_context.Refreshing) RefreshChrome(); };
+            ProfileName.TextChanged += (_, _) => { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); RefreshChrome(); } };
             Profiles.SelectionChanged += (_, _) =>
             {
                 if (_context.Refreshing) return;
@@ -122,21 +122,28 @@ namespace Heimdall.App.Games.WarThunder
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = _context.Disposed = true;
+            _disposed = true;
             _controllers.Input.StateChanged -= InputStateChanged;
             _commandDrag.Dispose(); _controllers.Dispose(); ClearWorkspaceFeatures();
             if (_context.Session is not null) _context.Session.Changed -= SessionChanged;
+            _context.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion END Public
         #region BEGIN private helpers
-        protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
-        protected override bool CanSaveWorkspace => _context.Session?.AccessMessage.Length == 0 && !_context.Testing() && !_context.ScanningHardware && _context.Chrome.CanSave;
-        protected override string WorkspaceStateSummary => _context.Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync() { _profiles.SaveCore(); return Task.CompletedTask; }
-        protected override void DiscardWorkspaceCore()
+        private void SyncContextSelection()
         {
-            _controllers.Input.Stop(); _context.Session?.Discard();
+            if (WorkspaceActionRunning) return;
+            _context.Select(_context.State.Selection with { ControllerId = SelectedDevice });
+        }
+
+        protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
+        protected override bool CanSaveWorkspace => _context.Session?.AccessMessage.Length == 0 && !_context.Testing && !_context.ScanningHardware && _context.Chrome.CanSave;
+        protected override string WorkspaceStateSummary => _context.Chrome.Status;
+        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) { _profiles.SaveCore(lease); return Task.CompletedTask; }
+        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
+        {
+            _controllers.Input.Stop(); _context.Session?.Discard(lease);
             if (_context.Session is not null) ProfileName.Text = _context.Session.Snapshot.Name;
             Refresh();
         }
@@ -156,10 +163,10 @@ namespace Heimdall.App.Games.WarThunder
         protected override void OnWorkspaceStateChanged()
         {
             if (_context.Refreshing || _controllers is null) return;
-            var editable = _context.Session?.AccessMessage.Length == 0 && !WorkspaceActionRunning && !_context.Testing() && !_context.ScanningHardware;
+            var editable = _context.Session?.AccessMessage.Length == 0 && !WorkspaceActionRunning && !_context.Testing && !_context.ScanningHardware;
             Export.IsEnabled = editable && _context.Chrome.CanExport; Duplicate.IsEnabled = editable; ProfileName.IsEnabled = editable;
             Import.IsEnabled = !WorkspaceActionRunning && !_context.ScanningHardware;
-            _controllers.RefreshDevices(); _editing.RefreshEditor(); _drawing.RefreshActions();
+            _controllers.RefreshDevices(); _editing.RefreshAvailability(); _drawing.RefreshActions();
         }
         private void Run(Action action)
         {
@@ -170,7 +177,8 @@ namespace Heimdall.App.Games.WarThunder
         {
             Controllers.SelectionChanged += (_, _) =>
             {
-                if (_context.Refreshing) return;
+                if (_context.Refreshing || WorkspaceActionRunning) return;
+                SyncContextSelection();
                 _controllers.Input.Stop(); _context.SelectedPhysicalInput = null; _context.Selection.SelectInput(null); _controllers.RefreshDevices(); _browser.RefreshCommands(); _drawing.ShowDrawing();
             };
             _devices.Rescan.Click += async (_, _) => { await _controllers.RefreshHardwareAsync(); _controllers.RefreshDevices(); _drawing.ShowDrawing(); };
@@ -199,6 +207,7 @@ namespace Heimdall.App.Games.WarThunder
         private void WireAssignments()
         {
             _assignments.Editor.CaptureContext = () => _assignments.ActionContext;
+            _assignments.Editor.NativeSelectionChanged += (_, _) => _context.SelectedPhysicalInput = null;
             var browser = _assignments.Browser;
             _assignments.ShowAssignments.Click += (_, _) => { browser.CommandsList.SelectedItem = null; _assignments.CapturedAssignments.IsExpanded = true; _browser.RefreshRecords(); };
             browser.Configure([new("All", null), new("Buttons", CommandType.Button), new("Axes", CommandType.Axis)],
@@ -255,6 +264,7 @@ namespace Heimdall.App.Games.WarThunder
 
         private void Refresh()
         {
+            if (WorkspaceActionRunning) return;
             _context.Refreshing = true;
             var previous = SelectedDevice;
             Controllers.Items.Clear(); Controllers.Items.Add(new ListBoxItem { Content = "All devices and native inputs" });
@@ -264,7 +274,7 @@ namespace Heimdall.App.Games.WarThunder
             Controllers.SelectedItem = Controllers.Items.Cast<ListBoxItem>().FirstOrDefault(item => item.Tag as string == previous) ?? Controllers.Items[0];
             _context.Rows = _context.Session is null ? [] : WarThunderWorkspaceProjection.Rows(_context.Session.Snapshot.Profile, _context.Session.Catalog.Commands);
             _references.Show(_context.Rows);
-            _context.Refreshing = false; _controllers.RefreshDevices(); _browser.RefreshCommands(); RefreshChrome(); _drawing.ShowDrawing(); _context.NotifyChanged();
+            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshDevices(); _browser.RefreshCommands(); RefreshChrome(); _drawing.ShowDrawing(); _context.NotifyChanged();
         }
 
         private void ReportError(Exception error, string operation = "Operation failed")

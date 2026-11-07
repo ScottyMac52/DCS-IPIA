@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
@@ -16,11 +17,14 @@ namespace Heimdall.App.Games
         private readonly Action<string> _status;
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
         private IDeviceInputSource? _source;
+        private readonly IGameWorkspaceContext? _context;
+        private IWorkspaceActivityLease? _lease;
         private ControllerInputIdentification? _identification;
         private IReadOnlyList<DetectedDcsDevice> _devices = [];
         internal GameControllerIdentification(Window owner, Action<IReadOnlyDictionary<DetectedDcsDevice, string>> activity,
-            Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null)
+            Action clear, Action<string> status, Func<nint, IReadOnlyList<Guid>, IDeviceInputSource>? factory = null, IGameWorkspaceContext? context = null)
         {
+            _context = context;
             _owner = owner; _activity = activity; _clear = clear; _status = status;
             _factory = factory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
             _timer.Tick += Poll;
@@ -34,6 +38,12 @@ namespace Heimdall.App.Games
         internal void Start(IReadOnlyList<DetectedDcsDevice> observed)
         {
             Stop(); EditionAccess.Policy.RequirePremium();
+            if (_context is not null)
+            {
+                var ready = _context.TryStartActivity(WorkspaceActivityKind.Identify, out _lease);
+                if (!ready.Enabled) throw new InvalidOperationException(ready.Reason);
+                _lease!.RegisterCleanup(Stop);
+            }
             _devices = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
             var ids = _devices.Select(x => x.PhysicalGuid).ToArray();
             _identification = new(ids);
@@ -59,7 +69,9 @@ namespace Heimdall.App.Games
         /// <summary>Releases handles and invalidates any pending confirmation.</summary>
         internal void Stop()
         {
+            var lease = _lease; _lease = null;
             _timer.Stop(); _source?.Dispose(); _source = null; _identification = null; _devices = []; _clear();
+            lease?.Dispose();
         }
         /// <summary>Releases native resources and foreground lifecycle subscriptions.</summary>
         public void Dispose()

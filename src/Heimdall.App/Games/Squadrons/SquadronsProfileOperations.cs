@@ -28,14 +28,14 @@ namespace Heimdall.App.Games.Squadrons
         /// <summary>Supplies an unattended native configuration-name prompt.</summary>
         #region BEGIN Public
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
-        internal void SaveCore()
+        internal void SaveCore(IWorkspaceOperationLease lease)
         {
             if (context.Session is not { } session || session.AccessMessage.Length > 0)
                 throw new InvalidOperationException("This Squadrons workspace cannot currently be saved.");
             var workspace = session.Snapshot with { Name = context.EditedName };
             GameConfigurationName.Validate(workspace.Name);
             var revision = context.Services.Store.Save(workspace, context.Revision);
-            session.Rename(workspace.Name); session.AcceptSaved(); context.Revision = revision;
+            session.AcceptSaved(workspace, lease); context.Revision = revision;
             Remember(); ReloadChoices(); refresh(true);
             _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = _assignmentsView.DrawingDropFeedback.Text = "";
             StatusText.Text = "Squadrons profile saved.";

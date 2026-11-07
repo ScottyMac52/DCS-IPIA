@@ -45,6 +45,7 @@ namespace Heimdall.App.Smoke
             Console.WriteLine("Smoke: game selection and Elite profile authoring.");
             GameWorkspaceSmoke.Verify();
             SharedConsumerHostSmoke.Verify();
+            WorkspaceContextConformanceSmoke.Verify();
             WorkspaceInheritanceSmoke.Verify();
             AssignmentsInheritanceSmoke.Verify();
             DcsWorkspaceSaveSmoke.Verify();
@@ -479,7 +480,7 @@ namespace Heimdall.App.Smoke
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository,
-                    commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
+                    deviceDiscovery: new EmptyDeviceDiscovery(), commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
                     axisDefaultsFilePicker: () => Path.Combine(htmlRoot, "axes.diff.lua"));
                 window.Show();
                 window.UpdateLayout();
@@ -497,8 +498,12 @@ namespace Heimdall.App.Smoke
                 var palette = (DataGrid)WorkspaceUi.Find(window, "Commands")!;
                 if (commands.Items.Count != 1 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "KEY"))
                     throw new InvalidOperationException("Authored aircraft command did not refresh the assignment palette.");
+                DcsCommandImportStateSmoke.Verify(window);
                 foreach (var buttonName in CommandImportButtons)
                 {
+                    var beforeImport = window.DcsContext.Working!.ModuleCommands.Count;
+                    // Navigation waits for readiness and pumps the dispatcher; finish it before queueing dialog automation.
+                    var importButton = (Button)WorkspaceUi.Find(window, buttonName)!;
                     window.Dispatcher.BeginInvoke(new Action(() => {
                         var reviewWindow = System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single();
                         if (((DataGrid)WorkspaceUi.Find(reviewWindow, "ImportChanges")!).Items.Count != 1 ||
@@ -506,15 +511,23 @@ namespace Heimdall.App.Smoke
                             throw new InvalidOperationException("Command import review did not expose the validated addition.");
                         ((Button)WorkspaceUi.Find(reviewWindow, "StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }));
-                    ((Button)WorkspaceUi.Find(window, buttonName)!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    importButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (window.DcsContext.Working!.ModuleCommands.Count != beforeImport + 1)
+                        throw new InvalidOperationException(buttonName + " did not stage its reviewed native command. " + window.DcsContext.Status);
                 }
+                // Remount the assignments surface before inspecting its cached palette and category controls.
+                var commandCategories = (ComboBox)WorkspaceUi.Find(window, "CommandCategory")!;
                 if (commands.Items.Count != 3 || !WorkspaceUi.Entries(palette).Any(x => x.Id == "a2001cdnil") ||
-                    !((ComboBox)WorkspaceUi.Find(window, "CommandCategory")!).Items.Cast<string>().Contains("Flight"))
-                    throw new InvalidOperationException("JSON/HTML load did not refresh aircraft catalog, palette and categories.");
+                    !commandCategories.Items.Cast<string>().Contains("Flight"))
+                    throw new InvalidOperationException($"JSON/HTML load did not refresh aircraft catalog, palette and categories. " +
+                        $"Native={window.DcsContext.Working!.ModuleCommands.Count}, catalog={commands.Items.Count}, " +
+                        $"palette={string.Join(",", WorkspaceUi.Entries(palette).Select(entry => entry.Id))}, " +
+                        $"categories={string.Join(",", commandCategories.Items.Cast<string>())}.");
+                var cancelledImportButton = (Button)WorkspaceUi.Find(window, "LoadCommandHtmlButton")!;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single().DialogResult = false;
                 }));
-                ((Button)WorkspaceUi.Find(window, "LoadCommandHtmlButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                cancelledImportButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3) throw new InvalidOperationException("Cancelling import changed the catalog.");
                 ((ComboBox)WorkspaceUi.Find(window, "AuthoredPageKind")!).SelectedItem = KneeboardPageKind.Summary;
                 ((TextBox)WorkspaceUi.Find(window, "AuthoredPageFile")!).Text = "overview";
@@ -546,10 +559,11 @@ namespace Heimdall.App.Smoke
                 if (savedCommands.ModuleCommands.Count != 3 || savedCommands.Sources!.Count(x => x.Key.StartsWith("config/ipia-command-imports/", StringComparison.Ordinal)) != 2)
                     throw new InvalidOperationException("Command imports and original sources did not reopen from SQLite.");
                 File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"EXTRA","name":"Discarded import","categoryPath":["Flight"],"type":"button"}]}""");
+                var discardedImportButton = (Button)WorkspaceUi.Find(window, "LoadCommandJsonButton")!;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     ((Button)System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }));
-                ((Button)WorkspaceUi.Find(window, "LoadCommandJsonButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                discardedImportButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 4) throw new InvalidOperationException("The discardable import did not stage.");
                 ((Button)WorkspaceUi.Find(window, "DiscardAuthoringButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (commands.Items.Count != 3 || repository.GetAsync(configuration.Module.Id).GetAwaiter().GetResult()!.ModuleCommands.Count != 3)
@@ -569,6 +583,7 @@ namespace Heimdall.App.Smoke
             void Import(bool stage)
             {
                 ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
+                var axisImportButton = (Button)WorkspaceUi.Find(window, "ImportAxisDefaultsButton")!;
                 window.Dispatcher.BeginInvoke(new Action(() => {
                     var review = System.Windows.Application.Current.Windows.OfType<DcsAxisDefaultsReviewWindow>().Single();
                     if (!((TextBlock)WorkspaceUi.Find(review, "AxisDefaultsHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
@@ -577,7 +592,7 @@ namespace Heimdall.App.Smoke
                     if (stage) ((Button)WorkspaceUi.Find(review, "StageAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else review.DialogResult = false;
                 }));
-                ((Button)WorkspaceUi.Find(window, "ImportAxisDefaultsButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                axisImportButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
             Import(false);
             if (((TextBlock)WorkspaceUi.Find(window, "PendingSummary")!).Text.Contains("authoring", StringComparison.Ordinal))

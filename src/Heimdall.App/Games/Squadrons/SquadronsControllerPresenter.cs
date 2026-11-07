@@ -32,20 +32,19 @@ namespace Heimdall.App.Games.Squadrons
     {
         private HardwareInputFeedback _input = null!;
         private GameControllerIdentification _identification = null!;
-        private int _inputScan;
         #region BEGIN Public
         internal HardwareInputFeedback Input => _input;
         internal GameControllerIdentification Identification => _identification;
         internal void Start()
         {
-            _identification = new(owner, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory);
-            _input = new(owner, drawingPresenter, message => StatusText.Text = message, ShowInputActivity, inputFactory);
+            _identification = new(owner, ShowIdentification, ClearIdentification, message => StatusText.Text = message, identificationFactory, context);
+            _input = new(owner, drawingPresenter, message => StatusText.Text = message, ShowInputActivity, inputFactory, context);
             _input.StateChanged += InputStateChanged;
         }
         /// <summary>Releases foreground input handles and invalidates outstanding discovery scans.</summary>
         public void Dispose()
         {
-            _inputScan++;
+            context.StopActivity();
             _input.StateChanged -= InputStateChanged;
             _input.Dispose(); _identification.Dispose();
         }
@@ -55,17 +54,18 @@ namespace Heimdall.App.Games.Squadrons
         {
             if (context.Disposed) return;
             StopLiveInput();
-            var scan = ++_inputScan; context.ScanningInputs = true; context.ControllerInputs = [];
+            if (!context.TryStartActivity(WorkspaceActivityKind.Scan, out var lease).Enabled) return;
+            using var scan = lease!; context.ControllerInputs = [];
             try
             {
                 refresh(false); StatusText.Text = "Inspecting connected controller inputs…";
                 var inputs = await context.Services.DiscoverInputsAsync();
-                if (scan != _inputScan || context.Disposed) return;
+                if (scan.Cancellation.IsCancellationRequested || context.Disposed || scan.Identity != context.State.Identity) return;
                 context.ControllerInputs = inputs;
                 StatusText.Text = "Controller inputs inspected. Physical input support does not establish Squadrons slot identity.";
             }
-            catch (Exception error) { if (scan == _inputScan && !context.Disposed) StatusText.Text = "Controller input verification unavailable: " + error.Message; }
-            finally { if (scan == _inputScan && !context.Disposed) { context.ScanningInputs = false; run(() => refresh(false)); } }
+            catch (Exception error) { if (!scan.Cancellation.IsCancellationRequested && !context.Disposed) StatusText.Text = "Controller input verification unavailable: " + error.Message; }
+            finally { scan.Dispose(); if (!context.Disposed) run(() => refresh(false)); }
         }
 
         internal void RescanControllers()

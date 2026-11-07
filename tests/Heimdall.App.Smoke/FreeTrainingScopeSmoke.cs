@@ -44,7 +44,7 @@ namespace Heimdall.App.Smoke
                 if (((ContentControl)ordinary.FindName("FeatureContent")!).IsEnabled)
                     throw new InvalidOperationException("A training module identity unlocked an ordinary Free window.");
                 using var input = new DcsInputTestView();
-                input.Initialize(new DcsWindowContext(ordinary));
+                input.Initialize(ordinary.DcsContext);
                 ((Button)input.FindName("StartInputTestButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (factoryCalled || !((TextBlock)input.FindName("InputTestStatus")).Text.Contains("reserved", StringComparison.Ordinal))
                     throw new InvalidOperationException("An input factory bypassed ordinary Free restrictions.");

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Infrastructure;
 using Heimdall.TestSupport;
 
@@ -32,7 +33,7 @@ namespace Heimdall.App.Smoke
                 repository = new PausedDcsRepository(inner);
                 window = new(new DcsModuleWorkspaceViewModel(workspace), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery(), persistLayout: false);
                 window.Show();
-                var context = new DcsWindowContext(window);
+                var context = window.DcsContext;
                 var draft = context.Draft!;
                 var removed = draft.Snapshot[0].Slot;
                 draft.Remove(removed);
@@ -52,8 +53,8 @@ namespace Heimdall.App.Smoke
                 Require(feedback.Text.StartsWith("Discard failed:", StringComparison.Ordinal), "Assignments did not report the blocked discard. Actual status: " + feedback.Text);
                 Reject(() => context.SetLabel("during-save", "must not be applied"));
                 var edited = false;
-                context.RunStructureEdit(current => { edited = true; return current; });
-                Require(!edited, "A structural edit reached the workspace during save.");
+                var structural = context.RunStructureEdit(current => { edited = true; return current; });
+                Require(!edited && structural.Outcome == WorkspaceOperationOutcome.Blocked, "A structural edit reached the workspace during save or reported success.");
                 Require(draft.Restore(removed).Outcome == DraftOutcome.Blocked, "A stale draft reference remained writable.");
                 Require(repository.Writes == 1 && JsonSerializer.Serialize(draft.Snapshot) == pending, "A rejected operation changed the pending snapshot.");
                 repository.Release();
@@ -80,7 +81,7 @@ namespace Heimdall.App.Smoke
                 {
                     if (save is { IsCompleted: false }) { repository?.Release(); Pump(window, save); }
                     if (save?.IsFaulted == true) _ = save.Exception;
-                    new DcsWindowContext(window).Discard(); window.Close();
+                    window.DcsContext.Discard(); window.Close();
                 }
                 EditionAccess.SetForTests(previous);
                 File.Delete(path);

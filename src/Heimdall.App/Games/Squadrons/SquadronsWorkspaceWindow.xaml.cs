@@ -37,11 +37,11 @@ namespace Heimdall.App.Games.Squadrons
         {
             EditionAccess.Policy.RequireSimulator("star-wars-squadrons");
             _pendingChoice = pendingChoice;
-            _context = new(services, () => SelectedController, () => SelectedAssignmentSource, () => DrawingSection,
-                () => ProfileName.Text, () => WorkspaceActionRunning);
-            _context.Selection = _assignmentsView.AssignmentSelection;
+            _context = new(services);
             _context.Drawings = drawings ?? [];
             InitializeComponent(); AppearanceManager.Attach(this);
+            BindWorkspaceContext(_context, () => Refresh());
+            BindWorkspaceStatus(StatusText);
             foreach (var (name, control) in new (string, object)[]
             {
                 ("RescanControllerButton", RescanControllerButton), ("IdentifyControllerButton", IdentifyControllerButton), ("CancelIdentificationButton", CancelIdentificationButton),
@@ -69,9 +69,7 @@ namespace Heimdall.App.Games.Squadrons
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
             _drawing.Start();
             _controllers.Start();
-            _context.Identifying = () => _controllers.Identification.Running;
-            _context.Testing = () => _controllers.Input.Running;
-            _assignmentsView.Initialize(_context, _editing.UpdateEditor, _drawing.RenderDrawing,
+            _assignmentsView.Initialize(_context, _editing.UpdateEditor, _editing.UpdateApplyAvailability, _drawing.RenderDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => StatusText.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devicesView), new("assignments", () => _assignmentsView)]);
@@ -124,6 +122,7 @@ namespace Heimdall.App.Games.Squadrons
             CommandBrowser.Configure(
                 [new("All types", null), new("Axes", CommandType.Axis), new("Buttons and hats", CommandType.Button), new("Unknown / unbound", CommandType.Other)],
                 [new("All", GameCommandAssignmentStatus.All), new("Assigned to selected controller", GameCommandAssignmentStatus.AssignedToController), new("Not assigned to selected controller", GameCommandAssignmentStatus.NotAssignedToController), new("Assigned anywhere", GameCommandAssignmentStatus.AssignedAnywhere), new("Unassigned everywhere", GameCommandAssignmentStatus.UnassignedEverywhere)]);
+            CommandContextFilter.SelectionChanged += (_, _) => { if (!_context.Refreshing) SyncContextSelection(); };
             CommandContextFilter.SelectionChanged += _browser.CommandFiltersChanged;
             CommandInputFilter.SelectionChanged += _browser.CommandFiltersChanged;
             CommandStatusFilter.SelectionChanged += _browser.CommandFiltersChanged;
@@ -187,24 +186,33 @@ namespace Heimdall.App.Games.Squadrons
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = _context.Disposed = true;
+            _disposed = true;
             ClearWorkspaceFeatures(); _commandDrag.Dispose(); _controllers.Dispose(); _reordering.Dispose();
+            _context.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion END Public
         #region BEGIN private helpers
+        private void SyncContextSelection()
+        {
+            if (WorkspaceActionRunning) return;
+            _context.AssignmentSource = SelectedAssignmentSource;
+            _context.DrawingSection = DrawingSection;
+            _context.Select(_context.State.Selection with { ControllerId = SelectedAssignmentSource });
+        }
+
         protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
         protected override bool CanSaveWorkspace => _context.Chrome.CanSave;
         protected override string WorkspaceStateSummary => _context.Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync()
+        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease)
         {
-            _profiles.SaveCore();
+            _profiles.SaveCore(lease);
             return Task.CompletedTask;
         }
-        protected override void DiscardWorkspaceCore()
+        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
         {
             _controllers.StopLiveInput();
-            _context.Session?.Discard();
+            _context.Session?.Discard(lease);
             if (_context.Revision is null) _context.Session = null;
             Refresh(); StatusText.Text = "Draft changes discarded.";
             SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
@@ -243,14 +251,20 @@ namespace Heimdall.App.Games.Squadrons
         private void ImportClicked(object sender, RoutedEventArgs e) => _profiles.ImportClicked(sender, e);
         private void ExportClicked(object sender, RoutedEventArgs e) => _profiles.ExportClicked(sender, e);
         private void NewProfileClicked(object sender, RoutedEventArgs e) => _profiles.NewProfileClicked(sender, e);
-        private void FilterChanged(object sender, SelectionChangedEventArgs e) => _browser.FilterChanged(sender, e);
+        private void FilterChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_context.Refreshing && !WorkspaceActionRunning) SyncContextSelection();
+            _browser.FilterChanged(sender, e);
+        }
         private void Refresh(bool resetName = true)
         {
+            if (WorkspaceActionRunning) return;
             var selected = (DevicePicker.SelectedItem as GameDeviceChoice)?.Id;
             var target = (TargetDevice.SelectedItem as GameDeviceChoice)?.Id;
             _context.Refreshing = true;
             var snapshot = _context.Session?.Snapshot;
-            if (resetName) ProfileName.Text = snapshot?.Name ?? "";
+            // The context retains pending names on failure and restores the saved name on discard.
+            if (resetName) ProfileName.Text = _context.State.EditedName;
             var devices = snapshot is null ? [] : SquadronsWorkspaceProjection.OrderedDevices(snapshot.Profile).Select(x => new GameDeviceChoice(x.LogicalId, "Slot " + x.Identity!.SimSpecificIds["squadrons.slot"] + " · " + x.Identity.WindowsName)).ToArray();
             var systemDevices = new[]
             {
@@ -270,7 +284,7 @@ namespace Heimdall.App.Games.Squadrons
                 foreach (var (id, pin) in snapshot.Hardware)
                     if (GameControllerInputs.VerifiedKeys(pin, _context.ControllerInputs) is { } keys) verified[id] = keys;
             _context.Rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
-            _context.Refreshing = false; _controllers.RefreshNativeControllerName(); _browser.RefreshRows(); UpdateAvailability(); _controllers.UpdateControllerAvailability(); _drawing.RenderDrawing(); _context.NotifyChanged();
+            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshNativeControllerName(); _browser.RefreshRows(); UpdateAvailability(); _controllers.UpdateControllerAvailability(); _drawing.RenderDrawing(); _context.NotifyChanged();
         }
 
         private void UpdateAvailability()
@@ -304,7 +318,7 @@ namespace Heimdall.App.Games.Squadrons
             RequestedGame = game; _allowClose = true; Close();
         }
 
-        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing) UpdateAvailability(); }
+        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); UpdateAvailability(); } }
         private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;
         private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;
         private ComboBox CommandStatusFilter => CommandBrowser.AssignmentStatusPicker;

@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Dcs;
 using Heimdall.Infrastructure;
 using Heimdall.TestSupport;
@@ -113,7 +114,7 @@ namespace Heimdall.App.Smoke
                 window.Show(); ThemeControlSmoke.Pump(window);
                 try
                 {
-                    var view = new DcsInputTestView(); view.Initialize(new DcsWindowContext(window));
+                    var view = new DcsInputTestView(); view.Initialize(window.DcsContext);
                     ((Button)view.FindName("StartInputTestButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     if (!((TextBlock)view.FindName("InputTestStatus")!).Text.Contains("reserved", StringComparison.Ordinal))
                         throw new InvalidOperationException("Free direct input-test handler escaped the edition boundary.");
@@ -136,6 +137,16 @@ namespace Heimdall.App.Smoke
                 {
                     if (((ContentControl)locked.FindName("FeatureContent")!).IsEnabled || ((Button)locked.FindName("BuildButton")!).IsEnabled)
                         throw new InvalidOperationException("Existing reserved hardware was editable in Free.");
+                    string? nativeReason = null;
+                    try { EditionAccess.RequireWorkspace(legacy); }
+                    catch (InvalidOperationException error) { nativeReason = error.Message; }
+                    var invoked = false;
+                    var denied = locked.WorkspaceContext.RunOperation(WorkspaceOperationKind.Save, _ =>
+                    { invoked = true; return new(WorkspaceOperationOutcome.Applied, "Unexpected persistence"); });
+                    if (nativeReason is null || !locked.WorkspaceContext.State.ReadOnly ||
+                        locked.WorkspaceContext.State.Capabilities.Save.Reason != nativeReason ||
+                        denied.Outcome != WorkspaceOperationOutcome.Blocked || denied.Message != nativeReason || invoked)
+                        throw new InvalidOperationException("The shared context lost the native reserved-hardware denial or invoked persistence.");
                     try { locked.SaveWorkspaceAsync().GetAwaiter().GetResult(); throw new InvalidOperationException("Unlicensed save unexpectedly succeeded."); }
                     catch (InvalidOperationException ex) when (ex.Message.Contains("reserved", StringComparison.OrdinalIgnoreCase)) { }
                     if (repository.GetAsync(legacy.Configuration.Module.Id).GetAwaiter().GetResult()!.Configuration.Profiles.Count != legacy.Configuration.Profiles.Count)

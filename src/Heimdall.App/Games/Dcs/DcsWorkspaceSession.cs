@@ -1,7 +1,9 @@
 using System.IO;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
+using Heimdall.Domain;
 
 namespace Heimdall.App.Games.Dcs
 {
@@ -11,7 +13,7 @@ namespace Heimdall.App.Games.Dcs
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private bool _structureDirty;
         private bool _disposed;
-        private bool _saving;
+        internal IGameWorkspaceContext? Context { get; set; }
 
         internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
             IConnectedDeviceDiscovery? deviceDiscovery, DcsTrainingEnvironment? training,
@@ -39,7 +41,7 @@ namespace Heimdall.App.Games.Dcs
         }
 
         #region BEGIN Public
-        internal bool IsSaving => _saving;
+        internal bool IsSaving => Context?.State.Operation == WorkspaceOperationKind.Save;
         internal DcsTrainingEnvironment? Training { get; }
         internal IDcsEditorWorkspaceRepository? Repository { get; }
         internal IConnectedDeviceDiscovery DeviceDiscovery { get; }
@@ -70,7 +72,7 @@ namespace Heimdall.App.Games.Dcs
             RaiseStateChanged();
         }
 
-        internal void RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        internal WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
         {
             try
             {
@@ -81,21 +83,28 @@ namespace Heimdall.App.Games.Dcs
                 Working = updated; _structureDirty = true;
                 RestoreLabels(updated);
                 RaiseStateChanged();
+                return new(WorkspaceOperationOutcome.Applied, "Workspace edit staged.");
             }
-            catch (Exception error) { RaiseStatus(error.Message); }
+            catch (Exception error) { RaiseStatus(error.Message); return new(WorkspaceOperationOutcome.Blocked, error.Message); }
         }
 
-        internal async Task SaveAsync()
+        internal async Task SaveAsync(IWorkspaceOperationLease lease)
         {
-            RequireEditable();
+            if (Context?.State.Operation != WorkspaceOperationKind.Save || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
             if (Repository is null || Saved is null || Draft is null)
                 throw new InvalidOperationException("Open a writable DCS workspace before saving.");
-            _saving = true;
             try
             {
                 using var editingLock = Draft.SuspendEditing();
                 RaiseStateChanged();
                 var updated = EditSnapshot();
+                if (Context.State.EditedName != Saved.Configuration.Module.DisplayName)
+                {
+                    var native = updated.Configuration;
+                    updated = updated with { Configuration = new DcsModuleConfiguration(
+                        new DcsModule(native.Module.Id, native.Module.DcsId, Context.State.EditedName),
+                        native.Profiles, native.Modifiers, native.Bindings, native.Provenance) };
+                }
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 updated = DcsPinnedUiLayerProfileRecovery.Restore(updated);
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
@@ -110,11 +119,13 @@ namespace Heimdall.App.Games.Dcs
                 RaiseStatus("Database save failed: " + error.Message);
                 throw;
             }
-            finally { _saving = false; RaiseStateChanged(); }
+            finally { RaiseStateChanged(); }
         }
 
-        internal void Discard()
+        internal void Discard(IWorkspaceOperationLease lease)
         {
+            if (Context?.State.Operation != WorkspaceOperationKind.Discard || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Discard)
+                throw new InvalidOperationException("Discard through the current workspace context.");
             RequireEditable();
             Working = Saved; _structureDirty = false;
             if (Saved is not null) RebuildDraft(Saved);
@@ -140,7 +151,9 @@ namespace Heimdall.App.Games.Dcs
         private void RequireEditable()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_saving) throw new InvalidOperationException("The workspace is being saved. Wait for saving to finish before editing.");
+            if (Context?.State.Operation is not (null or WorkspaceOperationKind.NativeEdit or WorkspaceOperationKind.Discard))
+                throw new InvalidOperationException("Finish the current workspace operation before editing.");
+            if (Context?.State.Activity is not null) throw new InvalidOperationException("Stop input activity before editing.");
         }
 
         private DcsEditorWorkspaceSnapshot EditSnapshot()

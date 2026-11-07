@@ -7,7 +7,7 @@ new source paths, including partial classes and supporting data contracts.
 
 | Responsibility | Examples |
 | --- | --- |
-| Workspace presentation | `DcsModuleWorkspaceViewModel`, `DcsWindowContext`, `DcsAssignmentsView`, `DcsDevicesView`, `DcsCommandsManagementView` |
+| Workspace presentation | `DcsModuleWorkspaceViewModel`, `DcsWorkspaceContext`, `DcsAssignmentsView`, `DcsDevicesView`, `DcsCommandsManagementView` |
 | Authoring and import | `DcsNewModuleWindow`, `DcsSavedGamesImportWindow`, `DcsModuleWorkspaceLoader`, `DcsWorkspaceStructureEditor` |
 | Drafts and native state | `DcsDraftAssignmentService`, `DcsEditorWorkspaceSnapshot`, `DcsModuleConfiguration`, `DcsDeviceProfile` |
 | Feature context and persistence contracts | `IDcsModuleWorkspaceContext`, `IDcsEditorWorkspaceRepository`, `IDcsModuleRepository` |

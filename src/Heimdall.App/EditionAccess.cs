@@ -1,6 +1,8 @@
+using Heimdall.App.Games.Dcs;
 using System.IO;
 using System.Text.Json;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.Infrastructure;
@@ -32,17 +34,20 @@ namespace Heimdall.App
                 throw new InvalidOperationException("The connected controller is not a verified Thrustmaster HID device. Premium availability TBA.");
         }
         /// <summary>Returns whether a saved workspace can be edited or emitted in this edition.</summary>
-        internal static bool AllowsWorkspace(DcsEditorWorkspaceSnapshot? workspace, DcsTrainingEnvironment? training = null)
+        internal static bool AllowsWorkspace(DcsEditorWorkspaceSnapshot? workspace, DcsTrainingEnvironment? training = null) =>
+            WorkspaceAccess(workspace, training).Enabled;
+        /// <summary>Preserves the native edition denial for shared context capabilities and guarded commands.</summary>
+        internal static WorkspaceAvailability WorkspaceAccess(DcsEditorWorkspaceSnapshot? workspace, DcsTrainingEnvironment? training = null)
         {
-            if (workspace is null) return true;
-            try { RequireWorkspace(workspace, training: training); return true; }
-            catch (InvalidOperationException) { return false; }
+            if (workspace is null) return new(true, "");
+            try { RequireWorkspace(workspace, training: training); return new(true, ""); }
+            catch (InvalidOperationException error) { return new(false, error.Message); }
         }
         /// <summary>Gets reviewed hardware choices without generic/other-brand authoring in Free.</summary>
         internal static IEnumerable<WorkspaceHardware> Hardware(IEnumerable<WorkspaceHardware> hardware, DcsTrainingEnvironment? training = null) =>
             hardware.Where(item => training is null ? Policy.AllowsHardware(item.DeviceId) : item.DeviceId == "training-joystick");
         /// <summary>Gets the explicit training scope of a mounted workspace, never a process-wide entitlement.</summary>
-        internal static DcsTrainingEnvironment? Training(IDcsModuleWorkspaceContext? context) => (context as DcsWindowContext)?.Training;
+        internal static DcsTrainingEnvironment? Training(IDcsModuleWorkspaceContext? context) => (context as DcsWorkspaceContext)?.Training;
         /// <summary>Gets whether this specific view can run the real or isolated simulated tester.</summary>
         internal static bool AllowsInputTest(IDcsModuleWorkspaceContext? context) => Policy.HasPremium || Training(context) is { IsActive: true };
         /// <summary>Requires Premium/Owner for ordinary views, or validates the owned sample for training views.</summary>

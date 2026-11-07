@@ -20,16 +20,17 @@ namespace Heimdall.App.Games.WarThunder
         }
         private WarThunderWorkspaceContext? _context;
         private Action? _refresh;
+        private Action? _availability;
         private Action? _drawingRefresh;
         private Action<string>? _status;
         private Func<Task>? _save;
         private Action? _discard;
-        internal void Initialize(WarThunderWorkspaceContext context, Action refresh, Action drawingRefresh,
+        internal void Initialize(WarThunderWorkspaceContext context, Action refresh, Action availability, Action drawingRefresh,
             Func<Task> save, Action discard, Action<string> status)
         {
-            _context = context; _refresh = refresh; _drawingRefresh = drawingRefresh;
+            _context = context; _refresh = refresh; _availability = availability; _drawingRefresh = drawingRefresh;
             _save = save; _discard = discard; _status = status;
-            BindAssignmentChanges(handler => context.Changed += handler, handler => context.Changed -= handler);
+            BindAssignmentContext(context);
         }
         internal void RefreshNativeAssignments() => RefreshAssignments();
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
@@ -46,6 +47,7 @@ namespace Heimdall.App.Games.WarThunder
             _discard();
         }
         protected override void RefreshAssignmentsCore() => _refresh?.Invoke();
+        protected override void RefreshAssignmentAvailability() => _availability?.Invoke();
         protected override void RefreshAssignmentDrawing() => _drawingRefresh?.Invoke();
         protected override void ShowAssignmentStatus(string message)
         {

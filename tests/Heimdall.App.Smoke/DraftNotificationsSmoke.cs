@@ -47,7 +47,7 @@ namespace Heimdall.App.Smoke
                 window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository);
                 window.Show();
                 ((TextBox)window.FindName("PackageVersion")).Text = "1.0.0";
-                var context = new DcsWindowContext(window);
+                var context = window.DcsContext;
                 var commandsView = WorkspaceUi.Navigate(window, "Commands");
                 var standalone = (DcsCommandsManagementView)commandsView.FindName("Manager");
                 var assignmentsView = WorkspaceUi.Navigate(window, "Assignments");
@@ -118,7 +118,7 @@ namespace Heimdall.App.Smoke
             }
             finally
             {
-                if (window is not null) { new DcsWindowContext(window).Discard(); window.Close(); }
+                if (window is not null) { window.DcsContext.Discard(); window.Close(); }
                 File.Delete(path);
             }
         }

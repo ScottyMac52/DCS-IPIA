@@ -42,14 +42,15 @@ namespace Heimdall.App.Smoke
                 Exception? rejection = null;
                 try { window.SaveWorkspaceAsync().GetAwaiter().GetResult(); }
                 catch (InvalidOperationException error) { rejection = error; }
-                Require(ReferenceEquals(rejection, denial) && window.Pending && !window.Save.IsEnabled,
-                    "The base replaced the native save rejection or changed pending state/availability.");
+                Require(rejection?.Message == "Native save is unavailable." && window.Pending && !window.Save.IsEnabled,
+                    "The shared context failed to reject native ineligibility before invoking persistence.");
                 window.SaveAvailable = true; window.RefreshChrome();
 
                 window.SaveAction = () => throw new InvalidOperationException("Expected persistence failure");
                 Require(!window.TryLeaveAsync(GameWorkspaceLeaveDecision.Save).GetAwaiter().GetResult() && window.Pending && window.Error is not null,
                     "A failed adapter save lost edits or allowed a switch.");
                 Require(window.Save.IsEnabled && window.Discard.IsEnabled, "Failure did not restore base command availability.");
+                Require(window.NativeRefreshes == 0, "A rejected or failed save reloaded native panels despite retaining the same draft.");
 
                 var pendingSave = new TaskCompletionSource();
                 var saves = 0;
