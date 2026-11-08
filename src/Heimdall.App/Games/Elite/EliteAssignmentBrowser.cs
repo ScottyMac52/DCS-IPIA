@@ -33,7 +33,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is null) return;
             var controller = Device?.Id;
             // A scope change resets the controller; publish both together so listeners never see a missing device.
-            _selection.Update(() => { _selection.SelectScope(_session.Snapshot.Id.ToString("N") + ":" + Section); _selection.SelectController(controller); });
+            _selection.Update(() => { _selection.SelectScope(_session.Id.ToString("N") + ":" + Section); _selection.SelectController(controller); });
 
             var previousCategory = CommandCategory;
             var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();

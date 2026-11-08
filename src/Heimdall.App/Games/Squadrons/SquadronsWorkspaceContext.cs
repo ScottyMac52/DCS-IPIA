@@ -35,7 +35,8 @@ namespace Heimdall.App.Games.Squadrons
         internal string DrawingSection { get; set; } = "All";
         internal string? SelectedController => State.Selection.ControllerId is { } id &&
             id.StartsWith("squadrons.joystick.", StringComparison.Ordinal) &&
-            Session?.Snapshot.Profile.Devices.Any(device => device.LogicalId == id) == true ? id : null;
+            (_controllers ??= new(() => Session, (document, key) => document.Profile.Devices.Any(device => device.LogicalId == key))).Get(id, false) ? id : null;
+        private ProfileContentCache<string, bool>? _controllers;
         internal bool ScanningInputs => State.Activity == WorkspaceActivityKind.Scan;
         internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
         #endregion END Public

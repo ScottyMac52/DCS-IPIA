@@ -9,21 +9,24 @@ namespace Heimdall.App.Games.Elite
 {
     /// <summary>Provides ED session facts and typed artwork projections to the inherited workspace context.</summary>
     internal sealed class EliteWorkspaceContext(GameWorkspaceServices services, IReadOnlyList<WorkspaceHardware> hardware,
-        IWorkspaceScheduler? scheduler = null) : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
+        IWorkspaceScheduler? scheduler = null, IEliteWorkspaceServices? elite = null) : GameProfileWorkspaceContextBase(scheduler ?? new DispatcherWorkspaceScheduler(Dispatcher.CurrentDispatcher)),
         IEliteWorkspaceContext<EliteDangerousProfileBackend, EliteAssignmentRow>
     {
         #region BEGIN Public
         internal GameWorkspaceServices Services => services;
         /// <inheritdoc/>
-        public EliteDangerousProfileBackend Backend => services.Backend;
+        public EliteDangerousProfileBackend Backend => Elite.Backend;
+        /// <summary>Gets ED-only native services owned at the ED edge.</summary>
+        internal IEliteWorkspaceServices Elite { get; } = elite ?? new EliteWorkspaceServices();
         internal IReadOnlyList<WorkspaceHardware> Hardware => hardware;
         internal GameAssignmentSelection Selection => NativeSelection;
         internal bool Refreshing { get; set; } = true;
         internal IReadOnlyList<SimCommand> Commands { get; set; } = [];
         /// <inheritdoc/>
         public IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];
-        internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id && Session?.Snapshot is { } document && document.Profile.Devices.Any(x => x.LogicalId == id)
-            ? new(id, ControllerName(document, id)) : null;
+        internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id
+            ? (_deviceChoices ??= new(() => Session, (document, key) => document.Profile.Devices.Any(x => x.LogicalId == key)
+                ? new GameDeviceChoice(key, ControllerName(document, key)) : null)).Get(id, null) : null;
         internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == State.Selection.CommandId);
         internal string Section { get; set; } = "All";
         internal int Feature { get; set; }
@@ -33,6 +36,12 @@ namespace Heimdall.App.Games.Elite
         internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
         internal WorkspaceAssignmentContext AssignmentContext => Context;
         internal void NotifyChanged() => RefreshNativeState();
+        /// <summary>Gets the drawing for one controller of the open document. The reviewed drawing list is fixed for this
+        /// context, so the projection is re-read only when the native document or controller changes.</summary>
+        internal WorkspaceHardware? CurrentDrawing(string deviceId) =>
+            (_drawings ??= new(() => Session, (document, key) => DrawingFor(document, key))).Get(deviceId, null);
+        /// <summary>Gets how many drawing projections were computed (smoke work counter).</summary>
+        internal int DrawingProjections => _drawings?.Projections ?? 0;
         internal WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)
         {
             var system = EliteSystemInputDrawings.Create(document.Profile, deviceId);
@@ -43,10 +52,12 @@ namespace Heimdall.App.Games.Elite
 
         internal string? DrawingKey(HardwareGraphicControl control)
         {
-            var drawing = Session is not null && Device is not null ? DrawingFor(Session.Snapshot, Device.Id) : null;
+            var drawing = Device is { } device ? CurrentDrawing(device.Id) : null;
             return drawing is null ? null : EliteInputKeys.FromDiagram(drawing.Diagram, control);
         }
 
+        private ProfileContentCache<string, GameDeviceChoice?>? _deviceChoices;
+        private ProfileContentCache<string, WorkspaceHardware?>? _drawings;
         internal static string ControllerName(GameWorkspace workspace, string id)
         {
             var identity = workspace.Profile.Devices.Single(x => x.LogicalId == id).Identity!;

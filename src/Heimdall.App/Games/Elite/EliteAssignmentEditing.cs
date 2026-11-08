@@ -113,22 +113,22 @@ namespace Heimdall.App.Games.Elite
         { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
         internal void RefreshInputChoices()
         {
-                if (Device is not { } device || Command is not { } command) return;
-                var key = _selection.InputKey;
-                _loadingAssignment = true;
-                try
-                {
-                    _assignmentsView.InputKey.ItemsSource = DeviceInputs(device.Id, command.Type == CommandType.Axis);
-                    SelectInput(key ?? "");
-                }
-                finally { _loadingAssignment = false; }
-                DraftChanged();
+            if (Device is not { } device || Command is not { } command) return;
+            var key = _selection.InputKey;
+            _loadingAssignment = true;
+            try
+            {
+                _assignmentsView.InputKey.ItemsSource = DeviceInputs(device.Id, command.Type == CommandType.Axis);
+                SelectInput(key ?? "");
+            }
+            finally { _loadingAssignment = false; }
+            DraftChanged();
         }
         internal void UpdateAvailability()
         {
             var opened = _session is not null;
-            var pin = Device is not null ? _session?.Snapshot.Hardware.GetValueOrDefault(Device.Id) : null;
-            var drawing = _session is not null && Device is not null ? context.DrawingFor(_session.Snapshot, Device.Id) : null;
+            var pin = Device is not null ? _session?.HardwarePin(Device.Id) : null;
+            var drawing = _session is not null && Device is not null ? context.CurrentDrawing(Device.Id) : null;
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && _session?.AccessMessage.Length == 0 && !_busy;
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);

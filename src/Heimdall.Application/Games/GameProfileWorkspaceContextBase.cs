@@ -27,7 +27,7 @@ namespace Heimdall.Application.Games
             }
         }
         /// <summary>Gets or accepts the native store revision; null means this session has never been persisted.</summary>
-        public string? Revision { get => _revision; set { _revision = value; RefreshNativeState(); } }
+        public string? Revision { get => _revision; set { if (State.Recovery.Length != 0) throw new InvalidOperationException(State.Recovery); _revision = value; RefreshNativeState(); } }
         /// <summary>Gets the context-owned engine exposed temporarily to native browser/editor adapters.</summary>
         public GameAssignmentSelection NativeSelection => SelectionEngine;
         /// <summary>Gets shared profile chrome from the authoritative context state.</summary>
@@ -38,7 +38,7 @@ namespace Heimdall.Application.Games
         #endregion END Public
         /// <summary>Maps native session facts while leaving capability policy to the native adapter.</summary>
         protected NativeWorkspaceFacts ProfileFacts(WorkspaceCapabilities capabilities) => new(
-            _session?.Snapshot.Id.ToString("N") ?? "", _session is not null, _session?.AccessMessage.Length > 0,
+            _session?.Id.ToString("N") ?? "", _session is not null, _session?.AccessMessage.Length > 0,
             _session?.AccessMessage ?? "", _session?.HasChanges == true, _session is not null && Revision is null,
             _saved?.Name ?? "", capabilities);
         /// <summary>Combines native profile openness with explicit native input/link support.</summary>
@@ -54,7 +54,7 @@ namespace Heimdall.Application.Games
         /// <inheritdoc/>
         protected override GameWorkspace? ReadSaved() => _saved;
         /// <inheritdoc/>
-        protected override string CaptureNativeFingerprint() => JsonSerializer.Serialize(_session?.Snapshot);
+        protected override string CaptureNativeFingerprint() => _session?.ContentFingerprint ?? "null";
         /// <inheritdoc/>
         protected override bool NameEquals(string left, string right) => string.Equals(left.Trim(), right, StringComparison.Ordinal);
         /// <inheritdoc/>

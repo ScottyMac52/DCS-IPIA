@@ -39,7 +39,7 @@ namespace Heimdall.App.Smoke
                 fixture.Edit("Changed native record");
                 Require(view.Reloads == reloads + 1 && view.Pending.Text == "Loaded native record", fixture, "A native edit did not reload the projection exactly once.");
                 reloads = view.Reloads;
-                context.RunOperation(WorkspaceOperationKind.Discard, lease => { fixture.Discard(lease); return new(WorkspaceOperationOutcome.Applied, ""); });
+                fixture.Profiles.DiscardAsync(default).GetAwaiter().GetResult();
                 Require(!context.State.Dirty && view.Reloads == reloads + 1, fixture, "Discard did not restore the baseline with one native reload.");
                 reloads = view.Reloads; view.Pending.Text = "Old mount input";
                 fixture.Replace(); ThemeControlSmoke.Pump(host);

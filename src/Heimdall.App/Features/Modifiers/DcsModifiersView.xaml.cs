@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using Heimdall.App;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
@@ -20,13 +21,13 @@ namespace Heimdall.App.Features.Modifiers
             InitializeComponent();
             ModifierModeChoice.ItemsSource = Enum.GetValues<ModifierMode>();
         }
-        
+
         /// <summary>Connects this view to the shared workspace and refreshes its displayed state.</summary>
         public void Initialize(IDcsModuleWorkspaceContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             _context.StatusChanged += (_, msg) => StatusMessage.Text = msg;
             ModifiersScope.SelectedIndex = 0;
             Refresh();

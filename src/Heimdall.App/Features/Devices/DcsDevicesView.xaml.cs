@@ -31,7 +31,7 @@ namespace Heimdall.App.Features.Devices
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             _context.StatusChanged += (_, msg) => StatusMessage.Text = msg;
             DevicesScope.SelectedIndex = 0;
             Refresh();

@@ -31,8 +31,8 @@ namespace Heimdall.App.Smoke
             }
             finally
             {
-                foreach (var fixture in cases) fixture.Context.Dispose();
-                foreach (var fixture in presentationCases) fixture.Context.Dispose();
+                foreach (var fixture in cases) { fixture.Profiles.Dispose(); fixture.Context.Dispose(); }
+                foreach (var fixture in presentationCases) { fixture.Profiles.Dispose(); fixture.Context.Dispose(); }
                 EditionAccess.SetForTests(previous); Directory.Delete(root, true);
             }
         }
@@ -53,11 +53,27 @@ namespace Heimdall.App.Smoke
             Require(notifications == 1, fixture, "Common batching did not publish exactly one final state.");
             context.SetEditedName(initialName); Require(!context.State.Dirty, fixture, "Returning the edited name did not restore clean state.");
             var beforeSelection = context.CaptureSnapshot();
+            var observer = new WorkspaceChangeObserver(context); observer.Accept();
+            var contentBefore = context.ContentVersion; var serializations = GameWorkspaceContract.ThreadSerializations;
             context.Select(new("native:controller", "native:command", "native:slot", "native:alternative", null, "native:section"));
+            // Hot path: a selection-only change must not serialize/clone the native document or reload native content views.
+            Require(GameWorkspaceContract.ThreadSerializations == serializations && context.ContentVersion == contentBefore
+                && observer.Observe() is WorkspaceChangeKind.Selection or WorkspaceChangeKind.None, fixture, "Selection did native content work or was not classified selection-only.");
             Require(context.CaptureSnapshot() == beforeSelection && !context.State.Dirty, fixture, "Selection edited native data.");
+            if (fixture.Name == "Elite")
+            {
+                // Absent controller: the Elite conformance preset deliberately has no controllers, so the drawing path must yield nothing without projecting.
+                var elite = (Heimdall.App.Games.Elite.EliteWorkspaceContext)context;
+                Require(elite.Session!.Snapshot.Profile.Devices.Count == 0, fixture, "Elite absent-controller prerequisite changed: the preset now has controllers.");
+                Require(elite.Device is null && elite.DrawingKey(new("a", "A", "Key_A", 0, 0, 1, 1)) is null && elite.DrawingProjections == 0, fixture,
+                    "An absent ED controller produced a drawing key or projected a drawing.");
+            }
             var scope = context.Context.Scope; var epoch = context.State.Identity.Generation;
             fixture.Replace(); Require(context.State.Identity.Generation > epoch && context.Context.Scope != scope, fixture, "Replacing the same native identity retained a stale scope.");
-            fixture.Edit("Native edit"); context.SetEditedName(initialName + " edited"); var pending = context.CaptureSnapshot();
+            var contentBeforeEdit = context.ContentVersion;
+            fixture.Edit("Native edit");
+            Require(context.ContentVersion != contentBeforeEdit && observer.Observe() == WorkspaceChangeKind.Content, fixture, "A genuine native edit did not move the content stamp.");
+            context.SetEditedName(initialName + " edited"); var pending = context.CaptureSnapshot();
             try
             {
                 Await(context.RunOperationAsync(WorkspaceOperationKind.Save, lease =>
@@ -74,11 +90,11 @@ namespace Heimdall.App.Smoke
             catch (IOException) { }
             Require(context.CaptureSnapshot() == pending && context.State.Dirty && context.State.Operation is null, fixture, "Failed save lost a draft/name or retained the busy gate.");
             var events = notifications;
-            var saved = Await(context.RunOperationAsync(WorkspaceOperationKind.Save, async lease =>
-            { await fixture.Save(lease); return new(WorkspaceOperationOutcome.Applied, "Saved", true); }, default));
+            var saved = Await(fixture.Profiles.SaveAsync(default));
+            Require(fixture.PersistedName() == context.State.EditedName, fixture, "Native persisted baseline was not accepted.");
             Require(saved.Committed && !context.State.Dirty && notifications == events + 2, fixture, "Successful save did not establish one baseline with admission/release events.");
             fixture.Edit("Discard me");
-            context.RunOperation(WorkspaceOperationKind.Discard, lease => { fixture.Discard(lease); return new(WorkspaceOperationOutcome.Applied, ""); });
+            Require(Await(fixture.Profiles.DiscardAsync(default)).Outcome == WorkspaceOperationOutcome.Applied, fixture, "Shared discard was not applied.");
             Require(!context.State.Dirty, fixture, "Discard failed to restore the exact native baseline.");
             if (context.TryStartActivity(WorkspaceActivityKind.Test, out var input).Enabled)
             {

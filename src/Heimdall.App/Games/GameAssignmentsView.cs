@@ -11,22 +11,21 @@ namespace Heimdall.App.Games
     public abstract class GameAssignmentsView : UserControl
     {
         private readonly ContentControl _commands = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly ContentControl _controller = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly ContentControl _editor = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly Grid _right = new() { Margin = new Thickness(6, 0, 0, 0) };
         private readonly ScrollViewer _editorViewport = new()
-            { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, CanContentScroll = false };
+        { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, CanContentScroll = false };
         private Action<EventHandler>? _subscribe;
         private Action<EventHandler>? _unsubscribe;
         private bool _subscribed;
         private bool _refreshing;
         private IGameWorkspaceContext? _context;
         private bool _unmounted;
-        private WorkspaceState? _observedState;
-        private string? _observedSnapshot;
+        private WorkspaceChangeObserver? _observer;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
@@ -109,7 +108,7 @@ namespace Heimdall.App.Games
         /// <summary>Shares the context engine and notification lifetime rather than creating view-owned state.</summary>
         protected void BindAssignmentContext(IGameWorkspaceContext context)
         {
-            _context = context;
+            _context = context; _observer = new(context);
             BindAssignmentChanges(handler => context.StateChanged += handler, handler => context.StateChanged -= handler);
         }
         /// <summary>Rebinds state notifications without retaining the previous workspace or duplicating subscriptions.</summary>
@@ -175,11 +174,8 @@ namespace Heimdall.App.Games
             if (_context is { } context)
             {
                 if (context.State.Operation is not null) { RefreshAvailabilityOnly(); return; }
-                var state = context.State; var snapshot = CaptureAssignmentSnapshot();
-                var alreadyObserved = ReferenceEquals(sender, context) && _observedState == state && _observedSnapshot == snapshot;
-                var presentationOnly = alreadyObserved || WorkspaceStateChange.IsPresentationOnly(_observedState, _observedSnapshot, state, snapshot);
-                _observedState = state; _observedSnapshot = snapshot;
-                if (presentationOnly) { RefreshAvailabilityOnly(); return; }
+                // The shared content stamp replaces serializing the native document on every notification.
+                if (_observer!.Observe() != WorkspaceChangeKind.Content) { RefreshAvailabilityOnly(); return; }
             }
             RefreshAssignments();
         }
@@ -191,8 +187,7 @@ namespace Heimdall.App.Games
         }
         private void ObserveContext()
         {
-            _observedState = _context?.State;
-            _observedSnapshot = _context is null ? null : CaptureAssignmentSnapshot();
+            _observer?.Accept();
         }
         private void Attach()
         {

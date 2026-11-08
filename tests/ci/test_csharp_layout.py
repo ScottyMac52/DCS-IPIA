@@ -72,5 +72,51 @@ class CSharpLayoutTests(unittest.TestCase):
         self.assertIn("public member outside the Public region", result.stderr)
 
 
+    ELITE = "src/Heimdall.App/Games/Elite/IEliteWorkspaceServices.cs"
+
+    def interface(self, path, namespace="Heimdall.App.Games.Elite", visibility="internal", name="IEliteWorkspaceServices"):
+        self.write(path, f"""namespace {namespace}
+{{
+    /// <summary>Native edge services.</summary>
+    {visibility} interface {name}
+    {{
+    }}
+}}
+""")
+
+    def test_only_the_exact_internal_elite_edge_interface_is_exempt(self):
+        self.interface(self.ELITE)
+        result = self.check()
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_elite_exception_rejects_public_wrong_namespace_wrong_path_and_other_app_interfaces(self):
+        cases = [
+            (self.ELITE, {"visibility": "public"}),
+            (self.ELITE, {"namespace": "Heimdall.App.Games"}),
+            (self.ELITE, {"namespace": "Heimdall.Application.Interfaces"}),
+            ("src/Heimdall.App/Games/IEliteWorkspaceServices.cs", {}),
+            ("src/Heimdall.App/Games/Squadrons/IEliteWorkspaceServices.cs", {}),
+            ("src/Heimdall.App/Games/Elite/IEliteOtherServices.cs", {"name": "IEliteOtherServices"}),
+            ("src/Heimdall.App/Games/Squadrons/ISquadronsWorkspaceServices.cs",
+             {"namespace": "Heimdall.App.Games.Squadrons", "name": "ISquadronsWorkspaceServices"}),
+        ]
+        for path, options in cases:
+            with self.subTest(path=path, **options):
+                shutil.rmtree(self.root / "src", ignore_errors=True)
+                self.interface(path, **options)
+                result = self.check()
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("interface must be in Heimdall.Application.Interfaces", result.stderr)
+
+    def test_shared_interfaces_still_require_application_interfaces(self):
+        self.interface("src/Heimdall.Application/Interfaces/IShared.cs", namespace="Heimdall.Application.Interfaces",
+                       visibility="public", name="IShared")
+        self.assertEqual(0, self.check().returncode)
+        shutil.rmtree(self.root / "src")
+        self.interface("src/Heimdall.Application/Games/IShared.cs", namespace="Heimdall.Application.Interfaces",
+                       visibility="public", name="IShared")
+        self.assertIn("interface must be in Heimdall.Application.Interfaces", self.check().stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

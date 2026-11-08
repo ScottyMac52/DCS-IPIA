@@ -25,7 +25,7 @@ namespace Heimdall.App.Games.WarThunder
         internal void RefreshCommands()
         {
             var browser = _assignments.Browser;
-            var scope = (context.Session?.Snapshot.Id.ToString("N") ?? "") + ":" + context.SelectedDevice + ":" + browser.CommandCategoryPicker.SelectedItem + ":" + browser.CommandTypePicker.SelectedIndex;
+            var scope = (context.Session?.Id.ToString("N") ?? "") + ":" + context.SelectedDevice + ":" + browser.CommandCategoryPicker.SelectedItem + ":" + browser.CommandTypePicker.SelectedIndex;
             if (context.Selection.Scope != scope) context.SelectedPhysicalInput = null;
             var controller = context.SelectedDevice;
             context.Selection.Update(() => { context.Selection.SelectScope(scope); context.Selection.SelectController(controller); });

@@ -43,7 +43,7 @@ namespace Heimdall.App.Games.Squadrons
 
         private void UpdateInputChoices()
         {
-            var pin = _assignmentsView.TargetDevice.SelectedItem is GameDeviceChoice target ? context.Session?.Snapshot.Hardware.GetValueOrDefault(target.Id) : null;
+            var pin = _assignmentsView.TargetDevice.SelectedItem is GameDeviceChoice target ? context.Session?.HardwarePin(target.Id) : null;
             var keys = context.ScanningInputs ? null : GameControllerInputs.VerifiedKeys(pin, context.ControllerInputs);
             var oldRefreshing = context.Refreshing;
             context.Refreshing = true;
@@ -247,7 +247,7 @@ namespace Heimdall.App.Games.Squadrons
         private SquadronsAxisPair? DrawingAxisPair(HardwareGraphicControl control)
         {
             if (!control.IsAxis || context.SelectedController is not { } slot || context.Session is not { } session) return null;
-            var pin = session.Snapshot.Hardware.GetValueOrDefault(slot);
+            var pin = session.HardwarePin(slot);
             if (GameControllerInputs.VerifiedKeys(pin, context.ControllerInputs)?.Contains(control.InputKey) != true) return null;
             return SquadronsAxisPair.For(SquadronsDrawingProjection.ForControl(control, context.Rows, slot, context.DrawingSection));
         }
@@ -276,7 +276,7 @@ namespace Heimdall.App.Games.Squadrons
         {
             if (context.Session is null || context.SelectedController is not { } slot || context.Session.Catalog.Find(commandId) is not { } command ||
                 (command.Type == CommandType.Axis) != control.IsAxis) return false;
-            var pin = context.Session.Snapshot.Hardware.GetValueOrDefault(slot);
+            var pin = context.Session.HardwarePin(slot);
             if (GameControllerInputs.VerifiedKeys(pin, context.ControllerInputs)?.Contains(control.InputKey) != true) return false;
             try { _ = SquadronsDrawingAssignment.For(context.Backend, context.Session.Snapshot.Profile, commandId, slot, control.InputKey, control.IsAxis); return true; }
             catch (InvalidOperationException) { return false; }

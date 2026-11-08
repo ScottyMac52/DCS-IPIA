@@ -8,6 +8,7 @@ using Heimdall.Dcs;
 using Heimdall.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Heimdall.App;
+using Heimdall.TestSupport;
 
 namespace Heimdall.App.Smoke
 {
@@ -22,34 +23,98 @@ namespace Heimdall.App.Smoke
         [STAThread]
         /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
         /// <returns>Zero when both windows render their expected content.</returns>
-        public static int Main()
+        public static int Main(string[] args)
+        {
+            // Isolated groups: each runs in a fresh STA process (fail-fast inside the group); the parent aggregates one report.
+            if (args.Length == 2 && args[0] == "--group") return RunGroup(args[1]);
+            var only = args.Length == 2 && args[0] == "--only" ? args[1].Split(',', StringSplitOptions.RemoveEmptyEntries) : null;
+            if (args.Length != 0 && only is null) { Console.Error.WriteLine("Usage: Heimdall.App.Smoke [--only group[,group]] | --group <name>"); return 2; }
+            var results = Environment.GetEnvironmentVariable("HEIMDALL_SMOKE_RESULTS") is { Length: > 0 } configured ? configured
+                : Path.Combine(Path.GetTempPath(), "heimdall-smoke-" + Guid.NewGuid().ToString("N"));
+            Console.WriteLine("Smoke build: smoke " + CompiledRevision(typeof(Program).Assembly) + ", app " + CompiledRevision(typeof(Heimdall.App.Games.GameWorkspaceWindow).Assembly));
+            var runner = new SmokeGroupRunner(Groups, (group, timeout) => SmokeGroupRunner.LaunchProcess(Environment.ProcessPath!, "--group " + group, timeout),
+                TimeSpan.FromMinutes(30), results);
+            return runner.Run(only, Console.Out);
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        // The shared host from CreateHost; the dcs-shared group reads its theme dictionaries, as the single-process Main did.
+        private static System.Windows.Application app = null!;
+        private static readonly string[] Groups = ["startup", "games", "squadrons", "dcs-shared"];
+        private static int RunGroup(string group)
         {
             WorkspaceLayoutStore.FilePath = Path.Combine(Path.GetTempPath(),
                 "ipia-layout-smoke-" + Guid.NewGuid().ToString("N"), "workspace-layout.json");
-            Console.WriteLine("Smoke: JSON-configured physical logging.");
-            LoggingSmoke.Verify();
+            // Compiled build identity (SDK-embedded source revision), not the runtime checkout: a stale build reports its own revision.
+            Console.WriteLine("Smoke build: smoke " + CompiledRevision(typeof(Program).Assembly) + ", app " + CompiledRevision(typeof(Heimdall.App.Games.GameWorkspaceWindow).Assembly));
+            Action run = group switch
+            {
+                "startup" => StartupGroup,
+                "games" => GamesGroup,
+                "squadrons" => SquadronsGroup,
+                "dcs-shared" => DcsSharedGroup,
+                _ => throw new ArgumentException("Unknown smoke group: " + group, nameof(group))
+            };
+            // Every group owns the shared themed host; startup creates it after logging, as the single-process Main did.
+            if (group != "startup") CreateHost();
+            // Isolated groups inherit no startup state. The single-process Main ran every later scenario after EditionSmoke's
+            // finally (EditionSmoke.cs: SetForTests(issuer.Policy); Configure(null); Apply("Light"); ResetForTests()), so
+            // later groups start from that same explicit signed test-Owner fixture; Free scenarios still set Free themselves.
+            using var inherited = group == "startup" ? null : new OwnerLicenseTestIssuer();
+            if (inherited is not null) StartupInheritedState(inherited);
+            try
+            {
+                run();
+                Console.WriteLine(SmokeGroupRunner.PassMarker + group);
+                return 0;
+            }
+            finally { app?.Shutdown(); }
+        }
+        private static void StartupInheritedState(OwnerLicenseTestIssuer issuer)
+        {
+            EditionAccess.SetForTests(issuer.Policy); AppearanceManager.Configure(null); ThemeManager.Apply("Light");
+            AppearanceManager.ResetForTests();
+        }
+        private static void CreateHost()
+        {
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
-            var app = new System.Windows.Application();
+            app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             foreach (var theme in new[] { "Light", "Styles", "Primitives", "Collections", "Controls", "Menus" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
                     Source = new Uri("pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute)
                 });
             ApplicationTheme.Initialize();
+            SmokeHostLifetimeSmoke.Verify(app);
+        }
+        private static void StartupGroup()
+        {
+            Console.WriteLine("Smoke: JSON-configured physical logging.");
+            LoggingSmoke.Verify();
+            CreateHost();
             Console.WriteLine("Smoke: Free Edition and signed Owner entitlement.");
             EditionSmoke.Verify();
             FreeSnapshotImportSmoke.Verify();
             BrandingSmoke.Verify();
             global::Heimdall.Dcs.BundledSharedCatalog.Validate(global::Heimdall.Dcs.BundledSharedCatalog.Root);
             SolRHardwareSmoke.Verify();
+        }
+        private static void GamesGroup()
+        {
             Console.WriteLine("Smoke: game selection and Elite profile authoring.");
             GameWorkspaceSmoke.Verify();
             SharedConsumerHostSmoke.Verify();
             WorkspaceContextConformanceSmoke.Verify();
+            ProfileOperationsConformanceSmoke.Verify();
+            ProfileCommandConformanceSmoke.Verify();
+            RecoveryConformanceSmoke.Verify();
             WorkspaceInheritanceSmoke.Verify();
             AssignmentsInheritanceSmoke.Verify();
             DcsWorkspaceSaveSmoke.Verify();
             DcsConsumerMigrationSmoke.Verify();
+        }
+        private static void SquadronsGroup()
+        {
             Console.WriteLine("Smoke: Squadrons selection, native authoring and saved profiles.");
             SquadronsWorkspaceSmoke.Verify();
             SquadronsDeviceLinkSmoke.Verify();
@@ -59,6 +124,9 @@ namespace Heimdall.App.Smoke
             SquadronsFreshAssignmentSmoke.Verify();
             SquadronsAddControllerSmoke.Verify();
             SquadronsFeatureNavigationSmoke.Verify();
+        }
+        private static void DcsSharedGroup()
+        {
             var defaultsWindow = new DcsSharedUiLayerWorkspaceWindow(new DcsSharedUiLayerWorkspace(1, new string('a', 40),
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
@@ -164,8 +232,11 @@ namespace Heimdall.App.Smoke
                """);
             var imported = new DcsConsumerImportResult(
                 configuration, [], [], [], [],
-                new Dictionary<string, System.Text.Json.JsonElement> { ["config/kneeboard.json"] =
-                                                                           kneeboard.RootElement.Clone() },
+                new Dictionary<string, System.Text.Json.JsonElement>
+                {
+                    ["config/kneeboard.json"] =
+                                                                           kneeboard.RootElement.Clone()
+                },
                 new Dictionary<string, string>(),
                 [new SourceProvenance("Huey", new string('a', 40), "config/kneeboard.json", "hash")], []);
             var image = Convert.FromBase64String(
@@ -176,18 +247,25 @@ namespace Heimdall.App.Smoke
                 "TM MFD", "MFD3", "assets/shared/hardware/svg/tm-mfd.svg", 200, 150, image,
                 [new UiLayerCallout(1, "mfd-osb-t1-shifted", "VR Zoom", "MOZA_MODIFIER_BTN3", 10, 10, 60, 40) {
                     CommandId = "UI_ZOOM"
-                }]) { Svg = svg, ProfileId = mfd.Id,
-                      Controls = [
+                }])
+            {
+                Svg = svg,
+                ProfileId = mfd.Id,
+                Controls = [
                           new("mfd-osb-t1", "OSB01", "JOY_BTN1", 10, 60, 60, 40),
                           new("mfd-osb-t1-shifted", "OSB01", "JOY_BTN1", 10, 10, 60, 40),
                           new("mfd-osb-t2", "OSB02", "JOY_BTN2", 80, 10, 60, 40),
                           new("mfd-osb-t3", "OSB03", "JOY_BTN3", 145, 10, 45, 40),
                           new("trim-up", "Trim", "JOY_POV1_U", 80, 110, 60, 30)
-                      ] };
-            var preview = new DcsModuleWorkspacePreview(imported, [], [diagram]) { UiCommands = [
+                      ]
+            };
+            var preview = new DcsModuleWorkspacePreview(imported, [], [diagram])
+            {
+                UiCommands = [
                 new(Guid.NewGuid(), Guid.NewGuid(), "UI_ZOOM", "VR Zoom", "VR", false),
                 new(Guid.NewGuid(), Guid.NewGuid(), "UI_PAUSE", "Active Pause", "General", false)
-            ] };
+            ]
+            };
             var importedView = new DcsModuleWorkspaceViewModel(preview);
             if (importedView.Draft is null ||
                 !importedView.Draft.Snapshot.Any(x => x.Slot.Layer == AssignmentLayer.Module &&
@@ -271,9 +349,12 @@ namespace Heimdall.App.Smoke
                                                         "JOY_BTN1", "MOZA_MODIFIER_BTN3");
             repository
                 .SaveAsync(
-                    loaded with { Assignments =
+                    loaded with
+                    {
+                        Assignments =
                                       loaded.Assignments.Where(x => x.Slot.Key != shiftedUiSlot.Key).ToArray(),
-                                  Labels = new Dictionary<string, string> { [shiftedUiSlot.Key] = "Old VR Zoom" } })
+                        Labels = new Dictionary<string, string> { [shiftedUiSlot.Key] = "Old VR Zoom" }
+                    })
                 .GetAwaiter()
                 .GetResult();
             var clearedWindow = new DcsModuleWorkspaceWindow(
@@ -374,10 +455,9 @@ namespace Heimdall.App.Smoke
                     Directory.Delete(preferencesRoot, true);
             }
             System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
-            return 0;
         }
-        #endregion END Public
-        #region BEGIN private helpers
+        private static string CompiledRevision(System.Reflection.Assembly assembly) =>
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion ?? "unknown";
         private static void VerifyDevicePageDeletion()
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-page-deletion-smoke-" + Guid.NewGuid().ToString("N") + ".db");
@@ -391,13 +471,16 @@ namespace Heimdall.App.Smoke
                 var live = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Device, "live", "Stick", [], 0);
                 var orphan = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Device, "orphan", "Deleted device", [], 4);
                 var summary = new KneeboardPage(Guid.NewGuid(), module.Id, null, KneeboardPageKind.Summary, "summary", "Summary", [], 9);
-                var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], []) {
-                    ProfileId = profile.Id, SupportsUiLayer = false,
+                var diagram = new UiLayerDiagram("Stick", null, "stick.svg", 100, 100, [], [])
+                {
+                    ProfileId = profile.Id,
+                    SupportsUiLayer = false,
                     Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'/>",
                     Controls = [new("button", "Button", "JOY_BTN1", 0, 0, 10, 10)]
                 };
                 var workspace = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [live, orphan, summary], [], [diagram], [], [], [],
-                    new Dictionary<string, string>(), new Dictionary<string, string> {
+                    new Dictionary<string, string>(), new Dictionary<string, string>
+                    {
                         ["config/kneeboard.json"] = """{"profiles":{"p":"src/Config/Input/PAGE-DELETE/joystick/Stick.diff.lua"},"pages":[{"profile":"p","file":"live","title":"Stick"},{"profile":"missing","file":"orphan","title":"Deleted device"}],"summaryPages":[{"file":"summary","title":"Summary","kicker":"CONTROLS","items":[{"key":"STICK","text":"Controls","accent":"cyan"}]}]}""",
                         ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                     });
@@ -472,12 +555,16 @@ namespace Heimdall.App.Smoke
                 var configuration = new DcsModuleConfiguration(new(Guid.NewGuid(), "AUTHORING", "Authoring"), [profile], [], [], "Created in IPIA");
                 var diagram = new UiLayerDiagram("Test", null, "test.svg", 100, 100, [], [])
                 {
-                    ProfileId = profile.Id, Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
+                    ProfileId = profile.Id,
+                    Svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#07111d'/></svg>",
                     Controls = [new HardwareGraphicControl("button", "Button", "JOY_BTN1", 5, 5, 20, 20)]
                 };
                 var workspace = new DcsEditorWorkspaceSnapshot(configuration, [], [], [diagram], [], [], [], new Dictionary<string, string>(),
-                    new Dictionary<string, string> { ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
-                        ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers" });
+                    new Dictionary<string, string>
+                    {
+                        ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
+                        ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
+                    });
                 repository.SaveAsync(workspace).GetAwaiter().GetResult();
                 var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), repository: repository,
                     deviceDiscovery: new EmptyDeviceDiscovery(), commandFilePicker: html => html ? [htmlPath] : [jsonPath], integrationFilePicker: () => integrationPath,
@@ -504,7 +591,8 @@ namespace Heimdall.App.Smoke
                     var beforeImport = window.DcsContext.Working!.ModuleCommands.Count;
                     // Navigation waits for readiness and pumps the dispatcher; finish it before queueing dialog automation.
                     var importButton = (Button)WorkspaceUi.Find(window, buttonName)!;
-                    window.Dispatcher.BeginInvoke(new Action(() => {
+                    window.Dispatcher.BeginInvoke(new Action(() =>
+                    {
                         var reviewWindow = System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single();
                         if (((DataGrid)WorkspaceUi.Find(reviewWindow, "ImportChanges")!).Items.Count != 1 ||
                             !((Button)WorkspaceUi.Find(reviewWindow, "StageImportButton")!).IsEnabled)
@@ -524,7 +612,8 @@ namespace Heimdall.App.Smoke
                         $"palette={string.Join(",", WorkspaceUi.Entries(palette).Select(entry => entry.Id))}, " +
                         $"categories={string.Join(",", commandCategories.Items.Cast<string>())}.");
                 var cancelledImportButton = (Button)WorkspaceUi.Find(window, "LoadCommandHtmlButton")!;
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single().DialogResult = false;
                 }));
                 cancelledImportButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -560,7 +649,8 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Command imports and original sources did not reopen from SQLite.");
                 File.WriteAllText(jsonPath, """{"schemaVersion":1,"moduleId":"AUTHORING","commands":[{"bindingKey":"EXTRA","name":"Discarded import","categoryPath":["Flight"],"type":"button"}]}""");
                 var discardedImportButton = (Button)WorkspaceUi.Find(window, "LoadCommandJsonButton")!;
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     ((Button)System.Windows.Application.Current.Windows.OfType<DcsCommandImportReviewWindow>().Single().FindName("StageImportButton")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 }));
                 discardedImportButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -584,7 +674,8 @@ namespace Heimdall.App.Smoke
             {
                 ((DataGrid)WorkspaceUi.Find(window, "ManagedDevices")!).SelectedIndex = 0;
                 var axisImportButton = (Button)WorkspaceUi.Find(window, "ImportAxisDefaultsButton")!;
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     var review = System.Windows.Application.Current.Windows.OfType<DcsAxisDefaultsReviewWindow>().Single();
                     if (!((TextBlock)WorkspaceUi.Find(review, "AxisDefaultsHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
                         !((TextBox)WorkspaceUi.Find(review, "AxisDefaultsChanges")!).Text.Contains("JOY_X", StringComparison.Ordinal))
@@ -629,7 +720,8 @@ namespace Heimdall.App.Smoke
             File.WriteAllText(path, """{"schemaVersion":1,"moduleDcsId":"AUTHORING","integrations":[{"name":"OpenKneeboard","instructions":"Use this module's generated kneeboard folder."}]}""");
             void Import(bool stage)
             {
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     var review = System.Windows.Application.Current.Windows.OfType<DcsIntegrationImportReviewWindow>().Single();
                     if (!((TextBlock)WorkspaceUi.Find(review, "IntegrationImportHeading")!).Text.Contains("AUTHORING", StringComparison.Ordinal) ||
                         !((TextBox)WorkspaceUi.Find(review, "IntegrationImportChanges")!).Text.Contains("Proposed:", StringComparison.Ordinal))
@@ -798,7 +890,8 @@ namespace Heimdall.App.Smoke
                 var window = new DcsNewModuleWindow(repository, defaults, sources, new EmptyDeviceDiscovery());
                 ((CheckBox)WorkspaceUi.Find(window, "EmptyDefaults")!).IsChecked = false;
                 Exception? failure = null;
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     try
                     {
                         ((TextBox)WorkspaceUi.Find(window, "DcsIdInput")!).Text = "P47-D-30";
@@ -831,7 +924,8 @@ namespace Heimdall.App.Smoke
                     catch (Exception ex) { failure = ex; window.Close(); }
                 }));
                 var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
-                timeout.Tick += (_, _) => {
+                timeout.Tick += (_, _) =>
+                {
                     failure = new InvalidOperationException("New Module creation timed out: " + ((TextBlock)WorkspaceUi.Find(window, "CreationError")!).Text);
                     window.Close();
                 };
@@ -893,7 +987,8 @@ namespace Heimdall.App.Smoke
                     throw new InvalidOperationException("Cancel saved a partial Saved Games module.");
                 var window = new DcsSavedGamesImportWindow(folder, defaults, sources, repository);
                 Exception? failure = null;
-                window.Dispatcher.BeginInvoke(new Action(() => {
+                window.Dispatcher.BeginInvoke(new Action(() =>
+                {
                     try
                     {
                         var rows = ((ItemsControl)WorkspaceUi.Find(window, "ProfileChoices")!).Items.Cast<DcsSavedGamesProfileChoice>().ToArray();
@@ -911,7 +1006,8 @@ namespace Heimdall.App.Smoke
                     catch (Exception ex) { failure = ex; window.Close(); }
                 }));
                 var timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
-                timeout.Tick += (_, _) => {
+                timeout.Tick += (_, _) =>
+                {
                     failure = new InvalidOperationException("Saved Games import timed out: " + ((TextBlock)WorkspaceUi.Find(window, "ImportError")!).Text);
                     window.Close();
                 };

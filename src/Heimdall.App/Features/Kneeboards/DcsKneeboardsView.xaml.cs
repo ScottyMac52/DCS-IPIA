@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
 using Heimdall.Domain;
@@ -34,7 +35,7 @@ namespace Heimdall.App.Features.Kneeboards
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             Refresh();
         }
         #endregion END Public

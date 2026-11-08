@@ -23,6 +23,7 @@ namespace Heimdall.App.Games.Squadrons
         private readonly SquadronsAssignmentEditing _editing;
         private readonly SquadronsAssignmentDrawing _drawing;
         private readonly SquadronsProfileOperations _profiles;
+        private readonly SquadronsProfileSaving _saving;
         private readonly GameCommandDragSource _commandDrag;
         private readonly GameControllerReordering _reordering;
         private readonly Func<MessageBoxResult>? _pendingChoice;
@@ -67,6 +68,11 @@ namespace Heimdall.App.Games.Squadrons
             _editing = new(_context, () => _controllers!, () => _browser!, resetName => Refresh(resetName), Run, StatusText, _assignmentsView, this);
             _drawing = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, _devicesView, _assignmentsView, this, () => _controllers!);
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
+            _saving = new(_context, () => _controllers.StopLiveInput(), _profiles.AfterSave, () =>
+            {
+                Refresh(); StatusText.Text = "Draft changes discarded.";
+                SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
+            });
             _drawing.Start();
             _controllers.Start();
             _assignmentsView.Initialize(_context, _editing.UpdateEditor, _editing.UpdateApplyAvailability, _drawing.RenderDrawing,
@@ -188,7 +194,7 @@ namespace Heimdall.App.Games.Squadrons
             if (_disposed) return;
             _disposed = true;
             ClearWorkspaceFeatures(); _commandDrag.Dispose(); _controllers.Dispose(); _reordering.Dispose();
-            _context.Dispose();
+            _saving.Dispose(); _context.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion END Public
@@ -204,19 +210,7 @@ namespace Heimdall.App.Games.Squadrons
         protected override bool HasWorkspaceChanges => _context.Chrome.Pending;
         protected override bool CanSaveWorkspace => _context.Chrome.CanSave;
         protected override string WorkspaceStateSummary => _context.Chrome.Status;
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease)
-        {
-            _profiles.SaveCore(lease);
-            return Task.CompletedTask;
-        }
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease)
-        {
-            _controllers.StopLiveInput();
-            _context.Session?.Discard(lease);
-            if (_context.Revision is null) _context.Session = null;
-            Refresh(); StatusText.Text = "Draft changes discarded.";
-            SelectionEditor.AssignmentDraftStatus.Text = DrawingDropFeedback.Text = "";
-        }
+        protected override IGameProfileOperations ProfileOperations => _saving;
         protected override void ReportWorkspaceError(Exception exception) => StatusText.Text = "Unable to save: " + exception.Message;
         private bool ConfirmLeave()
         {
@@ -300,15 +294,15 @@ namespace Heimdall.App.Games.Squadrons
             ImportButton.IsEnabled = !WorkspaceActionRunning;
             ImportTemplatesButton.IsEnabled = !WorkspaceActionRunning && _context.Session?.AccessMessage.Length == 0;
             NewProfileButton.IsEnabled = !WorkspaceActionRunning && _context.Session?.AccessMessage.Length == 0 && !_context.ScanningInputs;
-            ProfileName.IsEnabled = !WorkspaceActionRunning && _context.Session is not null;
+            ProfileName.IsEnabled = WorkspaceEditable && _context.Session is not null;
             _editing.UpdateApplyAvailability();
         }
 
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_context.Refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _context.Session?.Snapshot.Id) return;
+            if (_context.Refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _context.Session?.Id) return;
             if (ConfirmLeave()) Run(() => _profiles.LoadProfile(entry.Id));
-            _context.Refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _context.Session?.Snapshot.Id); _context.Refreshing = false;
+            _context.Refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _context.Session?.Id); _context.Refreshing = false;
         }
 
         private void GameChanged(object sender, SelectionChangedEventArgs e)
@@ -318,7 +312,7 @@ namespace Heimdall.App.Games.Squadrons
             RequestedGame = game; _allowClose = true; Close();
         }
 
-        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); UpdateAvailability(); } }
+        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing && WorkspaceEditable) { _context.SetEditedName(ProfileName.Text); UpdateAvailability(); } }
         private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;
         private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;
         private ComboBox CommandStatusFilter => CommandBrowser.AssignmentStatusPicker;

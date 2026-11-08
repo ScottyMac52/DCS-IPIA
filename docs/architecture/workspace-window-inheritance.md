@@ -11,7 +11,7 @@ shared algorithms instead of copying them.
 | `GameWorkspaceWindow : Window` | Feature registration, lazy view caching, capability checks on navigation, mounting/action bars, serialized asynchronous actions, Save/Discard handlers, pending chrome, switch guard, close guard and resource cleanup |
 | `DcsModuleWorkspaceWindow : GameWorkspaceWindow` | DCS composition and XAML events; overrides the native-action and state hooks; supplies picker dialogs and DCS-specific selector/status presentation |
 | `DcsWorkspaceSession` | DCS saved/working snapshots, draft subscriptions, structural edits, personal labels, native validation, persistence and discard |
-| `DcsWorkspaceOutput` | Validation, snapshot/documentation/complete-release/package output from saved DCS state; destinations and logging are injected |
+| `DcsOutputCommand` | Typed `GameProfileCommandBase` command: validation, snapshot/documentation/complete-release/package output from saved DCS state; destinations and logging are injected |
 | `DcsWorkspaceFeatures` | Registers the eight existing feature factories and the Input Test availability policy |
 | `DcsWindowContext` | Compatibility facade over the session, shared events and inherited Save/Discard paths; no mutable state in window fields |
 | `DcsControllerSelection` | DCS controller rail synchronization and binding cleanup |

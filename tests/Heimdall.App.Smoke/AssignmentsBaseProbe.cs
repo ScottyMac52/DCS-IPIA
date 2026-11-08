@@ -11,7 +11,7 @@ namespace Heimdall.App.Smoke
         private readonly WorkspaceSmokeContext _context;
         internal AssignmentsBaseProbe()
         {
-            _context = new(() => Value != 0, () => Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _context = new(() => Value != 0, () => Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + NativeRevision.ToString(System.Globalization.CultureInfo.InvariantCulture));
             _context.Open(); BindAssignmentContext(_context);
             CommandsPanel = new TextBox { Text = "Commands" };
             ControllerPanel = new Button { Content = "Controller" };
@@ -22,6 +22,13 @@ namespace Heimdall.App.Smoke
         public void Dispose() { _context.Dispose(); GC.SuppressFinalize(this); }
         internal int Value { get; private set; }
         internal int Refreshes { get; private set; }
+        internal int AvailabilityRefreshes { get; private set; }
+        internal int NativeRevision { get; private set; }
+        /// <summary>Gets or sets an unsaved editor field that only a full native reload resets.</summary>
+        internal string PendingInput { get; set; } = "";
+        internal long ContentVersion => _context.ContentVersion;
+        /// <summary>Changes native content and notifies the context, as a native session does before its window reprojects.</summary>
+        internal void ChangeNativeContent() { NativeRevision++; _context.NotifyNativeChanged(); }
         internal int DrawingRefreshes { get; private set; }
         internal int Saves { get; private set; }
         internal int Discards { get; private set; }
@@ -62,8 +69,8 @@ namespace Heimdall.App.Smoke
             var result = _context.RunOperation(WorkspaceOperationKind.Discard, _ => { Discards++; DiscardAction(); return new(WorkspaceOperationOutcome.Applied, ""); });
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
         }
-        protected override void RefreshAssignmentsCore() { Refreshes++; RefreshAction?.Invoke(); }
-        protected override void RefreshAssignmentAvailability() { }
+        protected override void RefreshAssignmentsCore() { Refreshes++; PendingInput = ""; RefreshAction?.Invoke(); }
+        protected override void RefreshAssignmentAvailability() => AvailabilityRefreshes++;
         protected override void RefreshAssignmentDrawing() => DrawingRefreshes++;
         protected override void ShowAssignmentStatus(string message) => Status = message;
     }

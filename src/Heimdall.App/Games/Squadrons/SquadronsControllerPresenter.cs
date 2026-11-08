@@ -83,13 +83,16 @@ namespace Heimdall.App.Games.Squadrons
             var workspaceReady = !context.Busy && !context.ScanningInputs && context.Session?.CanLinkCapturedDevices == true && context.Session.AccessMessage.Length == 0;
             var ready = selected is not null && workspaceReady;
             var running = _identification.Running || (_input?.Running ?? false);
-            var pin = selected is null ? null : context.Session?.Snapshot.Hardware.GetValueOrDefault(selected);
+            var pin = selected is null ? null : context.Session?.HardwarePin(selected);
             _devicesView.RescanControllerButton.IsEnabled = !context.Busy && !running && !context.ScanningInputs;
             var links = ControllerLinkState.For(pin is not null, selected is not null && context.Session?.DrawingId(selected) is not null, workspaceReady, running);
             var refreshing = context.Refreshing;
             context.Refreshing = true;
-            try { ControllerLinkPresentation.ShowPhysical(_devicesView.ConnectedPicker, pin?.Device,
-                context.Services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x))); }
+            try
+            {
+                ControllerLinkPresentation.ShowPhysical(_devicesView.ConnectedPicker, pin?.Device,
+                context.Services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)));
+            }
             finally { context.Refreshing = refreshing; }
             _devicesView.ConnectedPicker.IsEnabled = links.SelectPhysical;
             _devicesView.ConnectedPicker.ToolTip = pin is null ? "Choose a physical controller to link." : "Unlink physical controller before choosing another unit.";
@@ -98,7 +101,7 @@ namespace Heimdall.App.Games.Squadrons
             _devicesView.AddControllerButton.IsEnabled = workspaceReady && !running && context.Session?.CanAddNativeControllers == true &&
                 (pin is not null || _devicesView.ConnectedPicker.SelectedItem is DetectedDcsDevice { Connected: true } candidate &&
                     !string.IsNullOrWhiteSpace(_devicesView.NativeControllerName.Text) &&
-                    !context.Session.Snapshot.Hardware.Values.Any(x => x.Device.PhysicalGuid == candidate.PhysicalGuid));
+                    !context.Session.IsPhysicalPinned(candidate.PhysicalGuid));
             _devicesView.RenameControllerButton.IsEnabled = ready && !running && context.Session?.CanRenameNativeControllers == true &&
                 !string.IsNullOrWhiteSpace(_devicesView.NativeControllerName.Text);
             _devicesView.CancelIdentificationButton.IsEnabled = running;
@@ -235,7 +238,7 @@ namespace Heimdall.App.Games.Squadrons
         internal void AddControllerClicked(object sender, RoutedEventArgs e) => run(() =>
         {
             if (!_devicesView.AddControllerButton.IsEnabled) return;
-            if (context.SelectedController is { } slot && context.Session!.Snapshot.Hardware.ContainsKey(slot))
+            if (context.SelectedController is { } slot && context.Session!.HardwarePin(slot) is not null)
             {
                 DevicePicker.SelectedIndex = 0;
                 _devicesView.ConnectedPicker.SelectedIndex = -1;
@@ -267,7 +270,7 @@ namespace Heimdall.App.Games.Squadrons
         private void UpdateInputAvailability()
         {
             if (_input is null) return;
-            var pin = context.SelectedController is { } slot ? context.Session?.Snapshot.Hardware.GetValueOrDefault(slot) : null;
+            var pin = context.SelectedController is { } slot ? context.Session?.HardwarePin(slot) : null;
             AssignmentActionPresentation.Show(_assignmentsView.StartInputButton, editing().AssignmentAction(WorkspaceAssignmentAction.StartInput,
                 FeaturePicker.SelectedIndex == 1 && pin is not null && GameInputReadiness.Ready(pin, context.Services.Discover()),
                 "Select one linked, connected controller for input testing."));
@@ -279,7 +282,7 @@ namespace Heimdall.App.Games.Squadrons
         {
             UpdateInputAvailability();
             if (!_assignmentsView.StartInputButton.IsEnabled || context.SelectedController is not { } slot ||
-                context.Session?.Snapshot.Hardware.GetValueOrDefault(slot) is not { } pin) return;
+                context.Session?.HardwarePin(slot) is not { } pin) return;
             _identification.Stop();
             _input.Start(pin, context.Services.Discover());
         });

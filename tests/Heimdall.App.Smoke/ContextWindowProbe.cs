@@ -16,8 +16,7 @@ namespace Heimdall.App.Smoke
         }
         protected override bool HasWorkspaceChanges => _fixture.Context.State.Dirty;
         protected override bool CanSaveWorkspace => _fixture.Context.State.Capabilities.Save.Enabled;
-        protected override Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease) => _fixture.Save(lease);
-        protected override void DiscardWorkspaceCore(IWorkspaceOperationLease lease) => _fixture.Discard(lease);
+        protected override IGameProfileOperations ProfileOperations => _fixture.Profiles;
         protected override void ReportWorkspaceError(Exception exception) => _fixture.Context.ReportStatus(exception.Message);
         // These fixtures own only temporary data; failures must not leave a modal prompt blocking diagnostics.
         protected override bool CanCloseWorkspace() => true;

@@ -166,17 +166,20 @@ Optional native profile work uses a typed common extension, not flags or generic
 ```csharp
 public interface IGameProfileCommand<TRequest,TResult> {
     WorkspaceAvailability Availability { get; }
-    Task<TResult> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
+    Task<ProfileCommandExecution<TResult>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
 }
 // Application base: GameProfileCommandBase<TRequest,TPrepared,TResult>
 protected abstract WorkspaceOperationKind Kind { get; }
 protected abstract WorkspaceAvailability ReadAvailability();
 protected abstract TPrepared Prepare(TRequest request);
 protected abstract Task<TResult> RunNativeAsync(TPrepared prepared, IWorkspaceOperationLease lease);
-protected abstract void Accept(TResult result);
+protected abstract ProfileCommandEffects ReadEffects(TResult result);
+protected abstract void Accept(TResult result, IWorkspaceOperationLease lease);
 ```
 
 Constructor takes `IGameWorkspaceContext` and `IWorkspaceInputLifetime`. Its nonvirtual Execute checks availability, admits one operation, stops input, prepares/reviews, rechecks lease + fingerprint after review, runs native action, accepts successful result, refreshes context and releases in finally. Disabled capability throws a documented `InvalidOperationException(Availability.Reason)` for this typed-result API before any hook; common Save/Discard instead return Blocked. Cancellation throws `OperationCanceledException` for this typed-result API and never installs a prepared candidate. Native typed results distinguish user cancellation where pickers/review are involved; `Accept` runs only for an actual successful result, determined by a required `protected abstract bool IsSuccessful(TResult result)` hook. Output writers own atomic/backup/no-overwrite semantics and produce typed durable receipts. User-facing entry translates cancellation to a cancelled status. Import/replacement leave decisions occur before Execute admission; they call Save/Discard as separate completed operations, never nest them inside the replacement lease. New/duplicate/name changes use Replace and the same reviewed install boundary. Optional commands exist only where native support already exists; consumers get an explicit availability instead of casting profiles to a concrete class.
+
+Every successful native command explicitly declares `None`, `WorkspaceWrite` or `OutputWrite` through `ReadEffects`. The shared command base returns `ProfileCommandExecution<TResult>` containing the unchanged native receipt and `WorkspaceOperationResult` completion. After a durable write, acceptance/refresh exceptions produce a committed warning rather than an ordinary write failure. Failed workspace installation enters context recovery; failed output presentation retains the output receipt without sealing the editable profile. Creation, deletion, duplication and export refuse a recovering context; only explicit fresh-import commands opt into `CanRecoverWorkspace`, alongside the existing saved-profile reopen path. Native hooks must return a durable receipt before publishing fallible UI notifications. No caller may overwrite a completion warning with the native success message.
 
 ## Browser: `IGameAssignmentBrowser` and `GameAssignmentBrowserBase<TCommand,TRecord,TFilter>`
 
