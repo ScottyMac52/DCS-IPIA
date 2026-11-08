@@ -103,9 +103,12 @@ namespace Heimdall.App.Games.Dcs
                 if (Context.State.EditedName != Saved.Configuration.Module.DisplayName)
                 {
                     var native = updated.Configuration;
-                    updated = updated with { Configuration = new DcsModuleConfiguration(
+                    updated = updated with
+                    {
+                        Configuration = new DcsModuleConfiguration(
                         new DcsModule(native.Module.Id, native.Module.DcsId, Context.State.EditedName),
-                        native.Profiles, native.Modifiers, native.Bindings, native.Provenance) };
+                        native.Profiles, native.Modifiers, native.Bindings, native.Provenance)
+                    };
                 }
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 updated = DcsPinnedUiLayerProfileRecovery.Restore(updated);
@@ -173,16 +176,17 @@ namespace Heimdall.App.Games.Dcs
         private DcsEditorWorkspaceSnapshot EditSnapshot()
         {
             var workspace = Working ?? Saved ?? throw new InvalidOperationException("Open a saved module to manage devices and modifiers.");
-            return workspace with { Assignments = Draft?.Snapshot ?? workspace.Assignments,
-                Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal) };
+            return workspace with
+            {
+                Assignments = Draft?.Snapshot ?? workspace.Assignments,
+                Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal)
+            };
         }
 
         private void RebuildDraft(DcsEditorWorkspaceSnapshot workspace)
         {
-            var commands = workspace.ModuleCommands.Select(command => new DcsDraftCommand(command.Id, command.Name, command.IsAxis, AssignmentLayer.Module))
-                .Concat(workspace.UiCommands.Select(command => new DcsDraftCommand(command.DcsCommandId, command.Name, command.IsAxis, AssignmentLayer.UiLayer)));
-            SetDraft(new DcsDraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
-                DcsWorkspaceStructureEditor.UiModifierNames(workspace)));
+            // The same native catalog the open path validated: module bindings, stored catalogs and assigned module commands.
+            SetDraft(DcsSavedWorkspaceDraft.Create(workspace));
         }
 
         private void SetDraft(DcsDraftAssignmentService? draft)
