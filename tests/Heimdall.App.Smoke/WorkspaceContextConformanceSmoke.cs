@@ -60,12 +60,13 @@ namespace Heimdall.App.Smoke
             Require(GameWorkspaceContract.ThreadSerializations == serializations && context.ContentVersion == contentBefore
                 && observer.Observe() is WorkspaceChangeKind.Selection or WorkspaceChangeKind.None, fixture, "Selection did native content work or was not classified selection-only.");
             Require(context.CaptureSnapshot() == beforeSelection && !context.State.Dirty, fixture, "Selection edited native data.");
-            if (context is Heimdall.App.Games.Elite.EliteWorkspaceContext elite && elite.Session?.Snapshot.Profile.Devices.FirstOrDefault() is { } device)
+            if (fixture.Name == "Elite")
             {
-                // ED drawing hot loop: repeated per-control drawing reads reuse one projection and clone nothing.
-                var drawn = elite.DrawingProjections; var copies = GameWorkspaceContract.ThreadSerializations;
-                for (var i = 0; i < 50; i++) _ = elite.CurrentDrawing(device.LogicalId);
-                Require(elite.DrawingProjections - drawn <= 1 && GameWorkspaceContract.ThreadSerializations - copies <= 1, fixture, "ED drawing reads cloned the document per call.");
+                // Absent controller: the Elite conformance preset deliberately has no controllers, so the drawing path must yield nothing without projecting.
+                var elite = (Heimdall.App.Games.Elite.EliteWorkspaceContext)context;
+                Require(elite.Session!.Snapshot.Profile.Devices.Count == 0, fixture, "Elite absent-controller prerequisite changed: the preset now has controllers.");
+                Require(elite.Device is null && elite.DrawingKey(new("a", "A", "Key_A", 0, 0, 1, 1)) is null && elite.DrawingProjections == 0, fixture,
+                    "An absent ED controller produced a drawing key or projected a drawing.");
             }
             var scope = context.Context.Scope; var epoch = context.State.Identity.Generation;
             fixture.Replace(); Require(context.State.Identity.Generation > epoch && context.Context.Scope != scope, fixture, "Replacing the same native identity retained a stale scope.");
