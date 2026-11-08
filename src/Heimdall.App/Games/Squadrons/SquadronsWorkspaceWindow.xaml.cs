@@ -300,9 +300,9 @@ namespace Heimdall.App.Games.Squadrons
 
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_context.Refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _context.Session?.Snapshot.Id) return;
+            if (_context.Refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _context.Session?.Id) return;
             if (ConfirmLeave()) Run(() => _profiles.LoadProfile(entry.Id));
-            _context.Refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _context.Session?.Snapshot.Id); _context.Refreshing = false;
+            _context.Refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _context.Session?.Id); _context.Refreshing = false;
         }
 
         private void GameChanged(object sender, SelectionChangedEventArgs e)

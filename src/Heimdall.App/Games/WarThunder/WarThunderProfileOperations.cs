@@ -75,14 +75,14 @@ namespace Heimdall.App.Games.WarThunder
         {
             context.Refreshing = true;
             Profiles.ItemsSource = context.Services.Store.List().Where(item => item.BackendId == "war-thunder").ToArray();
-            Profiles.SelectedItem = Profiles.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(item => item.Id == context.Session?.Snapshot.Id);
+            Profiles.SelectedItem = Profiles.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(item => item.Id == context.Session?.Id);
             context.Refreshing = false;
         }
 
         internal void DuplicateCurrent()
         {
             if (context.Session is null || !confirmLeave()) return;
-            var dialog = new GameConfigurationNameWindow(owner, "Duplicate", context.Session.Snapshot.Name + " copy");
+            var dialog = new GameConfigurationNameWindow(owner, "Duplicate", context.Session.Name + " copy");
             if (dialog.ShowDialog() != true) return;
             Duplicate.ExecuteAsync(dialog.ConfigurationName, CancellationToken.None).GetAwaiter().GetResult();
         }
@@ -90,7 +90,7 @@ namespace Heimdall.App.Games.WarThunder
         internal void Remember()
         {
             if (context.Session is not null && context.Revision is not null)
-                context.Services.Remember(context.Services.Recent() with { BackendId = "war-thunder", WorkspaceId = context.Session.Snapshot.Id, DisplayName = context.Session.Snapshot.Name });
+                context.Services.Remember(context.Services.Recent() with { BackendId = "war-thunder", WorkspaceId = context.Session.Id, DisplayName = context.Session.Name });
         }
         #endregion END private helpers
     }

@@ -77,6 +77,13 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertNotIn('Snapshot.Id', profile)
         self.assertIn('ContentFingerprint', profile)
         self.assertNotRegex('\n'.join(p.read_text(encoding='utf-8-sig') for p in (APP / 'Games').rglob('*.cs')), r'Snapshot\.Hardware')
+        games = '\n'.join(p.read_text(encoding='utf-8-sig') for p in (APP / 'Games').rglob('*.cs'))
+        self.assertNotRegex(games, r'Snapshot\.(Id|Name)\b')
+        thunder = (APP / 'Games/WarThunder/WarThunderControllerPresenter.cs').read_text(encoding='utf-8-sig')
+        self.assertNotIn('Session?.Snapshot', thunder)
+        self.assertNotIn('WarThunderPhysicalMap.Create(', thunder)
+        for path in ('Elite/EliteWorkspaceContext.cs', 'Squadrons/SquadronsWorkspaceContext.cs', 'WarThunder/WarThunderWorkspaceContext.cs'):
+            self.assertIn('ProfileContentCache<', (APP / 'Games' / path).read_text(encoding='utf-8-sig'))
 
     def test_dcs_window_delegates_editing_output_and_feature_construction(self):
         source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')

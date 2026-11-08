@@ -55,12 +55,11 @@ namespace Heimdall.App.Games.WarThunder
 
         internal void UpdateAddController()
         {
-            var workspace = context.Session?.Snapshot;
             var physical = _devices.Physical.SelectedItem as DetectedDcsDevice;
             var available = context.Session?.CanAddNativeControllers == true && context.Session.AccessMessage.Length == 0 && !context.Busy && !context.ScanningHardware && !_input.Running;
             _devices.Add.IsEnabled = available && (context.SelectedDevice is not null ||
-                physical is { Connected: true } && workspace is not null &&
-                !workspace.Hardware.Values.Any(pin => pin.Device.PhysicalGuid == physical.PhysicalGuid));
+                physical is { Connected: true } && context.Session is not null &&
+                !context.Session.IsPhysicalPinned(physical.PhysicalGuid));
             _devices.Add.ToolTip = "Choose an unlinked connected controller. Review its native input ranges before adding it.";
         }
 
@@ -75,9 +74,8 @@ namespace Heimdall.App.Games.WarThunder
         {
             context.Refreshing = true;
             var id = context.SelectedDevice;
-            var workspace = context.Session?.Snapshot;
-            var native = workspace is null ? null : WarThunderProfileBackend.ReadDevices(workspace.Profile).SingleOrDefault(device => device.Id == id);
-            var pin = id is null ? null : workspace?.Hardware.GetValueOrDefault(id);
+            var native = context.Session is null ? null : context.NativeDevices.SingleOrDefault(device => device.Id == id);
+            var pin = id is null ? null : context.Session?.HardwarePin(id);
             var drawing = id is null ? null : context.Session?.DrawingId(id);
             ControllerLinkPresentation.ShowPhysical(_devices.Physical, pin?.Device, context.Observed);
             var drawingChoices = context.Drawings.ToList();
@@ -116,7 +114,7 @@ namespace Heimdall.App.Games.WarThunder
             var observations = context.Session is not null && context.SelectedDevice is { } selected && context.Session.HardwarePin(selected) is { } pin
                 ? context.ControllerInputs.Where(observation => observation.Device.PhysicalGuid == pin.Device.PhysicalGuid && observation.Device.ProductGuid == pin.Device.ProductGuid).ToArray() : [];
             context.PhysicalMap = observations.Length == 1 && context.Session is not null && context.SelectedDevice is { } slot
-                ? WarThunderPhysicalMap.Create(context.Session.Snapshot.Profile, slot, observations[0]) : new([], "Link the controller and rescan its inputs on Devices.");
+                ? context.PhysicalMapFor(slot, observations[0]) : new([], "Link the controller and rescan its inputs on Devices.");
         }
 
         internal async Task RefreshHardwareAsync()

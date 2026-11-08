@@ -71,6 +71,18 @@ namespace Heimdall.App.Smoke
                 if (devices.Drawing.IsEnabled || !devices.UnlinkDrawing.IsEnabled) throw new InvalidOperationException("Drawing link was not locked.");
                 Click(devices.UnlinkDrawing); devices.Drawing.SelectedItem = drawings[1];
                 if (window.Session!.DrawingId("war-thunder.joystick.0") != "drawing-b") throw new InvalidOperationException("Reviewed drawing replacement failed.");
+                // Hot path: switching the selected controller updates the device panel from cached native records (no re-parse per selection).
+                var thunder = (WarThunderWorkspaceContext)window.WorkspaceContext;
+                var parsed = thunder.NativeDeviceProjections; var panels = new Dictionary<int, string>();
+                for (var i = 0; i < 6; i++)
+                {
+                    controllers.SelectedIndex = i % 2 == 0 ? 0 : 1; ThemeControlSmoke.Pump(window);
+                    var panel = devices.NativeDetails.Text + "|" + devices.Unlink.IsEnabled;
+                    if (panels.TryGetValue(controllers.SelectedIndex, out var seen) && seen != panel) throw new InvalidOperationException("Device panel went stale after a selection change.");
+                    panels[controllers.SelectedIndex] = panel;
+                }
+                if (!devices.Unlink.IsEnabled || panels[0] == panels[1]) throw new InvalidOperationException("Device panel did not follow the selected controller.");
+                if (thunder.NativeDeviceProjections != parsed) throw new InvalidOperationException("Selection re-parsed native controller records.");
                 Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1; ThemeControlSmoke.Pump(window);
                 var assignments = window.AssignmentView;
                 if (!devices.NativeDetails.Text.Contains("Axis mapping blocked", StringComparison.Ordinal)

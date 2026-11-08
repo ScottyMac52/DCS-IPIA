@@ -240,7 +240,7 @@ namespace Heimdall.App.Games.Squadrons
             try
             {
 
-                context.Selection.SelectScope((context.Session?.Snapshot.Id.ToString("N") ?? "") + ":" + context.DrawingSection + ":" + context.AssignmentSource);
+                context.Selection.SelectScope((context.Session?.Id.ToString("N") ?? "") + ":" + context.DrawingSection + ":" + context.AssignmentSource);
                 context.Selection.Refresh(context.AssignmentSource, filtered, selected, selectFirst: false);
                 _assignmentsView.CommandBrowser.CommandsList.ItemsSource = filtered;
                 _assignmentsView.CommandBrowser.CommandsList.SelectedItem = filtered.FirstOrDefault(x => x.Id == context.Selection.CommandId);

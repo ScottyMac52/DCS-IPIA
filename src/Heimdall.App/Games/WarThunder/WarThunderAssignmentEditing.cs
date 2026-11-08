@@ -44,12 +44,11 @@ namespace Heimdall.App.Games.WarThunder
         private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)
         {
             if (context.Session is null) return [];
-            var snapshot = context.Session.Snapshot;
-            if (!snapshot.Hardware.TryGetValue(deviceId, out var pin)) return [];
+            if (context.Session.HardwarePin(deviceId) is not { } pin) return [];
             var observations = context.ControllerInputs.Where(item => item.Device.PhysicalGuid == pin.Device.PhysicalGuid
                 && item.Device.ProductGuid == pin.Device.ProductGuid).Take(2).ToArray();
             if (observations.Length != 1) return [];
-            var inputs = WarThunderPhysicalMap.Create(snapshot.Profile, deviceId, observations[0]).Inputs;
+            var inputs = context.PhysicalMapFor(deviceId, observations[0]).Inputs;
             var drawingId = context.Session.DrawingId(deviceId);
             var diagram = context.Drawings.FirstOrDefault(item => item.DeviceId == drawingId)?.Diagram;
             return inputs.Select(input =>

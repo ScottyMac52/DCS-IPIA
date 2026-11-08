@@ -20,7 +20,7 @@ namespace Heimdall.Application.Games
         private GameWorkspace _current
         {
             get => _currentValue;
-            set { RequireWorkspaceMutation(); _currentValue = value; _currentJson = null; }
+            set { RequireWorkspaceMutation(); _currentValue = value; _currentJson = null; _contentStamp++; }
         }
         private GameWorkspace _savedValue = null!;
         private GameWorkspace _saved
@@ -32,6 +32,7 @@ namespace Heimdall.Application.Games
         // reassignment or change notification, so dirty equality stays exact without re-serializing on each read.
         private string? _currentJson;
         private string? _savedJson;
+        private long _contentStamp;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
@@ -53,6 +54,8 @@ namespace Heimdall.Application.Games
         public bool HasChanges => !ReferenceEquals(_currentValue, _savedValue) && !string.Equals(CurrentJson, SavedJson, StringComparison.Ordinal);
         /// <summary>Gets the immutable canonical content of the current document (cached until the next native change).</summary>
         public string ContentFingerprint => CurrentJson;
+        /// <summary>Gets an opaque stamp that changes whenever the current document may have changed (not a dirty indicator).</summary>
+        public long ContentStamp => _contentStamp;
         /// <summary>Gets the current workspace identity without cloning the document.</summary>
         public Guid Id => _currentValue.Id;
         /// <summary>Gets the current workspace name without cloning the document.</summary>
@@ -79,14 +82,14 @@ namespace Heimdall.Application.Games
         {
             RequireLease(lease, WorkspaceOperationKind.Save);
             if (persisted.Id != _current.Id) throw new InvalidOperationException("The saved candidate belongs to another workspace.");
-            _currentValue = GameWorkspaceContract.Clone(persisted); _currentJson = null; _saved = GameWorkspaceContract.Clone(persisted);
+            _currentValue = GameWorkspaceContract.Clone(persisted); _currentJson = null; _contentStamp++; _saved = GameWorkspaceContract.Clone(persisted);
             OnChanged();
         }
         /// <summary>Restores the native saved baseline inside the already-admitted discard operation.</summary>
         public void Discard(IWorkspaceOperationLease lease)
         {
             RequireLease(lease, WorkspaceOperationKind.Discard);
-            _currentValue = GameWorkspaceContract.Clone(_saved); _currentJson = null; OnChanged();
+            _currentValue = GameWorkspaceContract.Clone(_saved); _currentJson = null; _contentStamp++; OnChanged();
         }
         /// <summary>Restores the exact saved document and associations.</summary>
         public void Discard() { _current = GameWorkspaceContract.Clone(_saved); OnChanged(); }
@@ -588,7 +591,7 @@ namespace Heimdall.Application.Games
         private string SavedJson => _savedJson ??= GameWorkspaceContract.Serialize(_savedValue);
         private void OnChanged()
         {
-            _currentJson = null;
+            _currentJson = null; _contentStamp++;
             Changed?.Invoke(this, EventArgs.Empty);
         }
         #region BEGIN private helpers

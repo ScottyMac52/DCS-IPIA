@@ -46,7 +46,7 @@ namespace Heimdall.App.Games.Elite
         internal void DeleteConfiguration(Func<string, bool> confirm, Action deleted)
         {
             if (_session is null || _revision is null || _busy) return;
-            new EliteDeleteConfigurationCommand(context, Input, confirm, deleted).ExecuteAsync(_session.Snapshot.Id, CancellationToken.None).GetAwaiter().GetResult();
+            new EliteDeleteConfigurationCommand(context, Input, confirm, deleted).ExecuteAsync(_session.Id, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         internal void SetBindingsDirectory(string? directory)
@@ -66,7 +66,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is null || _busy) return;
             var name = ChooseConfigurationName("Rename", ProfileName.Text.Trim());
             if (name is null) return;
-            RequireUniqueName(name, _session.Snapshot.Id); ProfileName.Text = name;
+            RequireUniqueName(name, _session.Id); ProfileName.Text = name;
             Status("Configuration name staged. Save to keep it; Export uses the saved name. Previously exported presets are retained.");
         });
 

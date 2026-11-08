@@ -49,7 +49,7 @@ namespace Heimdall.App.Games.WarThunder
             _controllers = new(_context, ReportError, Controllers, _devices, this, reviewChange, _drawing.Presenter, inputFactory, InputStatus, _assignments, RefreshChrome);
             _saving = new(_context, () => _controllers.Input.Stop(), _profiles.AfterSave, () =>
             {
-                if (_context.Session is not null) ProfileName.Text = _context.Session.Snapshot.Name;
+                if (_context.Session is not null) ProfileName.Text = _context.Session.Name;
                 Refresh();
             });
             _drawing.Start(); _controllers.Start();

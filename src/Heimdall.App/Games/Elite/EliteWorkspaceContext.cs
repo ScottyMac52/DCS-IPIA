@@ -24,8 +24,9 @@ namespace Heimdall.App.Games.Elite
         internal IReadOnlyList<SimCommand> Commands { get; set; } = [];
         /// <inheritdoc/>
         public IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];
-        internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id && Session?.Snapshot is { } document && document.Profile.Devices.Any(x => x.LogicalId == id)
-            ? new(id, ControllerName(document, id)) : null;
+        internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id
+            ? (_deviceChoices ??= new(() => Session, (document, key) => document.Profile.Devices.Any(x => x.LogicalId == key)
+                ? new GameDeviceChoice(key, ControllerName(document, key)) : null)).Get(id, null) : null;
         internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == State.Selection.CommandId);
         internal string Section { get; set; } = "All";
         internal int Feature { get; set; }
@@ -49,6 +50,7 @@ namespace Heimdall.App.Games.Elite
             return drawing is null ? null : EliteInputKeys.FromDiagram(drawing.Diagram, control);
         }
 
+        private ProfileContentCache<string, GameDeviceChoice?>? _deviceChoices;
         internal static string ControllerName(GameWorkspace workspace, string id)
         {
             var identity = workspace.Profile.Devices.Single(x => x.LogicalId == id).Identity!;

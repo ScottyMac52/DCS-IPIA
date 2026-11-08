@@ -76,7 +76,7 @@ namespace Heimdall.App.Games.Elite
                 _controllers.ReadReplacementInputs, _controllers.ReviewControllerChange, Run, Status);
             _saving = new(_context, StopLiveInput, () => _profiles.CandidateName, _profiles.Reopen, () => _profiles.SavedMessage, _profiles.AfterSave, () =>
             {
-                if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Snapshot.Name; _refreshing = false; }
+                if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Name; _refreshing = false; }
             });
             _assignmentsView.Initialize(_context, _editing.LoadAssignment, _editing.UpdateAvailability, _drawing.RenderDevice,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), Status);
@@ -250,7 +250,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is not null) _session.Changed -= SessionChanged;
             ExportState.Text = "Workspace open in HEIMDALL. Export writes a named ED preset to the selected destination.";
             _session = installed.Session; _revision = installed.Revision; _session.Changed += SessionChanged;
-            _refreshing = true; ProfileName.Text = installed.Session.Snapshot.Name; _refreshing = false;
+            _refreshing = true; ProfileName.Text = installed.Session.Name; _refreshing = false;
             Refresh();
         }
 
@@ -312,13 +312,13 @@ namespace Heimdall.App.Games.Elite
 
         private void ProfileChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _session?.Snapshot.Id) return;
+            if (_refreshing || ProfilePicker.SelectedItem is not GameWorkspaceEntry entry || entry.Id == _session?.Id) return;
             if (ConfirmLeave())
             {
                 try { LoadProfile(entry.Id); return; }
                 catch (Exception error) { Status("Unable to open the selected profile; the current profile is retained: " + error.Message); }
             }
-            _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Snapshot.Id); _refreshing = false;
+            _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Id); _refreshing = false;
         }
 
         private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && !WorkspaceActionRunning && SaveState is not null) { _context.SetEditedName(ProfileName.Text); _references.MarkDirty(); UpdateAvailability(); } }

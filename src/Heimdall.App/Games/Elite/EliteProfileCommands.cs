@@ -142,7 +142,7 @@ namespace Heimdall.App.Games.Elite
         protected override Task<ProfileCommandReceipt> RunNativeAsync(EliteExportPlan prepared, IWorkspaceOperationLease lease)
         {
             ArgumentNullException.ThrowIfNull(prepared);
-            var session = context.Session!; var name = session.Snapshot.Name;
+            var session = context.Session!; var name = session.Name;
             var complete = "Export complete. " + string.Join(" ", prepared.Plan.Diagnostics.Select(x => x.Message));
             if (prepared.ReviewParent is { } parent)
             {

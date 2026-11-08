@@ -114,7 +114,7 @@ namespace Heimdall.App.Games.Squadrons
 
         internal void Remember()
         {
-            if (context.Session is not null) context.Services.Remember(context.Services.Recent() with { BackendId = context.Backend.SimId, WorkspaceId = context.Session.Snapshot.Id, DisplayName = context.Session.Snapshot.Name });
+            if (context.Session is not null) context.Services.Remember(context.Services.Recent() with { BackendId = context.Backend.SimId, WorkspaceId = context.Session.Id, DisplayName = context.Session.Name });
         }
 
         internal void ReloadChoices()
@@ -123,7 +123,7 @@ namespace Heimdall.App.Games.Squadrons
             try
             {
                 ProfilePicker.ItemsSource = context.Services.Store.List().Where(x => x.BackendId == context.Backend.SimId).ToArray();
-                ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == context.Session?.Snapshot.Id);
+                ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == context.Session?.Id);
             }
             finally { context.Refreshing = false; }
         }
