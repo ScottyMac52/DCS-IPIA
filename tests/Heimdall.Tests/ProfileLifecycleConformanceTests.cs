@@ -95,6 +95,52 @@ namespace Heimdall.Tests
             Assert.Equal(0, profiles.Refreshes);
         }
 
+        /// <summary>After a post-commit accept failure the stale session cannot save, discard, edit or export until the durable profile is reopened.</summary>
+        [Theory, MemberData(nameof(Games))]
+        public async Task Recovery_required_blocks_stale_work_until_the_durable_profile_is_reopened(string game)
+        {
+            using var fixture = Open(game);
+            var (context, store, profiles) = (fixture.Context, fixture.Store, fixture.Profiles);
+            var staleRevision = context.Revision;
+            context.SetEditedName(game + " durable");
+            profiles.AcceptFailure = new InvalidOperationException("native reopen failed");
+            Assert.True((await profiles.SaveAsync(default)).RecoveryRequired);
+            profiles.AcceptFailure = null;
+            var durable = fixture.Files.Load(context.Session!.Snapshot.Id);
+            Assert.NotEqual(staleRevision, durable.Revision);
+            Assert.Equal(staleRevision, context.Revision); // The stale session never claims the durable receipt.
+            var writes = store.Writes;
+
+            var save = await profiles.SaveAsync(default);
+            Assert.Equal(WorkspaceOperationOutcome.Blocked, save.Outcome); Assert.Contains("Reopen", save.Message, StringComparison.Ordinal);
+            Assert.Equal(WorkspaceOperationOutcome.Blocked, (await profiles.DiscardAsync(default)).Outcome);
+            Assert.False(context.State.Capabilities.Edit.Enabled); Assert.False(context.State.Capabilities.Save.Enabled);
+            Assert.Equal(WorkspaceOperationOutcome.Blocked, (await context.RunOperationAsync(WorkspaceOperationKind.Export, _ => Task.FromResult(new WorkspaceOperationResult(WorkspaceOperationOutcome.Applied, "")), default)).Outcome);
+            Assert.Equal(writes, store.Writes); Assert.Null(context.State.Operation);
+
+            // Reopen the durable profile: a fresh native session at the durable revision restores normal operation.
+            context.Session = new GameProfileSession(fixture.Backend, durable.Workspace, _issuer.PremiumPolicy, [], () => []);
+            context.Revision = durable.Revision;
+            Assert.True(context.State.Capabilities.Save.Enabled); Assert.False(context.State.Dirty);
+            context.SetEditedName(game + " after recovery");
+            var recovered = await profiles.SaveAsync(default);
+            Assert.True(recovered.Committed); Assert.False(recovered.RecoveryRequired);
+            Assert.Equal(writes + 1, store.Writes);
+            Assert.Equal(game + " after recovery", fixture.Files.Load(durable.Workspace.Id).Workspace.Name);
+        }
+
+        /// <summary>Cancellation surfacing from the refresh after a durable write is a warning, never an uncommitted or cancelled save.</summary>
+        [Theory, MemberData(nameof(Games))]
+        public async Task Postcommit_refresh_cancellation_keeps_the_committed_outcome(string game)
+        {
+            using var fixture = Open(game);
+            fixture.Context.SetEditedName(game + " cancelled late");
+            fixture.Profiles.RefreshFailure = new OperationCanceledException("closed during refresh");
+            var result = await fixture.Profiles.SaveAsync(default);
+            Assert.Equal((WorkspaceOperationOutcome.Applied, true), (result.Outcome, result.Committed));
+            Assert.Null(fixture.Context.State.Operation); Assert.False(fixture.Context.State.Dirty);
+        }
+
         /// <summary>Any refresh failure after the durable write is reported as a warning on the committed save.</summary>
         [Theory, MemberData(nameof(Games))]
         public async Task Postcommit_refresh_failure_of_any_kind_is_a_warning_on_a_committed_save(string game)

@@ -8,7 +8,7 @@ namespace Heimdall.Tests
     /// <summary>Save-accept and discard rebuild the draft with the same catalog the open path validated.</summary>
     public sealed class DcsSavedWorkspaceDraftTests
     {
-        private static DcsEditorWorkspaceSnapshot BindingDerived()
+        internal static DcsEditorWorkspaceSnapshot BindingDerived()
         {
             // Shape of the command-conformance fixture: the stored module catalog is empty and the assigned
             // command is known only from the module device's bindings, which the open path accepts.

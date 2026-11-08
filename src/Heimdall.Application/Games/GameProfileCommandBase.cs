@@ -43,6 +43,7 @@ namespace Heimdall.Application.Games
                     throw new InvalidOperationException("The workspace changed during review. Review the command again.");
                 lease.Cancellation.ThrowIfCancellationRequested();
                 result = await RunNativeAsync(prepared, lease);
+                await lease.ResumeOnOwnerAsync(); // Owner-thread contract: acceptance and refresh never run on a pool thread.
                 if (!IsSuccessful(result)) return new(WorkspaceOperationOutcome.NoChange, "");
                 if (_context.OwnsOperation(lease) && _context.State.Identity == lease.Identity) { Accept(result, lease); _context.RefreshNativeState(); }
                 return new(WorkspaceOperationOutcome.Applied, "");

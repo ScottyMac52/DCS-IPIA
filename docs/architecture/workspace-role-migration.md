@@ -170,12 +170,13 @@ Discard follows the same role entry with atomic native restore and no write. Ass
 
 - **Save boundary.** `GameProfileOperationsBase` runs all fallible native validation in `PrepareSave` before the one durable write.
   After persistence nothing is reported as an uncommitted failure: an `AcceptCommit` failure returns `Applied`, `Committed` and
-  `RecoveryRequired` (reopen before editing further), and any refresh/preference failure is a warning on the committed save.
+  `RecoveryRequired`; the context then blocks save, discard, edit and export on the stale session until a fresh session is
+  installed (reopen/import). Any non-fatal refresh/preference failure is a warning on the committed save.
   DCS now builds its accepted draft baseline during `PrepareSave`, so the catalog check that discard and accept depend on can no
   longer fail after the database write.
 - **Owner thread.** Workspace operations start on the owner thread (the WPF dispatcher in production). `GameWorkspaceContextBase.RunOperationAsync`
-  finishes completion, publication and lease release on the owner centrally: if a caller resumed elsewhere, completion is posted to the
-  owner scheduler instead of stranding the operation. Access checks are unchanged; the Windows smoke installs the dispatcher context as production does.
+  finishes completion, publication and lease release on the owner centrally, and the shared save/command sequences await
+  `lease.ResumeOnOwnerAsync()` after native async work so acceptance and status also run on the owner. Access checks are unchanged; the Windows smoke installs the dispatcher context as production does.
 - **DCS draft catalog.** `DcsSavedWorkspaceDraft` is the single composition used by open, save-accept and discard. `DcsModuleSnapshotWorkflow.Build`
   intentionally keeps its stricter stored-catalog check for created modules (their catalog is authoritative) and is not merged.
 - **Same-data lifecycle.** `ProfileLifecycleConformanceTests` runs ED, SQ and WT through the real backend, file store, session and shared

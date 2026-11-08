@@ -35,12 +35,13 @@ namespace Heimdall.Application.Games
                 // Prepare and persist are adjacent: a native prepare may hold an editing lock released by its persist hook.
                 var candidate = PrepareSave();
                 var commit = await PersistAsync(candidate, lease);
+                await lease.ResumeOnOwnerAsync(); // Owner-thread contract: native acceptance and status never run on a pool thread.
                 // A durable write cannot be undone by cancellation; a closed or replaced workspace only skips installation.
                 if (!_context.OwnsOperation(lease) || _context.State.Identity != lease.Identity)
                     return new(WorkspaceOperationOutcome.Applied, SavedMessage + " The workspace closed before the saved profile could be shown.", true);
                 // Post-commit boundary: the write is durable, so no later native failure may be reported as an uncommitted save.
                 try { AcceptCommit(commit, lease); }
-                catch (Exception error) when (error is not OutOfMemoryException)
+                catch (Exception error) when (!IsProcessFatal(error))
                 {
                     Trace.TraceError("Profile saved but its native baseline could not be installed: {0}", error);
                     var recovery = SavedMessage.Length == 0 ? "Profile saved." : SavedMessage;
@@ -86,6 +87,8 @@ namespace Heimdall.Application.Games
         protected abstract void RefreshAfterPersistence(WorkspaceOperationKind completed);
         /// <summary>Releases native resources owned by the adapter.</summary>
         protected virtual void DisposeNative() { }
+        /// <summary>Only process-corrupting failures escape after a durable write; everything else is reported against the committed save.</summary>
+        private static bool IsProcessFatal(Exception error) => error is OutOfMemoryException or InsufficientExecutionStackException or AccessViolationException;
         private WorkspaceOperationResult? Precheck(WorkspaceOperationKind kind)
         {
             var state = _context.State;
@@ -106,7 +109,7 @@ namespace Heimdall.Application.Games
         {
             var warning = "";
             try { RefreshAfterPersistence(kind); }
-            catch (Exception error) when (error is not OutOfMemoryException)
+            catch (Exception error) when (!IsProcessFatal(error))
             {
                 // The native outcome is already final; a refresh failure is reported as a warning and never retried as a save.
                 Trace.TraceWarning("Profile refresh after {0} failed: {1}", kind, error);

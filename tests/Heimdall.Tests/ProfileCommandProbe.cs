@@ -21,6 +21,8 @@ namespace Heimdall.Tests
         public WorkspaceOperationKind? PreparedUnder { get; private set; }
         /// <summary>Gets the input stops observed at prepare.</summary>
         public int StopsAtPrepare { get; private set; } = -1;
+        /// <summary>Gets the managed thread that accepted the native result.</summary>
+        public int AcceptThreadId { get; private set; }
         #endregion END Public
         /// <inheritdoc/>
         protected override WorkspaceOperationKind Kind => WorkspaceOperationKind.Export;
@@ -43,6 +45,6 @@ namespace Heimdall.Tests
         /// <inheritdoc/>
         protected override bool IsSuccessful(bool result) => result;
         /// <inheritdoc/>
-        protected override void Accept(bool result, IWorkspaceOperationLease lease) => Calls.Add("accept");
+        protected override void Accept(bool result, IWorkspaceOperationLease lease) { Calls.Add("accept"); AcceptThreadId = Environment.CurrentManagedThreadId; }
     }
 }

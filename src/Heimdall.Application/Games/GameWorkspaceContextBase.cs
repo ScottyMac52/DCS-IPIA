@@ -24,6 +24,7 @@ namespace Heimdall.Application.Games
         private bool _posted;
         private bool _nativeChanged;
         private bool _disposed;
+        private string _recovery = "";
         private bool _nativeDisposed;
         private bool _selecting;
 
@@ -236,7 +237,7 @@ namespace Heimdall.Application.Games
             try
             {
                 using var refresh = DeferRefresh();
-                replace(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset();
+                replace(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset(); _recovery = "";
                 _editedName = ReadNativeFacts().SavedName; _fingerprint = CaptureNativeFingerprint(); _contentVersion++;
                 RefreshNativeState();
             }
@@ -259,6 +260,9 @@ namespace Heimdall.Application.Games
         #region BEGIN private helpers
         private void CompleteOperation(WorkspaceOperationKind kind, WorkspaceOperationResult result)
         {
+            // A durable write whose native baseline could not be installed leaves a stale session: hold it until reopened.
+            if (result.RecoveryRequired && !_disposed)
+                _recovery = "The profile was saved, but the saved version could not be shown. Reopen it before editing, saving or exporting.";
             if (result.Outcome != WorkspaceOperationOutcome.Applied || _disposed) return;
             if (kind == WorkspaceOperationKind.Save && result.Committed) _editedName = ReadNativeFacts().SavedName;
             if (kind != WorkspaceOperationKind.Discard) return;
@@ -280,7 +284,7 @@ namespace Heimdall.Application.Games
         {
             RefreshNativeState();
             _operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _operation = new(State.Identity, kind, _operationCancellation.Token);
+            _operation = new(State.Identity, kind, _scheduler, _operationCancellation.Token);
             try
             {
                 RefreshNativeState();
@@ -309,6 +313,7 @@ namespace Heimdall.Application.Games
         private WorkspaceCapabilities Capabilities(NativeWorkspaceFacts native)
         {
             if (_operation is not null) return Unavailable("Finish the current workspace operation.");
+            if (_recovery.Length != 0) return Unavailable(_recovery);
             if (_activity is not null) return Unavailable("Stop the current input activity first.");
             var no = new WorkspaceAvailability(false, native.ReadOnlyReason.Length == 0 ? "This workspace is read-only." : native.ReadOnlyReason);
             return native.ReadOnly ? native.Capabilities with { Save = no, Edit = no, Link = no } : native.Capabilities;
@@ -319,7 +324,9 @@ namespace Heimdall.Application.Games
             if (_operation is not null || _publishing) return "Another workspace operation is still running.";
             if (_activity?.Kind == WorkspaceActivityKind.Scan) return "Finish controller scanning before continuing.";
             var native = ReadNativeFacts();
+            // Import/replace install a fresh session (the reopen path); everything else would act on the stale session.
             if (kind is WorkspaceOperationKind.Import or WorkspaceOperationKind.Replace) return "";
+            if (_recovery.Length != 0) return _recovery;
             if (!native.Open) return "Open a workspace before continuing.";
             var eligibility = kind switch
             {

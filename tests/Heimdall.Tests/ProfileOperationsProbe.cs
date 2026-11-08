@@ -22,6 +22,8 @@ namespace Heimdall.Tests
         public int Accepts { get; private set; }
         /// <summary>Counts panel refreshes.</summary>
         public int Refreshes { get; private set; }
+        /// <summary>Gets the managed thread that installed the last accepted commit.</summary>
+        public int AcceptThreadId { get; private set; }
         /// <summary>Gets the last prepared candidate.</summary>
         public WorkspaceTestSnapshot? Candidate { get; private set; }
         #endregion END Public
@@ -41,7 +43,7 @@ namespace Heimdall.Tests
         /// <inheritdoc/>
         protected override void AcceptCommit(WorkspaceCommit<WorkspaceTestSnapshot, int> commit, IWorkspaceOperationLease lease)
         {
-            Accepts++; Revision = commit.Receipt;
+            Accepts++; Revision = commit.Receipt; AcceptThreadId = Environment.CurrentManagedThreadId;
             if (ReopenOnAccept) context.Reopen(commit.Snapshot); else context.Install(commit.Snapshot);
         }
         /// <inheritdoc/>
