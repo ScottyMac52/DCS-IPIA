@@ -26,6 +26,8 @@ namespace Heimdall.App.Smoke
         {
             WorkspaceLayoutStore.FilePath = Path.Combine(Path.GetTempPath(),
                 "ipia-layout-smoke-" + Guid.NewGuid().ToString("N"), "workspace-layout.json");
+            // Compiled build identity (SDK-embedded source revision), not the runtime checkout: a stale build reports its own revision.
+            Console.WriteLine("Smoke build: smoke " + CompiledRevision(typeof(Program).Assembly) + ", app " + CompiledRevision(typeof(Heimdall.App.Games.GameWorkspaceWindow).Assembly));
             Console.WriteLine("Smoke: JSON-configured physical logging.");
             LoggingSmoke.Verify();
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
@@ -394,6 +396,8 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static string CompiledRevision(System.Reflection.Assembly assembly) =>
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion ?? "unknown";
         private static void VerifyDevicePageDeletion()
         {
             var path = Path.Combine(Path.GetTempPath(), "ipia-page-deletion-smoke-" + Guid.NewGuid().ToString("N") + ".db");
