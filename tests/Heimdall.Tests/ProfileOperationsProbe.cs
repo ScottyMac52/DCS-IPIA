@@ -24,6 +24,8 @@ namespace Heimdall.Tests
         public int Refreshes { get; private set; }
         /// <summary>Gets the managed thread that installed the last accepted commit.</summary>
         public int AcceptThreadId { get; private set; }
+        /// <summary>Gets or sets an accept failure: false fails before the native install, true after it (partial install).</summary>
+        public bool? FailInstall { get; set; }
         /// <summary>Gets the last prepared candidate.</summary>
         public WorkspaceTestSnapshot? Candidate { get; private set; }
         #endregion END Public
@@ -44,7 +46,9 @@ namespace Heimdall.Tests
         protected override void AcceptCommit(WorkspaceCommit<WorkspaceTestSnapshot, int> commit, IWorkspaceOperationLease lease)
         {
             Accepts++; Revision = commit.Receipt; AcceptThreadId = Environment.CurrentManagedThreadId;
+            if (FailInstall == false) throw new InvalidOperationException("native install failed");
             if (ReopenOnAccept) context.Reopen(commit.Snapshot); else context.Install(commit.Snapshot);
+            if (FailInstall == true) throw new InvalidOperationException("native install failed part-way");
         }
         /// <inheritdoc/>
         protected override void RestoreSaved(IWorkspaceOperationLease lease)

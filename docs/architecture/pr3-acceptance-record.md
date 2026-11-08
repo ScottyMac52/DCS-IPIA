@@ -46,7 +46,16 @@ structure edits and the retained draft are suspended). Save/discard/edit/export 
 `GameWorkspaceLeaveGuard.ConfirmAsync(state, …)` used by every window leave (profile/game switch, import, close) abandons the stale
 session without a prompt, a stale discard or another write, because its content is already durable; the next open reads the store.
 Ordinary pending-change prompts are unchanged. Evidence: `Recovery_rejects_stale_mutation_and_the_shared_leave_guard_abandons_it_without_writing`
-(ED/SQ/WT × pre/partial install). Window wiring and the DCS seal are compiled only on Linux.
+(ED/SQ/WT × pre/partial install) and `WorkspaceOwnerThreadTests.Recovery_transition_after_real_suspension_runs_on_the_owner`
+(seal, notifications and recovery clear on the owner after a real suspended write; Linux, executed).
+`RecoveryConformanceSmoke` (Windows, compiled on Linux, **not yet run**) drives the production entry points with a native install
+observer failing on an existing change event after the single write: the DCS seal (labels, structure edit, retained draft, save,
+discard refused with native and durable state unchanged; disposal releases the seal and the detached draft cannot reach durable
+state), and a real Squadrons window (profile switch, import, game switch and close leave without a prompt or write; ordinary
+Cancel/Discard/Save prompts unchanged; mounted rename/save disabled and refused; mounted document equals the durable receipt).
+A pre-install failure has no production trigger in the window adapters: each native accept installs first (SQ/WT
+`AcceptSaved`, DCS `Saved`/`Working`, ED constructs a session from the already validated candidate), so pre-install is covered at
+the shared contract level only. Detached sessions/drafts are not frozen by recovery; they are isolated (they cannot reach the mounted or durable state).
 
 ## Known gaps and exceptions
 

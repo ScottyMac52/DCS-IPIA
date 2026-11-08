@@ -118,6 +118,42 @@ namespace Heimdall.Tests
             Assert.Equal(owner.ThreadId, command.AcceptThreadId);
         }
 
+        /// <summary>A pre- or partial-install failure after a real suspended write enters recovery, seals and publishes on the owner,
+        /// releases the lease, keeps the durable write single, and the next reopen clears recovery on the owner.</summary>
+        [Theory, InlineData(false, true), InlineData(true, true), InlineData(false, false), InlineData(true, false)]
+        public async Task Recovery_transition_after_real_suspension_runs_on_the_owner(bool partial, bool ownerContext)
+        {
+            using var owner = new OwnerThreadLoop();
+            var store = new ProfileTestStore { BeforeWrite = () => Task.Run(() => Thread.Sleep(20)) };
+            var stateThreads = new System.Collections.Concurrent.ConcurrentBag<int>();
+            var (context, profiles, saving) = await owner.Run(ownerContext, () =>
+            {
+                var context = new WorkspaceContextProbe(owner); context.Open();
+                var profiles = new ProfileOperationsProbe(context, store, new ProfileTestInput()) { FailInstall = partial };
+                context.StateChanged += (_, _) => stateThreads.Add(Environment.CurrentManagedThreadId);
+                context.StatusChanged += (_, _) => stateThreads.Add(Environment.CurrentManagedThreadId);
+                context.SetEditedName("Durable");
+                return Task.FromResult((context, profiles, profiles.SaveAsync(default)));
+            });
+            var saved = await saving.WaitAsync(TimeSpan.FromSeconds(10));
+            var (recovery, operation, renameRejected) = await owner.Run(true, () =>
+            {
+                var rejected = Record.Exception(() => context.SetEditedName("stale")) is InvalidOperationException;
+                return Task.FromResult((context.State.Recovery, context.State.Operation, rejected));
+            });
+            Assert.True(saved.Committed); Assert.True(saved.RecoveryRequired);
+            Assert.NotEmpty(recovery); Assert.Null(operation); Assert.True(renameRejected);
+            Assert.Equal(1, store.Writes); Assert.Equal("Durable", store.Read("native:key")!.Name);
+            Assert.Equal(owner.ThreadId, context.SealThreadId);
+            Assert.All(stateThreads, thread => Assert.Equal(owner.ThreadId, thread));
+            var cleared = await owner.Run(true, () =>
+            {
+                context.Reopen(store.Read("native:key")!); var state = context.State.Recovery;
+                profiles.Dispose(); context.Dispose(); return Task.FromResult(state);
+            });
+            Assert.Empty(cleared); Assert.Equal(1, store.Writes); Assert.Equal(1, context.Disposals);
+        }
+
         /// <summary>Disposal that runs on the owner before a queued off-thread completion releases native state exactly once without stranding the lease.</summary>
         [Fact]
         public async Task Disposal_while_completion_is_queued_releases_once_and_reports_the_result()

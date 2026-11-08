@@ -16,6 +16,8 @@ namespace Heimdall.Tests
         public bool Supported { get; set; } = true;
         /// <summary>Counts native lifetime release.</summary>
         public int Disposals { get; private set; }
+        /// <summary>Gets the managed thread that sealed the stale native session, or zero.</summary>
+        public int SealThreadId { get; private set; }
         /// <summary>Opens an independent immutable native session.</summary>
         public void Open(string key = "native:key", string name = "Profile") => ReplaceNativeSession(() => _saved = _working = new(key, name, "saved"));
         /// <summary>Stages native data and raises the native subscription boundary.</summary>
@@ -46,5 +48,7 @@ namespace Heimdall.Tests
         protected override bool NameEquals(string left, string right) => string.Equals(left, right, StringComparison.Ordinal);
         /// <inheritdoc/>
         protected override void DisposeNative() => Disposals++;
+        /// <inheritdoc/>
+        protected override void SealStaleNative() => SealThreadId = Environment.CurrentManagedThreadId;
     }
 }
