@@ -71,3 +71,11 @@ the shared contract level only. Detached sessions/drafts are not frozen by recov
 
 - [ ] Full `Heimdall.App.Smoke` run: context, presentation, profile operations, command conformance (all exports, SQ refusal and slot removal, imports), Elite drawing cache, later smokes.
 - [ ] Manual: save/discard/close on each game window; Squadrons duplicate-declaration export message and Remove unused slot; ED reviewed preset replacement; DCS output.
+
+## Windows smoke command
+
+`dotnet run --project tests/Heimdall.App.Smoke -c Release` runs the four isolated groups (`startup`, `games`, `squadrons`,
+`dcs-shared`) sequentially, each in a fresh STA process that is fail-fast inside the group, and prints one combined report
+(`PASS`/`FAIL`/`BLOCKED`/`NOTRUN`), the compiled build revision and the log folder (`summary.txt` plus one log per group;
+set `HEIMDALL_SMOKE_RESULTS` to choose it). Any group that is not `PASS` (including a timeout, missing result, or a group skipped by
+`--only`) exits nonzero; a subset run is never full acceptance. `tests/ci/test_smoke_groups.py` pins the previous scenario order.

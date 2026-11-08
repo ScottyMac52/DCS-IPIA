@@ -8,6 +8,7 @@ using Heimdall.Dcs;
 using Heimdall.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Heimdall.App;
+using Heimdall.TestSupport;
 
 namespace Heimdall.App.Smoke
 {
@@ -22,28 +23,67 @@ namespace Heimdall.App.Smoke
         [STAThread]
         /// <summary>Checks that imported source data reaches a visible WPF preview window.</summary>
         /// <returns>Zero when both windows render their expected content.</returns>
-        public static int Main()
+        public static int Main(string[] args)
+        {
+            // Isolated groups: each runs in a fresh STA process (fail-fast inside the group); the parent aggregates one report.
+            if (args.Length == 2 && args[0] == "--group") return RunGroup(args[1]);
+            var only = args.Length == 2 && args[0] == "--only" ? args[1].Split(',', StringSplitOptions.RemoveEmptyEntries) : null;
+            if (args.Length != 0 && only is null) { Console.Error.WriteLine("Usage: Heimdall.App.Smoke [--only group[,group]] | --group <name>"); return 2; }
+            var results = Environment.GetEnvironmentVariable("HEIMDALL_SMOKE_RESULTS") is { Length: > 0 } configured ? configured
+                : Path.Combine(Path.GetTempPath(), "heimdall-smoke-" + Guid.NewGuid().ToString("N"));
+            Console.WriteLine("Smoke build: smoke " + CompiledRevision(typeof(Program).Assembly) + ", app " + CompiledRevision(typeof(Heimdall.App.Games.GameWorkspaceWindow).Assembly));
+            var runner = new SmokeGroupRunner(Groups, (group, timeout) => SmokeGroupRunner.LaunchProcess(Environment.ProcessPath!, "--group " + group, timeout),
+                TimeSpan.FromMinutes(30), results);
+            return runner.Run(only, Console.Out);
+        }
+        #endregion END Public
+        #region BEGIN private helpers
+        // The shared host from CreateHost; the dcs-shared group reads its theme dictionaries, as the single-process Main did.
+        private static System.Windows.Application app = null!;
+        private static readonly string[] Groups = ["startup", "games", "squadrons", "dcs-shared"];
+        private static int RunGroup(string group)
         {
             WorkspaceLayoutStore.FilePath = Path.Combine(Path.GetTempPath(),
                 "ipia-layout-smoke-" + Guid.NewGuid().ToString("N"), "workspace-layout.json");
             // Compiled build identity (SDK-embedded source revision), not the runtime checkout: a stale build reports its own revision.
             Console.WriteLine("Smoke build: smoke " + CompiledRevision(typeof(Program).Assembly) + ", app " + CompiledRevision(typeof(Heimdall.App.Games.GameWorkspaceWindow).Assembly));
-            Console.WriteLine("Smoke: JSON-configured physical logging.");
-            LoggingSmoke.Verify();
+            Action run = group switch
+            {
+                "startup" => StartupGroup,
+                "games" => () => { CreateHost(); GamesGroup(); },
+                "squadrons" => () => { CreateHost(); SquadronsGroup(); },
+                "dcs-shared" => () => { CreateHost(); DcsSharedGroup(); },
+                _ => throw new ArgumentException("Unknown smoke group: " + group, nameof(group))
+            };
+            run();
+            Console.WriteLine(SmokeGroupRunner.PassMarker + group);
+            return 0;
+        }
+        private static void CreateHost()
+        {
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
-            var app = new System.Windows.Application();
+            app = new System.Windows.Application();
             foreach (var theme in new[] { "Light", "Styles", "Primitives", "Collections", "Controls", "Menus" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
                     Source = new Uri("pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute)
                 });
             ApplicationTheme.Initialize();
+        }
+        private static void StartupGroup()
+        {
+            Console.WriteLine("Smoke: JSON-configured physical logging.");
+            LoggingSmoke.Verify();
+            CreateHost();
             Console.WriteLine("Smoke: Free Edition and signed Owner entitlement.");
             EditionSmoke.Verify();
             FreeSnapshotImportSmoke.Verify();
             BrandingSmoke.Verify();
             global::Heimdall.Dcs.BundledSharedCatalog.Validate(global::Heimdall.Dcs.BundledSharedCatalog.Root);
             SolRHardwareSmoke.Verify();
+        }
+        private static void GamesGroup()
+        {
             Console.WriteLine("Smoke: game selection and Elite profile authoring.");
             GameWorkspaceSmoke.Verify();
             SharedConsumerHostSmoke.Verify();
@@ -55,6 +95,9 @@ namespace Heimdall.App.Smoke
             AssignmentsInheritanceSmoke.Verify();
             DcsWorkspaceSaveSmoke.Verify();
             DcsConsumerMigrationSmoke.Verify();
+        }
+        private static void SquadronsGroup()
+        {
             Console.WriteLine("Smoke: Squadrons selection, native authoring and saved profiles.");
             SquadronsWorkspaceSmoke.Verify();
             SquadronsDeviceLinkSmoke.Verify();
@@ -64,6 +107,9 @@ namespace Heimdall.App.Smoke
             SquadronsFreshAssignmentSmoke.Verify();
             SquadronsAddControllerSmoke.Verify();
             SquadronsFeatureNavigationSmoke.Verify();
+        }
+        private static void DcsSharedGroup()
+        {
             var defaultsWindow = new DcsSharedUiLayerWorkspaceWindow(new DcsSharedUiLayerWorkspace(1, new string('a', 40),
                 new Dictionary<string, string> { ["assets/shared/ui-layer/functions.json"] = "{}" }));
             defaultsWindow.Show();
@@ -392,10 +438,7 @@ namespace Heimdall.App.Smoke
                     Directory.Delete(preferencesRoot, true);
             }
             System.Console.WriteLine("Both WPF import previews opened and displayed their expected content.");
-            return 0;
         }
-        #endregion END Public
-        #region BEGIN private helpers
         private static string CompiledRevision(System.Reflection.Assembly assembly) =>
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion ?? "unknown";
         private static void VerifyDevicePageDeletion()
