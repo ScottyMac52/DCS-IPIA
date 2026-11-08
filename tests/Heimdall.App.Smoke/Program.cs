@@ -50,11 +50,13 @@ namespace Heimdall.App.Smoke
             Action run = group switch
             {
                 "startup" => StartupGroup,
-                "games" => () => { CreateHost(); GamesGroup(); },
-                "squadrons" => () => { CreateHost(); SquadronsGroup(); },
-                "dcs-shared" => () => { CreateHost(); DcsSharedGroup(); },
+                "games" => GamesGroup,
+                "squadrons" => SquadronsGroup,
+                "dcs-shared" => DcsSharedGroup,
                 _ => throw new ArgumentException("Unknown smoke group: " + group, nameof(group))
             };
+            // Every group owns the shared themed host; startup creates it after logging, as the single-process Main did.
+            if (group != "startup") CreateHost();
             run();
             Console.WriteLine(SmokeGroupRunner.PassMarker + group);
             return 0;

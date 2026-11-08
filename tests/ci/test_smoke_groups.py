@@ -26,8 +26,9 @@ class SmokeGroupTests(unittest.TestCase):
     def test_every_group_creates_the_shared_host_and_reports_its_own_result(self):
         source = PROGRAM.read_text(encoding="utf-8-sig")
         self.assertEqual(1, method(source, "StartupGroup").count("CreateHost();"))
-        for group in ("games", "squadrons", "dcs-shared"):
-            self.assertRegex(source, '"' + group + r'" => \(\) => \{ CreateHost\(\); \w+Group\(\); \}')
+        self.assertIn('if (group != "startup") CreateHost();', source)
+        for group, name in (("games", "GamesGroup"), ("squadrons", "SquadronsGroup"), ("dcs-shared", "DcsSharedGroup")):
+            self.assertIn('"' + group + '" => ' + name + ",", source)
         self.assertIn("Console.WriteLine(SmokeGroupRunner.PassMarker + group);", source)
         self.assertIn("ApplicationTheme.Initialize();", method(source, "CreateHost"))
 
