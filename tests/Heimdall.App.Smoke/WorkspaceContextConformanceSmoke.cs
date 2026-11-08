@@ -60,6 +60,13 @@ namespace Heimdall.App.Smoke
             Require(GameWorkspaceContract.ThreadSerializations == serializations && context.ContentVersion == contentBefore
                 && observer.Observe() is WorkspaceChangeKind.Selection or WorkspaceChangeKind.None, fixture, "Selection did native content work or was not classified selection-only.");
             Require(context.CaptureSnapshot() == beforeSelection && !context.State.Dirty, fixture, "Selection edited native data.");
+            if (context is Heimdall.App.Games.Elite.EliteWorkspaceContext elite && elite.Session?.Snapshot.Profile.Devices.FirstOrDefault() is { } device)
+            {
+                // ED drawing hot loop: repeated per-control drawing reads reuse one projection and clone nothing.
+                var drawn = elite.DrawingProjections; var copies = GameWorkspaceContract.ThreadSerializations;
+                for (var i = 0; i < 50; i++) _ = elite.CurrentDrawing(device.LogicalId);
+                Require(elite.DrawingProjections - drawn <= 1 && GameWorkspaceContract.ThreadSerializations - copies <= 1, fixture, "ED drawing reads cloned the document per call.");
+            }
             var scope = context.Context.Scope; var epoch = context.State.Identity.Generation;
             fixture.Replace(); Require(context.State.Identity.Generation > epoch && context.Context.Scope != scope, fixture, "Replacing the same native identity retained a stale scope.");
             var contentBeforeEdit = context.ContentVersion;

@@ -128,7 +128,7 @@ namespace Heimdall.App.Games.Elite
         {
             var opened = _session is not null;
             var pin = Device is not null ? _session?.HardwarePin(Device.Id) : null;
-            var drawing = _session is not null && Device is not null ? context.DrawingFor(_session.Snapshot, Device.Id) : null;
+            var drawing = _session is not null && Device is not null ? context.CurrentDrawing(Device.Id) : null;
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && _session?.AccessMessage.Length == 0 && !_busy;
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);

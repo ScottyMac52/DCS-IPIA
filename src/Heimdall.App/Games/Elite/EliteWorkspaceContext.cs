@@ -36,6 +36,12 @@ namespace Heimdall.App.Games.Elite
         internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
         internal WorkspaceAssignmentContext AssignmentContext => Context;
         internal void NotifyChanged() => RefreshNativeState();
+        /// <summary>Gets the drawing for one controller of the open document. The reviewed drawing list is fixed for this
+        /// context, so the projection is re-read only when the native document or controller changes.</summary>
+        internal WorkspaceHardware? CurrentDrawing(string deviceId) =>
+            (_drawings ??= new(() => Session, (document, key) => DrawingFor(document, key))).Get(deviceId, null);
+        /// <summary>Gets how many drawing projections were computed (smoke work counter).</summary>
+        internal int DrawingProjections => _drawings?.Projections ?? 0;
         internal WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)
         {
             var system = EliteSystemInputDrawings.Create(document.Profile, deviceId);
@@ -46,11 +52,12 @@ namespace Heimdall.App.Games.Elite
 
         internal string? DrawingKey(HardwareGraphicControl control)
         {
-            var drawing = Session is not null && Device is not null ? DrawingFor(Session.Snapshot, Device.Id) : null;
+            var drawing = Device is { } device ? CurrentDrawing(device.Id) : null;
             return drawing is null ? null : EliteInputKeys.FromDiagram(drawing.Diagram, control);
         }
 
         private ProfileContentCache<string, GameDeviceChoice?>? _deviceChoices;
+        private ProfileContentCache<string, WorkspaceHardware?>? _drawings;
         internal static string ControllerName(GameWorkspace workspace, string id)
         {
             var identity = workspace.Profile.Devices.Single(x => x.LogicalId == id).Identity!;

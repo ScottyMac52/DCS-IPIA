@@ -23,11 +23,13 @@ namespace Heimdall.App.Smoke
         #region BEGIN Public
         internal static IReadOnlyList<WorkspaceContextCase> Create(string root, EditionPolicy owner)
         {
-            var store = new CountingGameWorkspaceStore(new FileGameWorkspaceStore(Path.Combine(root, "profiles")));
-            var services = new GameWorkspaceServices(store, new EmptyDeviceDiscovery());
-            var elite = new EliteWorkspaceContext(services, []);
-            var squadrons = new SquadronsWorkspaceContext(services);
-            var thunder = new WarThunderWorkspaceContext(services);
+            // Each game owns its counting store (over the same durable file store) so one fixture's setup or saves
+            // can never appear as another fixture's writes.
+            var files = new FileGameWorkspaceStore(Path.Combine(root, "profiles"));
+            var (eliteStore, squadronsStore, thunderStore) = (new CountingGameWorkspaceStore(files), new CountingGameWorkspaceStore(files), new CountingGameWorkspaceStore(files));
+            var elite = new EliteWorkspaceContext(new GameWorkspaceServices(eliteStore, new EmptyDeviceDiscovery()), []);
+            var squadrons = new SquadronsWorkspaceContext(new GameWorkspaceServices(squadronsStore, new EmptyDeviceDiscovery()));
+            var thunder = new WarThunderWorkspaceContext(new GameWorkspaceServices(thunderStore, new EmptyDeviceDiscovery()));
             var edProfile = elite.Backend.Import("controls", new Dictionary<string, string>
             { ["controls.binds"] = "<Root PresetName=\"Context\" MajorVersion=\"4\" MinorVersion=\"0\" />" });
             var sqProfile = squadrons.Backend.Import("controls", new Dictionary<string, string>
@@ -36,10 +38,10 @@ namespace Heimdall.App.Smoke
             { ["controls.blk"] = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WarThunder", "Synthetic.blk")) });
             // Production native adapters supply the hooks; post-commit window refreshes are not part of the context contract.
             return [Dcs(root),
-                Profile("Elite", elite, services, store, edProfile, elite.Backend, owner, open => new EliteProfileSaving(elite, () => { },
+                Profile("Elite", elite, elite.Services, eliteStore, edProfile, elite.Backend, owner, open => new EliteProfileSaving(elite, () => { },
                     () => elite.State.EditedName.Trim(), (saved, revision) => { elite.Session = open(saved); elite.Revision = revision; }, () => "Elite saved.", () => { }, () => { })),
-                Profile("Squadrons", squadrons, services, store, sqProfile, squadrons.Backend, owner, _ => new SquadronsProfileSaving(squadrons, () => { }, () => { }, () => { })),
-                Profile("War Thunder", thunder, services, store, wtProfile, thunder.Backend, owner, _ => new WarThunderProfileSaving(thunder, () => { }, () => { }, () => { }))];
+                Profile("Squadrons", squadrons, squadrons.Services, squadronsStore, sqProfile, squadrons.Backend, owner, _ => new SquadronsProfileSaving(squadrons, () => { }, () => { }, () => { })),
+                Profile("War Thunder", thunder, thunder.Services, thunderStore, wtProfile, thunder.Backend, owner, _ => new WarThunderProfileSaving(thunder, () => { }, () => { }, () => { }))];
         }
         #endregion END Public
         #region BEGIN private helpers
