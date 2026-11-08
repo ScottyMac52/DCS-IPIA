@@ -238,7 +238,7 @@ namespace Heimdall.App.Games.WarThunder
             _assignments.Editor.EditRequested += (_, edit) => Run(() => _editing.ApplyDrawingEdit(edit));
             _assignments.Start.Click += (_, _) => Run(() =>
             {
-                var pin = SelectedDevice is { } id ? _context.Session?.Snapshot.Hardware.GetValueOrDefault(id) : null;
+                var pin = SelectedDevice is { } id ? _context.Session?.HardwarePin(id) : null;
                 if (pin is not null) _controllers.Input.Start(pin, _context.Observed);
             });
             _assignments.Stop.Click += (_, _) => _controllers.Input.Stop();

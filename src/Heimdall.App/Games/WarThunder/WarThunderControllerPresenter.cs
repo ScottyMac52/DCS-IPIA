@@ -113,7 +113,7 @@ namespace Heimdall.App.Games.WarThunder
         internal void RefreshPhysicalMap()
         {
             context.DrawingAssignments.Clear();
-            var observations = context.Session is not null && context.SelectedDevice is { } selected && context.Session.Snapshot.Hardware.TryGetValue(selected, out var pin)
+            var observations = context.Session is not null && context.SelectedDevice is { } selected && context.Session.HardwarePin(selected) is { } pin
                 ? context.ControllerInputs.Where(observation => observation.Device.PhysicalGuid == pin.Device.PhysicalGuid && observation.Device.ProductGuid == pin.Device.ProductGuid).ToArray() : [];
             context.PhysicalMap = observations.Length == 1 && context.Session is not null && context.SelectedDevice is { } slot
                 ? WarThunderPhysicalMap.Create(context.Session.Snapshot.Profile, slot, observations[0]) : new([], "Link the controller and rescan its inputs on Devices.");

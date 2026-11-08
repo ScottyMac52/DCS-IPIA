@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
@@ -48,7 +49,7 @@ namespace Heimdall.App.Features.Pages
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             Refresh();
             PageKind.ItemsSource = Enum.GetValues<KneeboardPageKind>();
             PageKind.SelectedIndex = 0;
@@ -448,7 +449,10 @@ namespace Heimdall.App.Features.Pages
                 var stack = new StackPanel();
                 var preview = new AppearanceDialog("PagePreviewDialog")
                 {
-                    Title = "Preview · " + settings.Title, Owner = Window.GetWindow(this), Width = 850, Height = 900,
+                    Title = "Preview · " + settings.Title,
+                    Owner = Window.GetWindow(this),
+                    Width = 850,
+                    Height = 900,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     Content = new ScrollViewer { Content = stack }
                 };

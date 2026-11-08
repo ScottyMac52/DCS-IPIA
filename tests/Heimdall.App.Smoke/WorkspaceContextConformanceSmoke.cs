@@ -53,11 +53,19 @@ namespace Heimdall.App.Smoke
             Require(notifications == 1, fixture, "Common batching did not publish exactly one final state.");
             context.SetEditedName(initialName); Require(!context.State.Dirty, fixture, "Returning the edited name did not restore clean state.");
             var beforeSelection = context.CaptureSnapshot();
+            var observer = new WorkspaceChangeObserver(context); observer.Accept();
+            var contentBefore = context.ContentVersion; var serializations = GameWorkspaceContract.ThreadSerializations;
             context.Select(new("native:controller", "native:command", "native:slot", "native:alternative", null, "native:section"));
+            // Hot path: a selection-only change must not serialize/clone the native document or reload native content views.
+            Require(GameWorkspaceContract.ThreadSerializations == serializations && context.ContentVersion == contentBefore
+                && observer.Observe() is WorkspaceChangeKind.Selection or WorkspaceChangeKind.None, fixture, "Selection did native content work or was not classified selection-only.");
             Require(context.CaptureSnapshot() == beforeSelection && !context.State.Dirty, fixture, "Selection edited native data.");
             var scope = context.Context.Scope; var epoch = context.State.Identity.Generation;
             fixture.Replace(); Require(context.State.Identity.Generation > epoch && context.Context.Scope != scope, fixture, "Replacing the same native identity retained a stale scope.");
-            fixture.Edit("Native edit"); context.SetEditedName(initialName + " edited"); var pending = context.CaptureSnapshot();
+            var contentBeforeEdit = context.ContentVersion;
+            fixture.Edit("Native edit");
+            Require(context.ContentVersion != contentBeforeEdit && observer.Observe() == WorkspaceChangeKind.Content, fixture, "A genuine native edit did not move the content stamp.");
+            context.SetEditedName(initialName + " edited"); var pending = context.CaptureSnapshot();
             try
             {
                 Await(context.RunOperationAsync(WorkspaceOperationKind.Save, lease =>

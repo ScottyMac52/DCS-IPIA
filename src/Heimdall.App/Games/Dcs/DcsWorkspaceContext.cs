@@ -58,8 +58,8 @@ namespace Heimdall.App.Games.Dcs
 
         /// <summary>Publishes native status through the inherited notification owner.</summary>
         public void RaiseStatus(string message) => ReportStatus(message);
-        /// <summary>Recomputes native state without multiplying subscribers.</summary>
-        public void RaiseStateChanged() => RefreshNativeState();
+        /// <summary>Recomputes native state and content stamp without multiplying subscribers; an explicit raise is a native content signal.</summary>
+        public void RaiseStateChanged() => NativeStateChanged();
         /// <inheritdoc/>
         public WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
         {

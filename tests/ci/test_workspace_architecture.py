@@ -63,6 +63,21 @@ class WorkspaceArchitectureTests(unittest.TestCase):
             self.assertNotRegex(source, r'throw new NotImplementedException|throw new NotSupportedException')
         self.assertIn('interface IEliteWorkspaceServices', (APP / 'Games/Elite/IEliteWorkspaceServices.cs').read_text(encoding='utf-8-sig'))
 
+    def test_selection_hot_paths_skip_native_reloads_and_serialization(self):
+        for view in ('Pages/DcsPagesView', 'Kneeboards/DcsKneeboardsView', 'Documentation/DcsDocumentationView',
+                     'Modifiers/DcsModifiersView', 'Devices/DcsDevicesView', 'Commands/DcsCommandsManagementView'):
+            source = (APP / f'Features/{view}.xaml.cs').read_text(encoding='utf-8-sig')
+            self.assertIn('WorkspaceChangeObserver.ReloadUnlessSelectionOnly(', source)
+            self.assertNotRegex(source, r'StateChanged \+= \(_, _\) => Refresh\(\)')
+        assignments = (APP / 'Games/GameAssignmentsView.cs').read_text(encoding='utf-8-sig')
+        changed = assignments[assignments.index('private void Changed('):assignments.index('private void RefreshAvailabilityOnly(')]
+        self.assertNotIn('CaptureAssignmentSnapshot', changed)
+        self.assertIn('WorkspaceChangeKind.Content', changed)
+        profile = (ROOT / 'src/Heimdall.Application/Games/GameProfileWorkspaceContextBase.cs').read_text(encoding='utf-8-sig')
+        self.assertNotIn('Snapshot.Id', profile)
+        self.assertIn('ContentFingerprint', profile)
+        self.assertNotRegex('\n'.join(p.read_text(encoding='utf-8-sig') for p in (APP / 'Games').rglob('*.cs')), r'Snapshot\.Hardware')
+
     def test_dcs_window_delegates_editing_output_and_feature_construction(self):
         source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
         for collaborator in ('DcsWorkspaceSession', 'DcsOutputCommand', 'DcsWorkspaceFeatures'):

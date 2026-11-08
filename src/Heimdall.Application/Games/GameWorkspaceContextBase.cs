@@ -15,6 +15,7 @@ namespace Heimdall.Application.Games
         private CancellationTokenSource? _operationCancellation;
         private string _editedName = "";
         private string? _fingerprint;
+        private long _contentVersion;
         private static long _epochs;
         private long _generation = Interlocked.Increment(ref _epochs);
         private int _deferred;
@@ -34,6 +35,8 @@ namespace Heimdall.Application.Games
         #region BEGIN Public
         /// <inheritdoc/>
         public WorkspaceState State => _state;
+        /// <inheritdoc/>
+        public long ContentVersion => _contentVersion;
         /// <inheritdoc/>
         GameAssignmentSelection IWorkspaceSelectionEngineOwner.SelectionEngine => SelectionEngine;
         /// <inheritdoc/>
@@ -162,7 +165,7 @@ namespace Heimdall.Application.Games
             if (_operation is not null || _activity is not null && !replacesScan) return new(false, "Finish the current operation or input activity first.");
             // A running scan suppresses UI capabilities; replacement must still satisfy the fresh native scan policy.
             var eligible = replacesScan ? ReadNativeFacts().Capabilities.Scan : kind switch
-                { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
+            { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
             if (!eligible.Enabled) return string.IsNullOrEmpty(eligible.Reason) ? eligible with { Reason = "This activity is unavailable." } : eligible;
             var previous = _activity;
             _activity = new(State.Identity, kind, ActivityReleased); lease = _activity;
@@ -225,7 +228,7 @@ namespace Heimdall.Application.Games
             {
                 using var refresh = DeferRefresh();
                 replace(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset();
-                _editedName = ReadNativeFacts().SavedName; _fingerprint = CaptureNativeFingerprint();
+                _editedName = ReadNativeFacts().SavedName; _fingerprint = CaptureNativeFingerprint(); _contentVersion++;
                 RefreshNativeState();
             }
             finally { if (ownsOperation) EndOperation(); }
@@ -235,13 +238,14 @@ namespace Heimdall.Application.Games
         {
             if (_disposed) return;
             var fingerprint = CaptureNativeFingerprint();
-            _nativeChanged |= _fingerprint != fingerprint; _fingerprint = fingerprint;
+            if (_fingerprint != fingerprint) { _nativeChanged = true; _contentVersion++; }
+            _fingerprint = fingerprint;
             RefreshNativeState();
         }
         /// <summary>Invalidates reviewed targets after restoring a native baseline.</summary>
         protected void InvalidateNativeScope()
         {
-            VerifyAlive(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset(); RefreshNativeState();
+            VerifyAlive(); _generation = Interlocked.Increment(ref _epochs); _contentVersion++; SelectionEngine.Reset(); RefreshNativeState();
         }
         #region BEGIN private helpers
         private void CompleteOperation(WorkspaceOperationKind kind, WorkspaceOperationResult result)
@@ -249,7 +253,7 @@ namespace Heimdall.Application.Games
             if (result.Outcome != WorkspaceOperationOutcome.Applied || _disposed) return;
             if (kind == WorkspaceOperationKind.Save && result.Committed) _editedName = ReadNativeFacts().SavedName;
             if (kind != WorkspaceOperationKind.Discard) return;
-            _editedName = ReadNativeFacts().SavedName; _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset();
+            _editedName = ReadNativeFacts().SavedName; _generation = Interlocked.Increment(ref _epochs); _contentVersion++; SelectionEngine.Reset();
         }
         private WorkspaceOperationLease BeginOperation(WorkspaceOperationKind kind, CancellationToken token)
         {

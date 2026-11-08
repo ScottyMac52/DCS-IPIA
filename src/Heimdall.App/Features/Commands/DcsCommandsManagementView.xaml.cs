@@ -21,6 +21,7 @@ namespace Heimdall.App.Features.Commands
         private UIElement? _previewHost;
         private IDcsModuleWorkspaceContext? _context;
         private readonly GameAssignmentSelection _selection = new();
+        private EventHandler? _workspaceChanged;
         private DcsCommandPaletteEntry? _selected => CurrentPalette().FirstOrDefault(x => x.Id == _selection.CommandId);
         private Guid? _assignmentDeviceId;
         private DcsCommandPaletteEntry? _displayedCommand;
@@ -53,10 +54,11 @@ namespace Heimdall.App.Features.Commands
         {
             ArgumentNullException.ThrowIfNull(context);
             if (ReferenceEquals(_context, context)) return;
-            if (_context is not null) _context.StateChanged -= WorkspaceStateChanged;
+            if (_context is not null && _workspaceChanged is not null) _context.StateChanged -= _workspaceChanged;
             _context = context;
             _selection.Reset();
-            _context.StateChanged += WorkspaceStateChanged;
+            _workspaceChanged = WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
+            _context.StateChanged += _workspaceChanged;
             Refresh();
         }
         /// <summary>Selects the assignment palette scope while keeping UI Layer catalog authoring read-only.</summary>
@@ -95,7 +97,6 @@ namespace Heimdall.App.Features.Commands
             finally { _refreshing = false; }
         }
 
-        private void WorkspaceStateChanged(object? sender, EventArgs e) => Refresh();
 
         private void RefreshCommands()
         {

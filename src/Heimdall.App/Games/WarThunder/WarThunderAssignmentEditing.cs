@@ -62,7 +62,7 @@ namespace Heimdall.App.Games.WarThunder
 
         internal void RefreshInputState()
         {
-            var pin = context.SelectedDevice is { } id ? context.Session?.Snapshot.Hardware.GetValueOrDefault(id) : null;
+            var pin = context.SelectedDevice is { } id ? context.Session?.HardwarePin(id) : null;
             AssignmentActionPresentation.Show(_assignments.Start, AssignmentAction(WorkspaceAssignmentAction.StartInput,
                 pin is not null && GameInputReadiness.Ready(pin, context.Observed), "Select one linked, connected controller for input testing."));
             AssignmentActionPresentation.Show(_assignments.Stop, AssignmentAction(WorkspaceAssignmentAction.StopInput, true));

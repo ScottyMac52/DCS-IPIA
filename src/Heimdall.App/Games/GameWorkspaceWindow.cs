@@ -66,7 +66,8 @@ namespace Heimdall.App.Games
             var nativeChanged = released && (_operationIdentity != context.State.Identity || _operationSnapshot != context.CaptureSnapshot());
             if (released) { _operationIdentity = null; _operationSnapshot = null; }
             _previousOperation = operation;
-            RefreshWorkspaceState();
+            // The notification already carries fresh authoritative state; re-reading native facts here was redundant work.
+            ApplyWorkspaceChrome();
             // Failed/no-change operations update gates, not the editor's pending native choices.
             if (!nativeChanged || _refreshingNative || operation is not null || _closed) return;
             _refreshingNative = true;
@@ -148,9 +149,17 @@ namespace Heimdall.App.Games
         {
             if (_refreshingChrome) return;
             _refreshingChrome = true;
+            try { _workspaceContext?.RefreshNativeState(); }
+            finally { _refreshingChrome = false; }
+            ApplyWorkspaceChrome();
+        }
+
+        private void ApplyWorkspaceChrome()
+        {
+            if (_refreshingChrome) return;
+            _refreshingChrome = true;
             try
             {
-                _workspaceContext?.RefreshNativeState();
                 if (_save is not null) _save.IsEnabled = !WorkspaceActionRunning && CanSaveWorkspace && HasWorkspaceChanges;
                 if (_discard is not null) _discard.IsEnabled = !WorkspaceActionRunning && HasWorkspaceChanges;
                 if (_pending is not null) _pending.Text = WorkspaceStateSummary;
