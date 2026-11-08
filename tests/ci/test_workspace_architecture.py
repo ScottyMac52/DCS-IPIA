@@ -49,13 +49,13 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         for moved in ('EliteDangerousProfileBackend', 'EliteDeviceReferenceMatcher', 'Heimdall.EliteDangerous'):
             self.assertNotIn(moved, services)
         self.assertFalse((APP / 'Games/Dcs/DcsWorkspaceOutput.cs').exists())
-        commands = {
-            'Dcs/DcsOutputCommand.cs': ('DcsOutputCommand',),
-            'Elite/EliteProfileCommands.cs': ('EliteImportCommand', 'EliteCreateConfigurationCommand',
-                                              'EliteDeleteConfigurationCommand', 'EliteExportCommand'),
-            'Squadrons/SquadronsProfileCommands.cs': ('SquadronsImportCommand', 'SquadronsNewProfileCommand', 'SquadronsExportCommand'),
-            'WarThunder/WarThunderProfileCommands.cs': ('WarThunderImportCommand', 'WarThunderDuplicateCommand', 'WarThunderExportCommand'),
-        }
+        # One command type per file (C# layout gate); each still derives from the shared command base.
+        commands = {f'{game}/{name}.cs': (name,) for game, names in {
+            'Dcs': ('DcsOutputCommand',),
+            'Elite': ('EliteImportCommand', 'EliteCreateConfigurationCommand', 'EliteDeleteConfigurationCommand', 'EliteExportCommand'),
+            'Squadrons': ('SquadronsImportCommand', 'SquadronsNewProfileCommand', 'SquadronsExportCommand'),
+            'WarThunder': ('WarThunderImportCommand', 'WarThunderDuplicateCommand', 'WarThunderExportCommand'),
+        }.items() for name in names}
         for path, names in commands.items():
             source = (APP / 'Games' / path).read_text(encoding='utf-8-sig')
             for name in names:

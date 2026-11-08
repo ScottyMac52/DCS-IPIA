@@ -14,6 +14,7 @@ namespace Heimdall.App.Games.Dcs
         private bool _structureDirty;
         private bool _disposed;
         private IDisposable? _saveLock;
+        private (DcsEditorWorkspaceSnapshot Candidate, DcsDraftAssignmentService Draft)? _preparedBaseline;
         internal IGameWorkspaceContext? Context { get; set; }
 
         internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
@@ -115,6 +116,8 @@ namespace Heimdall.App.Games.Dcs
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 DcsModuleIntegrationImport.Instructions(updated);
+                // Fallible native baseline construction happens before the durable write; acceptance only installs it.
+                _preparedBaseline = (updated, DcsSavedWorkspaceDraft.Create(updated));
                 _saveLock = editingLock; editingLock = null;
                 return updated;
             }
@@ -126,15 +129,17 @@ namespace Heimdall.App.Games.Dcs
         {
             if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
             try { await Repository!.SaveAsync(candidate); }
-            catch (Exception error) { RaiseStatus("Database save failed: " + error.Message); throw; }
+            catch (Exception error) { _preparedBaseline = null; RaiseStatus("Database save failed: " + error.Message); throw; }
             finally { ReleaseSaveLock(); RaiseStateChanged(); }
         }
         /// <summary>Native save hook 3: installs the durable snapshot as saved, working and draft baseline.</summary>
         internal void AcceptSaved(DcsEditorWorkspaceSnapshot persisted, IWorkspaceOperationLease lease)
         {
             if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            var prepared = _preparedBaseline; _preparedBaseline = null;
             Saved = persisted; Working = persisted; _structureDirty = false;
-            RebuildDraft(persisted);
+            if (prepared is { } baseline && ReferenceEquals(baseline.Candidate, persisted)) SetDraft(baseline.Draft);
+            else RebuildDraft(persisted);
             RaiseStateChanged();
         }
 

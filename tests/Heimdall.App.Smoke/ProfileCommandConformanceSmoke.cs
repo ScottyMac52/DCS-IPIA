@@ -18,7 +18,6 @@ namespace Heimdall.App.Smoke
     /// <summary>Runs the typed export/import command contract against the production native commands of all four games, measuring real files on disk.</summary>
     internal static class ProfileCommandConformanceSmoke
     {
-        private sealed record ExportCase(string Name, IGameWorkspaceContext Context, Func<string, Task<bool>> Export, Func<bool> Available, Action Dirty, Action Clean, Func<string, Task<bool>>? Cancelled);
 
         #region BEGIN Public
         internal static void Verify()
@@ -36,13 +35,15 @@ namespace Heimdall.App.Smoke
                 EditionAccess.SetForTests(issuer.PremiumPolicy);
                 profiles = WorkspaceContextCases.Create(Path.Combine(root, "profiles"), issuer.PremiumPolicy);
                 var input = new DelegateInputLifetime(() => { });
-                var cases = new List<ExportCase>();
+                var cases = new List<ProfileCommandExportCase>();
                 (dcs, var dcsCase) = Dcs(root, input); cases.Add(dcsCase);
                 foreach (var fixture in profiles)
                 {
                     switch (fixture.Context)
                     {
                         case EliteWorkspaceContext elite:
+                            // Fixture precondition, not an expectation: the clean-export case needs a preset with no unresolved controller references.
+                            Require(elite.Session!.ReviewGameExport().Count == 0, "Elite", "Fixture precondition: the export fixture has unresolved controller references.");
                             string? parent = null;
                             var ed = new EliteExportCommand(elite, input, () => Path.Combine(root, "ed-bindings"), () => parent, _ => false, _ => { }, _ => { });
                             cases.Add(new("Elite", elite, async folder => { parent = folder; return (await ed.ExecuteAsync(new(true), default)).Succeeded; },
@@ -51,10 +52,12 @@ namespace Heimdall.App.Smoke
                             break;
                         case SquadronsWorkspaceContext squadrons:
                             var sq = new SquadronsExportCommand(squadrons, input, _ => { });
+                            VerifySquadronsDuplicateReview(fixture, squadrons, sq, Path.Combine(root, "out-Squadrons-rejected"));
                             cases.Add(new("Squadrons", squadrons, async folder => (await sq.ExecuteAsync(folder, default)).Succeeded,
                                 () => sq.Availability.Enabled, () => fixture.Edit("Dirty"), () => Await(fixture.Profiles.DiscardAsync(default)), null));
                             break;
                         case WarThunderWorkspaceContext thunder:
+                            Require(thunder.Session!.Export().Succeeded, "War Thunder", "Fixture precondition: the export fixture has native export diagnostics.");
                             var wt = new WarThunderExportCommand(thunder, input, _ => { });
                             cases.Add(new("War Thunder", thunder, async folder => (await wt.ExecuteAsync(folder, default)).Succeeded,
                                 () => wt.Availability.Enabled, () => fixture.Edit("Dirty"), () => Await(fixture.Profiles.DiscardAsync(default)), null));
@@ -76,7 +79,7 @@ namespace Heimdall.App.Smoke
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static void VerifyExport(ExportCase item, string output)
+        private static void VerifyExport(ProfileCommandExportCase item, string output)
         {
             Directory.CreateDirectory(output);
             int Entries() => Directory.GetFileSystemEntries(output).Length;
@@ -93,6 +96,36 @@ namespace Heimdall.App.Smoke
             if (item.Cancelled is { } cancelled)
                 Require(!Await(cancelled(output)) && Entries() == 1 && item.Context.State.Operation is null, item.Name, "A cancelled review wrote output or kept the operation.");
             Console.WriteLine("Profile command conformance: " + item.Name + " export passed.");
+        }
+        /// <summary>
+        /// The shared Squadrons capture deliberately declares one controller in two slots. Export must refuse it (native review),
+        /// leave the session, output folder and store untouched and release the operation; the user's reviewed remove-unused-slot
+        /// workflow then makes the same data exportable after a save.
+        /// </summary>
+        private static void VerifySquadronsDuplicateReview(WorkspaceContextCase fixture, SquadronsWorkspaceContext context, SquadronsExportCommand export, string output)
+        {
+            Directory.CreateDirectory(output);
+            Require(context.Session!.Snapshot.Profile.Devices.Count(x => x.Identity?.WindowsName == "Smoke Throttle 1") == 2, "Squadrons",
+                "Fixture precondition: the shared capture no longer declares the duplicate controller.");
+            var before = context.CaptureSnapshot(); var writes = fixture.Writes();
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                Require(export.Availability.Enabled, "Squadrons", "Export availability changed for a saved duplicate capture (current policy offers it and reviews on run).");
+                string? reason = null;
+                try { Await(export.ExecuteAsync(output, default)); }
+                catch (InvalidOperationException error) { reason = error.Message; }
+                Require(reason?.Contains("declared in multiple slots", StringComparison.Ordinal) == true && reason.Contains("squadrons.joystick.10", StringComparison.Ordinal),
+                    "Squadrons", "A duplicate native declaration was not refused by the export review: " + reason);
+                Require(Directory.GetFileSystemEntries(output).Length == 0 && context.CaptureSnapshot() == before && fixture.Writes() == writes
+                    && context.State.Operation is null && !context.State.Dirty, "Squadrons", "A refused export wrote output, changed the session or kept the operation.");
+            }
+            // Reviewed workflow (SquadronsControllerPresenter.RemoveUnusedSlotClicked): preview, accept the review, apply, then save.
+            var change = context.Session.PreviewRemoveUnusedCapturedDevice("squadrons.joystick.10");
+            context.Session.ApplyControllerChange(change);
+            Require(context.State.Dirty && !export.Availability.Enabled, "Squadrons", "A staged slot removal must be saved before export.");
+            var saving = fixture.Profiles.SaveAsync(default); AwaitTask(saving); var saved = saving.GetAwaiter().GetResult();
+            Require(saved.Committed && !saved.RecoveryRequired && fixture.Writes() == writes + 1 && !context.State.Dirty, "Squadrons", "The reviewed slot removal did not save once.");
+            Console.WriteLine("Profile command conformance: Squadrons duplicate-declaration refusal and reviewed slot removal passed.");
         }
         private static void VerifyImports(IReadOnlyList<WorkspaceContextCase> profiles, string root, IWorkspaceInputLifetime input)
         {
@@ -134,7 +167,7 @@ namespace Heimdall.App.Smoke
                 Console.WriteLine("Profile command conformance: " + fixture.Name + " import passed.");
             }
         }
-        private static (DcsWorkspaceContext, ExportCase) Dcs(string root, IWorkspaceInputLifetime input)
+        private static (DcsWorkspaceContext, ProfileCommandExportCase) Dcs(string root, IWorkspaceInputLifetime input)
         {
             var connection = "Data Source=" + Path.Combine(root, "dcs.db") + ";Pooling=False";
             new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();

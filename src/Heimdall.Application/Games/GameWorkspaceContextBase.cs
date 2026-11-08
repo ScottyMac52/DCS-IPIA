@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Diagnostics;
 using System.Globalization;
 using Heimdall.Application.Interfaces;
@@ -146,13 +147,21 @@ namespace Heimdall.Application.Games
             var reason = Admission(kind);
             if (reason.Length != 0) return new(WorkspaceOperationOutcome.Blocked, reason);
             var lease = BeginOperation(kind, cancellationToken);
-            try { var result = await action(lease); CompleteOperation(kind, result); return result; }
-            catch (OperationCanceledException) when (lease.Cancellation.IsCancellationRequested)
-            { return new(WorkspaceOperationOutcome.Cancelled, "Operation cancelled; the workspace is retained."); }
-            finally
+            WorkspaceOperationResult? result = null; ExceptionDispatchInfo? failure = null;
+            try { result = await action(lease); }
+            catch (Exception error) { failure = ExceptionDispatchInfo.Capture(error); }
+            // Owner-thread contract: callers start on the owner (the WPF dispatcher in production), whose SynchronizationContext
+            // normally resumes here. If a caller lacked that context, completion is finished centrally on the owner so the
+            // operation is never stranded and a durable result is never hidden; the access checks themselves are unchanged.
+            if (_scheduler.CheckAccess()) return FinishOperation(kind, lease, result, failure);
+            Trace.TraceWarning("Workspace {0} operation resumed off the owner thread; completing on the owner.", kind);
+            var finished = new TaskCompletionSource<WorkspaceOperationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _scheduler.Post(() =>
             {
-                EndOperation();
-            }
+                try { finished.SetResult(FinishOperation(kind, lease, result, failure)); }
+                catch (Exception error) { finished.SetException(error); }
+            });
+            return await finished.Task;
         }
         /// <inheritdoc/>
         public WorkspaceAvailability TryStartActivity(WorkspaceActivityKind kind, out IWorkspaceActivityLease? lease)
@@ -254,6 +263,18 @@ namespace Heimdall.Application.Games
             if (kind == WorkspaceOperationKind.Save && result.Committed) _editedName = ReadNativeFacts().SavedName;
             if (kind != WorkspaceOperationKind.Discard) return;
             _editedName = ReadNativeFacts().SavedName; _generation = Interlocked.Increment(ref _epochs); _contentVersion++; SelectionEngine.Reset();
+        }
+        private WorkspaceOperationResult FinishOperation(WorkspaceOperationKind kind, WorkspaceOperationLease lease, WorkspaceOperationResult? result, ExceptionDispatchInfo? failure)
+        {
+            _scheduler.VerifyAccess();
+            try
+            {
+                if (failure is null) { CompleteOperation(kind, result!); return result!; }
+                if (failure.SourceException is OperationCanceledException && lease.Cancellation.IsCancellationRequested)
+                    return new(WorkspaceOperationOutcome.Cancelled, "Operation cancelled; the workspace is retained.");
+                failure.Throw(); throw failure.SourceException;
+            }
+            finally { EndOperation(); }
         }
         private WorkspaceOperationLease BeginOperation(WorkspaceOperationKind kind, CancellationToken token)
         {

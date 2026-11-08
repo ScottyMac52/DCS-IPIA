@@ -7,15 +7,6 @@ using Heimdall.Dcs;
 
 namespace Heimdall.App.Games.Dcs
 {
-    /// <summary>The native DCS outputs, each built from the saved snapshot.</summary>
-    internal enum DcsOutputKind { Validate, Package, ModuleSnapshot, Documentation, CompleteRelease }
-
-    /// <summary>A typed request for one DCS output at an explicit package version.</summary>
-    internal sealed record DcsOutputRequest(string Version, DcsOutputKind Kind);
-
-    /// <summary>The reviewed output plan: saved snapshot, version and chosen destination (null when the picker was cancelled).</summary>
-    internal sealed record DcsOutputPlan(DcsEditorWorkspaceSnapshot Saved, string Version, DcsOutputKind Kind, string? Destination);
-
     /// <summary>DCS validation, OvGME package, module snapshot, documentation and complete-release output through the shared command sequence.</summary>
     /// <remarks>Native boundaries are unchanged: outputs read only the saved snapshot, re-check edition access, freeze it, and the native writers own atomic/no-overwrite semantics.</remarks>
     internal sealed class DcsOutputCommand(DcsWorkspaceContext context, DcsWorkspaceSession session, Func<bool> viewModelErrors,

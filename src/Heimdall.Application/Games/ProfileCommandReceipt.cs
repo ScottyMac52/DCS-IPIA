@@ -1,8 +1,5 @@
 namespace Heimdall.Application.Games
 {
-    /// <summary>Outcome of a typed native profile command.</summary>
-    public enum ProfileCommandOutcome { Succeeded, Cancelled, Failed }
-
     /// <summary>Durable receipt from a native import/export/configuration command: outcome, user status and native detail (for example an output location).</summary>
     public sealed record ProfileCommandReceipt(ProfileCommandOutcome Outcome, string Message, string Detail = "")
     {

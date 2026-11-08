@@ -165,3 +165,20 @@ Discard follows the same role entry with atomic native restore and no write. Ass
 - Behaviour changes: a clean save returns `NoChange`; a War Thunder save during input testing stops input and saves.
 - Kept out of PR 3 by design: loading a saved profile uses the spec-allowed synchronous `Replace` admission of `ReplaceNativeSession`; Squadrons `ImportTemplatesFile` is a native draft edit (not an import or replacement); DCS structure edits belong to the context role (PR 2); ED controller-change `RunBusy` belongs to a later role. Assignment-view save/discard hooks remain a transitional route through the window entry point until PR 9.
 - Smoke-risk audit: a save publishes exactly two `StateChanged` notifications (operation admission and release) because non-forced publishes are suppressed while an operation is live, including the Elite reopen-after-save path; discard after save restores the exact post-save baseline. Both are pinned by deterministic unit tests in `GameProfileOperationsTests`.
+
+## PR3 transaction contracts (save boundary, owner thread, same-data lifecycle)
+
+- **Save boundary.** `GameProfileOperationsBase` runs all fallible native validation in `PrepareSave` before the one durable write.
+  After persistence nothing is reported as an uncommitted failure: an `AcceptCommit` failure returns `Applied`, `Committed` and
+  `RecoveryRequired` (reopen before editing further), and any refresh/preference failure is a warning on the committed save.
+  DCS now builds its accepted draft baseline during `PrepareSave`, so the catalog check that discard and accept depend on can no
+  longer fail after the database write.
+- **Owner thread.** Workspace operations start on the owner thread (the WPF dispatcher in production). `GameWorkspaceContextBase.RunOperationAsync`
+  finishes completion, publication and lease release on the owner centrally: if a caller resumed elsewhere, completion is posted to the
+  owner scheduler instead of stranding the operation. Access checks are unchanged; the Windows smoke installs the dispatcher context as production does.
+- **DCS draft catalog.** `DcsSavedWorkspaceDraft` is the single composition used by open, save-accept and discard. `DcsModuleSnapshotWorkflow.Build`
+  intentionally keeps its stricter stored-catalog check for created modules (their catalog is authoritative) and is not merged.
+- **Same-data lifecycle.** `ProfileLifecycleConformanceTests` runs ED, SQ and WT through the real backend, file store, session and shared
+  sequence on the command-smoke fixtures (Linux). Windows adapters, dialogs and the dispatcher remain covered only by `Heimdall.App.Smoke`.
+- **Export readiness (open policy).** Squadrons and Elite offer Export when saved and refuse native review blockers (duplicate declarations,
+  unresolved references) when run; DCS disables Export for module errors. This PR preserves each game's current behavior.

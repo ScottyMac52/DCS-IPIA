@@ -5,7 +5,8 @@ namespace Heimdall.Application.Games
 {
     /// <summary>Owns the one profile save/discard sequence for every game; native adapters supply only typed hooks.</summary>
     /// <remarks>
-    /// Save: capability → admission → stop input → prepare → persist once → accept → refresh → Applied/Committed → status.
+    /// Save: capability → admission → stop input → prepare (all fallible native validation) → persist once → accept → refresh → Applied/Committed → status.
+    /// After persistence nothing is reported as uncommitted: an accept failure is Committed with RecoveryRequired, a refresh failure a warning.
     /// Discard: capability → admission → stop input → restore → refresh → Applied. Hook failures before commit propagate
     /// so existing native error surfaces keep reporting them; the context releases the operation and retains pending state.
     /// </remarks>
@@ -37,7 +38,16 @@ namespace Heimdall.Application.Games
                 // A durable write cannot be undone by cancellation; a closed or replaced workspace only skips installation.
                 if (!_context.OwnsOperation(lease) || _context.State.Identity != lease.Identity)
                     return new(WorkspaceOperationOutcome.Applied, SavedMessage + " The workspace closed before the saved profile could be shown.", true);
-                AcceptCommit(commit, lease);
+                // Post-commit boundary: the write is durable, so no later native failure may be reported as an uncommitted save.
+                try { AcceptCommit(commit, lease); }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    Trace.TraceError("Profile saved but its native baseline could not be installed: {0}", error);
+                    var recovery = SavedMessage.Length == 0 ? "Profile saved." : SavedMessage;
+                    var message = recovery + " The saved profile could not be shown (" + error.Message + "). Reopen it before editing further.";
+                    _context.ReportStatus(message);
+                    return new(WorkspaceOperationOutcome.Applied, message, true, RecoveryRequired: true);
+                }
                 return Finish(WorkspaceOperationKind.Save);
             }, cancellationToken);
         }
@@ -96,7 +106,7 @@ namespace Heimdall.Application.Games
         {
             var warning = "";
             try { RefreshAfterPersistence(kind); }
-            catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+            catch (Exception error) when (error is not OutOfMemoryException)
             {
                 // The native outcome is already final; a refresh failure is reported as a warning and never retried as a save.
                 Trace.TraceWarning("Profile refresh after {0} failed: {1}", kind, error);

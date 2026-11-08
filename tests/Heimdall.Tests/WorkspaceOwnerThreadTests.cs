@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Heimdall.Application.Games;
-using Heimdall.Application.Interfaces;
 using Xunit;
 
 namespace Heimdall.Tests
@@ -11,38 +10,13 @@ namespace Heimdall.Tests
     /// </summary>
     public sealed class WorkspaceOwnerThreadTests
     {
-        private sealed class OwnerLoop : SynchronizationContext, IWorkspaceScheduler, IDisposable
-        {
-            private readonly BlockingCollection<Action> _work = [];
-            private readonly Thread _thread;
-            internal OwnerLoop() { _thread = new(() => { foreach (var item in _work.GetConsumingEnumerable()) item(); }) { IsBackground = true }; _thread.Start(); }
-            internal int ThreadId => _thread.ManagedThreadId;
-            public override void Post(SendOrPostCallback d, object? state) => _work.Add(() => d(state));
-            public bool CheckAccess() => Environment.CurrentManagedThreadId == _thread.ManagedThreadId;
-            public void VerifyAccess() { if (!CheckAccess()) throw new InvalidOperationException("The calling thread cannot access this object because a different thread owns it."); }
-            public void Post(Action action) => _work.Add(action);
-            /// <summary>Runs <paramref name="body"/> on the owner thread, optionally with its synchronization context installed.</summary>
-            internal Task<T> Run<T>(bool installContext, Func<Task<T>> body)
-            {
-                var done = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-                _work.Add(async () =>
-                {
-                    SetSynchronizationContext(installContext ? this : null);
-                    try { done.SetResult(await body()); }
-                    catch (Exception error) { done.SetException(error); }
-                    finally { SetSynchronizationContext(null); }
-                });
-                return done.Task;
-            }
-            public void Dispose() => _work.CompleteAdding();
-        }
+        #region BEGIN Public
 
-        public enum NativeEnd { Applied, Failed, Cancelled }
-
-        [Theory, InlineData(NativeEnd.Applied), InlineData(NativeEnd.Failed), InlineData(NativeEnd.Cancelled)]
-        public async Task Suspended_native_work_resumes_on_owner_for_publication_and_lease_release(NativeEnd end)
+        /// <summary>Applied, failed and cancelled native work resumes on the owner for publication and lease release.</summary>
+        [Theory, InlineData(OwnerThreadNativeEnd.Applied), InlineData(OwnerThreadNativeEnd.Failed), InlineData(OwnerThreadNativeEnd.Cancelled)]
+        public async Task Suspended_native_work_resumes_on_owner_for_publication_and_lease_release(OwnerThreadNativeEnd end)
         {
-            using var owner = new OwnerLoop();
+            using var owner = new OwnerThreadLoop();
             var notified = new ConcurrentQueue<int>();
             var (outcome, operationAfter, workerThread, admittedAgain) = await owner.Run(true, async () =>
             {
@@ -54,8 +28,8 @@ namespace Heimdall.Tests
                 {
                     // Real suspension: native I/O off the owner thread, as DcsOutputCommand does with Task.Run.
                     worker = await Task.Run(() => { Thread.Sleep(20); return Environment.CurrentManagedThreadId; });
-                    if (end == NativeEnd.Failed) throw new IOException("native write failed");
-                    if (end == NativeEnd.Cancelled) { cancel.Cancel(); lease.Cancellation.ThrowIfCancellationRequested(); }
+                    if (end == OwnerThreadNativeEnd.Failed) throw new IOException("native write failed");
+                    if (end == OwnerThreadNativeEnd.Cancelled) { cancel.Cancel(); lease.Cancellation.ThrowIfCancellationRequested(); }
                     return new(WorkspaceOperationOutcome.Applied, "");
                 }, cancel.Token);
                 // Reentrant command while suspended is blocked and must not disturb the running lease.
@@ -74,21 +48,32 @@ namespace Heimdall.Tests
             Assert.All(notified, id => Assert.Equal(owner.ThreadId, id));
         }
 
+        /// <summary>A completion off the owner thread is finished centrally on the owner.</summary>
         [Fact]
-        public async Task An_owner_thread_without_its_synchronization_context_violates_the_contract_at_lease_release()
+        public async Task Completion_off_the_owner_thread_is_finished_centrally_on_the_owner_without_stranding_the_operation()
         {
-            // The smoke harness defect: a bare STA thread with no dispatcher SynchronizationContext resumes on the pool.
-            using var owner = new OwnerLoop();
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => owner.Run(false, async () =>
+            // A caller that started without the owner SynchronizationContext resumes on the pool. The shared base must still
+            // publish, complete and release on the owner thread, keep the access check, and surface the durable result.
+            using var owner = new OwnerThreadLoop();
+            var notified = new ConcurrentQueue<int>();
+            WorkspaceContextProbe? probe = null;
+            var result = await owner.Run(false, async () =>
             {
-                var probe = new WorkspaceContextProbe(owner); probe.Open();
-                return await probe.RunOperationAsync(WorkspaceOperationKind.Export, async _ =>
+                probe = new WorkspaceContextProbe(owner); probe.Open();
+                probe.StateChanged += (_, _) => notified.Enqueue(Environment.CurrentManagedThreadId);
+                return await probe.RunOperationAsync(WorkspaceOperationKind.Save, async _ =>
                 {
                     await Task.Run(() => Thread.Sleep(20));
-                    return new WorkspaceOperationResult(WorkspaceOperationOutcome.Applied, "");
+                    return new WorkspaceOperationResult(WorkspaceOperationOutcome.Applied, "durable", true);
                 }, default);
-            }));
-            Assert.Contains("different thread owns it", error.Message, StringComparison.Ordinal);
+            });
+            Assert.True(result.Committed);
+            var state = await owner.Run(true, () => Task.FromResult(probe!.State));
+            Assert.Null(state.Operation);
+            Assert.All(notified, id => Assert.Equal(owner.ThreadId, id));
+            Assert.Throws<InvalidOperationException>(() => probe!.Dispose());
+            await owner.Run(true, () => { probe!.Dispose(); return Task.FromResult(0); });
         }
+        #endregion END Public
     }
 }

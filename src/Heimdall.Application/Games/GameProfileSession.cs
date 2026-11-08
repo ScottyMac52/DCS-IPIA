@@ -589,12 +589,12 @@ namespace Heimdall.Application.Games
         #endregion END Public
         private string CurrentJson => _currentJson ??= GameWorkspaceContract.Serialize(_currentValue);
         private string SavedJson => _savedJson ??= GameWorkspaceContract.Serialize(_savedValue);
+        #region BEGIN private helpers
         private void OnChanged()
         {
             _currentJson = null; _contentStamp++;
             Changed?.Invoke(this, EventArgs.Empty);
         }
-        #region BEGIN private helpers
         private GameControllerChange PreviewNativeRemoval(ISimControllerRemoval adapter, string logicalId)
         {
             var candidate = Snapshot;

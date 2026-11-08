@@ -20,6 +20,8 @@ namespace Heimdall.Tests
                 new Dictionary<string, string>(), new Dictionary<string, string>());
         }
 
+        #region BEGIN Public
+        /// <summary>Binding-derived saved assignments rebuild with identity and layer intact.</summary>
         [Fact]
         public void Binding_derived_saved_assignments_rebuild_with_identity_and_layer_intact()
         {
@@ -30,6 +32,7 @@ namespace Heimdall.Tests
             Assert.Contains(DcsSavedWorkspaceDraft.ModuleCatalog(saved), x => x.Id == "a2001cdnil" && x.IsAxis);
         }
 
+        /// <summary>Unknown commands are still rejected.</summary>
         [Fact]
         public void Unknown_commands_are_still_rejected()
         {
@@ -37,5 +40,6 @@ namespace Heimdall.Tests
             var stray = saved with { Assignments = [new(saved.Assignments[0].Slot, new("a9999cdnil", "Stray", true, AssignmentLayer.UiLayer))] };
             Assert.Throws<ArgumentException>(() => DcsSavedWorkspaceDraft.Create(stray));
         }
+        #endregion END Public
     }
 }
