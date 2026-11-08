@@ -25,6 +25,8 @@ namespace Heimdall.App.Smoke
         {
             // Each game owns its counting store (over the same durable file store) so one fixture's setup or saves
             // can never appear as another fixture's writes.
+            // The fixture owns its root: callers may pass a not-yet-created subdirectory, and SQLite will not create the DCS database's folder.
+            Directory.CreateDirectory(root);
             var files = new FileGameWorkspaceStore(Path.Combine(root, "profiles"));
             var (eliteStore, squadronsStore, thunderStore) = (new CountingGameWorkspaceStore(files), new CountingGameWorkspaceStore(files), new CountingGameWorkspaceStore(files));
             var elite = new EliteWorkspaceContext(new GameWorkspaceServices(eliteStore, new EmptyDeviceDiscovery()), []);
