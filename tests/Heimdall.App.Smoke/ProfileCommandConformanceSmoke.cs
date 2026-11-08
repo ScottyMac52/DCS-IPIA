@@ -24,6 +24,10 @@ namespace Heimdall.App.Smoke
         internal static void Verify()
         {
             var previous = EditionAccess.Policy; using var issuer = new OwnerLicenseTestIssuer();
+            // Production commands start from WPF handlers, where the dispatcher SynchronizationContext returns every awaited
+            // native continuation to the owner thread. This plain STA host has no context until a frame is pushed, so install it.
+            var previousContext = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var root = Path.Combine(Path.GetTempPath(), "heimdall-commands-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
             IReadOnlyList<WorkspaceContextCase> profiles = [];
             DcsWorkspaceContext? dcs = null;
@@ -66,6 +70,7 @@ namespace Heimdall.App.Smoke
                 foreach (var fixture in profiles) { fixture.Profiles.Dispose(); fixture.Context.Dispose(); }
                 dcs?.Dispose();
                 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                SynchronizationContext.SetSynchronizationContext(previousContext);
                 EditionAccess.SetForTests(previous); Directory.Delete(root, true);
             }
         }

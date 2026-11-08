@@ -3,11 +3,13 @@ using Heimdall.Application.Games;
 namespace Heimdall.Tests
 {
     /// <summary>Injects native steps into the actual context base without replacing its orchestration.</summary>
-    public sealed class WorkspaceContextProbe(WorkspaceTestScheduler scheduler) : GameWorkspaceContextBase<WorkspaceTestSnapshot>(scheduler)
+    public sealed class WorkspaceContextProbe(Heimdall.Application.Interfaces.IWorkspaceScheduler scheduler) : GameWorkspaceContextBase<WorkspaceTestSnapshot>(scheduler)
     {
         private WorkspaceTestSnapshot? _working;
         private WorkspaceTestSnapshot? _saved;
         #region BEGIN Public
+        /// <summary>Uses the deterministic test owner queue.</summary>
+        public WorkspaceContextProbe(WorkspaceTestScheduler scheduler) : this((Heimdall.Application.Interfaces.IWorkspaceScheduler)scheduler) { }
         /// <summary>Controls a native readonly restriction independently of dirty state.</summary>
         public bool ReadOnly { get; set; }
         /// <summary>Controls a supported capability independently of workspace openness.</summary>
