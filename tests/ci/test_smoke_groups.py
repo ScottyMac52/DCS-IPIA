@@ -32,6 +32,19 @@ class SmokeGroupTests(unittest.TestCase):
         self.assertIn("Console.WriteLine(SmokeGroupRunner.PassMarker + group);", source)
         self.assertIn("ApplicationTheme.Initialize();", method(source, "CreateHost"))
 
+    def test_later_groups_start_from_the_state_edition_smoke_left_for_them(self):
+        source = PROGRAM.read_text(encoding="utf-8")
+        edition = (PROGRAM.parent / "EditionSmoke.cs").read_text(encoding="utf-8")
+        left = ('EditionAccess.SetForTests(issuer.Policy); AppearanceManager.Configure(null); ThemeManager.Apply("Light");\n'
+                "                AppearanceManager.ResetForTests();")
+        self.assertIn(left, edition)  # the single-process Main ran every later scenario after this finally
+        fixture = re.search(r"StartupInheritedState\(OwnerLicenseTestIssuer issuer\)\n        \{\n(.*?)\n        \}", source, re.S).group(1)
+        self.assertEqual(" ".join(left.split()), " ".join(fixture.split()))
+        self.assertIn('using var inherited = group == "startup" ? null : new OwnerLicenseTestIssuer();', source)
+        self.assertNotIn("StartupInheritedState", method(source, "StartupGroup"))
+        for free in ("EditionSmoke.cs", "FreeSnapshotImportSmoke.cs", "SquadronsWorkspaceSmoke.cs"):
+            self.assertIn("EditionAccess.SetForTests(new EditionPolicy());", (PROGRAM.parent / free).read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

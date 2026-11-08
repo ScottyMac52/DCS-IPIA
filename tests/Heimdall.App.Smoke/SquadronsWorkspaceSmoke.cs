@@ -49,7 +49,8 @@ namespace Heimdall.App.Smoke
                 Box<ComboBox>(window, "SectionPicker").SelectedItem = "All";
                 Box<Expander>(window, "ControllerSetup").IsExpanded = true;
                 if (!Box<Button>(window, "SaveButton").IsEnabled || Box<Button>(window, "ExportButton").IsEnabled)
-                    throw new InvalidOperationException("An imported capture must be saved before export.");
+                    throw new InvalidOperationException("An imported capture must be saved before export. Status: "
+                        + Box<TextBlock>(window, "StatusText").Text);
                 var devices = Box<ListBox>(window, "DevicePicker");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = throttle; Click(window, "LinkControllerButton");

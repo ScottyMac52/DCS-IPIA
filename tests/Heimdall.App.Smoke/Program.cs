@@ -57,9 +57,19 @@ namespace Heimdall.App.Smoke
             };
             // Every group owns the shared themed host; startup creates it after logging, as the single-process Main did.
             if (group != "startup") CreateHost();
+            // Isolated groups inherit no startup state. The single-process Main ran every later scenario after EditionSmoke's
+            // finally (EditionSmoke.cs: SetForTests(issuer.Policy); Configure(null); Apply("Light"); ResetForTests()), so
+            // later groups start from that same explicit signed test-Owner fixture; Free scenarios still set Free themselves.
+            using var inherited = group == "startup" ? null : new OwnerLicenseTestIssuer();
+            if (inherited is not null) StartupInheritedState(inherited);
             run();
             Console.WriteLine(SmokeGroupRunner.PassMarker + group);
             return 0;
+        }
+        private static void StartupInheritedState(OwnerLicenseTestIssuer issuer)
+        {
+            EditionAccess.SetForTests(issuer.Policy); AppearanceManager.Configure(null); ThemeManager.Apply("Light");
+            AppearanceManager.ResetForTests();
         }
         private static void CreateHost()
         {

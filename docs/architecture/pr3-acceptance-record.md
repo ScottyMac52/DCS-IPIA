@@ -79,3 +79,7 @@ the shared contract level only. Detached sessions/drafts are not frozen by recov
 (`PASS`/`FAIL`/`BLOCKED`/`NOTRUN`), the compiled build revision and the log folder (`summary.txt` plus one log per group;
 set `HEIMDALL_SMOKE_RESULTS` to choose it). Any group that is not `PASS` (including a timeout, missing result, or a group skipped by
 `--only`) exits nonzero; a subset run is never full acceptance. `tests/ci/test_smoke_groups.py` pins the previous scenario order.
+
+### Smoke group inherited state (eb7a0e8 Windows group failures)
+
+The single-process Main ran every scenario after `EditionSmoke`'s `finally`, which left the signed test-Owner policy and a reset appearance (`EditionAccess.SetForTests(issuer.Policy); AppearanceManager.Configure(null); ThemeManager.Apply("Light"); AppearanceManager.ResetForTests();`). A fresh group process starts with the Free default, so `AppearanceEditorSmoke` (which sets no policy) hit `EditionPolicy.RequirePremium` in `AppearanceWindow`. The games, squadrons and dcs-shared groups now start from that same explicit fixture (`StartupInheritedState`, own process-lifetime `OwnerLicenseTestIssuer`); startup does not. Free scenarios keep setting Free explicitly and restoring. The games (Elite New) and squadrons (import→Save) failures set their own Premium/Owner policy, so the policy alone is not proven as their cause; their failure messages now include the window status text for the next Windows run.
