@@ -27,7 +27,7 @@ namespace Heimdall.Application.Games
             }
         }
         /// <summary>Gets or accepts the native store revision; null means this session has never been persisted.</summary>
-        public string? Revision { get => _revision; set { _revision = value; RefreshNativeState(); } }
+        public string? Revision { get => _revision; set { if (State.Recovery.Length != 0) throw new InvalidOperationException(State.Recovery); _revision = value; RefreshNativeState(); } }
         /// <summary>Gets the context-owned engine exposed temporarily to native browser/editor adapters.</summary>
         public GameAssignmentSelection NativeSelection => SelectionEngine;
         /// <summary>Gets shared profile chrome from the authoritative context state.</summary>

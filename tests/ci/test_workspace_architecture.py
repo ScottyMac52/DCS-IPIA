@@ -49,6 +49,14 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         for moved in ('EliteDangerousProfileBackend', 'EliteDeviceReferenceMatcher', 'Heimdall.EliteDangerous'):
             self.assertNotIn(moved, services)
         self.assertFalse((APP / 'Games/Dcs/DcsWorkspaceOutput.cs').exists())
+        # The approved Elite edge interface keeps native types out of the shared layer: Application stays ED-free.
+        application = APP.parent / 'Heimdall.Application'
+        for source in [*application.rglob('*.cs'), *application.glob('*.csproj')]:
+            if {'bin', 'obj'} & set(source.relative_to(application).parts):
+                continue
+            text = source.read_text(encoding='utf-8-sig')
+            self.assertNotIn('Heimdall.EliteDangerous', text, str(source))
+            self.assertNotIn('IEliteWorkspaceServices', text, str(source))
         # One command type per file (C# layout gate); each still derives from the shared command base.
         commands = {f'{game}/{name}.cs': (name,) for game, names in {
             'Dcs': ('DcsOutputCommand',),

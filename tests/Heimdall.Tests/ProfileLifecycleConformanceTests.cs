@@ -129,6 +129,52 @@ namespace Heimdall.Tests
             Assert.Equal(game + " after recovery", fixture.Files.Load(durable.Workspace.Id).Workspace.Name);
         }
 
+        /// <summary>Gets each store-backed game with a pre-install and a partial-install accept failure.</summary>
+        public static TheoryData<string, bool> RecoveryCases => new()
+        {
+            { "Elite", false }, { "Elite", true }, { "Squadrons", false }, { "Squadrons", true }, { "War Thunder", false }, { "War Thunder", true }
+        };
+        /// <summary>A stale session rejects every mutation route (context name, receipt, retained native reference) with unchanged state,
+        /// and the shared leave guard abandons it without a prompt, stale discard or write; reopening restores the ordinary guard.</summary>
+        [Theory, MemberData(nameof(RecoveryCases))]
+        public async Task Recovery_rejects_stale_mutation_and_the_shared_leave_guard_abandons_it_without_writing(string game, bool partial)
+        {
+            using var fixture = Open(game);
+            var (context, store, profiles) = (fixture.Context, fixture.Store, fixture.Profiles);
+            var retained = context.Session!;
+            context.SetEditedName(game + " durable");
+            profiles.AcceptFailure = new InvalidOperationException("native install failed"); profiles.FailAfterInstall = partial;
+            var result = await profiles.SaveAsync(default);
+            Assert.True(result.Committed); Assert.True(result.RecoveryRequired);
+            profiles.AcceptFailure = null;
+            var durable = fixture.Files.Load(retained.Snapshot.Id);
+            Assert.Equal(game + " durable", durable.Workspace.Name);
+            Assert.NotEmpty(context.State.Recovery);
+            var (snapshot, native, revision, writes) = (context.CaptureSnapshot(), Json(retained.Snapshot), context.Revision, store.Writes);
+
+            Assert.Throws<InvalidOperationException>(() => context.SetEditedName("stale rename"));
+            Assert.Throws<InvalidOperationException>(() => retained.Rename("stale native rename"));
+            Assert.Throws<InvalidOperationException>(() => retained.Discard());
+            Assert.Throws<InvalidOperationException>(() => context.Revision = durable.Revision);
+            Assert.Equal((snapshot, native, revision, writes), (context.CaptureSnapshot(), Json(retained.Snapshot), context.Revision, store.Writes));
+
+            var prompted = false;
+            var left = await GameWorkspaceLeaveGuard.ConfirmAsync(context.State, context.State.Dirty || partial,
+                () => { prompted = true; return GameWorkspaceLeaveDecision.Cancel; },
+                () => throw new InvalidOperationException("stale save"), () => throw new InvalidOperationException("stale discard"));
+            Assert.True(left); Assert.False(prompted); Assert.Equal(writes, store.Writes);
+
+            // The next open reads the durable profile; the detached stale session stays inert and the ordinary guard returns.
+            context.Session = new GameProfileSession(fixture.Backend, durable.Workspace, _issuer.PremiumPolicy, [], () => []);
+            context.Revision = durable.Revision;
+            Assert.Empty(context.State.Recovery); Assert.False(context.State.Dirty);
+            Assert.Throws<InvalidOperationException>(() => retained.Rename("detached"));
+            context.SetEditedName(game + " pending");
+            Assert.False(await GameWorkspaceLeaveGuard.ConfirmAsync(context.State, context.State.Dirty,
+                () => { prompted = true; return GameWorkspaceLeaveDecision.Cancel; }, () => Task.FromResult(true), () => { }));
+            Assert.True(prompted); Assert.Equal(writes, store.Writes);
+        }
+
         /// <summary>Cancellation surfacing from the refresh after a durable write is a warning, never an uncommitted or cancelled save.</summary>
         [Theory, MemberData(nameof(Games))]
         public async Task Postcommit_refresh_cancellation_keeps_the_committed_outcome(string game)

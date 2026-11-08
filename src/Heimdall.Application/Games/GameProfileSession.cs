@@ -750,6 +750,7 @@ namespace Heimdall.Application.Games
             if (!context.State.Open || context.State.Identity.Key != _currentValue.Id.ToString("N") ||
                 context is IGameProfileSessionOwner owner && !ReferenceEquals(owner.Session, this))
                 throw new InvalidOperationException("This native session is no longer mounted in its workspace.");
+            if (context.State.Recovery.Length != 0) throw new InvalidOperationException(context.State.Recovery);
             if (context.State.Operation is WorkspaceOperationKind.Save or WorkspaceOperationKind.Discard || context.State.Activity is not null)
                 throw new InvalidOperationException("Finish the workspace operation or input activity before editing.");
         }

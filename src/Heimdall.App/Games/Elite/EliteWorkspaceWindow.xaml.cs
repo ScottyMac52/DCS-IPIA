@@ -321,7 +321,7 @@ namespace Heimdall.App.Games.Elite
             _refreshing = true; ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == _session?.Id); _refreshing = false;
         }
 
-        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && !WorkspaceActionRunning && SaveState is not null) { _context.SetEditedName(ProfileName.Text); _references.MarkDirty(); UpdateAvailability(); } }
+        private void ProfileNameChanged(object sender, TextChangedEventArgs e) { if (!_refreshing && WorkspaceEditable && SaveState is not null) { _context.SetEditedName(ProfileName.Text); _references.MarkDirty(); UpdateAvailability(); } }
 
         private void SectionChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing && !WorkspaceActionRunning && _session is not null) Run(() => { SyncContextSelection(); _references.MarkDirty(); _browser.FilterCommands(); _drawing.RenderDevice(); }); }
 
@@ -375,7 +375,7 @@ namespace Heimdall.App.Games.Elite
             DuplicateConfigurationButton.IsEnabled = opened && !_busy;
             RenameConfigurationButton.IsEnabled = opened && !_busy;
             DeleteConfigurationButton.IsEnabled = opened && _revision is not null && !_busy;
-            ProfileName.IsEnabled = opened;
+            ProfileName.IsEnabled = opened && WorkspaceEditable;
             _controllers.UpdateControllerAvailability();
             var document = _session?.Snapshot;
             var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;

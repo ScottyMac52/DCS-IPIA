@@ -37,14 +37,26 @@ notifications are implemented once; the table lists only the native differences.
 Owner thread: `WorkspaceOwnerThreadTests` covers applied/failed/cancelled completion with and without the owner context, reentrant
 blocking, native accept on the owner after a real suspension, and disposal queued ahead of an off-owner completion (released once).
 
+## Stale-session recovery
+
+`WorkspaceState.Recovery` is set when a committed save cannot be installed (before or part-way through native acceptance). While set:
+every mutation route refuses with unchanged state: the context name and receipt (`SetEditedName`, `Revision`), every
+`GameProfileSession` mutator (also through a retained reference), and for DCS the sealed session (`SealStaleNative` hook: labels,
+structure edits and the retained draft are suspended). Save/discard/edit/export admissions are blocked. The shared recovery-aware
+`GameWorkspaceLeaveGuard.ConfirmAsync(state, …)` used by every window leave (profile/game switch, import, close) abandons the stale
+session without a prompt, a stale discard or another write, because its content is already durable; the next open reads the store.
+Ordinary pending-change prompts are unchanged. Evidence: `Recovery_rejects_stale_mutation_and_the_shared_leave_guard_abandons_it_without_writing`
+(ED/SQ/WT × pre/partial install). Window wiring and the DCS seal are compiled only on Linux.
+
 ## Known gaps and exceptions
 
 - DCS session/context lifecycle (open → edit → save → reopen → discard through `DcsWorkspaceSession`) runs only in the Windows smokes; Linux
   covers the native repository and draft composition on the same fixtures.
 - Store-backed writes are synchronous, so real asynchronous suspension inside the store save is not exercised; the shared base is covered with real suspension.
-- C# layout gate: `src/Heimdall.App/Games/Elite/IEliteWorkspaceServices.cs: interface must be in Heimdall.Application.Interfaces`. The approved
-  role migration places this interface at the ED adapter edge; it exposes `EliteDangerousProfileBackend`, which Heimdall.Application cannot reference
-  (Heimdall.EliteDangerous depends on Heimdall.Application). Typing it through shared interfaces would erase native types. New in PR 3; main already has 89 other layout findings.
+- C# layout gate: one owner-approved exception (2026-11-08) for exactly `internal interface IEliteWorkspaceServices` in
+  `src/Heimdall.App/Games/Elite/IEliteWorkspaceServices.cs`, namespace `Heimdall.App.Games.Elite`. It exposes native ED types that
+  Heimdall.Application cannot reference. Any other path, namespace, name or a public declaration still fails, Application stays
+  ED-free (`tests/ci`), and all other layout, region and documentation rules are unchanged. The layout output now matches main's 89-line baseline.
 
 ## Windows native review (to be completed by the reviewer at the final SHA)
 

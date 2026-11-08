@@ -75,7 +75,7 @@ namespace Heimdall.App.Games.WarThunder
             Discard.Click += DiscardClicked;
             Export.Click += (_, _) => Run(() => { var picker = new OpenFolderDialog { Title = "Choose a folder for a separate War Thunder review copy" }; if (picker.ShowDialog(this) == true) ExportReview(picker.FolderName); });
             Duplicate.Click += (_, _) => Run(_profiles.DuplicateCurrent);
-            ProfileName.TextChanged += (_, _) => { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); RefreshChrome(); } };
+            ProfileName.TextChanged += (_, _) => { if (!_context.Refreshing && WorkspaceEditable) { _context.SetEditedName(ProfileName.Text); RefreshChrome(); } };
             Profiles.SelectionChanged += (_, _) =>
             {
                 if (_context.Refreshing) return;
@@ -163,7 +163,7 @@ namespace Heimdall.App.Games.WarThunder
         protected override void OnWorkspaceStateChanged()
         {
             if (_context.Refreshing || _controllers is null) return;
-            var editable = _context.Session?.AccessMessage.Length == 0 && !WorkspaceActionRunning && !_context.Testing && !_context.ScanningHardware;
+            var editable = _context.Session?.AccessMessage.Length == 0 && WorkspaceEditable && !_context.Testing && !_context.ScanningHardware;
             Export.IsEnabled = editable && _context.Chrome.CanExport; Duplicate.IsEnabled = editable; ProfileName.IsEnabled = editable;
             Import.IsEnabled = !WorkspaceActionRunning && !_context.ScanningHardware;
             _controllers.RefreshDevices(); _editing.RefreshAvailability(); _drawing.RefreshActions();

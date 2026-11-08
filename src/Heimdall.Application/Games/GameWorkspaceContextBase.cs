@@ -87,7 +87,7 @@ namespace Heimdall.Application.Games
         /// <inheritdoc/>
         public void SetEditedName(string name)
         {
-            ArgumentNullException.ThrowIfNull(name); RequireIdle();
+            ArgumentNullException.ThrowIfNull(name); RequireIdle(); RequireCurrent();
             _editedName = name; RefreshNativeState();
         }
         /// <inheritdoc/>
@@ -100,7 +100,8 @@ namespace Heimdall.Application.Games
                 SelectionEngine.AlternativeId, SelectionEngine.InputKey, SelectionEngine.Scope);
             var candidate = new WorkspaceState(new(native.Key, _generation), State.Version, native.Open, native.ReadOnly,
                 native.Dirty || native.New || native.Open && !NameEquals(_editedName, native.SavedName), _editedName, selection,
-                _operation?.Kind, _activity?.Kind, Capabilities(native));
+                _operation?.Kind, _activity?.Kind, Capabilities(native))
+            { Recovery = _recovery };
             if (candidate != State || _nativeChanged)
             {
                 _state = candidate with { Version = State.Version + 1 }; _nativeChanged = false;
@@ -243,6 +244,9 @@ namespace Heimdall.Application.Games
             }
             finally { if (ownsOperation) EndOperation(); }
         }
+        /// <summary>Typed hook: a committed save could not be installed, so native objects that do not consult
+        /// <see cref="WorkspaceState.Recovery"/> must refuse further mutation until the session is replaced.</summary>
+        protected virtual void SealStaleNative() { }
         /// <summary>Coalesces actual native content changes, including changes while a draft was already dirty.</summary>
         protected void NativeStateChanged()
         {
@@ -262,7 +266,10 @@ namespace Heimdall.Application.Games
         {
             // A durable write whose native baseline could not be installed leaves a stale session: hold it until reopened.
             if (result.RecoveryRequired && !_disposed)
+            {
                 _recovery = "The profile was saved, but the saved version could not be shown. Reopen it before editing, saving or exporting.";
+                SealStaleNative();
+            }
             if (result.Outcome != WorkspaceOperationOutcome.Applied || _disposed) return;
             if (kind == WorkspaceOperationKind.Save && result.Committed) _editedName = ReadNativeFacts().SavedName;
             if (kind != WorkspaceOperationKind.Discard) return;
@@ -345,6 +352,10 @@ namespace Heimdall.Application.Games
         {
             VerifyAlive();
             if (_operation is not null) throw new InvalidOperationException("Finish the current workspace operation first.");
+        }
+        private void RequireCurrent()
+        {
+            if (_recovery.Length != 0) throw new InvalidOperationException(_recovery);
         }
         private void SelectionChanged(object? sender, EventArgs e)
         {

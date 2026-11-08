@@ -132,6 +132,10 @@ namespace Heimdall.App.Games
         protected abstract bool CanSaveWorkspace { get; }
         /// <summary>Gets whether a common asynchronous action is executing.</summary>
         protected bool WorkspaceActionRunning => _workspaceContext?.State.Operation is not null;
+        /// <summary>Gets whether the mounted session is stale after a committed save; it can only be left or replaced.</summary>
+        protected bool WorkspaceRecovering => _workspaceContext?.State.Recovery.Length > 0;
+        /// <summary>Gets whether shared state admits a direct edit such as a profile rename.</summary>
+        protected bool WorkspaceEditable => !WorkspaceActionRunning && !WorkspaceRecovering;
         /// <summary>Gets the adapter's profile operations; every save/discard entry (button, feature, leave guard) runs this one shared sequence.</summary>
         protected abstract IGameProfileOperations ProfileOperations { get; }
         /// <summary>Refreshes adapter-specific actions after the base has refreshed common chrome.</summary>
@@ -217,7 +221,7 @@ namespace Heimdall.App.Games
             _confirmingLeave = true;
             try
             {
-                return await GameWorkspaceLeaveGuard.ConfirmAsync(HasWorkspaceChanges, choose,
+                return await GameWorkspaceLeaveGuard.ConfirmAsync(_workspaceContext?.State, HasWorkspaceChanges, choose,
                     async () =>
                     {
                         if (!CanSaveWorkspace) return false;
@@ -233,7 +237,7 @@ namespace Heimdall.App.Games
             "Discard unsaved workspace changes?", "Pending changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
         /// <summary>Guards closing with shared pending and operation state.</summary>
-        protected virtual bool CanCloseWorkspace() => !WorkspaceActionRunning && (!HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
+        protected virtual bool CanCloseWorkspace() => !WorkspaceActionRunning && (WorkspaceRecovering || !HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
 
         /// <inheritdoc/>
         protected override void OnClosing(CancelEventArgs e)

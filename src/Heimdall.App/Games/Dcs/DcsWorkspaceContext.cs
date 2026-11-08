@@ -96,6 +96,7 @@ namespace Heimdall.App.Games.Dcs
             Labels = _session.Labels.OrderBy(x => x.Key, StringComparer.Ordinal).ToArray()
         });
         protected override bool NameEquals(string left, string right) => string.Equals(left, right, StringComparison.Ordinal);
+        protected override void SealStaleNative() => _session.SealStale();
         protected override void DisposeNative()
         {
             _session.StateChanged -= SessionChanged; _session.StatusChanged -= SessionStatus; _session.Dispose();

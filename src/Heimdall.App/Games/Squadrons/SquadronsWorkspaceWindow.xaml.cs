@@ -294,7 +294,7 @@ namespace Heimdall.App.Games.Squadrons
             ImportButton.IsEnabled = !WorkspaceActionRunning;
             ImportTemplatesButton.IsEnabled = !WorkspaceActionRunning && _context.Session?.AccessMessage.Length == 0;
             NewProfileButton.IsEnabled = !WorkspaceActionRunning && _context.Session?.AccessMessage.Length == 0 && !_context.ScanningInputs;
-            ProfileName.IsEnabled = !WorkspaceActionRunning && _context.Session is not null;
+            ProfileName.IsEnabled = WorkspaceEditable && _context.Session is not null;
             _editing.UpdateApplyAvailability();
         }
 
@@ -312,7 +312,7 @@ namespace Heimdall.App.Games.Squadrons
             RequestedGame = game; _allowClose = true; Close();
         }
 
-        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing && !WorkspaceActionRunning) { _context.SetEditedName(ProfileName.Text); UpdateAvailability(); } }
+        private void NameChanged(object sender, TextChangedEventArgs e) { if (!_context.Refreshing && WorkspaceEditable) { _context.SetEditedName(ProfileName.Text); UpdateAvailability(); } }
         private ComboBox CommandContextFilter => CommandBrowser.CommandCategoryPicker;
         private ComboBox CommandInputFilter => CommandBrowser.CommandTypePicker;
         private ComboBox CommandStatusFilter => CommandBrowser.AssignmentStatusPicker;

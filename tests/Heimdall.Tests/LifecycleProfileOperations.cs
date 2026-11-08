@@ -10,6 +10,8 @@ namespace Heimdall.Tests
         #region BEGIN Public
         /// <summary>Gets or sets a failure thrown while installing the durable baseline.</summary>
         public Exception? AcceptFailure { get; set; }
+        /// <summary>Gets or sets whether <see cref="AcceptFailure"/> is thrown after the native baseline was installed (partial install).</summary>
+        public bool FailAfterInstall { get; set; }
         /// <summary>Gets or sets a failure thrown from the post-persistence refresh.</summary>
         public Exception? RefreshFailure { get; set; }
         /// <summary>Gets the number of post-persistence refreshes.</summary>
@@ -24,8 +26,9 @@ namespace Heimdall.Tests
         /// <inheritdoc/>
         protected override void AcceptCommit(WorkspaceCommit<GameWorkspace, string> commit, IWorkspaceOperationLease lease)
         {
-            if (AcceptFailure is { } failure) throw failure;
+            if (AcceptFailure is { } failure && !FailAfterInstall) throw failure;
             base.AcceptCommit(commit, lease);
+            if (AcceptFailure is { } late) throw late;
         }
         /// <inheritdoc/>
         protected override void RefreshAfterPersistence(WorkspaceOperationKind completed)

@@ -14,6 +14,8 @@ namespace Heimdall.App.Games.Dcs
         private bool _structureDirty;
         private bool _disposed;
         private IDisposable? _saveLock;
+        private IDisposable? _staleLock;
+        private bool _stale;
         private (DcsEditorWorkspaceSnapshot Candidate, DcsDraftAssignmentService Draft)? _preparedBaseline;
         internal IGameWorkspaceContext? Context { get; set; }
 
@@ -155,6 +157,14 @@ namespace Heimdall.App.Games.Dcs
             RaiseStateChanged();
         }
 
+        /// <summary>Seals this stale session after a committed save it could not install: the retained draft and
+        /// every native edit route refuse mutation until the window is closed or the workspace reopened.</summary>
+        internal void SealStale()
+        {
+            if (_stale) return;
+            _stale = true; _staleLock = Draft?.SuspendEditing();
+        }
+
         internal void RaiseStatus(string message) => StatusChanged?.Invoke(this, message);
         internal void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
 
@@ -163,7 +173,7 @@ namespace Heimdall.App.Games.Dcs
         {
             if (_disposed) return;
             _disposed = true;
-            ReleaseSaveLock(); SetDraft(null);
+            ReleaseSaveLock(); _staleLock?.Dispose(); _staleLock = null; SetDraft(null);
             StateChanged = null; StatusChanged = null;
         }
         #endregion END Public
@@ -173,6 +183,7 @@ namespace Heimdall.App.Games.Dcs
         private void RequireEditable()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_stale) throw new InvalidOperationException(Context?.State.Recovery is { Length: > 0 } reason ? reason : "Reopen this workspace before editing.");
             if (Context?.State.Operation is not (null or WorkspaceOperationKind.NativeEdit or WorkspaceOperationKind.Discard))
                 throw new InvalidOperationException("Finish the current workspace operation before editing.");
             if (Context?.State.Activity is not null) throw new InvalidOperationException("Stop input activity before editing.");
