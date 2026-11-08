@@ -11,6 +11,8 @@ namespace Heimdall.App.Smoke
         internal int Writes { get; private set; }
         /// <summary>Gets or sets a failure thrown before the next write.</summary>
         internal Exception? Fail { get; set; }
+        /// <summary>Gets or sets asynchronous native work before persistence, used to force an actual off-owner completion.</summary>
+        internal Func<Task>? BeforeWrite { get; set; }
         /// <inheritdoc/>
         public Task<DcsEditorWorkspaceSnapshot?> GetAsync(Guid moduleId, CancellationToken ct = default) => inner.GetAsync(moduleId, ct);
         /// <inheritdoc/>
@@ -18,6 +20,7 @@ namespace Heimdall.App.Smoke
         /// <inheritdoc/>
         public async Task SaveAsync(DcsEditorWorkspaceSnapshot snapshot, CancellationToken ct = default)
         {
+            if (BeforeWrite is { } work) await work();
             if (Fail is { } fail) throw fail;
             await inner.SaveAsync(snapshot, ct); Writes++;
         }

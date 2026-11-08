@@ -54,7 +54,7 @@ namespace Heimdall.App.Games.WarThunder
             Open(saved.Workspace, saved.Revision);
         }
 
-        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Detail;
+        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Native.Detail;
 
         private void Open(GameWorkspace workspace, string? revision) => Install(new(CreateSession(workspace), revision));
 

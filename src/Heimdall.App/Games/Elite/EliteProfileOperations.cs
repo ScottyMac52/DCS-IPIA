@@ -93,7 +93,8 @@ namespace Heimdall.App.Games.Elite
             var issues = _session.ReviewGameExport();
             if (issues.Count > 0) { ResolveExportIssue(issues); return; }
             var receipt = Export.ExecuteAsync(new(ExportToReviewFolder.IsChecked == true), CancellationToken.None).GetAwaiter().GetResult();
-            if (!receipt.Succeeded && receipt.Message.Length > 0) Status(receipt.Message);
+            if (receipt.Completion.Message.Length > 0) Status(receipt.Completion.Message);
+            else if (!receipt.Native.Succeeded && receipt.Native.Message.Length > 0) Status(receipt.Native.Message);
         });
 
         /// <summary>Native post-commit refresh for the shared save sequence; persistence itself is owned by <see cref="EliteProfileSaving"/>.</summary>

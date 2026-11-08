@@ -131,8 +131,18 @@ namespace Heimdall.App.Games.Dcs
         {
             if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
             try { await Repository!.SaveAsync(candidate); }
-            catch (Exception error) { _preparedBaseline = null; RaiseStatus("Database save failed: " + error.Message); throw; }
-            finally { ReleaseSaveLock(); RaiseStateChanged(); }
+            catch (Exception error)
+            {
+                await lease.ResumeOnOwnerAsync();
+                _preparedBaseline = null; RaiseStatus("Database save failed: " + error.Message); throw;
+            }
+            finally
+            {
+                await lease.ResumeOnOwnerAsync();
+                // Successful persistence returns its durable receipt before any fallible native notification.
+                // AcceptSaved publishes inside the shared post-commit recovery boundary.
+                ReleaseSaveLock();
+            }
         }
         /// <summary>Native save hook 3: installs the durable snapshot as saved, working and draft baseline.</summary>
         internal void AcceptSaved(DcsEditorWorkspaceSnapshot persisted, IWorkspaceOperationLease lease)

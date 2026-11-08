@@ -57,6 +57,8 @@ namespace Heimdall.App.Games.Elite
                 + (backup is null ? "" : "\nBackup: " + backup) + "\nRestart ED and select " + name + ". Existing preset selectors are unchanged."));
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => ProfileCommandEffects.OutputWrite;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
         protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) { exportState(result.Detail); status(result.Message); }

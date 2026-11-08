@@ -32,6 +32,8 @@ namespace Heimdall.App.Games.Squadrons
                 "New profile saved with no joystick assignments or imported assignment templates. Controller setup and native game settings retained.", prepared.Id.ToString("D")));
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => ProfileCommandEffects.WorkspaceWrite;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
         protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) => open(Guid.Parse(result.Detail));

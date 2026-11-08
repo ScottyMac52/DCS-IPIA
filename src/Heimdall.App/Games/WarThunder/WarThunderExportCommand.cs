@@ -32,6 +32,8 @@ namespace Heimdall.App.Games.WarThunder
             return Task.FromResult(new ProfileCommandReceipt(ProfileCommandOutcome.Succeeded, "Review copy: " + directory, directory));
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => ProfileCommandEffects.OutputWrite;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
         protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) => status(result.Message);

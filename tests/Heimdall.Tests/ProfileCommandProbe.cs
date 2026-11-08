@@ -15,6 +15,10 @@ namespace Heimdall.Tests
         public Func<Task>? DuringRun { get; set; }
         /// <summary>Gets or sets whether native work succeeds.</summary>
         public bool Succeeds { get; set; } = true;
+        /// <summary>Gets or sets the durable effect produced by the native run.</summary>
+        public ProfileCommandEffects Effects { get; set; }
+        /// <summary>Gets or sets native acceptance work, including a fault after a write.</summary>
+        public Action? DuringAccept { get; set; }
         /// <summary>Gets the hook call order.</summary>
         public List<string> Calls { get; } = [];
         /// <summary>Gets the operation active during prepare.</summary>
@@ -43,8 +47,10 @@ namespace Heimdall.Tests
             return Succeeds;
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(bool result) => Effects;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(bool result) => result;
         /// <inheritdoc/>
-        protected override void Accept(bool result, IWorkspaceOperationLease lease) { Calls.Add("accept"); AcceptThreadId = Environment.CurrentManagedThreadId; }
+        protected override void Accept(bool result, IWorkspaceOperationLease lease) { Calls.Add("accept"); AcceptThreadId = Environment.CurrentManagedThreadId; DuringAccept?.Invoke(); }
     }
 }

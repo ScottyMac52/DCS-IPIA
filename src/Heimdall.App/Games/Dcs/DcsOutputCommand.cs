@@ -48,7 +48,7 @@ namespace Heimdall.App.Games.Dcs
         protected override async Task<ProfileCommandReceipt> RunNativeAsync(DcsOutputPlan prepared, IWorkspaceOperationLease lease)
         {
             ArgumentNullException.ThrowIfNull(prepared);
-            if (prepared.Destination is null) return Publish(ProfileCommandReceipt.Cancel("Output cancelled; no files were written."));
+            if (prepared.Destination is null) return ProfileCommandReceipt.Cancel("Output cancelled; no files were written.");
             SetStatus("Validating saved assignments, physical devices, pinned assets and generated output…");
             var saved = prepared.Saved; var version = prepared.Version;
             try
@@ -59,26 +59,27 @@ namespace Heimdall.App.Games.Dcs
                 switch (prepared.Kind)
                 {
                     case DcsOutputKind.Validate:
-                        return Publish(new(ProfileCommandOutcome.Succeeded, $"Validated {saved.Configuration.Module.DisplayName}; Lua, device/summary pages and OvGME layout are complete. Snapshot SHA-256 {snapshot.Workspace.Sha256}"));
+                        return new(ProfileCommandOutcome.Succeeded, $"Validated {saved.Configuration.Module.DisplayName}; Lua, device/summary pages and OvGME layout are complete. Snapshot SHA-256 {snapshot.Workspace.Sha256}");
                     case DcsOutputKind.CompleteRelease:
                         var release = Path.Combine(path, $"DCS-{saved.Configuration.Module.DcsId}-Components-{version}-Complete");
                         await Task.Run(() => DcsModuleCompleteReleaseWorkflow.Write(snapshot, release));
-                        return Publish(new(ProfileCommandOutcome.Succeeded, $"Exported Complete release: {release} · Verified frozen inputs SHA-256 {snapshot.Workspace.Sha256}", release));
+                        return new(ProfileCommandOutcome.Succeeded, $"Exported Complete release: {release} · Verified frozen inputs SHA-256 {snapshot.Workspace.Sha256}", release);
                     case DcsOutputKind.Documentation:
                         var documentation = Path.Combine(path, $"DCS-{saved.Configuration.Module.DcsId}-Components-{version}-Documentation");
                         await Task.Run(() => DcsModuleDocumentationWorkflow.Write(snapshot, documentation));
-                        return Publish(new(ProfileCommandOutcome.Succeeded, $"Exported module documentation: {documentation} · Snapshot SHA-256 {snapshot.Workspace.Sha256}", documentation));
+                        return new(ProfileCommandOutcome.Succeeded, $"Exported module documentation: {documentation} · Snapshot SHA-256 {snapshot.Workspace.Sha256}", documentation);
                     case DcsOutputKind.ModuleSnapshot:
                         await Task.Run(() => DcsModuleSnapshotWorkflow.Write(snapshot, path));
-                        return Publish(new(ProfileCommandOutcome.Succeeded, $"Exported module snapshot: {path} · SHA-256 {snapshot.Workspace.Sha256}. Restore preserves its module identity and package version.", path));
+                        return new(ProfileCommandOutcome.Succeeded, $"Exported module snapshot: {path} · SHA-256 {snapshot.Workspace.Sha256}. Restore preserves its module identity and package version.", path);
                     default:
                         var package = await Task.Run(() => DcsModuleSnapshotWorkflow.Build(snapshot));
                         var written = DcsOvGmeArtifactWriter.Write(package, path);
-                        return Publish(new(ProfileCommandOutcome.Succeeded, $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}", written.ArchivePath));
+                        return new(ProfileCommandOutcome.Succeeded, $"Wrote {written.ArchivePath} and {written.ChecksumPath} · SHA-256 {written.Sha256}", written.ArchivePath);
                 }
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
+                await lease.ResumeOnOwnerAsync();
                 var operation = prepared.Kind switch
                 {
                     DcsOutputKind.Validate => "Validate",
@@ -89,14 +90,17 @@ namespace Heimdall.App.Games.Dcs
                 };
                 logFailure(operation, saved, version, error);
                 FailureDiagnostic = operation + ": " + error.Message;
-                return Publish(new(ProfileCommandOutcome.Failed, "Module output failed: " + error.Message));
+                return new(ProfileCommandOutcome.Failed, "Module output failed: " + error.Message);
             }
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => result.Detail.Length > 0 ? ProfileCommandEffects.OutputWrite : ProfileCommandEffects.None;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
-        protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) { }
-        private ProfileCommandReceipt Publish(ProfileCommandReceipt receipt) { SetStatus(receipt.Message); return receipt; }
+        protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) => SetStatus(result.Message);
+        /// <inheritdoc/>
+        protected override void ReportUnsuccessful(ProfileCommandReceipt result) => SetStatus(result.Message);
         private void SetStatus(string status) { Status = status; Changed?.Invoke(this, EventArgs.Empty); }
     }
 }

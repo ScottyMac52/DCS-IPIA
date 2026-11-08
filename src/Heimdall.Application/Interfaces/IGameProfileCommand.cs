@@ -8,8 +8,8 @@ namespace Heimdall.Application.Interfaces
         #region BEGIN Public
         /// <summary>Gets whether the command can currently run, with a reason when it cannot.</summary>
         WorkspaceAvailability Availability { get; }
-        /// <summary>Runs the command inside one admitted operation.</summary>
-        Task<TResult> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
+        /// <summary>Runs inside one admitted operation and returns native data with its committed/recovery outcome.</summary>
+        Task<ProfileCommandExecution<TResult>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
         #endregion END Public
     }
 }

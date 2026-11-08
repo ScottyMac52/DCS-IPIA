@@ -62,9 +62,13 @@ namespace Heimdall.App.Smoke
             // later groups start from that same explicit signed test-Owner fixture; Free scenarios still set Free themselves.
             using var inherited = group == "startup" ? null : new OwnerLicenseTestIssuer();
             if (inherited is not null) StartupInheritedState(inherited);
-            run();
-            Console.WriteLine(SmokeGroupRunner.PassMarker + group);
-            return 0;
+            try
+            {
+                run();
+                Console.WriteLine(SmokeGroupRunner.PassMarker + group);
+                return 0;
+            }
+            finally { app?.Shutdown(); }
         }
         private static void StartupInheritedState(OwnerLicenseTestIssuer issuer)
         {
@@ -74,13 +78,14 @@ namespace Heimdall.App.Smoke
         private static void CreateHost()
         {
             // A plain host loads the real themes without queuing production App.OnStartup during dispatcher pumping.
-            app = new System.Windows.Application();
+            app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             foreach (var theme in new[] { "Light", "Styles", "Primitives", "Collections", "Controls", "Menus" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
                     Source = new Uri("pack://application:,,,/Heimdall;component/Themes/" + theme + ".xaml", UriKind.Absolute)
                 });
             ApplicationTheme.Initialize();
+            SmokeHostLifetimeSmoke.Verify(app);
         }
         private static void StartupGroup()
         {

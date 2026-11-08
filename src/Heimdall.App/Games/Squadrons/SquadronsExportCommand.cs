@@ -37,6 +37,8 @@ namespace Heimdall.App.Games.Squadrons
                 "Review copy with preserved native names and records exported to " + directory + ". Close Squadrons and back up its settings before manually installing this copy.", directory));
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => ProfileCommandEffects.OutputWrite;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
         protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) => status(result.Message);

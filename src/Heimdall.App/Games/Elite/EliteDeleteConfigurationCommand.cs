@@ -32,6 +32,8 @@ namespace Heimdall.App.Games.Elite
             return Task.FromResult(new ProfileCommandReceipt(ProfileCommandOutcome.Succeeded, "HEIMDALL configuration deleted. Exported ED presets remain in place."));
         }
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(ProfileCommandReceipt result) => ProfileCommandEffects.WorkspaceWrite;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(ProfileCommandReceipt result) => result?.Succeeded == true;
         /// <inheritdoc/>
         protected override void Accept(ProfileCommandReceipt result, IWorkspaceOperationLease lease) => deleted();

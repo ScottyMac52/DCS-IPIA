@@ -48,15 +48,23 @@ namespace Heimdall.TestSupport
             {
                 StartInfo = new ProcessStartInfo(fileName, arguments) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false }
             };
-            process.OutputDataReceived += (_, e) => { if (e.Data is not null) lock (output) output.AppendLine(e.Data); };
-            process.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (output) output.AppendLine(e.Data); };
+            var stdoutClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var stderrClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            process.OutputDataReceived += (_, e) => { if (e.Data is null) stdoutClosed.TrySetResult(); else lock (output) output.AppendLine(e.Data); };
+            process.ErrorDataReceived += (_, e) => { if (e.Data is null) stderrClosed.TrySetResult(); else lock (output) output.AppendLine(e.Data); };
+            var elapsed = Stopwatch.StartNew();
             process.Start(); process.BeginOutputReadLine(); process.BeginErrorReadLine();
-            if (!process.WaitForExit(timeout))
+            var exited = process.WaitForExit(timeout);
+            var remaining = timeout - elapsed.Elapsed;
+            // A descendant can retain the redirected pipes after its parent exits or is killed. Never use the
+            // parameterless WaitForExit here: it drains those pipes without any timeout and can hang the parent runner.
+            var drained = exited && Task.WhenAll(stdoutClosed.Task, stderrClosed.Task).Wait(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero);
+            if (!drained)
             {
-                process.Kill(entireProcessTree: true); process.WaitForExit();
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+                process.CancelOutputRead(); process.CancelErrorRead();
                 lock (output) return (null, output.ToString(), true);
             }
-            process.WaitForExit();
             lock (output) return (process.ExitCode, output.ToString(), false);
         }
         #endregion END Public

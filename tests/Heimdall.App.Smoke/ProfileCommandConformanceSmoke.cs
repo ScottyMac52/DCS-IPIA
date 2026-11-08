@@ -46,20 +46,20 @@ namespace Heimdall.App.Smoke
                             Require(elite.Session!.ReviewGameExport().Count == 0, "Elite", "Fixture precondition: the export fixture has unresolved controller references.");
                             string? parent = null;
                             var ed = new EliteExportCommand(elite, input, () => Path.Combine(root, "ed-bindings"), () => parent, _ => false, _ => { }, _ => { });
-                            cases.Add(new("Elite", elite, async folder => { parent = folder; return (await ed.ExecuteAsync(new(true), default)).Succeeded; },
+                            cases.Add(new("Elite", elite, async folder => { parent = folder; return (await ed.ExecuteAsync(new(true), default)).Native.Succeeded; },
                                 () => ed.Availability.Enabled, () => fixture.Edit("Dirty"), () => Await(fixture.Profiles.DiscardAsync(default)),
-                                async folder => { parent = null; return (await ed.ExecuteAsync(new(true), default)).Succeeded; }));
+                                async folder => { parent = null; return (await ed.ExecuteAsync(new(true), default)).Native.Succeeded; }));
                             break;
                         case SquadronsWorkspaceContext squadrons:
                             var sq = new SquadronsExportCommand(squadrons, input, _ => { });
                             VerifySquadronsDuplicateReview(fixture, squadrons, sq, Path.Combine(root, "out-Squadrons-rejected"));
-                            cases.Add(new("Squadrons", squadrons, async folder => (await sq.ExecuteAsync(folder, default)).Succeeded,
+                            cases.Add(new("Squadrons", squadrons, async folder => (await sq.ExecuteAsync(folder, default)).Native.Succeeded,
                                 () => sq.Availability.Enabled, () => fixture.Edit("Dirty"), () => Await(fixture.Profiles.DiscardAsync(default)), null));
                             break;
                         case WarThunderWorkspaceContext thunder:
                             Require(thunder.Session!.Export().Succeeded, "War Thunder", "Fixture precondition: the export fixture has native export diagnostics.");
                             var wt = new WarThunderExportCommand(thunder, input, _ => { });
-                            cases.Add(new("War Thunder", thunder, async folder => (await wt.ExecuteAsync(folder, default)).Succeeded,
+                            cases.Add(new("War Thunder", thunder, async folder => (await wt.ExecuteAsync(folder, default)).Native.Succeeded,
                                 () => wt.Availability.Enabled, () => fixture.Edit("Dirty"), () => Await(fixture.Profiles.DiscardAsync(default)), null));
                             break;
                     }
@@ -179,7 +179,7 @@ namespace Heimdall.App.Smoke
             string? destination = null;
             var command = new DcsOutputCommand(context, session, () => false, _ => destination, () => destination, () => destination,
                 (operation, _, _, error) => throw new InvalidOperationException(operation + " failed: " + error.Message, error));
-            async Task<bool> Run(string? path) { destination = path; return (await command.ExecuteAsync(new("1.0.0.0", DcsOutputKind.ModuleSnapshot), default)).Succeeded; }
+            async Task<bool> Run(string? path) { destination = path; return (await command.ExecuteAsync(new("1.0.0.0", DcsOutputKind.ModuleSnapshot), default)).Native.Succeeded; }
             return (context, new("DCS", context, folder => Run(Path.Combine(folder, "module.heimdall-module.json")), () => command.Availability.Enabled,
                 () => session.SetLabel("command-conformance", "Dirty"), () => Await(profiles.DiscardAsync(default)), _ => Run(null)));
         }

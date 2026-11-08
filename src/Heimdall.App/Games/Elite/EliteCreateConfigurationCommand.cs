@@ -25,10 +25,13 @@ namespace Heimdall.App.Games.Elite
         /// <inheritdoc/>
         protected override Task<EliteConfigurationResult> RunNativeAsync((GameWorkspace Workspace, bool Clear) prepared, IWorkspaceOperationLease lease)
         {
-            var session = createSession(prepared.Workspace); // Native edition/backend boundary before any write.
+            var session = createSession(prepared.Workspace);
+            session.Export(); // Enforce native edition and validation before any durable write.
             var revision = context.Services.Store.Save(prepared.Workspace, null);
             return Task.FromResult(new EliteConfigurationResult(new(session, revision), prepared.Clear));
         }
+        /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(EliteConfigurationResult result) => ProfileCommandEffects.WorkspaceWrite;
         /// <inheritdoc/>
         protected override bool IsSuccessful(EliteConfigurationResult result) => result is not null;
         /// <inheritdoc/>

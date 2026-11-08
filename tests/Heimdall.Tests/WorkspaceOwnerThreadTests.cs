@@ -106,7 +106,7 @@ namespace Heimdall.Tests
                 var command = new ProfileCommandProbe(context, new ProfileTestInput()) { DuringRun = () => Task.Run(() => Thread.Sleep(20)) };
                 return Task.FromResult((command, command.ExecuteAsync("out", default)));
             });
-            Assert.True(await running.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.True((await running.WaitAsync(TimeSpan.FromSeconds(10))).Native);
             var (operation, name) = await owner.Run(true, () =>
             {
                 var state = (context.State.Operation, context.Working!.Name);
@@ -152,6 +152,41 @@ namespace Heimdall.Tests
                 profiles.Dispose(); context.Dispose(); return Task.FromResult(state);
             });
             Assert.Empty(cleared); Assert.Equal(1, store.Writes); Assert.Equal(1, context.Disposals);
+        }
+
+        /// <summary>Durable command acceptance failures after real suspension publish committed recovery/warnings on the owner.</summary>
+        [Theory]
+        [InlineData(ProfileCommandEffects.WorkspaceWrite, true)]
+        [InlineData(ProfileCommandEffects.WorkspaceWrite, false)]
+        [InlineData(ProfileCommandEffects.OutputWrite, true)]
+        [InlineData(ProfileCommandEffects.OutputWrite, false)]
+        public async Task Command_postcommit_failure_resumes_on_owner(ProfileCommandEffects effects, bool ownerContext)
+        {
+            using var owner = new OwnerThreadLoop();
+            var writes = 0; var threads = new ConcurrentQueue<int>();
+            var (context, command, running) = await owner.Run(ownerContext, () =>
+            {
+                var context = new WorkspaceContextProbe(owner); context.Open();
+                context.StateChanged += (_, _) => threads.Enqueue(Environment.CurrentManagedThreadId);
+                context.StatusChanged += (_, _) => threads.Enqueue(Environment.CurrentManagedThreadId);
+                var command = new ProfileCommandProbe(context, new())
+                {
+                    Effects = effects, DuringRun = () => Task.Run(() => { Thread.Sleep(20); writes++; }),
+                    DuringAccept = () => throw new IOException("completion failed")
+                };
+                return Task.FromResult((context, command, command.ExecuteAsync("receipt", default)));
+            });
+            var result = await running.WaitAsync(TimeSpan.FromSeconds(10));
+            var recovery = await owner.Run(true, () =>
+            {
+                Assert.Null(context.State.Operation); var recovery = context.State.Recovery.Length > 0;
+                context.Dispose(); return Task.FromResult(recovery);
+            });
+            Assert.True(result.Native); Assert.True(result.Completion.Committed);
+            Assert.Equal(effects == ProfileCommandEffects.WorkspaceWrite, result.Completion.RecoveryRequired);
+            Assert.Equal(result.Completion.RecoveryRequired, recovery); Assert.Equal(1, writes);
+            Assert.Equal(owner.ThreadId, command.AcceptThreadId);
+            Assert.All(threads, thread => Assert.Equal(owner.ThreadId, thread));
         }
 
         /// <summary>Disposal that runs on the owner before a queued off-thread completion releases native state exactly once without stranding the lease.</summary>

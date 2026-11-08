@@ -14,6 +14,8 @@ namespace Heimdall.App.Games.Squadrons
         /// <summary>Gets the native capture size limit.</summary>
         internal const long MaximumBytes = 4 * 1024 * 1024;
         /// <inheritdoc/>
+        protected override bool CanRecoverWorkspace => true;
+        /// <inheritdoc/>
         protected override WorkspaceOperationKind Kind => WorkspaceOperationKind.Import;
         /// <inheritdoc/>
         protected override WorkspaceAvailability ReadAvailability() => new(true, "");
@@ -33,6 +35,8 @@ namespace Heimdall.App.Games.Squadrons
             ArgumentNullException.ThrowIfNull(prepared);
             return Task.FromResult(new SquadronsImportResult(createSession(prepared.Workspace), prepared.SourceDirectory));
         }
+        /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(SquadronsImportResult result) => ProfileCommandEffects.None;
         /// <inheritdoc/>
         protected override bool IsSuccessful(SquadronsImportResult result) => result is not null;
         /// <inheritdoc/>

@@ -79,11 +79,11 @@ namespace Heimdall.App.Games.Squadrons
             var sourceDirectory = context.SourceDirectory;
             var receipt = NewProfileCommand.ExecuteAsync(name, CancellationToken.None).GetAwaiter().GetResult();
             context.SourceDirectory = sourceDirectory;
-            StatusText.Text = receipt.Message;
+            StatusText.Text = receipt.Completion.Message.Length > 0 ? receipt.Completion.Message : receipt.Native.Message;
             return true;
         }
 
-        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Detail;
+        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Native.Detail;
 
         private SquadronsImportCommand? _import;
         private SquadronsExportCommand? _export;

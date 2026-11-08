@@ -83,3 +83,18 @@ set `HEIMDALL_SMOKE_RESULTS` to choose it). Any group that is not `PASS` (includ
 ### Smoke group inherited state (eb7a0e8 Windows group failures)
 
 The single-process Main ran every scenario after `EditionSmoke`'s `finally`, which left the signed test-Owner policy and a reset appearance (`EditionAccess.SetForTests(issuer.Policy); AppearanceManager.Configure(null); ThemeManager.Apply("Light"); AppearanceManager.ResetForTests();`). A fresh group process starts with the Free default, so `AppearanceEditorSmoke` (which sets no policy) hit `EditionPolicy.RequirePremium` in `AppearanceWindow`. The games, squadrons and dcs-shared groups now start from that same explicit fixture (`StartupInheritedState`, own process-lifetime `OwnerLicenseTestIssuer`); startup does not. Free scenarios keep setting Free explicitly and restoring. The games (Elite New) and squadrons (import→Save) failures set their own Premium/Owner policy, so the policy alone is not proven as their cause; their failure messages now include the window status text for the next Windows run.
+
+## Review corrections after `8b2b68e`
+
+- Each isolated smoke host now owns explicit application shutdown. `SmokeHostLifetimeSmoke` closes the last fixture window, pumps a subsequent window and verifies that the host survives; group cleanup explicitly shuts the host down.
+- `IGameProfileCommand` returns a native receipt plus shared completion. Every adapter declares its durable effects through a required override. Post-write acceptance failures preserve the receipt, committed outcome and warning; workspace writes enter recovery and reject accidental create/duplicate retries. Output presentation failures preserve the output receipt without sealing the profile.
+- DCS persistence resumes on the lease owner before releasing draft suspension or reporting a repository failure. Successful persistence publishes no native notifications until `AcceptSaved` runs inside the shared committed/recovery boundary.
+- Regression evidence: shared command completion and real owner-thread tests run on Linux. Production ED/Squadrons create-and-open failures and DCS suspended repository success/failure/retry compile into Windows smoke. **Those Windows regressions and all four complete smoke groups still require execution at the updated head.**
+
+- The launcher now bounds redirected-output draining with the same timeout as process execution. It never calls parameterless `WaitForExit` after killing a timed-out process, because descendants may retain pipe handles. The portable launcher timeout regression passes with this change.
+
+- ED create/duplicate now explicitly calls the native session export-validation boundary before writing. Constructing a viewable read-only session alone does not authorize persistence; a Windows regression verifies refusal without a write.
+
+Validation limitations for these corrections: the existing C# layout gate reports 89 baseline violations and no new violations from this patch. `dotnet format style` cannot start its Roslyn build-host IPC socket in the Linux sandbox (permission denied); the formatter must be run locally on Windows before acceptance.
+
+Executed correction validation: Release solution build with `EnableWindowsTargeting=true` and `EnforceCodeStyleInBuild=true`: 0 warnings/errors. Full .NET suite: 2,370 passed, 0 failed/skipped. Independent 80/80 gates: all nine assemblies pass (total 97.04% line / 87.66% branch). CRAP <= 50 passes over 2,355 measured methods. Python CI checks: 67 passed. `git diff --check`: clean. Windows/WPF execution and the standalone formatter remain pending; no Windows pass is claimed.

@@ -15,6 +15,8 @@ namespace Heimdall.App.Games.WarThunder
         : GameProfileCommandBase<WarThunderImportRequest, GameWorkspace, GameSessionInstall>(context, input)
     {
         /// <inheritdoc/>
+        protected override bool CanRecoverWorkspace => true;
+        /// <inheritdoc/>
         protected override WorkspaceOperationKind Kind => WorkspaceOperationKind.Import;
         /// <inheritdoc/>
         protected override WorkspaceAvailability ReadAvailability() => new(true, "");
@@ -26,6 +28,8 @@ namespace Heimdall.App.Games.WarThunder
         }
         /// <inheritdoc/>
         protected override Task<GameSessionInstall> RunNativeAsync(GameWorkspace prepared, IWorkspaceOperationLease lease) => Task.FromResult(new GameSessionInstall(createSession(prepared), null));
+        /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(GameSessionInstall result) => ProfileCommandEffects.None;
         /// <inheritdoc/>
         protected override bool IsSuccessful(GameSessionInstall result) => result is not null;
         /// <inheritdoc/>

@@ -32,6 +32,8 @@ namespace Heimdall.App.Smoke
             try
             {
                 EditionAccess.SetForTests(issuer.PremiumPolicy);
+                DcsPersistenceCompletionSmoke.Verify(root);
+                ProfileCreationRecoverySmoke.Verify(root);
                 VerifyDcsSeal(root); Console.WriteLine("Recovery conformance: DCS seal passed.");
                 VerifySquadronsWindow(root); Console.WriteLine("Recovery conformance: Squadrons window entry points passed.");
             }

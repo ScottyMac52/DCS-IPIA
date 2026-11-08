@@ -267,7 +267,8 @@ namespace Heimdall.Application.Games
             // A durable write whose native baseline could not be installed leaves a stale session: hold it until reopened.
             if (result.RecoveryRequired && !_disposed)
             {
-                _recovery = "The profile was saved, but the saved version could not be shown. Reopen it before editing, saving or exporting.";
+                _recovery = result.Message.Length > 0 ? result.Message
+                    : "The profile was saved, but the saved version could not be shown. Reopen it before editing, saving or exporting.";
                 SealStaleNative();
             }
             if (result.Outcome != WorkspaceOperationOutcome.Applied || _disposed) return;

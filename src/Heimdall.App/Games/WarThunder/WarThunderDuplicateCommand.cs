@@ -23,6 +23,8 @@ namespace Heimdall.App.Games.WarThunder
         /// <inheritdoc/>
         protected override Task<GameSessionInstall> RunNativeAsync(GameWorkspace prepared, IWorkspaceOperationLease lease) => Task.FromResult(new GameSessionInstall(createSession(prepared), null));
         /// <inheritdoc/>
+        protected override ProfileCommandEffects ReadEffects(GameSessionInstall result) => ProfileCommandEffects.None;
+        /// <inheritdoc/>
         protected override bool IsSuccessful(GameSessionInstall result) => result is not null;
         /// <inheritdoc/>
         protected override void Accept(GameSessionInstall result, IWorkspaceOperationLease lease) => install(result);
