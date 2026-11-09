@@ -32,7 +32,7 @@ namespace Heimdall.App.Games.Squadrons
             _save = save; _discard = discard; _status = status;
             BindAssignmentContext(context);
         }
-        internal void RefreshNativeAssignments() => RefreshAssignments();
+        internal void RefreshNativeAssignments() => SynchronizeNativeAssignments();
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
             WorkspaceAssignmentActionState.For(action, CurrentAssignmentContext, new(true, ready, reason));
         internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>
@@ -67,4 +67,5 @@ namespace Heimdall.App.Games.Squadrons
         internal Canvas DrawingCanvas => Artwork.Surface;
     }
 }
+
 

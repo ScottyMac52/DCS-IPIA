@@ -5,6 +5,7 @@ namespace Heimdall.Application
     /// <summary>Formats physical input labels independently of simulator binding values.</summary>
     public static class AssignmentInputLabel
     {
+        #region BEGIN Public
         /// <summary>Combines a physical identifier with its caption without repeating a matching button number.</summary>
         public static string WithCaption(string identifier, string? caption)
         {
@@ -26,6 +27,9 @@ namespace Heimdall.Application
             return WithCaption(identifier, caption);
         }
 
+        #endregion END Public
+
+        #region BEGIN private helpers
         private static string WithoutRepeatedButton(string identifier, string label)
         {
             var numbered = CaptionNumber(label.AsSpan());
@@ -55,5 +59,6 @@ namespace Heimdall.Application
             return label.StartsWith("B", StringComparison.OrdinalIgnoreCase)
                 ? label[1..] : ReadOnlySpan<char>.Empty;
         }
+        #endregion END private helpers
     }
 }

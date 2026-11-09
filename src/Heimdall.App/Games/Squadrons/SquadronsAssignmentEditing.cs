@@ -16,7 +16,7 @@ namespace Heimdall.App.Games.Squadrons
     internal sealed class SquadronsAssignmentEditing(
         SquadronsWorkspaceContext context,
         Func<SquadronsControllerPresenter> controllers,
-        Func<SquadronsAssignmentBrowser> browser,
+        Func<ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>> browser,
         Action<bool> refresh,
         Action<Action> run,
         TextBlock StatusText,
@@ -28,8 +28,9 @@ namespace Heimdall.App.Games.Squadrons
         #region BEGIN private helpers
         internal void UpdateEditor()
         {
-            var row = _assignmentsView.BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
-            var command = _assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
+            var selection = context.State.Selection;
+            var row = context.Rows.FirstOrDefault(candidate => candidate.RecordId == selection.AlternativeId);
+            var command = selection.CommandId is { } id ? context.Session?.Catalog.Find(id) : null;
             _assignmentsView.AssignmentEditor.Visibility = command is null ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.TargetDevice.IsEnabled = command is not null && (row is null || row.Editable) &&
                 context.AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) != true &&
@@ -208,12 +209,15 @@ namespace Heimdall.App.Games.Squadrons
             if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             context.FocusedConcept = null;
             context.InspectedControl = null;
-            browser().SelectCommandConcept(context.Session.Catalog.Find(commandId)!.Metadata["squadrons.concept"]);
-            context.Selection.SelectInput(input.Key);
+            browser().SelectCommand(commandId);
             context.Refreshing = true;
             try { _assignmentsView.TargetDevice.SelectedItem = _assignmentsView.TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }
             finally { context.Refreshing = false; }
             refresh(false);
+            // The native content refresh may have rebuilt the picker before the dropped input was selected.
+            // Publish this explicit input choice after that refresh, without reloading another native baseline.
+            context.Selection.SelectInput(input.Key);
+            UpdateInputChoices();
             AssignmentFeedback(result);
         }
 
@@ -323,3 +327,5 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+
+

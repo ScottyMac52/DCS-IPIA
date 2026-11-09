@@ -36,17 +36,23 @@ namespace Heimdall.WarThunder
         }
         /// <summary>Filters captured command metadata and native ownership without physical aliases.</summary>
         public static IReadOnlyList<SimCommand> Filter(IReadOnlyList<SimCommand> catalog, IReadOnlyList<WarThunderWorkspaceRow> rows,
-            string? deviceId, string search, string? category, CommandType? type, GameCommandAssignmentStatus status) =>
-            catalog.Where(command => (category is null || command.Category == category) && (type is null || command.Type == type)
-                && (command.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) || command.Id.Contains(search, StringComparison.OrdinalIgnoreCase))
-                && (status switch
-                {
-                    GameCommandAssignmentStatus.AssignedToController => rows.Any(row => row.Command.Id == command.Id && row.DeviceIds.Contains(deviceId ?? "")),
-                    GameCommandAssignmentStatus.NotAssignedToController => !rows.Any(row => row.Command.Id == command.Id && row.DeviceIds.Contains(deviceId ?? "")),
-                    GameCommandAssignmentStatus.AssignedAnywhere => rows.Any(row => row.Command.Id == command.Id && Assigned(row.Binding)),
-                    GameCommandAssignmentStatus.UnassignedEverywhere => !rows.Any(row => row.Command.Id == command.Id && Assigned(row.Binding)),
-                    _ => true
-                })).ToArray();
+            string? deviceId, string search, string? category, CommandType? type, GameCommandAssignmentStatus status)
+        {
+            var query = new GameCommandQuery(Category: category, InputType: type, AssignmentStatus: status);
+            return CommandEntries(catalog, rows).Where(entry => MatchesCommand(entry, query, search, deviceId)).Select(entry => entry.Command).ToArray();
+        }
+        /// <summary>Indexes native assignment presence and joystick ownership once, retaining system-only assignments.</summary>
+        public static IReadOnlyList<GameCommandEntry> CommandEntries(IReadOnlyList<SimCommand> commands, IReadOnlyList<WarThunderWorkspaceRow> rows)
+        {
+            var owners = rows.ToLookup(x => x.Command.Id, StringComparer.Ordinal);
+            return commands.Select(command => new GameCommandEntry(command, "", command.Category, [command.Type],
+                owners[command.Id].SelectMany(row => row.DeviceIds).Distinct(StringComparer.Ordinal).ToArray())
+                { HasAssignments = owners[command.Id].Any(row => Assigned(row.Binding)) }).ToArray();
+        }
+        /// <summary>Preserves native name/ID search and shared ownership/type/category policy for one indexed command.</summary>
+        public static bool MatchesCommand(GameCommandEntry entry, GameCommandQuery query, string search, string? deviceId) =>
+            (entry.Command.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) || entry.Command.Id.Contains(search, StringComparison.OrdinalIgnoreCase))
+            && GameCommandBrowser.Matches(entry, query, deviceId);
         /// <summary>Resolves a captured input for native editing without exposing offset arithmetic to desktop controls.</summary>
         public static WarThunderNativeInputTarget? InputTarget(ProfileDocument profile, WarThunderBlkScalar scalar, CommandType type)
         {

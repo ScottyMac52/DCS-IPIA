@@ -1,3 +1,4 @@
+using Heimdall.App.Games.Dcs;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using CommandType = Heimdall.Domain.MultiSim.CommandType;
@@ -15,18 +16,21 @@ using System.Windows.Input;
 namespace Heimdall.App.Features.Commands
 {
     /// <summary>Browses, imports and edits the module command catalog.</summary>
-    public partial class DcsCommandsManagementView : UserControl
+    public partial class DcsCommandsManagementView : UserControl, IDisposable
     {
 
         private UIElement? _previewHost;
         private IDcsModuleWorkspaceContext? _context;
-        private readonly GameAssignmentSelection _selection = new();
-        private EventHandler? _workspaceChanged;
-        private DcsCommandPaletteEntry? _selected => CurrentPalette().FirstOrDefault(x => x.Id == _selection.CommandId);
+        private EventHandler? _passiveRefresh;
+        private DcsAssignmentBrowser? _browser;
+        private IReadOnlyList<DcsCommandPaletteEntry>? _published;
+        private DcsCommandPaletteEntry? _selected => _browser?.Commands.FirstOrDefault(x => x.Id == _context?.State.Selection.CommandId);
         private Guid? _assignmentDeviceId;
         private DcsCommandPaletteEntry? _displayedCommand;
         private bool _updatingFilters;
         private bool _refreshing;
+        private bool _hostOwnsLifetime;
+        private bool _featureActive;
         private AssignmentLayer? _assignmentScope;
         private static readonly string[] CatalogActions = ["Add", "Update", "Remove", "Import JSON…", "Import HTML…", "Clear all"];
         private Point? _dragStart;
@@ -34,6 +38,15 @@ namespace Heimdall.App.Features.Commands
         private AdornerLayer? _layer;
 
         #region BEGIN Public
+        /// <summary>Gets the shared browser contract for cached feature lifetime ownership.</summary>
+        internal IGameAssignmentBrowser Browser => _browser ?? throw new InvalidOperationException("Initialize the command browser.");
+        /// <summary>Releases native browser state subscriptions when the workspace closes.</summary>
+        public void Dispose()
+        {
+            if (_context is not null && _passiveRefresh is not null) _context.StateChanged -= _passiveRefresh;
+            _passiveRefresh = null; _browser?.Dispose(); _browser = null; GC.SuppressFinalize(this);
+        }
+
         /// <summary>Occurs when the command selection changes.</summary>
         public event EventHandler<DcsCommandPaletteEntry?>? SelectedCommandChanged;
         /// <summary>Gets the currently selected command, if any.</summary>
@@ -42,6 +55,8 @@ namespace Heimdall.App.Features.Commands
         public DcsCommandsManagementView()
         {
             InitializeComponent();
+            Loaded += (_, _) => { if (!_hostOwnsLifetime) _browser?.SetActive(true); };
+            Unloaded += (_, _) => { if (!_hostOwnsLifetime) _browser?.SetActive(false); };
             // Replace the ordinary XAML subscription with one that also
             // receives feedback already handled by the DataGrid or its children.
             GiveFeedbackEventHandler feedback = CommandGiveFeedback;
@@ -54,11 +69,20 @@ namespace Heimdall.App.Features.Commands
         {
             ArgumentNullException.ThrowIfNull(context);
             if (ReferenceEquals(_context, context)) return;
-            if (_context is not null && _workspaceChanged is not null) _context.StateChanged -= _workspaceChanged;
+            if (_context is not null && _passiveRefresh is not null) _context.StateChanged -= _passiveRefresh;
             _context = context;
-            _selection.Reset();
-            _workspaceChanged = WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
-            _context.StateChanged += _workspaceChanged;
+            _browser?.Dispose();
+            _browser = new(context, () => context.Draft?.Snapshot ?? context.Working?.Assignments ?? []);
+            _browser.SetActive(_hostOwnsLifetime ? _featureActive : IsLoaded);
+            _browser.ProjectionChanged += (_, _) => PublishBrowser();
+            var observer = new WorkspaceChangeObserver(context); observer.Accept();
+            _passiveRefresh = (_, _) =>
+            {
+                if (context.State.Operation is not null) return;
+                // Cached DCS palettes still show live draft usage; only the mounted browser owns selection.
+                if (observer.Observe() == WorkspaceChangeKind.Content && !IsSelectionOwner) _browser?.Refresh();
+            };
+            context.StateChanged += _passiveRefresh;
             Refresh();
         }
         /// <summary>Selects the assignment palette scope while keeping UI Layer catalog authoring read-only.</summary>
@@ -82,9 +106,17 @@ namespace Heimdall.App.Features.Commands
             _assignmentDeviceId = profileId;
             Refresh();
         }
+        /// <summary>Accepts synchronous selection ownership from the feature host instead of delayed WPF load events.</summary>
+        internal void SetFeatureActive(bool active)
+        {
+            var wasOwner = IsSelectionOwner;
+            _hostOwnsLifetime = true; _featureActive = active; _browser?.SetActive(active);
+            if (active && !wasOwner && _browser is not null) DisplaySelectedCommand();
+        }
         #endregion END Public
 
         #region BEGIN private helpers
+        private bool IsSelectionOwner => _hostOwnsLifetime ? _featureActive : IsLoaded;
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetCursorPos(out NativeScreenPoint point);
@@ -100,65 +132,57 @@ namespace Heimdall.App.Features.Commands
 
         private void RefreshCommands()
         {
-            if (_context?.Working is null || CommandSearch is null || CommandCategoryFilter is null ||
-                CommandTypeFilter is null || CommandStateFilter is null)
-            {
-                StatusText.Text = "No working snapshot";
-                _selection.Reset();
-                if (Commands is not null) Commands.ItemsSource = null;
-                return;
-            }
-
-            var selectedId = _selected?.Id;
-            var all = CurrentPalette();
-            var categories = Enumerable.Repeat("All", 1)
-                .Concat(all.Select(x => x.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
-                .ToArray();
-
-            _updatingFilters = true;
-            var selectedCategory = CommandCategoryFilter.SelectedItem as string;
-            CommandCategoryFilter.ItemsSource = categories;
-            CommandCategoryFilter.SelectedItem = selectedCategory is not null && categories.Contains(selectedCategory)
-                ? selectedCategory : "All";
-            _updatingFilters = false;
-
-            var category = CommandCategoryFilter.SelectedItem as string;
-            var scope = _assignmentScope ?? AssignmentLayer.Module;
-            var assignments = (_context.Draft?.Snapshot ?? _context.Working.Assignments)
-                .Where(x => x.Slot.Layer == scope).ToArray();
-            var devices = DcsWorkspaceStructureEditor.Describe(_context.Working).Devices
-                .Where(x => x.Layer == scope)
-                .Select(x => x.ProfileId).Distinct().ToArray();
-            var bound = assignments.GroupBy(a => a.Command.Id, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
-            var filtered = DcsCommandBrowser.Filter(all, assignments, scope, _assignmentDeviceId, devices,
-                category is null or "All" ? null : category,
+            if (_browser is null || CommandSearch is null || CommandCategoryFilter is null || CommandTypeFilter is null || CommandStateFilter is null) return;
+            _browser.Query(new(_assignmentScope ?? AssignmentLayer.Module, _assignmentDeviceId,
+                CommandCategoryFilter.SelectedItem as string is { } category && category != "All" ? category : null,
                 CommandTypeFilter.SelectedIndex switch { 1 => CommandType.Button, 2 => CommandType.Axis, _ => null },
-                CommandSearch.Text, (DcsCommandAssignmentStatus)Math.Max(0, CommandStateFilter.SelectedIndex));
-            _selection.Refresh(_assignmentDeviceId?.ToString("D"), filtered.Select(DcsCommandBrowser.Describe).ToArray(), selectedId, selectFirst: false);
-            var rows = filtered.Select(x => new { x.Id, x.Name, x.Category, x.IsAxis, Bound = bound.GetValueOrDefault(x.Id) }).ToArray();
-            Commands.ItemsSource = rows;
-            Commands.SelectedItem = rows.FirstOrDefault(x => x.Id == _selection.CommandId);
-            var selected = filtered.FirstOrDefault(x => x.Id == _selection.CommandId);
-            if (_displayedCommand != selected)
+                (DcsCommandAssignmentStatus)Math.Max(0, CommandStateFilter.SelectedIndex)), CommandSearch.Text);
+            PublishBrowser();
+            var normalized = CommandCategoryFilter.SelectedItem as string is { } current && current != "All" ? current : null;
+            if (_browser.Filter.Category != normalized) _browser.SetFilter(_browser.Filter with { Category = normalized });
+        }
+        private void PublishBrowser()
+        {
+            if (_browser is null) return;
+            var previous = _refreshing; _refreshing = true;
+            try
             {
-                _refreshing = false;
-                try { CommandSelected(Commands, null!); }
-                finally { _refreshing = true; }
+                var categories = _browser.Categories.Prepend("All").ToArray();
+                var selectedCategory = CommandCategoryFilter.SelectedItem as string;
+                _updatingFilters = true;
+                if (!(CommandCategoryFilter.ItemsSource as IEnumerable<string> ?? []).SequenceEqual(categories))
+                {
+                    CommandCategoryFilter.ItemsSource = categories;
+                    CommandCategoryFilter.SelectedItem = selectedCategory is not null && categories.Contains(selectedCategory) ? selectedCategory : "All";
+                }
+                _updatingFilters = false;
+                if (!ReferenceEquals(_published, _browser.Commands))
+                {
+                    _published = _browser.Commands;
+                    Commands.ItemsSource = _browser.Commands.Select(x => new DcsBrowserRow(x, _browser.BoundCount(x.Id))).ToArray();
+                }
+                Commands.SelectedItem = Commands.Items.Cast<DcsBrowserRow>().FirstOrDefault(x => x.Id == _context?.State.Selection.CommandId);
+                StatusText.Text = $"{_browser.Commands.Count} of {_browser.PaletteCount} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
+                if (_displayedCommand != _selected)
+                {
+                    DisplaySelectedCommand();
+                }
             }
-            StatusText.Text = $"{filtered.Count} of {all.Count} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
+            finally { _updatingFilters = false; _refreshing = previous; }
         }
 
         private void FiltersChanged(object sender, EventArgs e) { if (!_updatingFilters) Refresh(); }
 
-        private IReadOnlyList<DcsCommandPaletteEntry> CurrentPalette() => _context?.Working is not { } working ? [] :
-            _assignmentScope == AssignmentLayer.UiLayer ? DcsCommandPalette.FromUiLayer(working.UiCommands) : working.ModuleCommands;
-
         private void CommandSelected(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
-            var id = (Commands.SelectedItem as dynamic)?.Id as string;
-            _selection.SelectCommand(id);
+            var id = (Commands.SelectedItem as DcsBrowserRow)?.Id;
+            _browser?.SelectCommand(id);
+            DisplaySelectedCommand();
+        }
+
+        private void DisplaySelectedCommand()
+        {
             if (_selected is null)
             {
                 CommandId.Text = ""; CommandName.Text = ""; CommandCategory.Text = "";
@@ -171,7 +195,7 @@ namespace Heimdall.App.Features.Commands
                 CommandId.IsReadOnly = true;
             }
             _displayedCommand = _selected;
-            SelectedCommandChanged?.Invoke(this, _selected);
+            if (IsSelectionOwner) SelectedCommandChanged?.Invoke(this, _selected);
         }
 
         private void AddClicked(object sender, RoutedEventArgs e)
@@ -204,7 +228,7 @@ namespace Heimdall.App.Features.Commands
             try
             {
                 if (!StageCatalogEdit(w => DcsModuleCommandCatalogEditor.Remove(w, _selected))) return;
-                StatusText.Text = "Command removed and staged."; _selection.SelectCommand(null);
+                StatusText.Text = "Command removed and staged."; _browser?.SelectCommand(null);
             }
             catch (Exception ex) { StatusText.Text = ex.Message; }
         }
@@ -353,3 +377,6 @@ namespace Heimdall.App.Features.Commands
         #endregion END private helpers
     }
 }
+
+
+

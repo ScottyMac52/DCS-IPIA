@@ -3,8 +3,11 @@ using Xunit;
 
 namespace Heimdall.Tests
 {
+    /// <summary>Checks physical identifiers, caption normalization, and preservation of unsupported input labels.</summary>
     public sealed class AssignmentInputLabelTests
     {
+        #region BEGIN Public
+        /// <summary>Combines physical button identifiers and captions without duplicating a matching button number.</summary>
         [Theory]
         [InlineData("JOY_BTN1", "Button 1 - VIACOM TX1", "Button 1 — VIACOM TX1")]
         [InlineData("JOY_BTN7", "B07 | Hat press", "Button 7 — Hat press")]
@@ -88,5 +91,6 @@ namespace Heimdall.Tests
         {
             Assert.Equal(expected, AssignmentInputLabel.WithCaption(identifier, caption));
         }
+        #endregion END Public
     }
 }

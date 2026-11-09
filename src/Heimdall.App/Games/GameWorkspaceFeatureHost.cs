@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
 {
@@ -15,7 +16,9 @@ namespace Heimdall.App.Games
             {
                 stopLiveInput?.Invoke();
                 actions.ClearActions();
+                if (content.Content is IGameWorkspaceFeatureLifetime previous) previous.SetFeatureActive(false);
                 content.Content = feature;
+                if (feature is IGameWorkspaceFeatureLifetime current) current.SetFeatureActive(true);
             }
             if (feature is UserControl view)
             {
@@ -29,3 +32,5 @@ namespace Heimdall.App.Games
         #endregion END Public
     }
 }
+
+

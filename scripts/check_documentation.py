@@ -30,7 +30,7 @@ def check(root, requested_version=None):
         files += sorted((root / directory).rglob("*.md"))
     for path in files:
         if not path.exists():
-            errors.append(f"Missing guide: {path.relative_to(root)}")
+            errors.append(f"Missing guide: {path.relative_to(root).as_posix()}")
             continue
         # Examples inside fenced code blocks are not Markdown links.
         text = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$", "", path.read_text(encoding="utf-8"))
@@ -40,7 +40,7 @@ def check(root, requested_version=None):
                 continue
             destination = path.parent / unquote(url.path)
             if not destination.exists():
-                errors.append(f"{path.relative_to(root)}: missing local link target {target}")
+                errors.append(f"{path.relative_to(root).as_posix()}: missing local link target {target}")
     return errors
 
 

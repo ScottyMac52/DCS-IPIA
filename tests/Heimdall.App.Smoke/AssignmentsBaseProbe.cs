@@ -19,7 +19,7 @@ namespace Heimdall.App.Smoke
         }
         #region BEGIN Public
         /// <summary>Releases the probe-owned context after its host closes.</summary>
-        public void Dispose() { _context.Dispose(); GC.SuppressFinalize(this); }
+        protected override void DisposeNative() => _context.Dispose();
         internal int Value { get; private set; }
         internal int Refreshes { get; private set; }
         internal int AvailabilityRefreshes { get; private set; }

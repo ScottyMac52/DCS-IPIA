@@ -15,33 +15,34 @@ namespace Heimdall.App.Games.Squadrons
     /// <summary>Projects the native command catalog and captured records independently of editing and persistence.</summary>
     internal sealed class SquadronsAssignmentBrowser(
         SquadronsWorkspaceContext context,
-        Func<SquadronsControllerPresenter> controllers,
-        Func<SquadronsAssignmentEditing> editing,
-        Func<SquadronsAssignmentDrawing> drawing,
+        Action stopInput,
+        Action refreshController,
+        Func<bool, WorkspaceAssignmentActionState> clearAvailability,
+        Action renderDrawing,
         Action<Action> run,
         ListBox DevicePicker,
         SquadronsDevicesView _devicesView,
         SquadronsAssignmentsView _assignmentsView)
+        : Heimdall.Squadrons.SquadronsAssignmentBrowser(context, context.Backend, () => context.ControllerInputs), ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>
     {
         #region BEGIN Public
+        void ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>.RefreshRows() => RefreshRows();
+        void ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>.SelectRecord(SquadronsWorkspaceRow row) => SelectRecord(row);
+        void ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>.SelectCommandConcept(string concept) => SelectCommandConcept(concept);
         #endregion END Public
         #region BEGIN private helpers
         internal void RefreshRows()
         {
             if (context.Refreshing) return;
-            var selected = (_assignmentsView.BindingsGrid.SelectedItem as SquadronsWorkspaceRow)?.RecordId;
             var review = _assignmentsView.ReviewCaptured.IsChecked == true;
             var section = _assignmentsView.SectionPicker.SelectedItem as string ?? "Flight";
-            var rows = SquadronsWorkspaceProjection.Filter(context.Rows, _assignmentsView.SectionPicker.SelectedItem as string ?? "All", _assignmentsView.TypePicker.SelectedItem as string ?? "All inputs", _assignmentsView.Search.Text,
-                (DevicePicker.SelectedItem as GameDeviceChoice)?.Id ?? "all", includeUnverified: review);
-            if (context.FocusedConcept is not null) rows = rows.Where(row => row.Native.Concept == context.FocusedConcept).ToArray();
-            if (context.InspectedControl is not null && context.SelectedController is { } inspectedSlot)
-                rows = SquadronsDrawingProjection.ForControl(context.InspectedControl, context.Rows, inspectedSlot, context.DrawingSection);
+            RefreshQuery();
+            var rows = Records;
             context.Refreshing = true;
             try
             {
-                _assignmentsView.BindingsGrid.ItemsSource = rows;
-                _assignmentsView.BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
+                if (!ReferenceEquals(_assignmentsView.BindingsGrid.ItemsSource, rows)) _assignmentsView.BindingsGrid.ItemsSource = rows;
+                _assignmentsView.BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == context.State.Selection.AlternativeId);
             }
             finally { context.Refreshing = false; }
             _assignmentsView.ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
@@ -63,7 +64,6 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.CountText.Text = context.InspectedControl.Label + " · " + rows.Count + " captured assignments · " + context.DrawingSection + ".";
                 if (rows.Count == 0) _assignmentsView.EmptyState.Text = "No captured assignments on this control in the current context.";
             }
-            _assignmentsView.RefreshNativeAssignments();
         }
 
         internal void CaptureReviewChanged(object sender, RoutedEventArgs e)
@@ -79,7 +79,7 @@ namespace Heimdall.App.Games.Squadrons
             var command = _assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
             if (context.Selection.CommandId != command?.Id)
                 _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = _assignmentsView.DrawingDropFeedback.Text = "";
-            context.Selection.SelectCommand(command?.Id);
+            SelectCommand(command?.Id);
             context.FocusedConcept = null;
             context.InspectedControl = null;
             context.Refreshing = true;
@@ -102,8 +102,7 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.CommandHint.Text = "Choose a command to inspect its saved binding records.";
                 return;
             }
-            var plan = SquadronsAssignmentPlanner.For(context.Backend, context.Session.Snapshot.Profile,
-                command.Metadata["squadrons.concept"]);
+            var plan = Plan(command.Metadata["squadrons.concept"]);
             _assignmentsView.CommandHint.Text = plan.CapturedRecords + " captured records · " + plan.EditableRecords + " editable.";
         }
 
@@ -131,8 +130,7 @@ namespace Heimdall.App.Games.Squadrons
             _assignmentsView.EditNativeRecordItem.IsEnabled = row is not null;
             _assignmentsView.ApplyNativeRecordItem.Visibility = row?.Editable == true && _assignmentsView.ApplyButton.IsEnabled
                 ? Visibility.Visible : Visibility.Collapsed;
-            AssignmentActionPresentation.Show(_assignmentsView.ClearNativeRecordItem, editing().AssignmentAction(WorkspaceAssignmentAction.Clear,
-                row?.Native.Type == 3, "Select an editable joystick assignment."));
+            AssignmentActionPresentation.Show(_assignmentsView.ClearNativeRecordItem, clearAvailability(row?.Native.Type == 3));
         }
 
         internal void RecordRightClicked(object sender, MouseButtonEventArgs e)
@@ -153,7 +151,7 @@ namespace Heimdall.App.Games.Squadrons
             if (context.Refreshing) return;
             if (ReferenceEquals(sender, DevicePicker))
             {
-                controllers().StopLiveInput();
+                stopInput();
                 context.InspectedControl = null;
                 _assignmentsView.DrawingDropFeedback.Text = "";
                 _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = "";
@@ -166,9 +164,9 @@ namespace Heimdall.App.Games.Squadrons
                     _assignmentsView.TypePicker.SelectedItem = "All inputs";
                     _devicesView.ControllerSetup.IsExpanded = false;
                 }
-                run(() => { controllers().RefreshNativeControllerName(); controllers().UpdateControllerAvailability(); });
-                RefreshCommandCatalog(context.Session?.Snapshot);
-                run(drawing().RenderDrawing);
+                run(refreshController);
+                RefreshCommandCatalog(null);
+                run(renderDrawing);
             }
             if (ReferenceEquals(sender, _assignmentsView.SectionPicker) || ReferenceEquals(sender, _assignmentsView.TypePicker))
             {
@@ -188,21 +186,20 @@ namespace Heimdall.App.Games.Squadrons
         internal void SelectRecord(SquadronsWorkspaceRow row)
         {
             SelectCommandConcept(row.Native.Concept);
-            context.Selection.SelectAlternative(row.RecordId);
-            context.Selection.SelectInput(row.Native.Input?.Key ?? "");
+            var previous = context.Refreshing;
             context.Refreshing = true;
             try
             {
                 _assignmentsView.TargetDevice.SelectedItem = _assignmentsView.TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == row.DeviceId);
             }
-            finally { context.Refreshing = false; }
-            _assignmentsView.RefreshNativeAssignments();
+            finally { context.Refreshing = previous; }
+            base.SelectRecord(row.RecordId);
         }
 
         internal void SelectCommandConcept(string concept)
         {
             if (context.Session is null) return;
-            var command = context.Backend.GetCatalog(context.Session.Snapshot.Profile).Commands.Single(x => x.Metadata["squadrons.concept"] == concept);
+            var command = AllCommands.Single(x => x.Metadata["squadrons.concept"] == concept);
             var section = context.DrawingSection;
             var oldRefreshing = context.Refreshing;
             context.Refreshing = true;
@@ -212,68 +209,69 @@ namespace Heimdall.App.Games.Squadrons
                 {
                     _assignmentsView.CommandBrowser.CommandCategoryPicker.SelectedIndex = _assignmentsView.CommandBrowser.CommandTypePicker.SelectedIndex = _assignmentsView.CommandBrowser.AssignmentStatusPicker.SelectedIndex = 0;
                     _assignmentsView.CommandBrowser.CommandSearch.Clear();
-                    RefreshCommandCatalog(context.Session.Snapshot, command.Id);
+                    RefreshCommandCatalog(null, command.Id);
                 }
                 _assignmentsView.CommandBrowser.CommandsList.SelectedItem = _assignmentsView.CommandBrowser.CommandsList.Items.Cast<Heimdall.Domain.MultiSim.SimCommand>().Single(x => x.Id == command.Id);
                 if (context.Selection.CommandId != command.Id) _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = "";
-                context.Selection.SelectCommand(command.Id);
+                SelectCommand(command.Id);
                 _assignmentsView.SelectionEditor.ShowCommand(command);
                 _assignmentsView.ShowCommandButton.IsEnabled = true;
                 UpdateCommandHint(command);
             }
             finally { context.Refreshing = oldRefreshing; }
-            if (section != context.DrawingSection) run(drawing().RenderDrawing);
+            if (section != context.DrawingSection) run(renderDrawing);
         }
 
         internal void RefreshCommandCatalog(GameWorkspace? snapshot, string? preferredCommandId = null)
         {
-            var selected = preferredCommandId ?? (_assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id;
-            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> all = snapshot is null ? [] : context.Backend.GetCatalog(snapshot.Profile).Commands;
-            IReadOnlyList<Heimdall.Domain.MultiSim.SimCommand> filtered = snapshot is null ? [] : SquadronsCommandFilter.Apply(all,
-                context.Backend.ReadBindings(snapshot.Profile),
-                _assignmentsView.CommandBrowser.CommandCategoryPicker.SelectedItem as string ?? "All",
-                (_assignmentsView.CommandBrowser.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Label ?? "All types",
-                (_assignmentsView.CommandBrowser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Label ?? "All",
-                _assignmentsView.CommandBrowser.CommandSearch.Text, context.AssignmentSource);
-            var wasRefreshing = context.Refreshing;
-            context.Refreshing = true;
+            RefreshQuery(preferredCommandId); Publish();
+        }
+
+        protected override void OnProjectionChanged() => Publish();
+        private void RefreshQuery(string? preferred = null) => Query(new(context.AssignmentSource,
+            _assignmentsView.CommandBrowser.CommandCategoryPicker.SelectedItem as string ?? "All",
+            (_assignmentsView.CommandBrowser.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Label ?? "All types",
+            (_assignmentsView.CommandBrowser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Label ?? "All",
+            _assignmentsView.SectionPicker.SelectedItem as string ?? "All", _assignmentsView.TypePicker.SelectedItem as string ?? "All inputs",
+            _assignmentsView.Search.Text, _assignmentsView.ReviewCaptured.IsChecked == true, context.FocusedConcept,
+            context.InspectedControl, context.DrawingSection), _assignmentsView.CommandBrowser.CommandSearch.Text, preferred);
+        private void Publish()
+        {
+            var previous = context.Refreshing; context.Refreshing = true;
             try
             {
-
-                context.Selection.SelectScope((context.Session?.Id.ToString("N") ?? "") + ":" + context.DrawingSection + ":" + context.AssignmentSource);
-                context.Selection.Refresh(context.AssignmentSource, filtered, selected, selectFirst: false);
-                _assignmentsView.CommandBrowser.CommandsList.ItemsSource = filtered;
-                _assignmentsView.CommandBrowser.CommandsList.SelectedItem = filtered.FirstOrDefault(x => x.Id == context.Selection.CommandId);
-                if (_assignmentsView.BindingsGrid.SelectedItem is SquadronsWorkspaceRow row &&
-                    row.Native.Concept != (_assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Metadata["squadrons.concept"])
-                    _assignmentsView.BindingsGrid.SelectedItem = null;
+                context.Rows = AllRecords;
+                var browser = _assignmentsView.CommandBrowser;
+                if (!ReferenceEquals(browser.CommandsList.ItemsSource, Commands)) browser.CommandsList.ItemsSource = Commands;
+                browser.CommandsList.SelectedItem = Commands.FirstOrDefault(x => x.Id == context.State.Selection.CommandId);
+                if (!ReferenceEquals(_assignmentsView.BindingsGrid.ItemsSource, Records)) _assignmentsView.BindingsGrid.ItemsSource = Records;
+                _assignmentsView.BindingsGrid.SelectedItem = Records.FirstOrDefault(x => x.RecordId == context.State.Selection.AlternativeId);
+                browser.CommandCount.Text = Commands.Count + " of " + AllCommands.Count + " known/imported commands · assignment status includes all native input records.";
+                browser.CommandEmptyHint.Visibility = Commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                var selected = browser.CommandsList.SelectedItem as SimCommand;
+                _assignmentsView.SelectionEditor.ShowCommand(selected); UpdateCommandHint(selected);
+                _assignmentsView.ShowCommandButton.IsEnabled = selected is not null;
             }
-            finally { context.Refreshing = wasRefreshing; }
-            _assignmentsView.CommandBrowser.CommandCount.Text = filtered.Count + " of " + all.Count +
-                " known/imported commands · assignment status includes all native input records.";
-            _assignmentsView.SelectionEditor.ShowCommand(_assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand);
-            UpdateCommandHint(_assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand);
-            _assignmentsView.CommandBrowser.CommandEmptyHint.Visibility = filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            _assignmentsView.ShowCommandButton.IsEnabled = _assignmentsView.CommandBrowser.CommandsList.SelectedItem is not null;
+            finally { context.Refreshing = previous; }
+            _assignmentsView.SynchronizeNativeAssignments();
         }
 
         internal void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)
         {
             if (context.Refreshing) return;
-            RefreshCommandCatalog(context.Session?.Snapshot);
-            _assignmentsView.RefreshNativeAssignments();
+            RefreshCommandCatalog(null);
             if (ReferenceEquals(sender, _assignmentsView.CommandBrowser.CommandCategoryPicker))
             {
                 context.FocusedConcept = null;
                 context.InspectedControl = null;
                 RefreshRows();
-                run(drawing().RenderDrawing);
+                run(renderDrawing);
             }
         }
 
         internal void CommandSearchChanged(object sender, TextChangedEventArgs e)
         {
-            if (!context.Refreshing) { RefreshCommandCatalog(context.Session?.Snapshot); _assignmentsView.RefreshNativeAssignments(); }
+            if (!context.Refreshing) { RefreshCommandCatalog(null); }
         }
 
         internal void ResetCommandFiltersClicked(object sender, RoutedEventArgs e)
@@ -287,10 +285,11 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.CommandBrowser.CommandSearch.Clear();
             }
             finally { context.Refreshing = false; }
-            RefreshCommandCatalog(context.Session?.Snapshot);
-            _assignmentsView.RefreshNativeAssignments();
-            run(drawing().RenderDrawing);
+            RefreshCommandCatalog(null);
+            run(renderDrawing);
         }
         #endregion END private helpers
     }
 }
+
+

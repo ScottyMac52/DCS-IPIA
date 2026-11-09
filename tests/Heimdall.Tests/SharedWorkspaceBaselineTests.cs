@@ -13,18 +13,8 @@ namespace Heimdall.Tests
     /// </summary>
     public sealed class SharedWorkspaceBaselineTests
     {
-        private static (SquadronsProfileBackend Backend, Heimdall.Domain.MultiSim.ProfileDocument Profile, string Raw) Squadrons()
-        {
-            var raw = File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
-                "Fixtures", "Squadrons", "Synthetic_profile_synced"));
-            var backend = new SquadronsProfileBackend();
-            var profile = backend.Import("baseline", new Dictionary<string, string>
-            {
-                [SquadronsProfileBackend.FileName] = raw
-            });
-            return (backend, profile, raw);
-        }
 
+        #region BEGIN Public
         /// <summary>Projection and controller filtering must not change native data or reassign other slots.</summary>
         [Fact]
         public void Viewing_two_captured_slots_does_not_mutate_native_assignments()
@@ -110,5 +100,21 @@ namespace Heimdall.Tests
                 "All", "All inputs", "", "squadrons.joystick.3", includeUnverified: true));
             Assert.Equal(raw, backend.Export(profile).Files[SquadronsProfileBackend.FileName]);
         }
+
+        #endregion END Public
+
+        #region BEGIN private helpers
+        private static (SquadronsProfileBackend Backend, Heimdall.Domain.MultiSim.ProfileDocument Profile, string Raw) Squadrons()
+        {
+            var raw = File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
+                "Fixtures", "Squadrons", "Synthetic_profile_synced"));
+            var backend = new SquadronsProfileBackend();
+            var profile = backend.Import("baseline", new Dictionary<string, string>
+            {
+                [SquadronsProfileBackend.FileName] = raw
+            });
+            return (backend, profile, raw);
+        }
+        #endregion END private helpers
     }
 }

@@ -69,7 +69,8 @@ namespace Heimdall.App.Games.Elite
                 controllerReview ?? (change => new ControllerChangeReviewWindow(this, change).ShowDialog() == true),
                 () => _editing!.RefreshInputChoices(), () => _editing!.Actions.Start, RunBusy, UpdateAvailability, Run, Status);
             _editing = new(_context, _assignmentsView, DevicePicker, () => _controllers.Evidence, UpdateAvailability, Run, Status);
-            _browser = new(_context, _assignmentsView, UpdateAvailability, Status);
+            _browser = new(_context, _assignmentsView, Status);
+            _assignmentsView.BindBrowser(_browser, () => _context.Refreshing);
             _references = new(_context, this, _referenceView, _drawing.RenderDrawing, Run, Status);
             _profiles = new(_context, this, ProfilePicker, ProfileName, BindingsDirectoryText, ExportToReviewFolder, ExportState,
                 importPicker, exportPicker, CreateSession, InstallSession, ReloadChoices, Remember, ConfirmLeave, StopLiveInput,
@@ -288,8 +289,8 @@ namespace Heimdall.App.Games.Elite
             var document = _session.Snapshot;
             var displayedDevice = (DevicePicker.SelectedItem as GameDeviceChoice)?.Id; var previousDevice = Device?.Id; var previousCommand = Command?.Id;
             var previousCombinationDevice = (_assignmentsView.ModifierDevicePicker.SelectedItem as GameDeviceChoice)?.Id;
-            _commands = _session.Catalog.Commands;
-            _rows = EliteWorkspaceProjection.Rows(document.Profile, _session.Catalog);
+            _browser.Refresh();
+            _commands = _browser.AllCommands; _rows = _browser.AllRecords;
             _refreshing = true;
             var devices = GameControllerOrder.For(document).Select(id => new GameDeviceChoice(id, EliteWorkspaceContext.ControllerName(document, id))).ToArray();
             DevicePicker.ItemsSource = devices; var retained = WorkspaceControllerRetention.Choose(devices.Select(x => x.Id).ToArray(), previousDevice, displayedDevice);
@@ -300,7 +301,7 @@ namespace Heimdall.App.Games.Elite
             _refreshing = false;
             SyncContextSelection();
             _editing.RefreshCombinationInputs();
-            _browser.FilterCommands(previousCommand); _drawing.RenderDevice(); _controllers.UpdateReplacementReferences(); UpdateAvailability();
+            _browser.FilterCommands(previousCommand); _assignmentsView.SynchronizeNativeAssignments(); _drawing.RenderDevice(); _controllers.UpdateReplacementReferences(); UpdateAvailability();
         }
 
         private void GameChanged(object sender, SelectionChangedEventArgs e)
@@ -389,3 +390,4 @@ namespace Heimdall.App.Games.Elite
         #endregion END private helpers
     }
 }
+

@@ -7,6 +7,8 @@ namespace Heimdall.Tests
     /// an actual handler and a currently valid native target.</summary>
     public sealed class HardwareDiagramActionAvailabilityTests
     {
+        #region BEGIN Public
+        /// <summary>Omits actions that the native diagram does not implement.</summary>
         [Fact]
         public void Unsupported_actions_are_absent()
         {
@@ -19,6 +21,7 @@ namespace Heimdall.Tests
             Assert.False(actions.Tune);
         }
 
+        /// <summary>Enables clearing only when both its handler and a current native assignment exist.</summary>
         [Theory]
         [InlineData(false, false)]
         [InlineData(true, false)]
@@ -33,6 +36,7 @@ namespace Heimdall.Tests
             Assert.False(actions.Tune);
         }
 
+        /// <summary>Requires an independent tuning handler and valid tuning target.</summary>
         [Theory]
         [InlineData(false, false)]
         [InlineData(true, false)]
@@ -46,11 +50,13 @@ namespace Heimdall.Tests
             Assert.True(actions.Select);
         }
 
+        /// <summary>Allows a read-only diagram to advertise no interactive actions.</summary>
         [Fact]
         public void Read_only_diagram_may_have_no_actions()
         {
             Assert.Equal(new HardwareDiagramActionAvailability(false, false, false, false),
                 HardwareDiagramActionAvailability.For(false, false, false, false, false, false));
         }
+        #endregion END Public
     }
 }

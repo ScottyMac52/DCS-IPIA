@@ -183,3 +183,10 @@ Discard follows the same role entry with atomic native restore and no write. Ass
   sequence on the command-smoke fixtures (Linux). Windows adapters, dialogs and the dispatcher remain covered only by `Heimdall.App.Smoke`.
 - **Export readiness (open policy).** Squadrons and Elite offer Export when saved and refuse native review blockers (duplicate declarations,
   unresolved references) when run; DCS disables Export for module errors. This PR preserves each game's current behavior.
+
+
+## PR4 — assignment browser ownership
+
+All four UI-free native adapters inherit `GameAssignmentBrowserBase<TCommand,TRecord,TFilter>` in Application. ED/Squadrons/War Thunder WPF browser collaborators inherit those adapters; DCS's management panel consumes `DcsAssignmentBrowser`. Actual filtering/selection/cache/publication/lifetime behavior is owned by the base, with typed native predicates and address hooks. Shared WPF view lifetime consumes `IGameAssignmentBrowser`; native editing's Squadrons browser dependency is a typed extension rather than a concrete sibling factory.
+
+Removed: DCS manager's private selection engine and dynamic rows, three independent App command-filter loops, War Thunder's independent captured-record refresh loop, Squadrons' catalog reparsing for command hints, and native-window catalog/row reconstruction. Native structural edits, drawing callbacks and format-specific projections remain native. See [PR4 acceptance record](pr4-acceptance-record.md) for the exact map and executed/pending evidence.

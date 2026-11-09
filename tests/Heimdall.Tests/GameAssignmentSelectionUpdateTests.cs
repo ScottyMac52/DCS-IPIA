@@ -7,6 +7,8 @@ namespace Heimdall.Tests
     /// <summary>Section changes must not publish a transient selection without a controller (Elite reference preview regression).</summary>
     public sealed class GameAssignmentSelectionUpdateTests
     {
+        #region BEGIN Public
+        /// <summary>Batches scope and controller changes into one notification containing the final controller.</summary>
         [Fact]
         public void ScopeAndControllerUpdatePublishesOnceWithController()
         {
@@ -19,6 +21,7 @@ namespace Heimdall.Tests
             Assert.Equal("profile:Systems", selection.Scope);
         }
 
+        /// <summary>Prevents section-change observers from seeing an intermediate missing controller.</summary>
         [Fact]
         public void ContextListenersNeverSeeMissingControllerDuringSectionChange()
         {
@@ -32,5 +35,6 @@ namespace Heimdall.Tests
             Assert.NotEmpty(controllers);
             Assert.All(controllers, id => Assert.Equal("06A30BAC", id));
         }
+        #endregion END Public
     }
 }

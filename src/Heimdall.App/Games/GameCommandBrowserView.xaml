@@ -15,7 +15,7 @@
        <TextBox Style="{StaticResource AppTextBox}" x:Name="CommandSearch" ToolTip="Search names, native IDs or categories" Margin="0,8,0,4" AutomationProperties.Name="Search Commands"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandCount" Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite"/>
        <TextBlock Style="{StaticResource AppLabel}" x:Name="CommandEmptyHint" Text="No matching commands. Clear filters or choose another section." TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,4"/>
-</StackPanel></ScrollViewer>       <ListBox x:Name="CommandsList" AutomationProperties.Name="Command catalog">
+</StackPanel></ScrollViewer>       <ListBox x:Name="CommandsList" AutomationProperties.Name="Command catalog" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
         <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding DisplayName}" TextWrapping="Wrap" ToolTip="{Binding Id}"/></DataTemplate></ListBox.ItemTemplate>
         <ListBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate>
          <TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" FontWeight="SemiBold" Margin="2,8,0,4"/>

@@ -22,7 +22,8 @@ namespace Heimdall.App.Games.WarThunder
         WarThunderAssignmentsView _assignments,
         Window owner,
         Func<WarThunderControllerPresenter> controllers,
-        Func<WarThunderAssignmentDrawing> drawing)
+        Func<WarThunderAssignmentDrawing> drawing,
+        IGameAssignmentBrowser browser)
     {
         #region BEGIN Public
         internal Action<AxisTuningWindow>? AxisTuningOpened { get; set; }
@@ -31,14 +32,13 @@ namespace Heimdall.App.Games.WarThunder
         internal void RefreshEditor()
         {
             _assignments.Editor.MappedInputs = MappedEditorInputs;
-            var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
-            var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? row?.Command;
-            if (context.Selection.CommandId != command?.Id || context.Selection.AlternativeId != row?.RecordId) context.SelectedPhysicalInput = null;
-            context.Selection.Update(() => { context.Selection.SelectCommand(command?.Id); context.Selection.SelectAlternative(row?.RecordId); });
+            var selection = context.State.Selection;
+            var row = context.Rows.FirstOrDefault(candidate => candidate.RecordId == selection.AlternativeId);
+            var command = selection.CommandId is { } commandId ? context.Session?.Catalog.Find(commandId) : null;
             var blocked = context.Selection.InputBlockedReason;
             _assignments.Editor.Show(context.Session, command, row, context.Testing || context.Busy || context.ScanningHardware, context.Selection);
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
-            else if (context.SelectedPhysicalInput is not null && context.SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, context.SelectedPhysicalInput);
+            else if (context.SelectedPhysicalInput is { } physicalInput && context.SelectedDevice is { } controllerId) _assignments.Editor.SelectPhysical(controllerId, physicalInput);
         }
 
         private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)
@@ -241,10 +241,12 @@ namespace Heimdall.App.Games.WarThunder
         {
             var rows = PhysicalAssignments(control);
             context.SelectedPhysicalInput = null; context.Selection.SelectInput(null);
+            var selected = rows.Count > 0 ? rows[0] : null;
+            browser.SelectCommand(selected?.Command.Id);
+            browser.SelectRecord(selected?.RecordId);
             context.Refreshing = true;
             try
             {
-                _assignments.Browser.CommandsList.SelectedItem = null;
                 _assignments.Records.ItemsSource = rows;
                 _assignments.Records.SelectedItem = rows.Count > 0 ? rows[0] : null;
                 _assignments.CapturedAssignments.IsExpanded = true;
@@ -275,3 +277,4 @@ namespace Heimdall.App.Games.WarThunder
         #endregion END private helpers
     }
 }
+

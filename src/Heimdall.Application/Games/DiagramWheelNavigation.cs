@@ -1,13 +1,12 @@
 namespace Heimdall.Application
 {
-    /// <summary>WPF-independent wheel behavior shared by all diagram surfaces.
-    /// Values are viewport offsets in device-independent pixels.</summary>
-    public enum DiagramWheelMode { Vertical, Horizontal, Zoom }
 
     /// <summary>Pure gesture decisions and calculations so multiple simulators cannot
     /// silently diverge in scroll direction, modifiers or zoom anchoring.</summary>
     public static class DiagramWheelNavigation
     {
+        #region BEGIN Public
+        /// <summary>Gives Control-modified zoom precedence over Shift-modified horizontal scrolling.</summary>
         public static DiagramWheelMode Mode(bool control, bool shift) =>
             control ? DiagramWheelMode.Zoom : shift ? DiagramWheelMode.Horizontal : DiagramWheelMode.Vertical;
 
@@ -27,5 +26,6 @@ namespace Heimdall.Application
         /// fixed while scaling around the image origin.</summary>
         public static double AnchoredOffset(double oldOffset, double cursorOffset, double ratio) =>
             Math.Max(0, (oldOffset + cursorOffset) * ratio - cursorOffset);
+        #endregion END Public
     }
 }

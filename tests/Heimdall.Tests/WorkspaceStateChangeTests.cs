@@ -7,6 +7,8 @@ namespace Heimdall.Tests
     /// <summary>Selection notifications must not be mistaken for native content changes that reload editors.</summary>
     public sealed class WorkspaceStateChangeTests
     {
+        #region BEGIN Public
+        /// <summary>Classifies a changed pending input as selection without a native content mutation.</summary>
         [Fact]
         public void PendingInputSelectionIsSelectionOnly()
         {
@@ -19,6 +21,7 @@ namespace Heimdall.Tests
             Assert.True(WorkspaceStateChange.IsSelectionOnly(before, snapshot, context.State, context.CaptureSnapshot()));
         }
 
+        /// <summary>Recognizes further native content changes while a workspace is already dirty.</summary>
         [Fact]
         public void NativeContentEditWhileDirtyIsNotSelectionOnly()
         {
@@ -29,6 +32,7 @@ namespace Heimdall.Tests
             Assert.False(WorkspaceStateChange.IsSelectionOnly(before, snapshot, context.State, context.CaptureSnapshot()));
         }
 
+        /// <summary>Distinguishes selection changes accompanied by other workspace state changes.</summary>
         [Fact]
         public void SelectionWithOtherStateChangesIsNotSelectionOnly()
         {
@@ -42,6 +46,7 @@ namespace Heimdall.Tests
             Assert.False(WorkspaceStateChange.IsSelectionOnly(context.State, context.CaptureSnapshot(), context.State, context.CaptureSnapshot()));
         }
     
+        /// <summary>Treats input-testing activity transitions as presentation changes without native edits.</summary>
         [Fact]
         public void InputTestStartAndStopArePresentationOnly()
         {
@@ -56,6 +61,7 @@ namespace Heimdall.Tests
             Assert.True(WorkspaceStateChange.IsPresentationOnly(testing, snapshot, context.State, context.CaptureSnapshot()));
         }
 
+        /// <summary>Separates native content changes from temporary operation availability.</summary>
         [Fact]
         public void NativeFingerprintChangesReloadButOperationGatesDoNot()
         {
@@ -74,6 +80,7 @@ namespace Heimdall.Tests
             Assert.False(WorkspaceStateChange.IsPresentationOnly(null, null, context.State, context.CaptureSnapshot()));
         }
 
+        /// <summary>Preserves pending editor fields when only the name or access policy changes.</summary>
         [Fact]
         public void PendingNameAndAccessChangesPreserveEditorsWhenNativeDataIsUnchanged()
         {
@@ -87,6 +94,7 @@ namespace Heimdall.Tests
             Assert.True(WorkspaceStateChange.IsPresentationOnly(before, native, context.State, context.Working.ToString()));
         }
 
+        /// <summary>Reloads content for a changed workspace identity or open state even when native data matches.</summary>
         [Fact]
         public void SameContentWithANewMountOrOpenStateStillReloads()
         {
@@ -98,5 +106,6 @@ namespace Heimdall.Tests
             Assert.False(WorkspaceStateChange.IsPresentationOnly(context.State, native, context.State with { Open = false }, native));
             Assert.False(WorkspaceStateChange.IsPresentationOnly(context.State, native, context.State, native));
         }
+        #endregion END Public
     }
 }
