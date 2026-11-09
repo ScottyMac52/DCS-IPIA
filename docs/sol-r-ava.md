@@ -39,19 +39,34 @@ for Hornet recognition, current limitations and the physical acceptance record f
    input tester and preview/export the kneeboard before using it in DCS.
 
 The layouts retain all 21 numbered buttons, X/Y/RZ, and eight POV directions.
-The right-hand layouts also include RX/RY for the mini-stick horizontal/vertical
-axes alongside its independent Button 6 press (34 native keys; left-hand layouts
-retain their existing 32-key definition). Controls replaced by the active POV/button setting are listed
+The right-hand layouts retain all eight axes reported by the verified AVA [R]
+Sol-R enumeration: X/Y/Z, RX/RY/RZ and SLIDER1/SLIDER2. RX/RY remain available
+alongside the mini-stick's independent Button 6 press. Z, Dial (SLIDER1) and
+Slider (SLIDER2) appear in a separate **Driver-exposed axes** area; their native
+keys are verified, but a physical location or virtual function is not inferred.
+This gives 37 native keys after expanding the POV directions. Left-hand layouts
+retain their existing 32-key definition; right-hand evidence does not establish
+left-hand controls. Controls replaced by the active POV/button setting are listed
 in an **Alternate mode inputs** area. They are retained as alternative native
 inputs, not a claim that the driver emits both representations simultaneously.
 The Windows name distinguishes handedness but does not identify the POV setting;
 HEIMDALL therefore offers both compatible layouts for explicit selection.
 
-Inventory matching still requires an exact native key set and no unsupported
-objects. If the driver exposes a different capability set, record its inventory
-details before extending the shared definition. In particular, the optional
-scroll-wheel virtual axis is documented but not mapped until its actual native
-key is verified; enabling extra axes can prevent an exact catalog match.
+Automatic inventory artwork recommendations still require an exact native key
+set and no unsupported objects. The reported right-hand AVA also enumerates a
+nonassignable collection and an unidentified `Axis 8 [2050]`. Both remain explicit
+unsupported diagnostics; no ninth axis or third slider is invented. Their
+presence keeps automatic recommendations unavailable. You may explicitly choose
+the right-hand bundled layout in New module when its known controls exactly
+match the adopted inventory. Unsupported objects are not assignable.
+
+The right-hand definitions were corrected from five to eight known axes using
+this recorded enumeration. If your driver exposes a different supported set,
+use the generic inventory layout and retain the exact details for review; do
+not force an incompatible template. Scanning does not update previously adopted
+capabilities until you explicitly review and save changed controls. Existing
+module drawings remain pinned until you review and apply a built-in catalog
+update; rebuilding alone does not rewrite saved module data.
 
 ## Source and validation
 

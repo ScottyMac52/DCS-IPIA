@@ -33,18 +33,21 @@ namespace Heimdall.Tests
             Assert.All(candidates, x => Assert.StartsWith("tm-sol-r-ava-" + hand + "-", x, StringComparison.Ordinal));
             Assert.True(definition.Capabilities.DcsKeys.ToHashSet(StringComparer.Ordinal)
                 .SetEquals(hardware.Diagram.Controls.Select(x => x.InputKey)));
-            Assert.Equal(hand == "r" ? 34 : 32, hardware.Diagram.Controls.Count);
+            Assert.Equal(hand == "r" ? 37 : 32, hardware.Diagram.Controls.Count);
             if (hand == "r")
                 foreach (var key in new[] { "JOY_RX", "JOY_RY" })
                     Assert.Contains(hardware.Diagram.Controls, control => control.InputKey == key && control.IsAxis);
             Assert.Null(hardware.Diagram.CustomMapping);
             Assert.Contains(hardware.Diagram.Controls, x => x.InputKey == "JOY_RZ" && x.IsAxis);
             Assert.Contains(hardware.Diagram.Controls, x => x.InputKey == "JOY_BTN_POV1_UR");
-            Assert.DoesNotContain(hardware.Diagram.Controls, x => x.InputKey == "JOY_BTN22" || x.InputKey == "JOY_SLIDER1");
+            Assert.DoesNotContain(hardware.Diagram.Controls, x => x.InputKey == "JOY_BTN22" || x.InputKey == "JOY_SLIDER3");
+            if (hand == "r")
+                foreach (var key in new[] { "JOY_Z", "JOY_SLIDER1", "JOY_SLIDER2" })
+                    Assert.Contains(hardware.Diagram.Controls, control => control.InputKey == key && control.IsAxis);
             var path = "assets/shared/hardware/drawio/" + id + ".drawio";
             var revision = DrawioMappingImporter.Import(await BundledSharedCatalog.ReadTextAsync(path), definition, id + ".drawio", "test");
             DrawioMappingImporter.Validate(revision);
-            Assert.Equal(hand == "r" ? 34 : 32, revision.MappedInputs.Count);
+            Assert.Equal(hand == "r" ? 37 : 32, revision.MappedInputs.Count);
 
             var instance = new HardwareInventoryInstance(native.PhysicalGuid, native.Name, definition.Id,
                 "Sol-R", "Stick", true, candidates);
@@ -82,6 +85,34 @@ namespace Heimdall.Tests
             finally { Directory.Delete(root, true); }
         }
 
+        /// <summary>Keeps the reported unknown axis and collection explicit while allowing reviewed artwork for all known inputs.</summary>
+        [Fact]
+        public async Task Reported_right_ava_inputs_keep_unsupported_objects_unmapped()
+        {
+            var known = Definition(true).Capabilities;
+            var capabilities = ControllerCapabilityMapper.Map(known.NativeObjects!.Concat(new[]
+            {
+                new ControllerObject(Guid.Empty, 192, "Collection 0 - Joystick"),
+                new ControllerObject(Guid.Empty, 2050, "Axis 8")
+            }));
+            Assert.Equal(8, capabilities.Inputs.Count(input => input.Kind == ControllerInputKind.Axis));
+            Assert.Equal(2, capabilities.Unsupported.Count);
+            Assert.DoesNotContain(capabilities.DcsKeys, key => key == "JOY_SLIDER3" || key == "JOY_AXIS8");
+            var sources = await BundledHardwareTestFixture.LoadAsync();
+            var device = new DetectedDcsDevice(Guid.NewGuid(), "AVA [R] Sol-R", true);
+            Assert.Empty(BundledHardwareCapabilityMatcher.Candidates(sources, new(device, capabilities)));
+            var hardware = Assert.Single(JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!,
+                candidate => candidate.DeviceId == "tm-sol-r-ava-r-pov");
+            var definition = new HardwareDefinition(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities);
+            var instance = new HardwareInventoryInstance(device.PhysicalGuid, device.Name, definition.Id, "Sol-R", "Stick", true, []);
+            var choice = new InventoryHardwareChoice(instance, definition);
+            var workspace = GenericHardwareFixture.Workspace();
+            var mergedSources = new Dictionary<string, string>(workspace.Sources!, StringComparer.Ordinal);
+            foreach (var source in sources) mergedSources[source.Key] = source.Value;
+            workspace = DcsInventoryHardwareAuthoring.Add(workspace with { Sources = mergedSources }, choice, AssignmentLayer.Module, hardware);
+            Assert.Equal(device.PhysicalGuid, DcsPhysicalIdentity.FromFileName(Assert.Single(workspace.Configuration.Profiles).SourceName));
+        }
+
         /// <summary>A Sol-R base or an unrelated base/grip cannot acquire an AVA catalog candidate.</summary>
         [Theory]
         [InlineData("Sol-R 1 Flightstick")]
@@ -103,12 +134,15 @@ namespace Heimdall.Tests
                 Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12u | ((uint)i << 8), "Button " + (i + 1))).ToList();
             objects.Add(new(Guid.Parse("a36d02e0-c9f3-11cf-bfc7-444553540000"), 2, "X"));
             objects.Add(new(Guid.Parse("a36d02e1-c9f3-11cf-bfc7-444553540000"), 258, "Y"));
-            objects.Add(new(Guid.Parse("a36d02e3-c9f3-11cf-bfc7-444553540000"), 514, "RZ"));
+            objects.Add(new(Guid.Parse("a36d02e3-c9f3-11cf-bfc7-444553540000"), miniStickAxes ? 1282u : 514u, "RZ"));
             objects.Add(new(Guid.Parse("a36d02f2-c9f3-11cf-bfc7-444553540000"), 16, "POV 1"));
             if (miniStickAxes)
             {
                 objects.Add(new(Guid.Parse("a36d02f4-c9f3-11cf-bfc7-444553540000"), 770, "RX"));
                 objects.Add(new(Guid.Parse("a36d02f5-c9f3-11cf-bfc7-444553540000"), 1026, "RY"));
+                objects.Add(new(Guid.Parse("a36d02e2-c9f3-11cf-bfc7-444553540000"), 1794, "Z Axis"));
+                objects.Add(new(Guid.Parse("a36d02e4-c9f3-11cf-bfc7-444553540000"), 514, "Dial"));
+                objects.Add(new(Guid.Parse("a36d02e4-c9f3-11cf-bfc7-444553540000"), 1538, "Slider"));
             }
             var capabilities = ControllerCapabilityMapper.Map(objects);
             return new(ControllerCapabilityMapper.Fingerprint(capabilities), capabilities);
