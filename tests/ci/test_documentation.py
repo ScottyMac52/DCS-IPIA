@@ -1,9 +1,10 @@
 """Exercise documentation failures that must prevent mismatched release publication."""
 
 import importlib.util
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location("documentation", Path(__file__).resolve().parents[2] / "scripts/check_documentation.py")
 documentation = importlib.util.module_from_spec(SPEC)
@@ -63,6 +64,16 @@ class DocumentationTests(unittest.TestCase):
             '[Image](image%20name.png)\n[Web](https://example.org/unavailable)\n[Topic](#local)\n'
             '```markdown\n[Example](not-a-real-file.md)\n```\n', encoding="utf-8")
         self.assertEqual([], documentation.check(self.root))
+
+    def test_windows_relative_paths_use_portable_diagnostics(self):
+        (self.root / "docs/start.md").write_text("[Recovery](missing.md#restore)", encoding="utf-8")
+        original = Path.relative_to
+
+        def windows_relative(path, *args, **kwargs):
+            return PureWindowsPath(original(path, *args, **kwargs))
+
+        with patch.object(Path, "relative_to", autospec=True, side_effect=windows_relative):
+            self.assertIn("docs/start.md: missing local link target missing.md#restore", documentation.check(self.root))
 
 
 if __name__ == "__main__":
