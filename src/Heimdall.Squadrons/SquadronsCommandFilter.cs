@@ -5,6 +5,7 @@ namespace Heimdall.Squadrons
     /// <summary>Pure command-catalog filtering, independent of WPF and the captured-binding table.</summary>
     public static class SquadronsCommandFilter
     {
+        #region BEGIN Public
         /// <summary>Filters by native context, inferred type, captured assignment ownership and text.</summary>
         public static IReadOnlyList<SimCommand> Apply(IEnumerable<SimCommand> commands,
             IEnumerable<SquadronsBindingRow> records, string category, string inputType,
@@ -28,6 +29,9 @@ namespace Heimdall.Squadrons
                     || command.Metadata.GetValueOrDefault("squadrons.native-display-name", "").Contains(search, StringComparison.OrdinalIgnoreCase)
                     || command.Category.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
+        #endregion END Public
+
+        #region BEGIN private helpers
         // Unbound commands retain unknown type; their names never imply an axis or button.
         private static bool MatchesInputType(IReadOnlyList<SquadronsBindingRow> native, string inputType)
         {
@@ -40,13 +44,13 @@ namespace Heimdall.Squadrons
                 _ => true
             };
         }
-        private static bool MatchesAssignment(SquadronsBindingRow[] native, Source selection, string status)
+        private static bool MatchesAssignment(SquadronsBindingRow[] native, SquadronsAssignmentSource selection, string status)
         {
             var onController = native.Any(x => selection.Kind switch
             {
-                SourceKind.All => true,
-                SourceKind.Joystick => x.Type == 3 && x.DeviceId == selection.Index,
-                SourceKind.System => x.Type == selection.Index,
+                SquadronsAssignmentSourceKind.All => true,
+                SquadronsAssignmentSourceKind.Joystick => x.Type == 3 && x.DeviceId == selection.Index,
+                SquadronsAssignmentSourceKind.System => x.Type == selection.Index,
                 _ => false
             });
             return status switch
@@ -58,21 +62,20 @@ namespace Heimdall.Squadrons
                 _ => true
             };
         }
-        private enum SourceKind { All, Joystick, System }
-        private readonly record struct Source(SourceKind Kind, int Index);
 
         /// <summary>Rejects malformed device references instead of slicing arbitrary strings.</summary>
-        private static Source ParseSource(string? id)
+        private static SquadronsAssignmentSource ParseSource(string? id)
         {
-            if (id is null or "all") return new(SourceKind.All, -1);
+            if (id is null or "all") return new(SquadronsAssignmentSourceKind.All, -1);
             const string joystick = "squadrons.joystick.";
             if (id.StartsWith(joystick, StringComparison.Ordinal) &&
                 int.TryParse(id[joystick.Length..], System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture, out var slot) && slot is >= 1 and <= 10)
-                return new(SourceKind.Joystick, slot - 1);
+                return new(SquadronsAssignmentSourceKind.Joystick, slot - 1);
             if (id is "system.0" or "system.1" or "system.2")
-                return new(SourceKind.System, id[^1] - '0');
+                return new(SquadronsAssignmentSourceKind.System, id[^1] - '0');
             throw new ArgumentException("Unsupported Squadrons assignment source.", nameof(id));
         }
+        #endregion END private helpers
     }
 }

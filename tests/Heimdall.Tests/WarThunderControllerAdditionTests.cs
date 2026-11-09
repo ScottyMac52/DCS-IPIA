@@ -9,8 +9,11 @@ using Xunit;
 
 namespace Heimdall.Tests
 {
+    /// <summary>Checks source-preserving controller addition, native ranges, guarded review and save/discard behavior.</summary>
     public sealed class WarThunderControllerAdditionTests
     {
+        #region BEGIN Public
+        /// <summary>Appends a controller while preserving captured bindings, native ranges and original source bytes.</summary>
         [Theory]
         [InlineData("\n")]
         [InlineData("\r\n")]
@@ -43,6 +46,7 @@ namespace Heimdall.Tests
             Assert.Equal(exported, WarThunderBackendFixture.Export(backend, imported));
         }
 
+        /// <summary>Creates missing controller mappings after the indices already reserved by captured assignments.</summary>
         [Fact]
         public void Empty_mapping_can_be_created_and_unused_captured_indices_are_reserved()
         {
@@ -55,6 +59,7 @@ namespace Heimdall.Tests
             Assert.Equal(2, WarThunderProfileBackend.ReadBindings(added).Count);
         }
 
+        /// <summary>Supports editing and reexporting assignments in newly allocated controller ranges.</summary>
         [Fact]
         public void New_ranges_accept_button_and_axis_assignments_and_reexport()
         {
@@ -76,6 +81,7 @@ namespace Heimdall.Tests
             Assert.Equal(text, WarThunderBackendFixture.Export(backend, imported));
         }
 
+        /// <summary>Rejects invalid controller creation without changing the original profile.</summary>
         [Theory]
         [InlineData("bad-name")]
         [InlineData("missing")]
@@ -112,6 +118,7 @@ namespace Heimdall.Tests
             Assert.Equal(source, WarThunderBackendFixture.Export(backend, profile));
         }
 
+        /// <summary>Revalidates hardware evidence during controller review and preserves save/reopen/discard semantics.</summary>
         [Fact]
         public void Review_is_atomic_rechecks_input_evidence_and_supports_save_reopen_and_discard()
         {
@@ -148,9 +155,13 @@ namespace Heimdall.Tests
             Assert.Empty(session.Snapshot.Hardware);
         }
 
+        #endregion END Public
+
+        #region BEGIN private helpers
         private static ControllerObservation Observation() => new(
             new(Guid.NewGuid(), "New controller", true, ProductGuid: Guid.Parse("56781234-0000-0000-0000-504944564944")),
             ControllerCapabilityMapper.Map([WarThunderLayoutFixture.Axis("a36d02e0", 0, 0),
                 WarThunderLayoutFixture.Button(0), WarThunderLayoutFixture.Button(1), WarThunderLayoutFixture.Hat(0)]));
+        #endregion END private helpers
     }
 }
