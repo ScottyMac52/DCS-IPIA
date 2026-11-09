@@ -210,6 +210,9 @@ namespace Heimdall.App.Games
         private void RefreshNative(Action nativeRefresh)
         {
             if (_refreshing || _nativeRefreshBlocked?.Invoke() == true) return;
+#if PERFORMANCE_TRACE
+            using var performance = Heimdall.Application.PerformanceTrace.Measure("editor.render", GetType());
+#endif
             _refreshing = true;
             try { nativeRefresh(); NativeRefreshPasses++; RefreshAssignmentAvailability(); ObserveContext(); _editorObserver?.Accept(_browser?.Metrics.ContentBuilds ?? 0); }
             finally { _refreshing = false; }
@@ -270,5 +273,3 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
-
-

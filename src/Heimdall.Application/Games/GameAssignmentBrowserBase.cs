@@ -62,6 +62,9 @@ namespace Heimdall.Application.Games
         /// <inheritdoc/>
         public void Refresh(string? preferredCommandId = null)
         {
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure("browser.refresh-request", GetType());
+#endif
             if (_disposed) return;
             if (_context.State.Operation is not null || _refreshing)
             {
@@ -195,6 +198,9 @@ namespace Heimdall.Application.Games
         private void RefreshProjection(string? preferred)
         {
             var content = _identity != _context.State.Identity || _version != _context.ContentVersion || _nativeVersion != NativeVersion;
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure(content ? "browser.rebuild" : "browser.filter", GetType());
+#endif
             var commands = content ? Array.AsReadOnly(ReadCommands().ToArray()) : _allCommands;
             var records = content ? Array.AsReadOnly(ReadRecords().ToArray()) : _allRecords;
             PrepareQuery(Filter, _search);
@@ -242,4 +248,3 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
-

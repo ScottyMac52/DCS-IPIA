@@ -14,6 +14,9 @@ namespace Heimdall.App
     /// <summary>Starts the WPF application with dependency-injected services.</summary>
     public partial class App : System.Windows.Application, IDisposable
     {
+#if PERFORMANCE_TRACE
+        private readonly PerformanceSession _performance;
+#endif
         private ServiceProvider? _services;
         private FileStream? _dataLease;
         private readonly ILogger<App> _logger;
@@ -24,6 +27,9 @@ namespace Heimdall.App
         /// <param name="loggerFactory">Shared factory, disposed after database shutdown.</param>
         public App(ILogger<App> logger, ILoggerFactory loggerFactory)
         {
+#if PERFORMANCE_TRACE
+            _performance = new PerformanceSession(Dispatcher);
+#endif
             ApplicationTheme.Initialize();
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -34,6 +40,9 @@ namespace Heimdall.App
         /// <param name="e">The WPF startup event.</param>
         protected override async void OnStartup(StartupEventArgs e)
         {
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure("application.startup", GetType());
+#endif
             base.OnStartup(e);
             var releaseSmoke = e.Args.Length == 2 && e.Args[0] == "--release-smoke";
             UserDataProfile profile;
@@ -171,6 +180,9 @@ namespace Heimdall.App
             CloseDatabase();
             _dataLease?.Dispose();
             _dataLease = null;
+#if PERFORMANCE_TRACE
+            _performance.Dispose();
+#endif
         }
         #endregion END Public
         #region BEGIN private helpers
@@ -183,4 +195,3 @@ namespace Heimdall.App
         #endregion END private helpers
     }
 }
-
