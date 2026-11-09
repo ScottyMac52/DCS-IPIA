@@ -6,6 +6,7 @@ namespace Heimdall.Tests
     /// <summary>Pins shared browser invalidation, retained identity and publication behavior independently of native formats.</summary>
     public sealed class AssignmentBrowserContractTests
     {
+        private static readonly string[] expectedPitch = ["pitch"];
         #region BEGIN Public
         /// <summary>Native UI observers receive selection only after its matching rows have been published.</summary>
         [Fact]
@@ -21,6 +22,8 @@ namespace Heimdall.Tests
             Assert.All(observed, item => Assert.Equal(new[] { item.Command }, item.Records));
             Assert.Equal("pitch", context.State.Selection.CommandId);
         }
+              
+
         /// <summary>An explicit native command survives a refresh deferred until persistence releases the context.</summary>
         [Fact]
         public async Task Preferred_command_survives_a_refresh_deferred_by_persistence()
@@ -33,7 +36,7 @@ namespace Heimdall.Tests
             Assert.Equal("fire", context.State.Selection.CommandId);
             pending.SetResult(new(WorkspaceOperationOutcome.NoChange, "")); await running;
             Assert.Equal("pitch", context.State.Selection.CommandId);
-            Assert.Equal(new[] { "pitch" }, browser.Records);
+            Assert.Equal(expectedPitch, browser.Records);
         }
         /// <summary>A warm query reuses content and an unchanged projection is not republished.</summary>
         [Fact]
