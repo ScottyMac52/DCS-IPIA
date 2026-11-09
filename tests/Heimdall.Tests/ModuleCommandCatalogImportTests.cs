@@ -111,6 +111,21 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidOperationException>(() => DcsModuleCommandCatalogEditor.Merge(original, [original.ModuleCommands[0], original.ModuleCommands[0]]));
             Assert.Throws<InvalidOperationException>(() => DcsModuleCommandCatalogEditor.Merge(original, [new("bad code", "Name", "Category", false)]));
         }
+        /// <summary>Assignment list order does not invalidate a review, while actual assignment changes still do.</summary>
+        [Fact]
+        public void Equivalent_assignment_order_does_not_create_a_stale_review()
+        {
+            var original = Workspace();
+            var review = DcsModuleCommandCatalogImport.Review(original, [new("commands.json", Json)], false);
+            var reordered = original with { Assignments = original.Assignments.Reverse().ToArray() };
+            var imported = DcsModuleCommandCatalogImport.Apply(reordered, review);
+            Assert.Equal(3, imported.ModuleCommands.Count);
+            Assert.Equal(reordered.Assignments.Select(assignment => assignment.Slot.Key).Order(StringComparer.Ordinal),
+                imported.Assignments.Select(assignment => assignment.Slot.Key).Order(StringComparer.Ordinal));
+            var changed = original with { Assignments = original.Assignments.Skip(1).ToArray() };
+            Assert.Throws<InvalidOperationException>(() => DcsModuleCommandCatalogImport.Apply(changed, review));
+        }
+
         /// <summary>File reads retain only safe basenames and surface missing files without staging anything.</summary>
         [Fact]
         public void Reads_json_and_html_from_selected_files()

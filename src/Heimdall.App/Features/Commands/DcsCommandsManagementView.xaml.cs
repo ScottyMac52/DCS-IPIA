@@ -251,8 +251,14 @@ namespace Heimdall.App.Features.Commands
             if (paths is null) return;
             try
             {
-                var review = DcsModuleCommandCatalogImport.ReadFiles(_context.Working, paths, html);
-                var dialog = new DcsCommandImportReviewWindow(_context.Working.Configuration.Module.DisplayName, review) { Owner = Window.GetWindow(this) };
+                // Structural edits apply to the live assignment draft, not the older Working assignment list.
+                var current = _context.Working with
+                {
+                    Assignments = _context.Draft?.Snapshot ?? _context.Working.Assignments,
+                    Labels = _context.Labels
+                };
+                var review = DcsModuleCommandCatalogImport.ReadFiles(current, paths, html);
+                var dialog = new DcsCommandImportReviewWindow(current.Configuration.Module.DisplayName, review) { Owner = Window.GetWindow(this) };
                 if (dialog.ShowDialog() != true) return;
                 if (!StageCatalogEdit(w => DcsModuleCommandCatalogImport.Apply(w, review))) return;
                 StatusText.Text = "Commands imported and staged.";
@@ -377,6 +383,3 @@ namespace Heimdall.App.Features.Commands
         #endregion END private helpers
     }
 }
-
-
-
