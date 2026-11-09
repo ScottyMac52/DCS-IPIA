@@ -50,6 +50,21 @@ class MigrationInventoryTests(unittest.TestCase):
         self.assertIn("No capability is marked parity-complete", audit.render(self.data, owners, drift))
         self.assertEqual(audit.digest(self.data), audit.digest(json.loads(json.dumps(self.data))))
 
+    def test_renamed_dcs_evidence_resolves_without_changing_historical_inventory(self):
+        historical = "src/Dcs.Ipia.Application/SharedUiLayerRevisionReference.cs"
+        current = "src/Heimdall.Application/DcsSharedUiLayerRevisionReference.cs"
+        self.data["capabilities"][0]["targetEvidence"] = [historical]
+        original = copy.deepcopy(self.data)
+        target = self.root / current
+        target.parent.mkdir(parents=True)
+        target.write_text("Evidence", encoding="utf-8")
+        owners, drift = audit.validate(self.data, self.root)
+        self.assertEqual(original, self.data)
+        self.assertIn(f"[{historical}](../../{current})", audit.render(self.data, owners, drift))
+        target.unlink()
+        with self.assertRaisesRegex(ValueError, "Target evidence is missing"):
+            audit.validate(self.data, self.root)
+
     def test_unclassified_future_source_is_rejected(self):
         self.data["files"].append({"path": "unclassified.mjs", "mode": "100644", "gitBlob": "d" * 40, "size": 0})
         with self.assertRaisesRegex(ValueError, "Unclassified sources"):

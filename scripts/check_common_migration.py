@@ -39,7 +39,25 @@ def digest(data):
 
 def current_target(path):
     """Keep the pinned inventory intact while following local project moves."""
-    return safe_path(path).replace('Dcs.Ipia.', 'Heimdall.')
+    path = safe_path(path)
+    renamed_evidence = {
+        'src/Dcs.Ipia.Application/ModuleIntegrationMetadata.cs': 'src/Heimdall.Application/DcsModuleIntegrationMetadata.cs',
+        'src/Dcs.Ipia.Application/SharedUiLayerRevisionReference.cs': 'src/Heimdall.Application/DcsSharedUiLayerRevisionReference.cs',
+        'src/Dcs.Ipia.Dcs/ModuleCommandCatalogImport.cs': 'src/Heimdall.Dcs/DcsModuleCommandCatalogImport.cs',
+        'src/Dcs.Ipia.Dcs/ModuleCompleteReleaseWorkflow.cs': 'src/Heimdall.Dcs/DcsModuleCompleteReleaseWorkflow.cs',
+        'src/Dcs.Ipia.Dcs/ModuleDocumentationWorkflow.cs': 'src/Heimdall.Dcs/DcsModuleDocumentationWorkflow.cs',
+        'src/Dcs.Ipia.Dcs/ModuleIntegrationImport.cs': 'src/Heimdall.Dcs/DcsModuleIntegrationImport.cs',
+        'src/Dcs.Ipia.Dcs/ModuleSnapshotWorkflow.cs': 'src/Heimdall.Dcs/DcsModuleSnapshotWorkflow.cs',
+        'src/Dcs.Ipia.Dcs/ModuleWorkspaceLoader.cs': 'src/Heimdall.Dcs/DcsModuleWorkspaceLoader.cs',
+        'src/Dcs.Ipia.Dcs/NewModuleWorkspaceFactory.cs': 'src/Heimdall.Dcs/DcsNewModuleWorkspaceFactory.cs',
+        'src/Dcs.Ipia.Dcs/SnapshotLuaPayloadRenderer.cs': 'src/Heimdall.Dcs/DcsSnapshotLuaPayloadRenderer.cs',
+        'src/Dcs.Ipia.Packaging/CompleteReleaseArchive.cs': 'src/Heimdall.Packaging/DcsCompleteReleaseArchive.cs',
+        'src/Dcs.Ipia.Packaging/CompleteReleaseVerifier.cs': 'src/Heimdall.Packaging/DcsCompleteReleaseVerifier.cs',
+        'src/Dcs.Ipia.Packaging/OvGmePackageVerifier.cs': 'src/Heimdall.Packaging/DcsOvGmePackageVerifier.cs',
+        'src/Dcs.Ipia.Rendering/ModuleDocumentationRenderer.cs': 'src/Heimdall.Rendering/DcsModuleDocumentationRenderer.cs',
+        'src/Dcs.Ipia.Rendering/SnapshotSummaryKneeboardRenderer.cs': 'src/Heimdall.Rendering/DcsSnapshotSummaryKneeboardRenderer.cs',
+    }
+    return renamed_evidence.get(path, path.replace('Dcs.Ipia.', 'Heimdall.'))
 
 
 def validate(data, root, source_root=None):
