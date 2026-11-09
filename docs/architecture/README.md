@@ -31,3 +31,5 @@ The proposed completion of the workspace collaborator contracts is specified in 
 Issue #357 PR 2 implements the [shared workspace contexts](workspace-context-implementation.md), with one state/operation authority across all four native adapters. Other collaborator roles remain scheduled in the issue.
 
 - [PR 3 acceptance record](pr3-acceptance-record.md): cross-adapter transaction semantics, P01–P08 evidence map and pending Windows review.
+
+- [PR4 browser acceptance record](pr4-acceptance-record.md): shared browser ownership, native hooks and cross-game performance/conformance evidence.

@@ -14,13 +14,15 @@ namespace Heimdall.Application.Games
             GameCommandQuery query, string? controllerId = null)
         {
             if (!Enum.IsDefined(query.AssignmentStatus)) throw new ArgumentOutOfRangeException(nameof(query));
-            var search = query.Search.Trim();
-            return entries.Where(x => InScope(x, query) && MatchesText(x, search) &&
-                    InStatus(x.AssignedControllers, controllerId, query.AssignmentStatus))
+            var normalized = query with { Search = query.Search.Trim() };
+            return entries.Where(x => Matches(x, normalized, controllerId))
                 .OrderBy(x => x.Category, StringComparer.Ordinal)
                 .ThenBy(x => x.Command.DisplayName, StringComparer.Ordinal)
                 .ThenBy(x => x.Command.Id, StringComparer.Ordinal).ToArray();
         }
+        /// <summary>Tests one cached native projection without materializing a catalog or ownership index.</summary>
+        public static bool Matches(GameCommandEntry entry, GameCommandQuery query, string? controllerId = null) =>
+            InScope(entry, query) && MatchesText(entry, query.Search) && InStatus(entry, controllerId, query.AssignmentStatus);
         #endregion END Public
         #region BEGIN private helpers
         private static bool InScope(GameCommandEntry entry, GameCommandQuery query) =>
@@ -31,13 +33,13 @@ namespace Heimdall.Application.Games
             entry.Command.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
             entry.Command.Id.Contains(search, StringComparison.OrdinalIgnoreCase) ||
             entry.Category.Contains(search, StringComparison.OrdinalIgnoreCase);
-        private static bool InStatus(IReadOnlyCollection<string> owners, string? controllerId,
+        private static bool InStatus(GameCommandEntry entry, string? controllerId,
             GameCommandAssignmentStatus status) => status switch
         {
-            GameCommandAssignmentStatus.AssignedToController => owners.Contains(controllerId, StringComparer.Ordinal),
-            GameCommandAssignmentStatus.NotAssignedToController => !owners.Contains(controllerId, StringComparer.Ordinal),
-            GameCommandAssignmentStatus.UnassignedEverywhere => owners.Count == 0,
-            GameCommandAssignmentStatus.AssignedAnywhere => owners.Count > 0,
+            GameCommandAssignmentStatus.AssignedToController => entry.AssignedControllers.Contains(controllerId, StringComparer.Ordinal),
+            GameCommandAssignmentStatus.NotAssignedToController => !entry.AssignedControllers.Contains(controllerId, StringComparer.Ordinal),
+            GameCommandAssignmentStatus.UnassignedEverywhere => !entry.HasAssignments,
+            GameCommandAssignmentStatus.AssignedAnywhere => entry.HasAssignments,
             _ => true
         };
         #endregion END private helpers

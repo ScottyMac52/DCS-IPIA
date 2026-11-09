@@ -13,24 +13,20 @@ namespace Heimdall.Squadrons
             ArgumentNullException.ThrowIfNull(commands);
             ArgumentNullException.ThrowIfNull(records);
             var rows = records.ToLookup(x => x.Concept, StringComparer.Ordinal);
-            // Controller IDs are domain references, not interchangeable numeric indices.
-            // "all" means all input sources; system.0/1/2 are native read-only input types.
+            return commands.Where(command => Matches(command, rows[command.Metadata.GetValueOrDefault("squadrons.concept", "")].ToArray(),
+                category, inputType, assignmentStatus, search.Trim(), controllerId))
+                .OrderBy(x => x.Category, StringComparer.Ordinal).ThenBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+        }
+        /// <summary>Tests one command against a cached group of native records; no catalog or document is reread.</summary>
+        public static bool Matches(SimCommand command, SquadronsBindingRow[] native, string category, string inputType,
+            string assignmentStatus, string search, string? controllerId)
+        {
             var selection = ParseSource(controllerId);
-            var query = (search ?? "").Trim();
-            return commands.Where(command =>
-            {
-                if (category != "All" && command.Category != category) return false;
-                if (!command.Metadata.TryGetValue("squadrons.concept", out var concept)) return false;
-                var native = rows[concept].ToArray();
-                if (!MatchesInputType(native, inputType)) return false;
-                if (!MatchesAssignment(native, selection, assignmentStatus)) return false;
-                return command.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
-                    || concept.Contains(query, StringComparison.OrdinalIgnoreCase)
-                    || (command.Metadata.TryGetValue("squadrons.native-display-name", out var nativeName)
-                        && nativeName.Contains(query, StringComparison.OrdinalIgnoreCase))
-                    || command.Category.Contains(query, StringComparison.OrdinalIgnoreCase);
-            }).OrderBy(x => x.Category, StringComparer.Ordinal)
-                .ThenBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+            if (category != "All" && command.Category != category || !command.Metadata.TryGetValue("squadrons.concept", out var concept)) return false;
+            return MatchesInputType(native, inputType) && MatchesAssignment(native, selection, assignmentStatus)
+                && (command.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) || concept.Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || command.Metadata.GetValueOrDefault("squadrons.native-display-name", "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || command.Category.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
         // Unbound commands retain unknown type; their names never imply an axis or button.
         private static bool MatchesInputType(IReadOnlyList<SquadronsBindingRow> native, string inputType)

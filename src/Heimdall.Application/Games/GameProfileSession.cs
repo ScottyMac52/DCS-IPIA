@@ -49,7 +49,9 @@ namespace Heimdall.Application.Games
         /// <summary>Notifies the UI after successful state transitions.</summary>
         public event EventHandler? Changed;
         /// <summary>Gets an independent document; callers cannot bypass the editing boundary.</summary>
-        public GameWorkspace Snapshot => GameWorkspaceContract.Clone(_current);
+        public GameWorkspace Snapshot { get { SnapshotCopies++; return GameWorkspaceContract.Clone(_current); } }
+        /// <summary>Gets how many defensive document copies this session supplied (performance work counter).</summary>
+        public int SnapshotCopies { get; private set; }
         /// <summary>Gets whether current authoring differs from the last saved state.</summary>
         public bool HasChanges => !ReferenceEquals(_currentValue, _savedValue) && !string.Equals(CurrentJson, SavedJson, StringComparison.Ordinal);
         /// <summary>Gets the immutable canonical content of the current document (cached until the next native change).</summary>

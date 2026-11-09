@@ -18,8 +18,13 @@ namespace Heimdall.Squadrons
         {
             var backend = new SquadronsProfileBackend();
             var commands = backend.GetCatalog(profile).Commands.ToDictionary(x => x.Metadata["squadrons.concept"], StringComparer.Ordinal);
+            return Rows(profile, commands, backend.ReadBindings(profile));
+        }
+        /// <summary>Projects cached catalog/binding evidence without repeating native parsing.</summary>
+        public static IReadOnlyList<SquadronsWorkspaceRow> Rows(ProfileDocument profile, IReadOnlyDictionary<string, SimCommand> commands, IReadOnlyList<SquadronsBindingRow> bindings)
+        {
             var devices = profile.Devices.ToDictionary(x => x.LogicalId, StringComparer.Ordinal);
-            return backend.ReadBindings(profile).Select(row =>
+            return bindings.Select(row =>
             {
                 var id = "squadrons.joystick." + (row.DeviceId + 1);
                 var label = row.Type == 3 ? "Slot " + (row.DeviceId + 1) + " · " + (devices.GetValueOrDefault(id)?.Identity?.WindowsName ?? "Unresolved")

@@ -12,8 +12,7 @@ namespace Heimdall.App.Games.Elite
     internal sealed class EliteAssignmentBrowser(
         EliteWorkspaceContext context,
         EliteAssignmentsView _assignmentsView,
-        Action UpdateAvailability,
-        Action<string> Status) : IDisposable
+        Action<string> Status) : Heimdall.EliteDangerous.EliteAssignmentBrowser(context, context.Backend)
     {
         private readonly GameCommandDragSource _commandDrag = new(_assignmentsView.CommandsList, "heimdall.elite.command", () => context.Session?.AccessMessage.Length == 0);
         private string? CommandCategory => _assignmentsView.CommandCategoryPicker.SelectedItem is string category && category != "All categories" ? category : null;
@@ -30,32 +29,20 @@ namespace Heimdall.App.Games.Elite
         #region BEGIN Public
         internal void FilterCommands(string? selected = null)
         {
-            if (_session is null) return;
-            var controller = Device?.Id;
-            // A scope change resets the controller; publish both together so listeners never see a missing device.
-            _selection.Update(() => { _selection.SelectScope(_session.Id.ToString("N") + ":" + Section); _selection.SelectController(controller); });
-
-            var previousCategory = CommandCategory;
-            var categories = EliteCommandBrowser.Categories(_commands, Section).Prepend("All categories").ToArray();
-            _refreshing = true;
-            _assignmentsView.CommandCategoryPicker.ItemsSource = categories;
-            _assignmentsView.CommandCategoryPicker.SelectedItem = categories.Contains(previousCategory) ? previousCategory : categories[0];
-            var query = new GameCommandQuery(Section == "All" ? null : Section, CommandCategory, InputType,
-                _assignmentsView.CommandSearch.Text,
-                (_assignmentsView.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All);
-            var commands = GameCommandBrowser.Filter(EliteCommandBrowser.Entries(_commands, _rows), query, Device?.Id)
-                .Select(x => x.Command).ToArray();
-            _selection.Refresh(Device?.Id, commands, selected);
-            var view = new ListCollectionView(commands.ToList());
-            view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
-            _assignmentsView.CommandsList.ItemsSource = view;
-            _assignmentsView.CommandsList.SelectedItem = commands.FirstOrDefault(x => x.Id == _selection.CommandId); _refreshing = false;
-            _assignmentsView.CommandCount.Text = commands.Length + " of " + _commands.Count + " commands";
-            _assignmentsView.CommandEmptyHint.Visibility = commands.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-            _assignmentsView.AssignmentsGrid.ItemsSource = _rows.Where(x => x.DeviceId == Device?.Id && (Section == "All" || x.Section == Section)).ToArray();
-            _assignmentsView.RefreshNativeAssignments(); UpdateAvailability();
+            var previous = _refreshing; _refreshing = true;
+            try
+            {
+                Query(new(Section, Device?.Id, CommandCategory, InputType,
+                    (_assignmentsView.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All),
+                    _assignmentsView.CommandSearch.Text, selected);
+                Publish();
+                if (Filter.Category != CommandCategory) Query(Filter with { Category = CommandCategory }, _assignmentsView.CommandSearch.Text, selected);
+            }
+            finally { _refreshing = previous; }
+            RefreshEditorIfChanged();
         }
 
+        protected override void OnProjectionChanged() { Publish(); RefreshEditorIfChanged(); }
         internal void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
 
         internal void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
@@ -65,8 +52,8 @@ namespace Heimdall.App.Games.Elite
         internal void CommandChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_refreshing) return;
-            _selection.SelectCommand((_assignmentsView.CommandsList.SelectedItem as SimCommand)?.Id);
-            _assignmentsView.RefreshNativeAssignments();
+            SelectCommand((_assignmentsView.CommandsList.SelectedItem as SimCommand)?.Id);
+            Publish(); RefreshEditorIfChanged();
         }
 
         internal void SlotChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) _assignmentsView.RefreshNativeAssignments(); }
@@ -80,14 +67,52 @@ namespace Heimdall.App.Games.Elite
                 ClearCommandFilters(row.CommandId);
                 Status("Command filters cleared to show the selected assignment.");
             }
-            _selection.SelectCommand(row.CommandId);
+            SelectRecord(Heimdall.EliteDangerous.EliteAssignmentBrowser.Address(row));
             _refreshing = true; _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); _assignmentsView.SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
-            _assignmentsView.RefreshNativeAssignments();
+            RefreshEditorIfChanged();
         }
         /// <summary>Detaches native command drag handlers.</summary>
-        public void Dispose() => _commandDrag.Dispose();
+        protected override void DisposeNative() => _commandDrag.Dispose();
         #endregion END Public
         #region BEGIN private helpers
+        private void Publish()
+        {
+            var previous = _refreshing; _refreshing = true;
+            try
+            {
+                context.Commands = AllCommands; context.Rows = AllRecords;
+                var categories = Categories.Prepend("All categories").ToArray();
+                var category = CommandCategory;
+                if (!(_assignmentsView.CommandCategoryPicker.ItemsSource as IEnumerable<string> ?? []).SequenceEqual(categories))
+                {
+                    _assignmentsView.CommandCategoryPicker.ItemsSource = categories;
+                    _assignmentsView.CommandCategoryPicker.SelectedItem = categories.Contains(category) ? category : categories[0];
+                }
+                if (!ReferenceEquals(_publishedCommands, Commands))
+                {
+                    _publishedCommands = Commands;
+                    var view = new ListCollectionView(Commands.ToList());
+                    view.GroupDescriptions.Add(new PropertyGroupDescription("Metadata[ed.category]"));
+                    _assignmentsView.CommandsList.ItemsSource = view;
+                }
+                _assignmentsView.CommandsList.SelectedItem = Commands.FirstOrDefault(x => x.Id == context.State.Selection.CommandId);
+                if (context.State.Selection.SlotId is "Primary" or "Secondary") _assignmentsView.SlotPicker.SelectedIndex = context.State.Selection.SlotId == "Secondary" ? 1 : 0;
+                if (!ReferenceEquals(_assignmentsView.AssignmentsGrid.ItemsSource, Records)) _assignmentsView.AssignmentsGrid.ItemsSource = Records;
+                _assignmentsView.CommandCount.Text = Commands.Count + " of " + AllCommands.Count + " commands";
+                _assignmentsView.CommandEmptyHint.Visibility = Commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally { _refreshing = previous; }
+        }
+        private void RefreshEditorIfChanged()
+        {
+            if (_refreshing) return;
+            var key = (context.State.Selection.CommandId, context.State.Selection.SlotId, Metrics.ContentBuilds);
+            if (_editorKey != key) { _editorKey = key; _assignmentsView.RefreshNativeAssignments(); }
+        }
+        private (string?, string?, int) _editorKey;
+        private IReadOnlyList<SimCommand>? _publishedCommands;
+
+
         private void ClearCommandFilters(string? selected)
         {
             _refreshing = true; _assignmentsView.AssignmentStatusPicker.SelectedItem = EliteCommandBrowser.AssignmentStatuses.Single(x => x.Status == GameCommandAssignmentStatus.All); _assignmentsView.CommandCategoryPicker.SelectedIndex = 0; _assignmentsView.CommandTypePicker.SelectedItem = EliteCommandBrowser.InputTypes.Single(x => x.Type is null); _assignmentsView.CommandSearch.Clear(); _refreshing = false;

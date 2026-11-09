@@ -34,9 +34,8 @@ namespace Heimdall.Dcs
             var native = commands.ToDictionary(x => x.Id, StringComparer.Ordinal);
             return visible.Select(x => native[x.Command.Id]).ToArray();
         }
-        #endregion END Public
-        #region BEGIN private helpers
-        private static GameCommandAssignmentStatus SharedStatus(DcsCommandAssignmentStatus status, Guid? controllerId) => status switch
+        /// <summary>Maps native selected-controller/aggregate status without changing every-device semantics.</summary>
+        public static GameCommandAssignmentStatus SharedStatus(DcsCommandAssignmentStatus status, Guid? controllerId) => status switch
         {
             DcsCommandAssignmentStatus.AssignedHere => controllerId.HasValue
                 ? GameCommandAssignmentStatus.AssignedToController : GameCommandAssignmentStatus.AssignedAnywhere,
@@ -45,6 +44,6 @@ namespace Heimdall.Dcs
             DcsCommandAssignmentStatus.UnassignedEverywhere => GameCommandAssignmentStatus.UnassignedEverywhere,
             _ => GameCommandAssignmentStatus.All
         };
-        #endregion END private helpers
+        #endregion END Public
     }
 }

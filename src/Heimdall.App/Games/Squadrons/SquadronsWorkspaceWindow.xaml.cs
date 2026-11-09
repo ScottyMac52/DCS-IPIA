@@ -64,7 +64,12 @@ namespace Heimdall.App.Games.Squadrons
                 ("TargetDevice", TargetDevice), ("InputPicker", InputPicker), ("ReverseAxisButton", ReverseAxisButton),
             }) RegisterName(name, control);
             _profiles = new(_context, () => _controllers!, resetName => Refresh(resetName), Run, ConfirmLeave, StatusText, ProfilePicker, NewProfileButton, _assignmentsView, this);
-            _browser = new(_context, () => _controllers!, () => _editing!, () => _drawing!, Run, DevicePicker, _devicesView, _assignmentsView);
+            _browser = new(_context, () => _controllers!.StopLiveInput(),
+                () => { _controllers!.RefreshNativeControllerName(); _controllers.UpdateControllerAvailability(); },
+                axis => _editing!.AssignmentAction(WorkspaceAssignmentAction.Clear, axis, "Select an editable joystick assignment."),
+                () => _drawing!.RenderDrawing(), Run, DevicePicker, _devicesView, _assignmentsView);
+            RegisterWorkspaceCleanup(_browser.Dispose);
+            _assignmentsView.BindBrowser(_browser);
             _editing = new(_context, () => _controllers!, () => _browser!, resetName => Refresh(resetName), Run, StatusText, _assignmentsView, this);
             _drawing = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, _devicesView, _assignmentsView, this, () => _controllers!);
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
@@ -273,11 +278,7 @@ namespace Heimdall.App.Games.Squadrons
             if (snapshot is null) { _context.FocusedConcept = null; _context.InspectedControl = null; }
             TargetDevice.ItemsSource = devices;
             TargetDevice.SelectedItem = devices.FirstOrDefault(x => x.Id == target);
-            var verified = new Dictionary<string, IReadOnlyCollection<string>>();
-            if (snapshot is not null)
-                foreach (var (id, pin) in snapshot.Hardware)
-                    if (GameControllerInputs.VerifiedKeys(pin, _context.ControllerInputs) is { } keys) verified[id] = keys;
-            _context.Rows = snapshot is null ? [] : SquadronsWorkspaceProjection.ReviewInputs(SquadronsWorkspaceProjection.Rows(snapshot.Profile), verified);
+            _browser.Refresh(); _context.Rows = _browser.AllRecords;
             _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshNativeControllerName(); _browser.RefreshRows(); UpdateAvailability(); _controllers.UpdateControllerAvailability(); _drawing.RenderDrawing(); _context.NotifyChanged();
         }
 

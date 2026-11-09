@@ -8,7 +8,7 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.App.Games
 {
     /// <summary>Composes native assignment panels and owns common workflow, persistence feedback and event lifetime.</summary>
-    public abstract class GameAssignmentsView : UserControl
+    public abstract class GameAssignmentsView : UserControl, IDisposable
     {
         private readonly ContentControl _commands = new()
         { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
@@ -26,6 +26,8 @@ namespace Heimdall.App.Games
         private IGameWorkspaceContext? _context;
         private bool _unmounted;
         private WorkspaceChangeObserver? _observer;
+        private IGameAssignmentBrowser? _browser;
+        private bool _disposed;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
@@ -39,11 +41,17 @@ namespace Heimdall.App.Games
             Grid.SetColumn(_right, 2);
             AssignmentWorkspace.Children.Add(_commands); AssignmentWorkspace.Children.Add(_right);
             Content = new AdornerDecorator { Child = AssignmentWorkspace };
-            Loaded += (_, _) => { _unmounted = false; Attach(); RefreshAssignments(); };
-            Unloaded += (_, _) => { _unmounted = true; Detach(); };
+            Loaded += (_, _) => { _unmounted = false; Attach(); _browser?.SetActive(true); RefreshAssignments(); };
+            Unloaded += (_, _) => { _unmounted = true; _browser?.SetActive(false); Detach(); };
         }
 
         #region BEGIN Public
+        /// <summary>Gets completed native assignment-panel refresh passes for interaction diagnostics.</summary>
+        internal int NativeRefreshPasses { get; private set; }
+
+        /// <summary>Detaches mounted notifications and releases the browser when its owning workspace closes.</summary>
+        public void Dispose() { if (_disposed) return; _disposed = true; _unmounted = true; Detach(); _browser?.Dispose(); _browser = null; DisposeNative(); GC.SuppressFinalize(this); }
+
         /// <summary>Identifies the requested controller-panel reservation before the inspector may grow.</summary>
         public static readonly DependencyProperty ControllerReserveHeightProperty = DependencyProperty.Register(
             nameof(ControllerReserveHeight), typeof(double), typeof(GameAssignmentsView),
@@ -105,6 +113,15 @@ namespace Heimdall.App.Games
         /// <summary>Supplies native failure wording while retaining the underlying explanation.</summary>
         protected virtual string SaveFailurePrefix => "Save failed: ";
 
+        /// <summary>Releases additional native resources when the workspace closes.</summary>
+        protected virtual void DisposeNative() { }
+        /// <summary>Gets the bound role for production conformance/work measurements.</summary>
+        internal IGameAssignmentBrowser? BoundBrowser => _browser;
+        /// <summary>Shares browser activation across cached native feature views through the role contract.</summary>
+        internal void BindBrowser(IGameAssignmentBrowser browser)
+        {
+            _browser?.SetActive(false); _browser = browser; browser.SetActive(IsLoaded);
+        }
         /// <summary>Shares the context engine and notification lifetime rather than creating view-owned state.</summary>
         protected void BindAssignmentContext(IGameWorkspaceContext context)
         {
@@ -122,7 +139,7 @@ namespace Heimdall.App.Games
         {
             if (_refreshing) return;
             _refreshing = true;
-            try { RefreshAssignmentsCore(); RefreshAssignmentAvailability(); ObserveContext(); }
+            try { RefreshAssignmentsCore(); NativeRefreshPasses++; RefreshAssignmentAvailability(); ObserveContext(); }
             finally { _refreshing = false; }
         }
         /// <summary>Gets whether native choice updates are in progress.</summary>

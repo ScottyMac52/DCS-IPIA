@@ -70,6 +70,7 @@ namespace Heimdall.App.Features.Assignments
             Scope.SelectedIndex = 0;
             RefreshAssignments();
             CommandManager.Initialize(context);
+            BindBrowser(CommandManager.Browser);
             CommandManager.UseAssignmentPalette(_state.Layer);
         }
         internal Action<AxisTuningWindow>? AxisTuningPresenter

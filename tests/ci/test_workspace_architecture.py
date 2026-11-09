@@ -73,10 +73,19 @@ class WorkspaceArchitectureTests(unittest.TestCase):
 
     def test_selection_hot_paths_skip_native_reloads_and_serialization(self):
         for view in ('Pages/DcsPagesView', 'Kneeboards/DcsKneeboardsView', 'Documentation/DcsDocumentationView',
-                     'Modifiers/DcsModifiersView', 'Devices/DcsDevicesView', 'Commands/DcsCommandsManagementView'):
+                     'Modifiers/DcsModifiersView', 'Devices/DcsDevicesView'):
             source = (APP / f'Features/{view}.xaml.cs').read_text(encoding='utf-8-sig')
             self.assertIn('WorkspaceChangeObserver.ReloadUnlessSelectionOnly(', source)
             self.assertNotRegex(source, r'StateChanged \+= \(_, _\) => Refresh\(\)')
+        manager = (APP / 'Features/Commands/DcsCommandsManagementView.xaml.cs').read_text(encoding='utf-8-sig')
+        self.assertIn('_browser = new(context,', manager)
+        self.assertIn('_browser.ProjectionChanged +=', manager)
+        self.assertNotIn('DcsCommandBrowser.Filter(', manager)
+        self.assertNotIn('new GameAssignmentSelection', manager)
+        browser = (ROOT / 'src/Heimdall.Application/Games/GameAssignmentBrowserBase.cs').read_text(encoding='utf-8-sig')
+        self.assertIn('_context.ContentVersion', browser)
+        self.assertIn('else _observed = selection;', browser)
+        self.assertNotIn('CaptureSnapshot(', browser)
         assignments = (APP / 'Games/GameAssignmentsView.cs').read_text(encoding='utf-8-sig')
         changed = assignments[assignments.index('private void Changed('):assignments.index('private void RefreshAvailabilityOnly(')]
         self.assertNotIn('CaptureAssignmentSnapshot', changed)
@@ -228,4 +237,26 @@ class WorkspaceArchitectureTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    unittest.main()
+
+
+class AssignmentBrowserRoleTests(unittest.TestCase):
+    def test_all_native_roles_inherit_the_shared_algorithm_and_presentation_consumes_them(self):
+        for assembly, game, native in (("Dcs", "Dcs", "DcsCommandPaletteEntry"), ("EliteDangerous", "Elite", "SimCommand"),
+                                       ("Squadrons", "Squadrons", "SimCommand"), ("WarThunder", "WarThunder", "SimCommand")):
+            source = (ROOT / f"src/Heimdall.{assembly}/{game}AssignmentBrowser.cs").read_text()
+            self.assertIn(f"GameAssignmentBrowserBase<{native},", source)
+            for hook in ("ReadCommands", "ReadRecords", "IncludeCommand", "IncludeRecord", "SelectionForRecord", "FilterForSelection"):
+                self.assertIn("override", source); self.assertIn(hook, source)
+            if game != "Dcs":
+                edge = (APP / f"Games/{game}/{game}AssignmentBrowser.cs").read_text()
+                self.assertIn(f": Heimdall.{assembly}.{game}AssignmentBrowser(context,", edge)
+                self.assertNotIn("GameCommandBrowser.Filter(", edge)
+                self.assertNotIn(".Snapshot", edge)
+                self.assertNotRegex(edge, r"Func<(?:Elite|Squadrons|WarThunder)(?:AssignmentEditing|AssignmentDrawing|ControllerPresenter)>")
+        editing = (APP / 'Games/Squadrons/SquadronsAssignmentEditing.cs').read_text()
+        self.assertIn('Func<ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>>', editing)
+        self.assertNotIn('Func<SquadronsAssignmentBrowser>', editing)
+
+if __name__ == "__main__":
     unittest.main()

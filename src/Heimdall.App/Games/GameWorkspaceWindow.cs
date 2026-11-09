@@ -146,7 +146,11 @@ namespace Heimdall.App.Games
         /// <summary>Supplies native pending-state wording while retaining the common refresh algorithm.</summary>
         protected virtual string WorkspaceStateSummary => HasWorkspaceChanges ? "Pending assignment or authoring changes" : "No pending assignment changes";
         /// <summary>Releases the mounted feature/action connections through the shared host.</summary>
-        protected void ClearWorkspaceFeatures() => _host?.Clear();
+        protected void ClearWorkspaceFeatures()
+        {
+            _host?.Clear();
+            foreach (var view in _views.Values.OfType<IDisposable>()) view.Dispose();
+        }
 
         /// <summary>Updates common pending and save/discard state, then invokes the adapter hook.</summary>
         protected void RefreshWorkspaceState()

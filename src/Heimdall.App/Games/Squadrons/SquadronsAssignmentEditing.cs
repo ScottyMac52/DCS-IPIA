@@ -16,7 +16,7 @@ namespace Heimdall.App.Games.Squadrons
     internal sealed class SquadronsAssignmentEditing(
         SquadronsWorkspaceContext context,
         Func<SquadronsControllerPresenter> controllers,
-        Func<SquadronsAssignmentBrowser> browser,
+        Func<ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>> browser,
         Action<bool> refresh,
         Action<Action> run,
         TextBlock StatusText,
@@ -208,7 +208,7 @@ namespace Heimdall.App.Games.Squadrons
             if (result.Outcome != DraftOutcome.Applied) { AssignmentFeedback(result); return; }
             context.FocusedConcept = null;
             context.InspectedControl = null;
-            browser().SelectCommandConcept(context.Session.Catalog.Find(commandId)!.Metadata["squadrons.concept"]);
+            browser().SelectCommand(commandId);
             context.Selection.SelectInput(input.Key);
             context.Refreshing = true;
             try { _assignmentsView.TargetDevice.SelectedItem = _assignmentsView.TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }

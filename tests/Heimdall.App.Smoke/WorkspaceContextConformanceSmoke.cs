@@ -13,6 +13,7 @@ namespace Heimdall.App.Smoke
         #region BEGIN Public
         internal static void Verify()
         {
+            BrowserPerformanceSmoke.Verify();
             var previous = EditionAccess.Policy; using var issuer = new OwnerLicenseTestIssuer();
             var root = Path.Combine(Path.GetTempPath(), "heimdall-contexts-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
             IReadOnlyList<WorkspaceContextCase> cases = [];
