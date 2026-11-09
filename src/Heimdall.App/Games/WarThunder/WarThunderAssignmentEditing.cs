@@ -34,11 +34,11 @@ namespace Heimdall.App.Games.WarThunder
             _assignments.Editor.MappedInputs = MappedEditorInputs;
             var selection = context.State.Selection;
             var row = context.Rows.FirstOrDefault(candidate => candidate.RecordId == selection.AlternativeId);
-            var command = selection.CommandId is { } id ? context.Session?.Catalog.Find(id) : null;
+            var command = selection.CommandId is { } commandId ? context.Session?.Catalog.Find(commandId) : null;
             var blocked = context.Selection.InputBlockedReason;
             _assignments.Editor.Show(context.Session, command, row, context.Testing || context.Busy || context.ScanningHardware, context.Selection);
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);
-            else if (context.SelectedPhysicalInput is not null && context.SelectedDevice is { } id) _assignments.Editor.SelectPhysical(id, context.SelectedPhysicalInput);
+            else if (context.SelectedPhysicalInput is { } physicalInput && context.SelectedDevice is { } controllerId) _assignments.Editor.SelectPhysical(controllerId, physicalInput);
         }
 
         private WarThunderPhysicalInput[] MappedEditorInputs(string deviceId)
