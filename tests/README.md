@@ -130,3 +130,9 @@ no reporting exception is shown. Confirm `crap-scores.csv`, `test-results.json` 
 See the [project README](../README.md) for CI artifact downloads and the application workflow.
 
 PR6 local acceptance: `./tests/validate-pr6.ps1` runs the existing 80/80 coverage gates, installs the pinned report tool, enforces CRAP ≤50 through the report publisher, then runs Windows smoke. Requires PowerShell 7, .NET 10, Python 3.12 and Windows. See the [shared validation contract](../docs/design/profile-validation-contract.md).
+
+## Performance measurements
+
+Use the [Profile build and capture guide](../docs/performance-profiling.md) for
+local performance reports across all four simulators. Profiling is separate from
+the test/coverage acceptance gates and is disabled in normal Debug/Release builds.

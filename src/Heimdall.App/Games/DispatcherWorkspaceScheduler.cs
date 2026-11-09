@@ -12,7 +12,20 @@ namespace Heimdall.App.Games
         /// <inheritdoc/>
         public void VerifyAccess() => dispatcher.VerifyAccess();
         /// <inheritdoc/>
-        public void Post(Action action) => dispatcher.BeginInvoke(action, DispatcherPriority.DataBind);
+        public void Post(Action action)
+        {
+#if PERFORMANCE_TRACE
+            var queued = System.Diagnostics.Stopwatch.GetTimestamp();
+            dispatcher.BeginInvoke(new Action(() =>
+            {
+                Heimdall.Application.PerformanceTrace.Record("dispatcher.queue-delay", System.Diagnostics.Stopwatch.GetElapsedTime(queued).TotalMilliseconds);
+                using var performance = Heimdall.Application.PerformanceTrace.Measure("dispatcher.callback", GetType());
+                action();
+            }), DispatcherPriority.DataBind);
+#else
+            dispatcher.BeginInvoke(action, DispatcherPriority.DataBind);
+#endif
+        }
         #endregion END Public
     }
 }
