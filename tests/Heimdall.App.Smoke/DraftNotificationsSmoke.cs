@@ -67,6 +67,10 @@ namespace Heimdall.App.Smoke
                 { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
                 WorkspaceUi.Button(assignmentsView, "Assign selected command").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 AssertState(window, standalone, embedded, true, 1);
+                var selectedAddress = context.State.Selection;
+                standalone.Browser.Refresh();
+                if (context.State.Selection != selectedAddress)
+                    throw new InvalidOperationException("Refreshing cached command usage changed the mounted assignment selection.");
                 if (device.SelectedItem is not UiLayerDiagram selected || selected.ProfileId != profile.Id ||
                     !Equals(layers.SelectedItem, "Shift") || embedded.SelectedCommand?.Id != "KEY" || standalone.SelectedCommand?.Id != "KEY")
                     throw new InvalidOperationException("Draft notification reset a valid device, layer or command selection.");
@@ -175,3 +179,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

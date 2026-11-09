@@ -21,6 +21,7 @@ namespace Heimdall.App.Features.Commands
 
         private UIElement? _previewHost;
         private IDcsModuleWorkspaceContext? _context;
+        private EventHandler? _passiveRefresh;
         private DcsAssignmentBrowser? _browser;
         private IReadOnlyList<DcsCommandPaletteEntry>? _published;
         private DcsCommandPaletteEntry? _selected => _browser?.Commands.FirstOrDefault(x => x.Id == _context?.State.Selection.CommandId);
@@ -40,7 +41,11 @@ namespace Heimdall.App.Features.Commands
         /// <summary>Gets the shared browser contract for cached feature lifetime ownership.</summary>
         internal IGameAssignmentBrowser Browser => _browser ?? throw new InvalidOperationException("Initialize the command browser.");
         /// <summary>Releases native browser state subscriptions when the workspace closes.</summary>
-        public void Dispose() { _browser?.Dispose(); _browser = null; GC.SuppressFinalize(this); }
+        public void Dispose()
+        {
+            if (_context is not null && _passiveRefresh is not null) _context.StateChanged -= _passiveRefresh;
+            _passiveRefresh = null; _browser?.Dispose(); _browser = null; GC.SuppressFinalize(this);
+        }
 
         /// <summary>Occurs when the command selection changes.</summary>
         public event EventHandler<DcsCommandPaletteEntry?>? SelectedCommandChanged;
@@ -64,11 +69,20 @@ namespace Heimdall.App.Features.Commands
         {
             ArgumentNullException.ThrowIfNull(context);
             if (ReferenceEquals(_context, context)) return;
+            if (_context is not null && _passiveRefresh is not null) _context.StateChanged -= _passiveRefresh;
             _context = context;
             _browser?.Dispose();
             _browser = new(context, () => context.Draft?.Snapshot ?? context.Working?.Assignments ?? []);
             _browser.SetActive(_hostOwnsLifetime ? _featureActive : IsLoaded);
             _browser.ProjectionChanged += (_, _) => PublishBrowser();
+            var observer = new WorkspaceChangeObserver(context); observer.Accept();
+            _passiveRefresh = (_, _) =>
+            {
+                if (context.State.Operation is not null) return;
+                // Cached DCS palettes still show live draft usage; only the mounted browser owns selection.
+                if (observer.Observe() == WorkspaceChangeKind.Content && !IsSelectionOwner) _browser?.Refresh();
+            };
+            context.StateChanged += _passiveRefresh;
             Refresh();
         }
         /// <summary>Selects the assignment palette scope while keeping UI Layer catalog authoring read-only.</summary>
@@ -95,11 +109,14 @@ namespace Heimdall.App.Features.Commands
         /// <summary>Accepts synchronous selection ownership from the feature host instead of delayed WPF load events.</summary>
         internal void SetFeatureActive(bool active)
         {
+            var wasOwner = IsSelectionOwner;
             _hostOwnsLifetime = true; _featureActive = active; _browser?.SetActive(active);
+            if (active && !wasOwner && _browser is not null) DisplaySelectedCommand();
         }
         #endregion END Public
 
         #region BEGIN private helpers
+        private bool IsSelectionOwner => _hostOwnsLifetime ? _featureActive : IsLoaded;
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetCursorPos(out NativeScreenPoint point);
@@ -178,7 +195,7 @@ namespace Heimdall.App.Features.Commands
                 CommandId.IsReadOnly = true;
             }
             _displayedCommand = _selected;
-            SelectedCommandChanged?.Invoke(this, _selected);
+            if (IsSelectionOwner) SelectedCommandChanged?.Invoke(this, _selected);
         }
 
         private void AddClicked(object sender, RoutedEventArgs e)
@@ -360,5 +377,6 @@ namespace Heimdall.App.Features.Commands
         #endregion END private helpers
     }
 }
+
 
 

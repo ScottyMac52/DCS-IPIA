@@ -210,11 +210,14 @@ namespace Heimdall.App.Games.Squadrons
             context.FocusedConcept = null;
             context.InspectedControl = null;
             browser().SelectCommand(commandId);
-            context.Selection.SelectInput(input.Key);
             context.Refreshing = true;
             try { _assignmentsView.TargetDevice.SelectedItem = _assignmentsView.TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == slot); }
             finally { context.Refreshing = false; }
             refresh(false);
+            // The native content refresh may have rebuilt the picker before the dropped input was selected.
+            // Publish this explicit input choice after that refresh, without reloading another native baseline.
+            context.Selection.SelectInput(input.Key);
+            UpdateInputChoices();
             AssignmentFeedback(result);
         }
 
@@ -324,4 +327,5 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+
 
