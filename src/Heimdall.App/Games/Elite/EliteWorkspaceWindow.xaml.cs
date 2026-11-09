@@ -70,7 +70,7 @@ namespace Heimdall.App.Games.Elite
                 () => _editing!.RefreshInputChoices(), () => _editing!.Actions.Start, RunBusy, UpdateAvailability, Run, Status);
             _editing = new(_context, _assignmentsView, DevicePicker, () => _controllers.Evidence, UpdateAvailability, Run, Status);
             _browser = new(_context, _assignmentsView, Status);
-            _assignmentsView.BindBrowser(_browser);
+            _assignmentsView.BindBrowser(_browser, () => _context.Refreshing);
             _references = new(_context, this, _referenceView, _drawing.RenderDrawing, Run, Status);
             _profiles = new(_context, this, ProfilePicker, ProfileName, BindingsDirectoryText, ExportToReviewFolder, ExportState,
                 importPicker, exportPicker, CreateSession, InstallSession, ReloadChoices, Remember, ConfirmLeave, StopLiveInput,
@@ -301,7 +301,7 @@ namespace Heimdall.App.Games.Elite
             _refreshing = false;
             SyncContextSelection();
             _editing.RefreshCombinationInputs();
-            _browser.FilterCommands(previousCommand); _drawing.RenderDevice(); _controllers.UpdateReplacementReferences(); UpdateAvailability();
+            _browser.FilterCommands(previousCommand); _assignmentsView.SynchronizeNativeAssignments(); _drawing.RenderDevice(); _controllers.UpdateReplacementReferences(); UpdateAvailability();
         }
 
         private void GameChanged(object sender, SelectionChangedEventArgs e)
@@ -390,3 +390,4 @@ namespace Heimdall.App.Games.Elite
         #endregion END private helpers
     }
 }
+

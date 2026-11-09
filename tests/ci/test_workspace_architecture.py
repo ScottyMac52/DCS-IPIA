@@ -240,6 +240,35 @@ if __name__ == '__main__':
     unittest.main()
 
 
+class BrowserEditorOwnershipTests(unittest.TestCase):
+    def test_editor_renderers_do_not_write_navigation_selection_from_controls(self):
+        thunder = (APP / 'Games/WarThunder/WarThunderAssignmentEditing.cs').read_text()
+        render = thunder[thunder.index('internal void RefreshEditor()'):thunder.index('private WarThunderPhysicalInput[]')]
+        self.assertNotIn('SelectCommand(', render)
+        self.assertNotIn('SelectAlternative(', render)
+        self.assertNotIn('Records.SelectedItem', render)
+        self.assertIn('context.State.Selection', render)
+        elite = (APP / 'Games/Elite/EliteAssignmentEditing.cs').read_text()
+        render = elite[elite.index('internal void LoadAssignment()'):elite.index('internal void ApplyClicked')]
+        self.assertNotIn('_selection.SelectSlot(', render)
+        self.assertNotIn('SelectInput(', render)
+        squadrons = (APP / 'Games/Squadrons/SquadronsAssignmentEditing.cs').read_text()
+        render = squadrons[squadrons.index('internal void UpdateEditor()'):squadrons.index('private void UpdateInputChoices()')]
+        self.assertNotIn('BindingsGrid.SelectedItem', render)
+        self.assertIn('context.State.Selection', render)
+
+    def test_shared_view_owns_completed_editor_revisions(self):
+        view = (APP / 'Games/GameAssignmentsView.cs').read_text()
+        self.assertIn('WorkspaceEditorObserver', view)
+        self.assertLess(view.index('nativeRefresh(); NativeRefreshPasses++'), view.index('_editorObserver?.Accept('))
+        for game in ('Elite', 'Squadrons', 'WarThunder'):
+            browser = (APP / f'Games/{game}/{game}AssignmentBrowser.cs').read_text()
+            self.assertNotIn('_editorKey', browser)
+            window = (APP / f'Games/{game}/{game}WorkspaceWindow.xaml.cs').read_text()
+            self.assertIn('BindBrowser(_browser, () => _context.Refreshing)', window)
+            self.assertIn('SynchronizeNativeAssignments()', window)
+
+
 class AssignmentBrowserRoleTests(unittest.TestCase):
     def test_all_native_roles_inherit_the_shared_algorithm_and_presentation_consumes_them(self):
         for assembly, game, native in (("Dcs", "Dcs", "DcsCommandPaletteEntry"), ("EliteDangerous", "Elite", "SimCommand"),
@@ -260,3 +289,4 @@ class AssignmentBrowserRoleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -39,10 +39,10 @@ namespace Heimdall.App.Games.Elite
                 if (Filter.Category != CommandCategory) Query(Filter with { Category = CommandCategory }, _assignmentsView.CommandSearch.Text, selected);
             }
             finally { _refreshing = previous; }
-            RefreshEditorIfChanged();
+            _assignmentsView.SynchronizeNativeAssignments();
         }
 
-        protected override void OnProjectionChanged() { Publish(); RefreshEditorIfChanged(); }
+        protected override void OnProjectionChanged() => Publish();
         internal void SearchChanged(object sender, TextChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
 
         internal void CommandFilterChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) FilterCommands(Command?.Id); }
@@ -53,10 +53,15 @@ namespace Heimdall.App.Games.Elite
         {
             if (_refreshing) return;
             SelectCommand((_assignmentsView.CommandsList.SelectedItem as SimCommand)?.Id);
-            Publish(); RefreshEditorIfChanged();
+            Publish(); _assignmentsView.SynchronizeNativeAssignments();
         }
 
-        internal void SlotChanged(object sender, SelectionChangedEventArgs e) { if (!_refreshing) _assignmentsView.RefreshNativeAssignments(); }
+        internal void SlotChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_refreshing) return;
+            context.Selection.SelectSlot(_assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary");
+            _assignmentsView.SynchronizeNativeAssignments();
+        }
 
         internal void AssignmentSelected(object sender, SelectionChangedEventArgs e) { if (!_refreshing && _assignmentsView.AssignmentsGrid.SelectedItem is EliteAssignmentRow row) SelectRow(row); }
 
@@ -69,7 +74,7 @@ namespace Heimdall.App.Games.Elite
             }
             SelectRecord(Heimdall.EliteDangerous.EliteAssignmentBrowser.Address(row));
             _refreshing = true; _assignmentsView.CommandsList.SelectedItem = _assignmentsView.CommandsList.Items.Cast<SimCommand>().FirstOrDefault(x => x.Id == row.CommandId); _assignmentsView.SlotPicker.SelectedIndex = row.Slot == "Secondary" ? 1 : 0; _refreshing = false;
-            RefreshEditorIfChanged();
+            _assignmentsView.SynchronizeNativeAssignments();
         }
         /// <summary>Detaches native command drag handlers.</summary>
         protected override void DisposeNative() => _commandDrag.Dispose();
@@ -103,14 +108,6 @@ namespace Heimdall.App.Games.Elite
             }
             finally { _refreshing = previous; }
         }
-        private void RefreshEditorIfChanged()
-        {
-            if (_refreshing) return;
-            var selection = context.State.Selection;
-            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.SlotId, Metrics.ContentBuilds);
-            if (_editorKey != key) { _assignmentsView.RefreshNativeAssignments(); _editorKey = key; }
-        }
-        private (string?, string?, string?, string?, int) _editorKey;
         private IReadOnlyList<SimCommand>? _publishedCommands;
 
 
@@ -123,4 +120,5 @@ namespace Heimdall.App.Games.Elite
         #endregion END private helpers
     }
 }
+
 

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using Heimdall.App.Games;
 using Heimdall.Application;
 using Heimdall.Domain.MultiSim;
+using Heimdall.WarThunder;
 using Heimdall.Infrastructure;
 
 namespace Heimdall.App.Smoke
@@ -58,8 +59,13 @@ namespace Heimdall.App.Smoke
             if (!saved.Contains("throttle{axisId:i=0;nonlinearity:i=1;}", StringComparison.Ordinal)
                 || !window.Session.HasChanges || !((Button)window.FindName("Save")).IsEnabled || !window.SaveCurrent())
                 throw new InvalidOperationException("Fallback layout assignment did not stage and save while preserving native tuning.");
-            var id = window.Session.Snapshot.Id; window.LoadWorkspace(id);
+            var id = window.Session.Snapshot.Id; var previousIdentity = window.WorkspaceContext.State.Identity; window.LoadWorkspace(id);
             if (window.Session.Export().Files.Single().Value != saved) throw new InvalidOperationException("Saved fallback layout assignment did not reopen exactly.");
+            if (window.WorkspaceContext.State.Identity == previousIdentity) throw new InvalidOperationException("Reopening a saved workspace retained the previous editing identity.");
+            // Reopening establishes a fresh workspace identity; choose the saved record before acting on it.
+            var reopened = view.Browser.CommandsList.Items.Cast<SimCommand>().Single(command => command.Metadata["war-thunder.command"] == "throttle");
+            view.Browser.CommandsList.SelectedItem = reopened;
+            view.Records.SelectedItem = view.Records.Items.Cast<WarThunderWorkspaceRow>().Single(row => row.Command.Id == reopened.Id);
             var clear = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Clear");
             if (!clear.Command.CanExecute(null)) throw new InvalidOperationException("Saved fallback axis did not expose Clear.");
             clear.Command.Execute(null); Click((Button)window.FindName("Discard"));
@@ -75,3 +81,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

@@ -40,8 +40,14 @@ namespace Heimdall.EliteDangerous
             GameCommandBrowser.Matches(_entries[command.Id], _query, filter.ControllerId);
         protected override bool IncludeRecord(EliteAssignmentRow record, EliteBrowserFilter filter, string search) =>
             record.DeviceId == filter.ControllerId && (filter.Section == "All" || record.Section == filter.Section);
-        protected override WorkspaceSelection SelectionForCommand(SimCommand command) => ScopeSelection with { CommandId = command.Id };
+        protected override WorkspaceSelection SelectionForCommand(SimCommand command) => ScopeSelection with
+        {
+            CommandId = command.Id,
+            SlotId = command.Type == CommandType.Axis ? "Binding" : Context.State.Selection.SlotId is "Primary" or "Secondary"
+                ? Context.State.Selection.SlotId : "Primary"
+        };
         protected override WorkspaceSelection SelectionForRecord(EliteAssignmentRow record) => ScopeSelection with
         { ControllerId = record.DeviceId, CommandId = record.CommandId, SlotId = record.Slot, AlternativeId = null, InputId = record.Input };
     }
 }
+

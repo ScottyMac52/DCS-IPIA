@@ -5,8 +5,7 @@ using Heimdall.Domain.MultiSim;
 namespace Heimdall.App.Games.WarThunder
 {
     /// <summary>Binds the inherited native browser projection to the War Thunder WPF panels.</summary>
-    internal sealed class WarThunderAssignmentBrowser(WarThunderWorkspaceContext context,
-        Action refreshEditor, WarThunderAssignmentsView assignments)
+    internal sealed class WarThunderAssignmentBrowser(WarThunderWorkspaceContext context, WarThunderAssignmentsView assignments)
         : Heimdall.WarThunder.WarThunderAssignmentBrowser(context, context.Backend)
     {
         internal void RefreshCommands()
@@ -24,7 +23,6 @@ namespace Heimdall.App.Games.WarThunder
             SelectCommand((assignments.Browser.CommandsList.SelectedItem as SimCommand)?.Id); Publish();
         }
         protected override void OnProjectionChanged() => Publish();
-        private (string?, string?, string?, string?, int) _editorKey;
         private void Publish()
         {
             var previous = context.Refreshing; context.Refreshing = true;
@@ -42,10 +40,9 @@ namespace Heimdall.App.Games.WarThunder
                     + " captured joystick assignments · " + AllRecords.Count + " native records";
             }
             finally { context.Refreshing = previous; }
-            var selection = context.State.Selection;
-            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.AlternativeId, Metrics.ContentBuilds);
-            if (!context.Refreshing && _editorKey != key) { refreshEditor(); _editorKey = key; }
+            assignments.SynchronizeNativeAssignments();
         }
     }
 }
+
 

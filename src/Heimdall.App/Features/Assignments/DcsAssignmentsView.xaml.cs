@@ -130,6 +130,11 @@ namespace Heimdall.App.Features.Assignments
         private void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e) => _labels.SearchReplaceLabelsClicked(sender, e);
         private void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e) => _labels.LoadAuthoredLabelsClicked(sender, e);
         private void RenameGenericControlClicked(object sender, RoutedEventArgs e) => _labels.RenameGenericControlClicked(sender, e);
+        protected override void RefreshBrowserEditorCore()
+        {
+            SelectionEditor.ShowCommandLabel(CommandManager.SelectedCommand?.Name);
+            RefreshAssignmentActions();
+        }
         protected override void RefreshAssignmentsCore()
         {
             if (_state.Context?.Working is null)
@@ -264,5 +269,6 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+
 
 

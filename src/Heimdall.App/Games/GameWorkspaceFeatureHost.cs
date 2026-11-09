@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Games
 {
@@ -31,4 +32,5 @@ namespace Heimdall.App.Games
         #endregion END Public
     }
 }
+
 

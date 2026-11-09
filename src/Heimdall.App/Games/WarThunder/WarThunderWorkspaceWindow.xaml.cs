@@ -43,10 +43,10 @@ namespace Heimdall.App.Games.WarThunder
             BindWorkspaceContext(_context, Refresh);
             BindWorkspaceStatus(Status);
             _profiles = new(_context, Refresh, ConfirmLeave, Status, ProfileName, Profiles, this, SessionChanged, () => _controllers!, RefreshChrome);
-            _browser = new(_context, () => _editing!.RefreshEditor(), _assignments);
+            _browser = new(_context, _assignments);
             RegisterWorkspaceCleanup(_browser.Dispose);
-            _assignments.BindBrowser(_browser);
-            _editing = new(_context, RefreshChrome, Run, Status, _assignments, this, () => _controllers!, () => _drawing!);
+            _assignments.BindBrowser(_browser, () => _context.Refreshing);
+            _editing = new(_context, RefreshChrome, Run, Status, _assignments, this, () => _controllers!, () => _drawing!, _browser);
             _drawing = new(_context, () => _controllers!, () => _editing!, _devices, _assignments, this);
             _controllers = new(_context, ReportError, Controllers, _devices, this, reviewChange, _drawing.Presenter, inputFactory, InputStatus, _assignments, RefreshChrome);
             _saving = new(_context, () => _controllers.Input.Stop(), _profiles.AfterSave, () =>
@@ -233,7 +233,14 @@ namespace Heimdall.App.Games.WarThunder
                 browser.CommandTypePicker.SelectedIndex = 0; browser.AssignmentStatusPicker.SelectedIndex = 0; _context.Refreshing = false; _browser.RefreshCommands();
             };
             browser.CommandsList.SelectionChanged += (_, _) => { if (!_context.Refreshing) { _context.SelectedPhysicalInput = null; _browser.SelectCommand((browser.CommandsList.SelectedItem as SimCommand)?.Id); } };
-            _assignments.Records.SelectionChanged += (_, _) => { if (!_context.Refreshing) { _context.SelectedPhysicalInput = null; _browser.SelectRecord((_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.RecordId); } };
+            _assignments.Records.SelectionChanged += (_, _) =>
+            {
+                if (_context.Refreshing) return;
+                _context.SelectedPhysicalInput = null;
+                var row = _assignments.Records.SelectedItem as WarThunderWorkspaceRow;
+                if (row is not null) _browser.SelectCommand(row.Command.Id);
+                _browser.SelectRecord(row?.RecordId);
+            };
             _assignments.Editor.PhysicalApplyRequested += (_, _) => Run(() =>
             {
                 var command = (_assignments.Browser.CommandsList.SelectedItem as SimCommand) ?? (_assignments.Records.SelectedItem as WarThunderWorkspaceRow)?.Command;
@@ -281,7 +288,7 @@ namespace Heimdall.App.Games.WarThunder
             Controllers.SelectedItem = Controllers.Items.Cast<ListBoxItem>().FirstOrDefault(item => item.Tag as string == previous) ?? Controllers.Items[0];
             _browser.Refresh(); _context.Rows = _browser.AllRecords;
             _references.Show(_context.Rows);
-            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshDevices(); _browser.RefreshCommands(); RefreshChrome(); _drawing.ShowDrawing(); _context.NotifyChanged();
+            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshDevices(); _browser.RefreshCommands(); _assignments.SynchronizeNativeAssignments(); RefreshChrome(); _drawing.ShowDrawing(); _context.NotifyChanged();
         }
 
         private void ReportError(Exception error, string operation = "Operation failed")
@@ -293,4 +300,5 @@ namespace Heimdall.App.Games.WarThunder
         #endregion END private helpers
     }
 }
+
 

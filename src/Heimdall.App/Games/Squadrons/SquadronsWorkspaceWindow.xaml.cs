@@ -69,7 +69,7 @@ namespace Heimdall.App.Games.Squadrons
                 axis => _editing!.AssignmentAction(WorkspaceAssignmentAction.Clear, axis, "Select an editable joystick assignment."),
                 () => _drawing!.RenderDrawing(), Run, DevicePicker, _devicesView, _assignmentsView);
             RegisterWorkspaceCleanup(_browser.Dispose);
-            _assignmentsView.BindBrowser(_browser);
+            _assignmentsView.BindBrowser(_browser, () => _context.Refreshing);
             _editing = new(_context, () => _controllers!, () => _browser!, resetName => Refresh(resetName), Run, StatusText, _assignmentsView, this);
             _drawing = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, _devicesView, _assignmentsView, this, () => _controllers!);
             _controllers = new(_context, () => _editing!, resetName => Refresh(resetName), Run, DevicePicker, StatusText, ControllerSummary, FeaturePicker, _devicesView, _assignmentsView, this, reviewChange, identificationFactory, inputFactory, _drawing.Presenter);
@@ -279,7 +279,7 @@ namespace Heimdall.App.Games.Squadrons
             TargetDevice.ItemsSource = devices;
             TargetDevice.SelectedItem = devices.FirstOrDefault(x => x.Id == target);
             _browser.Refresh(); _context.Rows = _browser.AllRecords;
-            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshNativeControllerName(); _browser.RefreshRows(); UpdateAvailability(); _controllers.UpdateControllerAvailability(); _drawing.RenderDrawing(); _context.NotifyChanged();
+            _context.Refreshing = false; SyncContextSelection(); _controllers.RefreshNativeControllerName(); _browser.RefreshRows(); _assignmentsView.SynchronizeNativeAssignments(); UpdateAvailability(); _controllers.UpdateControllerAvailability(); _drawing.RenderDrawing(); _context.NotifyChanged();
         }
 
         private void UpdateAvailability()
@@ -374,3 +374,4 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+

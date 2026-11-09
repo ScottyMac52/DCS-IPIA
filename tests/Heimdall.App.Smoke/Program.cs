@@ -56,6 +56,7 @@ namespace Heimdall.App.Smoke
                 "games" => GamesGroup,
                 "squadrons" => SquadronsGroup,
                 "dcs-shared" => DcsSharedGroup,
+                "browser-state" => BrowserEditorConformanceSmoke.Verify,
                 _ => throw new ArgumentException("Unknown smoke group: " + group, nameof(group))
             };
             // Every group owns the shared themed host; startup creates it after logging, as the single-process Main did.
@@ -1351,4 +1352,5 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+
 

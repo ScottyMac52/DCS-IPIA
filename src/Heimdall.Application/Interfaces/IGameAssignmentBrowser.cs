@@ -6,6 +6,8 @@ namespace Heimdall.Application.Interfaces
         #region BEGIN Public
         /// <summary>Gets deterministic content-build and publication counters.</summary>
         Heimdall.Application.Games.BrowserWorkCounts Metrics { get; }
+        /// <summary>Occurs after a complete native projection or selection has been bound by the presentation edge.</summary>
+        event EventHandler? ProjectionChanged;
         /// <summary>Refreshes cached native projections, retaining a valid preferred command.</summary>
         void Refresh(string? preferredCommandId = null);
         /// <summary>Updates trimmed search text through the common refresh sequence.</summary>
@@ -19,3 +21,4 @@ namespace Heimdall.Application.Interfaces
         #endregion END Public
     }
 }
+

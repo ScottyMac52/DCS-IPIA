@@ -34,7 +34,6 @@ namespace Heimdall.App.Games.Squadrons
         internal void RefreshRows()
         {
             if (context.Refreshing) return;
-            var selected = (_assignmentsView.BindingsGrid.SelectedItem as SquadronsWorkspaceRow)?.RecordId;
             var review = _assignmentsView.ReviewCaptured.IsChecked == true;
             var section = _assignmentsView.SectionPicker.SelectedItem as string ?? "Flight";
             RefreshQuery();
@@ -43,7 +42,7 @@ namespace Heimdall.App.Games.Squadrons
             try
             {
                 if (!ReferenceEquals(_assignmentsView.BindingsGrid.ItemsSource, rows)) _assignmentsView.BindingsGrid.ItemsSource = rows;
-                _assignmentsView.BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == selected);
+                _assignmentsView.BindingsGrid.SelectedItem = rows.FirstOrDefault(x => x.RecordId == context.State.Selection.AlternativeId);
             }
             finally { context.Refreshing = false; }
             _assignmentsView.ContextColumn.Visibility = section == "All" ? Visibility.Visible : Visibility.Collapsed;
@@ -187,13 +186,14 @@ namespace Heimdall.App.Games.Squadrons
         internal void SelectRecord(SquadronsWorkspaceRow row)
         {
             SelectCommandConcept(row.Native.Concept);
-            base.SelectRecord(row.RecordId);
+            var previous = context.Refreshing;
             context.Refreshing = true;
             try
             {
                 _assignmentsView.TargetDevice.SelectedItem = _assignmentsView.TargetDevice.Items.Cast<GameDeviceChoice>().FirstOrDefault(x => x.Id == row.DeviceId);
             }
-            finally { context.Refreshing = false; }
+            finally { context.Refreshing = previous; }
+            base.SelectRecord(row.RecordId);
         }
 
         internal void SelectCommandConcept(string concept)
@@ -253,11 +253,8 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.ShowCommandButton.IsEnabled = selected is not null;
             }
             finally { context.Refreshing = previous; }
-            var selection = context.State.Selection;
-            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.AlternativeId, Metrics.ContentBuilds);
-            if (!context.Refreshing && _editorKey != key) { _assignmentsView.RefreshNativeAssignments(); _editorKey = key; }
+            _assignmentsView.SynchronizeNativeAssignments();
         }
-        private (string?, string?, string?, string?, int) _editorKey;
 
         internal void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -294,4 +291,5 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+
 

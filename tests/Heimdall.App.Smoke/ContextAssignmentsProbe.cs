@@ -17,14 +17,20 @@ namespace Heimdall.App.Smoke
         internal TextBox Pending { get; } = new();
         internal int Reloads { get; private set; }
         internal int AvailabilityUpdates { get; private set; }
+        internal bool FailReload { get; set; }
         internal void ReloadNative() => RefreshAssignments();
         protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _fixture.Context.Context;
         protected override string CaptureAssignmentSnapshot() => _fixture.NativeSnapshot();
         protected override Task SaveAssignmentsCoreAsync() => Task.CompletedTask;
         protected override void DiscardAssignmentsCore() { }
-        protected override void RefreshAssignmentsCore() { Reloads++; Pending.Text = "Loaded native record"; }
+        protected override void RefreshAssignmentsCore()
+        {
+            if (FailReload) throw new InvalidOperationException("Injected native editor render failure.");
+            Reloads++; Pending.Text = "Loaded native record";
+        }
         protected override void RefreshAssignmentAvailability() => AvailabilityUpdates++;
         protected override void RefreshAssignmentDrawing() { }
         protected override void ShowAssignmentStatus(string message) { }
     }
 }
+

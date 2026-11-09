@@ -28,8 +28,9 @@ namespace Heimdall.App.Games.Squadrons
         #region BEGIN private helpers
         internal void UpdateEditor()
         {
-            var row = _assignmentsView.BindingsGrid.SelectedItem as SquadronsWorkspaceRow;
-            var command = _assignmentsView.CommandBrowser.CommandsList.SelectedItem as Heimdall.Domain.MultiSim.SimCommand;
+            var selection = context.State.Selection;
+            var row = context.Rows.FirstOrDefault(candidate => candidate.RecordId == selection.AlternativeId);
+            var command = selection.CommandId is { } id ? context.Session?.Catalog.Find(id) : null;
             _assignmentsView.AssignmentEditor.Visibility = command is null ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.TargetDevice.IsEnabled = command is not null && (row is null || row.Editable) &&
                 context.AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) != true &&
@@ -323,3 +324,4 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+

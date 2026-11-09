@@ -1,5 +1,5 @@
 using System.Windows.Controls;
-using Heimdall.App.Games;
+using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Smoke
 {
@@ -18,3 +18,4 @@ namespace Heimdall.App.Smoke
         #endregion END Public
     }
 }
+

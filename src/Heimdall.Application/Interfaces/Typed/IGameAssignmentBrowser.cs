@@ -10,8 +10,6 @@ namespace Heimdall.Application.Interfaces
         IReadOnlyList<TRecord> Records { get; }
         /// <summary>Gets the current native filter.</summary>
         TFilter Filter { get; }
-        /// <summary>Occurs once for an actual projection or selection change.</summary>
-        event EventHandler? ProjectionChanged;
         /// <summary>Updates filters and search atomically, producing at most one final projection.</summary>
         void Query(TFilter filter, string text, string? preferredCommandId = null);
         /// <summary>Updates the native filter through the common refresh sequence.</summary>
@@ -19,3 +17,4 @@ namespace Heimdall.Application.Interfaces
         #endregion END Public
     }
 }
+

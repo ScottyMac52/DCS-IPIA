@@ -13,6 +13,19 @@ namespace Heimdall.Tests
     public sealed class AssignmentBrowserNativePolicyTests
     {
         #region BEGIN Public
+        /// <summary>Native command selection determines the binding slot before any WPF editor is rendered.</summary>
+        [Fact]
+        public void Elite_selection_establishes_axis_and_button_slots_without_editor_writeback()
+        {
+            using var issuer = new OwnerLicenseTestIssuer(); using var fixture = BrowserConformanceCase.Open("Elite", issuer.Policy);
+            var browser = Assert.IsType<EliteAssignmentBrowser>(fixture.Browser); browser.Refresh();
+            var axis = browser.Commands.First(command => command.Type == Heimdall.Domain.MultiSim.CommandType.Axis);
+            var button = browser.Commands.First(command => command.Type == Heimdall.Domain.MultiSim.CommandType.Button);
+            browser.SelectCommand(axis.Id); Assert.Equal("Binding", fixture.Context.State.Selection.SlotId);
+            browser.SelectCommand(button.Id); Assert.Equal("Primary", fixture.Context.State.Selection.SlotId);
+            fixture.Context.Select(fixture.Context.State.Selection with { SlotId = "Secondary" });
+            browser.SelectCommand(button.Id); Assert.Equal("Secondary", fixture.Context.State.Selection.SlotId);
+        }
         /// <summary>All status variants retain native all-device, selected-device and unsupported-record meanings.</summary>
         [Theory, InlineData("DCS"), InlineData("Elite"), InlineData("Squadrons"), InlineData("War Thunder")]
         public void Native_filter_semantics_survive_shared_orchestration(string game)
@@ -81,3 +94,4 @@ namespace Heimdall.Tests
         #endregion END Public
     }
 }
+
