@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Threading;
@@ -25,6 +26,8 @@ namespace Heimdall.App.Smoke
         /// <returns>Zero when both windows render their expected content.</returns>
         public static int Main(string[] args)
         {
+            // Include exceptions caught by workspace notifications and training in each isolated group's log.
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Error)); Trace.AutoFlush = true;
             // Isolated groups: each runs in a fresh STA process (fail-fast inside the group); the parent aggregates one report.
             if (args.Length == 2 && args[0] == "--group") return RunGroup(args[1]);
             var only = args.Length == 2 && args[0] == "--only" ? args[1].Split(',', StringSplitOptions.RemoveEmptyEntries) : null;
@@ -1348,3 +1351,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

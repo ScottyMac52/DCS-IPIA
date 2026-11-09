@@ -64,7 +64,11 @@ namespace Heimdall.App.Smoke
                 var inputs = Box<ComboBox>(window, "InputPicker"); inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_Z" && x.Direction == 1);
                 Click(window, "ApplyButton");
                 if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).Any(x => x.DeviceId != 9))
-                    throw new InvalidOperationException("The UI did not stage the explicit native controller assignment.");
+                    throw new InvalidOperationException("The UI did not stage the explicit native controller assignment. " +
+                        "Record=" + (grid.SelectedItem as SquadronsWorkspaceRow)?.RecordId + "; target=" + (targets.SelectedItem as GameDeviceChoice)?.Id +
+                        "; input=" + (inputs.SelectedItem as SquadronsInput)?.Key + "; apply=" + Box<Button>(window, "ApplyButton").IsEnabled +
+                        "; selection=" + window.WorkspaceContext.State.Selection + "; status=" + Box<TextBlock>(window, "StatusText").Text +
+                        "; context-status=" + window.WorkspaceContext.Status);
                 var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 if (!Box<Button>(window, "ReverseAxisButton").IsEnabled)
                     throw new InvalidOperationException("A verified complete saved axis cannot be reversed.");
@@ -120,3 +124,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

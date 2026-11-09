@@ -8,7 +8,7 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.App.Games
 {
     /// <summary>Composes native assignment panels and owns common workflow, persistence feedback and event lifetime.</summary>
-    public abstract class GameAssignmentsView : UserControl, IDisposable
+    public abstract class GameAssignmentsView : UserControl, IDisposable, IGameWorkspaceFeatureLifetime
     {
         private readonly ContentControl _commands = new()
         { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
@@ -28,6 +28,8 @@ namespace Heimdall.App.Games
         private WorkspaceChangeObserver? _observer;
         private IGameAssignmentBrowser? _browser;
         private bool _disposed;
+        private bool _hostOwnsLifetime;
+        private bool _featureActive;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
@@ -41,8 +43,8 @@ namespace Heimdall.App.Games
             Grid.SetColumn(_right, 2);
             AssignmentWorkspace.Children.Add(_commands); AssignmentWorkspace.Children.Add(_right);
             Content = new AdornerDecorator { Child = AssignmentWorkspace };
-            Loaded += (_, _) => { _unmounted = false; Attach(); _browser?.SetActive(true); RefreshAssignments(); };
-            Unloaded += (_, _) => { _unmounted = true; _browser?.SetActive(false); Detach(); };
+            Loaded += (_, _) => { if (!_hostOwnsLifetime) SetMounted(true); };
+            Unloaded += (_, _) => { if (!_hostOwnsLifetime) SetMounted(false); };
         }
 
         #region BEGIN Public
@@ -115,12 +117,21 @@ namespace Heimdall.App.Games
 
         /// <summary>Releases additional native resources when the workspace closes.</summary>
         protected virtual void DisposeNative() { }
+        /// <summary>Transfers any nested native browser lifetime together with the feature's shared browser.</summary>
+        protected virtual void OnFeatureActiveChanged(bool active) { }
+        void IGameWorkspaceFeatureLifetime.SetFeatureActive(bool active)
+        {
+            if (_disposed) return;
+            _hostOwnsLifetime = true;
+            OnFeatureActiveChanged(active);
+            SetMounted(active);
+        }
         /// <summary>Gets the bound role for production conformance/work measurements.</summary>
         internal IGameAssignmentBrowser? BoundBrowser => _browser;
         /// <summary>Shares browser activation across cached native feature views through the role contract.</summary>
         internal void BindBrowser(IGameAssignmentBrowser browser)
         {
-            _browser?.SetActive(false); _browser = browser; browser.SetActive(IsLoaded);
+            _browser?.SetActive(false); _browser = browser; browser.SetActive(_hostOwnsLifetime ? _featureActive : IsLoaded);
         }
         /// <summary>Shares the context engine and notification lifetime rather than creating view-owned state.</summary>
         protected void BindAssignmentContext(IGameWorkspaceContext context)
@@ -176,6 +187,13 @@ namespace Heimdall.App.Games
             catch (Exception error) { ShowAssignmentStatus("Discard failed: " + error.Message); return false; }
         }
         #region BEGIN private helpers
+        private void SetMounted(bool active)
+        {
+            if (_disposed) return;
+            _featureActive = active; _unmounted = !active;
+            if (active) { Attach(); _browser?.SetActive(true); RefreshAssignments(); }
+            else { _browser?.SetActive(false); Detach(); }
+        }
         private void UpdatePanelAllocation()
         {
             var available = _right.ActualHeight;
@@ -220,3 +238,4 @@ namespace Heimdall.App.Games
         #endregion END private helpers
     }
 }
+

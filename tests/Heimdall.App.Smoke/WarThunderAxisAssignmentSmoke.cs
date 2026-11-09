@@ -73,7 +73,10 @@ namespace Heimdall.App.Smoke
             else
             {
                 var clear = ((FeatureActionBar)window.FindName("FeatureActions")).Actions.Single(action => action.Id == "Clear");
-                if (!clear.Command.CanExecute(null)) throw new InvalidOperationException("Selected axis record did not enable toolbar Clear assignment.");
+                if (!clear.Command.CanExecute(null)) throw new InvalidOperationException("Selected axis record did not enable toolbar Clear assignment. " +
+                    "Command=" + (view.Browser.CommandsList.SelectedItem as SimCommand)?.Id +
+                    "; record=" + (view.Records.SelectedItem as WarThunderWorkspaceRow)?.RecordId + "; editor-clear=" + view.Editor.Clear.IsEnabled +
+                    "; selection=" + window.WorkspaceContext.State.Selection + "; status=" + window.WorkspaceContext.Status);
                 clear.Command.Execute(null);
             }
             var binding = WarThunderProfileBackend.ReadBindings(window.Session!.Snapshot.Profile).Single(item => item.Command == "pitch");
@@ -94,3 +97,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

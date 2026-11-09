@@ -28,6 +28,8 @@ namespace Heimdall.App.Features.Commands
         private DcsCommandPaletteEntry? _displayedCommand;
         private bool _updatingFilters;
         private bool _refreshing;
+        private bool _hostOwnsLifetime;
+        private bool _featureActive;
         private AssignmentLayer? _assignmentScope;
         private static readonly string[] CatalogActions = ["Add", "Update", "Remove", "Import JSON…", "Import HTML…", "Clear all"];
         private Point? _dragStart;
@@ -48,8 +50,8 @@ namespace Heimdall.App.Features.Commands
         public DcsCommandsManagementView()
         {
             InitializeComponent();
-            Loaded += (_, _) => _browser?.SetActive(true);
-            Unloaded += (_, _) => _browser?.SetActive(false);
+            Loaded += (_, _) => { if (!_hostOwnsLifetime) _browser?.SetActive(true); };
+            Unloaded += (_, _) => { if (!_hostOwnsLifetime) _browser?.SetActive(false); };
             // Replace the ordinary XAML subscription with one that also
             // receives feedback already handled by the DataGrid or its children.
             GiveFeedbackEventHandler feedback = CommandGiveFeedback;
@@ -64,7 +66,8 @@ namespace Heimdall.App.Features.Commands
             if (ReferenceEquals(_context, context)) return;
             _context = context;
             _browser?.Dispose();
-            _browser = new(context, () => context.Draft?.Snapshot ?? context.Working?.Assignments ?? []); _browser.SetActive(IsLoaded);
+            _browser = new(context, () => context.Draft?.Snapshot ?? context.Working?.Assignments ?? []);
+            _browser.SetActive(_hostOwnsLifetime ? _featureActive : IsLoaded);
             _browser.ProjectionChanged += (_, _) => PublishBrowser();
             Refresh();
         }
@@ -88,6 +91,11 @@ namespace Heimdall.App.Features.Commands
             if (_assignmentDeviceId == profileId) return;
             _assignmentDeviceId = profileId;
             Refresh();
+        }
+        /// <summary>Accepts synchronous selection ownership from the feature host instead of delayed WPF load events.</summary>
+        internal void SetFeatureActive(bool active)
+        {
+            _hostOwnsLifetime = true; _featureActive = active; _browser?.SetActive(active);
         }
         #endregion END Public
 
@@ -352,4 +360,5 @@ namespace Heimdall.App.Features.Commands
         #endregion END private helpers
     }
 }
+
 

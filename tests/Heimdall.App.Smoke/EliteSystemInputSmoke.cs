@@ -39,7 +39,11 @@ namespace Heimdall.App.Smoke
             if (Box<ListBox>(window, "CommandsList").SelectedItem is not Heimdall.Domain.MultiSim.SimCommand { DisplayName: "Primary Fire", Type: Heimdall.Domain.MultiSim.CommandType.Button }
                 || Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire"
                 || (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
-                throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding.");
+                throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding. " +
+                    "Command=" + (Box<ListBox>(window, "CommandsList").SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id +
+                    "; label=" + Box<TextBlock>(window, "AssignmentCommand").Text + "; input=" + Box<ComboBox>(window, "InputKey").SelectedValue +
+                    "; apply=" + Box<Button>(window, "ApplyAssignmentButton").IsEnabled + "; selection=" + window.WorkspaceContext.State.Selection +
+                    "; status=" + window.WorkspaceContext.Status);
             var elite = (EliteWorkspaceContext)window.WorkspaceContext;
             var keyA = (HardwareGraphicControl)Region(window, "Key_A").Tag;
             var drawingsBefore = AssertDrawingReads(window, elite, keyboard.LogicalId, keyA, "Key_A");
@@ -130,3 +134,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

@@ -97,6 +97,8 @@ namespace Heimdall.App.Features.Assignments
             Assignments = _state.Context?.Draft?.Snapshot,
             Labels = _state.Context?.Labels.OrderBy(item => item.Key, StringComparer.Ordinal).ToArray()
         });
+        /// <inheritdoc/>
+        protected override void OnFeatureActiveChanged(bool active) => CommandManager.SetFeatureActive(active);
         protected override Task SaveAssignmentsCoreAsync() => _state.Context?.SaveAsync()
             ?? throw new InvalidOperationException("Open a DCS workspace before saving.");
         protected override void DiscardAssignmentsCore()
@@ -262,4 +264,5 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+
 

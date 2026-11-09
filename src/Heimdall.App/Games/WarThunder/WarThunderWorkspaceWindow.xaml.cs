@@ -52,6 +52,8 @@ namespace Heimdall.App.Games.WarThunder
             _saving = new(_context, () => _controllers.Input.Stop(), _profiles.AfterSave, () =>
             {
                 if (_context.Session is not null) ProfileName.Text = _context.Session.Name;
+                // Queue the visible native command while discard still owns the lease; the browser applies it after release.
+                _browser.RefreshCommands();
                 Refresh();
             });
             _drawing.Start(); _controllers.Start();
@@ -291,3 +293,4 @@ namespace Heimdall.App.Games.WarThunder
         #endregion END private helpers
     }
 }
+
