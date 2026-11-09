@@ -11,9 +11,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def source_files(root, pattern):
-    """Inspect authored files while ignoring local build output left by project moves."""
+    """Inspect authored files, excluding build output and Visual Studio user settings."""
     return (path for path in root.rglob(pattern)
-            if path.is_file() and not {'bin', 'obj'}.intersection(part.casefold() for part in path.relative_to(root).parts))
+            if path.is_file() and not path.name.casefold().endswith('.csproj.user')
+            and not {'bin', 'obj'}.intersection(part.casefold() for part in path.relative_to(root).parts))
 
 
 class ProjectIdentityTests(unittest.TestCase):
@@ -83,12 +84,17 @@ class ProjectIdentityPortabilityTests(unittest.TestCase):
     def test_legacy_build_outputs_are_ignored_but_legacy_sources_are_rejected(self):
         for folder in ('src/Dcs.Ipia.App', 'tests/Dcs.Ipia.Tests'):
             self.write(folder + '/obj/Old.csproj', '<Project/>')
+            self.write(folder + '/Old.csproj.user', '<Project/>')
             self.write(folder + '/bin/Old.cs', 'namespace Dcs.Ipia;')
             self.write(folder + '/OBJ/Other.cs', 'namespace Dcs.Ipia;')
         with patch.dict(globals(), ROOT=self.root):
             checks = ProjectIdentityTests()
             checks.test_solution_and_all_project_references_resolve()
             checks.test_runtime_namespace_logging_and_training_use_heimdall()
+            self.write('src/Dcs.Ipia.App/Old.csproj', '<Project/>')
+            with self.assertRaises(AssertionError):
+                checks.test_solution_and_all_project_references_resolve()
+            (self.root / 'src/Dcs.Ipia.App/Old.csproj').unlink()
             self.write('src/Dcs.Ipia.App/Old.cs', 'namespace Dcs.Ipia;')
             with self.assertRaises(AssertionError):
                 checks.test_solution_and_all_project_references_resolve()
