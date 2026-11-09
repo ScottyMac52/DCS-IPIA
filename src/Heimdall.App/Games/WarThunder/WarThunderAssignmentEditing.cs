@@ -241,8 +241,8 @@ namespace Heimdall.App.Games.WarThunder
         {
             var rows = PhysicalAssignments(control);
             context.SelectedPhysicalInput = null; context.Selection.SelectInput(null);
-            browser.SelectCommand(rows.FirstOrDefault()?.Command.Id);
-            browser.SelectRecord(rows.FirstOrDefault()?.RecordId);
+            browser.SelectCommand(rows[0]?.Command.Id);
+            browser.SelectRecord(rows[0]?.RecordId);
             context.Refreshing = true;
             try
             {
