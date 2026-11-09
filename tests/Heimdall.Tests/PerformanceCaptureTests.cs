@@ -43,12 +43,13 @@ namespace Heimdall.Tests
         [Fact]
         public void Scope_disposal_records_exceptional_exits_without_capturing_exception_details()
         {
-            Assert.Throws<InvalidOperationException>(() =>
+            Action failingOperation = () =>
             {
                 using var scope = PerformanceTrace.Measure("test.scope", typeof(PerformanceCaptureTests));
                 throw new InvalidOperationException("not retained");
-            });
-            var sample = Assert.Single(PerformanceTrace.Snapshot().Where(sample => sample.Operation == "test.scope"));
+            };
+            Assert.Throws<InvalidOperationException>(failingOperation);
+            var sample = Assert.Single(PerformanceTrace.Snapshot(), sample => sample.Operation == "test.scope");
             Assert.Equal("Shared", sample.Component);
             Assert.True(sample.DurationMs >= 0);
         }
