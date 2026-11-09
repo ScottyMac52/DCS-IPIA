@@ -140,7 +140,7 @@ namespace Heimdall.App.Features.Commands
                 StatusText.Text = $"{_browser.Commands.Count} of {_browser.PaletteCount} {(_assignmentScope == AssignmentLayer.UiLayer ? "UI Layer" : "module")} commands";
                 if (_displayedCommand != _selected)
                 {
-                    _refreshing = false; CommandSelected(Commands, null!); _refreshing = true;
+                    DisplaySelectedCommand();
                 }
             }
             finally { _updatingFilters = false; _refreshing = previous; }
@@ -153,6 +153,11 @@ namespace Heimdall.App.Features.Commands
             if (_refreshing) return;
             var id = (Commands.SelectedItem as DcsBrowserRow)?.Id;
             _browser?.SelectCommand(id);
+            DisplaySelectedCommand();
+        }
+
+        private void DisplaySelectedCommand()
+        {
             if (_selected is null)
             {
                 CommandId.Text = ""; CommandName.Text = ""; CommandCategory.Text = "";
@@ -347,3 +352,4 @@ namespace Heimdall.App.Features.Commands
         #endregion END private helpers
     }
 }
+

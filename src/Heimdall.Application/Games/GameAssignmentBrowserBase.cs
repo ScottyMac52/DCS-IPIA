@@ -11,6 +11,7 @@ namespace Heimdall.Application.Games
         private IReadOnlyList<TCommand> _allCommands = [];
         private IReadOnlyList<TRecord> _allRecords = [];
         private string _search = "";
+        private string? _pendingPreferredCommandId;
         private IReadOnlyList<TCommand> _filteringCommands = [];
         private bool _active = true;
         private bool _initialSelectionPending;
@@ -62,14 +63,22 @@ namespace Heimdall.Application.Games
         public void Refresh(string? preferredCommandId = null)
         {
             if (_disposed) return;
-            if (_context.State.Operation is not null) { _pending = true; return; }
-            if (_refreshing) { _pending = true; return; }
+            if (_context.State.Operation is not null || _refreshing)
+            {
+                _pending = true;
+                if (preferredCommandId is not null) _pendingPreferredCommandId = preferredCommandId;
+                return;
+            }
+            // Native observers must see the published rows for the new selection, not the previous editor.
+            using var notifications = _context.DeferRefresh();
             _started = true; _refreshing = true;
             try
             {
                 do
                 {
                     _pending = false;
+                    preferredCommandId ??= _pendingPreferredCommandId;
+                    _pendingPreferredCommandId = null;
                     RefreshProjection(preferredCommandId); preferredCommandId = null;
                 } while (_pending && !_disposed && _context.State.Operation is null);
             }
@@ -87,6 +96,7 @@ namespace Heimdall.Application.Games
         public void SelectCommand(string? commandId)
         {
             if (_disposed || !_context.State.Open || _context.State.Operation is not null) return;
+            using var notifications = _context.DeferRefresh();
             var command = Commands.FirstOrDefault(x => CommandId(x) == commandId);
             ApplySelection(command is null ? ScopeSelection with { CommandId = null, AlternativeId = null, InputId = null }
                 : CommandSelection(command));
@@ -96,6 +106,7 @@ namespace Heimdall.Application.Games
         public void SelectRecord(string? recordId)
         {
             if (_disposed || !_context.State.Open || _context.State.Operation is not null) return;
+            using var notifications = _context.DeferRefresh();
             var record = Records.FirstOrDefault(x => RecordId(x) == recordId);
             if (record is null) ApplySelection(_context.State.Selection with { AlternativeId = null, InputId = null });
             else SelectNativeRecord(record);
@@ -231,3 +242,4 @@ namespace Heimdall.Application.Games
         #endregion END private helpers
     }
 }
+

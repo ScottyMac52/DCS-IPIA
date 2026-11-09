@@ -15,7 +15,8 @@ namespace Heimdall.App.Games.WarThunder
             Query(new(context.SelectedDevice,
                 browser.CommandCategoryPicker.SelectedIndex > 0 ? browser.CommandCategoryPicker.SelectedItem as string : null,
                 (browser.CommandTypePicker.SelectedItem as GameCommandTypeOption)?.Type,
-                (browser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All), browser.CommandSearch.Text);
+                (browser.AssignmentStatusPicker.SelectedItem as GameCommandStatusOption)?.Status ?? GameCommandAssignmentStatus.All),
+                browser.CommandSearch.Text, (browser.CommandsList.SelectedItem as SimCommand)?.Id);
             Publish();
         }
         internal void RefreshRecords()
@@ -23,7 +24,7 @@ namespace Heimdall.App.Games.WarThunder
             SelectCommand((assignments.Browser.CommandsList.SelectedItem as SimCommand)?.Id); Publish();
         }
         protected override void OnProjectionChanged() => Publish();
-        private (string?, string?, int) _editorKey;
+        private (string?, string?, string?, string?, int) _editorKey;
         private void Publish()
         {
             var previous = context.Refreshing; context.Refreshing = true;
@@ -41,8 +42,10 @@ namespace Heimdall.App.Games.WarThunder
                     + " captured joystick assignments · " + AllRecords.Count + " native records";
             }
             finally { context.Refreshing = previous; }
-            var key = (context.State.Selection.CommandId, context.State.Selection.AlternativeId, Metrics.ContentBuilds);
-            if (_editorKey != key) { _editorKey = key; refreshEditor(); }
+            var selection = context.State.Selection;
+            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.AlternativeId, Metrics.ContentBuilds);
+            if (!context.Refreshing && _editorKey != key) { refreshEditor(); _editorKey = key; }
         }
     }
 }
+

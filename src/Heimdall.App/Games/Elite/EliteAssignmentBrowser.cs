@@ -106,10 +106,11 @@ namespace Heimdall.App.Games.Elite
         private void RefreshEditorIfChanged()
         {
             if (_refreshing) return;
-            var key = (context.State.Selection.CommandId, context.State.Selection.SlotId, Metrics.ContentBuilds);
-            if (_editorKey != key) { _editorKey = key; _assignmentsView.RefreshNativeAssignments(); }
+            var selection = context.State.Selection;
+            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.SlotId, Metrics.ContentBuilds);
+            if (_editorKey != key) { _assignmentsView.RefreshNativeAssignments(); _editorKey = key; }
         }
-        private (string?, string?, int) _editorKey;
+        private (string?, string?, string?, string?, int) _editorKey;
         private IReadOnlyList<SimCommand>? _publishedCommands;
 
 
@@ -122,3 +123,4 @@ namespace Heimdall.App.Games.Elite
         #endregion END private helpers
     }
 }
+

@@ -253,10 +253,11 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.ShowCommandButton.IsEnabled = selected is not null;
             }
             finally { context.Refreshing = previous; }
-            var key = (context.State.Selection.CommandId, context.State.Selection.AlternativeId, Metrics.ContentBuilds);
-            if (_editorKey != key) { _editorKey = key; _assignmentsView.RefreshNativeAssignments(); }
+            var selection = context.State.Selection;
+            var key = (selection.ControllerId, selection.NativeScope, selection.CommandId, selection.AlternativeId, Metrics.ContentBuilds);
+            if (!context.Refreshing && _editorKey != key) { _assignmentsView.RefreshNativeAssignments(); _editorKey = key; }
         }
-        private (string?, string?, int) _editorKey;
+        private (string?, string?, string?, string?, int) _editorKey;
 
         internal void CommandFiltersChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -293,3 +294,4 @@ namespace Heimdall.App.Games.Squadrons
         #endregion END private helpers
     }
 }
+

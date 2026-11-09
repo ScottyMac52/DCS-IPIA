@@ -218,11 +218,12 @@ namespace Heimdall.App.Features.Assignments
         private void SynchronizeAssignmentSelection()
         {
             if (DeviceChoice is null || Layers is null || Scope is null || CommandManager is null) return;
+            var commandId = CommandManager.SelectedCommand?.Id;
             AssignmentSelection.Update(() =>
             {
                 AssignmentSelection.SelectScope(AssignmentScope());
                 AssignmentSelection.SelectController(_state.Diagram?.ProfileId.ToString("N"));
-                AssignmentSelection.SelectCommand(CommandManager.SelectedCommand?.Id);
+                AssignmentSelection.SelectCommand(commandId);
                 AssignmentSelection.SelectInput(_state.Selected?.InputKey);
             });
         }
@@ -261,3 +262,4 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+

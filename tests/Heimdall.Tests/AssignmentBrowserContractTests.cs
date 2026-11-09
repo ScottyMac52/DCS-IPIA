@@ -7,6 +7,34 @@ namespace Heimdall.Tests
     public sealed class AssignmentBrowserContractTests
     {
         #region BEGIN Public
+        /// <summary>Native UI observers receive selection only after its matching rows have been published.</summary>
+        [Fact]
+        public void Command_selection_publishes_rows_before_notifying_native_editors()
+        {
+            using var context = new WorkspaceContextProbe(new()); context.Open();
+            using var browser = new AssignmentBrowserProbe(context); browser.Refresh();
+            var observed = new List<(string? Command, string[] Records)>();
+            context.StateChanged += (_, _) => observed.Add((context.State.Selection.CommandId, browser.Records.ToArray()));
+            browser.SelectCommand("fire");
+            browser.SelectCommand("pitch");
+            Assert.NotEmpty(observed);
+            Assert.All(observed, item => Assert.Equal(new[] { item.Command }, item.Records));
+            Assert.Equal("pitch", context.State.Selection.CommandId);
+        }
+        /// <summary>An explicit native command survives a refresh deferred until persistence releases the context.</summary>
+        [Fact]
+        public async Task Preferred_command_survives_a_refresh_deferred_by_persistence()
+        {
+            using var context = new WorkspaceContextProbe(new()); context.Open();
+            using var browser = new AssignmentBrowserProbe(context); browser.Refresh(); browser.SelectCommand("fire");
+            var pending = new TaskCompletionSource<WorkspaceOperationResult>();
+            var running = context.RunOperationAsync(WorkspaceOperationKind.Save, _ => pending.Task, default);
+            browser.Query("all", "", "pitch");
+            Assert.Equal("fire", context.State.Selection.CommandId);
+            pending.SetResult(new(WorkspaceOperationOutcome.NoChange, "")); await running;
+            Assert.Equal("pitch", context.State.Selection.CommandId);
+            Assert.Equal(new[] { "pitch" }, browser.Records);
+        }
         /// <summary>A warm query reuses content and an unchanged projection is not republished.</summary>
         [Fact]
         public void Warm_search_reuses_content_and_does_not_republish_identical_results()
@@ -66,3 +94,4 @@ namespace Heimdall.Tests
         #endregion END Public
     }
 }
+
