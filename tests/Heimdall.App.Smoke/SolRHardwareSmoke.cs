@@ -8,7 +8,7 @@ namespace Heimdall.App.Smoke
     /// <summary>Checks that the installed application carries reusable Sol-R hardware without user imports.</summary>
     public static class SolRHardwareSmoke
     {
-        private static readonly string[] sourceArray = ["JOY_RX", "JOY_RY"];
+        private static readonly string[] sourceArray = ["JOY_RX", "JOY_RY", "JOY_Z", "JOY_SLIDER1", "JOY_SLIDER2"];
 
         #region BEGIN Public
         /// <summary>Loads the packaged catalog and renders every Sol-R grip layout.</summary>
@@ -22,7 +22,7 @@ namespace Heimdall.App.Smoke
             foreach (var layout in hardware)
             {
                 var right = layout.DeviceId.StartsWith("tm-sol-r-ava-r-", StringComparison.Ordinal);
-                if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != (right ? 34 : 32) ||
+                if (layout.Diagram.CustomMapping is not null || layout.Diagram.Controls.Count != (right ? 37 : 32) ||
                     (right && sourceArray.Any(key => !layout.Diagram.Controls.Any(x => x.InputKey == key && x.IsAxis))) ||
                     !layout.Diagram.Controls.Any(x => x.InputKey == "JOY_RZ" && x.IsAxis) ||
                     CanonicalSvgRenderer.RenderComplete(layout.Diagram.Svg!, layout.Diagram.Width, layout.Diagram.Height).Length < 1000)

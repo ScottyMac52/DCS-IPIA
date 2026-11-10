@@ -29,15 +29,17 @@
         </ScrollViewer>
         <DockPanel Grid.Row="1" Margin="0,8,0,0">
             <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-                <TextBlock Text="Events" VerticalAlignment="Center" Style="{StaticResource AppLabel}"/>
-                <Button x:Name="ClearInputTestLogButton" IsEnabled="False" Content="Clear log" Click="ClearInputTestLogClicked" Padding="6,2" Margin="8,0,0,0" Style="{StaticResource ActionButton}"/>
-                <Button Style="{StaticResource ActionButton}" x:Name="CopyInputTestLogButton" Content="Copy events" Click="CopyInputTestLogClicked" IsEnabled="False"/>
-                <ComboBox x:Name="EventFilter" Width="100" Margin="12,0,0,0" SelectedIndex="0" SelectionChanged="EventFilterChanged" Style="{StaticResource AppComboBox}">
+                <TextBlock Text="Events" VerticalAlignment="Center" Margin="0,0,8,4" Style="{StaticResource AppLabel}"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,4">
+                    <Button x:Name="ClearInputTestLogButton" IsEnabled="False" Content="Clear log" Click="ClearInputTestLogClicked" Padding="8,2" Margin="0,0,8,0" VerticalAlignment="Center" Style="{StaticResource ActionButton}"/>
+                    <Button Style="{StaticResource ActionButton}" x:Name="CopyInputTestLogButton" Content="Copy events" Click="CopyInputTestLogClicked" Padding="8,2" Margin="0" VerticalAlignment="Center" IsEnabled="False"/>
+                </StackPanel>
+                <ComboBox x:Name="EventFilter" Width="100" Margin="0,0,8,4" VerticalAlignment="Center" SelectedIndex="0" SelectionChanged="EventFilterChanged" Style="{StaticResource AppComboBox}">
                     <ComboBoxItem Content="Both"/>
                     <ComboBoxItem Content="Press"/>
                     <ComboBoxItem Content="Release"/>
                 </ComboBox>
-                <CheckBox x:Name="ShowAxis" Content="Show axis values" Style="{StaticResource AppCheckBox}" Margin="12,0,0,0" Checked="EventFilterChanged" Unchecked="EventFilterChanged"/>
+                <CheckBox x:Name="ShowAxis" Content="Show axis values" Style="{StaticResource AppCheckBox}" VerticalAlignment="Center" Margin="0,0,0,4" Checked="EventFilterChanged" Unchecked="EventFilterChanged"/>
             </WrapPanel>
             <ListBox x:Name="InputTestLog" SelectionMode="Extended" DisplayMemberPath="Display"/>
         </DockPanel>

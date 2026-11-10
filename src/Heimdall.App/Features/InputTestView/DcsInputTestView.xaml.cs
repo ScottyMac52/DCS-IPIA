@@ -22,6 +22,7 @@ namespace Heimdall.App.Features.InputTest
     {
         private IDcsModuleWorkspaceContext? _context;
         private IWorkspaceActivityLease? _activityLease;
+        private Window? _owner;
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private IDeviceInputSource? _inputSource;
@@ -52,7 +53,7 @@ namespace Heimdall.App.Features.InputTest
             InitializeComponent();
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "input-test.zoom");
             _timer.Tick += Poll;
-            Unloaded += (_, _) => Stop("Stopped.");
+            Unloaded += OnUnloaded;
             Loaded += OnLoaded;
         }
 
@@ -60,6 +61,9 @@ namespace Heimdall.App.Features.InputTest
         public void Dispose()
         {
             Stop("Stopped.");
+            DetachOwner();
+            Loaded -= OnLoaded;
+            Unloaded -= OnUnloaded;
             _timer.Tick -= Poll;
             GC.SuppressFinalize(this);
         }
@@ -83,12 +87,7 @@ namespace Heimdall.App.Features.InputTest
                 FeedbackDevice.SelectionChanged += (_, _) => RenderDiagram();
             }
 
-            var window = Window.GetWindow(this);
-            if (window is not null)
-            {
-                window.Deactivated += (_, _) => Stop("Stopped on focus loss; restart to clear modifier state.");
-                window.Closed += (_, _) => Stop("Stopped.");
-            }
+            AttachOwner();
             RenderDiagram();
         }
         #endregion END Public
@@ -96,11 +95,46 @@ namespace Heimdall.App.Features.InputTest
         #region BEGIN private helpers
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            Loaded -= OnLoaded;
-            var window = Window.GetWindow(this);
-            if (window is null) return;
-            window.Deactivated += (_, _) => Stop("Stopped on focus loss; restart to clear modifier state.");
-            window.Closed += (_, _) => Stop("Stopped.");
+            AttachOwner();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            StopIfActive("Stopped.");
+            DetachOwner();
+        }
+
+        private void AttachOwner()
+        {
+            var owner = Window.GetWindow(this);
+            if (ReferenceEquals(owner, _owner)) return;
+            DetachOwner();
+            _owner = owner;
+            if (_owner is null) return;
+            _owner.Deactivated += OnOwnerDeactivated;
+            _owner.Closed += OnOwnerClosed;
+        }
+
+        private void DetachOwner()
+        {
+            if (_owner is null) return;
+            _owner.Deactivated -= OnOwnerDeactivated;
+            _owner.Closed -= OnOwnerClosed;
+            _owner = null;
+        }
+
+        private void OnOwnerDeactivated(object? sender, EventArgs e) =>
+            StopIfActive("Stopped on focus loss; restart to clear modifier state.");
+
+        private void OnOwnerClosed(object? sender, EventArgs e)
+        {
+            StopIfActive("Stopped.");
+            DetachOwner();
+        }
+
+        private void StopIfActive(string status)
+        {
+            if (_inputSource is not null || _activityLease is not null) Stop(status);
         }
 
         private void StartInputTestClicked(object sender, RoutedEventArgs e)
@@ -115,6 +149,9 @@ namespace Heimdall.App.Features.InputTest
                 var snapshot = InputTestSnapshotChoice.SelectedIndex == 1 ? _context!.Saved ?? throw new InvalidOperationException("No saved profile.") : (_context!.Working! with { Assignments = _context.Draft?.Snapshot ?? _context.Working!.Assignments, Labels = _context.Labels });
                 var plan = DcsGeneratedInputTestPlan.Create(snapshot);
                 var required = plan.Bindings.Select(x => x.PhysicalGuid).Concat(plan.Modifiers.Select(x => x.PhysicalGuid))
+                    .Concat(DcsWorkspaceStructureEditor.Describe(snapshot).Devices
+                        .Where(x => x.Layer == AssignmentLayer.Module)
+                        .Select(x => x.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(x.FileName) ?? Guid.Empty))
                     .Where(x => x != Guid.Empty).Distinct().ToArray();
                 var attached = _context!.InputSourceFactory is null ? _context!.DeviceDiscovery.Discover().Where(x => x.Connected).Select(x => x.PhysicalGuid).ToHashSet() : required.ToHashSet();
                 var devices = required.Where(attached.Contains).ToArray();

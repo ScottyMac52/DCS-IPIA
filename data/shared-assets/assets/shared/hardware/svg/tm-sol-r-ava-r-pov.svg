@@ -164,6 +164,15 @@
   <!-- box:JOY_BTN21 -->
   <rect x="1045" y="1620" width="285" height="38" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
   <text id="lbl-JOY_BTN21" x="1187.5" y="1643" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Button 21</text>
+  <!-- box:JOY_Z -->
+  <rect x="100" y="1785" width="370" height="40" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_Z" x="285" y="1809" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">Z | Driver-exposed Z Axis</text>
+  <!-- box:JOY_SLIDER1 -->
+  <rect x="515" y="1785" width="370" height="40" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_SLIDER1" x="700" y="1809" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">S1 | Driver-exposed Dial</text>
+  <!-- box:JOY_SLIDER2 -->
+  <rect x="930" y="1785" width="370" height="40" rx="4" fill="#1e293b" stroke="#00bfff" stroke-width="1.5"/>
+  <text id="lbl-JOY_SLIDER2" x="1115" y="1809" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#f1f5f9">S2 | Driver-exposed Slider</text>
   <!-- presentation:title -->
   <text id="meta-title" x="700" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" fill="#cbd5e1">SOL-R GRIP / AVA [R]</text>
   <!-- presentation:mode -->
@@ -173,10 +182,12 @@
   <!-- presentation:side -->
   <text id="meta-side" x="700" y="1002" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#cbd5e1">SIDE VIEW / TRIGGERS</text>
   <!-- presentation:wheel -->
-  <text id="meta-wheel" x="700" y="1456" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#cbd5e1">Scroll virtual axis: optional driver setting (S1)</text>
+  <text id="meta-wheel" x="700" y="1456" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#cbd5e1">Driver-exposed Z, Dial and Slider inputs are listed below; function follows driver configuration</text>
   <!-- presentation:note -->
   <text id="meta-note" x="700" y="1488" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#cbd5e1">AVA X/Y movement + grip RZ twist; no base controls shown.</text>
   <!-- presentation:alternate-inputs -->
   <text id="meta-alternate-inputs" x="700" y="1589" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#cbd5e1">ALTERNATE MODE INPUTS / retained native inputs; availability follows the driver POV setting</text>
+  <!-- presentation:native-axes -->
+  <text id="meta-native-axes" x="700" y="1759" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#cbd5e1">DRIVER-EXPOSED AXES / native keys verified; physical or virtual function not inferred</text>
   <text x="700" y="1892" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#475569">SOL-R GRIP ON AVA / numbered inputs and POV alternatives / no Sol-R base controls</text>
 </svg>
