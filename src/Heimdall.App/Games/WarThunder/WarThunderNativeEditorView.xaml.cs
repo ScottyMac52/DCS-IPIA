@@ -13,6 +13,10 @@ namespace Heimdall.App.Games.WarThunder
         internal Func<WorkspaceAssignmentContext>? CaptureContext { get; set; }
         internal Func<string, IReadOnlyList<WarThunderPhysicalInput>>? MappedInputs { get; set; }
         private GameProfileSession? _session;
+        private readonly Dictionary<WarThunderNativeEdit, GameAssignmentReview> _reviews = [];
+        private GameProfileSession? _reviewSession;
+        private long _reviewStamp;
+        private ProfileContentCache<int, IReadOnlyList<WarThunderDevice>>? _devices;
         private WarThunderWorkspaceRow? _row;
         private SimCommand? _command;
         private bool _refreshing;
@@ -32,6 +36,8 @@ namespace Heimdall.App.Games.WarThunder
             Index.SelectionChanged += (_, _) => { if (!_refreshing) { NativeChoiceChanged(); _selection.SelectInput((Index.SelectedValue as int?)?.ToString(CultureInfo.InvariantCulture)); } UpdateActions(); };
         }
         #region BEGIN Public
+        /// <summary>Gets how many distinct native drafts were reviewed, independently of repeated action-state queries.</summary>
+        internal int NativeReviewComputations { get; private set; }
         internal event EventHandler<WarThunderNativeEdit>? EditRequested;
         internal event EventHandler? PhysicalApplyRequested;
         internal event EventHandler? NativeSelectionChanged;
@@ -69,7 +75,8 @@ namespace Heimdall.App.Games.WarThunder
             _refreshing = true; _physicalSelected = false; _physicalEdit = null; _session = session; _row = row; _command = command; _busy = busy;
             Frame.ShowCommand(command);
             var previous = (Target.SelectedItem as WarThunderDevice)?.Id;
-            Target.ItemsSource = session is null ? [] : WarThunderProfileBackend.ReadDevices(session.Snapshot.Profile);
+            Target.ItemsSource = (_devices ??= new(() => _session, (document, _) =>
+                Array.AsReadOnly(WarThunderProfileBackend.ReadDevices(document.Profile).ToArray()))).Get(0, []);
             Target.SelectedItem = Target.Items.Cast<WarThunderDevice>().FirstOrDefault(device => device.Id == previous);
             Input.ItemsSource = row is null ? [] : WarThunderWorkspaceProjection.InputFields(row.Binding);
             Input.SelectedIndex = 0;
@@ -148,7 +155,20 @@ namespace Heimdall.App.Games.WarThunder
         private GameAssignmentReview ReviewEdit(WarThunderEditKind kind)
         {
             if (_session is null) return new(false, false, "Import or open a profile first.");
-            try { return _session.ReviewNativeEdit(CreateEdit(kind)); }
+            try
+            {
+                var edit = CreateEdit(kind);
+                var access = _session.AccessMessage;
+                if (access.Length != 0) return new(false, false, access);
+                if (!ReferenceEquals(_reviewSession, _session) || _reviewStamp != _session.ContentStamp)
+                {
+                    _reviews.Clear(); _reviewSession = _session; _reviewStamp = _session.ContentStamp;
+                }
+                if (_reviews.TryGetValue(edit, out var review)) return review;
+                if (_reviews.Count >= 32) _reviews.Clear();
+                NativeReviewComputations++;
+                return _reviews[edit] = _session.ReviewNativeEdit(edit);
+            }
             catch (InvalidOperationException error) { return new(false, false, error.Message); }
         }
         private void RefreshInputChoices(int? selected = null)
