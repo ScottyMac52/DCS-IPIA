@@ -28,7 +28,7 @@ namespace Heimdall.App.Smoke
 #if !PERFORMANCE_TRACE
             throw new InvalidOperationException("Configuration performance smoke requires -c Profile.");
 #else
-            if (game is not "elite" and not "squadrons" and not "war-thunder") throw new ArgumentException("Game must be elite, squadrons or war-thunder.");
+            if (game is not "elite" and not "squadrons" and not "war-thunder" and not "dcs") throw new ArgumentException("Game must be dcs, elite, squadrons or war-thunder.");
             input = Path.GetFullPath(input);
             var originalHash = SHA256.HashData(File.ReadAllBytes(input));
             var output = Path.Combine(Path.GetFullPath(parent), "configuration-smoke-" + Guid.NewGuid().ToString("N"));
@@ -52,49 +52,53 @@ namespace Heimdall.App.Smoke
             using var capture = new PerformanceSession(Dispatcher.CurrentDispatcher);
             try
             {
-                var store = new FileGameWorkspaceStore(Path.Combine(output, "store"));
-                var services = new GameWorkspaceServices(store, new GameSmokeDiscovery());
-                Step("scenario.creation", false, () =>
+                if (game == "dcs") DcsConfigurationPerformanceSmoke.Verify(copied, output, iterations, Step);
+                else
                 {
-                    (window, session, import) = Open(game, services, null);
-                    import(copied); Wait(window, () => session() is not null);
-                    Require(store.List().Count == 1 && !session()!.HasChanges, "Import did not create one saved HEIMDALL configuration.");
-                });
-                var initial = session()!.ContentFingerprint;
-                var id = session()!.Id;
-                Step("scenario.reopen", false, () =>
-                {
-                    Close(window!);
-                    (window, session, import) = Open(game, services, id);
-                    Wait(window, () => session() is not null);
-                    Require(session()!.ContentFingerprint == initial, "Reopening changed the saved configuration.");
-                });
-                Exercise(window!, iterations, Step);
-                Require(session()!.ContentFingerprint == initial && !session()!.HasChanges, "Browsing changed assignments or controller identity.");
-                IReadOnlyDictionary<string, string> exported = new Dictionary<string, string>();
-                string? exportedFile = null;
-                Step("scenario.native-export", false, () =>
-                {
-                    var plan = session()!.Export();
-                    Require(plan.Succeeded, "Native export refused: " + string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
-                    exported = plan.Files;
-                    var folder = GameReviewExport.Write(Path.Combine(output, "export"), exported, [Path.GetDirectoryName(copied)!], session()!.Snapshot.Profile.BackendId);
-                    exportedFile = Directory.GetFiles(folder).Single();
-                });
-                Step("scenario.reimport", false, () =>
-                {
-                    Close(window!);
-                    var freshStore = new FileGameWorkspaceStore(Path.Combine(output, "reimport-store"));
-                    (window, session, import) = Open(game, new(freshStore, new GameSmokeDiscovery()), null);
-                    import(exportedFile!); Wait(window, () => session() is not null);
-                    Require(freshStore.List().Count == 1 && !session()!.HasChanges, "Re-import did not create an independent saved configuration.");
-                    var second = session()!.Export();
-                    Require(second.Succeeded && exported.OrderBy(x => x.Key, StringComparer.Ordinal).SequenceEqual(second.Files.OrderBy(x => x.Key, StringComparer.Ordinal)),
-                        "Native export/re-import/export changed the payload, including bindings or unknown native fields.");
-                });
-                var reimported = session()!.ContentFingerprint;
-                Exercise(window!, iterations, Step);
-                Require(session()!.ContentFingerprint == reimported && !session()!.HasChanges, "Browsing changed the re-imported configuration.");
+                    var store = new FileGameWorkspaceStore(Path.Combine(output, "store"));
+                    var services = new GameWorkspaceServices(store, new GameSmokeDiscovery());
+                    Step("scenario.creation", false, () =>
+                    {
+                        (window, session, import) = Open(game, services, null);
+                        import(copied); Wait(window, () => session() is not null);
+                        Require(store.List().Count == 1 && !session()!.HasChanges, "Import did not create one saved HEIMDALL configuration.");
+                    });
+                    var initial = session()!.ContentFingerprint;
+                    var id = session()!.Id;
+                    Step("scenario.reopen", false, () =>
+                    {
+                        Close(window!);
+                        (window, session, import) = Open(game, services, id);
+                        Wait(window, () => session() is not null);
+                        Require(session()!.ContentFingerprint == initial, "Reopening changed the saved configuration.");
+                    });
+                    Exercise(window!, iterations, Step);
+                    Require(session()!.ContentFingerprint == initial && !session()!.HasChanges, "Browsing changed assignments or controller identity.");
+                    IReadOnlyDictionary<string, string> exported = new Dictionary<string, string>();
+                    string? exportedFile = null;
+                    Step("scenario.native-export", false, () =>
+                    {
+                        var plan = session()!.Export();
+                        Require(plan.Succeeded, "Native export refused: " + string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
+                        exported = plan.Files;
+                        var folder = GameReviewExport.Write(Path.Combine(output, "export"), exported, [Path.GetDirectoryName(copied)!], session()!.Snapshot.Profile.BackendId);
+                        exportedFile = Directory.GetFiles(folder).Single();
+                    });
+                    Step("scenario.reimport", false, () =>
+                    {
+                        Close(window!);
+                        var freshStore = new FileGameWorkspaceStore(Path.Combine(output, "reimport-store"));
+                        (window, session, import) = Open(game, new(freshStore, new GameSmokeDiscovery()), null);
+                        import(exportedFile!); Wait(window, () => session() is not null);
+                        Require(freshStore.List().Count == 1 && !session()!.HasChanges, "Re-import did not create an independent saved configuration.");
+                        var second = session()!.Export();
+                        Require(second.Succeeded && exported.OrderBy(x => x.Key, StringComparer.Ordinal).SequenceEqual(second.Files.OrderBy(x => x.Key, StringComparer.Ordinal)),
+                            "Native export/re-import/export changed the payload, including bindings or unknown native fields.");
+                    });
+                    var reimported = session()!.ContentFingerprint;
+                    Exercise(window!, iterations, Step);
+                    Require(session()!.ContentFingerprint == reimported && !session()!.HasChanges, "Browsing changed the re-imported configuration.");
+                }
                 Require(steps.Where(x => x.Interactive).All(x => x.DurationMs <= budget), "One or more UI interactions exceeded the configured budget.");
                 Require(!PerformanceTrace.Snapshot().Any(sample => sample.Operation == "dispatcher.heartbeat-delay" && sample.DurationMs > budget),
                     "Dispatcher heartbeat delay exceeded the configured UI budget during the workflow.");
@@ -115,7 +119,7 @@ namespace Heimdall.App.Smoke
                 File.WriteAllText(Path.Combine(output, "scenario.json"), JsonSerializer.Serialize(new
                 {
                     Game = game, Passed = failure is null, Failure = failure, UiBudgetMs = budget, Iterations = iterations,
-                    ExportMode = "Native identity-preserving review copy; no live hardware remapping or installation preflight", Steps = steps
+                    ExportMode = game == "dcs" ? "OVGME build plus editable snapshot round-trip; no installation" : "Native identity-preserving review copy; no live hardware remapping or installation preflight", Steps = steps
                 }, ReportJson));
                 Console.WriteLine("Configuration performance artifacts: " + output);
             }

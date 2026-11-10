@@ -4,4 +4,5 @@
   <ItemGroup><Compile Include="../Shared/SmokeGroupRunner.cs" Link="SmokeGroupRunner.cs" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Heimdall.Squadrons/Heimdall.Squadrons.csproj" /><ProjectReference Include="../../src/Heimdall.WarThunder/Heimdall.WarThunder.csproj" /></ItemGroup>
   <ItemGroup><Content Include="Fixtures/Squadrons/**/*" CopyToOutputDirectory="PreserveNewest" /><Content Include="Fixtures/WarThunder/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/DcsPerformancePackageInput.cs" Link="DcsPerformancePackageInput.cs" /></ItemGroup>
 </Project>

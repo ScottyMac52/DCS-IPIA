@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 param(
-    [Parameter(Mandatory)][ValidateSet('elite', 'squadrons', 'war-thunder')][string]$Game,
+    [Parameter(Mandatory)][ValidateSet('dcs', 'elite', 'squadrons', 'war-thunder')][string]$Game,
     [Parameter(Mandatory)][string]$ConfigurationFile,
+    [string]$DcsSnapshotFile,
     [string]$OutputDirectory = 'TestResults/performance-smoke',
     [ValidateRange(1, 1000)][int]$Iterations = 20,
     [ValidateRange(1, 60000)][int]$UiBudgetMilliseconds = 1000,
@@ -27,6 +28,10 @@ $start.RedirectStandardError = $true
 foreach ($argument in @('run', '--project', $project, '-c', 'Profile', '--no-build', '--', '--performance-game', $Game, '--input', $source, '--output', $outputRoot)) {
     $start.ArgumentList.Add($argument)
 }
+if ($DcsSnapshotFile) {
+    if ($Game -ne 'dcs') { throw 'DcsSnapshotFile is only valid for DCS.' }
+    $start.Environment['HEIMDALL_SMOKE_DCS_SNAPSHOT'] = (Resolve-Path -LiteralPath $DcsSnapshotFile).Path
+} else { $start.Environment.Remove('HEIMDALL_SMOKE_DCS_SNAPSHOT') | Out-Null }
 $start.Environment['HEIMDALL_SMOKE_ITERATIONS'] = [string]$Iterations
 $start.Environment['HEIMDALL_SMOKE_UI_BUDGET_MS'] = [string]$UiBudgetMilliseconds
 $process = [Diagnostics.Process]::new()

@@ -1,6 +1,6 @@
 # Configuration performance smoke
 
-Run a supplied **Elite Dangerous `.binds`**, **Squadrons `ProfileOptions_profile_synced`**, or **War Thunder `.blk`** through a fresh Windows WPF process. This is an opt-in Profile-build scenario, independent of full smoke acceptance. DCS is not supported by this file-based scenario.
+Run a supplied **Elite Dangerous `.binds`**, **Squadrons `ProfileOptions_profile_synced`**, or **War Thunder `.blk`** through a fresh Windows WPF process. This is an opt-in Profile-build scenario, independent of full smoke acceptance. For DCS, use a HEIMDALL Complete release ZIP, or an OVGME ZIP plus its matching exported module snapshot (see below).
 
 ```powershell
 .\tests\performance-smoke.ps1 -Game elite -ConfigurationFile 'C:\captures\MyControls.4.2.binds'
@@ -28,3 +28,18 @@ The default budget is **1,000 ms per measured interactive action**, with 20 iter
 ```
 
 Compare identical files, iteration counts and builds on the same machine. Wall times include dispatcher pumping and nested spans overlap. Allocation deltas are process-wide, not exclusive to a method. A native round-trip success does not claim full game installation or hardware acceptance.
+
+## DCS OVGME round-trip
+
+A plain OVGME ZIP contains generated Lua and PNGs, not editable command catalogs, drawing controls or page definitions. The runner therefore requires either a **HEIMDALL Complete release ZIP** containing the OVGME package and authoring snapshot, or both separately exported artifacts:
+
+```powershell
+.\tests\performance-smoke.ps1 -Game dcs -ConfigurationFile 'C:\captures\DCS-F-14-Components-1.0.0-Complete.zip'
+
+.\tests\performance-smoke.ps1 -Game dcs -ConfigurationFile 'C:\captures\DCS-F-14-Components-1.0.0-OVGME.zip' `
+    -DcsSnapshotFile 'C:\captures\F-14.heimdall-module.json'
+```
+
+Use the module's **Export Complete release** action, or **Build OVGME package** together with **Export module snapshot** from the same saved state and version. The test rejects a missing or mismatched snapshot before creating any module; it does not fabricate editable data from PNGs.
+
+DCS validation uses the production Complete/OVGME verifiers without extracting archives to disk. It restores the snapshot into an isolated SQLite database, reopens the real module window, exercises controllers, commands, assignments, reference sheets and pages, builds OVGME output and exports a module snapshot through the real output buttons, then verifies and restores those new artifacts into a second database. The same UI workload runs again. Snapshot comparison covers all persisted authoring data; package comparison covers entry paths and Lua/PNG/metadata file bytes while ignoring ZIP timestamps and compression metadata. Existing module identities are preserved by the production restore workflow, so they do not need normalization. No DCS deployment or input testing is performed.
