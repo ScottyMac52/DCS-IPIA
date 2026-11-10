@@ -69,12 +69,12 @@ namespace Heimdall.App.Smoke
                 || composed.Contains("Numbered inputs", StringComparison.Ordinal))
                 throw new InvalidOperationException("Keyboard assignment artwork omitted the assigned command name.");
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
-            // Selected controller change re-projects for the new controller and matches the fresh native drawing.
+            // Switching controllers reuses the current content projection and still matches each fresh native drawing.
             picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Mouse"); ThemeControlSmoke.Pump(window);
             var mouse = window.Session.Snapshot.Profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse");
             var mouseWheel = new HardwareGraphicControl("wheel", "Wheel", "Pos_Mouse_ZAxis", 0, 0, 1, 1, true);
             var afterMouse = AssertDrawingReads(window, elite, mouse.LogicalId, mouseWheel, "Pos_Mouse_ZAxis");
-            if (afterMouse <= afterEdit) throw new InvalidOperationException("ED drawing cache did not re-project for a controller change.");
+            if (afterMouse != afterEdit) throw new InvalidOperationException("ED drawing cache rebuilt unchanged content for a controller change.");
             picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Keyboard"); ThemeControlSmoke.Pump(window);
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {
