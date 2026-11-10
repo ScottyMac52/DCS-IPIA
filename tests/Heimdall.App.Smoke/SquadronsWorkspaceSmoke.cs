@@ -87,12 +87,12 @@ namespace Heimdall.App.Smoke
                 var capturedBeforeExport = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 var exported = window.ExportReview(root);
                 var reviewText = File.ReadAllText(Path.Combine(exported, SquadronsProfileBackend.FileName));
-                var lines = reviewText.Split('\n');
+                var lines = reviewText.ReplaceLineEndings("\n").Split('\n');
                 var declarations = lines.Select((line, index) => (line, index))
                     .Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
                 if (declarations[^1].index - declarations[0].index + 1 != declarations.Length ||
                     declarations[^1].index >= Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)) ||
-                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS\n", StringComparison.Ordinal) ||
+                    !lines.Contains("GstInput.JoystickDevice5 Viper TQS", StringComparer.Ordinal) ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
                     throw new InvalidOperationException("Review export scattered controller declarations, changed the native TQS name or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
