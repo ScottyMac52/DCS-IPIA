@@ -17,6 +17,8 @@ namespace Heimdall.App.Features.Devices
         private bool _showingSavedLink;
         private bool _refreshingDeviceList;
         private AssignmentLayer _layer = AssignmentLayer.Module;
+        private IReadOnlyDictionary<string, string> _inventorySources = new Dictionary<string, string>();
+        private WorkspaceHardware[] _inventoryHardware = [];
 
         #region BEGIN Public
         public DcsDevicesView()
@@ -439,7 +441,11 @@ namespace Heimdall.App.Features.Devices
             try
             {
                 var choices = DcsInventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
+                _inventorySources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                _inventoryHardware = EditionAccess.Hardware(JsonSerializer.Deserialize<WorkspaceHardware[]>(
+                    _inventorySources["config/ipia-hardware.json"]) ?? [], EditionAccess.Training(_context)).ToArray();
                 InventoryUnits.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
+                if (InventoryUnits.Items.Count > 0) InventoryUnits.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -455,11 +461,58 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
+            if (InventoryDrawing.SelectedItem is not WorkspaceHardware hardware)
+            {
+                StatusMessage.Text = "Choose a drawing for this unit, or explicitly choose generic controls without artwork.";
+                return;
+            }
             if (!StageEdit(workspace =>
-                DcsInventoryHardwareAuthoring.Add(workspace, choice, _layer))) return;
+                DcsInventoryHardwareAuthoring.Add(PinInventoryHardware(workspace, hardware), choice, _layer, hardware))) return;
 
             SelectDevice(choice.FileName);
             StatusMessage.Text = "Inventory unit added and staged. Save to database to keep it, or Discard draft.";
+        }
+
+        private void InventoryUnitSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (InventoryDrawing is null || InventoryUnits.SelectedItem is not InventoryHardwareChoice choice) return;
+            var generic = GenericHardwareLayout.Create(choice.Definition) with { Label = "Generic controls (no artwork)" };
+            var drawings = DcsInventoryHardwareAuthoring.Drawings(_inventoryHardware, choice);
+            InventoryDrawing.ItemsSource = new[] { generic }.Concat(drawings).ToArray();
+            InventoryDrawing.SelectedIndex = drawings.Count == 0 ? 0 : -1;
+        }
+
+        private DcsEditorWorkspaceSnapshot PinInventoryHardware(DcsEditorWorkspaceSnapshot workspace, WorkspaceHardware hardware)
+        {
+            var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+            foreach (var pair in _inventorySources)
+                if (!sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
+            var catalog = DcsWorkspaceStructureEditor.Hardware(workspace).Where(x => x.DeviceId != hardware.DeviceId).Append(hardware);
+            sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(catalog.ToArray());
+            return workspace with { Sources = sources };
+        }
+
+        private async void ApplyInventoryDrawingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context?.Working is null || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device ||
+                InventoryUnits.SelectedItem is not InventoryHardwareChoice choice ||
+                InventoryDrawing.SelectedItem is not WorkspaceHardware hardware || hardware.Diagram.GenericCapabilities is not null)
+            {
+                StatusMessage.Text = "Select the existing controller, its inventory unit and compatible artwork above.";
+                return;
+            }
+            try
+            {
+                var version = _context.ContentVersion;
+                var path = hardware.Diagram.Path.Replace("/svg/", "/drawio/", StringComparison.Ordinal);
+                path = Path.ChangeExtension(path, ".drawio").Replace('\\', '/');
+                var source = await BundledSharedCatalog.ReadTextAsync(path);
+                if (_context.ContentVersion != version)
+                    throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
+                if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
+                StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+            }
+            catch (Exception ex) { StatusMessage.Text = "Artwork was not applied: " + ex.Message; }
         }
 
         private async Task LoadUserMappingsAsync()

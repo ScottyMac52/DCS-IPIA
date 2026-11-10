@@ -12,6 +12,63 @@ namespace Heimdall.Tests
     public sealed class SolRSharedHardwareTests
     {
         #region BEGIN Public
+        /// <summary>Offers explicit SOL-R artwork and repairs a generic unit without losing its native module state.</summary>
+        [Fact]
+        public async Task Generic_inventory_unit_can_adopt_explicit_sol_r_artwork_and_reopen()
+        {
+            var sources = await BundledHardwareTestFixture.LoadAsync();
+            var catalog = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"])!;
+            var definition = Definition(true);
+            var choice = GenericHardwareFixture.Unit(definition, "Right SOL-R");
+            var drawings = DcsInventoryHardwareAuthoring.Drawings(catalog, choice);
+            var hardware = Assert.Single(drawings, x => x.DeviceId == "tm-sol-r-ava-r-pov");
+            Assert.Contains(drawings, x => x.DeviceId == "tm-sol-r-ava-r-buttons");
+            Assert.DoesNotContain(drawings, x => x.DeviceId.StartsWith("tm-sol-r-ava-l-", StringComparison.Ordinal));
+            var workspace = DcsInventoryHardwareAuthoring.Add(GenericHardwareFixture.Workspace(), choice, AssignmentLayer.Module);
+            var profile = Assert.Single(workspace.Configuration.Profiles);
+            var command = new DcsDraftCommand("d3001pnilu3001cdnilvd1vpnilvunil", "Pause", false, AssignmentLayer.Module);
+            workspace = workspace with
+            {
+                Assignments = [new(new(workspace.Configuration.Module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Key, "JOY_BTN1"), command)],
+                Labels = new Dictionary<string, string> { ["kept-label"] = "Personal label" }
+            };
+            workspace = DcsWorkspaceStructureEditor.SetModifier(workspace, null,
+                new(AssignmentLayer.Module, profile.Id, "SHIFT", "JOY_BTN2", "Shift", ModifierMode.Hold, ""));
+            var drawio = await BundledSharedCatalog.ReadTextAsync("assets/shared/hardware/drawio/tm-sol-r-ava-r-pov.drawio");
+            var linked = workspace;
+            Assert.Throws<InvalidOperationException>(() => DcsInventoryHardwareAuthoring.ApplyDrawing(linked, profile.Id, choice, hardware, drawio));
+            workspace = DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, profile.Id, false);
+            var before = workspace;
+            workspace = DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, profile.Id, choice, hardware, drawio);
+            var diagram = Assert.Single(workspace.Diagrams);
+            Assert.False(diagram.DrawingUnlinked);
+            Assert.NotNull(diagram.CustomMapping);
+            Assert.Contains("data:image/", diagram.Svg, StringComparison.Ordinal);
+            Assert.Equal(before.Assignments, workspace.Assignments);
+            Assert.Equal(before.Labels, workspace.Labels);
+            Assert.Equal(before.Configuration.Profiles, workspace.Configuration.Profiles);
+            Assert.Equal(JsonSerializer.Serialize(DcsWorkspaceStructureEditor.Describe(before)),
+                JsonSerializer.Serialize(DcsWorkspaceStructureEditor.Describe(workspace)));
+            GenericHardwareLayout.ValidateWorkspace(workspace);
+            var other = choice with { Instance = choice.Instance with { PhysicalGuid = Guid.NewGuid() } };
+            Assert.Throws<InvalidOperationException>(() => DcsInventoryHardwareAuthoring.ApplyDrawing(before, profile.Id, other, hardware, drawio));
+            var root = Path.Combine(Path.GetTempPath(), "ipia-sol-r-artwork-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var connection = "Data Source=" + Path.Combine(root, "module.db") + ";Pooling=False";
+                await new SqliteMigrationRunner(connection).MigrateAsync();
+                var repository = new DcsSqliteEditorWorkspaceRepository(connection);
+                await repository.SaveAsync(workspace);
+                var reopened = (await repository.GetAsync(workspace.Configuration.Module.Id))!;
+                Assert.Equal(diagram.Svg, Assert.Single(reopened.Diagrams).Svg);
+                Assert.Equal(profile.Id, Assert.Single(reopened.Configuration.Profiles).Id);
+                Assert.Equal(workspace.Assignments, reopened.Assignments);
+                Assert.Equal(workspace.Labels, reopened.Labels);
+            }
+            finally { Directory.Delete(root, true); }
+        }
+
         /// <summary>Both handedness and presentation modes ship as reusable hardware, not user revisions.</summary>
         [Theory]
         [InlineData("r", "buttons")]

@@ -27,7 +27,13 @@ namespace Heimdall.App.Smoke
                 var connection = "Data Source=" + path + ";Pooling=False";
                 new SqliteMigrationRunner(connection).MigrateAsync().GetAwaiter().GetResult();
                 var repository = new DcsSqliteEditorWorkspaceRepository(connection);
-                var capabilities = ControllerCapabilityMapper.Map([new(Guid.NewGuid(), 12, "Button")]);
+                var objects = Enumerable.Range(0, 21).Select(index => new ControllerObject(
+                    Guid.Parse("a36d02f0-c9f3-11cf-bfc7-444553540000"), 12u | ((uint)index << 8), "Button " + index)).ToList();
+                var axes = new[] { "a36d02e0", "a36d02e1", "a36d02e2", "a36d02f4", "a36d02f5", "a36d02e3", "a36d02e4", "a36d02e4" };
+                for (var index = 0; index < axes.Length; index++)
+                    objects.Add(new(Guid.Parse(axes[index] + "-c9f3-11cf-bfc7-444553540000"), 2u | ((uint)index << 8), "Axis " + index));
+                objects.Add(new(Guid.Parse("a36d02f2-c9f3-11cf-bfc7-444553540000"), 16, "POV"));
+                var capabilities = ControllerCapabilityMapper.Map(objects);
                 var discovery = new InventorySmokeDiscovery
                 {
                     Observations = [new(new(Guid.NewGuid(), "SOL-R test unit", true), capabilities)]
@@ -59,6 +65,13 @@ namespace Heimdall.App.Smoke
                 Require(JsonSerializer.Serialize(window.DcsContext.Working) == before && devices.Items.Count == count &&
                     !window.Session.HasPendingChanges, "A rejected device addition changed the workspace.");
                 Require(((Expander)view.FindName("DeviceSettings")).IsExpanded, "Rejected native settings remained hidden.");
+                var drawingChoices = (ComboBox)view.FindName("InventoryDrawing");
+                Require(drawingChoices.SelectedItem is null && drawingChoices.Items.Cast<WorkspaceHardware>().Any(x => x.DeviceId == "tm-sol-r-ava-r-pov"),
+                    "The inventory flow did not offer explicit compatible SOL-R artwork.");
+                ((Button)view.FindName("AddInventoryUnitButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Require(devices.Items.Count == count && status.Text.StartsWith("Choose a drawing", StringComparison.Ordinal),
+                    "The inventory flow silently chose generic controls instead of requiring a drawing choice.");
+                drawingChoices.SelectedItem = drawingChoices.Items.Cast<WorkspaceHardware>().Single(x => x.Diagram.GenericCapabilities is not null);
                 ((Button)view.FindName("AddInventoryUnitButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Require(devices.Items.Count == count + 1 && devices.SelectedItem is DcsWorkspaceDevice added &&
                     added.PhysicalGuid == choice.Instance.PhysicalGuid && added.FileName == choice.FileName,
@@ -70,6 +83,14 @@ namespace Heimdall.App.Smoke
                 Require(status.Text.Contains("already belongs", StringComparison.Ordinal) &&
                     JsonSerializer.Serialize(window.DcsContext.Working) == staged && devices.Items.Count == count + 1,
                     "Duplicate inventory addition reported success or changed the draft.");
+                var addedId = ((DcsWorkspaceDevice)devices.SelectedItem).ProfileId;
+                ((Button)view.FindName("UnlinkDrawingButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                drawingChoices.SelectedItem = drawingChoices.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == "tm-sol-r-ava-r-pov");
+                ((Button)view.FindName("ApplyInventoryDrawingButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Wait(window, () => window.DcsContext.Working!.Diagrams.Single(x => x.ProfileId == addedId).CustomMapping is not null ||
+                    status.Text.StartsWith("Artwork was not applied", StringComparison.Ordinal));
+                Require(window.DcsContext.Working!.Diagrams.Single(x => x.ProfileId == addedId).Svg.Contains("data:image/", StringComparison.Ordinal),
+                    "Applying bundled SOL-R artwork to the existing generic unit failed: " + status.Text);
                 var save = StartSave(window);
                 Wait(window, () => save.IsCompleted);
                 save.GetAwaiter().GetResult();
@@ -83,6 +104,8 @@ namespace Heimdall.App.Smoke
                 var memberships = ((DataGrid)reopened.FindName("ManagedDevices")).Items.Cast<DcsWorkspaceDevice>().ToArray();
                 Require(memberships.Length == count + 1 && memberships.Any(x => x.PhysicalGuid == choice.Instance.PhysicalGuid),
                     "The saved inventory device disappeared after reopening from SQLite.");
+                Require(persisted.Diagrams.Single(x => x.ProfileId == addedId).CustomMapping is not null,
+                    "The selected SOL-R artwork disappeared after reopening from SQLite.");
             }
             finally
             {

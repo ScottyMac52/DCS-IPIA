@@ -44,8 +44,12 @@
                         <ComboBox x:Name="DetectedDevice" DisplayMemberPath="Title" SelectionChanged="DetectedDeviceChanged" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
 </StackPanel></GroupBox>
                     <TextBlock Text="Adopted hardware inventory" Style="{StaticResource AppLabel}"/>
-                    <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
-                    <Button x:Name="AddInventoryUnitButton" Content="Add selected inventory unit" ToolTip="Adds this adopted physical controller with its native filename and generic controls. A drawing can be linked afterward." Click="AddInventoryClicked" Padding="8,4" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
+                    <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" SelectionChanged="InventoryUnitSelected" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
+                    <TextBlock Text="Drawing for this inventory unit" Style="{StaticResource AppLabel}"/>
+                    <ComboBox x:Name="InventoryDrawing" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
+                    <TextBlock Text="Choose the matching artwork, or explicitly choose generic controls without artwork." TextWrapping="Wrap" Style="{StaticResource AppLabel}"/>
+                    <Button x:Name="AddInventoryUnitButton" Content="Add selected inventory unit" Click="AddInventoryClicked" Padding="8,4" Margin="0,4,0,6" Style="{StaticResource ActionButton}"/>
+                    <Button x:Name="ApplyInventoryDrawingButton" Content="Apply chosen artwork to selected controller" ToolTip="For a controller already added: unlink its drawing, choose artwork above, then apply. Assignments are retained." Click="ApplyInventoryDrawingClicked" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
                     <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
 <Button x:Name="UnlinkDrawingButton" Content="Unlink drawing" Click="UnlinkDrawingClicked" Style="{StaticResource ActionButton}"/>
                     <Button x:Name="UseRetainedDrawingButton" Content="Link retained drawing" Click="UseRetainedDrawingClicked" Style="{StaticResource ActionButton}"/>

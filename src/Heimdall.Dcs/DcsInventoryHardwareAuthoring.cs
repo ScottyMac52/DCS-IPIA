@@ -16,6 +16,40 @@ namespace Heimdall.Dcs
                 .Select(x => new InventoryHardwareChoice(x, inventory.Definitions.Single(d => d.Id == x.DefinitionId))).ToArray();
         }
 
+        /// <summary>Lists artwork whose controls exactly match an adopted unit, without guessing its attached grip.</summary>
+        /// <param name="hardware">Available pinned or bundled drawings.</param>
+        /// <param name="choice">Reviewed physical unit.</param>
+        /// <returns>Explicit artwork choices; unsupported native objects remain outside the mapped controls.</returns>
+        public static IReadOnlyList<WorkspaceHardware> Drawings(IEnumerable<WorkspaceHardware> hardware, InventoryHardwareChoice choice) =>
+            hardware.Where(x => x.Diagram.GenericCapabilities is null &&
+                DcsInputKey.SamePhysicalInputs(x.Diagram.Controls.Select(c => c.InputKey), choice.Definition.Capabilities.DcsKeys))
+                .DistinctBy(x => x.DeviceId).OrderBy(x => x.Title, StringComparer.Ordinal).ToArray();
+
+        /// <summary>Applies explicitly chosen artwork to an existing inventory unit while preserving all module data.</summary>
+        /// <param name="workspace">Current draft.</param>
+        /// <param name="profileId">Existing physical module profile.</param>
+        /// <param name="choice">Reviewed inventory unit.</param>
+        /// <param name="hardware">Explicit compatible drawing.</param>
+        /// <param name="drawio">Self-contained bundled editable source.</param>
+        /// <returns>A draft with a pinned drawing revision; profile identities, assignments and modifiers are retained.</returns>
+        public static DcsEditorWorkspaceSnapshot ApplyDrawing(DcsEditorWorkspaceSnapshot workspace, Guid profileId,
+            InventoryHardwareChoice choice, WorkspaceHardware hardware, string drawio)
+        {
+            var membership = DcsWorkspaceStructureEditor.Describe(workspace).Devices.First(x => x.ProfileId == profileId);
+            if ((membership.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(membership.FileName)) != choice.Instance.PhysicalGuid)
+                throw new InvalidOperationException("Select the same inventory unit as the module controller before applying artwork.");
+            var current = workspace.Diagrams.Single(x => x.ProfileId == profileId);
+            if (!current.DrawingUnlinked)
+                throw new InvalidOperationException("Unlink the current drawing before choosing replacement artwork.");
+            if (Drawings([hardware], choice).Count == 0)
+                throw new InvalidOperationException("The selected drawing must match this unit's actual supported controls.");
+            var inputs = hardware.Diagram.Controls.GroupBy(x => x.Control, StringComparer.Ordinal)
+                .ToDictionary(x => x.Key, x => x.First().InputKey, StringComparer.Ordinal);
+            var revision = DrawioMappingImporter.Import(DrawioMappingImporter.WithCatalogInputs(drawio, inputs),
+                choice.Definition, hardware.DeviceId + ".drawio", "bundled-artwork");
+            return DcsUserMappingAdoption.Apply(workspace, profileId, revision);
+        }
+
         /// <summary>Creates independent scope membership after an explicit inventory selection.</summary>
         /// <param name="workspace">Module draft.</param>
         /// <param name="choice">Reviewed physical inventory choice.</param>
