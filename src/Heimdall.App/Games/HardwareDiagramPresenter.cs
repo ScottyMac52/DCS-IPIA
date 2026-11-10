@@ -13,16 +13,17 @@ namespace Heimdall.App.Games
     /// Simulator adapters own native editing, never this class.</summary>
     internal sealed class HardwareDiagramPresenter(Canvas canvas)
     {
+        private readonly Dictionary<(string Svg, double Width, double Height), BitmapImage> _artwork = [];
         #region BEGIN Public
         /// <summary>Gets current physical controls and their feedback outlines.</summary>
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, HardwareDiagramInteractions actions,
-            double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null, BitmapImage? artwork = null)
+            double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null)
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
-            canvas.Children.Add(new Image { Source = artwork ?? RenderArtwork(diagram, page, artworkOpacity), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
+            canvas.Children.Add(new Image { Source = RenderArtwork(diagram, page, artworkOpacity), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
             foreach (var control in diagram.Controls)
             {
                 var border = new Border { Width = control.Width, Height = control.Height, Background = Brushes.Transparent,
@@ -58,10 +59,6 @@ namespace Heimdall.App.Games
                 canvas.Children.Add(border); Regions.Add((control, border));
             }
         }
-        /// <summary>Rasterizes canonical labeled artwork independently of live hit regions and action state.</summary>
-        internal static BitmapImage RenderArtwork(UiLayerDiagram diagram, KneeboardComposite page, double opacity) =>
-            Image(CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(
-                CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity), diagram.Width, diagram.Height));
         /// <summary>Refreshes mounted callout actions when shared availability changes without re-rendering artwork.</summary>
         internal void RefreshActions(HardwareDiagramInteractions actions)
         {
@@ -122,6 +119,18 @@ namespace Heimdall.App.Games
         }
         #endregion END Public
         #region BEGIN private helpers
+        // Cache only frozen pixels, keyed by complete composed output and dimensions. Hit regions and menus remain live.
+        // Bound retained images across controller, scope, content and opacity changes.
+        private BitmapImage RenderArtwork(UiLayerDiagram diagram, KneeboardComposite page, double opacity)
+        {
+            var svg = PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity);
+            var key = (svg, diagram.Width, diagram.Height);
+            if (_artwork.TryGetValue(key, out var image)) return image;
+            image = Image(CanonicalSvgRenderer.RenderComplete(svg, diagram.Width, diagram.Height));
+            if (_artwork.Count >= 8) _artwork.Remove(_artwork.Keys.First());
+            _artwork.Add(key, image);
+            return image;
+        }
         private static WorkspaceAssignmentActionState State(HardwareDiagramInteractions actions, HardwareGraphicControl control,
             WorkspaceAssignmentAction action, bool ready, string reason = "") => actions.ActionState?.Invoke(control, action)
                 ?? WorkspaceAssignmentActionState.For(action, new("", true, false, false, false), new(true, ready, reason));

@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Media.Imaging;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
@@ -24,10 +23,6 @@ namespace Heimdall.App.Games.Elite
     {
         private readonly HardwareDiagramPresenter _diagram = new(_assignmentsView.DiagramCanvas);
         private readonly DiagramViewport _viewport = new(_assignmentsView.DiagramScroll, _assignmentsView.DiagramCanvas, _assignmentsView.DiagramZoom, "elite.diagram");
-        private readonly Dictionary<(string Controller, string Section), BitmapImage> _artwork = [];
-        private GameProfileSession? _artworkSession;
-        private long _artworkStamp;
-        private double _artworkOpacity;
         private GameProfileSession? _session => context.Session;
         private bool _busy => context.Busy;
         private IReadOnlyList<SimCommand> _commands => context.Commands;
@@ -56,19 +51,11 @@ namespace Heimdall.App.Games.Elite
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(_session.Name, hardware.Diagram, rows, Section);
             _devicesView.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(owner));
-            var opacity = AppearanceManager.ArtworkOpacityFor(owner);
-            if (!ReferenceEquals(_artworkSession, _session) || _artworkStamp != _session.ContentStamp || _artworkOpacity != opacity)
-            {
-                _artwork.Clear(); _artworkSession = _session; _artworkStamp = _session.ContentStamp; _artworkOpacity = opacity;
-            }
-            var key = (Device.Id, Section);
-            if (!_artwork.TryGetValue(key, out var artwork))
-                _artwork[key] = artwork = HardwareDiagramPresenter.RenderArtwork(hardware.Diagram, page, opacity);
             _diagram.Show(hardware.Diagram, page, DiagramInteractions(),
-                opacity,
+                AppearanceManager.ArtworkOpacityFor(owner),
                 control => control.Label + " · " + (EliteInputKeys.FromDiagram(hardware.Diagram, control) ?? control.InputKey) + "\n" +
                     string.Join("\n", rows.Where(x => x.Input == EliteInputKeys.FromDiagram(hardware.Diagram, control) && (Section == "All" || x.Section == Section))
-                        .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))), artwork);
+                        .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))));
             _assignmentsView.DiagramHint.Visibility = Visibility.Collapsed;
             UpdateInputActivityVisibility();
         }
