@@ -1,5 +1,6 @@
 using Heimdall.Application;
 using Heimdall.Dcs;
+using System.Text.Json;
 
 namespace Heimdall.App
 {
@@ -13,7 +14,9 @@ namespace Heimdall.App
         /// <param name="candidate">Saved and observed evidence.</param>
         /// <param name="sources">Optional bundled mapping metadata.</param>
         /// <param name="reviewMapping">Whether setup requires an explicit preferred mapping choice.</param>
-        public HardwareInventoryRow(HardwareInventoryCandidate candidate, IReadOnlyDictionary<string, string> sources, bool reviewMapping = false)
+        /// <param name="definition">Pinned controls for an offline unit.</param>
+        public HardwareInventoryRow(HardwareInventoryCandidate candidate, IReadOnlyDictionary<string, string> sources, bool reviewMapping = false,
+            HardwareDefinition? definition = null)
         {
             Candidate = candidate;
             _reviewMapping = reviewMapping;
@@ -22,8 +25,21 @@ namespace Heimdall.App
             Role = candidate.Saved?.Role ?? "";
             _templates = candidate.Observed is null ? candidate.Saved?.TemplateCandidates ?? [] :
                 BundledHardwareCapabilityMatcher.Candidates(sources, candidate.Observed);
+            var hardware = sources.TryGetValue("config/ipia-hardware.json", out var catalog)
+                ? JsonSerializer.Deserialize<WorkspaceHardware[]>(catalog) ?? [] : [];
+            if (candidate.Observed?.Capabilities is { } caps)
+                definition = new(ControllerCapabilityMapper.Fingerprint(caps), caps);
+            if (reviewMapping && definition is not null)
+            {
+                var unit = candidate.Saved ?? new HardwareInventoryInstance(candidate.PhysicalGuid,
+                    candidate.Observed!.Device.Name, definition.Id, Label, Role, Selected, []);
+                _templates = DcsInventoryHardwareAuthoring.Drawings(hardware, new(unit, definition)).Select(x => x.DeviceId).ToArray();
+            }
             MappingChoices = new[] { GenericMapping }.Concat(_templates).Distinct(StringComparer.Ordinal).ToArray();
-            MappingChoice = candidate.Saved?.TemplateCandidates.Count == 1 && MappingChoices.Contains(candidate.Saved.TemplateCandidates[0])
+            MappingOptions = MappingChoices.Select(id => new KeyValuePair<string, string>(id,
+                hardware.FirstOrDefault(x => x.DeviceId == id)?.Label ?? id)).ToArray();
+            MappingChoice = candidate.Saved?.PreferredHardwareId is { } preferred && MappingChoices.Contains(preferred) ? preferred :
+                candidate.Saved?.TemplateCandidates.Count == 1 && MappingChoices.Contains(candidate.Saved.TemplateCandidates[0])
                 ? candidate.Saved.TemplateCandidates[0] : GenericMapping;
         }
         #region BEGIN Public
@@ -39,6 +55,8 @@ namespace Heimdall.App
         public bool AdoptChangedCapabilities { get; set; }
         /// <summary>Gets generic support and compatible bundled candidates for explicit review.</summary>
         public IReadOnlyList<string> MappingChoices { get; }
+        /// <summary>Gets friendly shared drawing labels keyed by stable catalog identity.</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> MappingOptions { get; }
         /// <summary>Gets or sets a preferred mapping; existing definitions stay pinned until controls are explicitly adopted.</summary>
         public string MappingChoice { get; set; }
         /// <summary>Gets exact physical identity.</summary>
@@ -64,7 +82,7 @@ namespace Heimdall.App
         public string Details => "Native: " + NativeName + "\nPhysical GUID: " + Identity +
             "\nProduct GUID: " + (Candidate.Observed?.Device.ProductGuid.ToString("D") ?? "Not observed") +
             "\n" + Status + "\n" + Controls + "\n" + Mapping +
-            "\n\nDirectInput cannot attest physical/virtual provenance. Supported virtual controllers follow the same explicit-adoption policy. No force feedback is activated. Keyboard support remains in module editing. Generic controls support assignments, modifiers, previews and packages without artwork. Compatible artwork is chosen explicitly when adding a unit to a module.\n\n" +
+            "\n\nNames, roles and the preferred drawing are shared by all games. Game assignments remain separate. Only connected adopted devices are available for new game links and input testing. Saved offline devices and assignments are retained.\n\n" +
             (Candidate.Observed?.Error ?? string.Join("\n", Candidate.Observed?.Capabilities?.Inputs.Select(x =>
                 x.DcsKey + " · " + x.Kind + " · " + x.Evidence.Name) ?? [])) +
             "\n" + string.Join("\n", Candidate.Observed?.Capabilities?.Unsupported.Select(x =>

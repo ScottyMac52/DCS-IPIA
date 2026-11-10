@@ -84,6 +84,7 @@ namespace Heimdall.App.Games.Elite
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("Devices", () => _devicesView), new("Assignments", () => _assignmentsView), new("Reference", () => _referenceView)]);
             ConfigureWorkspaceCommands(SaveProfileButton, DiscardProfileButton, SaveState);
+            ConfigureSharedDevices(services.Inventory, () => { _controllers.Rescan(); return Task.CompletedTask; });
             _reordering = new(DevicePicker, (source, target, after) => Run(() => _session?.MoveController(source, target, after)));
             _devicesView.IdentifyControllerButton.Click += _controllers.IdentifyControllerClicked;
             _devicesView.CancelIdentificationButton.Click += _controllers.CancelIdentificationClicked;

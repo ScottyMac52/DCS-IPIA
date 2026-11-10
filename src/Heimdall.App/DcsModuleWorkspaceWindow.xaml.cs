@@ -66,6 +66,12 @@ namespace Heimdall.App
                 _output.Changed -= OutputChanged;
             });
             ConfigureWorkspaceCommands(SaveWorkspaceButton, DiscardWorkspaceButton, PendingSummary);
+            ConfigureSharedDevices(inventory, async () =>
+            {
+                if (WorkspaceFeatureView("Devices") is Heimdall.App.Features.Devices.DcsDevicesView devices)
+                    await devices.RefreshSharedDevicesAsync();
+                _context.RefreshNativeState();
+            });
             _changingSelection = true;
             WorkspaceGamePicker.SelectedIndex = 0;
             ((ComboBoxItem)WorkspaceGamePicker.Items[1]).IsEnabled = EditionAccess.Policy.AllowsSimulator("elite-dangerous");

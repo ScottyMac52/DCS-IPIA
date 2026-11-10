@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Heimdall.Application;
 using Heimdall.Domain;
 
@@ -12,10 +13,32 @@ namespace Heimdall.Dcs
         IReadOnlyList<DcsInputTestModifier> Modifiers, IReadOnlyList<string> Diagnostics)
     {
         #region BEGIN Public
-        /// <summary>Generates the same Lua used by packaging before preparing a test.</summary>
+        /// <summary>Tests the generated mappings in reviewed scopes and reports scopes that await physical review.</summary>
         /// <param name="workspace">Current editor snapshot, including pending edits.</param>
         /// <returns>Frozen test plan.</returns>
-        public static DcsGeneratedInputTestPlan Create(DcsEditorWorkspaceSnapshot workspace) => Read(DcsSnapshotLuaPayloadRenderer.Generate(workspace));
+        public static DcsGeneratedInputTestPlan Create(DcsEditorWorkspaceSnapshot workspace)
+        {
+            var managed = DcsWorkspaceStructureEditor.Describe(workspace);
+            var unreviewed = managed.Devices.Where(x => !DcsModulePhysicalBindingReview.IsReviewed(workspace, x)).ToArray();
+            if (unreviewed.Length == 0) return Read(DcsSnapshotLuaPayloadRenderer.Generate(workspace));
+            // Keep a scope atomic so an omitted modifier never makes shifted bindings appear as Base.
+            var blocked = unreviewed.Select(x => x.Layer).ToHashSet();
+            var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal)
+            {
+                [DcsWorkspaceManagement.SourcePath] = JsonSerializer.Serialize(new DcsWorkspaceManagement(
+                    managed.Devices.Where(x => !blocked.Contains(x.Layer)).ToArray(),
+                    managed.Modifiers.Where(x => !blocked.Contains(x.Layer)).ToArray()))
+            };
+            if (blocked.Contains(AssignmentLayer.Module)) sources.Remove("config/ipia-axis-cleanup-devices.json");
+            var testable = workspace with
+            {
+                Sources = sources,
+                Assignments = workspace.Assignments.Where(x => !blocked.Contains(x.Slot.Layer)).ToArray()
+            };
+            var plan = Read(DcsSnapshotLuaPayloadRenderer.Generate(testable));
+            return plan with { Diagnostics = plan.Diagnostics.Concat(unreviewed.GroupBy(x => x.Layer).Select(scope =>
+                $"{scope.Key} mappings not tested: rebind inherited or unlinked controllers in Devices ({string.Join("; ", scope.Select(x => x.Title))}).")).ToArray() };
+        }
         /// <summary>Parses generated payload entries without selecting devices by display name.</summary>
         /// <param name="payload">Generated package paths and bytes.</param>
         /// <returns>Native physical bindings and effective modifiers.</returns>

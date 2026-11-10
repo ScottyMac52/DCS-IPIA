@@ -67,7 +67,10 @@ namespace Heimdall.App.Games.WarThunder
         {
             _input.Stop();
             if (_review?.Invoke(change) ?? ThemeMessageBox.Show(owner, change.Summary, "Review controller change", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+            {
                 context.Session!.ApplyControllerChange(change);
+                context.Services.ApplyPreferredDrawing(context.Session, change.ResultDeviceId, context.Drawings);
+            }
         }
 
         internal void RefreshDevices()

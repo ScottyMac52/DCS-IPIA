@@ -8,6 +8,17 @@ namespace Heimdall.Dcs
     {
         private const string SourcePath = "config/ipia-physical-bindings.json";
         #region BEGIN Public
+        /// <summary>Checks whether a membership has the physical identity evidence required by its workspace.</summary>
+        /// <param name="workspace">Saved or frozen module.</param>
+        /// <param name="device">One scope membership.</param>
+        /// <returns>False for unlinked units or unreviewed identities inherited by a created module.</returns>
+        public static bool IsReviewed(DcsEditorWorkspaceSnapshot workspace, DcsWorkspaceDevice device)
+        {
+            if (device.FileName.StartsWith("Unlinked-", StringComparison.Ordinal)) return false;
+            if (workspace.Sources?.ContainsKey("config/ipia-created-module.json") != true) return true;
+            return DcsPhysicalIdentity.FromFileName(device.FileName) is { } physical &&
+                Read(workspace).TryGetValue(device.ProfileId, out var reviewed) && reviewed == physical;
+        }
         /// <summary>Records a unit chosen or explicitly rebound by the user, without changing shared defaults.</summary>
         /// <param name="workspace">Staged module.</param>
         /// <param name="profileId">Stable profile identity.</param>

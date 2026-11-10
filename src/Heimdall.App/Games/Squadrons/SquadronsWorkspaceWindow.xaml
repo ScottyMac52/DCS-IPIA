@@ -28,7 +28,7 @@
   </Expander>
   <Grid Grid.Row="2"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
    <games:GameFeatureNavigation x:Name="FeaturePicker" SelectionChanged="FeatureChanged">
-    <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments &amp; Testing"/>
+    <ListBoxItem Content="Controllers"/><ListBoxItem Content="Assignments &amp; Testing"/>
    </games:GameFeatureNavigation>
    <pres:FeatureActionBar x:Name="FeatureActions" Grid.Row="1" ButtonStyle="{StaticResource ToolbarActionButton}" Margin="0,6,0,8"/>
    <games:GameControllerWorkspace Grid.Row="2" pres:WorkspaceLayout.Key="squadrons.controllers.split">

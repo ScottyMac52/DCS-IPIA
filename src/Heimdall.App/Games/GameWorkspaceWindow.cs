@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
+using Heimdall.Application;
 
 namespace Heimdall.App.Games
 {
@@ -27,11 +28,45 @@ namespace Heimdall.App.Games
         private Button? _save;
         private Button? _discard;
         private TextBlock? _pending;
+        private Button? _sharedDevices;
 
         #region BEGIN Public
         /// <summary>Gets the selected registered feature, or null before first navigation.</summary>
         public string? CurrentFeatureKey { get; private set; }
         #endregion END Public
+
+        /// <summary>Opens the same profile-owned device manager from every game without changing game assignments.</summary>
+        protected void ConfigureSharedDevices(HardwareInventoryManager? inventory, Func<Task> refresh)
+        {
+            if (inventory is null || Content is not UIElement original) return;
+            var button = new Button { Content = "Devices…", Margin = new Thickness(8, 4, 8, 4), Padding = new Thickness(12, 4, 12, 4) };
+            button.ToolTip = "Manage the connected controllers, names and preferred drawings shared by all games.";
+            System.Windows.Automation.AutomationProperties.SetName(button, "Devices for all games");
+            _sharedDevices = button;
+            button.Click += async (_, _) =>
+            {
+                if (_closed || WorkspaceActionRunning) return;
+                try
+                {
+                    WorkspaceContext.StopActivity();
+                    using var dialog = new HardwareInventoryWindow(inventory, true) { Owner = this };
+                    dialog.ShowDialog();
+                    await inventory.ReadSnapshotAsync();
+                    if (!_closed) await refresh();
+                }
+                catch (Exception error) { ReportWorkspaceError(error); }
+            };
+            var bar = new StackPanel { Orientation = Orientation.Horizontal };
+            bar.Children.Add(button);
+            bar.Children.Add(new TextBlock { Text = "Shared across games · game assignments are saved separately", VerticalAlignment = VerticalAlignment.Center });
+            var layout = new DockPanel();
+            Content = null;
+            DockPanel.SetDock(bar, Dock.Top); layout.Children.Add(bar); layout.Children.Add(original);
+            Content = layout;
+        }
+
+        /// <summary>Gets a mounted feature for a native refresh without replacing its pending state.</summary>
+        protected UserControl? WorkspaceFeatureView(string key) => _views.GetValueOrDefault(key);
 
         /// <summary>Gets the common context for conformance checks and contract-typed consumers.</summary>
         internal IGameWorkspaceContext WorkspaceContext => _workspaceContext ?? throw new InvalidOperationException("Workspace context is not bound.");
@@ -171,6 +206,7 @@ namespace Heimdall.App.Games
                 if (_save is not null) _save.IsEnabled = !WorkspaceActionRunning && CanSaveWorkspace && HasWorkspaceChanges;
                 if (_discard is not null) _discard.IsEnabled = !WorkspaceActionRunning && HasWorkspaceChanges;
                 if (_pending is not null) _pending.Text = WorkspaceStateSummary;
+                if (_sharedDevices is not null) _sharedDevices.IsEnabled = !WorkspaceActionRunning;
                 OnWorkspaceStateChanged();
             }
             finally { _refreshingChrome = false; }

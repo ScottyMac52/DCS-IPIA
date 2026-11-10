@@ -353,7 +353,9 @@ namespace Heimdall.App.Games.Elite
             StopLiveInput();
             if (_session is null) return;
             var current = logicalId is null ? null : _session.HardwarePin(logicalId);
-            var drawing = current is null ? GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
+            var drawing = current is null ? _services.Inventory is not null ? _services.PreferredDrawing(connected.PhysicalGuid) :
+                GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
+            if (drawing is not null && !_hardware.Any(x => x.DeviceId == drawing)) drawing = null;
             var id = _session.ConnectController(connected.PhysicalGuid, drawing, logicalId);
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;
             DevicePicker.SelectedItem = DevicePicker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == id);

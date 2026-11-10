@@ -14,6 +14,7 @@
    <Image Source="{x:Static pres:ApplicationBranding.Banner}" Height="110" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,0,14" AutomationProperties.Name="HEIMDALL — Simulation Control Manager"/>
    <TextBlock Text="Choose a game or simulator" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap"/>
    <TextBlock Text="Your hardware. Separate assignments for every game." Style="{DynamicResource Hint}" Margin="0,6,0,20"/>
+   <Button Content="Devices…" Command="{x:Static pres:MainWindowCommands.ManageHardware}" HorizontalAlignment="Left" Padding="16,8" Margin="0,0,0,14" ToolTip="Set up controllers and choose drawings once for all games."/>
    <UniformGrid Columns="2" Margin="-8" Grid.IsSharedSizeScope="True">
     <Button x:Name="DcsCard" Click="DcsClicked" Style="{StaticResource GameTile}" AutomationProperties.Name="Select DCS World">
      <Grid>

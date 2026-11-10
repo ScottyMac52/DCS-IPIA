@@ -21,6 +21,7 @@ namespace Heimdall.App.Smoke
         /// <summary>Completes the game UI flow using only synthetic files and ephemeral entitlement evidence.</summary>
         public static void Verify()
         {
+            SharedDeviceWorkspaceSmoke.Verify();
             var root = Path.Combine(Path.GetTempPath(), "ipia-game-ui-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             var previous = EditionAccess.Policy;

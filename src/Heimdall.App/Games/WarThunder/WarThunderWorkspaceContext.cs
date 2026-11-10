@@ -53,6 +53,8 @@ namespace Heimdall.App.Games.WarThunder
         /// <summary>Gets how many times native controller records were parsed (smoke work counter).</summary>
         internal int NativeDeviceProjections => _nativeDevices?.Projections ?? 0;
         #endregion END Public
+        protected override bool SelectionReadOnly => Services.Inventory is not null && State.Selection.ControllerId is { } id &&
+            !GameInputReadiness.Ready(Session?.HardwarePin(id), Services.Discover());
         private ProfileContentCache<int, IReadOnlyList<WarThunderDevice>>? _nativeDevices;
         private WarThunderPhysicalInput? _physicalInput;
         private (WorkspaceIdentity Identity, WorkspaceSelection Selection)? _physicalScope;

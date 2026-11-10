@@ -39,16 +39,18 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                     <TextBlock Text="Controller setup" Style="{StaticResource SectionTitle}"/>
-                    <GroupBox Header="Physical controller" Style="{StaticResource DeviceSetupSection}"><StackPanel>
+                    <Expander Header="Replace physical controller (advanced)"><GroupBox Header="Physical controller" Style="{StaticResource DeviceSetupSection}"><StackPanel>
 <Button x:Name="UnlinkPhysicalButton" Content="Unlink physical controller…" Click="UnlinkPhysicalClicked" Style="{StaticResource ActionButton}"/>
                         <ComboBox x:Name="DetectedDevice" DisplayMemberPath="Title" SelectionChanged="DetectedDeviceChanged" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
-</StackPanel></GroupBox>
-                    <TextBlock Text="Adopted hardware inventory" Style="{StaticResource AppLabel}"/>
+</StackPanel></GroupBox></Expander>
+                    <TextBlock Text="Connected devices · managed in Devices…" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" SelectionChanged="InventoryUnitSelected" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
+                    <Button x:Name="AddInventoryUnitButton" Content="Use selected device in this game" Click="AddInventoryClicked" Padding="8,4" Margin="0,4,0,6" Style="{StaticResource ActionButton}"/>
+                    <TextBlock Text="The shared name and drawing are used automatically. Existing offline assignments are retained." TextWrapping="Wrap" Style="{StaticResource AppLabel}"/>
+                    <Expander Header="Drawing override for this game (advanced)"><StackPanel>
                     <TextBlock Text="Drawing for this inventory unit" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="InventoryDrawing" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
                     <TextBlock Text="Choose the matching artwork, or explicitly choose generic controls without artwork." TextWrapping="Wrap" Style="{StaticResource AppLabel}"/>
-                    <Button x:Name="AddInventoryUnitButton" Content="Add selected inventory unit" Click="AddInventoryClicked" Padding="8,4" Margin="0,4,0,6" Style="{StaticResource ActionButton}"/>
                     <Button x:Name="ApplyInventoryDrawingButton" Content="Apply chosen artwork to selected controller" ToolTip="For a controller already added: unlink its drawing, choose artwork above, then apply. Assignments are retained." Click="ApplyInventoryDrawingClicked" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
                     <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
 <Button x:Name="UnlinkDrawingButton" Content="Unlink drawing" Click="UnlinkDrawingClicked" Style="{StaticResource ActionButton}"/>
@@ -61,6 +63,7 @@
                     <TextBlock Text="Shared hardware" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
 </StackPanel></GroupBox>
+                    </StackPanel></Expander>
                     <Expander x:Name="DeviceSettings" Header="DCS device settings" Margin="0,8,0,0"><StackPanel>
                     <TextBlock Text="Native DCS filename" Style="{StaticResource AppLabel}"/>
                     <TextBox x:Name="ManagedFileName" Margin="0,4,0,10" Style="{StaticResource AppTextBox}"/>

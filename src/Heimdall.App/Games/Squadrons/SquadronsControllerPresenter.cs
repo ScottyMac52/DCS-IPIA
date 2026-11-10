@@ -148,7 +148,9 @@ namespace Heimdall.App.Games.Squadrons
         {
             StopSamplingForReview();
             if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(owner, change).ShowDialog() == true)) return;
-            context.Session!.ApplyControllerChange(change); refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
+            context.Session!.ApplyControllerChange(change);
+            context.Services.ApplyPreferredDrawing(context.Session, change.ResultDeviceId, context.Drawings);
+            refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
         }
 
         internal void LinkClicked(object sender, RoutedEventArgs e) => run(() =>
@@ -169,7 +171,11 @@ namespace Heimdall.App.Games.Squadrons
             var result = editing().ExecuteAssignment("", "", "", () =>
                 (_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(owner, change).ShowDialog() == true)
                     ? new(true, true, "") : new(false, false, "Review canceled. No assignments changed."),
-                () => session.ApplyControllerChange(change));
+                () =>
+                {
+                    session.ApplyControllerChange(change);
+                    context.Services.ApplyPreferredDrawing(session, change.ResultDeviceId, context.Drawings);
+                });
             if (result.Outcome != DraftOutcome.Applied) { editing().AssignmentFeedback(result); return; }
             refresh(false);
             if (change.ResultDeviceId is { } id)

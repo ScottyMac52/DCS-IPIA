@@ -54,7 +54,7 @@
   <Grid Grid.Row="2">
    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
    <games:GameFeatureNavigation x:Name="FeaturePicker" SelectionChanged="FeatureChanged">
-    <ListBoxItem Content="Devices"/><ListBoxItem Content="Assignments &amp; Testing"/><ListBoxItem Content="Reference Sheets"/>
+    <ListBoxItem Content="Controllers"/><ListBoxItem Content="Assignments &amp; Testing"/><ListBoxItem Content="Reference Sheets"/>
    </games:GameFeatureNavigation>
    <pres:FeatureActionBar ButtonStyle="{StaticResource ToolbarActionButton}" x:Name="FeatureActions" Grid.Row="1" Margin="0,6,0,8"/>
    <games:GameControllerWorkspace Grid.Row="2" x:Name="ControllerPanes" pres:WorkspaceLayout.Key="elite.controllers.split">

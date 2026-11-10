@@ -70,7 +70,14 @@ namespace Heimdall.App
             try
             {
                 var choices = DcsInventoryHardwareAuthoring.Choices(await _inventory.ReadSnapshotAsync());
-                InventoryChoices.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
+                if (_discovery is InventoryDeviceDiscovery)
+                {
+                    var connected = _discovery.Discover().Select(x => x.PhysicalGuid).ToHashSet();
+                    choices = choices.Where(x => connected.Contains(x.Instance.PhysicalGuid)).ToArray();
+                }
+                InventoryChoices.ItemsSource = choices.Where(choice => EditionAccess.Policy.HasPremium ||
+                    _discovery is InventoryDeviceDiscovery && choice.Instance.PreferredHardwareId is { } preferred &&
+                    EditionAccess.Policy.AllowsHardware(preferred)).ToArray();
                 _hardware = _hardware.Concat(choices.Select(x => GenericHardwareLayout.Create(x.Definition)))
                     .DistinctBy(x => x.DeviceId).ToArray();
                 _hardware = EditionAccess.Hardware(_hardware, _training).ToArray();
@@ -95,7 +102,8 @@ namespace Heimdall.App
         {
             if (InventoryChoices.SelectedItem is not InventoryHardwareChoice choice) return;
             PhysicalChoices.SelectedItem = null;
-            HardwareChoices.SelectedItem = _hardware.Single(x => x.DeviceId == "generic-" + choice.Definition.Id);
+            HardwareChoices.SelectedItem = _hardware.FirstOrDefault(x => x.DeviceId == choice.Instance.PreferredHardwareId)
+                ?? _hardware.Single(x => x.DeviceId == "generic-" + choice.Definition.Id);
             NativeFileInput.Text = choice.FileName;
             UnitInstance.Text = choice.Instance.Label;
             UnitRole.Text = choice.Instance.Role;
@@ -124,6 +132,7 @@ namespace Heimdall.App
                     }
                     return DcsPhysicalIdentity.Merge(connected, captured);
                 });
+                if (_discovery is InventoryDeviceDiscovery) choices = choices.Where(x => x.Connected).ToArray();
                 if (_logger.IsEnabled(LogLevel.Debug))
                     ApplicationLog.DevicesDiscovered(_logger, choices.Count, _savedGamesRoot, null);
                 PhysicalChoices.ItemsSource = _training is not null || EditionAccess.Policy.HasPremium ? choices : choices.Where(device => device.Connected ? EditionAccess.Policy.AllowsDevice(device) : _hardware.Any(item =>
@@ -178,6 +187,8 @@ namespace Heimdall.App
                 var file = NativeFileInput.Text.Trim();
                 var guid = DcsPhysicalIdentity.FromFileName(file)
                     ?? throw new InvalidOperationException("Select a physical unit or enter its GUID-qualified native DCS filename.");
+                if (_discovery is InventoryDeviceDiscovery && !_discovery.Discover().Any(x => x.PhysicalGuid == guid))
+                    throw new InvalidOperationException("Connect this controller and select it in Devices before adding it to a game.");
                 if (PhysicalChoices.SelectedItem is DetectedDcsDevice detected && guid != detected.PhysicalGuid)
                     throw new InvalidOperationException("Keep the selected unit's physical GUID, or clear the physical choice before manual entry.");
                 if (_selections.Any(x => DcsPhysicalIdentity.FromFileName(x.FileName) == guid))
