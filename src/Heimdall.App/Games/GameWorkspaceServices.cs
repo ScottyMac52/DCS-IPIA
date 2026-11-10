@@ -50,6 +50,9 @@ namespace Heimdall.App.Games
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
             { SelectionError = error.Message; }
         }
+        /// <summary>Gets the last scanned shared devices without native enumeration on presentation paths.</summary>
+        public IReadOnlyList<DetectedDcsDevice> CurrentDevices => _discovery is InventoryDeviceDiscovery shared
+            ? shared.Current.Where(device => EditionAccess.Policy.AllowsDevice(device)).ToArray() : _discovery.Discover();
         /// <summary>Gets current native controller evidence, never inferred from a game product token.</summary>
         public IReadOnlyList<DetectedDcsDevice> Discover() => _discovery.Discover()
             .Where(device => Inventory is null || EditionAccess.Policy.AllowsDevice(device)).ToArray();

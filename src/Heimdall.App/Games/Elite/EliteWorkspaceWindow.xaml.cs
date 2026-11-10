@@ -293,7 +293,7 @@ namespace Heimdall.App.Games.Elite
             _browser.Refresh();
             _commands = _browser.AllCommands; _rows = _browser.AllRecords;
             _refreshing = true;
-            var live = _services.Discover();
+            var live = _services.CurrentDevices;
             var devices = GameControllerOrder.For(document).Select(id =>
             {
                 var info = EliteImportedControllerInfo.Create(document.Profile.Devices.Single(x => x.LogicalId == id),

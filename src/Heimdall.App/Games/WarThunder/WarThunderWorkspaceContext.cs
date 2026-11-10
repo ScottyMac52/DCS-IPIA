@@ -54,7 +54,7 @@ namespace Heimdall.App.Games.WarThunder
         internal int NativeDeviceProjections => _nativeDevices?.Projections ?? 0;
         #endregion END Public
         protected override bool SelectionReadOnly => Services.Inventory is not null && State.Selection.ControllerId is { } id &&
-            !GameInputReadiness.Ready(Session?.HardwarePin(id), Services.Discover());
+            !GameInputReadiness.Ready(Session?.HardwarePin(id), Services.CurrentDevices);
         private ProfileContentCache<int, IReadOnlyList<WarThunderDevice>>? _nativeDevices;
         private WarThunderPhysicalInput? _physicalInput;
         private (WorkspaceIdentity Identity, WorkspaceSelection Selection)? _physicalScope;

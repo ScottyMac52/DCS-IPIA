@@ -11,8 +11,14 @@ namespace Heimdall.Tests
         public IReadOnlyList<ControllerObservation> Observations { get; set; } = [];
         /// <summary>Gets or sets a native scan failure.</summary>
         public Exception? Failure { get; set; }
+        /// <summary>Gets explicit native enumeration calls independently of presentation reads.</summary>
+        public int DiscoverCalls { get; private set; }
         /// <inheritdoc/>
-        public IReadOnlyList<DetectedDcsDevice> Discover() => Failure is not null ? throw Failure : Observations.Select(x => x.Device).ToArray();
+        public IReadOnlyList<DetectedDcsDevice> Discover()
+        {
+            DiscoverCalls++;
+            return Failure is not null ? throw Failure : Observations.Select(x => x.Device).ToArray();
+        }
         /// <inheritdoc/>
         public Task<IReadOnlyList<ControllerObservation>> DiscoverAsync(CancellationToken ct = default)
         {

@@ -33,6 +33,8 @@ namespace Heimdall.App.Games.Elite
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
         private readonly System.Windows.Threading.DispatcherTimer _readinessTimer = new() { Interval = TimeSpan.FromSeconds(1) };
         private bool _lastReady;
+        private bool _readinessRefreshing;
+        private bool _disposed;
         private IReadOnlyList<ControllerObservation> _inputEvidence = [];
         private GameProfileSession? _session => context.Session;
         private bool _refreshing { get => context.Refreshing; set => context.Refreshing = value; }
@@ -102,10 +104,10 @@ namespace Heimdall.App.Games.Elite
         {
             var document = _session?.Snapshot;
             var currentPin = Device is null ? null : document?.Hardware.GetValueOrDefault(Device.Id);
-            _lastReady = EditionAccess.Policy.HasPremium && currentPin is not null && GameInputReadiness.Ready(currentPin, _services.Discover());
+            _lastReady = EditionAccess.Policy.HasPremium && currentPin is not null && GameInputReadiness.Ready(currentPin, _services.CurrentDevices);
             var reference = document?.Profile.Devices.FirstOrDefault(x => x.LogicalId == Device?.Id);
             var physical = reference is not null && !GameWorkspaceAccess.IsSystemDevice(reference.Identity!.SimSpecificIds["ed.device"]);
-            var observed = _services.Discover();
+            var observed = _services.CurrentDevices;
             var eligible = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
             var pin = reference is null ? null : document!.Hardware.GetValueOrDefault(reference.LogicalId);
             var refreshing = _refreshing;
@@ -309,21 +311,36 @@ namespace Heimdall.App.Games.Elite
         /// <summary>Releases native discovery timers and input handles.</summary>
         public void Dispose()
         {
+            _disposed = true;
             context.StopActivity(); _readinessTimer.Stop(); _readinessTimer.Tick -= HardwareReadinessChanged;
             Input.StateChanged -= InputStateChanged; _identification.Dispose(); Input.Dispose();
         }
         #endregion END Public
         #region BEGIN private helpers
-        private void HardwareReadinessChanged(object? sender, EventArgs e)
+        private async void HardwareReadinessChanged(object? sender, EventArgs e)
         {
-            if (_session is null || !owner.IsActive || _busy) return;
-            Run(() =>
+            if (_disposed || _readinessRefreshing || _session is null || !owner.IsActive || _busy) return;
+            _readinessRefreshing = true;
+            try
             {
-                var pin = Device is null ? null : _session.HardwarePin(Device.Id);
-                var ready = EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
-                if (ready != _lastReady) UpdateAvailability();
-                else if (context.Feature == 0) UpdateControllerAvailability();
-            });
+                var observed = await Task.Run(_services.Discover);
+                await owner.Dispatcher.InvokeAsync(() =>
+                {
+                    if (_disposed || _session is null || _busy) return;
+                    Run(() =>
+                    {
+                        var pin = Device is null ? null : _session.HardwarePin(Device.Id);
+                        var ready = EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, observed);
+                        if (ready != _lastReady) UpdateAvailability();
+                        else if (context.Feature == 0) UpdateControllerAvailability();
+                    });
+                });
+            }
+            catch (Exception error)
+            {
+                await owner.Dispatcher.InvokeAsync(() => { if (!_disposed) Status("Controller readiness scan failed: " + error.Message); });
+            }
+            finally { _readinessRefreshing = false; }
         }
 
         private void InputStateChanged(object? sender, EventArgs e) { if (!_refreshing) UpdateAvailability(); }

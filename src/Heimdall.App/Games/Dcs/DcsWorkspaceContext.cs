@@ -92,11 +92,11 @@ namespace Heimdall.App.Games.Dcs
         {
             get
             {
-                if (DeviceDiscovery is not InventoryDeviceDiscovery || Working is null ||
+                if (DeviceDiscovery is not InventoryDeviceDiscovery shared || Working is null ||
                     !Guid.TryParse(State.Selection.ControllerId, out var id)) return false;
                 var membership = DcsWorkspaceStructureEditor.Describe(Working).Devices.FirstOrDefault(x => x.ProfileId == id);
                 var physical = membership is null ? null : membership.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(membership.FileName);
-                return physical is null || !DeviceDiscovery.Discover().Any(x => x.PhysicalGuid == physical);
+                return physical is null || !shared.Current.Any(x => x.PhysicalGuid == physical);
             }
         }
         protected override DcsEditorWorkspaceSnapshot? ReadSaved() => _session.Saved;

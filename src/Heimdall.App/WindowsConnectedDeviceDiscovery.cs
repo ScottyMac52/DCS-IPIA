@@ -12,6 +12,9 @@ namespace Heimdall.App
         /// <returns>Native attached controller instances.</returns>
         public IReadOnlyList<DetectedDcsDevice> Discover()
         {
+#if PERFORMANCE_TRACE
+            using var timing = PerformanceTrace.Measure("hardware.native-discovery", typeof(WindowsConnectedDeviceDiscovery));
+#endif
             using var connection = new WindowsDirectInputConnection();
             return connection.Discover();
         }
@@ -22,6 +25,9 @@ namespace Heimdall.App
         #region BEGIN private helpers
         private static unsafe List<ControllerObservation> ReadCapabilities(CancellationToken ct)
         {
+#if PERFORMANCE_TRACE
+            using var timing = PerformanceTrace.Measure("hardware.native-discovery", typeof(WindowsConnectedDeviceDiscovery));
+#endif
             using var connection = new WindowsDirectInputConnection();
             var observed = new List<ControllerObservation>();
             foreach (var identity in connection.Discover(ct))

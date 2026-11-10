@@ -38,6 +38,34 @@ namespace Heimdall.Tests
             Assert.Equal(one.Device.PhysicalGuid, Assert.Single(await discovery.DiscoverAsync()).Device.PhysicalGuid);
         }
 
+        /// <summary>Repeated presentation reads never enumerate hardware and explicit rescans update disconnect state.</summary>
+        [Fact]
+        public async Task Presentation_snapshot_does_not_call_native_discovery()
+        {
+            var repository = await Repository();
+            var observation = Observation(Guid.NewGuid());
+            var native = new InventoryTestDiscovery { Observations = [observation] };
+            var manager = new HardwareInventoryManager(repository, native);
+            var row = Assert.Single(await manager.ScanAsync());
+            await manager.SaveAsync([new(row, true, "Panel", "Pilot", false, [])]);
+            var source = new InventoryDeviceDiscovery(manager, native);
+            Assert.Empty(source.Current);
+            Assert.Equal(0, native.DiscoverCalls);
+            source.Discover();
+            for (var i = 0; i < 1000; i++) Assert.Equal(observation.Device.PhysicalGuid, Assert.Single(source.Current).PhysicalGuid);
+            Assert.Equal(1, native.DiscoverCalls);
+            native.Observations = [];
+            Assert.Single(source.Current);
+            Assert.Empty(source.Discover());
+            Assert.Empty(source.Current);
+            native.Observations = [observation];
+            Assert.Single(source.Discover());
+            native.Failure = new IOException("Native scan failed");
+            Assert.Throws<IOException>(() => source.Discover());
+            Assert.Empty(source.Current);
+            Assert.Single(manager.Current.Instances);
+        }
+
         /// <summary>Shared artwork survives SQLite reopen and label-only edits, while an explicit generic choice clears it.</summary>
         [Fact]
         public async Task Preferred_drawing_round_trips_without_a_schema_change_or_implicit_replacement()

@@ -68,7 +68,7 @@ namespace Heimdall.App.Games.Elite
         #endregion END Public
         protected override bool SelectionReadOnly => services.Inventory is not null && State.Selection.ControllerId is { } id &&
             CurrentDrawing(id)?.DeviceId.StartsWith("elite-system-", StringComparison.Ordinal) != true &&
-            !GameInputReadiness.Ready(Session?.HardwarePin(id), services.Discover());
+            !GameInputReadiness.Ready(Session?.HardwarePin(id), services.CurrentDevices);
         protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, true));
     }
 }
