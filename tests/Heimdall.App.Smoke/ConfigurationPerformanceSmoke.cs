@@ -61,6 +61,7 @@ namespace Heimdall.App.Smoke
                     {
                         (window, session, import) = Open(game, services, null);
                         import(copied); Wait(window, () => session() is not null);
+                        Step("scenario.save", false, () => Save(window));
                         Require(store.List().Count == 1 && !session()!.HasChanges, "Import did not create one saved HEIMDALL configuration.");
                     });
                     var initial = session()!.ContentFingerprint;
@@ -90,6 +91,7 @@ namespace Heimdall.App.Smoke
                         var freshStore = new FileGameWorkspaceStore(Path.Combine(output, "reimport-store"));
                         (window, session, import) = Open(game, new(freshStore, new GameSmokeDiscovery()), null);
                         import(exportedFile!); Wait(window, () => session() is not null);
+                        Step("scenario.reimport-save", false, () => Save(window));
                         Require(freshStore.List().Count == 1 && !session()!.HasChanges, "Re-import did not create an independent saved configuration.");
                         var second = session()!.Export();
                         Require(second.Succeeded && exported.OrderBy(x => x.Key, StringComparer.Ordinal).SequenceEqual(second.Files.OrderBy(x => x.Key, StringComparer.Ordinal)),
@@ -186,6 +188,17 @@ namespace Heimdall.App.Smoke
                 ThemeControlSmoke.Pump(window); Thread.Sleep(1);
             }
             ThemeControlSmoke.Pump(window);
+        }
+        private static void Save(GameWorkspaceWindow window)
+        {
+            Wait(window, () => window.WorkspaceContext.State.Operation is null && window.WorkspaceContext.State.Activity is null);
+            var saving = window.SaveWorkspaceAsync();
+            Wait(window, () => saving.IsCompleted);
+            var result = saving.GetAwaiter().GetResult();
+            Require(result.Outcome is WorkspaceOperationOutcome.Applied or WorkspaceOperationOutcome.NoChange,
+                "Configuration save did not complete: " + result.Message);
+            Require(!window.WorkspaceContext.State.Dirty && window.WorkspaceContext.State.Operation is null,
+                "Configuration save left pending changes or an active operation.");
         }
         private static void Close(GameWorkspaceWindow window) { window.Close(); (window as IDisposable)?.Dispose(); }
         private static int ReadLimit(string name, int fallback, int minimum, int maximum)
