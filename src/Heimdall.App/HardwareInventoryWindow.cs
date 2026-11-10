@@ -20,7 +20,12 @@ namespace Heimdall.App
         private IReadOnlyDictionary<string, string> _sources = new Dictionary<string, string>();
         private HardwareInventoryRow[] _rows = [];
         private readonly DataGrid _grid = new() { AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false };
-        private readonly TextBlock _details = new() { TextWrapping = TextWrapping.Wrap };
+        private readonly TextBox _details = new()
+        {
+            IsReadOnly = true, IsReadOnlyCaretVisible = true, AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(6)
+        };
         private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) };
         private readonly Button _rescan = new() { Content = "Rescan", Margin = new Thickness(0, 0, 8, 0) };
         private readonly Button _save = new() { Content = "Save reviewed inventory", Margin = new Thickness(0, 0, 8, 0) };
@@ -50,6 +55,8 @@ namespace Heimdall.App
             SetResourceReference(ForegroundProperty, "PrimaryTextBrush");
             NameScope.SetNameScope(this, new NameScope());
             RegisterName("HardwareInventoryGrid", _grid);
+            RegisterName("HardwareInventoryDetails", _details);
+            System.Windows.Automation.AutomationProperties.SetName(_details, "Selected device details");
             RegisterName("HardwareInventoryStatus", _status);
             RegisterName("HardwareInventorySave", _save);
             RegisterName("HardwareInventoryRescan", _rescan);
@@ -58,8 +65,10 @@ namespace Heimdall.App
             RegisterName("SetupNeutral", _neutral);
             RegisterName("SetupSkip", _skip);
             var layout = new Grid { Margin = new Thickness(20) };
-            foreach (var height in new[] { GridLength.Auto, GridLength.Auto, GridLength.Auto, new GridLength(3, GridUnitType.Star), new GridLength(2, GridUnitType.Star) })
+            foreach (var height in new[] { GridLength.Auto, GridLength.Auto, GridLength.Auto, new GridLength(3, GridUnitType.Star), new GridLength(10), new GridLength(2, GridUnitType.Star) })
                 layout.RowDefinitions.Add(new RowDefinition { Height = height });
+            layout.RowDefinitions[3].MinHeight = 100;
+            layout.RowDefinitions[5].MinHeight = 100;
             var toolbar = new StackPanel { Orientation = Orientation.Horizontal };
             toolbar.Children.Add(_rescan); toolbar.Children.Add(_save); toolbar.Children.Add(_cancel);
             if (setup is not null)
@@ -71,8 +80,19 @@ namespace Heimdall.App
             Grid.SetRow(toolbar, 1); layout.Children.Add(toolbar);
             Grid.SetRow(_status, 2); layout.Children.Add(_status);
             Grid.SetRow(_grid, 3); layout.Children.Add(_grid);
-            var scroll = new ScrollViewer { Content = _details, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 12, 0, 0) };
-            Grid.SetRow(scroll, 4); layout.Children.Add(scroll);
+            var splitter = new GridSplitter
+            {
+                Height = 6, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center,
+                ResizeDirection = GridResizeDirection.Rows, ResizeBehavior = GridResizeBehavior.PreviousAndNext,
+                ShowsPreview = true, Focusable = true, KeyboardIncrement = 10,
+                Cursor = System.Windows.Input.Cursors.SizeNS,
+                ToolTip = "Drag to resize the inventory list and device details. Use arrow keys when focused."
+            };
+            splitter.SetResourceReference(BackgroundProperty, "PrimaryTextBrush");
+            System.Windows.Automation.AutomationProperties.SetName(splitter, "Resize inventory and device details");
+            RegisterName("HardwareInventorySplitter", splitter);
+            Grid.SetRow(splitter, 4); layout.Children.Add(splitter);
+            Grid.SetRow(_details, 5); layout.Children.Add(_details);
             _grid.Columns.Add(new DataGridCheckBoxColumn { Header = "Selected", Binding = new Binding(nameof(HardwareInventoryRow.Selected)) });
             Text("Instance label", nameof(HardwareInventoryRow.Label), false);
             Text("Role", nameof(HardwareInventoryRow.Role), false);

@@ -35,8 +35,10 @@ namespace Heimdall.App.Smoke
             FakeDeviceInputSource? source = null;
             InputTestLogClipboard? clipboard = null;
             var clipboardFailure = false;
+            var acquisitionFailure = false;
             var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace), deviceDiscovery: new EmptyDeviceDiscovery(),
-                inputSourceFactory: (_, devices) => source = devices.Contains(physical) && devices.Contains(otherPhysical)
+                inputSourceFactory: (_, devices) => source = acquisitionFailure
+                    ? throw new InvalidOperationException("Injected acquisition failure.") : devices.Contains(physical) && devices.Contains(otherPhysical)
                     ? new FakeDeviceInputSource(physical, otherPhysical) { ButtonValue = 0 } : throw new InvalidOperationException("Test must still acquire the modifier controller."),
                 inputLogClipboardWriter: (html, text) =>
                 {
@@ -136,6 +138,20 @@ namespace Heimdall.App.Smoke
             Wait(window, () => source.Disposed);
             if (!status.Text.Contains("disconnect", StringComparison.Ordinal))
                 throw new InvalidOperationException("Device loss was not reported.");
+            var disconnectStatus = status.Text;
+            typeof(Window).GetMethod("OnDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, [EventArgs.Empty]);
+            if (status.Text != disconnectStatus)
+                throw new InvalidOperationException("Idle focus loss hid the disconnect diagnostic.");
+            acquisitionFailure = true;
+            start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var startupStatus = status.Text;
+            if (!startupStatus.Contains("Input test could not start: Injected acquisition failure.", StringComparison.Ordinal) ||
+                !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)
+                throw new InvalidOperationException("Acquisition failure did not release the test activity and report the original error.");
+            typeof(Window).GetMethod("OnDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, [EventArgs.Empty]);
+            if (status.Text != startupStatus)
+                throw new InvalidOperationException("Idle focus loss hid the startup diagnostic.");
+            acquisitionFailure = false;
             if (DcsEditorSnapshotSerializer.Serialize(workspace) != before)
                 throw new InvalidOperationException("Input testing mutated the original workspace.");
             start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -143,9 +159,39 @@ namespace Heimdall.App.Smoke
             window.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
             if (source?.Disposed != true) throw new InvalidOperationException("Navigation did not release device input.");
             window.Close();
+            VerifyUnassignedController();
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void VerifyUnassignedController()
+        {
+            var physical = Guid.NewGuid();
+            var workspace = Workspace(physical) with { Assignments = [] };
+            if (DcsGeneratedInputTestPlan.Create(workspace).Bindings.Count != 0)
+                throw new InvalidOperationException("The raw-input fixture must have no generated assignments.");
+            FakeDeviceInputSource? source = null;
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
+                deviceDiscovery: new EmptyDeviceDiscovery(), inputSourceFactory: (_, devices) =>
+                    source = devices.Contains(physical) ? new FakeDeviceInputSource(physical) { ButtonValue = 0 }
+                        : throw new InvalidOperationException("An unassigned module controller was excluded from input acquisition."));
+            try
+            {
+                window.Show();
+                WorkspaceUi.Navigate(window, "InputTest");
+                ThemeControlSmoke.Pump(window);
+                var start = (Button)WorkspaceUi.Find(window, "StartInputTestButton")!;
+                var log = (ListBox)WorkspaceUi.Find(window, "InputTestLog")!;
+                start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (source is null) throw new InvalidOperationException("The unassigned controller could not start testing.");
+                source.ButtonValue = 1;
+                Wait(window, () => log.Items.Count > 0);
+                if (!log.Items.Cast<InputTestLogEntry>().Any(x => x.Display.Contains("Unassigned in generated profiles", StringComparison.Ordinal)))
+                    throw new InvalidOperationException("Raw input feedback was missing for an unassigned controller.");
+            }
+            finally { window.Close(); }
+            if (source?.Disposed != true) throw new InvalidOperationException("Closing the raw-input test leaked its input source.");
+        }
+
         private static void VerifyLegendLayout(Window window, ItemsControl legend)
         {
             var originalWidth = window.Width;
@@ -153,6 +199,13 @@ namespace Heimdall.App.Smoke
             {
                 window.Width = width;
                 ThemeControlSmoke.Pump(window);
+                var clear = (Button)WorkspaceUi.Find(window, "ClearInputTestLogButton")!;
+                var copy = (Button)WorkspaceUi.Find(window, "CopyInputTestLogButton")!;
+                var clearOrigin = clear.TranslatePoint(new Point(), window);
+                var copyOrigin = copy.TranslatePoint(new Point(), window);
+                if (Math.Abs(clearOrigin.Y - copyOrigin.Y) > 1 || Math.Abs(clear.ActualHeight - copy.ActualHeight) > 1 ||
+                    clearOrigin.X + clear.ActualWidth > copyOrigin.X)
+                    throw new InvalidOperationException($"Event buttons overlap or are misaligned at window width {width}.");
                 var labels = ThemeControlSmoke.Children(legend).OfType<TextBlock>()
                     .Where(text => text.DataContext is Heimdall.App.Features.InputTest.InputTestLegendItem item && text.Text == item.Label)
                     .ToArray();
@@ -211,5 +264,3 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
-
-

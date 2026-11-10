@@ -87,8 +87,8 @@
       "originalPath": "assets/shared/hardware/drawio/tm-sol-r-ava-r-buttons.drawio",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 273489,
-      "gitBlob": "fc453ed449812c82727fae0778ce152469c9829f",
+      "size": 274964,
+      "gitBlob": "fda93dae4da1bb4e0f0de5218c08c4e0d7d9fa45",
       "upstreamGitBlob": "deb8098735d46448f474016acd120fb890464cd0"
     },
     {
@@ -96,8 +96,8 @@
       "originalPath": "assets/shared/hardware/drawio/tm-sol-r-ava-r-pov.drawio",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 276311,
-      "gitBlob": "967755b39b549112e0b4b2e5400ca3618e4fdf98",
+      "size": 277786,
+      "gitBlob": "1f5bcadb5bdd03cf76017db4101bb561c390923b",
       "upstreamGitBlob": "4e6a3c29807d954a2240ddb3571ad882bc785b66"
     },
     {
@@ -199,16 +199,18 @@
       "originalPath": "assets/shared/hardware/lua/tm-sol-r-ava-r-buttons.lua",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 3582,
-      "gitBlob": "db95e2fc1a76c0460d6fcd8461d5d4cbccfe2d4b"
+      "size": 3897,
+      "gitBlob": "a429ee8d94958c58e6a3e9895e3306c59c653189",
+      "upstreamGitBlob": "db95e2fc1a76c0460d6fcd8461d5d4cbccfe2d4b"
     },
     {
       "path": "assets/shared/hardware/lua/tm-sol-r-ava-r-pov.lua",
       "originalPath": "assets/shared/hardware/lua/tm-sol-r-ava-r-pov.lua",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 3619,
-      "gitBlob": "e196493590aaa8e90a90b334427d173dd762f991"
+      "size": 3934,
+      "gitBlob": "d944471b78b8b16e8c270e32bf4fae24f69e3cab",
+      "upstreamGitBlob": "e196493590aaa8e90a90b334427d173dd762f991"
     },
     {
       "path": "assets/shared/hardware/lua/tm-tpr.lua",
@@ -477,8 +479,8 @@
       "originalPath": "assets/shared/hardware/svg/tm-sol-r-ava-r-buttons.svg",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 259361,
-      "gitBlob": "1b3196186dd39443093ec655689e90ca66cc842d",
+      "size": 260546,
+      "gitBlob": "1cc7608a1f800f4bb4ef610e607a3f8746987e3b",
       "upstreamGitBlob": "9bb697885ab009b2d9c5c5719781481522d12f5c"
     },
     {
@@ -486,8 +488,8 @@
       "originalPath": "assets/shared/hardware/svg/tm-sol-r-ava-r-pov.svg",
       "origin": "IPIA-authored",
       "sourceRepository": "ScottyMac52/DCS-IPIA",
-      "size": 260271,
-      "gitBlob": "ce7a2d1eb27cb1ada9d5a11fdcf3d07f5e926cec",
+      "size": 261456,
+      "gitBlob": "48a53dc95a05c121ddbcd3f9dc2a6ba9282bf15f",
       "upstreamGitBlob": "8208df4ba919e0ea176862345ddec4e4b89eed7e"
     },
     {

@@ -66,7 +66,7 @@ namespace Heimdall.Dcs
             DcsId = workspace.Configuration.Module.DcsId,
             Commands = workspace.ModuleCommands,
             Bindings = workspace.Configuration.Bindings,
-            Assignments = workspace.Assignments
+            Assignments = workspace.Assignments.OrderBy(assignment => assignment.Slot.Key, StringComparer.Ordinal).ToArray()
         }));
         private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         #endregion END private helpers
