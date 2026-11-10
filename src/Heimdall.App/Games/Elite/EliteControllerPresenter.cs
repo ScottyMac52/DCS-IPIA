@@ -28,6 +28,7 @@ namespace Heimdall.App.Games.Elite
         Action<Action> Run,
         Action<string> Status) : IDisposable
     {
+        private ProfileContentCache<int, IReadOnlyList<(string Id, string Token, bool Indexed, GameHardwarePin? Pin)>>? _controllerFacts;
         private DetectedDcsDevice? _identifiedController;
         private GameControllerActions _controllerActions = new(false, false, false, false, false, false, false, false);
         private readonly Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> _controllerInputs = inputFactory ?? ((handle, devices) => new WindowsDeviceInputSource(handle, devices));
@@ -102,30 +103,32 @@ namespace Heimdall.App.Games.Elite
 
         internal void UpdateControllerAvailability()
         {
-            var document = _session?.Snapshot;
-            var currentPin = Device is null ? null : document?.Hardware.GetValueOrDefault(Device.Id);
+            var controllers = (_controllerFacts ??= new(() => _session, (document, _) => document.Profile.Devices.Select(device =>
+                (Id: device.LogicalId, Token: device.Identity!.SimSpecificIds["ed.device"],
+                 Indexed: device.Identity.SimSpecificIds.ContainsKey("ed.deviceIndex"), Pin: document.Hardware.GetValueOrDefault(device.LogicalId))).ToArray())).Get(0, []);
+            var currentPin = Device is null ? null : _session?.HardwarePin(Device.Id);
             _lastReady = EditionAccess.Policy.HasPremium && currentPin is not null && GameInputReadiness.Ready(currentPin, _services.CurrentDevices);
-            var reference = document?.Profile.Devices.FirstOrDefault(x => x.LogicalId == Device?.Id);
-            var physical = reference is not null && !GameWorkspaceAccess.IsSystemDevice(reference.Identity!.SimSpecificIds["ed.device"]);
+            var reference = controllers.FirstOrDefault(x => x.Id == Device?.Id);
+            var physical = reference.Id is not null && !GameWorkspaceAccess.IsSystemDevice(reference.Token);
             var observed = _services.CurrentDevices;
             var eligible = observed.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)).ToArray();
-            var pin = reference is null ? null : document!.Hardware.GetValueOrDefault(reference.LogicalId);
+            var pin = reference.Pin;
             var refreshing = _refreshing;
             _refreshing = true;
             try { ControllerLinkPresentation.ShowPhysical(_devicesView.ConnectedPicker, pin?.Device, eligible); }
             finally { _refreshing = refreshing; }
             var selected = _devicesView.ConnectedPicker.SelectedItem as DetectedDcsDevice;
             var connected = selected is not null && eligible.Count(x => x.PhysicalGuid == selected.PhysicalGuid && x.ProductGuid == selected.ProductGuid) == 1;
-            var alreadyLinked = connected && document is not null && document.Hardware.Values.Any(x => x.Device.PhysicalGuid == selected!.PhysicalGuid);
+            var alreadyLinked = connected && _session is not null && _session.IsPhysicalPinned(selected!.PhysicalGuid);
             var candidate = _identifiedController;
-            var confirm = pin is null && document is not null && reference is not null && physical && EditionAccess.Policy.HasPremium && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
-                && context.Elite.DeviceReferences.Matches(reference!.Identity!, candidate)
-                && !document!.Hardware.Any(x => x.Key != reference.LogicalId && x.Value.Device.PhysicalGuid == candidate.PhysicalGuid)
+            var confirm = pin is null && _session is not null && reference.Id is not null && physical && EditionAccess.Policy.HasPremium && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
+                && context.Elite.DeviceReferences.Matches(new() { SimSpecificIds = new() { ["ed.device"] = reference.Token } }, candidate)
+                && !controllers.Any(x => x.Id != reference.Id && x.Pin?.Device.PhysicalGuid == candidate.PhysicalGuid)
                 && (pin is null || pin.Device.PhysicalGuid == candidate.PhysicalGuid || !GameInputReadiness.Ready(pin, observed))
-                && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"));
+                && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Indexed);
             var indexedChoice = _devicesView.ReplacementReferencePicker.Items.Count <= 1 || _devicesView.ReplacementReferencePicker.SelectedItem is GameDeviceChoice;
             _controllerActions = GameControllerActions.For(pin is null && physical && EditionAccess.Policy.HasPremium && eligible.Length > 0,
-                confirm, pin is not null || document is not null && connected && !alreadyLinked,
+                confirm, pin is not null || _session is not null && connected && !alreadyLinked,
                 pin is null && physical && EditionAccess.Policy.HasPremium && connected && pin?.Device.PhysicalGuid != selected!.PhysicalGuid && indexedChoice,
                 physical, physical && pin is not null, context.Identifying,
                 context.Testing, _busy, context.Feature == 0);
@@ -139,7 +142,7 @@ namespace Heimdall.App.Games.Elite
             _devicesView.RemoveControllerButton.IsEnabled = _controllerActions.Remove;
             _devicesView.RescanControllerButton.IsEnabled = _controllerActions.Rescan;
             var drawingId = Device is null ? null : _session?.DrawingId(Device.Id);
-            var links = ControllerLinkState.For(pin is not null, drawingId is not null, document is not null && (reference is null || physical) && _session?.AccessMessage.Length == 0,
+            var links = ControllerLinkState.For(pin is not null, drawingId is not null, _session is not null && (reference.Id is null || physical) && _session?.AccessMessage.Length == 0,
                 context.Identifying || context.Testing || _busy || context.Feature != 0);
             _devicesView.ConnectedPicker.IsEnabled = links.SelectPhysical;
             _devicesView.UnlinkControllerButton.IsEnabled = links.UnlinkPhysical;

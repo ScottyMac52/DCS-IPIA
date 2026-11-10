@@ -25,8 +25,9 @@ namespace Heimdall.App.Games.Elite
         /// <inheritdoc/>
         public IReadOnlyList<EliteAssignmentRow> Rows { get; set; } = [];
         internal GameDeviceChoice? Device => State.Selection.ControllerId is { } id
-            ? (_deviceChoices ??= new(() => Session, (document, key) => document.Profile.Devices.Any(x => x.LogicalId == key)
-                ? new GameDeviceChoice(key, ControllerName(document, key)) : null)).Get(id, null) : null;
+            ? (_deviceChoices ??= new(() => Session, (document, _) => document.Profile.Devices.ToDictionary(
+                device => device.LogicalId, device => new GameDeviceChoice(device.LogicalId, ControllerName(document, device.LogicalId)))))
+                .Get(0, null)?.GetValueOrDefault(id) : null;
         internal SimCommand? Command => Commands.FirstOrDefault(command => command.Id == State.Selection.CommandId);
         internal string Section { get; set; } = "All";
         internal int Feature { get; set; }
@@ -39,7 +40,8 @@ namespace Heimdall.App.Games.Elite
         /// <summary>Gets the drawing for one controller of the open document. The reviewed drawing list is fixed for this
         /// context, so the projection is re-read only when the native document or controller changes.</summary>
         internal WorkspaceHardware? CurrentDrawing(string deviceId) =>
-            (_drawings ??= new(() => Session, (document, key) => DrawingFor(document, key))).Get(deviceId, null);
+            (_drawings ??= new(() => Session, (document, _) => document.Profile.Devices.ToDictionary(
+                device => device.LogicalId, device => DrawingFor(document, device.LogicalId)))).Get(0, null)?.GetValueOrDefault(deviceId);
         /// <summary>Gets how many drawing projections were computed (smoke work counter).</summary>
         internal int DrawingProjections => _drawings?.Projections ?? 0;
         internal WorkspaceHardware? DrawingFor(GameWorkspace document, string deviceId)
@@ -56,8 +58,8 @@ namespace Heimdall.App.Games.Elite
             return drawing is null ? null : EliteInputKeys.FromDiagram(drawing.Diagram, control);
         }
 
-        private ProfileContentCache<string, GameDeviceChoice?>? _deviceChoices;
-        private ProfileContentCache<string, WorkspaceHardware?>? _drawings;
+        private ProfileContentCache<int, IReadOnlyDictionary<string, GameDeviceChoice>?>? _deviceChoices;
+        private ProfileContentCache<int, IReadOnlyDictionary<string, WorkspaceHardware?>?>? _drawings;
         internal static string ControllerName(GameWorkspace workspace, string id)
         {
             var identity = workspace.Profile.Devices.Single(x => x.LogicalId == id).Identity!;
