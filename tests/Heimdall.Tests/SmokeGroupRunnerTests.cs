@@ -37,6 +37,7 @@ namespace Heimdall.Tests
             });
             Assert.Equal(1, code); Assert.Equal(Groups, launched);
             Assert.Contains("FAIL    one exit code 3", text, StringComparison.Ordinal);
+            Assert.Contains("boom", text, StringComparison.Ordinal);
             Assert.Contains("BLOCKED two could not start: missing exe", text, StringComparison.Ordinal);
             Assert.Contains("FAIL    three timed out", text, StringComparison.Ordinal);
             Assert.Contains("RESULT: FAIL", text, StringComparison.Ordinal);

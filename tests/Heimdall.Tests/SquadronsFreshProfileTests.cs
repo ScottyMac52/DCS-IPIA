@@ -109,13 +109,15 @@ namespace Heimdall.Tests
         }
         /// <summary>Visible device order defines native slots while blank declarations trail the devices and links follow them.</summary>
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Reordering_fresh_devices_preserves_blank_slots_links_and_bindings(bool assigned)
+        [InlineData(false, "\n")]
+        [InlineData(true, "\n")]
+        [InlineData(false, "\r\n")]
+        [InlineData(true, "\r\n")]
+        public void Reordering_fresh_devices_preserves_blank_slots_links_and_bindings(bool assigned, string newline)
         {
             using var issuer = new OwnerLicenseTestIssuer();
             var backend = new SquadronsProfileBackend();
-            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = Fresh() });
+            var profile = backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = Fresh().ReplaceLineEndings(newline) });
             const string concept = "IncomStarshipInputConcepts.ConceptPitch";
             if (assigned)
             {
@@ -130,9 +132,9 @@ namespace Heimdall.Tests
             Assert.Equal(before, session.Export().Files[SquadronsProfileBackend.FileName]);
             session.ApplyControllerChange(move);
             var text = session.Export().Files[SquadronsProfileBackend.FileName];
-            Assert.Contains("GstInput.JoystickDevice1 Synthetic throttle\n", text, StringComparison.Ordinal);
-            Assert.Contains("GstInput.JoystickDevice2 Synthetic stick\n", text, StringComparison.Ordinal);
-            Assert.Contains("GstInput.JoystickDevice3 \n", text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice1 Synthetic throttle" + newline, text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice2 Synthetic stick" + newline, text, StringComparison.Ordinal);
+            Assert.Contains("GstInput.JoystickDevice3 " + newline, text, StringComparison.Ordinal);
             Assert.DoesNotContain("GstInput.JoystickDevice10", text, StringComparison.Ordinal);
             Assert.Equal(device.PhysicalGuid, session.Snapshot.Hardware["squadrons.joystick.1"].Device.PhysicalGuid);
             Assert.Equal(2, session.Snapshot.Profile.Devices.Count);
