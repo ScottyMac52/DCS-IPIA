@@ -18,12 +18,11 @@ namespace Heimdall.App.Games
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
         /// <summary>Displays the labeled shared drawing with click, drop and context actions.</summary>
         internal void Show(UiLayerDiagram diagram, KneeboardComposite page, HardwareDiagramInteractions actions,
-            double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null)
+            double artworkOpacity = 1, Func<HardwareGraphicControl, string>? tooltip = null, BitmapImage? artwork = null)
         {
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
-            var png = CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), artworkOpacity), diagram.Width, diagram.Height);
-            canvas.Children.Add(new Image { Source = Image(png), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
+            canvas.Children.Add(new Image { Source = artwork ?? RenderArtwork(diagram, page, artworkOpacity), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
             foreach (var control in diagram.Controls)
             {
                 var border = new Border { Width = control.Width, Height = control.Height, Background = Brushes.Transparent,
@@ -59,6 +58,10 @@ namespace Heimdall.App.Games
                 canvas.Children.Add(border); Regions.Add((control, border));
             }
         }
+        /// <summary>Rasterizes canonical labeled artwork independently of live hit regions and action state.</summary>
+        internal static BitmapImage RenderArtwork(UiLayerDiagram diagram, KneeboardComposite page, double opacity) =>
+            Image(CanonicalSvgRenderer.RenderComplete(PreviewArtwork.Prepare(
+                CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity), diagram.Width, diagram.Height));
         /// <summary>Refreshes mounted callout actions when shared availability changes without re-rendering artwork.</summary>
         internal void RefreshActions(HardwareDiagramInteractions actions)
         {

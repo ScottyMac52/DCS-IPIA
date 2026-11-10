@@ -47,6 +47,7 @@ namespace Heimdall.App.Smoke
             var elite = (EliteWorkspaceContext)window.WorkspaceContext;
             var keyA = (HardwareGraphicControl)Region(window, "Key_A").Tag;
             var drawingsBefore = AssertDrawingReads(window, elite, keyboard.LogicalId, keyA, "Key_A");
+            var artworkBefore = Box<Canvas>(window, "DiagramCanvas").Children.OfType<Image>().Single().Source;
             var region = Region(window, "Key_B");
             region.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             if ((string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_B" || !Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
@@ -57,6 +58,8 @@ namespace Heimdall.App.Smoke
             // Content and drawing-mapping change: the Key_B assignment changes the native document and the system drawing inputs.
             var afterEdit = AssertDrawingReads(window, elite, keyboard.LogicalId, keyA, "Key_A");
             if (afterEdit <= drawingsBefore) throw new InvalidOperationException("ED drawing cache was not invalidated by a native assignment edit.");
+            var keyboardArtwork = Box<Canvas>(window, "DiagramCanvas").Children.OfType<Image>().Single().Source;
+            if (ReferenceEquals(artworkBefore, keyboardArtwork)) throw new InvalidOperationException("ED raster artwork retained stale assignment labels after an edit.");
             var authored = window.Session.Snapshot.Profile;
             if (!authored.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse").Axes.Any(x => x.SourceAxis == "Mouse_XAxis")
                 || authored.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Axes.Count != 0)
@@ -76,6 +79,8 @@ namespace Heimdall.App.Smoke
             var afterMouse = AssertDrawingReads(window, elite, mouse.LogicalId, mouseWheel, "Pos_Mouse_ZAxis");
             if (afterMouse != afterEdit) throw new InvalidOperationException("ED drawing cache rebuilt unchanged content for a controller change.");
             picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Keyboard"); ThemeControlSmoke.Pump(window);
+            if (!ReferenceEquals(keyboardArtwork, Box<Canvas>(window, "DiagramCanvas").Children.OfType<Image>().Single().Source))
+                throw new InvalidOperationException("ED controller switching rasterized unchanged artwork again.");
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {
                 picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == token);
