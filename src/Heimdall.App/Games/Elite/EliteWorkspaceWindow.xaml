@@ -70,7 +70,10 @@
      </Grid>
      <ListBox Style="{StaticResource WorkspaceControllerList}" x:Name="DevicePicker" SelectionChanged="DeviceChanged" AllowDrop="True" AutomationProperties.Name="Elite native device references"
               ToolTip="Display order only. Drag a controller or use Ctrl+Up / Ctrl+Down.">
-      <ListBox.ItemTemplate><DataTemplate><TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" TextWrapping="Wrap" ToolTip="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
+      <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,3" ToolTip="{Binding Details}">
+       <TextBlock Style="{StaticResource AppLabel}" Text="{Binding Name}" TextWrapping="Wrap"/>
+       <TextBlock Style="{StaticResource AppLabel}" Text="{Binding Summary}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0"/>
+      </StackPanel></DataTemplate></ListBox.ItemTemplate>
      </ListBox>
     </DockPanel>
     <ContentControl x:Name="FeatureContent" Margin="6,0,0,0" Grid.Column="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>

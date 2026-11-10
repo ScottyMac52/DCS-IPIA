@@ -66,6 +66,11 @@ namespace Heimdall.App.Smoke
                 window.ImportFile(captured);
                 var session = window.Session!;
                 var stick = session.Snapshot.Profile.Devices.First(x => x.Identity!.SimSpecificIds["ed.device"] == "044F1001");
+                var importedChoice = Box<ListBox>(window, "DevicePicker").Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
+                if (!importedChoice.Name.Contains("Smoke SOL-R controller", StringComparison.Ordinal) ||
+                    !importedChoice.Summary.Contains("Needs identification", StringComparison.Ordinal) ||
+                    !importedChoice.Details.Contains("044F1001", StringComparison.Ordinal) || session.HardwarePin(stick.LogicalId) is not null)
+                    throw new InvalidOperationException("Imported controller details are missing or a product suggestion silently linked a physical unit.");
                 Box<ListBox>(window, "DevicePicker").SelectedItem = Box<ListBox>(window, "DevicePicker").Items.Cast<GameDeviceChoice>().Single(x => x.Id == stick.LogicalId);
                 var connected = Box<ComboBox>(window, "ConnectedPicker");
                 if (connected.SelectedItem is not null) throw new InvalidOperationException("Discovery silently selected the first physical controller.");
