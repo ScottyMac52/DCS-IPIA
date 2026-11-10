@@ -19,8 +19,8 @@ The original 12 outputs retain their published SVG bytes. Four IPIA-authored Sol
 | logitech-throttle-quadrant | `ced31703347f0b8d7710635f1d5dda493d262e6543ab67ca8e80a9287c8b21f5` | `83cdd3656d4e0b0ad53fb9859471bc7e136df282a2a68c29fd6f23ae916f814c` | Exact |
 | viper-tqs-mission-pack | `a0ade4270443ded143df8aa5f8dc1c4da3e6c00c9ec3cfdc49d27f54830b03fd` | `a2373b29b21a85abcf94fb55992295740b1f6ebe29272d86fb939f256d07f1b8` | Exact |
 
-| tm-sol-r-ava-r-pov | `0ee8de29b2afb77355b13474b40f19fd704ae15b0f64a6a0594736e0e70a3a5a` | `87646ed1e13d31b90a3af5520f2cda6c8f7595aa4f22e9a75057ecdcb377d90e` | Exact (IPIA-authored; mini-stick RX/RY) |
-| tm-sol-r-ava-r-buttons | `3963fd4f8ca0e8d7f919a0fb3beecfa6fb47f437ad66007a03e79a57c5d92c18` | `2168cf3aab00d2f741fc528e05f4963dd5f563c0333b4e974122458ca17723ab` | Exact (IPIA-authored; mini-stick RX/RY) |
+| tm-sol-r-ava-r-pov | `2ecfa2b0864152ca632c41e558d9f9ed56b0507e51be622ce5f41b14cf002472` | `8ce3b05b9449a2b2be71de224ddcc0ddc0541cd85157a1b5227d6a532e69fac1` | Exact (IPIA-authored; eight verified native axes) |
+| tm-sol-r-ava-r-buttons | `bae4f20bf9b72489d3ea4a1bbba8d57c2fa5e7d79111b35f8ded893e10090985` | `27ea00e19da5283268fae5a30236c865299460278b0ba250df11e89b8b02d9b0` | Exact (IPIA-authored; eight verified native axes) |
 | tm-sol-r-ava-l-pov | `5d75647b7cfcee64d53b4b682fb7362ef4c79636ad1c0076e41ac794efb794d0` | `8810b8da5a3790826c5029fc061aacefa9ed9fec445f57efa2744156ba1c3fc5` | Exact (IPIA-authored) |
 | tm-sol-r-ava-l-buttons | `c89fa13e966a02af5019595d018713ec099b86f9ed2e339d30426ed88d3aeadd` | `c3e36a5be4759ad6631e15f840498127df562d1608b80e7c69b49749ad0508c6` | Exact (IPIA-authored) |
 
@@ -35,4 +35,4 @@ The original 12 outputs retain their published SVG bytes. Four IPIA-authored Sol
 
 Run `node --test tests/asset-authoring/*.test.mjs` and `node scripts/asset-authoring/export-hardware.mjs --check` from the repository root with Node 24. CI on Linux and Windows adds independent 80% line and branch coverage for each of the four exporter modules. Existing .NET per-layer gates remain in place. Source creation and hardware graphic editing use desktop draw.io. Legacy repository scaffold/version/workflow generation is outside the agreed application completion scope. Existing IPIA creation/import, shared revision adoption/impact and package workflows replace the application-facing behavior. See [application completion](application-completion.md) and [Huey release acceptance](huey-release-acceptance.md).
 
-SOL-R authoring correction: retain the revised callout layout while restoring distinct left-hand artwork and identity. Left-hand layouts expose 32 controls without RX/RY; right-hand layouts retain 34. The four SOL-R rows above record the current authored source and deterministic output hashes; the original twelve device baselines and upstream source pin are unchanged.
+SOL-R authoring correction: retain the revised callout layout while restoring distinct left-hand artwork and identity. Left-hand layouts expose 32 controls without RX/RY; right-hand layouts expose 37 controls including all eight verified native axes. The four SOL-R rows above record the current authored source and deterministic output hashes; the original twelve device baselines and upstream source pin are unchanged.

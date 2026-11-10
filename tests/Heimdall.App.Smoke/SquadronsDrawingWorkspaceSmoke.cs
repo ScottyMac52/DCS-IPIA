@@ -223,6 +223,8 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException("An unchanged Squadrons assignment remained actionable unlike the shared native review policy.");
             window.Session.Discard();
             actions.Drop!(drawing.Controls[2], throttle.Id);
+            if (inputs.SelectedItem is not SquadronsInput dropped || dropped.PhysicalKey != SquadronsInputCodec.PhysicalKey(drawing.Controls[2].InputKey))
+                throw new InvalidOperationException("Axis drop staged native data without synchronizing the verified input picker.");
             var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
             var beforeWorkflow = workflowCompletions;
             var beforeDirections = backend.ReadBindings(window.Session.Snapshot.Profile)
@@ -280,5 +282,6 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+
 
 

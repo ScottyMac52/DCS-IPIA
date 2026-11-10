@@ -66,7 +66,8 @@ namespace Heimdall.App.Games
             var nativeChanged = released && (_operationIdentity != context.State.Identity || _operationSnapshot != context.CaptureSnapshot());
             if (released) { _operationIdentity = null; _operationSnapshot = null; }
             _previousOperation = operation;
-            RefreshWorkspaceState();
+            // The notification already carries fresh authoritative state; re-reading native facts here was redundant work.
+            ApplyWorkspaceChrome();
             // Failed/no-change operations update gates, not the editor's pending native choices.
             if (!nativeChanged || _refreshingNative || operation is not null || _closed) return;
             _refreshingNative = true;
@@ -131,10 +132,12 @@ namespace Heimdall.App.Games
         protected abstract bool CanSaveWorkspace { get; }
         /// <summary>Gets whether a common asynchronous action is executing.</summary>
         protected bool WorkspaceActionRunning => _workspaceContext?.State.Operation is not null;
-        /// <summary>Validates native write access and supplies persistence, throwing a specific reason on rejection.</summary>
-        protected abstract Task SaveWorkspaceCoreAsync(IWorkspaceOperationLease lease);
-        /// <summary>Supplies the adapter's restoration operation.</summary>
-        protected abstract void DiscardWorkspaceCore(IWorkspaceOperationLease lease);
+        /// <summary>Gets whether the mounted session is stale after a committed save; it can only be left or replaced.</summary>
+        protected bool WorkspaceRecovering => _workspaceContext?.State.Recovery.Length > 0;
+        /// <summary>Gets whether shared state admits a direct edit such as a profile rename.</summary>
+        protected bool WorkspaceEditable => !WorkspaceActionRunning && !WorkspaceRecovering;
+        /// <summary>Gets the adapter's profile operations; every save/discard entry (button, feature, leave guard) runs this one shared sequence.</summary>
+        protected abstract IGameProfileOperations ProfileOperations { get; }
         /// <summary>Refreshes adapter-specific actions after the base has refreshed common chrome.</summary>
         protected virtual void OnWorkspaceStateChanged() { }
         /// <summary>Displays an action failure through the adapter's status surface.</summary>
@@ -143,16 +146,28 @@ namespace Heimdall.App.Games
         /// <summary>Supplies native pending-state wording while retaining the common refresh algorithm.</summary>
         protected virtual string WorkspaceStateSummary => HasWorkspaceChanges ? "Pending assignment or authoring changes" : "No pending assignment changes";
         /// <summary>Releases the mounted feature/action connections through the shared host.</summary>
-        protected void ClearWorkspaceFeatures() => _host?.Clear();
+        protected void ClearWorkspaceFeatures()
+        {
+            _host?.Clear();
+            foreach (var view in _views.Values.OfType<IDisposable>()) view.Dispose();
+        }
 
         /// <summary>Updates common pending and save/discard state, then invokes the adapter hook.</summary>
         protected void RefreshWorkspaceState()
         {
             if (_refreshingChrome) return;
             _refreshingChrome = true;
+            try { _workspaceContext?.RefreshNativeState(); }
+            finally { _refreshingChrome = false; }
+            ApplyWorkspaceChrome();
+        }
+
+        private void ApplyWorkspaceChrome()
+        {
+            if (_refreshingChrome) return;
+            _refreshingChrome = true;
             try
             {
-                _workspaceContext?.RefreshNativeState();
                 if (_save is not null) _save.IsEnabled = !WorkspaceActionRunning && CanSaveWorkspace && HasWorkspaceChanges;
                 if (_discard is not null) _discard.IsEnabled = !WorkspaceActionRunning && HasWorkspaceChanges;
                 if (_pending is not null) _pending.Text = WorkspaceStateSummary;
@@ -174,13 +189,16 @@ namespace Heimdall.App.Games
             if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
         }
 
-        /// <summary>Saves through the adapter hook using the common action lifetime.</summary>
-        protected internal async Task SaveWorkspaceAsync()
+        /// <summary>Saves through the shared profile operations and returns the typed result: Applied (committed write) or NoChange
+        /// (nothing to write). Blocked surfaces as <see cref="InvalidOperationException"/> carrying the native reason and Cancelled as
+        /// <see cref="OperationCanceledException"/>, so a refused save is never reported as success and pending edits stay dirty.</summary>
+        protected internal async Task<WorkspaceOperationResult> SaveWorkspaceAsync()
         {
-            var result = await WorkspaceContext.RunOperationAsync(WorkspaceOperationKind.Save, async lease =>
-            { await SaveWorkspaceCoreAsync(lease); return new(WorkspaceOperationOutcome.Applied, "", true); }, CancellationToken.None);
+            if (_closed) throw new InvalidOperationException("The workspace is closed.");
+            var result = await ProfileOperations.SaveAsync(CancellationToken.None);
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
             if (result.Outcome == WorkspaceOperationOutcome.Cancelled) throw new OperationCanceledException(result.Message);
+            return result;
         }
 
         /// <summary>Executes the shared Save button path and displays failures without losing pending state.</summary>
@@ -195,9 +213,8 @@ namespace Heimdall.App.Games
         {
             if (_closed) throw new InvalidOperationException("The workspace is closed.");
             if (WorkspaceActionRunning) throw new InvalidOperationException("Another workspace operation is still running. Wait for it to finish.");
-            var context = _workspaceContext ?? throw new InvalidOperationException("Bind the workspace context before discarding.");
-            var result = context.RunOperation(WorkspaceOperationKind.Discard, lease =>
-            { DiscardWorkspaceCore(lease); return new(WorkspaceOperationOutcome.Applied, "Pending edits discarded."); });
+            // The shared discard completes synchronously; GetResult only unwraps its result or native exception.
+            var result = ProfileOperations.DiscardAsync(CancellationToken.None).GetAwaiter().GetResult();
             if (result.Outcome == WorkspaceOperationOutcome.Blocked) throw new InvalidOperationException(result.Message);
         }
 
@@ -208,7 +225,7 @@ namespace Heimdall.App.Games
             _confirmingLeave = true;
             try
             {
-                return await GameWorkspaceLeaveGuard.ConfirmAsync(HasWorkspaceChanges, choose,
+                return await GameWorkspaceLeaveGuard.ConfirmAsync(_workspaceContext?.State, HasWorkspaceChanges, choose,
                     async () =>
                     {
                         if (!CanSaveWorkspace) return false;
@@ -224,7 +241,7 @@ namespace Heimdall.App.Games
             "Discard unsaved workspace changes?", "Pending changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
         /// <summary>Guards closing with shared pending and operation state.</summary>
-        protected virtual bool CanCloseWorkspace() => !WorkspaceActionRunning && (!HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
+        protected virtual bool CanCloseWorkspace() => !WorkspaceActionRunning && (WorkspaceRecovering || !HasWorkspaceChanges || ConfirmDiscardWorkspaceChanges());
 
         /// <inheritdoc/>
         protected override void OnClosing(CancelEventArgs e)

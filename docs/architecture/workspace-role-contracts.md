@@ -166,22 +166,27 @@ Optional native profile work uses a typed common extension, not flags or generic
 ```csharp
 public interface IGameProfileCommand<TRequest,TResult> {
     WorkspaceAvailability Availability { get; }
-    Task<TResult> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
+    Task<ProfileCommandExecution<TResult>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
 }
 // Application base: GameProfileCommandBase<TRequest,TPrepared,TResult>
 protected abstract WorkspaceOperationKind Kind { get; }
 protected abstract WorkspaceAvailability ReadAvailability();
 protected abstract TPrepared Prepare(TRequest request);
 protected abstract Task<TResult> RunNativeAsync(TPrepared prepared, IWorkspaceOperationLease lease);
-protected abstract void Accept(TResult result);
+protected abstract ProfileCommandEffects ReadEffects(TResult result);
+protected abstract void Accept(TResult result, IWorkspaceOperationLease lease);
 ```
 
 Constructor takes `IGameWorkspaceContext` and `IWorkspaceInputLifetime`. Its nonvirtual Execute checks availability, admits one operation, stops input, prepares/reviews, rechecks lease + fingerprint after review, runs native action, accepts successful result, refreshes context and releases in finally. Disabled capability throws a documented `InvalidOperationException(Availability.Reason)` for this typed-result API before any hook; common Save/Discard instead return Blocked. Cancellation throws `OperationCanceledException` for this typed-result API and never installs a prepared candidate. Native typed results distinguish user cancellation where pickers/review are involved; `Accept` runs only for an actual successful result, determined by a required `protected abstract bool IsSuccessful(TResult result)` hook. Output writers own atomic/backup/no-overwrite semantics and produce typed durable receipts. User-facing entry translates cancellation to a cancelled status. Import/replacement leave decisions occur before Execute admission; they call Save/Discard as separate completed operations, never nest them inside the replacement lease. New/duplicate/name changes use Replace and the same reviewed install boundary. Optional commands exist only where native support already exists; consumers get an explicit availability instead of casting profiles to a concrete class.
+
+Every successful native command explicitly declares `None`, `WorkspaceWrite` or `OutputWrite` through `ReadEffects`. The shared command base returns `ProfileCommandExecution<TResult>` containing the unchanged native receipt and `WorkspaceOperationResult` completion. After a durable write, acceptance/refresh exceptions produce a committed warning rather than an ordinary write failure. Failed workspace installation enters context recovery; failed output presentation retains the output receipt without sealing the editable profile. Creation, deletion, duplication and export refuse a recovering context; only explicit fresh-import commands opt into `CanRecoverWorkspace`, alongside the existing saved-profile reopen path. Native hooks must return a durable receipt before publishing fallible UI notifications. No caller may overwrite a completion warning with the native success message.
 
 ## Browser: `IGameAssignmentBrowser` and `GameAssignmentBrowserBase<TCommand,TRecord,TFilter>`
 
 ```csharp
 public interface IGameAssignmentBrowser : IDisposable {
+    BrowserWorkCounts Metrics { get; }
+    void SetActive(bool active);
     void Refresh(string? preferredCommandId = null);
     void Search(string text);
     void SelectCommand(string? commandId);
@@ -193,12 +198,15 @@ public interface IGameAssignmentBrowser<TCommand,TRecord,TFilter> : IGameAssignm
     TFilter Filter { get; }
     event EventHandler? ProjectionChanged;
     void SetFilter(TFilter filter);
+    void Query(TFilter filter, string text, string? preferredCommandId = null);
 }
 ```
 
 Constructor: `(IGameWorkspaceContext context, TFilter initialFilter)`. Required hooks:
 
 ```csharp
+protected abstract TFilter FilterForSelection(TFilter filter, WorkspaceSelection selection);
+protected abstract WorkspaceSelection ScopeSelection { get; }
 protected abstract IReadOnlyList<TCommand> ReadCommands();
 protected abstract IReadOnlyList<TRecord> ReadRecords();
 protected abstract string CommandId(TCommand command);
@@ -209,7 +217,13 @@ protected abstract WorkspaceSelection SelectionForRecord(TRecord record);
 protected abstract WorkspaceSelection SelectionForCommand(TCommand command);
 ```
 
-Refresh nonvirtually reads native catalog/records once, filters with native predicates (base trims search), preserves a valid preferred/current command by stable ID, clears invalid record/input targets, publishes immutable Commands/Records and ProjectionChanged once if changed. It never selects by row number or display label and never mutates a native draft. Native projection order is retained; no common sorting of ordered source declarations. Search/SetFilter update query then invoke this sequence; invalid IDs clear selection rather than silently targeting another command. Selecting an existing record maps through a typed hook to controller/command/slot/alternative in the common context. Context state changes refresh through one subscription; reentrant requests coalesce into one final refresh. Projection exception retains last good rows, reports status, clears unsafe targets and permits retry; no partial list publish. Dispose detaches subscription and drag adapters; view-specific routed handlers live at the WPF edge, invoking these methods. DCS command management remains a native structural panel; browsing does not absorb catalog import/edit transactions.
+Refresh nonvirtually reads native catalog/records only when workspace identity/content version or native evidence version changes, filters cached rows with native predicates (base trims search), preserves a valid preferred/current command by stable ID, clears invalid record/input targets, publishes immutable Commands/Records and ProjectionChanged once if changed. It never selects by row number or display label and never mutates a native draft. Native projection order is retained; no common sorting of ordered source declarations. Search/SetFilter update query then invoke this sequence; invalid IDs clear selection rather than silently targeting another command. Selecting an existing record maps through a typed hook to controller/command/slot/alternative in the common context. Context state changes refresh through one subscription; reentrant requests coalesce into one final refresh. Projection exception retains last good rows, reports status, clears unsafe targets and permits retry; no partial list publish. Dispose detaches subscription and drag adapters; view-specific routed handlers live at the WPF edge, invoking these methods. DCS command management remains a native structural panel; browsing does not absorb catalog import/edit transactions.
+
+PR4 adds `Query` to update filter/search together, avoiding intermediate publications. Equal command/record sequences retain their collection instances. The base publishes selection changes without replacing otherwise identical collections and ignores input/slot-only notifications. Required `ScopeSelection` and `FilterForSelection` map native scope/controller facts without fighting external context selections. `PrepareQuery` optionally builds query facts once per refresh. `NativeVersion` allows typed hardware-evidence invalidation without fabricating a native document edit. Native initial-open command/occurrence selection is explicit through `SelectInitialCommand`/`SelectInitialRecord`; invalid/stale identities never fall back to another binding.
+
+`SetActive(false)` suspends context-driven work and selection ownership while a cached feature is unmounted. Reactivation reconciles the current context before refreshing. `GameAssignmentsView.BindBrowser` owns mount/unmount activation through `IGameAssignmentBrowser`; closing a workspace disposes cached disposable views and their browsers. DCS's standalone command-management panel supplies the same activation/disposal behavior. Native WPF adapters use recursion guards only for control event publication, not a second filtering/selection algorithm.
+
+The UI-free production adapters are `Heimdall.Dcs.DcsAssignmentBrowser`, `Heimdall.EliteDangerous.EliteAssignmentBrowser`, `Heimdall.Squadrons.SquadronsAssignmentBrowser` and `Heimdall.WarThunder.WarThunderAssignmentBrowser`. All inherit `GameAssignmentBrowserBase`; the ED/Squadrons/War Thunder presentation collaborators inherit those native adapters and only bind WPF controls/events. Squadrons editing consumes `ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>` for its native record/concept extension. Native command/record models remain typed throughout. DCS supplies its live draft through a typed read port and retains separate module/UI-layer ownership and every-device semantics.
 
 ## Editing: `IGameAssignmentEditing` and `GameAssignmentEditingBase`
 

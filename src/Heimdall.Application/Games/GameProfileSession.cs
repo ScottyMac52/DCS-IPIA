@@ -20,9 +20,19 @@ namespace Heimdall.Application.Games
         private GameWorkspace _current
         {
             get => _currentValue;
-            set { RequireWorkspaceMutation(); _currentValue = value; }
+            set { RequireWorkspaceMutation(); _currentValue = value; _currentJson = null; _contentStamp++; }
         }
-        private GameWorkspace _saved;
+        private GameWorkspace _savedValue = null!;
+        private GameWorkspace _saved
+        {
+            get => _savedValue;
+            set { _savedValue = value; _savedJson = null; }
+        }
+        // Immutable canonical JSON of the current/saved documents, cached per document instance and dropped on every
+        // reassignment or change notification, so dirty equality stays exact without re-serializing on each read.
+        private string? _currentJson;
+        private string? _savedJson;
+        private long _contentStamp;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
@@ -39,9 +49,23 @@ namespace Heimdall.Application.Games
         /// <summary>Notifies the UI after successful state transitions.</summary>
         public event EventHandler? Changed;
         /// <summary>Gets an independent document; callers cannot bypass the editing boundary.</summary>
-        public GameWorkspace Snapshot => GameWorkspaceContract.Clone(_current);
+        public GameWorkspace Snapshot { get { SnapshotCopies++; return GameWorkspaceContract.Clone(_current); } }
+        /// <summary>Gets how many defensive document copies this session supplied (performance work counter).</summary>
+        public int SnapshotCopies { get; private set; }
         /// <summary>Gets whether current authoring differs from the last saved state.</summary>
-        public bool HasChanges => JsonSerializer.Serialize(_current) != JsonSerializer.Serialize(_saved);
+        public bool HasChanges => !ReferenceEquals(_currentValue, _savedValue) && !string.Equals(CurrentJson, SavedJson, StringComparison.Ordinal);
+        /// <summary>Gets the immutable canonical content of the current document (cached until the next native change).</summary>
+        public string ContentFingerprint => CurrentJson;
+        /// <summary>Gets an opaque stamp that changes whenever the current document may have changed (not a dirty indicator).</summary>
+        public long ContentStamp => _contentStamp;
+        /// <summary>Gets the current workspace identity without cloning the document.</summary>
+        public Guid Id => _currentValue.Id;
+        /// <summary>Gets the current workspace name without cloning the document.</summary>
+        public string Name => _currentValue.Name;
+        /// <summary>Gets one immutable hardware pin without cloning the whole document.</summary>
+        public GameHardwarePin? HardwarePin(string slot) => _currentValue.Hardware.GetValueOrDefault(slot);
+        /// <summary>Gets whether a physical controller is already pinned, without cloning the whole document.</summary>
+        public bool IsPhysicalPinned(Guid physicalGuid) => _currentValue.Hardware.Values.Any(pin => pin.Device.PhysicalGuid == physicalGuid);
         /// <summary>Gets a user-facing edition restriction, or empty when editing is allowed.</summary>
         public string AccessMessage
         {
@@ -54,23 +78,23 @@ namespace Heimdall.Application.Games
         /// <summary>Gets the captured native catalog.</summary>
         public ICommandCatalog Catalog => _backend.GetCatalog(_current.Profile);
         /// <summary>Marks the current state saved only after persistence succeeds.</summary>
-        public void AcceptSaved() { RequireWorkspaceMutation(); _saved = GameWorkspaceContract.Clone(_current); Changed?.Invoke(this, EventArgs.Empty); }
+        public void AcceptSaved() { RequireWorkspaceMutation(); _saved = GameWorkspaceContract.Clone(_current); OnChanged(); }
         /// <summary>Accepts a successfully persisted candidate only for the context-issued save lease.</summary>
         public void AcceptSaved(GameWorkspace persisted, IWorkspaceOperationLease lease)
         {
             RequireLease(lease, WorkspaceOperationKind.Save);
             if (persisted.Id != _current.Id) throw new InvalidOperationException("The saved candidate belongs to another workspace.");
-            _currentValue = GameWorkspaceContract.Clone(persisted); _saved = GameWorkspaceContract.Clone(persisted);
-            Changed?.Invoke(this, EventArgs.Empty);
+            _currentValue = GameWorkspaceContract.Clone(persisted); _currentJson = null; _contentStamp++; _saved = GameWorkspaceContract.Clone(persisted);
+            OnChanged();
         }
         /// <summary>Restores the native saved baseline inside the already-admitted discard operation.</summary>
         public void Discard(IWorkspaceOperationLease lease)
         {
             RequireLease(lease, WorkspaceOperationKind.Discard);
-            _currentValue = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty);
+            _currentValue = GameWorkspaceContract.Clone(_saved); _currentJson = null; _contentStamp++; OnChanged();
         }
         /// <summary>Restores the exact saved document and associations.</summary>
-        public void Discard() { _current = GameWorkspaceContract.Clone(_saved); Changed?.Invoke(this, EventArgs.Empty); }
+        public void Discard() { _current = GameWorkspaceContract.Clone(_saved); OnChanged(); }
         /// <summary>Stages an adapter-owned operation atomically, preserving identity and validating its exported result.</summary>
         public void ApplyNativeEdit(ISimNativeEdit edit)
         {
@@ -154,7 +178,7 @@ namespace Heimdall.Application.Games
         public void Rename(string name)
         {
             RequireAccess(); GameConfigurationName.Validate(name);
-            _current = _current with { Name = name }; Changed?.Invoke(this, EventArgs.Empty);
+            _current = _current with { Name = name }; OnChanged();
         }
         /// <summary>Gets whether the adapter supports reviewed physical links to captured slots without native identity inference.</summary>
         public bool CanLinkCapturedDevices => _backend is ISimCapturedDeviceLinkValidator;
@@ -256,8 +280,11 @@ namespace Heimdall.Application.Games
             var editor = _backend as ISimCapturedDeviceLinks ?? throw new InvalidOperationException("This adapter cannot change the captured device roster.");
             var candidate = Snapshot;
             candidate.UnlinkedDrawings.Remove(logicalId);
-            candidate = candidate with { Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
-                ControllerOrder = candidate.ControllerOrder.Where(x => x != logicalId).ToList() };
+            candidate = candidate with
+            {
+                Profile = editor.RemoveUnusedCapturedDevice(candidate.Profile, logicalId),
+                ControllerOrder = candidate.ControllerOrder.Where(x => x != logicalId).ToList()
+            };
             ValidateControllerCandidate(candidate);
             return new(this, JsonSerializer.Serialize(_current), candidate,
                 "Remove unused captured slot " + logicalId +
@@ -319,9 +346,13 @@ namespace Heimdall.Application.Games
             var candidate = Snapshot;
             var profile = adapter.ReorderCapturedSlots(candidate.Profile, order);
             var pins = candidate.Hardware.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal);
-            candidate = candidate with { Profile = profile, Hardware = pins,
+            candidate = candidate with
+            {
+                Profile = profile,
+                Hardware = pins,
                 UnlinkedDrawings = candidate.UnlinkedDrawings.ToDictionary(x => oldSlots[x.Key], x => x.Value, StringComparer.Ordinal),
-                ControllerOrder = order.Select(id => oldSlots[id]).ToList() };
+                ControllerOrder = order.Select(id => oldSlots[id]).ToList()
+            };
             ValidateControllerCandidate(candidate);
             var moves = order.Select((id, index) => id + " → Slot " + (index + 1));
             return new(this, JsonSerializer.Serialize(_current), candidate,
@@ -340,7 +371,7 @@ namespace Heimdall.Application.Games
             order.Remove(source); order.Insert(order.IndexOf(target) + (after ? 1 : 0), source);
             if (order.SequenceEqual(GameControllerOrder.For(_current))) return;
             _current = _current with { ControllerOrder = order };
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
         }
         /// <summary>Associates a native reference with an explicitly observed unit and reviewed drawing.</summary>
         public void Associate(string logicalId, string hardwareId, Guid physicalGuid)
@@ -384,7 +415,7 @@ namespace Heimdall.Application.Games
             candidate.Hardware[reference.LogicalId] = new(hardwareId, observed) { DrawingHidden = hidden };
             GameWorkspaceContract.Validate(candidate); ValidateProfile(candidate.Profile);
             _current = candidate;
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
             return reference.LogicalId;
         }
         /// <summary>Previews clearing a controller and every binding using it as a modifier, without changing state.</summary>
@@ -431,9 +462,12 @@ namespace Heimdall.Application.Games
             ValidateLink(candidate, target, observed, observations);
             var keys = nativeInputs().ToArray();
             candidate = candidate with { Profile = DeviceEditor().ReplaceDevice(candidate.Profile, logicalId, target.LogicalId, keys) };
-            candidate = candidate with { ControllerOrder = GameControllerOrder.For(_current)
+            candidate = candidate with
+            {
+                ControllerOrder = GameControllerOrder.For(_current)
                 .Where(id => id != target.LogicalId || id == logicalId)
-                .Select(id => id == logicalId ? target.LogicalId : id).ToList() };
+                .Select(id => id == logicalId ? target.LogicalId : id).ToList()
+            };
             var previous = candidate.Hardware.GetValueOrDefault(target.LogicalId);
             hardwareId = candidate.UnlinkedDrawings.GetValueOrDefault(logicalId) ?? candidate.UnlinkedDrawings.GetValueOrDefault(target.LogicalId) ?? hardwareId;
             candidate.UnlinkedDrawings.Remove(logicalId);
@@ -465,7 +499,7 @@ namespace Heimdall.Application.Games
             if (change.Baseline != JsonSerializer.Serialize(_current))
                 throw new InvalidOperationException("The profile changed during validation. Review the change again.");
             _current = candidate;
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
         }
         /// <summary>Registers a verified bundled drawing catalog after asynchronous artwork discovery.
         /// Updates validation metadata only; it never changes a staged or saved workspace.</summary>
@@ -493,7 +527,7 @@ namespace Heimdall.Application.Games
                 if (!candidate.UnlinkedDrawings.Remove(logicalId)) throw new InvalidOperationException("This controller has no drawing link.");
             }
             else throw new InvalidOperationException("Connect this controller before choosing its drawing.");
-            GameWorkspaceContract.Validate(candidate); _current = candidate; Changed?.Invoke(this, EventArgs.Empty);
+            GameWorkspaceContract.Validate(candidate); _current = candidate; OnChanged();
         }
         /// <summary>Gets the saved drawing association independently of physical connection or link state.</summary>
         public string? DrawingId(string logicalId) => _current.Hardware.TryGetValue(logicalId, out var pin)
@@ -555,7 +589,14 @@ namespace Heimdall.Application.Games
             return plan;
         }
         #endregion END Public
+        private string CurrentJson => _currentJson ??= GameWorkspaceContract.Serialize(_currentValue);
+        private string SavedJson => _savedJson ??= GameWorkspaceContract.Serialize(_savedValue);
         #region BEGIN private helpers
+        private void OnChanged()
+        {
+            _currentJson = null; _contentStamp++;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
         private GameControllerChange PreviewNativeRemoval(ISimControllerRemoval adapter, string logicalId)
         {
             var candidate = Snapshot;
@@ -609,7 +650,7 @@ namespace Heimdall.Application.Games
             ValidateProfile(profile);
             if (JsonSerializer.Serialize(profile) == JsonSerializer.Serialize(_current.Profile)) return;
             _current = GameWorkspaceContract.Clone(_current with { Profile = profile });
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
         }
 
         private void RequireProfileIdentity(ProfileDocument profile, string message)
@@ -711,6 +752,7 @@ namespace Heimdall.Application.Games
             if (!context.State.Open || context.State.Identity.Key != _currentValue.Id.ToString("N") ||
                 context is IGameProfileSessionOwner owner && !ReferenceEquals(owner.Session, this))
                 throw new InvalidOperationException("This native session is no longer mounted in its workspace.");
+            if (context.State.Recovery.Length != 0) throw new InvalidOperationException(context.State.Recovery);
             if (context.State.Operation is WorkspaceOperationKind.Save or WorkspaceOperationKind.Discard || context.State.Activity is not null)
                 throw new InvalidOperationException("Finish the workspace operation or input activity before editing.");
         }
@@ -740,7 +782,7 @@ namespace Heimdall.Application.Games
             ValidateProfile(candidate.Profile);
             if (JsonSerializer.Serialize(candidate.Profile) == JsonSerializer.Serialize(_current.Profile)) return;
             _current = candidate;
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
         }
         private static void ApplyDraft(ProfileDocument profile, GameAssignmentEdit draft)
         {
@@ -751,12 +793,23 @@ namespace Heimdall.Application.Games
             Remove(profile, draft.CommandId, draft.Slot);
             var device = profile.Devices.Single(x => x.LogicalId == draft.DeviceId);
             if (draft.IsAxis)
-                device.Axes.Add(new() { CommandId = draft.CommandId, SourceAxis = draft.Key, Invert = draft.Invert,
-                    Deadzone = draft.Deadzone, SimSpecific = new() { ["ed.slot"] = draft.Slot } });
+                device.Axes.Add(new()
+                {
+                    CommandId = draft.CommandId,
+                    SourceAxis = draft.Key,
+                    Invert = draft.Invert,
+                    Deadzone = draft.Deadzone,
+                    SimSpecific = new() { ["ed.slot"] = draft.Slot }
+                });
             else
-                device.Buttons.Add(new() { CommandId = draft.CommandId, SourceButton = draft.Key, Mode = draft.Mode,
+                device.Buttons.Add(new()
+                {
+                    CommandId = draft.CommandId,
+                    SourceButton = draft.Key,
+                    Mode = draft.Mode,
                     Modifiers = (draft.Modifiers ?? []).Select(x => new Modifier { Source = x.Source, Value = x.Value }).ToList(),
-                    SimSpecific = new() { ["ed.slot"] = draft.Slot } });
+                    SimSpecific = new() { ["ed.slot"] = draft.Slot }
+                });
             if (draft.Toggle is { } toggle)
             {
                 var key = "ed.toggle:" + draft.CommandId;

@@ -39,7 +39,14 @@ namespace Heimdall.App.Smoke
             if (Box<ListBox>(window, "CommandsList").SelectedItem is not Heimdall.Domain.MultiSim.SimCommand { DisplayName: "Primary Fire", Type: Heimdall.Domain.MultiSim.CommandType.Button }
                 || Box<TextBlock>(window, "AssignmentCommand").Text != "Primary Fire"
                 || (string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_A" || Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
-                throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding.");
+                throw new InvalidOperationException("Clicking an assigned key did not select its unchanged button binding. " +
+                    "Command=" + (Box<ListBox>(window, "CommandsList").SelectedItem as Heimdall.Domain.MultiSim.SimCommand)?.Id +
+                    "; label=" + Box<TextBlock>(window, "AssignmentCommand").Text + "; input=" + Box<ComboBox>(window, "InputKey").SelectedValue +
+                    "; apply=" + Box<Button>(window, "ApplyAssignmentButton").IsEnabled + "; selection=" + window.WorkspaceContext.State.Selection +
+                    "; status=" + window.WorkspaceContext.Status);
+            var elite = (EliteWorkspaceContext)window.WorkspaceContext;
+            var keyA = (HardwareGraphicControl)Region(window, "Key_A").Tag;
+            var drawingsBefore = AssertDrawingReads(window, elite, keyboard.LogicalId, keyA, "Key_A");
             var region = Region(window, "Key_B");
             region.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
             if ((string?)Box<ComboBox>(window, "InputKey").SelectedValue != "Key_B" || !Box<Button>(window, "ApplyAssignmentButton").IsEnabled)
@@ -47,6 +54,9 @@ namespace Heimdall.App.Smoke
             Box<Button>(window, "ApplyAssignmentButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             if (!window.Session.Snapshot.Profile.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Buttons.Any(x => x.SourceButton == "Key_B"))
                 throw new InvalidOperationException("A clicked keyboard key did not apply through the native assignment boundary.");
+            // Content and drawing-mapping change: the Key_B assignment changes the native document and the system drawing inputs.
+            var afterEdit = AssertDrawingReads(window, elite, keyboard.LogicalId, keyA, "Key_A");
+            if (afterEdit <= drawingsBefore) throw new InvalidOperationException("ED drawing cache was not invalidated by a native assignment edit.");
             var authored = window.Session.Snapshot.Profile;
             if (!authored.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse").Axes.Any(x => x.SourceAxis == "Mouse_XAxis")
                 || authored.Devices.Single(x => x.LogicalId == keyboard.LogicalId).Axes.Count != 0)
@@ -59,6 +69,13 @@ namespace Heimdall.App.Smoke
                 || composed.Contains("Numbered inputs", StringComparison.Ordinal))
                 throw new InvalidOperationException("Keyboard assignment artwork omitted the assigned command name.");
             ThemeControlSmoke.Pump(window); ThemeControlSmoke.SaveImage(window, "elite-keyboard-assignments");
+            // Selected controller change re-projects for the new controller and matches the fresh native drawing.
+            picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Mouse"); ThemeControlSmoke.Pump(window);
+            var mouse = window.Session.Snapshot.Profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "Mouse");
+            var mouseWheel = new HardwareGraphicControl("wheel", "Wheel", "Pos_Mouse_ZAxis", 0, 0, 1, 1, true);
+            var afterMouse = AssertDrawingReads(window, elite, mouse.LogicalId, mouseWheel, "Pos_Mouse_ZAxis");
+            if (afterMouse <= afterEdit) throw new InvalidOperationException("ED drawing cache did not re-project for a controller change.");
+            picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "Keyboard"); ThemeControlSmoke.Pump(window);
             foreach (var token in new[] { "Keyboard", "Mouse" })
             {
                 picker.SelectedItem = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == token);
@@ -91,6 +108,21 @@ namespace Heimdall.App.Smoke
         #endregion END Public
         #region BEGIN private helpers
         private static T Box<T>(FrameworkElement window, string name) where T : FrameworkElement => (T)window.FindName(name);
+        /// <summary>Asserts real ED drawing wiring: the selected controller has a system drawing equal to a fresh native
+        /// projection, and 50 per-control reads neither re-project nor serialize the document. Returns the projection count.</summary>
+        private static int AssertDrawingReads(EliteWorkspaceWindow window, EliteWorkspaceContext elite, string controllerId, HardwareGraphicControl control, string expectedKey)
+        {
+            if (elite.Device?.Id != controllerId) throw new InvalidOperationException("ED drawing fixture did not select the expected controller.");
+            var drawing = elite.CurrentDrawing(controllerId) ?? throw new InvalidOperationException("ED drawing fixture has no drawing for the selected controller.");
+            var fresh = elite.DrawingFor(window.Session!.Snapshot, controllerId) ?? throw new InvalidOperationException("ED native drawing projection is missing.");
+            if (JsonSerializer.Serialize(drawing.Diagram) != JsonSerializer.Serialize(fresh.Diagram)) throw new InvalidOperationException("ED cached drawing is stale against the native document.");
+            var projections = elite.DrawingProjections; var copies = Heimdall.Application.Games.GameWorkspaceContract.ThreadSerializations;
+            for (var i = 0; i < 50; i++)
+                if (elite.DrawingKey(control) != expectedKey) throw new InvalidOperationException("ED drawing key changed across repeated reads.");
+            if (elite.DrawingProjections != projections || Heimdall.Application.Games.GameWorkspaceContract.ThreadSerializations != copies)
+                throw new InvalidOperationException("Repeated ED drawing reads re-projected or cloned the document.");
+            return projections;
+        }
         private static Border Region(FrameworkElement window, string input) => Box<Canvas>(window, "DiagramCanvas").Children.OfType<Border>()
             .Single(x => x.Tag is HardwareGraphicControl control && control.InputKey == input);
         private static void AssertArtwork(FrameworkElement window, string input)
@@ -102,3 +134,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

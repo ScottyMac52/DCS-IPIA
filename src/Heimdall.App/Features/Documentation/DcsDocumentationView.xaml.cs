@@ -1,3 +1,4 @@
+using Heimdall.Application.Games;
 using Heimdall.Application;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
@@ -20,7 +21,7 @@ namespace Heimdall.App.Features.Documentation
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             Refresh();
         }
         #endregion END Public

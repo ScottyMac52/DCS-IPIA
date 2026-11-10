@@ -8,6 +8,30 @@ TYPE = re.compile(
     r"^\s*(?:(?:public|internal|private|protected|static|sealed|abstract|partial|readonly|file)\s+)*"
     r"(?:record(?:\s+(?:struct|class))?|class|struct|enum|interface)\s+(\w+)", re.M
 )
+
+# Owner-approved single exception (issue #357 PR 3): the Elite-only service seam exposes native ED types that
+# Heimdall.Application cannot reference, so it stays internal at the ED adapter edge. No other path, namespace,
+# name or visibility qualifies; every other interface must be a shared Heimdall.Application.Interfaces contract.
+NATIVE_EDGE_INTERFACES = {
+    "src/Heimdall.App/Games/Elite/IEliteWorkspaceServices.cs": ("Heimdall.App.Games.Elite", "IEliteWorkspaceServices"),
+}
+
+
+def shared_interface(relative, text):
+    return "/Interfaces/" in f"/{relative.as_posix()}/" and bool(
+        re.search(r"namespace\s+Heimdall\.Application\.Interfaces\s*(?:;|\{)", text))
+
+
+def native_edge_interface(relative, text, declaration):
+    approved = NATIVE_EDGE_INTERFACES.get(relative.as_posix())
+    if approved is None:
+        return False
+    namespace, name = approved
+    namespaces = re.findall(r"^\s*namespace\s+([\w.]+)\s*(?:;|\{)", text, re.M)
+    return namespaces == [namespace] and bool(
+        re.fullmatch(r"\s*internal\s+interface\s+" + re.escape(name), declaration))
+
+
 errors = []
 files = sorted(
     path
@@ -27,7 +51,7 @@ for path in files:
     if name != expected:
         errors.append(f"{relative}: type {name} does not match filename {expected}")
     if name.startswith("I") and "interface " in matches[0].group(0):
-        if "/Interfaces/" not in f"/{relative.as_posix()}/" or not re.search(r"namespace\s+Heimdall\.Application\.Interfaces\s*(?:;|\{)", text):
+        if not shared_interface(relative, text) and not native_edge_interface(relative, text, matches[0].group(0)):
             errors.append(f"{relative}: interface must be in Heimdall.Application.Interfaces")
     prefix = text[:matches[0].start()].rstrip().splitlines()
     if not prefix or not any(line.lstrip().startswith("/// <summary>") for line in prefix[-30:]):

@@ -28,12 +28,90 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         for responsibility in ('NavigateToFeature', 'OnClosing', 'OnClosed', 'RegisterWorkspaceCleanup'):
             self.assertIn(responsibility, source)
 
+    def test_profile_operations_are_owned_by_one_game_neutral_sequence(self):
+        application = ROOT / 'src/Heimdall.Application'
+        base = (application / 'Games/GameProfileOperationsBase.cs').read_text(encoding='utf-8-sig')
+        store = (application / 'Games/GameStoreProfileOperationsBase.cs').read_text(encoding='utf-8-sig')
+        command = (application / 'Games/GameProfileCommandBase.cs').read_text(encoding='utf-8-sig')
+        for source in (base, store, command):
+            for forbidden in ('Dcs', 'Elite', 'Squadrons', 'WarThunder', 'switch'):
+                self.assertNotIn(forbidden, source)
+        for sealed_entry in ('public async Task<WorkspaceOperationResult> SaveAsync(', 'public Task<WorkspaceOperationResult> DiscardAsync('):
+            self.assertIn(sealed_entry, base)
+        for hook in ('PrepareSave', 'PersistAsync', 'AcceptCommit', 'RestoreSaved', 'RefreshAfterPersistence'):
+            self.assertRegex(base, rf'protected abstract [^;(]+ {hook}\(')
+        window = (APP / 'Games/GameWorkspaceWindow.cs').read_text(encoding='utf-8-sig')
+        for removed in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore'):
+            self.assertNotIn(removed, window)
+        self.assertIn('ProfileOperations.SaveAsync(', window)
+        self.assertIn('ProfileOperations.DiscardAsync(', window)
+        services = (APP / 'Games/GameWorkspaceServices.cs').read_text(encoding='utf-8-sig')
+        for moved in ('EliteDangerousProfileBackend', 'EliteDeviceReferenceMatcher', 'Heimdall.EliteDangerous'):
+            self.assertNotIn(moved, services)
+        self.assertFalse((APP / 'Games/Dcs/DcsWorkspaceOutput.cs').exists())
+        # The approved Elite edge interface keeps native types out of the shared layer: Application stays ED-free.
+        application = APP.parent / 'Heimdall.Application'
+        for source in [*application.rglob('*.cs'), *application.glob('*.csproj')]:
+            if {'bin', 'obj'} & set(source.relative_to(application).parts):
+                continue
+            text = source.read_text(encoding='utf-8-sig')
+            self.assertNotIn('Heimdall.EliteDangerous', text, str(source))
+            self.assertNotIn('IEliteWorkspaceServices', text, str(source))
+        # One command type per file (C# layout gate); each still derives from the shared command base.
+        commands = {f'{game}/{name}.cs': (name,) for game, names in {
+            'Dcs': ('DcsOutputCommand',),
+            'Elite': ('EliteImportCommand', 'EliteCreateConfigurationCommand', 'EliteDeleteConfigurationCommand', 'EliteExportCommand'),
+            'Squadrons': ('SquadronsImportCommand', 'SquadronsNewProfileCommand', 'SquadronsExportCommand'),
+            'WarThunder': ('WarThunderImportCommand', 'WarThunderDuplicateCommand', 'WarThunderExportCommand'),
+        }.items() for name in names}
+        for path, names in commands.items():
+            source = (APP / 'Games' / path).read_text(encoding='utf-8-sig')
+            for name in names:
+                self.assertRegex(source, rf'class {name}\b[^{{]*:\s*GameProfileCommandBase<')
+            self.assertNotRegex(source, r'throw new NotImplementedException|throw new NotSupportedException')
+        self.assertIn('interface IEliteWorkspaceServices', (APP / 'Games/Elite/IEliteWorkspaceServices.cs').read_text(encoding='utf-8-sig'))
+
+    def test_selection_hot_paths_skip_native_reloads_and_serialization(self):
+        for view in ('Pages/DcsPagesView', 'Kneeboards/DcsKneeboardsView', 'Documentation/DcsDocumentationView',
+                     'Modifiers/DcsModifiersView', 'Devices/DcsDevicesView'):
+            source = (APP / f'Features/{view}.xaml.cs').read_text(encoding='utf-8-sig')
+            self.assertIn('WorkspaceChangeObserver.ReloadUnlessSelectionOnly(', source)
+            self.assertNotRegex(source, r'StateChanged \+= \(_, _\) => Refresh\(\)')
+        manager = (APP / 'Features/Commands/DcsCommandsManagementView.xaml.cs').read_text(encoding='utf-8-sig')
+        self.assertIn('_browser = new(context,', manager)
+        self.assertIn('_browser.ProjectionChanged +=', manager)
+        self.assertNotIn('DcsCommandBrowser.Filter(', manager)
+        self.assertNotIn('new GameAssignmentSelection', manager)
+        browser = (ROOT / 'src/Heimdall.Application/Games/GameAssignmentBrowserBase.cs').read_text(encoding='utf-8-sig')
+        self.assertIn('_context.ContentVersion', browser)
+        self.assertIn('else _observed = selection;', browser)
+        self.assertNotIn('CaptureSnapshot(', browser)
+        assignments = (APP / 'Games/GameAssignmentsView.cs').read_text(encoding='utf-8-sig')
+        changed = assignments[assignments.index('private void Changed('):assignments.index('private void RefreshAvailabilityOnly(')]
+        self.assertNotIn('CaptureAssignmentSnapshot', changed)
+        self.assertIn('WorkspaceChangeKind.Content', changed)
+        profile = (ROOT / 'src/Heimdall.Application/Games/GameProfileWorkspaceContextBase.cs').read_text(encoding='utf-8-sig')
+        self.assertNotIn('Snapshot.Id', profile)
+        self.assertIn('ContentFingerprint', profile)
+        self.assertNotRegex('\n'.join(p.read_text(encoding='utf-8-sig') for p in (APP / 'Games').rglob('*.cs')), r'Snapshot\.Hardware')
+        games = '\n'.join(p.read_text(encoding='utf-8-sig') for p in (APP / 'Games').rglob('*.cs'))
+        self.assertNotRegex(games, r'Snapshot\.(Id|Name)\b')
+        thunder = (APP / 'Games/WarThunder/WarThunderControllerPresenter.cs').read_text(encoding='utf-8-sig')
+        self.assertNotIn('Session?.Snapshot', thunder)
+        self.assertNotIn('WarThunderPhysicalMap.Create(', thunder)
+        for path in ('Elite/EliteWorkspaceContext.cs', 'Squadrons/SquadronsWorkspaceContext.cs', 'WarThunder/WarThunderWorkspaceContext.cs'):
+            self.assertIn('ProfileContentCache<', (APP / 'Games' / path).read_text(encoding='utf-8-sig'))
+
     def test_dcs_window_delegates_editing_output_and_feature_construction(self):
         source = (APP / 'DcsModuleWorkspaceWindow.xaml.cs').read_text(encoding='utf-8-sig')
-        for collaborator in ('DcsWorkspaceSession', 'DcsWorkspaceOutput', 'DcsWorkspaceFeatures'):
+        for collaborator in ('DcsWorkspaceSession', 'DcsOutputCommand', 'DcsWorkspaceFeatures'):
             self.assertIn(collaborator, source)
-        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+        for hook in ('OnWorkspaceStateChanged',):
             self.assertRegex(source, rf'override \w+(?:<[^>]+>)? {hook}\(')
+        self.assertRegex(source, r'override IGameProfileOperations ProfileOperations\b')
+        self.assertIn('new DcsProfileOperations(', source)
+        operations = (APP / 'Games/Dcs/DcsProfileOperations.cs').read_text(encoding='utf-8-sig')
+        self.assertIn(': GameProfileOperationsBase<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot>', operations)
         for forbidden in ('new DcsDraftAssignmentService', 'DcsModuleSnapshotWorkflow.Freeze',
                           'DcsModuleCompleteReleaseWorkflow.Write', '_repository.SaveAsync',
                           'new DcsDevicesView', 'Dictionary<string, UserControl>'):
@@ -69,8 +147,11 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                                ('EliteAssignmentsView.xaml', 'GameAssignmentsView')]:
             root = ET.parse(APP / 'Games' / 'Elite' / filename).getroot()
             self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
-        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+        for hook in ('override IGameProfileOperations ProfileOperations', 'OnWorkspaceStateChanged'):
             self.assertIn(hook, window)
+        saving = (APP / 'Games/Elite/EliteProfileSaving.cs').read_text()
+        self.assertIn(': GameStoreProfileOperationsBase(', saving)
+        self.assertNotIn('Store.Save(', window)
         for collaborator in ('EliteControllerPresenter', 'EliteAssignmentEditing',
                              'EliteAssignmentBrowser', 'EliteAssignmentDrawing',
                              'EliteProfileOperations', 'EliteReferencePresenter'):
@@ -92,8 +173,11 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                                ('SquadronsAssignmentsView.xaml', 'GameAssignmentsView')]:
             root = ET.parse(APP / 'Games' / 'Squadrons' / filename).getroot()
             self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
-        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+        for hook in ('override IGameProfileOperations ProfileOperations', 'OnWorkspaceStateChanged'):
             self.assertIn(hook, window)
+        saving = (APP / 'Games/Squadrons/SquadronsProfileSaving.cs').read_text()
+        self.assertIn(': GameStoreProfileOperationsBase(', saving)
+        self.assertNotIn('Store.Save(', window)
         for collaborator in ('SquadronsControllerPresenter', 'SquadronsAssignmentEditing',
                              'SquadronsAssignmentBrowser', 'SquadronsAssignmentDrawing',
                              'SquadronsProfileOperations'):
@@ -115,8 +199,11 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                                ('WarThunderAssignmentsView.xaml', 'GameAssignmentsView')]:
             root = ET.parse(APP / 'Games' / 'WarThunder' / filename).getroot()
             self.assertEqual(root.tag, '{clr-namespace:Heimdall.App.Games}' + base)
-        for hook in ('SaveWorkspaceCoreAsync', 'DiscardWorkspaceCore', 'OnWorkspaceStateChanged'):
+        for hook in ('override IGameProfileOperations ProfileOperations', 'OnWorkspaceStateChanged'):
             self.assertIn(hook, window)
+        saving = (APP / 'Games/WarThunder/WarThunderProfileSaving.cs').read_text()
+        self.assertIn(': GameStoreProfileOperationsBase(', saving)
+        self.assertNotIn('Store.Save(', window)
         for collaborator in ('WarThunderControllerPresenter', 'WarThunderAssignmentEditing',
                              'WarThunderAssignmentBrowser', 'WarThunderAssignmentDrawing',
                              'WarThunderProfileOperations'):
@@ -144,10 +231,62 @@ class WorkspaceArchitectureTests(unittest.TestCase):
                                  'Heimdall.App.Games.' + game + '.' + view.stem)
 
     def test_editing_and_output_do_not_depend_on_a_concrete_window(self):
-        for name in ('DcsWorkspaceSession', 'DcsWorkspaceOutput'):
+        for name in ('DcsWorkspaceSession', 'DcsOutputCommand'):
             source = (APP / f'Games/Dcs/{name}.cs').read_text()
             self.assertNotRegex(source, r'\b(?:DcsModuleWorkspaceWindow|System.Windows|FindName|TextBlock)\b')
 
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BrowserEditorOwnershipTests(unittest.TestCase):
+    def test_editor_renderers_do_not_write_navigation_selection_from_controls(self):
+        thunder = (APP / 'Games/WarThunder/WarThunderAssignmentEditing.cs').read_text()
+        render = thunder[thunder.index('internal void RefreshEditor()'):thunder.index('private WarThunderPhysicalInput[]')]
+        self.assertNotIn('SelectCommand(', render)
+        self.assertNotIn('SelectAlternative(', render)
+        self.assertNotIn('Records.SelectedItem', render)
+        self.assertIn('context.State.Selection', render)
+        elite = (APP / 'Games/Elite/EliteAssignmentEditing.cs').read_text()
+        render = elite[elite.index('internal void LoadAssignment()'):elite.index('internal void ApplyClicked')]
+        self.assertNotIn('_selection.SelectSlot(', render)
+        self.assertNotIn('SelectInput(', render)
+        squadrons = (APP / 'Games/Squadrons/SquadronsAssignmentEditing.cs').read_text()
+        render = squadrons[squadrons.index('internal void UpdateEditor()'):squadrons.index('private void UpdateInputChoices()')]
+        self.assertNotIn('BindingsGrid.SelectedItem', render)
+        self.assertIn('context.State.Selection', render)
+
+    def test_shared_view_owns_completed_editor_revisions(self):
+        view = (APP / 'Games/GameAssignmentsView.cs').read_text()
+        self.assertIn('WorkspaceEditorObserver', view)
+        self.assertLess(view.index('nativeRefresh(); NativeRefreshPasses++'), view.index('_editorObserver?.Accept('))
+        for game in ('Elite', 'Squadrons', 'WarThunder'):
+            browser = (APP / f'Games/{game}/{game}AssignmentBrowser.cs').read_text()
+            self.assertNotIn('_editorKey', browser)
+            window = (APP / f'Games/{game}/{game}WorkspaceWindow.xaml.cs').read_text()
+            self.assertIn('BindBrowser(_browser, () => _context.Refreshing)', window)
+            self.assertIn('SynchronizeNativeAssignments()', window)
+
+
+class AssignmentBrowserRoleTests(unittest.TestCase):
+    def test_all_native_roles_inherit_the_shared_algorithm_and_presentation_consumes_them(self):
+        for assembly, game, native in (("Dcs", "Dcs", "DcsCommandPaletteEntry"), ("EliteDangerous", "Elite", "SimCommand"),
+                                       ("Squadrons", "Squadrons", "SimCommand"), ("WarThunder", "WarThunder", "SimCommand")):
+            source = (ROOT / f"src/Heimdall.{assembly}/{game}AssignmentBrowser.cs").read_text()
+            self.assertIn(f"GameAssignmentBrowserBase<{native},", source)
+            for hook in ("ReadCommands", "ReadRecords", "IncludeCommand", "IncludeRecord", "SelectionForRecord", "FilterForSelection"):
+                self.assertIn("override", source); self.assertIn(hook, source)
+            if game != "Dcs":
+                edge = (APP / f"Games/{game}/{game}AssignmentBrowser.cs").read_text()
+                self.assertIn(f": Heimdall.{assembly}.{game}AssignmentBrowser(context,", edge)
+                self.assertNotIn("GameCommandBrowser.Filter(", edge)
+                self.assertNotIn(".Snapshot", edge)
+                self.assertNotRegex(edge, r"Func<(?:Elite|Squadrons|WarThunder)(?:AssignmentEditing|AssignmentDrawing|ControllerPresenter)>")
+        editing = (APP / 'Games/Squadrons/SquadronsAssignmentEditing.cs').read_text()
+        self.assertIn('Func<ISquadronsAssignmentBrowser<SquadronsWorkspaceRow>>', editing)
+        self.assertNotIn('Func<SquadronsAssignmentBrowser>', editing)
+
+if __name__ == "__main__":
+    unittest.main()
+

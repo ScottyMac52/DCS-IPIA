@@ -16,6 +16,7 @@ namespace Heimdall.App.Smoke
         #region BEGIN Public
         internal static void Verify()
         {
+            DcsDeviceAddSmoke.Verify();
             var previous = EditionAccess.Policy;
             using var issuer = new OwnerLicenseTestIssuer();
             EditionAccess.SetForTests(issuer.PremiumPolicy);
@@ -90,7 +91,7 @@ namespace Heimdall.App.Smoke
         #endregion END Public
 
         #region BEGIN private helpers
-        private static Task StartSave(DcsModuleWorkspaceWindow window)
+        private static Task<WorkspaceOperationResult> StartSave(DcsModuleWorkspaceWindow window)
         {
             var previous = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
@@ -120,3 +121,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

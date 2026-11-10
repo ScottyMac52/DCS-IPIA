@@ -25,7 +25,7 @@
         <mxCell id="presentation-side" parent="1" style="rounded=0;whiteSpace=wrap;html=0;fillColor=none;strokeColor=none;fontColor=#cbd5e1;fontSize=16;align=center;verticalAlign=middle;" value="SIDE VIEW / TRIGGERS" vertex="1">
           <mxGeometry height="26" width="380" x="510" y="985" as="geometry" />
         </mxCell>
-        <mxCell id="presentation-wheel" parent="1" style="rounded=0;whiteSpace=wrap;html=0;fillColor=none;strokeColor=none;fontColor=#cbd5e1;fontSize=14;align=center;verticalAlign=middle;" value="Scroll virtual axis: optional driver setting (S1)" vertex="1">
+        <mxCell id="presentation-wheel" parent="1" style="rounded=0;whiteSpace=wrap;html=0;fillColor=none;strokeColor=none;fontColor=#cbd5e1;fontSize=14;align=center;verticalAlign=middle;" value="Driver-exposed Z, Dial and Slider inputs are listed below; function follows driver configuration" vertex="1">
           <mxGeometry height="24" width="700" x="350" y="1440" as="geometry" />
         </mxCell>
         <mxCell id="presentation-note" parent="1" style="rounded=0;whiteSpace=wrap;html=0;fillColor=none;strokeColor=none;fontColor=#cbd5e1;fontSize=14;align=center;verticalAlign=middle;" value="AVA X/Y movement + grip RZ twist; no base controls shown." vertex="1">
@@ -382,6 +382,18 @@
         </mxCell>
         <mxCell id="connector-JOY_RY" edge="1" parent="1" source="label-JOY_RY" style="edgeStyle=none;rounded=0;html=0;strokeColor=#00bfff;strokeWidth=1.5;dashed=1;endArrow=none;" target="anchor-JOY_RY" value="">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="presentation-native-axes" parent="1" style="text;html=0;fillColor=none;strokeColor=none;fontColor=#cbd5e1;fontSize=15;align=center;" value="DRIVER-EXPOSED AXES / native keys verified; physical or virtual function not inferred" vertex="1">
+          <mxGeometry height="30" width="1260" x="70" y="1740" as="geometry" />
+        </mxCell>
+        <mxCell id="label-JOY_Z" inputKey="JOY_Z" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;verticalAlign=middle;" value="Z | Driver-exposed Z Axis" vertex="1">
+          <mxGeometry height="40" width="370" x="100" y="1785" as="geometry" />
+        </mxCell>
+        <mxCell id="label-JOY_SLIDER1" inputKey="JOY_SLIDER1" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;verticalAlign=middle;" value="S1 | Driver-exposed Dial" vertex="1">
+          <mxGeometry height="40" width="370" x="515" y="1785" as="geometry" />
+        </mxCell>
+        <mxCell id="label-JOY_SLIDER2" inputKey="JOY_SLIDER2" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#1e293b;strokeColor=#00bfff;fontColor=#f1f5f9;fontSize=16;align=center;verticalAlign=middle;" value="S2 | Driver-exposed Slider" vertex="1">
+          <mxGeometry height="40" width="370" x="930" y="1785" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

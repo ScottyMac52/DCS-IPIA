@@ -15,6 +15,7 @@ namespace Heimdall.Tests
         private const string Throttle = "IncomStarshipInputConcepts.ConceptThrottle.";
 
         #region BEGIN Public
+        /// <summary>Stages both verified axis directions in one change and restores exact native bytes on discard.</summary>
         [Fact]
         public void Verified_axis_pair_is_staged_atomically_and_discard_restores_native_source()
         {
@@ -75,6 +76,7 @@ namespace Heimdall.Tests
             Assert.False(session.HasChanges);
             Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
         }
+        /// <summary>Adds a verified native binding without modifying existing keyboard or joystick records.</summary>
         [Fact]
         public void Verified_native_creation_keeps_the_original_keyboard_and_joystick_records()
         {
@@ -108,6 +110,7 @@ namespace Heimdall.Tests
             Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
         }
 
+        /// <summary>Rejects binding creation and paired-axis edits without current hardware evidence.</summary>
         [Theory]
         [InlineData(false, true)]
         [InlineData(true, false)]
@@ -128,6 +131,7 @@ namespace Heimdall.Tests
             Assert.Equal(source, session.Export().Files[SquadronsProfileBackend.FileName]);
         }
 
+        /// <summary>Rejects unenumerated controls and slots without a verified physical link.</summary>
         [Fact]
         public void Connected_device_cannot_use_unenumerated_controls_or_an_unlinked_slot()
         {

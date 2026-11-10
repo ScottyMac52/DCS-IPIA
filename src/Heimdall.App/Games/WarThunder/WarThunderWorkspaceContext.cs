@@ -29,11 +29,35 @@ namespace Heimdall.App.Games.WarThunder
         internal void NotifyChanged() => RefreshNativeState();
         internal IReadOnlyList<DetectedDcsDevice> Observed { get; set; } = [];
         internal WarThunderPhysicalMap PhysicalMap { get; set; } = new([], "Rescan controller inputs.");
-        internal WarThunderPhysicalInput? SelectedPhysicalInput { get; set; }
+        /// <summary>Physical input belongs to one navigation address; rendering never repairs or reassigns that address.</summary>
+        internal WarThunderPhysicalInput? SelectedPhysicalInput
+        {
+            get => _physicalScope is { } scope && scope.Identity == State.Identity &&
+                scope.Selection == (State.Selection with { InputId = null }) ? _physicalInput : null;
+            set
+            {
+                _physicalInput = value;
+                _physicalScope = value is null ? null : (State.Identity, State.Selection with { InputId = null });
+            }
+        }
         internal Dictionary<string, IReadOnlyList<WarThunderWorkspaceRow>> DrawingAssignments { get; } = new(StringComparer.Ordinal);
         internal string? SelectedDevice => State.Selection.ControllerId;
+        /// <summary>Gets the parsed native controller records, re-read only when the native document changes.</summary>
+        internal IReadOnlyList<WarThunderDevice> NativeDevices =>
+            (_nativeDevices ??= new(() => Session, (document, _) => Array.AsReadOnly(WarThunderProfileBackend.ReadDevices(document.Profile).ToArray()))).Get(0, []);
+        /// <summary>Gets the physical-to-native map for one linked slot and observation, rebuilt only for native document changes.</summary>
+        internal WarThunderPhysicalMap PhysicalMapFor(string slot, ControllerObservation observation) =>
+            (_physicalMaps ??= new(() => Session, (document, key) => WarThunderPhysicalMap.Create(document.Profile, key.Slot, key.Observation)))
+                .Get((slot, observation), new([], "Open a War Thunder profile."));
         internal bool ScanningHardware => State.Activity == WorkspaceActivityKind.Scan;
+        /// <summary>Gets how many times native controller records were parsed (smoke work counter).</summary>
+        internal int NativeDeviceProjections => _nativeDevices?.Projections ?? 0;
         #endregion END Public
+        private ProfileContentCache<int, IReadOnlyList<WarThunderDevice>>? _nativeDevices;
+        private WarThunderPhysicalInput? _physicalInput;
+        private (WorkspaceIdentity Identity, WorkspaceSelection Selection)? _physicalScope;
+        private ProfileContentCache<(string Slot, ControllerObservation Observation), WarThunderPhysicalMap>? _physicalMaps;
         protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, Session?.CanLinkCapturedDevices == true));
     }
 }
+

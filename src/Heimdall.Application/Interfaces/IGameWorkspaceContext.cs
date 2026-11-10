@@ -9,6 +9,8 @@ namespace Heimdall.Application.Interfaces
         #region BEGIN Public
         /// <summary>Gets authoritative immutable state.</summary>
         WorkspaceState State { get; }
+        /// <summary>Gets a stamp that changes whenever native content or mounted identity changes (never for selection, name overlay, activity or operation gates).</summary>
+        long ContentVersion { get; }
         /// <summary>Gets the current status without changing dirty state.</summary>
         string Status { get; }
         /// <summary>Gets the single existing assignment engine owned by this workspace.</summary>

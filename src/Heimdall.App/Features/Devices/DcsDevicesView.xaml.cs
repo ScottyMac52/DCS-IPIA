@@ -17,6 +17,8 @@ namespace Heimdall.App.Features.Devices
         private bool _showingSavedLink;
         private bool _refreshingDeviceList;
         private AssignmentLayer _layer = AssignmentLayer.Module;
+        private IReadOnlyDictionary<string, string> _inventorySources = new Dictionary<string, string>();
+        private WorkspaceHardware[] _inventoryHardware = [];
 
         #region BEGIN Public
         public DcsDevicesView()
@@ -31,7 +33,7 @@ namespace Heimdall.App.Features.Devices
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            _context.StateChanged += (_, _) => Refresh();
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             _context.StatusChanged += (_, msg) => StatusMessage.Text = msg;
             DevicesScope.SelectedIndex = 0;
             Refresh();
@@ -45,6 +47,20 @@ namespace Heimdall.App.Features.Devices
         #endregion END Public
 
         #region BEGIN private helpers
+        private bool StageEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        {
+            var result = _context!.RunStructureEdit(edit);
+            if (result.Outcome == WorkspaceOperationOutcome.Applied) return true;
+            StatusMessage.Text = result.Message;
+            return false;
+        }
+
+        private void SelectDevice(string fileName)
+        {
+            ManagedDevices.SelectedItem = ManagedDevices.Items.Cast<DcsWorkspaceDevice>()
+                .FirstOrDefault(x => string.Equals(x.FileName, fileName.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_context is null || DevicesScope.SelectedIndex < 0) return;
@@ -156,18 +172,18 @@ namespace Heimdall.App.Features.Devices
         private void UnlinkPhysicalClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UnlinkPhysicalButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device))) return;
             StatusMessage.Text = "Physical controller unlinked in both scopes. Assignments and drawing retained. Link a unit before exporting to DCS.";
         }
         private void UnlinkDrawingClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UnlinkDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, false));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, false))) return;
         }
         private void UseRetainedDrawingClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UseRetainedDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, true));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, true))) return;
         }
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e)
         {
@@ -177,7 +193,7 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.UpdateDevice(
                     workspace,
                     device,
@@ -193,7 +209,7 @@ namespace Heimdall.App.Features.Devices
                     },
                     null,
                     _layer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null))) return;
 
             StatusMessage.Text = "Change staged. Save to database to keep it, or Discard draft.";
         }
@@ -207,8 +223,8 @@ namespace Heimdall.App.Features.Devices
             }
 
             var before = ManagedDevices.Items.Count;
-            _context.RunStructureEdit(workspace =>
-                DcsWorkspaceStructureEditor.RemoveDevice(workspace, device));
+            if (!StageEdit(workspace =>
+                DcsWorkspaceStructureEditor.RemoveDevice(workspace, device))) return;
 
             if (ManagedDevices.Items.Count < before)
                 StatusMessage.Text = "Device removal staged. Save to database to keep it, or Discard draft.";
@@ -223,8 +239,8 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
-                DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, device));
+            if (!StageEdit(workspace =>
+                DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, device))) return;
 
             StatusMessage.Text = "Assignments cleared and staged. Save to database to keep it, or Discard draft.";
         }
@@ -251,32 +267,39 @@ namespace Heimdall.App.Features.Devices
         private void NewDeviceClicked(object sender, RoutedEventArgs e)
         {
             ManagedDevices.SelectedItem = null;
+            DeviceSettings.IsExpanded = true;
             ManagedFileName.Text = "";
             ManagedInstance.Text = "";
             ManagedRole.Text = "";
             ManagedHardware.SelectedIndex = -1;
-            StatusMessage.Text = "Enter filename, instance, role and select hardware, then Add.";
+            StatusMessage.Text = "Select shared hardware and enter its native DCS filename below, then Add shared hardware. To use an adopted unit, use Add selected inventory unit above.";
         }
 
         private void AddDeviceClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || ManagedHardware.SelectedItem is not WorkspaceHardware hardware)
             {
-                StatusMessage.Text = "Select shared hardware before adding.";
+                StatusMessage.Text = "Select shared hardware and enter a native DCS filename, or use Add selected inventory unit above.";
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
+            var fileName = ManagedFileName.Text;
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.AddDevice(
                     workspace,
                     hardware,
                     _layer,
-                    ManagedFileName.Text,
+                    fileName,
                     ManagedInstance.Text,
                     ManagedRole.Text,
                     _layer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null)))
+            {
+                DeviceSettings.IsExpanded = true;
+                return;
+            }
 
+            SelectDevice(fileName);
             StatusMessage.Text = "Device added and staged. Save to database to keep it, or Discard draft.";
         }
 
@@ -287,7 +310,7 @@ namespace Heimdall.App.Features.Devices
             {
                 StatusMessage.Text = "Loading committed shared hardware…";
                 var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                _context.RunStructureEdit(workspace =>
+                if (!StageEdit(workspace =>
                 {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
@@ -297,7 +320,7 @@ namespace Heimdall.App.Features.Devices
                     var bundled = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
                     sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(bundled.Concat(generic).DistinctBy(x => x.DeviceId).ToArray());
                     return workspace with { Sources = sources };
-                });
+                })) return;
                 StatusMessage.Text = "Shared hardware loaded. Save to database to keep it.";
             }
             catch (Exception ex)
@@ -358,13 +381,13 @@ namespace Heimdall.App.Features.Devices
 
             if (result != MessageBoxResult.Yes) return;
 
-            _context.RunStructureEdit(workspace =>
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.RebindDevice(
                     workspace,
                     device,
                     ManagedFileName.Text,
                     ManagedInstance.Text,
-                    ManagedRole.Text));
+                    ManagedRole.Text))) return;
 
             StatusMessage.Text = "Rebind staged. Save to database to keep it, or Discard draft.";
         }
@@ -403,7 +426,7 @@ namespace Heimdall.App.Features.Devices
                 var removals = DcsModuleAxisDefaults.Review(workspace, device.ProfileId, device.Layer, source);
                 var review = new DcsAxisDefaultsReviewWindow(workspace, device, removals) { Owner = Window.GetWindow(this) };
                 if (review.ShowDialog() != true) return;
-                _context.RunStructureEdit(current => DcsModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source));
+                if (!StageEdit(current => DcsModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source))) return;
                 StatusMessage.Text = "Axis defaults imported and staged. Save to database to keep them.";
             }
             catch (Exception ex)
@@ -418,7 +441,11 @@ namespace Heimdall.App.Features.Devices
             try
             {
                 var choices = DcsInventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
+                _inventorySources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
+                _inventoryHardware = EditionAccess.Hardware(JsonSerializer.Deserialize<WorkspaceHardware[]>(
+                    _inventorySources["config/ipia-hardware.json"]) ?? [], EditionAccess.Training(_context)).ToArray();
                 InventoryUnits.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
+                if (InventoryUnits.Items.Count > 0) InventoryUnits.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -434,10 +461,58 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
-                DcsInventoryHardwareAuthoring.Add(workspace, choice, _layer));
+            if (InventoryDrawing.SelectedItem is not WorkspaceHardware hardware)
+            {
+                StatusMessage.Text = "Choose a drawing for this unit, or explicitly choose generic controls without artwork.";
+                return;
+            }
+            if (!StageEdit(workspace =>
+                DcsInventoryHardwareAuthoring.Add(PinInventoryHardware(workspace, hardware), choice, _layer, hardware))) return;
 
+            SelectDevice(choice.FileName);
             StatusMessage.Text = "Inventory unit added and staged. Save to database to keep it, or Discard draft.";
+        }
+
+        private void InventoryUnitSelected(object sender, SelectionChangedEventArgs e)
+        {
+            if (InventoryDrawing is null || InventoryUnits.SelectedItem is not InventoryHardwareChoice choice) return;
+            var generic = GenericHardwareLayout.Create(choice.Definition) with { Label = "Generic controls (no artwork)" };
+            var drawings = DcsInventoryHardwareAuthoring.Drawings(_inventoryHardware, choice);
+            InventoryDrawing.ItemsSource = new[] { generic }.Concat(drawings).ToArray();
+            InventoryDrawing.SelectedIndex = drawings.Count == 0 ? 0 : -1;
+        }
+
+        private DcsEditorWorkspaceSnapshot PinInventoryHardware(DcsEditorWorkspaceSnapshot workspace, WorkspaceHardware hardware)
+        {
+            var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+            foreach (var pair in _inventorySources)
+                if (!sources.ContainsKey(pair.Key)) sources[pair.Key] = pair.Value;
+            var catalog = DcsWorkspaceStructureEditor.Hardware(workspace).Where(x => x.DeviceId != hardware.DeviceId).Append(hardware);
+            sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(catalog.ToArray());
+            return workspace with { Sources = sources };
+        }
+
+        private async void ApplyInventoryDrawingClicked(object sender, RoutedEventArgs e)
+        {
+            if (_context?.Working is null || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device ||
+                InventoryUnits.SelectedItem is not InventoryHardwareChoice choice ||
+                InventoryDrawing.SelectedItem is not WorkspaceHardware hardware || hardware.Diagram.GenericCapabilities is not null)
+            {
+                StatusMessage.Text = "Select the existing controller, its inventory unit and compatible artwork above.";
+                return;
+            }
+            try
+            {
+                var version = _context.ContentVersion;
+                var path = hardware.Diagram.Path.Replace("/svg/", "/drawio/", StringComparison.Ordinal);
+                path = Path.ChangeExtension(path, ".drawio").Replace('\\', '/');
+                var source = await BundledSharedCatalog.ReadTextAsync(path);
+                if (_context.ContentVersion != version)
+                    throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
+                if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
+                StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+            }
+            catch (Exception ex) { StatusMessage.Text = "Artwork was not applied: " + ex.Message; }
         }
 
         private async Task LoadUserMappingsAsync()
@@ -493,8 +568,8 @@ namespace Heimdall.App.Features.Devices
 
                 if (!confirmed) return;
 
-                _context.RunStructureEdit(workspace =>
-                    DcsUserMappingAdoption.Apply(workspace, device.ProfileId, revision));
+                if (!StageEdit(workspace =>
+                    DcsUserMappingAdoption.Apply(workspace, device.ProfileId, revision))) return;
                 StatusMessage.Text = "Drawing applied and staged. Save to database to keep it, or Discard draft.";
             }
             catch (Exception ex)
@@ -506,3 +581,4 @@ namespace Heimdall.App.Features.Devices
     }
 
 }
+

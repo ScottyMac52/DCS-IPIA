@@ -37,5 +37,8 @@ return {
     { id = "JOY_BTN_POV1_DL", key = "JOY_BTN_POV1_DL", type = "hat-direction", hardwareLabel = "POV DL" },
     { id = "JOY_BTN_POV1_L", key = "JOY_BTN_POV1_L", type = "hat-direction", hardwareLabel = "POV L" },
     { id = "JOY_BTN_POV1_UL", key = "JOY_BTN_POV1_UL", type = "hat-direction", hardwareLabel = "POV UL" },
+    { id = "JOY_Z", key = "JOY_Z", type = "axis", hardwareLabel = "Z | Driver-exposed Z Axis" },
+    { id = "JOY_SLIDER1", key = "JOY_SLIDER1", type = "axis", hardwareLabel = "S1 | Driver-exposed Dial" },
+    { id = "JOY_SLIDER2", key = "JOY_SLIDER2", type = "axis", hardwareLabel = "S2 | Driver-exposed Slider" },
   },
 }

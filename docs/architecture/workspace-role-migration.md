@@ -144,3 +144,49 @@ flowchart TD
 ```
 
 Discard follows the same role entry with atomic native restore and no write. Assignment entry is native request builder → IGameAssignmentEditing.Execute → existing context-owned workflow → native Review/Apply → existing actual-change check → common result/refresh. No save is nested in an assignment operation, and no window/feature route manufactures a second operation lease.
+
+## PR 3 implementation notes (draft)
+
+- Shared contracts live in `Heimdall.Application`: `IGameProfileOperations`, `IWorkspaceInputLifetime`, `WorkspaceCommit<TSnapshot,TCommit>`, `IGameProfileCommand<TRequest,TResult>`, `GameProfileOperationsBase<TSnapshot,TCommit>` (the only save/discard sequence), `GameStoreProfileOperationsBase` (optimistic-revision store hooks) and `GameProfileCommandBase<TRequest,TPrepared,TResult>`.
+- Native hooks: `DcsProfileOperations` (pinned/edition-checked candidate, one repository write with draft editing suspended, draft rebuild), `EliteProfileSaving` (reopens the persisted preset model as before), `SquadronsProfileSaving` (an unsaved import discards to no session as before) and `WarThunderProfileSaving`.
+- `GameWorkspaceWindow` no longer declares `SaveWorkspaceCoreAsync`/`DiscardWorkspaceCore`; its Save/Discard buttons, feature save/discard delegates and the leave guard all call `ProfileOperations`.
+- Contract clarifications: `AcceptCommit` and `RestoreSaved` receive the lease because native session acceptance requires it; `RefreshAfterPersistence` receives the completed kind; status messages are read after refresh so best-effort preference failures are included; an empty native message leaves the existing status surface untouched (DCS).
+- Intentional behavior changes: a clean writable save now returns NoChange without writing; a War Thunder save while input testing now stops input and saves (shared sequence) instead of rejecting.
+- `IEliteWorkspaceServices` now owns the ED backend and device-reference matcher; `GameWorkspaceServices` no longer exposes them. It is the single owner-approved C# layout interface exception: exactly `internal` in `Heimdall.App.Games.Elite` at `src/Heimdall.App/Games/Elite/IEliteWorkspaceServices.cs` (`scripts/check_csharp_layout.py`, `NATIVE_EDGE_INTERFACES`).
+- Typed native commands (all derive `GameProfileCommandBase<TRequest, TPlan, TResult>`; availability → admit → stop input → prepare/review → recheck lease and fingerprint → native run → accept only on success → refresh):
+  - DCS: `DcsOutputCommand` (validate, package, module snapshot, documentation, complete release). Replaces `DcsWorkspaceOutput`. The destination is now picked before freeze/validation (order change: a cancelled picker no longer validates).
+  - ED: `EliteImportCommand`, `EliteCreateConfigurationCommand` (session is created and validated before the store write), `EliteDeleteConfigurationCommand`, `EliteExportCommand` (reference repair completes before export admission; Prepare rechecks issues).
+  - SQ: `SquadronsImportCommand`, `SquadronsNewProfileCommand`, `SquadronsExportCommand` (review output).
+  - WT: `WarThunderImportCommand` (file is read and parsed before the leave prompt, so an invalid file never discards edits), `WarThunderDuplicateCommand`, `WarThunderExportCommand` (review output).
+- Read-only saves (clean or dirty) are refused by context admission, which owns native restriction reasons (for example the DCS Free Edition reserved-hardware denial); the result is `Blocked` with that exact reason and no hook runs. `GameWorkspaceWindow.SaveWorkspaceAsync` returns the typed `WorkspaceOperationResult` (Applied or NoChange) and throws only for Blocked/Cancelled.
+- Hot-path performance: `IGameWorkspaceContext.ContentVersion` moves only for native content or identity changes. `WorkspaceChangeObserver` is the one shared policy that classifies notifications as None, Selection, Presentation or Content. Assignment views reload only on Content; DCS feature views skip selection-only notifications. The window no longer re-reads native facts inside its own `StateChanged` handler. `GameProfileSession` caches the immutable canonical JSON of its current and saved documents per instance; the cache is dropped on every reassignment and change notification, so dirty equality stays exact. `Snapshot` still returns an independent clone. Id, name and hardware-pin reads no longer clone the document.
+- `ProfileContentCache` memoizes immutable projections per session, `ContentStamp` and key. It covers WT native device records and physical maps, the ED selected device and the SQ selected controller, so selection and availability refreshes no longer clone the whole document. Id and name reads use scalar session queries.
+- ED `CurrentDrawing` memoizes the selected controller's drawing per document and controller. The reviewed drawing list is fixed per context, so per-control `DrawingKey` reads no longer clone the document. The profile conformance smoke fixtures now use one counting store per game, so another game's setup writes are no longer counted as this game's writes.
+- Behaviour changes: a clean save returns `NoChange`; a War Thunder save during input testing stops input and saves.
+- Kept out of PR 3 by design: loading a saved profile uses the spec-allowed synchronous `Replace` admission of `ReplaceNativeSession`; Squadrons `ImportTemplatesFile` is a native draft edit (not an import or replacement); DCS structure edits belong to the context role (PR 2); ED controller-change `RunBusy` belongs to a later role. Assignment-view save/discard hooks remain a transitional route through the window entry point until PR 9.
+- Smoke-risk audit: a save publishes exactly two `StateChanged` notifications (operation admission and release) because non-forced publishes are suppressed while an operation is live, including the Elite reopen-after-save path; discard after save restores the exact post-save baseline. Both are pinned by deterministic unit tests in `GameProfileOperationsTests`.
+
+## PR3 transaction contracts (save boundary, owner thread, same-data lifecycle)
+
+- **Save boundary.** `GameProfileOperationsBase` runs all fallible native validation in `PrepareSave` before the one durable write.
+  After persistence nothing is reported as an uncommitted failure: an `AcceptCommit` failure returns `Applied`, `Committed` and
+  `RecoveryRequired`; the context then blocks save, discard, edit and export on the stale session until a fresh session is
+  installed (reopen/import). Any non-fatal refresh/preference failure is a warning on the committed save.
+  DCS now builds its accepted draft baseline during `PrepareSave`, so the catalog check that discard and accept depend on can no
+  longer fail after the database write.
+- **Owner thread.** Workspace operations start on the owner thread (the WPF dispatcher in production). `GameWorkspaceContextBase.RunOperationAsync`
+  finishes completion, publication and lease release on the owner centrally, and the shared save/command sequences await
+  `lease.ResumeOnOwnerAsync()` after native async work so acceptance and status also run on the owner. Access checks are unchanged; the Windows smoke installs the dispatcher context as production does.
+- **DCS draft catalog.** `DcsSavedWorkspaceDraft` is the single composition used by open, save-accept and discard. `DcsModuleSnapshotWorkflow.Build`
+  intentionally keeps its stricter stored-catalog check for created modules (their catalog is authoritative) and is not merged.
+- **Same-data lifecycle.** `ProfileLifecycleConformanceTests` runs ED, SQ and WT through the real backend, file store, session and shared
+  sequence on the command-smoke fixtures (Linux). Windows adapters, dialogs and the dispatcher remain covered only by `Heimdall.App.Smoke`.
+- **Export readiness (open policy).** Squadrons and Elite offer Export when saved and refuse native review blockers (duplicate declarations,
+  unresolved references) when run; DCS disables Export for module errors. This PR preserves each game's current behavior.
+
+
+## PR4 — assignment browser ownership
+
+All four UI-free native adapters inherit `GameAssignmentBrowserBase<TCommand,TRecord,TFilter>` in Application. ED/Squadrons/War Thunder WPF browser collaborators inherit those adapters; DCS's management panel consumes `DcsAssignmentBrowser`. Actual filtering/selection/cache/publication/lifetime behavior is owned by the base, with typed native predicates and address hooks. Shared WPF view lifetime consumes `IGameAssignmentBrowser`; native editing's Squadrons browser dependency is a typed extension rather than a concrete sibling factory.
+
+Removed: DCS manager's private selection engine and dynamic rows, three independent App command-filter loops, War Thunder's independent captured-record refresh loop, Squadrons' catalog reparsing for command hints, and native-window catalog/row reconstruction. Native structural edits, drawing callbacks and format-specific projections remain native. See [PR4 acceptance record](pr4-acceptance-record.md) for the exact map and executed/pending evidence.

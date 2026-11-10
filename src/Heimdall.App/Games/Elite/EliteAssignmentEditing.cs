@@ -45,7 +45,6 @@ namespace Heimdall.App.Games.Elite
             _loadingAssignment = true;
             _assignmentsView.Selection.ShowCommand(Command);
             var axis = Command?.Type == CommandType.Axis;
-            _selection.SelectSlot(axis ? "Binding" : _assignmentsView.SlotPicker.SelectedIndex == 1 ? "Secondary" : "Primary");
             _assignmentsView.AxisTools.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.ModifierTools.Visibility = axis ? Visibility.Collapsed : Visibility.Visible;
             _assignmentsView.SlotPicker.IsEnabled = _assignmentsView.ModePicker.IsEnabled = !axis;
@@ -53,7 +52,8 @@ namespace Heimdall.App.Games.Elite
             _assignmentsView.AxisSlotLabel.Visibility = axis ? Visibility.Visible : Visibility.Collapsed;
             var row = _rows.FirstOrDefault(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
             _assignmentsView.InputKey.ItemsSource = Device is not null && Command is not null ? DeviceInputs(Device.Id, axis) : [];
-            SelectInput(row?.Input ?? ""); _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
+            _assignmentsView.InputKey.SelectedItem = _assignmentsView.InputKey.Items.Cast<EliteInputChoice>().FirstOrDefault(x => x.Key == row?.Input);
+            _assignmentsView.InvertAxis.IsChecked = row?.Invert ?? false;
             _assignmentsView.AxisDeadzone.Text = (row?.Deadzone ?? 0).ToString(CultureInfo.CurrentCulture);
             _assignmentsView.ModePicker.SelectedIndex = row?.Mode == BindingMode.Hold ? 1 : 0;
             _modifiers.Clear();
@@ -113,22 +113,22 @@ namespace Heimdall.App.Games.Elite
         { if (_assignmentsView.ModifiersList.SelectedItem is EliteModifierChoice modifier) { _modifiers.Remove(modifier); _assignmentsView.ModifiersList.Items.Refresh(); DraftChanged(); } }
         internal void RefreshInputChoices()
         {
-                if (Device is not { } device || Command is not { } command) return;
-                var key = _selection.InputKey;
-                _loadingAssignment = true;
-                try
-                {
-                    _assignmentsView.InputKey.ItemsSource = DeviceInputs(device.Id, command.Type == CommandType.Axis);
-                    SelectInput(key ?? "");
-                }
-                finally { _loadingAssignment = false; }
-                DraftChanged();
+            if (Device is not { } device || Command is not { } command) return;
+            var key = (_assignmentsView.InputKey.SelectedItem as EliteInputChoice)?.Key;
+            _loadingAssignment = true;
+            try
+            {
+                _assignmentsView.InputKey.ItemsSource = DeviceInputs(device.Id, command.Type == CommandType.Axis);
+                _assignmentsView.InputKey.SelectedItem = _assignmentsView.InputKey.Items.Cast<EliteInputChoice>().FirstOrDefault(x => x.Key == key);
+            }
+            finally { _loadingAssignment = false; }
+            DraftChanged();
         }
         internal void UpdateAvailability()
         {
             var opened = _session is not null;
-            var pin = Device is not null ? _session?.Snapshot.Hardware.GetValueOrDefault(Device.Id) : null;
-            var drawing = _session is not null && Device is not null ? context.DrawingFor(_session.Snapshot, Device.Id) : null;
+            var pin = Device is not null ? _session?.HardwarePin(Device.Id) : null;
+            var drawing = _session is not null && Device is not null ? context.CurrentDrawing(Device.Id) : null;
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && _session?.AccessMessage.Length == 0 && !_busy;
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
@@ -169,7 +169,7 @@ namespace Heimdall.App.Games.Elite
             var axis = Command.Type == CommandType.Axis;
             if (axis && !float.TryParse(_assignmentsView.AxisDeadzone.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out _)) return null;
             var deadzone = axis ? float.Parse(_assignmentsView.AxisDeadzone.Text, CultureInfo.CurrentCulture) : 0;
-            return new(Device.Id, Command.Id, Slot, _selection.InputKey ?? "", axis,
+            return new(Device.Id, Command.Id, Slot, (_assignmentsView.InputKey.SelectedItem as EliteInputChoice)?.Key ?? "", axis,
                 _assignmentsView.InvertAxis.IsChecked == true, deadzone,
                 _assignmentsView.ModePicker.SelectedIndex == 1 ? BindingMode.Hold : BindingMode.Press,
                 _modifiers.Select(x => x.Modifier).ToArray(), _assignmentsView.CommandToggle.Visibility == Visibility.Visible ? _assignmentsView.CommandToggle.IsChecked == true : null);
@@ -204,3 +204,4 @@ namespace Heimdall.App.Games.Elite
         #endregion END private helpers
     }
 }
+

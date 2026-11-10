@@ -9,6 +9,8 @@ namespace Heimdall.Tests
     /// before any WPF header is replaced with a composed shell.</summary>
     public sealed class GameWorkspaceLifecycleTests
     {
+        #region BEGIN Public
+        /// <summary>Leaves a clean workspace without prompting, saving or discarding.</summary>
         [Fact]
         public void Clean_workspace_never_prompts_or_invokes_commands()
         {
@@ -23,6 +25,7 @@ namespace Heimdall.Tests
             Assert.False(GameWorkspaceChromeState.For(null, null, null).CanExport);
         }
 
+        /// <summary>Preserves pending edits after cancellation or a rejected save.</summary>
         [Fact]
         public void Cancel_and_failed_save_never_discard_a_pending_draft()
         {
@@ -34,6 +37,7 @@ namespace Heimdall.Tests
             Assert.Equal(0, discarded);
         }
 
+        /// <summary>Keeps successful save and explicit discard actions separate.</summary>
         [Fact]
         public void Explicit_discard_and_successful_save_follow_independent_paths()
         {
@@ -46,6 +50,7 @@ namespace Heimdall.Tests
             Assert.Equal(1, saves); Assert.Equal(1, discards);
         }
 
+        /// <summary>Derives profile action availability from draft, persistence and operation state.</summary>
         [Fact]
         public void Profile_chrome_reflects_session_draft_unpersisted_profile_and_busy_state()
         {
@@ -74,5 +79,6 @@ namespace Heimdall.Tests
             Assert.False(GameWorkspaceChromeState.For(session, "saved-revision", "Test").Pending);
             Assert.True(GameWorkspaceChromeState.For(session, null, "Test").Pending);
         }
+        #endregion END Public
     }
 }

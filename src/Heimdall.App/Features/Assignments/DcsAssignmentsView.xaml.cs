@@ -70,6 +70,7 @@ namespace Heimdall.App.Features.Assignments
             Scope.SelectedIndex = 0;
             RefreshAssignments();
             CommandManager.Initialize(context);
+            BindBrowser(CommandManager.Browser);
             CommandManager.UseAssignmentPalette(_state.Layer);
         }
         internal Action<AxisTuningWindow>? AxisTuningPresenter
@@ -96,6 +97,8 @@ namespace Heimdall.App.Features.Assignments
             Assignments = _state.Context?.Draft?.Snapshot,
             Labels = _state.Context?.Labels.OrderBy(item => item.Key, StringComparer.Ordinal).ToArray()
         });
+        /// <inheritdoc/>
+        protected override void OnFeatureActiveChanged(bool active) => CommandManager.SetFeatureActive(active);
         protected override Task SaveAssignmentsCoreAsync() => _state.Context?.SaveAsync()
             ?? throw new InvalidOperationException("Open a DCS workspace before saving.");
         protected override void DiscardAssignmentsCore()
@@ -127,6 +130,11 @@ namespace Heimdall.App.Features.Assignments
         private void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e) => _labels.SearchReplaceLabelsClicked(sender, e);
         private void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e) => _labels.LoadAuthoredLabelsClicked(sender, e);
         private void RenameGenericControlClicked(object sender, RoutedEventArgs e) => _labels.RenameGenericControlClicked(sender, e);
+        protected override void RefreshBrowserEditorCore()
+        {
+            SelectionEditor.ShowCommandLabel(CommandManager.SelectedCommand?.Name);
+            RefreshAssignmentActions();
+        }
         protected override void RefreshAssignmentsCore()
         {
             if (_state.Context?.Working is null)
@@ -217,11 +225,12 @@ namespace Heimdall.App.Features.Assignments
         private void SynchronizeAssignmentSelection()
         {
             if (DeviceChoice is null || Layers is null || Scope is null || CommandManager is null) return;
+            var commandId = CommandManager.SelectedCommand?.Id;
             AssignmentSelection.Update(() =>
             {
                 AssignmentSelection.SelectScope(AssignmentScope());
                 AssignmentSelection.SelectController(_state.Diagram?.ProfileId.ToString("N"));
-                AssignmentSelection.SelectCommand(CommandManager.SelectedCommand?.Id);
+                AssignmentSelection.SelectCommand(commandId);
                 AssignmentSelection.SelectInput(_state.Selected?.InputKey);
             });
         }
@@ -260,3 +269,6 @@ namespace Heimdall.App.Features.Assignments
         #endregion END private helpers
     }
 }
+
+
+

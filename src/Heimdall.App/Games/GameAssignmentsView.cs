@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Diagnostics;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
@@ -8,25 +9,30 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.App.Games
 {
     /// <summary>Composes native assignment panels and owns common workflow, persistence feedback and event lifetime.</summary>
-    public abstract class GameAssignmentsView : UserControl
+    public abstract class GameAssignmentsView : UserControl, IDisposable, IGameWorkspaceFeatureLifetime
     {
         private readonly ContentControl _commands = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly ContentControl _controller = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly ContentControl _editor = new()
-            { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+        { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
         private readonly Grid _right = new() { Margin = new Thickness(6, 0, 0, 0) };
         private readonly ScrollViewer _editorViewport = new()
-            { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, CanContentScroll = false };
+        { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, CanContentScroll = false };
         private Action<EventHandler>? _subscribe;
         private Action<EventHandler>? _unsubscribe;
         private bool _subscribed;
         private bool _refreshing;
         private IGameWorkspaceContext? _context;
         private bool _unmounted;
-        private WorkspaceState? _observedState;
-        private string? _observedSnapshot;
+        private WorkspaceChangeObserver? _observer;
+        private WorkspaceEditorObserver? _editorObserver;
+        private Func<bool>? _nativeRefreshBlocked;
+        private IGameAssignmentBrowser? _browser;
+        private bool _disposed;
+        private bool _hostOwnsLifetime;
+        private bool _featureActive;
 
         /// <summary>Assembles the shared split and editor frame before native panels are supplied.</summary>
         protected GameAssignmentsView()
@@ -40,11 +46,17 @@ namespace Heimdall.App.Games
             Grid.SetColumn(_right, 2);
             AssignmentWorkspace.Children.Add(_commands); AssignmentWorkspace.Children.Add(_right);
             Content = new AdornerDecorator { Child = AssignmentWorkspace };
-            Loaded += (_, _) => { _unmounted = false; Attach(); RefreshAssignments(); };
-            Unloaded += (_, _) => { _unmounted = true; Detach(); };
+            Loaded += (_, _) => { if (!_hostOwnsLifetime) SetMounted(true); };
+            Unloaded += (_, _) => { if (!_hostOwnsLifetime) SetMounted(false); };
         }
 
         #region BEGIN Public
+        /// <summary>Gets completed native assignment-panel refresh passes for interaction diagnostics.</summary>
+        internal int NativeRefreshPasses { get; private set; }
+
+        /// <summary>Detaches mounted notifications and releases the browser when its owning workspace closes.</summary>
+        public void Dispose() { if (_disposed) return; _disposed = true; _unmounted = true; Detach(); if (_browser is not null) _browser.ProjectionChanged -= BrowserProjectionChanged; _browser?.Dispose(); _browser = null; DisposeNative(); GC.SuppressFinalize(this); }
+
         /// <summary>Identifies the requested controller-panel reservation before the inspector may grow.</summary>
         public static readonly DependencyProperty ControllerReserveHeightProperty = DependencyProperty.Register(
             nameof(ControllerReserveHeight), typeof(double), typeof(GameAssignmentsView),
@@ -94,6 +106,8 @@ namespace Heimdall.App.Games
         protected abstract void DiscardAssignmentsCore();
         /// <summary>Refreshes native panels from authoritative state.</summary>
         protected abstract void RefreshAssignmentsCore();
+        /// <summary>Updates a browser-driven editor without reconstructing native artwork when only selection changed.</summary>
+        protected virtual void RefreshBrowserEditorCore() => RefreshAssignmentsCore();
         /// <summary>Updates action gates without loading saved values over a pending native editor.</summary>
         protected abstract void RefreshAssignmentAvailability();
         /// <summary>Refreshes native drawing after successful persistence or discard.</summary>
@@ -106,10 +120,49 @@ namespace Heimdall.App.Games
         /// <summary>Supplies native failure wording while retaining the underlying explanation.</summary>
         protected virtual string SaveFailurePrefix => "Save failed: ";
 
+        /// <summary>Releases additional native resources when the workspace closes.</summary>
+        protected virtual void DisposeNative() { }
+        /// <summary>Transfers any nested native browser lifetime together with the feature's shared browser.</summary>
+        protected virtual void OnFeatureActiveChanged(bool active) { }
+        void IGameWorkspaceFeatureLifetime.SetFeatureActive(bool active)
+        {
+            if (_disposed) return;
+            _hostOwnsLifetime = true;
+            OnFeatureActiveChanged(active);
+            SetMounted(active);
+        }
+        /// <summary>Gets the bound role for production conformance/work measurements.</summary>
+        internal IGameAssignmentBrowser? BoundBrowser => _browser;
+        /// <summary>Shares browser activation across cached native feature views through the role contract.</summary>
+        internal void BindBrowser(IGameAssignmentBrowser browser, Func<bool>? nativeRefreshBlocked = null)
+        {
+            if (_browser is not null) { _browser.ProjectionChanged -= BrowserProjectionChanged; _browser.SetActive(false); }
+            _browser = browser; _nativeRefreshBlocked = nativeRefreshBlocked;
+            browser.ProjectionChanged += BrowserProjectionChanged;
+            browser.SetActive(_hostOwnsLifetime ? _featureActive : IsLoaded);
+        }
+        /// <summary>Flushes an editor revision after the native window finishes rebuilding its controls.</summary>
+        internal void SynchronizeNativeAssignments()
+        {
+            if (_disposed || _unmounted || (_hostOwnsLifetime ? !_featureActive : !IsLoaded) || _refreshing ||
+                _nativeRefreshBlocked?.Invoke() == true || _context?.State.Operation is not null) return;
+            if (_editorObserver is not { } observer || !observer.NeedsRefresh(_browser?.Metrics.ContentBuilds ?? 0)) return;
+            try
+            {
+                if (observer.NeedsContentRefresh()) RefreshAssignments();
+                else RefreshNative(RefreshBrowserEditorCore);
+            }
+            catch (Exception error)
+            {
+                // Presentation failure must not be treated as a failed browser projection or clear its valid selection.
+                Trace.TraceError("Assignment editor refresh failed: {0}", error);
+                _context?.ReportStatus("Assignment editor refresh failed: " + error.Message);
+            }
+        }
         /// <summary>Shares the context engine and notification lifetime rather than creating view-owned state.</summary>
         protected void BindAssignmentContext(IGameWorkspaceContext context)
         {
-            _context = context;
+            _context = context; _observer = new(context); _editorObserver = new(context);
             BindAssignmentChanges(handler => context.StateChanged += handler, handler => context.StateChanged -= handler);
         }
         /// <summary>Rebinds state notifications without retaining the previous workspace or duplicating subscriptions.</summary>
@@ -119,13 +172,7 @@ namespace Heimdall.App.Games
             if (!_unmounted) Attach();
         }
         /// <summary>Prevents recursive selection notifications during native refresh.</summary>
-        protected void RefreshAssignments()
-        {
-            if (_refreshing) return;
-            _refreshing = true;
-            try { RefreshAssignmentsCore(); RefreshAssignmentAvailability(); ObserveContext(); }
-            finally { _refreshing = false; }
-        }
+        protected void RefreshAssignments() => RefreshNative(RefreshAssignmentsCore);
         /// <summary>Gets whether native choice updates are in progress.</summary>
         protected bool AssignmentRefreshRunning => _refreshing;
         /// <summary>Combines native gates with an in-progress assignment save.</summary>
@@ -160,6 +207,24 @@ namespace Heimdall.App.Games
             catch (Exception error) { ShowAssignmentStatus("Discard failed: " + error.Message); return false; }
         }
         #region BEGIN private helpers
+        private void RefreshNative(Action nativeRefresh)
+        {
+            if (_refreshing || _nativeRefreshBlocked?.Invoke() == true) return;
+#if PERFORMANCE_TRACE
+            using var performance = Heimdall.Application.PerformanceTrace.Measure("editor.render", GetType());
+#endif
+            _refreshing = true;
+            try { nativeRefresh(); NativeRefreshPasses++; RefreshAssignmentAvailability(); ObserveContext(); _editorObserver?.Accept(_browser?.Metrics.ContentBuilds ?? 0); }
+            finally { _refreshing = false; }
+        }
+        private void BrowserProjectionChanged(object? sender, EventArgs args) => SynchronizeNativeAssignments();
+        private void SetMounted(bool active)
+        {
+            if (_disposed) return;
+            _featureActive = active; _unmounted = !active;
+            if (active) { Attach(); _browser?.SetActive(true); RefreshAssignments(); }
+            else { _browser?.SetActive(false); Detach(); }
+        }
         private void UpdatePanelAllocation()
         {
             var available = _right.ActualHeight;
@@ -175,11 +240,12 @@ namespace Heimdall.App.Games
             if (_context is { } context)
             {
                 if (context.State.Operation is not null) { RefreshAvailabilityOnly(); return; }
-                var state = context.State; var snapshot = CaptureAssignmentSnapshot();
-                var alreadyObserved = ReferenceEquals(sender, context) && _observedState == state && _observedSnapshot == snapshot;
-                var presentationOnly = alreadyObserved || WorkspaceStateChange.IsPresentationOnly(_observedState, _observedSnapshot, state, snapshot);
-                _observedState = state; _observedSnapshot = snapshot;
-                if (presentationOnly) { RefreshAvailabilityOnly(); return; }
+                if (_browser is not null)
+                {
+                    _observer!.Observe(); SynchronizeNativeAssignments(); RefreshAvailabilityOnly(); return;
+                }
+                // The shared content stamp replaces serializing the native document on every notification.
+                if (_observer!.Observe() != WorkspaceChangeKind.Content) { RefreshAvailabilityOnly(); return; }
             }
             RefreshAssignments();
         }
@@ -191,8 +257,7 @@ namespace Heimdall.App.Games
         }
         private void ObserveContext()
         {
-            _observedState = _context?.State;
-            _observedSnapshot = _context is null ? null : CaptureAssignmentSnapshot();
+            _observer?.Accept();
         }
         private void Attach()
         {

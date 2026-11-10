@@ -29,7 +29,7 @@ namespace Heimdall.App
                 configuration.Profiles
                     .Select(
                         x =>
-                            $"{x.DeviceId}  ·  {x.Instance??"single instance"}  ·  {configuration.Bindings.Count(y=>y.ProfileId==x.Id)} bindings  ·  {x.SourceName}")
+                            $"{x.DeviceId}  ·  {x.Instance ?? "single instance"}  ·  {configuration.Bindings.Count(y => y.ProfileId == x.Id)} bindings  ·  {x.SourceName}")
                     .ToArray();
             Bindings =
                 configuration.Bindings
@@ -37,7 +37,7 @@ namespace Heimdall.App
                         x =>
                         {
                             var profile = configuration.Profiles.Single(y => y.Id == x.ProfileId);
-                            return $"{profile.DeviceId} {profile.Instance}  ·  {x.InputKey}  ·  {x.CommandName}  ·  {x.Disposition}{(x.Reformers.Count==0?"":$"  ·  {string.Join(" + ",x.Reformers)}")}";
+                            return $"{profile.DeviceId} {profile.Instance}  ·  {x.InputKey}  ·  {x.CommandName}  ·  {x.Disposition}{(x.Reformers.Count == 0 ? "" : $"  ·  {string.Join(" + ", x.Reformers)}")}";
                         })
                     .ToArray();
             Pages = result.Pages.Select(x => $"{x.Order:00}  ·  {x.Title}").ToArray();
@@ -68,14 +68,14 @@ namespace Heimdall.App
                     : $"{preview.ModuleCommandSource} Import the module command JSON or DCS Controls HTML to show all named categories; bindings without a catalog remain Uncategorized.";
             UiUsage =
                 preview.Diagrams.Count == 0
-                ?[preview.GraphicDiagnostics.Count > 0
+                ? [preview.GraphicDiagnostics.Count > 0
                       ? "UI Layer graphic unavailable. See Diagnostics; imported kneeboards and profiles remain available."
                       : "No graphical UI Layer assignments found in this committed source."] : [];
             var issues =
                 result.Diagnostics.Concat(preview.GraphicDiagnostics).Concat(preview.CommandDiagnostics).ToArray();
             HasErrors = issues.Any(x => x.IsError);
-            Diagnostics = issues.Length == 0 ?["No import diagnostics."]
-                : issues.Select(x => $"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}")
+            Diagnostics = issues.Length == 0 ? ["No import diagnostics."]
+                : issues.Select(x => $"{(x.IsError ? "Error" : "Note")}  ·  {x.Code}: {x.Message}")
                       .ToArray();
             Provenance = result.Provenance.Select(x => $"{x.Path}  ·  SHA-256 {x.Sha256}").ToArray();
         }
@@ -88,24 +88,14 @@ namespace Heimdall.App
                                            new Dictionary<string, string>(),
                                            [new SourceProvenance("SQLite", "local", "editor_workspaces", "local")], []),
                   saved.Images,
-                  saved.Diagrams) { ModuleCommands = saved.ModuleCommands, UiCommands = saved.UiCommands })
+                  saved.Diagrams)
+            { ModuleCommands = saved.ModuleCommands, UiCommands = saved.UiCommands })
         {
             saved = DcsPinnedUiLayerProfileRecovery.Restore(saved);
             UiCommands = DcsCommandPalette.FromUiLayer(saved.UiCommands);
             UiDiagrams = saved.Diagrams;
-            var moduleProfiles = DcsWorkspaceStructureEditor.Describe(saved).Devices
-                .Where(x => x.Layer == AssignmentLayer.Module).Select(x => x.ProfileId).ToHashSet();
-            ModuleCommands = DcsCommandPalette.FromBindings(saved.Configuration.Bindings.Where(x => moduleProfiles.Contains(x.ProfileId)),
-                saved.ModuleCommands.Concat(saved.Assignments.Where(x => x.Slot.Layer == AssignmentLayer.Module)
-                    .Select(x => new DcsCommandPaletteEntry(x.Command.Id, x.Command.Name, "Uncategorized", x.Command.IsAxis)))
-                    .DistinctBy(x => x.Id).ToArray());
-            var moduleCommands =
-                ModuleCommands.Select(x => new DcsDraftCommand(x.Id, x.Name, x.IsAxis, AssignmentLayer.Module));
-            var uiCommands = saved.UiCommands.Select(
-                x => new DcsDraftCommand(x.DcsCommandId, x.Name, x.IsAxis, AssignmentLayer.UiLayer));
-            Draft = new DcsDraftAssignmentService(
-                saved.Configuration, moduleCommands.Concat(uiCommands), saved.Assignments,
-                DcsWorkspaceStructureEditor.UiModifierNames(saved));
+            ModuleCommands = DcsSavedWorkspaceDraft.ModuleCatalog(saved);
+            Draft = DcsSavedWorkspaceDraft.Create(saved);
             DraftNote = "Changes remain pending until Save to database.";
             WindowTitle = saved.Configuration.Module.DisplayName + " · database assignment editor · " + ApplicationVersion.Label;
             Commit = "Saved in local SQLite database";
@@ -133,7 +123,7 @@ namespace Heimdall.App
                 folder.Profiles
                     .Select(
                         x =>
-                            $"{x.SourceName}  ·  {folder.Bindings.Count(y=>y.ProfileId==x.Id)} bindings  ·  device not resolved")
+                            $"{x.SourceName}  ·  {folder.Bindings.Count(y => y.ProfileId == x.Id)} bindings  ·  device not resolved")
                     .ToArray();
             Bindings =
                 folder.Bindings
@@ -141,7 +131,7 @@ namespace Heimdall.App
                         x =>
                         {
                             var profile = folder.Profiles.Single(y => y.Id == x.ProfileId);
-                            return $"{profile.SourceName}  ·  {x.InputKey}  ·  {x.CommandName}  ·  {x.Disposition}{(x.Reformers.Count==0?"":$"  ·  {string.Join(" + ",x.Reformers)}")}";
+                            return $"{profile.SourceName}  ·  {x.InputKey}  ·  {x.CommandName}  ·  {x.Disposition}{(x.Reformers.Count == 0 ? "" : $"  ·  {string.Join(" + ", x.Reformers)}")}";
                         })
                     .ToArray();
             Pages = [
@@ -161,8 +151,8 @@ namespace Heimdall.App
                 "Aircraft list: commands found in local bindings (partial catalog). Open both repositories for canonical UI Layer commands.";
             UiUsage = ["Canonical UI Layer graphics require a module repository and DCS-Common catalog."];
             HasErrors = folder.Diagnostics.Any(x => x.IsError);
-            Diagnostics = folder.Diagnostics.Count == 0 ?["No import diagnostics."]
-                : folder.Diagnostics.Select(x => $"{(x.IsError?"Error":"Note")}  ·  {x.Code}: {x.Message}")
+            Diagnostics = folder.Diagnostics.Count == 0 ? ["No import diagnostics."]
+                : folder.Diagnostics.Select(x => $"{(x.IsError ? "Error" : "Note")}  ·  {x.Code}: {x.Message}")
                       .ToArray();
             Provenance = ["Live local files; no repository commit or source hash was claimed."];
         }
@@ -262,7 +252,8 @@ namespace Heimdall.App
                         slot,
                         new(binding.CommandId, moduleNames.GetValueOrDefault(binding.CommandId, binding.CommandName),
                             binding.Section == global::Heimdall.Domain.BindingSection.Axis,
-                            AssignmentLayer.Module)) { Filter = binding.Filter });
+                            AssignmentLayer.Module))
+                    { Filter = binding.Filter });
                 }
                 foreach (var diagram in preview.Diagrams)
                     foreach (var callout in diagram.Callouts)

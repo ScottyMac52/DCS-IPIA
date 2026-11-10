@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Heimdall.Application
 {
     /// <summary>Serializes atomic workflow actions with explicit reading and cancellation boundaries. Call from one UI context.</summary>
@@ -78,6 +80,7 @@ namespace Heimdall.Application
             }
             catch (Exception ex)
             {
+                Trace.TraceError("Training reset failed: {0}", ex);
                 Error = "Training reset failed: " + ex.Message + " Exit or restart to retry.";
                 SetState(TrainingState.Failed);
             }
@@ -122,6 +125,7 @@ namespace Heimdall.Application
             }
             catch (Exception ex)
             {
+                Trace.TraceError("Training step {0} failed: {1}", CurrentStep?.Id, ex);
                 Error = $"Step {CurrentStep?.Id}: {ex.Message} Restart the scenario or exit training.";
                 SetState(TrainingState.Failed);
             }
@@ -140,3 +144,4 @@ namespace Heimdall.Application
         #endregion END private helpers
     }
 }
+

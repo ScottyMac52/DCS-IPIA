@@ -24,11 +24,21 @@ namespace Heimdall.App.Smoke
                 Require(source.Subscribers == 1, "The base did not attach native state notifications exactly once.");
                 Require(IsInside(view.CommandsPanel!, view) && IsInside(view.ControllerPanel!, view) && IsInside(view.EditorPanel!, view),
                     "The base did not compose all three native assignment panels.");
-                var before = view.Refreshes;
-                view.RefreshAction = source.Raise;
+                // Shared policy: an already-observed notification (same state and content stamp) refreshes availability only and
+                // keeps pending editor fields; a genuine native content change reloads exactly once, nested notifications suppressed.
+                var (before, availability, stamp) = (view.Refreshes, view.AvailabilityRefreshes, view.ContentVersion);
+                view.PendingInput = "typed"; view.RefreshAction = source.Raise;
+                source.Raise();
+                Require(view.ContentVersion == stamp && view.Refreshes == before && view.AvailabilityRefreshes == availability + 1 && view.PendingInput == "typed",
+                    "An unchanged foreign notification fully reloaded the inherited view or discarded pending input.");
+                view.ChangeNativeContent();
+                Require(view.ContentVersion == stamp + 1 && view.Refreshes == before, "A native content change was not stamped, or reloaded through the unbound context.");
                 source.Raise();
                 view.RefreshAction = null;
-                Require(view.Refreshes == before + 1, "A native state notification did not refresh exactly once, or recursively refreshed the inherited view.");
+                Require(view.Refreshes == before + 1 && view.AvailabilityRefreshes == availability + 2 && view.PendingInput.Length == 0,
+                    "A native content notification did not reload exactly once, or recursively refreshed the inherited view.");
+                source.Raise();
+                Require(view.Refreshes == before + 1 && view.AvailabilityRefreshes == availability + 3, "An observed content change reloaded again.");
                 view.Bind(replacement);
                 Require(source.Subscribers == 0 && replacement.Subscribers == 1, "Rebinding retained an old state source.");
                 view.Bind(replacement);

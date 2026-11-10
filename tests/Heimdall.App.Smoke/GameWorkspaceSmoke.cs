@@ -102,7 +102,7 @@ namespace Heimdall.App.Smoke
                 EliteDiagramContextSmoke.Verify(window);
                 Click(window, "ExportPresetButton");
                 var exported = Directory.GetFiles(Path.Combine(root, "Review"), "*.binds", SearchOption.AllDirectories).Single();
-                var native = services.Backend.Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });
+                var native = new Heimdall.EliteDangerous.EliteDangerousProfileBackend().Import("controls", new Dictionary<string, string> { [Path.GetFileName(exported)] = File.ReadAllText(exported) });
                 if (!native.Devices.SelectMany(x => x.Buttons).Any(x => x.SourceButton == "Joy_9" && x.Mode == BindingMode.Hold)
                     || !native.Devices.SelectMany(x => x.Axes).Any(x => x.Deadzone == 7.5f && !x.Invert))
                     throw new InvalidOperationException("The WPF-authored native button/axis edits did not survive export.");
@@ -187,18 +187,23 @@ namespace Heimdall.App.Smoke
                 window.Show(); ThemeControlSmoke.Pump(window); window.ImportFile(source);
                 Box<ComboBox>(window, "ConnectedPicker").SelectedIndex = 0; Click(window, "AddControllerButton");
                 var document = window.Session!.Snapshot; var pin = document.Hardware.Single(); savedId = document.Id;
-                if (document.Profile.Devices.Count != 2 || pin.Value.HardwareId is not null || !Box<StackPanel>(window, "AssignmentEditor").IsEnabled
+                if (document.Profile.Devices.Count != 2 || pin.Value.HardwareId is not null
                     || Box<WrapPanel>(window, "DrawingTools").IsVisible || Box<StackPanel>(window, "ReferenceChoiceTools").IsVisible)
                     throw new InvalidOperationException("A new controller still required ED reference or drawing choices.");
+                // Assignment ownership starts when this feature is mounted; a hidden cached editor owns no command.
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 1;
                 SelectCommand(window, "Primary Fire");
+                if (!Box<StackPanel>(window, "AssignmentEditor").IsEnabled)
+                    throw new InvalidOperationException("A new controller required drawing choices before its mounted assignment editor became usable.");
                 var input = Box<ComboBox>(window, "InputKey");
                 input.SelectedValue = "Joy_4";
                 if (input.IsEditable || !Equals(input.SelectedValue, "Joy_4"))
                     throw new InvalidOperationException("An unillustrated controller did not expose its verified input in a selection-only picker.");
                 Click(window, "ApplyAssignmentButton");
-                if (!window.SaveProfile() || !services.Backend.Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
+                if (!window.SaveProfile() || !new Heimdall.EliteDangerous.EliteDangerousProfileBackend().Import("controls", window.Session.Export().Files).Devices.Any(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC"))
                     throw new InvalidOperationException("A new unillustrated controller did not save and export.");
                 var identity = System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices);
+                Box<ListBox>(window, "FeaturePicker").SelectedIndex = 0;
                 Click(window, "ChangeDrawingButton"); Box<ComboBox>(window, "HardwarePicker").SelectedItem = hardware[0]; Click(window, "UseDrawingButton");
                 Click(window, "ChangeDrawingButton"); Click(window, "NoDrawingButton");
                 if (!window.Session.Snapshot.Hardware[pin.Key].DrawingHidden || System.Text.Json.JsonSerializer.Serialize(window.Session.Snapshot.Profile.Devices) != identity)
@@ -419,3 +424,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

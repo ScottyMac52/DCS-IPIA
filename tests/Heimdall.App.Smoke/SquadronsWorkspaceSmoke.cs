@@ -49,7 +49,8 @@ namespace Heimdall.App.Smoke
                 Box<ComboBox>(window, "SectionPicker").SelectedItem = "All";
                 Box<Expander>(window, "ControllerSetup").IsExpanded = true;
                 if (!Box<Button>(window, "SaveButton").IsEnabled || Box<Button>(window, "ExportButton").IsEnabled)
-                    throw new InvalidOperationException("An imported capture must be saved before export.");
+                    throw new InvalidOperationException("An imported capture must be saved before export. Status: "
+                        + Box<TextBlock>(window, "StatusText").Text);
                 var devices = Box<ListBox>(window, "DevicePicker");
                 devices.SelectedItem = devices.Items.Cast<GameDeviceChoice>().Single(x => x.Id == "squadrons.joystick.10");
                 Box<ComboBox>(window, "ConnectedPicker").SelectedItem = throttle; Click(window, "LinkControllerButton");
@@ -63,7 +64,11 @@ namespace Heimdall.App.Smoke
                 var inputs = Box<ComboBox>(window, "InputPicker"); inputs.SelectedItem = inputs.Items.Cast<SquadronsInput>().Single(x => x.Key == "JOY_Z" && x.Direction == 1);
                 Click(window, "ApplyButton");
                 if (new SquadronsProfileBackend().ReadBindings(window.Session!.Snapshot.Profile).Where(x => x.Concept.EndsWith("ConceptThrottle", StringComparison.Ordinal)).Any(x => x.DeviceId != 9))
-                    throw new InvalidOperationException("The UI did not stage the explicit native controller assignment.");
+                    throw new InvalidOperationException("The UI did not stage the explicit native controller assignment. " +
+                        "Record=" + (grid.SelectedItem as SquadronsWorkspaceRow)?.RecordId + "; target=" + (targets.SelectedItem as GameDeviceChoice)?.Id +
+                        "; input=" + (inputs.SelectedItem as SquadronsInput)?.Key + "; apply=" + Box<Button>(window, "ApplyButton").IsEnabled +
+                        "; selection=" + window.WorkspaceContext.State.Selection + "; status=" + Box<TextBlock>(window, "StatusText").Text +
+                        "; context-status=" + window.WorkspaceContext.Status);
                 var beforeReverse = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 if (!Box<Button>(window, "ReverseAxisButton").IsEnabled)
                     throw new InvalidOperationException("A verified complete saved axis cannot be reversed.");
@@ -82,12 +87,12 @@ namespace Heimdall.App.Smoke
                 var capturedBeforeExport = window.Session.Export().Files[SquadronsProfileBackend.FileName];
                 var exported = window.ExportReview(root);
                 var reviewText = File.ReadAllText(Path.Combine(exported, SquadronsProfileBackend.FileName));
-                var lines = reviewText.Split('\n');
+                var lines = reviewText.ReplaceLineEndings("\n").Split('\n');
                 var declarations = lines.Select((line, index) => (line, index))
                     .Where(x => x.line.StartsWith("GstInput.JoystickDevice", StringComparison.Ordinal)).ToArray();
                 if (declarations[^1].index - declarations[0].index + 1 != declarations.Length ||
                     declarations[^1].index >= Array.FindIndex(lines, line => line.StartsWith("GstKeyBinding.", StringComparison.Ordinal)) ||
-                    !reviewText.Contains("GstInput.JoystickDevice5 Viper TQS\n", StringComparison.Ordinal) ||
+                    !lines.Contains("GstInput.JoystickDevice5 Viper TQS", StringComparer.Ordinal) ||
                     window.Session.Export().Files[SquadronsProfileBackend.FileName] != capturedBeforeExport)
                     throw new InvalidOperationException("Review export scattered controller declarations, changed the native TQS name or mutated the saved capture.");
                 if (!File.Exists(Path.Combine(exported, SquadronsProfileBackend.FileName))) throw new InvalidOperationException("Review export is missing its exact native filename.");
@@ -119,3 +124,4 @@ namespace Heimdall.App.Smoke
         #endregion END private helpers
     }
 }
+

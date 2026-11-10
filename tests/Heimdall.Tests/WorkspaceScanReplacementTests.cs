@@ -6,6 +6,8 @@ namespace Heimdall.Tests
     /// <summary>Hardware rescans replace obsolete evidence requests through the shared activity owner.</summary>
     public sealed class WorkspaceScanReplacementTests
     {
+        #region BEGIN Public
+        /// <summary>Replaces a scan lease without cancelling its successor or publishing an idle transition.</summary>
         [Fact]
         public void Replacing_a_scan_cancels_only_the_old_lease_without_publishing_idle()
         {
@@ -31,6 +33,7 @@ namespace Heimdall.Tests
             Assert.Equal(snapshot, context.CaptureSnapshot()); Assert.False(context.State.Dirty);
         }
 
+        /// <summary>Retains the current scan when a replacement cannot be admitted.</summary>
         [Fact]
         public void Unsupported_replacement_preserves_the_running_scan()
         {
@@ -42,6 +45,7 @@ namespace Heimdall.Tests
             Assert.Equal(WorkspaceActivityKind.Scan, context.State.Activity);
         }
 
+        /// <summary>Prevents scanning from replacing an unrelated input activity.</summary>
         [Theory]
         [InlineData(WorkspaceActivityKind.Test)]
         [InlineData(WorkspaceActivityKind.Identify)]
@@ -53,6 +57,7 @@ namespace Heimdall.Tests
             Assert.False(activity!.Cancellation.IsCancellationRequested); Assert.Equal(kind, context.State.Activity);
         }
 
+        /// <summary>Rejects stale scan results and failures after a newer scan owns the evidence.</summary>
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -84,6 +89,7 @@ namespace Heimdall.Tests
             Assert.Equal(snapshot, context.CaptureSnapshot()); Assert.False(context.State.Dirty);
         }
 
+        /// <summary>Cancels scan ownership on close and tolerates late disposal of an obsolete lease.</summary>
         [Fact]
         public void Closing_cancels_the_replacement_and_late_old_disposal_is_harmless()
         {
@@ -95,5 +101,6 @@ namespace Heimdall.Tests
             old.Dispose(); current.Dispose(); Assert.Equal(closed, context.State);
             Assert.Null(context.State.Activity); Assert.False(context.State.Open);
         }
+        #endregion END Public
     }
 }

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Heimdall.Domain.MultiSim;
+using Heimdall.App.Games.Profiles;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
@@ -28,14 +29,9 @@ namespace Heimdall.App.Games.Squadrons
         /// <summary>Supplies an unattended native configuration-name prompt.</summary>
         #region BEGIN Public
         internal Func<string, string, string?>? ConfigurationNamePicker { get; set; }
-        internal void SaveCore(IWorkspaceOperationLease lease)
+        /// <summary>Native post-commit refresh for the shared save sequence; persistence itself is owned by <see cref="SquadronsProfileSaving"/>.</summary>
+        internal void AfterSave()
         {
-            if (context.Session is not { } session || session.AccessMessage.Length > 0)
-                throw new InvalidOperationException("This Squadrons workspace cannot currently be saved.");
-            var workspace = session.Snapshot with { Name = context.EditedName };
-            GameConfigurationName.Validate(workspace.Name);
-            var revision = context.Services.Store.Save(workspace, context.Revision);
-            session.AcceptSaved(workspace, lease); context.Revision = revision;
             Remember(); ReloadChoices(); refresh(true);
             _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = _assignmentsView.DrawingDropFeedback.Text = "";
             StatusText.Text = "Squadrons profile saved.";
@@ -45,19 +41,18 @@ namespace Heimdall.App.Games.Squadrons
         internal void ImportFile(string path)
         {
             if (!confirmLeave()) return;
-            controllers().StopLiveInput();
-            if (new FileInfo(path).Length > 4 * 1024 * 1024) throw new InvalidDataException("Squadrons controls exceed the 4 MiB import limit.");
-            var profile = context.Backend.Import("controls", new Dictionary<string, string> { [SquadronsProfileBackend.FileName] = File.ReadAllText(path) });
-            var name = "Squadrons Controls"; var number = 2; var existing = context.Services.Store.List().Where(x => x.BackendId == context.Backend.SimId).Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            while (existing.Contains(name)) name = "Squadrons Controls " + number++;
-            var workspace = new GameWorkspace(1, Guid.NewGuid(), name, profile, new());
-            var opened = CreateSession(workspace);
+            Import.ExecuteAsync(path, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        private void InstallImport(SquadronsImportResult imported)
+        {
+            var opened = imported.Session;
             context.Selection.Reset();
             context.FocusedConcept = null;
             context.InspectedControl = null;
             _assignmentsView.CommandBrowser.CommandsList.SelectedItem = null;
             _assignmentsView.SelectionEditor.AssignmentDraftStatus.Text = _assignmentsView.DrawingDropFeedback.Text = "";
-            context.Session = opened; context.Revision = null; context.SourceDirectory = Path.GetDirectoryName(Path.GetFullPath(path));
+            context.Session = opened; context.Revision = null; context.SourceDirectory = imported.SourceDirectory;
             context.Services.Remember(context.Services.Recent() with { BackendId = context.Backend.SimId, WorkspaceId = null, DisplayName = "" });
             ReloadChoices(); refresh(true); StatusText.Text = "Controls imported. Save this profile before exporting.";
         }
@@ -80,37 +75,23 @@ namespace Heimdall.App.Games.Squadrons
             if (context.Services.Store.List().Any(entry => entry.BackendId == context.Backend.SimId &&
                 string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("A Squadrons profile with that name already exists.");
-            var sourceSession = context.Session;
             if (!confirmLeave()) return false;
-            controllers().StopLiveInput();
-            sourceSession.Export(); // Require the existing session's edition and native validation boundary.
-            var source = sourceSession.Snapshot;
-            var workspace = GameConfigurations.Create(source, name, false) with
-            {
-                Profile = context.Backend.CreateUnassignedProfile(source.Profile)
-            };
             var sourceDirectory = context.SourceDirectory;
-            context.Services.Store.Save(workspace, null);
-            LoadProfile(workspace.Id);
+            var receipt = NewProfileCommand.ExecuteAsync(name, CancellationToken.None).GetAwaiter().GetResult();
             context.SourceDirectory = sourceDirectory;
-            StatusText.Text = "New profile saved with no joystick assignments or imported assignment templates. Controller setup and native game settings retained.";
+            StatusText.Text = receipt.Completion.Message.Length > 0 ? receipt.Completion.Message : receipt.Native.Message;
             return true;
         }
 
-        internal string ExportReview(string parent)
-        {
-            if (context.Busy || context.Session is null || context.Chrome.Pending) throw new InvalidOperationException("Save the Squadrons profile before exporting.");
-            var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            var roots = new List<string> { Path.Combine(documents, "STAR WARS Squadrons", "settings"), Path.Combine(documents, "STAR WARS Squadrons Steam", "settings") };
-            if (context.SourceDirectory is not null) roots.Add(context.SourceDirectory);
-            context.Session.Export(); // Retain the session's edition and native-document validation boundary.
-            var snapshot = context.Session.Snapshot;
-            var plan = context.Backend.ExportReview(snapshot.Profile, snapshot.Hardware.ToDictionary(x => x.Key, x => x.Value.Device.Name));
-            if (!plan.Succeeded) throw new InvalidOperationException(string.Join("; ", plan.Diagnostics.Select(x => x.Message)));
-            var directory = GameReviewExport.Write(parent, plan.Files, roots, backendId: context.Backend.SimId);
-            StatusText.Text = "Review copy with preserved native names and records exported to " + directory + ". Close Squadrons and back up its settings before manually installing this copy.";
-            return directory;
-        }
+        internal string ExportReview(string parent) => Export.ExecuteAsync(parent, CancellationToken.None).GetAwaiter().GetResult().Native.Detail;
+
+        private SquadronsImportCommand? _import;
+        private SquadronsExportCommand? _export;
+        private SquadronsNewProfileCommand? _newProfile;
+        private IWorkspaceInputLifetime Input => new DelegateInputLifetime(() => controllers().StopLiveInput());
+        private SquadronsImportCommand Import => _import ??= new(context, Input, CreateSession, InstallImport);
+        private SquadronsExportCommand Export => _export ??= new(context, Input, message => StatusText.Text = message);
+        private SquadronsNewProfileCommand NewProfileCommand => _newProfile ??= new(context, Input, LoadProfile);
 
         private GameProfileSession CreateSession(GameWorkspace workspace)
         {
@@ -133,7 +114,7 @@ namespace Heimdall.App.Games.Squadrons
 
         internal void Remember()
         {
-            if (context.Session is not null) context.Services.Remember(context.Services.Recent() with { BackendId = context.Backend.SimId, WorkspaceId = context.Session.Snapshot.Id, DisplayName = context.Session.Snapshot.Name });
+            if (context.Session is not null) context.Services.Remember(context.Services.Recent() with { BackendId = context.Backend.SimId, WorkspaceId = context.Session.Id, DisplayName = context.Session.Name });
         }
 
         internal void ReloadChoices()
@@ -142,7 +123,7 @@ namespace Heimdall.App.Games.Squadrons
             try
             {
                 ProfilePicker.ItemsSource = context.Services.Store.List().Where(x => x.BackendId == context.Backend.SimId).ToArray();
-                ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == context.Session?.Snapshot.Id);
+                ProfilePicker.SelectedItem = ProfilePicker.Items.Cast<GameWorkspaceEntry>().FirstOrDefault(x => x.Id == context.Session?.Id);
             }
             finally { context.Refreshing = false; }
         }

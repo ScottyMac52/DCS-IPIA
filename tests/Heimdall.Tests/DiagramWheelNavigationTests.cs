@@ -7,6 +7,8 @@ namespace Heimdall.Tests
     /// WPF smoke tests additionally confirm routed wheel events hit the viewport.</summary>
     public sealed class DiagramWheelNavigationTests
     {
+        #region BEGIN Public
+        /// <summary>Uses the same modifier precedence for ordinary, horizontal and zoom wheel gestures.</summary>
         [Theory]
         [InlineData(false, false, DiagramWheelMode.Vertical)]
         [InlineData(false, true, DiagramWheelMode.Horizontal)]
@@ -17,6 +19,7 @@ namespace Heimdall.Tests
             Assert.Equal(expected, DiagramWheelNavigation.Mode(control, shift));
         }
 
+        /// <summary>Converts positive, negative, partial and zero wheel deltas to symmetric viewport movement.</summary>
         [Fact]
         public void Ordinary_and_shift_wheel_have_symmetric_pixel_scroll_deltas()
         {
@@ -26,6 +29,7 @@ namespace Heimdall.Tests
             Assert.Equal(0, DiagramWheelNavigation.ScrollDelta(0));
         }
 
+        /// <summary>Keeps zoom changes reversible and bounded while rejecting invalid limits.</summary>
         [Fact]
         public void Ctrl_zoom_is_symmetric_and_respects_bounds()
         {
@@ -40,6 +44,7 @@ namespace Heimdall.Tests
                 DiagramWheelNavigation.Zoom(1, 120, 5, .1));
         }
 
+        /// <summary>Preserves the image point under the cursor while clamping offsets to the viewport origin.</summary>
         [Fact]
         public void Cursor_anchored_zoom_preserves_the_same_image_point()
         {
@@ -52,5 +57,6 @@ namespace Heimdall.Tests
             Assert.Equal(0, DiagramWheelNavigation.AnchoredOffset(0, 0, .5));
             Assert.Equal(0, DiagramWheelNavigation.AnchoredOffset(0, 100, .5));
         }
+        #endregion END Public
     }
 }

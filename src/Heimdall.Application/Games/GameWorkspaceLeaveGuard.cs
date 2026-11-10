@@ -36,6 +36,12 @@ namespace Heimdall.Application.Games
                 default: return false;
             }
         }
+        /// <summary>Recovery-aware leave: a stale session whose save already committed (<see cref="WorkspaceState.Recovery"/>)
+        /// holds no unsaved work, so it is abandoned without a prompt, a stale discard or another write; the next open reads the
+        /// durable profile. Every other workspace keeps the ordinary pending-change guard.</summary>
+        public static Task<bool> ConfirmAsync(WorkspaceState? state, bool pending, Func<GameWorkspaceLeaveDecision> choose,
+            Func<Task<bool>> save, Action discard) =>
+            state is { Recovery.Length: > 0 } ? Task.FromResult(true) : ConfirmAsync(pending, choose, save, discard);
         #endregion END Public
     }
 }

@@ -26,7 +26,8 @@ namespace Heimdall.App.Smoke
             window.ConfigurationNamePicker = (_, _) => "First Configuration";
             Click(window, "NewConfigurationButton");
             if (store.List().Count != 1 || window.Session is null || window.Session.Snapshot.Profile.Devices.Any(x => x.Buttons.Count != 0 || x.Axes.Count != 0))
-                throw new InvalidOperationException("New did not create an empty configuration from the selected ED command template.");
+                throw new InvalidOperationException("New did not create an empty configuration from the selected ED command template. Status: "
+                    + Box<TextBlock>(window, "WorkspaceStatus").Text + " | Access: " + Box<TextBlock>(window, "AccessStatus").Text);
             window.ConfirmConfigurationDeletion = _ => true; Click(window, "DeleteConfigurationButton");
             if (window.Session is not null) throw new InvalidOperationException("Initial configuration did not delete.");
             window.ImportFile(fixture);

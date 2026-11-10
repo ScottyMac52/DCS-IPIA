@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Diagnostics;
 using System.Globalization;
 using Heimdall.Application.Interfaces;
@@ -15,6 +16,7 @@ namespace Heimdall.Application.Games
         private CancellationTokenSource? _operationCancellation;
         private string _editedName = "";
         private string? _fingerprint;
+        private long _contentVersion;
         private static long _epochs;
         private long _generation = Interlocked.Increment(ref _epochs);
         private int _deferred;
@@ -22,6 +24,7 @@ namespace Heimdall.Application.Games
         private bool _posted;
         private bool _nativeChanged;
         private bool _disposed;
+        private string _recovery = "";
         private bool _nativeDisposed;
         private bool _selecting;
 
@@ -34,6 +37,8 @@ namespace Heimdall.Application.Games
         #region BEGIN Public
         /// <inheritdoc/>
         public WorkspaceState State => _state;
+        /// <inheritdoc/>
+        public long ContentVersion => _contentVersion;
         /// <inheritdoc/>
         GameAssignmentSelection IWorkspaceSelectionEngineOwner.SelectionEngine => SelectionEngine;
         /// <inheritdoc/>
@@ -82,7 +87,7 @@ namespace Heimdall.Application.Games
         /// <inheritdoc/>
         public void SetEditedName(string name)
         {
-            ArgumentNullException.ThrowIfNull(name); RequireIdle();
+            ArgumentNullException.ThrowIfNull(name); RequireIdle(); RequireCurrent();
             _editedName = name; RefreshNativeState();
         }
         /// <inheritdoc/>
@@ -95,7 +100,8 @@ namespace Heimdall.Application.Games
                 SelectionEngine.AlternativeId, SelectionEngine.InputKey, SelectionEngine.Scope);
             var candidate = new WorkspaceState(new(native.Key, _generation), State.Version, native.Open, native.ReadOnly,
                 native.Dirty || native.New || native.Open && !NameEquals(_editedName, native.SavedName), _editedName, selection,
-                _operation?.Kind, _activity?.Kind, Capabilities(native));
+                _operation?.Kind, _activity?.Kind, Capabilities(native))
+            { Recovery = _recovery };
             if (candidate != State || _nativeChanged)
             {
                 _state = candidate with { Version = State.Version + 1 }; _nativeChanged = false;
@@ -143,13 +149,21 @@ namespace Heimdall.Application.Games
             var reason = Admission(kind);
             if (reason.Length != 0) return new(WorkspaceOperationOutcome.Blocked, reason);
             var lease = BeginOperation(kind, cancellationToken);
-            try { var result = await action(lease); CompleteOperation(kind, result); return result; }
-            catch (OperationCanceledException) when (lease.Cancellation.IsCancellationRequested)
-            { return new(WorkspaceOperationOutcome.Cancelled, "Operation cancelled; the workspace is retained."); }
-            finally
+            WorkspaceOperationResult? result = null; ExceptionDispatchInfo? failure = null;
+            try { result = await action(lease); }
+            catch (Exception error) { failure = ExceptionDispatchInfo.Capture(error); }
+            // Owner-thread contract: callers start on the owner (the WPF dispatcher in production), whose SynchronizationContext
+            // normally resumes here. If a caller lacked that context, completion is finished centrally on the owner so the
+            // operation is never stranded and a durable result is never hidden; the access checks themselves are unchanged.
+            if (_scheduler.CheckAccess()) return FinishOperation(kind, lease, result, failure);
+            Trace.TraceWarning("Workspace {0} operation resumed off the owner thread; completing on the owner.", kind);
+            var finished = new TaskCompletionSource<WorkspaceOperationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _scheduler.Post(() =>
             {
-                EndOperation();
-            }
+                try { finished.SetResult(FinishOperation(kind, lease, result, failure)); }
+                catch (Exception error) { finished.SetException(error); }
+            });
+            return await finished.Task;
         }
         /// <inheritdoc/>
         public WorkspaceAvailability TryStartActivity(WorkspaceActivityKind kind, out IWorkspaceActivityLease? lease)
@@ -162,7 +176,7 @@ namespace Heimdall.Application.Games
             if (_operation is not null || _activity is not null && !replacesScan) return new(false, "Finish the current operation or input activity first.");
             // A running scan suppresses UI capabilities; replacement must still satisfy the fresh native scan policy.
             var eligible = replacesScan ? ReadNativeFacts().Capabilities.Scan : kind switch
-                { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
+            { WorkspaceActivityKind.Scan => State.Capabilities.Scan, WorkspaceActivityKind.Identify => State.Capabilities.Identify, _ => State.Capabilities.Test };
             if (!eligible.Enabled) return string.IsNullOrEmpty(eligible.Reason) ? eligible with { Reason = "This activity is unavailable." } : eligible;
             var previous = _activity;
             _activity = new(State.Identity, kind, ActivityReleased); lease = _activity;
@@ -224,38 +238,61 @@ namespace Heimdall.Application.Games
             try
             {
                 using var refresh = DeferRefresh();
-                replace(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset();
-                _editedName = ReadNativeFacts().SavedName; _fingerprint = CaptureNativeFingerprint();
+                replace(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset(); _recovery = "";
+                _editedName = ReadNativeFacts().SavedName; _fingerprint = CaptureNativeFingerprint(); _contentVersion++;
                 RefreshNativeState();
             }
             finally { if (ownsOperation) EndOperation(); }
         }
+        /// <summary>Typed hook: a committed save could not be installed, so native objects that do not consult
+        /// <see cref="WorkspaceState.Recovery"/> must refuse further mutation until the session is replaced.</summary>
+        protected virtual void SealStaleNative() { }
         /// <summary>Coalesces actual native content changes, including changes while a draft was already dirty.</summary>
         protected void NativeStateChanged()
         {
             if (_disposed) return;
             var fingerprint = CaptureNativeFingerprint();
-            _nativeChanged |= _fingerprint != fingerprint; _fingerprint = fingerprint;
+            if (_fingerprint != fingerprint) { _nativeChanged = true; _contentVersion++; }
+            _fingerprint = fingerprint;
             RefreshNativeState();
         }
         /// <summary>Invalidates reviewed targets after restoring a native baseline.</summary>
         protected void InvalidateNativeScope()
         {
-            VerifyAlive(); _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset(); RefreshNativeState();
+            VerifyAlive(); _generation = Interlocked.Increment(ref _epochs); _contentVersion++; SelectionEngine.Reset(); RefreshNativeState();
         }
         #region BEGIN private helpers
         private void CompleteOperation(WorkspaceOperationKind kind, WorkspaceOperationResult result)
         {
+            // A durable write whose native baseline could not be installed leaves a stale session: hold it until reopened.
+            if (result.RecoveryRequired && !_disposed)
+            {
+                _recovery = result.Message.Length > 0 ? result.Message
+                    : "The profile was saved, but the saved version could not be shown. Reopen it before editing, saving or exporting.";
+                SealStaleNative();
+            }
             if (result.Outcome != WorkspaceOperationOutcome.Applied || _disposed) return;
             if (kind == WorkspaceOperationKind.Save && result.Committed) _editedName = ReadNativeFacts().SavedName;
             if (kind != WorkspaceOperationKind.Discard) return;
-            _editedName = ReadNativeFacts().SavedName; _generation = Interlocked.Increment(ref _epochs); SelectionEngine.Reset();
+            _editedName = ReadNativeFacts().SavedName; _generation = Interlocked.Increment(ref _epochs); _contentVersion++; SelectionEngine.Reset();
+        }
+        private WorkspaceOperationResult FinishOperation(WorkspaceOperationKind kind, WorkspaceOperationLease lease, WorkspaceOperationResult? result, ExceptionDispatchInfo? failure)
+        {
+            _scheduler.VerifyAccess();
+            try
+            {
+                if (failure is null) { CompleteOperation(kind, result!); return result!; }
+                if (failure.SourceException is OperationCanceledException && lease.Cancellation.IsCancellationRequested)
+                    return new(WorkspaceOperationOutcome.Cancelled, "Operation cancelled; the workspace is retained.");
+                failure.Throw(); throw failure.SourceException;
+            }
+            finally { EndOperation(); }
         }
         private WorkspaceOperationLease BeginOperation(WorkspaceOperationKind kind, CancellationToken token)
         {
             RefreshNativeState();
             _operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _operation = new(State.Identity, kind, _operationCancellation.Token);
+            _operation = new(State.Identity, kind, _scheduler, _operationCancellation.Token);
             try
             {
                 RefreshNativeState();
@@ -284,6 +321,7 @@ namespace Heimdall.Application.Games
         private WorkspaceCapabilities Capabilities(NativeWorkspaceFacts native)
         {
             if (_operation is not null) return Unavailable("Finish the current workspace operation.");
+            if (_recovery.Length != 0) return Unavailable(_recovery);
             if (_activity is not null) return Unavailable("Stop the current input activity first.");
             var no = new WorkspaceAvailability(false, native.ReadOnlyReason.Length == 0 ? "This workspace is read-only." : native.ReadOnlyReason);
             return native.ReadOnly ? native.Capabilities with { Save = no, Edit = no, Link = no } : native.Capabilities;
@@ -294,7 +332,9 @@ namespace Heimdall.Application.Games
             if (_operation is not null || _publishing) return "Another workspace operation is still running.";
             if (_activity?.Kind == WorkspaceActivityKind.Scan) return "Finish controller scanning before continuing.";
             var native = ReadNativeFacts();
+            // Import/replace install a fresh session (the reopen path); everything else would act on the stale session.
             if (kind is WorkspaceOperationKind.Import or WorkspaceOperationKind.Replace) return "";
+            if (_recovery.Length != 0) return _recovery;
             if (!native.Open) return "Open a workspace before continuing.";
             var eligibility = kind switch
             {
@@ -313,6 +353,10 @@ namespace Heimdall.Application.Games
         {
             VerifyAlive();
             if (_operation is not null) throw new InvalidOperationException("Finish the current workspace operation first.");
+        }
+        private void RequireCurrent()
+        {
+            if (_recovery.Length != 0) throw new InvalidOperationException(_recovery);
         }
         private void SelectionChanged(object? sender, EventArgs e)
         {

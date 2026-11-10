@@ -5,6 +5,7 @@ namespace Heimdall.Application.Games
     /// <summary>Validates the generic saved envelope and isolates mutable transfer objects.</summary>
     public static class GameWorkspaceContract
     {
+        [ThreadStatic] private static long t_serializations;
         #region BEGIN Public
         /// <summary>Rejects malformed persistence envelopes before they reach authoring.</summary>
         public static void Validate(GameWorkspace workspace)
@@ -18,7 +19,15 @@ namespace Heimdall.Application.Games
         }
         /// <summary>Creates an independent snapshot, including JSON-valued native extensions.</summary>
         public static GameWorkspace Clone(GameWorkspace workspace) =>
-            JsonSerializer.Deserialize<GameWorkspace>(JsonSerializer.Serialize(workspace))!;
+            JsonSerializer.Deserialize<GameWorkspace>(Serialize(workspace))!;
+        /// <summary>Serializes a workspace document (the canonical content form used for clones and dirty equality).</summary>
+        public static string Serialize(GameWorkspace? workspace)
+        {
+            t_serializations++;
+            return JsonSerializer.Serialize(workspace);
+        }
+        /// <summary>Gets the number of whole-workspace serializations on the calling thread; a deterministic work counter for regression tests.</summary>
+        public static long ThreadSerializations => t_serializations;
         /// <summary>Validates supported recent choices without accepting arbitrary backend metadata.</summary>
         public static void ValidateSelection(GameSelectionState selection)
         {

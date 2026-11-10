@@ -13,6 +13,10 @@ namespace Heimdall.App.Games.Dcs
         private readonly Dictionary<string, string> _labels = new(StringComparer.Ordinal);
         private bool _structureDirty;
         private bool _disposed;
+        private IDisposable? _saveLock;
+        private IDisposable? _staleLock;
+        private bool _stale;
+        private (DcsEditorWorkspaceSnapshot Candidate, DcsDraftAssignmentService Draft)? _preparedBaseline;
         internal IGameWorkspaceContext? Context { get; set; }
 
         internal DcsWorkspaceSession(DcsModuleWorkspaceViewModel viewModel, IDcsEditorWorkspaceRepository? repository,
@@ -88,38 +92,67 @@ namespace Heimdall.App.Games.Dcs
             catch (Exception error) { RaiseStatus(error.Message); return new(WorkspaceOperationOutcome.Blocked, error.Message); }
         }
 
-        internal async Task SaveAsync(IWorkspaceOperationLease lease)
+        /// <summary>Native save hook 1: suspends draft editing and builds the edition-checked, pinned and validated candidate.</summary>
+        internal DcsEditorWorkspaceSnapshot PrepareSave()
         {
-            if (Context?.State.Operation != WorkspaceOperationKind.Save || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            if (Context?.State.Operation != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
             if (Repository is null || Saved is null || Draft is null)
                 throw new InvalidOperationException("Open a writable DCS workspace before saving.");
+            IDisposable? editingLock = Draft.SuspendEditing();
             try
             {
-                using var editingLock = Draft.SuspendEditing();
                 RaiseStateChanged();
                 var updated = EditSnapshot();
                 if (Context.State.EditedName != Saved.Configuration.Module.DisplayName)
                 {
                     var native = updated.Configuration;
-                    updated = updated with { Configuration = new DcsModuleConfiguration(
+                    updated = updated with
+                    {
+                        Configuration = new DcsModuleConfiguration(
                         new DcsModule(native.Module.Id, native.Module.DcsId, Context.State.EditedName),
-                        native.Profiles, native.Modifiers, native.Bindings, native.Provenance) };
+                        native.Profiles, native.Modifiers, native.Bindings, native.Provenance)
+                    };
                 }
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 updated = DcsPinnedUiLayerProfileRecovery.Restore(updated);
                 EditionAccess.RequireWorkspace(updated, DeviceDiscovery, Training);
                 DcsSnapshotLuaPayloadRenderer.ValidateUiLayerProfiles(updated);
                 DcsModuleIntegrationImport.Instructions(updated);
-                await Repository.SaveAsync(updated);
-                Saved = updated; Working = updated; _structureDirty = false;
-                RebuildDraft(updated);
+                // Fallible native baseline construction happens before the durable write; acceptance only installs it.
+                _preparedBaseline = (updated, DcsSavedWorkspaceDraft.Create(updated));
+                _saveLock = editingLock; editingLock = null;
+                return updated;
             }
+            catch (Exception error) { RaiseStatus("Database save failed: " + error.Message); RaiseStateChanged(); throw; }
+            finally { editingLock?.Dispose(); }
+        }
+        /// <summary>Native save hook 2: the one repository write, with draft editing still suspended.</summary>
+        internal async Task PersistAsync(DcsEditorWorkspaceSnapshot candidate, IWorkspaceOperationLease lease)
+        {
+            if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            try { await Repository!.SaveAsync(candidate); }
             catch (Exception error)
             {
-                RaiseStatus("Database save failed: " + error.Message);
-                throw;
+                await lease.ResumeOnOwnerAsync();
+                _preparedBaseline = null; RaiseStatus("Database save failed: " + error.Message); throw;
             }
-            finally { RaiseStateChanged(); }
+            finally
+            {
+                await lease.ResumeOnOwnerAsync();
+                // Successful persistence returns its durable receipt before any fallible native notification.
+                // AcceptSaved publishes inside the shared post-commit recovery boundary.
+                ReleaseSaveLock();
+            }
+        }
+        /// <summary>Native save hook 3: installs the durable snapshot as saved, working and draft baseline.</summary>
+        internal void AcceptSaved(DcsEditorWorkspaceSnapshot persisted, IWorkspaceOperationLease lease)
+        {
+            if (Context is null || !Context.OwnsOperation(lease) || lease.Kind != WorkspaceOperationKind.Save) throw new InvalidOperationException("Save through the workspace context.");
+            var prepared = _preparedBaseline; _preparedBaseline = null;
+            Saved = persisted; Working = persisted; _structureDirty = false;
+            if (prepared is { } baseline && ReferenceEquals(baseline.Candidate, persisted)) SetDraft(baseline.Draft);
+            else RebuildDraft(persisted);
+            RaiseStateChanged();
         }
 
         internal void Discard(IWorkspaceOperationLease lease)
@@ -134,6 +167,14 @@ namespace Heimdall.App.Games.Dcs
             RaiseStateChanged();
         }
 
+        /// <summary>Seals this stale session after a committed save it could not install: the retained draft and
+        /// every native edit route refuse mutation until the window is closed or the workspace reopened.</summary>
+        internal void SealStale()
+        {
+            if (_stale) return;
+            _stale = true; _staleLock = Draft?.SuspendEditing();
+        }
+
         internal void RaiseStatus(string message) => StatusChanged?.Invoke(this, message);
         internal void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
 
@@ -142,15 +183,17 @@ namespace Heimdall.App.Games.Dcs
         {
             if (_disposed) return;
             _disposed = true;
-            SetDraft(null);
+            ReleaseSaveLock(); _staleLock?.Dispose(); _staleLock = null; SetDraft(null);
             StateChanged = null; StatusChanged = null;
         }
         #endregion END Public
 
         #region BEGIN private helpers
+        private void ReleaseSaveLock() { var held = _saveLock; _saveLock = null; held?.Dispose(); }
         private void RequireEditable()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_stale) throw new InvalidOperationException(Context?.State.Recovery is { Length: > 0 } reason ? reason : "Reopen this workspace before editing.");
             if (Context?.State.Operation is not (null or WorkspaceOperationKind.NativeEdit or WorkspaceOperationKind.Discard))
                 throw new InvalidOperationException("Finish the current workspace operation before editing.");
             if (Context?.State.Activity is not null) throw new InvalidOperationException("Stop input activity before editing.");
@@ -159,16 +202,17 @@ namespace Heimdall.App.Games.Dcs
         private DcsEditorWorkspaceSnapshot EditSnapshot()
         {
             var workspace = Working ?? Saved ?? throw new InvalidOperationException("Open a saved module to manage devices and modifiers.");
-            return workspace with { Assignments = Draft?.Snapshot ?? workspace.Assignments,
-                Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal) };
+            return workspace with
+            {
+                Assignments = Draft?.Snapshot ?? workspace.Assignments,
+                Labels = new Dictionary<string, string>(_labels, StringComparer.Ordinal)
+            };
         }
 
         private void RebuildDraft(DcsEditorWorkspaceSnapshot workspace)
         {
-            var commands = workspace.ModuleCommands.Select(command => new DcsDraftCommand(command.Id, command.Name, command.IsAxis, AssignmentLayer.Module))
-                .Concat(workspace.UiCommands.Select(command => new DcsDraftCommand(command.DcsCommandId, command.Name, command.IsAxis, AssignmentLayer.UiLayer)));
-            SetDraft(new DcsDraftAssignmentService(workspace.Configuration, commands, workspace.Assignments,
-                DcsWorkspaceStructureEditor.UiModifierNames(workspace)));
+            // The same native catalog the open path validated: module bindings, stored catalogs and assigned module commands.
+            SetDraft(DcsSavedWorkspaceDraft.Create(workspace));
         }
 
         private void SetDraft(DcsDraftAssignmentService? draft)

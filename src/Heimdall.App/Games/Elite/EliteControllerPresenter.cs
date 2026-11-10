@@ -72,7 +72,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is null || Device is null) return;
             var detected = activity.Single();
             var identity = _session.Snapshot.Profile.Devices.Single(x => x.LogicalId == Device.Id).Identity!;
-            var matches = _services.DeviceReferences.Matches(identity, detected.Key);
+            var matches = context.Elite.DeviceReferences.Matches(identity, detected.Key);
             _devicesView.IdentificationStatus.Text = detected.Key.Name + " · " + detected.Value + Environment.NewLine + detected.Key.PhysicalGuid +
                 Environment.NewLine + (matches ? "Matches selected ED reference: " : "Does not match selected ED reference: ") + Device.Name;
             if (!matches) return;
@@ -117,7 +117,7 @@ namespace Heimdall.App.Games.Elite
             var alreadyLinked = connected && document is not null && document.Hardware.Values.Any(x => x.Device.PhysicalGuid == selected!.PhysicalGuid);
             var candidate = _identifiedController;
             var confirm = pin is null && document is not null && reference is not null && physical && EditionAccess.Policy.HasPremium && candidate is not null && eligible.Count(x => x.PhysicalGuid == candidate.PhysicalGuid && x.ProductGuid == candidate.ProductGuid) == 1
-                && _services.DeviceReferences.Matches(reference!.Identity!, candidate)
+                && context.Elite.DeviceReferences.Matches(reference!.Identity!, candidate)
                 && !document!.Hardware.Any(x => x.Key != reference.LogicalId && x.Value.Device.PhysicalGuid == candidate.PhysicalGuid)
                 && (pin is null || pin.Device.PhysicalGuid == candidate.PhysicalGuid || !GameInputReadiness.Ready(pin, observed))
                 && (eligible.Count(x => x.ProductGuid == candidate.ProductGuid) == 1 || reference.Identity!.SimSpecificIds.ContainsKey("ed.deviceIndex"));
@@ -168,7 +168,7 @@ namespace Heimdall.App.Games.Elite
         internal void AddControllerClicked(object sender, RoutedEventArgs e) => Run(() =>
         {
             UpdateControllerAvailability(); if (!_controllerActions.Add) return;
-            if (Device is not null && _session?.Snapshot.Hardware.ContainsKey(Device.Id) == true)
+            if (Device is not null && _session?.HardwarePin(Device.Id) is not null)
             {
                 DevicePicker.SelectedIndex = -1;
                 _devicesView.ConnectedPicker.SelectedItem = null;
@@ -291,7 +291,7 @@ namespace Heimdall.App.Games.Elite
             UpdateAvailability();
             if (!canStart()) throw new InvalidOperationException("Choose one linked connected controller and stop any current test before starting.");
             _identification.Stop();
-            if (_session is null || Device is null || !_session.Snapshot.Hardware.TryGetValue(Device.Id, out var pin))
+            if (_session is null || Device is null || _session.HardwarePin(Device.Id) is not { } pin)
                 throw new InvalidOperationException("On Devices, select this reference and use Identify Controller to discover and confirm its physical controller first.");
             _input.Start(pin, _services.Discover());
         });
@@ -319,7 +319,7 @@ namespace Heimdall.App.Games.Elite
             if (_session is null || !owner.IsActive || _busy) return;
             Run(() =>
             {
-                var pin = Device is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(Device.Id);
+                var pin = Device is null ? null : _session.HardwarePin(Device.Id);
                 var ready = EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
                 if (ready != _lastReady) UpdateAvailability();
                 else if (context.Feature == 0) UpdateControllerAvailability();
@@ -352,7 +352,7 @@ namespace Heimdall.App.Games.Elite
         {
             StopLiveInput();
             if (_session is null) return;
-            var current = logicalId is null ? null : _session.Snapshot.Hardware.GetValueOrDefault(logicalId);
+            var current = logicalId is null ? null : _session.HardwarePin(logicalId);
             var drawing = current is null ? GameControllerDrawings.Suggest(_hardware.Where(x => EditionAccess.Policy.AllowsHardware(x.DeviceId)), connected) : current.HardwareId;
             var id = _session.ConnectController(connected.PhysicalGuid, drawing, logicalId);
             _devicesView.ReferenceChoiceTools.Visibility = _devicesView.DrawingTools.Visibility = Visibility.Collapsed;

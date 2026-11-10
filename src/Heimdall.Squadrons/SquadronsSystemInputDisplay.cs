@@ -37,6 +37,7 @@ namespace Heimdall.Squadrons
             [220] = "Right Windows", [221] = "Menu"
         };
 
+        #region BEGIN Public
         /// <summary>Formats one native system record; unrecognized codes retain their original values.</summary>
         public static string Describe(SquadronsBindingRow row)
         {
@@ -54,6 +55,9 @@ namespace Heimdall.Squadrons
             };
         }
 
+        #endregion END Public
+
+        #region BEGIN private helpers
         private static string Mouse(int axis, int button)
         {
             var direction = axis switch
@@ -95,5 +99,6 @@ namespace Heimdall.Squadrons
             };
             return "Gamepad · " + control;
         }
+        #endregion END private helpers
     }
 }
