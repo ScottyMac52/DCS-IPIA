@@ -45,7 +45,7 @@
 </StackPanel></GroupBox>
                     <TextBlock Text="Adopted hardware inventory" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="InventoryUnits" DisplayMemberPath="Title" Margin="0,4,0,8" Style="{StaticResource AppComboBox}"/>
-                    <Button Content="Add inventory unit with generic controls" Click="AddInventoryClicked" Padding="8,4" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
+                    <Button x:Name="AddInventoryUnitButton" Content="Add selected inventory unit" ToolTip="Adds this adopted physical controller with its native filename and generic controls. A drawing can be linked afterward." Click="AddInventoryClicked" Padding="8,4" Margin="0,0,0,10" Style="{StaticResource ActionButton}"/>
                     <GroupBox Header="Hardware drawing" Style="{StaticResource DeviceSetupSection}"><StackPanel>
 <Button x:Name="UnlinkDrawingButton" Content="Unlink drawing" Click="UnlinkDrawingClicked" Style="{StaticResource ActionButton}"/>
                     <Button x:Name="UseRetainedDrawingButton" Content="Link retained drawing" Click="UseRetainedDrawingClicked" Style="{StaticResource ActionButton}"/>
@@ -57,7 +57,7 @@
                     <TextBlock Text="Shared hardware" Style="{StaticResource AppLabel}"/>
                     <ComboBox x:Name="ManagedHardware" DisplayMemberPath="Title" Margin="0,4,0,10" Style="{StaticResource AppComboBox}"/>
 </StackPanel></GroupBox>
-                    <Expander Header="DCS device settings" Margin="0,8,0,0"><StackPanel>
+                    <Expander x:Name="DeviceSettings" Header="DCS device settings" Margin="0,8,0,0"><StackPanel>
                     <TextBlock Text="Native DCS filename" Style="{StaticResource AppLabel}"/>
                     <TextBox x:Name="ManagedFileName" Margin="0,4,0,10" Style="{StaticResource AppTextBox}"/>
                     <TextBlock Text="Instance (optional)" Style="{StaticResource AppLabel}"/>
@@ -89,7 +89,7 @@
                             <Button Content="Update" Click="UpdateDeviceClicked" Style="{StaticResource ActionButton}"/>
                             <Button Content="Remove" Click="RemoveDeviceClicked" Style="{StaticResource ActionButton}"/>
                             <Button Content="Clear assignments" Click="ClearDeviceAssignmentsClicked" Style="{StaticResource ActionButton}"/>
-                            <Button Content="Add" Click="AddDeviceClicked" Style="{StaticResource ActionButton}"/>
+                            <Button x:Name="AddSharedHardwareButton" Content="Add shared hardware" Click="AddDeviceClicked" Style="{StaticResource ActionButton}"/>
                             <Button Content="Rebind physical unit…" Click="RebindDeviceClicked" Style="{StaticResource ActionButton}"/>
                         </pres:ActionBar>
                         <TextBlock x:Name="StatusMessage" TextWrapping="Wrap" Margin="0,12,0,0" Style="{StaticResource AppLabel}"/>
@@ -100,3 +100,4 @@
         </pres:DeviceDetailsLayout>
     </Grid>
 </UserControl>
+

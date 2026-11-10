@@ -45,6 +45,20 @@ namespace Heimdall.App.Features.Devices
         #endregion END Public
 
         #region BEGIN private helpers
+        private bool StageEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)
+        {
+            var result = _context!.RunStructureEdit(edit);
+            if (result.Outcome == WorkspaceOperationOutcome.Applied) return true;
+            StatusMessage.Text = result.Message;
+            return false;
+        }
+
+        private void SelectDevice(string fileName)
+        {
+            ManagedDevices.SelectedItem = ManagedDevices.Items.Cast<DcsWorkspaceDevice>()
+                .FirstOrDefault(x => string.Equals(x.FileName, fileName.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
         private void ScopeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_context is null || DevicesScope.SelectedIndex < 0) return;
@@ -156,18 +170,18 @@ namespace Heimdall.App.Features.Devices
         private void UnlinkPhysicalClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UnlinkPhysicalButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.UnlinkPhysicalDevice(workspace, device))) return;
             StatusMessage.Text = "Physical controller unlinked in both scopes. Assignments and drawing retained. Link a unit before exporting to DCS.";
         }
         private void UnlinkDrawingClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UnlinkDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, false));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, false))) return;
         }
         private void UseRetainedDrawingClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || !UseRetainedDrawingButton.IsEnabled || ManagedDevices.SelectedItem is not DcsWorkspaceDevice device) return;
-            _context.RunStructureEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, true));
+            if (!StageEdit(workspace => DcsWorkspaceStructureEditor.SetDrawingLinked(workspace, device.ProfileId, true))) return;
         }
         private void UpdateDeviceClicked(object sender, RoutedEventArgs e)
         {
@@ -177,7 +191,7 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.UpdateDevice(
                     workspace,
                     device,
@@ -193,7 +207,7 @@ namespace Heimdall.App.Features.Devices
                     },
                     null,
                     _layer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null))) return;
 
             StatusMessage.Text = "Change staged. Save to database to keep it, or Discard draft.";
         }
@@ -207,8 +221,8 @@ namespace Heimdall.App.Features.Devices
             }
 
             var before = ManagedDevices.Items.Count;
-            _context.RunStructureEdit(workspace =>
-                DcsWorkspaceStructureEditor.RemoveDevice(workspace, device));
+            if (!StageEdit(workspace =>
+                DcsWorkspaceStructureEditor.RemoveDevice(workspace, device))) return;
 
             if (ManagedDevices.Items.Count < before)
                 StatusMessage.Text = "Device removal staged. Save to database to keep it, or Discard draft.";
@@ -223,8 +237,8 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
-                DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, device));
+            if (!StageEdit(workspace =>
+                DcsWorkspaceStructureEditor.ClearDeviceAssignments(workspace, device))) return;
 
             StatusMessage.Text = "Assignments cleared and staged. Save to database to keep it, or Discard draft.";
         }
@@ -251,32 +265,39 @@ namespace Heimdall.App.Features.Devices
         private void NewDeviceClicked(object sender, RoutedEventArgs e)
         {
             ManagedDevices.SelectedItem = null;
+            DeviceSettings.IsExpanded = true;
             ManagedFileName.Text = "";
             ManagedInstance.Text = "";
             ManagedRole.Text = "";
             ManagedHardware.SelectedIndex = -1;
-            StatusMessage.Text = "Enter filename, instance, role and select hardware, then Add.";
+            StatusMessage.Text = "Select shared hardware and enter its native DCS filename below, then Add shared hardware. To use an adopted unit, use Add selected inventory unit above.";
         }
 
         private void AddDeviceClicked(object sender, RoutedEventArgs e)
         {
             if (_context is null || ManagedHardware.SelectedItem is not WorkspaceHardware hardware)
             {
-                StatusMessage.Text = "Select shared hardware before adding.";
+                StatusMessage.Text = "Select shared hardware and enter a native DCS filename, or use Add selected inventory unit above.";
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
+            var fileName = ManagedFileName.Text;
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.AddDevice(
                     workspace,
                     hardware,
                     _layer,
-                    ManagedFileName.Text,
+                    fileName,
                     ManagedInstance.Text,
                     ManagedRole.Text,
                     _layer == AssignmentLayer.Module ? ManagedKneeboardTitle.Text : null,
-                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null));
+                    _layer == AssignmentLayer.Module ? ManagedKneeboardSubtitle.Text : null)))
+            {
+                DeviceSettings.IsExpanded = true;
+                return;
+            }
 
+            SelectDevice(fileName);
             StatusMessage.Text = "Device added and staged. Save to database to keep it, or Discard draft.";
         }
 
@@ -287,7 +308,7 @@ namespace Heimdall.App.Features.Devices
             {
                 StatusMessage.Text = "Loading committed shared hardware…";
                 var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                _context.RunStructureEdit(workspace =>
+                if (!StageEdit(workspace =>
                 {
                     var sources = new Dictionary<string, string>(workspace.Sources ?? new Dictionary<string, string>(), StringComparer.Ordinal);
                     foreach (var pair in hardware)
@@ -297,7 +318,7 @@ namespace Heimdall.App.Features.Devices
                     var bundled = JsonSerializer.Deserialize<WorkspaceHardware[]>(sources["config/ipia-hardware.json"]) ?? [];
                     sources["config/ipia-hardware.json"] = JsonSerializer.Serialize(bundled.Concat(generic).DistinctBy(x => x.DeviceId).ToArray());
                     return workspace with { Sources = sources };
-                });
+                })) return;
                 StatusMessage.Text = "Shared hardware loaded. Save to database to keep it.";
             }
             catch (Exception ex)
@@ -358,13 +379,13 @@ namespace Heimdall.App.Features.Devices
 
             if (result != MessageBoxResult.Yes) return;
 
-            _context.RunStructureEdit(workspace =>
+            if (!StageEdit(workspace =>
                 DcsWorkspaceStructureEditor.RebindDevice(
                     workspace,
                     device,
                     ManagedFileName.Text,
                     ManagedInstance.Text,
-                    ManagedRole.Text));
+                    ManagedRole.Text))) return;
 
             StatusMessage.Text = "Rebind staged. Save to database to keep it, or Discard draft.";
         }
@@ -403,7 +424,7 @@ namespace Heimdall.App.Features.Devices
                 var removals = DcsModuleAxisDefaults.Review(workspace, device.ProfileId, device.Layer, source);
                 var review = new DcsAxisDefaultsReviewWindow(workspace, device, removals) { Owner = Window.GetWindow(this) };
                 if (review.ShowDialog() != true) return;
-                _context.RunStructureEdit(current => DcsModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source));
+                if (!StageEdit(current => DcsModuleAxisDefaults.Import(current, device.ProfileId, device.Layer, source))) return;
                 StatusMessage.Text = "Axis defaults imported and staged. Save to database to keep them.";
             }
             catch (Exception ex)
@@ -434,9 +455,10 @@ namespace Heimdall.App.Features.Devices
                 return;
             }
 
-            _context.RunStructureEdit(workspace =>
-                DcsInventoryHardwareAuthoring.Add(workspace, choice, _layer));
+            if (!StageEdit(workspace =>
+                DcsInventoryHardwareAuthoring.Add(workspace, choice, _layer))) return;
 
+            SelectDevice(choice.FileName);
             StatusMessage.Text = "Inventory unit added and staged. Save to database to keep it, or Discard draft.";
         }
 
@@ -493,8 +515,8 @@ namespace Heimdall.App.Features.Devices
 
                 if (!confirmed) return;
 
-                _context.RunStructureEdit(workspace =>
-                    DcsUserMappingAdoption.Apply(workspace, device.ProfileId, revision));
+                if (!StageEdit(workspace =>
+                    DcsUserMappingAdoption.Apply(workspace, device.ProfileId, revision))) return;
                 StatusMessage.Text = "Drawing applied and staged. Save to database to keep it, or Discard draft.";
             }
             catch (Exception ex)
@@ -506,3 +528,4 @@ namespace Heimdall.App.Features.Devices
     }
 
 }
+
