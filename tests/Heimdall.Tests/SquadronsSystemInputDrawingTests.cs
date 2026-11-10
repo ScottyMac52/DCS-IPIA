@@ -38,6 +38,30 @@ namespace Heimdall.Tests
             Assert.Equal(frozen, JsonSerializer.Serialize(rows));
             Assert.Null(SquadronsSystemInputDrawings.Create("squadrons.joystick.1", rows));
         }
+        /// <summary>Large keyboard projections enumerate the source once rather than decoding every row once per drawn control.</summary>
+        [Fact]
+        public void System_labels_index_the_native_rows_once_and_preserve_exact_matches()
+        {
+            var rows = Enumerable.Range(0, 600).Select(index => Row(2, 26, index % 2 == 0 ? 30 : 999,
+                "Action " + index, index % 3 == 0 ? "Flight" : "Menus & General")).ToArray();
+            var diagram = SquadronsSystemInputDrawings.Create("system.2", rows)!;
+            var passes = 0;
+            IEnumerable<SquadronsWorkspaceRow> Source()
+            {
+                passes++;
+                foreach (var row in rows) yield return row;
+            }
+            var page = SquadronsSystemInputDrawings.Diagram("Large", diagram, Source(), "system.2", "Flight");
+            Assert.Equal(1, passes);
+            var index = SquadronsSystemInputDrawings.AssignmentsByInput(rows, "system.2", "Flight");
+            foreach (var control in diagram.Controls)
+            {
+                var expected = SquadronsSystemInputDrawings.ForControl(control, rows, "system.2", "Flight");
+                Assert.Equal(expected, index.GetValueOrDefault(control.InputKey) ?? []);
+                Assert.Equal(expected.Select(row => row.CommandName), page.Labels[control.Control].Select(label => label.Text));
+            }
+            Assert.Empty(SquadronsSystemInputDrawings.AssignmentsByInput(rows, "squadrons.joystick.0", "All"));
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static SquadronsWorkspaceRow Row(int type, int axis, int button, string name, string section) =>

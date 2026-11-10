@@ -389,9 +389,8 @@ namespace Heimdall.App.Games.Elite
             DeleteConfigurationButton.IsEnabled = opened && _revision is not null && !_busy;
             ProfileName.IsEnabled = opened && WorkspaceEditable;
             _controllers.UpdateControllerAvailability();
-            var document = _session?.Snapshot;
-            var pin = Device is not null ? document?.Hardware.GetValueOrDefault(Device.Id) : null;
-            var drawing = document is not null && Device is not null ? _context.DrawingFor(document, Device.Id) : null;
+            var pin = Device is not null ? _session?.HardwarePin(Device.Id) : null;
+            var drawing = _session is not null && Device is not null ? _context.CurrentDrawing(Device.Id) : null;
             _devicesView.DrawingStatus.Text = drawing is not null ? "Drawing: " + drawing.Label : pin is null ? "Select a controller in this profile to view its drawing." : "No drawing · assignments table available";
             MoveControllerUpButton.IsEnabled = DevicePicker.SelectedIndex > 0;
             MoveControllerDownButton.IsEnabled = DevicePicker.SelectedIndex >= 0 && DevicePicker.SelectedIndex + 1 < DevicePicker.Items.Count;

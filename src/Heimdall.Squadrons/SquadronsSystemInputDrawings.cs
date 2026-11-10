@@ -23,12 +23,23 @@ namespace Heimdall.Squadrons
         public static KneeboardComposite Diagram(string title, UiLayerDiagram diagram,
             IEnumerable<SquadronsWorkspaceRow> rows, string deviceId, string section)
         {
+            var assignments = AssignmentsByInput(rows, deviceId, section);
             var labels = diagram.Controls.ToDictionary(control => control.Control, control =>
-                (IReadOnlyList<KneeboardLabelVariant>)ForControl(control, rows, deviceId, section)
+                (IReadOnlyList<KneeboardLabelVariant>)(assignments.GetValueOrDefault(control.InputKey) ?? [])
                     .Select(row => new KneeboardLabelVariant(Caption(row), KneeboardStateColors.Base, AssignmentLayer.Module, ""))
                     .Distinct().ToArray(), StringComparer.Ordinal);
             return new KneeboardComposite(title, "Star Wars: Squadrons · " + section + " · read-only", labels,
                 new Dictionary<string, string>(StringComparer.Ordinal), []);
+        }
+        /// <summary>Indexes one controller/context in a single pass, retaining exact unknown input encodings and native row order.</summary>
+        public static IReadOnlyDictionary<string, IReadOnlyList<SquadronsWorkspaceRow>> AssignmentsByInput(
+            IEnumerable<SquadronsWorkspaceRow> rows, string deviceId, string section)
+        {
+            var token = Token(deviceId);
+            if (token is null) return new Dictionary<string, IReadOnlyList<SquadronsWorkspaceRow>>(StringComparer.Ordinal);
+            return rows.Where(row => row.DeviceId == deviceId && (section == "All" || row.Section == section))
+                .GroupBy(row => InputKey(row, token), StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => (IReadOnlyList<SquadronsWorkspaceRow>)Array.AsReadOnly(group.ToArray()), StringComparer.Ordinal);
         }
         /// <summary>Resolves a clicked control to captured system records only.</summary>
         public static IReadOnlyList<SquadronsWorkspaceRow> ForControl(HardwareGraphicControl control,
