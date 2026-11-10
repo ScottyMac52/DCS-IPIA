@@ -88,6 +88,17 @@ namespace Heimdall.App.Games.Dcs
                 new(save, new(opened, "Open a DCS workspace."), edit, new(true, ""), input, input, edit));
         }
         protected override DcsEditorWorkspaceSnapshot? ReadWorking() => _session.Working;
+        protected override bool SelectionReadOnly
+        {
+            get
+            {
+                if (DeviceDiscovery is not InventoryDeviceDiscovery shared || Working is null ||
+                    !Guid.TryParse(State.Selection.ControllerId, out var id)) return false;
+                var membership = DcsWorkspaceStructureEditor.Describe(Working).Devices.FirstOrDefault(x => x.ProfileId == id);
+                var physical = membership is null ? null : membership.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(membership.FileName);
+                return physical is null || !shared.Current.Any(x => x.PhysicalGuid == physical);
+            }
+        }
         protected override DcsEditorWorkspaceSnapshot? ReadSaved() => _session.Saved;
         protected override string CaptureNativeFingerprint() => JsonSerializer.Serialize(new
         {

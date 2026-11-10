@@ -46,11 +46,10 @@ namespace Heimdall.App.Games.Elite
             StopLiveInput(); _assignmentsView.DiagramCanvas.Children.Clear(); _diagram.Regions.Clear(); _assignmentsView.DiagramHint.Visibility = Visibility.Visible;
             UpdateInputActivityVisibility();
             if (_session is null || Device is null) return;
-            var document = _session.Snapshot;
-            var hardware = context.DrawingFor(document, Device.Id);
+            var hardware = context.CurrentDrawing(Device.Id);
             if (hardware is null) { _assignmentsView.DiagramHint.Text = "No drawing selected. Assign commands using native input keys and the assignments table. You can choose an optional drawing on Devices."; return; }
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
-            var page = EliteWorkspaceProjection.Diagram(document.Name, hardware.Diagram, rows, Section);
+            var page = EliteWorkspaceProjection.Diagram(_session.Name, hardware.Diagram, rows, Section);
             _devicesView.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(owner));
             _diagram.Show(hardware.Diagram, page, DiagramInteractions(),
                 AppearanceManager.ArtworkOpacityFor(owner),

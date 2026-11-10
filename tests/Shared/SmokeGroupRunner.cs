@@ -32,6 +32,7 @@ namespace Heimdall.TestSupport
                 failed |= status != "PASS";
                 var line = $"{status,-7} {group} {detail}".TrimEnd();
                 summary.AppendLine(line); report.WriteLine("Smoke group: " + line);
+                if (status is "FAIL" or "BLOCKED") report.WriteLine(File.ReadAllText(Path.Combine(logDirectory, group + ".log")));
             }
             if (only is not null) summary.AppendLine("SUBSET RUN: NOT FULL ACCEPTANCE");
             summary.AppendLine(failed ? "RESULT: FAIL" : "RESULT: PASS");

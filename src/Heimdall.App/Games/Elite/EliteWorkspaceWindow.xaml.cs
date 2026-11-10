@@ -84,13 +84,18 @@ namespace Heimdall.App.Games.Elite
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("Devices", () => _devicesView), new("Assignments", () => _assignmentsView), new("Reference", () => _referenceView)]);
             ConfigureWorkspaceCommands(SaveProfileButton, DiscardProfileButton, SaveState);
+            ConfigureSharedDevices(services.Inventory, () => { _controllers.Rescan(); Refresh(); return Task.CompletedTask; });
             _reordering = new(DevicePicker, (source, target, after) => Run(() => _session?.MoveController(source, target, after)));
             _devicesView.IdentifyControllerButton.Click += _controllers.IdentifyControllerClicked;
             _devicesView.CancelIdentificationButton.Click += _controllers.CancelIdentificationClicked;
             _devicesView.ConfirmIdentificationButton.Click += _controllers.ConfirmIdentificationClicked;
             _devicesView.ConnectedPicker.SelectionChanged += _controllers.ConnectedChanged;
             _devicesView.ReplacementReferencePicker.SelectionChanged += (_, _) => { if (!_refreshing) Run(_controllers.UpdateControllerAvailability); };
-            _devicesView.RescanControllerButton.Click += _controllers.RescanClicked;
+            _devicesView.RescanControllerButton.Click += (sender, args) =>
+            {
+                if (!_devicesView.RescanControllerButton.IsEnabled) return;
+                _controllers.RescanClicked(sender, args); Refresh();
+            };
             _devicesView.AddControllerButton.Click += _controllers.AddControllerClicked;
             _devicesView.ReplaceControllerButton.Click += _controllers.ReplaceControllerClicked;
             _devicesView.RemoveControllerButton.Click += _controllers.RemoveControllerClicked;
@@ -292,7 +297,13 @@ namespace Heimdall.App.Games.Elite
             _browser.Refresh();
             _commands = _browser.AllCommands; _rows = _browser.AllRecords;
             _refreshing = true;
-            var devices = GameControllerOrder.For(document).Select(id => new GameDeviceChoice(id, EliteWorkspaceContext.ControllerName(document, id))).ToArray();
+            var live = _services.CurrentDevices;
+            var devices = GameControllerOrder.For(document).Select(id =>
+            {
+                var info = EliteImportedControllerInfo.Create(document.Profile.Devices.Single(x => x.LogicalId == id),
+                    document.Hardware.GetValueOrDefault(id), _services.Inventory?.Current, live);
+                return new GameDeviceChoice(id, info.Name) { Summary = info.Summary, Details = info.Details };
+            }).ToArray();
             DevicePicker.ItemsSource = devices; var retained = WorkspaceControllerRetention.Choose(devices.Select(x => x.Id).ToArray(), previousDevice, displayedDevice);
             DevicePicker.SelectedItem = devices.FirstOrDefault(x => x.Id == retained);
             _assignmentsView.ModifierDevicePicker.ItemsSource = devices;

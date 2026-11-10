@@ -150,7 +150,7 @@ namespace Heimdall.App.Features.InputTest
                 var plan = DcsGeneratedInputTestPlan.Create(snapshot);
                 var required = plan.Bindings.Select(x => x.PhysicalGuid).Concat(plan.Modifiers.Select(x => x.PhysicalGuid))
                     .Concat(DcsWorkspaceStructureEditor.Describe(snapshot).Devices
-                        .Where(x => x.Layer == AssignmentLayer.Module)
+                        .Where(x => x.Layer == AssignmentLayer.Module && DcsModulePhysicalBindingReview.IsReviewed(snapshot, x))
                         .Select(x => x.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(x.FileName) ?? Guid.Empty))
                     .Where(x => x != Guid.Empty).Distinct().ToArray();
                 var attached = _context!.InputSourceFactory is null ? _context!.DeviceDiscovery.Discover().Where(x => x.Connected).Select(x => x.PhysicalGuid).ToHashSet() : required.ToHashSet();

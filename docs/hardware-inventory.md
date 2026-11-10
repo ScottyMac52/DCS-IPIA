@@ -5,7 +5,18 @@ For the bundled right/left Sol-R grip layouts and AVA configuration, see
 
 **Edition availability:** Free adoption requires verified Thrustmaster HID evidence and a reviewed catalog template for authoring. Previously verified units can remain selected offline. Other brands and generic definitions require licensed access; see [the edition guide](design/free-edition.md).
 
-Use **Hardware → Discover devices… / Rescan** from the main window, without opening a module. Review each unit's native name, physical instance GUID, product GUID, connection status, enumerated controls, unsupported-object explanations and artwork candidates. Select the units you want to adopt, give identical units distinct labels/roles, then choose **Save reviewed inventory**. Newly scanned units are never preselected. **Manage devices…** reopens saved units offline until a successful rescan.
+Open **Devices…** on the game selection screen or in any game workspace. This opens the same profile-owned device manager. The main menu also provides **Devices → Discover devices… / Rescan** and **Manage devices…**. Review the controllers, select those you want to use, give identical units distinct labels/roles, choose **Drawing (all games)**, then **Save reviewed inventory**. New units are never preselected. Saved units remain visible offline until a rescan observes a current connection.
+
+## Use devices across games
+
+- DCS, Elite Dangerous, Squadrons and War Thunder use the same adopted physical inventory. New game links and live testing require a current connection; saved connection history never establishes availability.
+- Choose the preferred artwork once in Devices. New links use that preference automatically, including DCS New Module. Generic controls are an explicit option. Existing game-specific drawing pins remain unchanged until an explicit replacement, so changing the shared default cannot silently rewrite an existing configuration.
+- Game workspaces call their association page **Controllers**. Linking a controller to an imported native game reference remains game-specific; a Windows instance GUID cannot establish Squadrons slot numbers or ED reference indices.
+- Unplugging a controller retains its profiles, assignments, labels and artwork. Its saved configuration remains visible but controller assignment editing is read-only until that adopted physical unit reconnects. System keyboard support retains its existing behavior.
+- Global device names are display labels. Native names, GUID-qualified filenames and game bindings are not renamed.
+- Input testing reports inherited, unreviewed DCS scopes as untested while allowing reviewed module hardware to run. Export still requires physical review of every inherited profile.
+
+The shared drawing preference is an optional field in the existing inventory JSON. No database migration, profile recreation or assignment rewrite is required. Older inventories load without a preferred drawing; choose one in Devices to set the default for future links.
 
 Scanning creates observations only. Cancellation/global failure retains the previous review rows and saved inventory. A device that disconnects during its own enumeration appears with an error and cannot be newly adopted until supported controls are verified. Previously saved units retain their pinned definition and selection. No device is silently removed, renamed by role, rebound to another physical GUID or added to a module. Module device selections and assignments remain independent; adopting inventory into modules and generic assignment/output are implemented in the [generic hardware workflow](generic-hardware.md).
 
@@ -24,7 +35,7 @@ The same `ControllerCapabilityMapper` supplies inventory and live testing:
 
 DirectInput game controllers are the backend scope. DirectInput cannot reliably attest physical versus virtual provenance, so supported virtual controllers use the same explicit-adoption and control-validation policy. Other USB/HID device classes are not scanned by this feature. Existing keyboard authoring/testing support remains available in module editing; controllers are not inferred from keyboard sources.
 
-Bundled artwork recognition combines native-name recognition rules with an exact match against enumerated DCS controls and no unsupported objects. All compatible candidates remain visible; ambiguous candidates do not select artwork. These are hints for later reviewed artwork adoption, not evidence of an attached grip. Personal template GUIDs, modifier buttons and assignments are never imported into inventory. Licensed users can inventory supported unbundled units and use [image-free authoring/rendering](generic-hardware.md).
+Automatic bundled recognition combines native-name rules with exact enumerated control evidence and no unsupported objects. The explicit drawing selector also offers layouts matching all supported keys while retaining unsupported objects as diagnostics; choosing artwork never invents controls or proves an attached grip. Personal template GUIDs, modifier buttons and assignments are never imported into inventory. Licensed users can inventory supported unbundled units and use [image-free authoring/rendering](generic-hardware.md).
 
 ## Persistence, migration and recovery
 

@@ -16,7 +16,7 @@ namespace Heimdall.App.Smoke
     /// <summary>Opens both read-only WPF preview modes on a Windows CI runner.</summary>
     public static class Program
     {
-        private static readonly string[] NavigationHeaders = ["Devices", "Assignments & Testing", "Reference Sheets"];
+        private static readonly string[] NavigationHeaders = ["Controllers", "Assignments & Testing", "Reference Sheets"];
         private static readonly string[] CommandImportButtons = ["LoadCommandJsonButton", "LoadCommandHtmlButton"];
         private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
             "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
@@ -29,6 +29,13 @@ namespace Heimdall.App.Smoke
             // Include exceptions caught by workspace notifications and training in each isolated group's log.
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Error)); Trace.AutoFlush = true;
             // Isolated groups: each runs in a fresh STA process (fail-fast inside the group); the parent aggregates one report.
+            if (args.Length == 6 && args[0] == "--performance-game" && args[2] == "--input" && args[4] == "--output")
+            {
+                CreateHost();
+                try { return ConfigurationPerformanceSmoke.Run(args[1], args[3], args[5]); }
+                catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+                finally { app.Shutdown(); }
+            }
             if (args.Length == 2 && args[0] == "--group") return RunGroup(args[1]);
             var only = args.Length == 2 && args[0] == "--only" ? args[1].Split(',', StringSplitOptions.RemoveEmptyEntries) : null;
             if (args.Length != 0 && only is null) { Console.Error.WriteLine("Usage: Heimdall.App.Smoke [--only group[,group]] | --group <name>"); return 2; }

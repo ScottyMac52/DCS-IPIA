@@ -21,11 +21,7 @@ namespace Heimdall.Application
             }
             var instances = new HashSet<Guid>();
             foreach (var instance in snapshot.Instances)
-                if (instance.PhysicalGuid == Guid.Empty || !instances.Add(instance.PhysicalGuid) || !definitions.Contains(instance.DefinitionId) ||
-                    string.IsNullOrWhiteSpace(instance.Label) || instance.Label.Length > 200 || string.IsNullOrWhiteSpace(instance.NativeName) ||
-                    instance.Role is null || instance.Role.Length > 200 || instance.TemplateCandidates is null ||
-                    instance.TemplateCandidates.Any(string.IsNullOrWhiteSpace))
-                    throw new InvalidDataException("Invalid physical instance or missing definition.");
+                ValidateInstance(instance, definitions, instances);
             var observations = new HashSet<Guid>();
             foreach (var observed in snapshot.Observations)
             {
@@ -55,6 +51,16 @@ namespace Heimdall.Application
         }
         #endregion END Public
         #region BEGIN private helpers
+        private static void ValidateInstance(HardwareInventoryInstance instance, HashSet<string> definitions, HashSet<Guid> instances)
+        {
+            if (instance.PhysicalGuid == Guid.Empty || !instances.Add(instance.PhysicalGuid) || !definitions.Contains(instance.DefinitionId) ||
+                string.IsNullOrWhiteSpace(instance.Label) || instance.Label.Length > 200 || string.IsNullOrWhiteSpace(instance.NativeName) ||
+                instance.Role is null || instance.Role.Length > 200 || instance.TemplateCandidates is null ||
+                instance.TemplateCandidates.Any(string.IsNullOrWhiteSpace) || instance.PreferredHardwareId is { } preferred &&
+                (preferred.Length > 200 || !instance.TemplateCandidates.Contains(preferred, StringComparer.Ordinal)))
+                throw new InvalidDataException("Invalid physical instance or missing definition.");
+        }
+
         private static void ValidateCapabilities(ControllerCapabilities capabilities)
         {
             if (capabilities is null || capabilities.SchemaVersion != 1 || capabilities.Inputs is null || capabilities.Unsupported is null)

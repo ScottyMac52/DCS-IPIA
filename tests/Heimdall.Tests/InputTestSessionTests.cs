@@ -12,6 +12,36 @@ namespace Heimdall.Tests
         private static readonly Guid Stick = Guid.Parse("10000000-0000-0000-0000-000000000001");
         private static readonly Guid Throttle = Guid.Parse("10000000-0000-0000-0000-000000000002");
         #region BEGIN Public
+        /// <summary>Shared live hardware remains testable while inherited UI profiles await physical review for export.</summary>
+        [Fact]
+        public void Unreviewed_ui_profile_does_not_block_reviewed_module_testing_or_get_acquired()
+        {
+            var workspace = Workspace(Stick);
+            var profile = workspace.Configuration.Profiles[0];
+            var viper = new DcsDeviceProfile(Guid.NewGuid(), "test-viper", null, "Viper", $"AVA [R] Viper {{{Throttle:D}}}.diff.lua");
+            var management = new DcsWorkspaceManagement(
+                [new(profile.Id, AssignmentLayer.Module, profile.SourceName, null, null),
+                 new(viper.Id, AssignmentLayer.UiLayer, viper.SourceName, null, null)], []);
+            workspace = workspace with
+            {
+                Configuration = new(workspace.Configuration.Module, [profile, viper], [], [], "Inherited UI fixture"),
+                Diagrams = [.. workspace.Diagrams, workspace.Diagrams[0] with { ProfileId = viper.Id }],
+                Sources = new Dictionary<string, string>(workspace.Sources!)
+                {
+                    ["config/ipia-created-module.json"] = "{}",
+                    [DcsWorkspaceManagement.SourcePath] = System.Text.Json.JsonSerializer.Serialize(management)
+                }
+            };
+            workspace = DcsModulePhysicalBindingReview.Confirm(workspace, profile.Id, Stick);
+            var before = DcsEditorSnapshotSerializer.Serialize(workspace);
+            Assert.Throws<InvalidDataException>(() => DcsSnapshotLuaPayloadRenderer.Generate(workspace));
+            var plan = DcsGeneratedInputTestPlan.Create(workspace);
+            Assert.Equal("KEY", Assert.Single(plan.Bindings).Binding.CommandId);
+            Assert.DoesNotContain(plan.Modifiers, modifier => modifier.PhysicalGuid == Throttle);
+            Assert.Contains(plan.Diagnostics, message => message.Contains("UiLayer mappings not tested", StringComparison.Ordinal));
+            Assert.Equal(before, DcsEditorSnapshotSerializer.Serialize(workspace));
+            Assert.Throws<InvalidDataException>(() => DcsModulePhysicalBindingReview.Validate(workspace));
+        }
         /// <summary>Cross-device Hold chords replace base, with release retaining the pressed command.</summary>
         [Fact]
         public void ResolvesCrossDeviceChordsAndRelease()

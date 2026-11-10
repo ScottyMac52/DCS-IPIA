@@ -2,10 +2,10 @@
 
 **Edition availability:** Free setup accepts verified Thrustmaster units; previously verified units remain usable offline. The generic/unbundled-controller exercises below require Owner access. See [the edition guide](design/free-edition.md).
 
-A fresh profile opens hardware setup after the main window is ready. Setup automatically scans attached controllers using the same capability discovery and inventory review used by **Hardware → Discover devices… / Rescan**. No module is required. New units are unselected until you choose them.
+A fresh profile opens hardware setup after the main window is ready. Setup automatically scans attached controllers using the same capability discovery and inventory review used by **Devices → Discover devices… / Rescan**. No module is required. New units are unselected until you choose them.
 
 1. Review the Saved Games DCS destination. Browse to an existing folder, or leave it empty and explicitly choose offline setup. The wizard never creates destination folders or deploys DCS files.
-2. Select controllers and edit distinct instance labels and roles. Inspect actual buttons, axes and POV controls and any enumeration errors. Unbundled units default to generic support. Compatible bundled mappings are optional preferences; adding a unit to a module still requires an explicit artwork choice and uses its own physical GUID.
+2. Select controllers and edit distinct instance labels and roles. Inspect actual buttons, axes and POV controls and any enumeration errors. Choose a preferred drawing in **Drawing (all games)** or retain generic controls. New game links reuse this choice and the unit's own physical GUID; existing profile drawing pins are preserved.
 3. Confirm neutral/empty defaults for new modules. Existing modules, artwork, assignments and shared-default revisions are preserved. Deliberately copying a shared revision remains available in New Module.
 4. Confirm setup. Inventory adoption, destination and completion commit together. A failed or cancelled confirmation rolls back the whole transaction.
 5. A successful confirmation offers the existing verified full-profile backup tools. Continue with New Module, Import Module or Open Module from the main window.

@@ -20,6 +20,7 @@ namespace Heimdall.App.Games.Elite
         Action<string> Status)
     {
         private readonly List<EliteModifierChoice> _modifiers = [];
+        private ProfileContentCache<int, IReadOnlyDictionary<string, string>?>? _metadata;
         private bool _loadingAssignment;
         private GameAssignmentActions _actions = new(false, false, false, false);
         private GameProfileSession? _session => context.Session;
@@ -63,7 +64,8 @@ namespace Heimdall.App.Games.Elite
             _assignmentsView.ModifierTools.IsExpanded = _modifiers.Count > 0;
             _assignmentsView.ModifiersList.ItemsSource = null; _assignmentsView.ModifiersList.ItemsSource = _modifiers;
             var key = "ed.toggle:" + Command?.Id;
-            var metadata = _session.Snapshot.Profile.Metadata;
+            var metadata = (_metadata ??= new(() => _session, (document, _) =>
+                new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(document.Profile.Metadata))).Get(0, null)!;
             _assignmentsView.CommandToggle.Visibility = metadata.ContainsKey(key) ? Visibility.Visible : Visibility.Collapsed;
             _assignmentsView.CommandToggle.IsChecked = metadata.GetValueOrDefault(key) == "1";
             _loadingAssignment = false; refreshAvailability();
@@ -133,7 +135,7 @@ namespace Heimdall.App.Games.Elite
             var draft = Draft();
             var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
             var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
-            var ready = opened && EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.Discover());
+            var ready = opened && EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.CurrentDevices);
             var deviceNames = DevicePicker.Items.Cast<GameDeviceChoice>().ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);
             var editor = GameAssignmentEditorState.For(_assignmentsView.AssignmentEditor.IsEnabled && Device is not null,
                 review, assigned, ready, context.Testing, _busy,
