@@ -85,6 +85,11 @@ namespace Heimdall.App.Games.Squadrons
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devicesView), new("assignments", () => _assignmentsView)]);
             ConfigureWorkspaceCommands(SaveButton, DiscardButton, SaveState);
+            ConfigureSharedDevices(services.Inventory, async () =>
+            {
+                await _controllers.RefreshControllerInputsAsync();
+                Run(_controllers.RescanControllers);
+            });
             RegisterWorkspaceCleanup(Dispose);
             RescanControllerButton.Click += _controllers.RescanClicked;
             IdentifyControllerButton.Click += _controllers.IdentifyClicked;

@@ -23,7 +23,7 @@ namespace Heimdall.App.Games.WarThunder
         Window owner,
         Func<WarThunderControllerPresenter> controllers,
         Func<WarThunderAssignmentDrawing> drawing,
-        IGameAssignmentBrowser browser)
+        WarThunderAssignmentBrowser browser)
     {
         #region BEGIN Public
         internal Action<AxisTuningWindow>? AxisTuningOpened { get; set; }
@@ -34,7 +34,7 @@ namespace Heimdall.App.Games.WarThunder
             _assignments.Editor.MappedInputs = MappedEditorInputs;
             var selection = context.State.Selection;
             var row = context.Rows.FirstOrDefault(candidate => candidate.RecordId == selection.AlternativeId);
-            var command = selection.CommandId is { } commandId ? context.Session?.Catalog.Find(commandId) : null;
+            var command = selection.CommandId is { } commandId ? browser.AllCommands.FirstOrDefault(item => item.Id == commandId) : null;
             var blocked = context.Selection.InputBlockedReason;
             _assignments.Editor.Show(context.Session, command, row, context.Testing || context.Busy || context.ScanningHardware, context.Selection);
             if (blocked.Length != 0) _assignments.Editor.BlockPhysicalSelection(blocked);

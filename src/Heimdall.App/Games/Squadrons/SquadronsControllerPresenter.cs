@@ -91,7 +91,7 @@ namespace Heimdall.App.Games.Squadrons
             try
             {
                 ControllerLinkPresentation.ShowPhysical(_devicesView.ConnectedPicker, pin?.Device,
-                context.Services.Discover().Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)));
+                context.Services.CurrentDevices.Where(x => x.Connected && EditionAccess.Policy.AllowsDevice(x)));
             }
             finally { context.Refreshing = refreshing; }
             _devicesView.ConnectedPicker.IsEnabled = links.SelectPhysical;
@@ -114,14 +114,14 @@ namespace Heimdall.App.Games.Squadrons
             _devicesView.ClearSlotButton.IsEnabled = ready && !running && context.Rows.Any(x => x.Native.Type == 3 && x.DeviceId == selected);
             _devicesView.LinkStatus.Text = selected is null ? "Select connected hardware to add a controller, or select an existing slot to manage its link." : pin is null ? "Unlinked captured slot" :
                 "Linked: " + pin.Device.Name + "\n" + pin.Device.PhysicalGuid + "\n" +
-                (GameInputReadiness.Ready(pin, context.Services.Discover()) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
+                (GameInputReadiness.Ready(pin, context.Services.CurrentDevices) ? "Connected · exact instance and product" : "Unavailable · disconnected or identity changed. Rescan after reconnecting.");
             if (selected is not null && context.Session is not null)
                 _devicesView.LinkStatus.Text += "\n" + SquadronsWorkspaceProjection.SlotDiagnostic(context.Session.Snapshot.Profile, context.Rows, selected);
             var systemSelection = DevicePicker.SelectedItem is GameDeviceChoice { Id: var systemId }
                 && systemId.StartsWith("system.", StringComparison.Ordinal);
             ControllerSummary.Text = systemSelection ? "Native system assignments · read-only. Codes are shown exactly as captured." :
                 selected is null ? "Select a controller." : pin is null ? "Not linked · open Controller setup." :
-                pin.Device.Name + (GameInputReadiness.Ready(pin, context.Services.Discover()) ? " · Connected" : " · Unavailable");
+                pin.Device.Name + (GameInputReadiness.Ready(pin, context.Services.CurrentDevices) ? " · Connected" : " · Unavailable");
             UpdateInputAvailability();
         }
 
@@ -148,7 +148,9 @@ namespace Heimdall.App.Games.Squadrons
         {
             StopSamplingForReview();
             if (!(_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(owner, change).ShowDialog() == true)) return;
-            context.Session!.ApplyControllerChange(change); refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
+            context.Session!.ApplyControllerChange(change);
+            context.Services.ApplyPreferredDrawing(context.Session, change.ResultDeviceId, context.Drawings);
+            refresh(false); StatusText.Text = "Physical link staged. Native slots and bindings are unchanged. Save to keep this link.";
         }
 
         internal void LinkClicked(object sender, RoutedEventArgs e) => run(() =>
@@ -169,7 +171,11 @@ namespace Heimdall.App.Games.Squadrons
             var result = editing().ExecuteAssignment("", "", "", () =>
                 (_reviewChange?.Invoke(change) ?? new ControllerChangeReviewWindow(owner, change).ShowDialog() == true)
                     ? new(true, true, "") : new(false, false, "Review canceled. No assignments changed."),
-                () => session.ApplyControllerChange(change));
+                () =>
+                {
+                    session.ApplyControllerChange(change);
+                    context.Services.ApplyPreferredDrawing(session, change.ResultDeviceId, context.Drawings);
+                });
             if (result.Outcome != DraftOutcome.Applied) { editing().AssignmentFeedback(result); return; }
             refresh(false);
             if (change.ResultDeviceId is { } id)

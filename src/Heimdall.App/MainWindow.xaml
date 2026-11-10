@@ -18,7 +18,7 @@
         <Separator/>
         <MenuItem Header="E_xit" Command="{x:Static local:MainWindowCommands.Exit}"/>
       </MenuItem>
-      <MenuItem Header="_Hardware">
+      <MenuItem Header="_Devices">
         <MenuItem Header="_Discover devices… / Rescan" Command="{x:Static local:MainWindowCommands.DiscoverHardware}"/>
         <MenuItem Header="_Manage devices…" Command="{x:Static local:MainWindowCommands.ManageHardware}"/>
         <MenuItem Header="_Hardware drawings… / Import draw.io" Command="{x:Static local:MainWindowCommands.UserMappings}"/>

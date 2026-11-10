@@ -8,6 +8,7 @@ namespace Heimdall.Application
     {
         private readonly IHardwareInventoryRepository _repository;
         private readonly IControllerCapabilityDiscovery _discovery;
+        private HardwareInventorySnapshot _current = new(1, [], [], []);
         /// <summary>Creates inventory use cases for the selected profile.</summary>
         /// <param name="repository">Profile-owned persistence.</param>
         /// <param name="discovery">Cancellable current-machine capability adapter.</param>
@@ -17,6 +18,8 @@ namespace Heimdall.Application
             _discovery = discovery;
         }
         #region BEGIN Public
+        /// <summary>Gets the last successfully loaded or committed inventory, independent of live connectivity.</summary>
+        public HardwareInventorySnapshot Current => Volatile.Read(ref _current);
         /// <summary>Reads reviewed inventory without discovery or module changes.</summary>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Validated reusable definitions and physical instances.</returns>
@@ -24,6 +27,7 @@ namespace Heimdall.Application
         {
             var snapshot = await _repository.ReadAsync(ct);
             HardwareInventoryContract.Validate(snapshot);
+            Volatile.Write(ref _current, snapshot);
             return snapshot;
         }
 
@@ -31,13 +35,13 @@ namespace Heimdall.Application
         /// <param name="ct">Read cancellation.</param>
         /// <returns>Review rows.</returns>
         public async Task<IReadOnlyList<HardwareInventoryCandidate>> LoadAsync(CancellationToken ct = default) =>
-            Merge(await _repository.ReadAsync(ct), []);
+            Merge(await ReadSnapshotAsync(ct), []);
         /// <summary>Observes attached devices without saving, rebinding or removing disconnected units.</summary>
         /// <param name="ct">Scan cancellation.</param>
         /// <returns>Saved units merged by exact physical GUID with current evidence.</returns>
         public async Task<IReadOnlyList<HardwareInventoryCandidate>> ScanAsync(CancellationToken ct = default)
         {
-            var saved = await _repository.ReadAsync(ct);
+            var saved = await ReadSnapshotAsync(ct);
             var observed = await _discovery.DiscoverAsync(ct);
             ct.ThrowIfCancellationRequested();
             return Merge(saved, observed);
@@ -50,6 +54,7 @@ namespace Heimdall.Application
         {
             var snapshot = Prepare(await _repository.ReadAsync(ct), edits);
             await _repository.SaveAsync(snapshot, ct);
+            Volatile.Write(ref _current, snapshot);
             return snapshot;
         }
         /// <summary>Validates and stages the same reviewed adoption for inventory save or transactional setup.</summary>
@@ -88,7 +93,10 @@ namespace Heimdall.Application
                 }
                 instances[candidate.PhysicalGuid] = new(candidate.PhysicalGuid,
                     candidate.Observed?.Device.Name ?? existing!.NativeName, definitionId!, edit.Label.Trim(), edit.Role.Trim(), edit.Selected,
-                    existing is null || (changed && edit.AdoptChangedCapabilities) || (edit.ReviewMapping && !changed) ? edit.TemplateCandidates : existing.TemplateCandidates);
+                    existing is null || (changed && edit.AdoptChangedCapabilities) || (edit.ReviewMapping && !changed) ? edit.TemplateCandidates : existing.TemplateCandidates)
+                {
+                    PreferredHardwareId = PreferredDrawing(edit, changed, existing)
+                };
             }
             var snapshot = new HardwareInventorySnapshot(1, definitions.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToArray(),
                 instances.Values.OrderBy(x => x.PhysicalGuid).ToArray(), observations.Values.OrderBy(x => x.Device.PhysicalGuid).ToArray());
@@ -117,5 +125,13 @@ namespace Heimdall.Application
             }).ToArray();
         }
         #endregion END Public
+        #region BEGIN private helpers
+        private static string? PreferredDrawing(HardwareInventoryEdit edit, bool changed, HardwareInventoryInstance? existing)
+        {
+            if (changed && !edit.AdoptChangedCapabilities) return existing?.PreferredHardwareId;
+            if (edit.ReviewMapping) return edit.TemplateCandidates.Count == 1 ? edit.TemplateCandidates[0] : null;
+            return changed ? null : existing?.PreferredHardwareId;
+        }
+        #endregion END private helpers
     }
 }

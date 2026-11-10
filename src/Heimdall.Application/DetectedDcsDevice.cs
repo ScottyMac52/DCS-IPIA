@@ -10,10 +10,14 @@ namespace Heimdall.Application
         Guid ProductGuid = default)
     {
         #region BEGIN Public
+        /// <summary>Gets a shared user label without changing the native name used by game adapters.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public string? DisplayLabel { get; init; }
         /// <summary>Gets the captured filename or a native GUID-qualified default.</summary>
         public string FileName => CapturedFileName ?? $"{Name} {{{NativeGuid()}}}.diff.lua";
         /// <summary>Gets a physical-instance choice including its connection status.</summary>
-        public string Title => FileName[..^9] + (Connected ? " · Connected" : " · Saved profile");
+        public string Title => (DisplayLabel is { Length: > 0 } label && label != Name ? label + " · " : "") +
+            FileName[..^9] + (Connected ? " · Connected" : " · Saved profile");
         #endregion END Public
         #region BEGIN private helpers
         private string NativeGuid()

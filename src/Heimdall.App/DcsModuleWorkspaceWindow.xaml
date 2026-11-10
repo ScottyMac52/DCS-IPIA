@@ -50,7 +50,7 @@
         SelectionChanged="FeatureNavChanged" AutomationProperties.Name="Module feature tabs">
       <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="10,5"/></Style></ListBox.ItemContainerStyle>
-        <ListBoxItem Content="Devices" Tag="Devices"/>
+        <ListBoxItem Content="Controllers" Tag="Devices"/>
         <ListBoxItem Content="Assignments &amp; Testing" Tag="Assignments"/>
         <ListBoxItem Content="Input Test" Tag="InputTest" Visibility="Collapsed"/>
         <ListBoxItem Content="Reference Sheets" Tag="Kneeboards"/>

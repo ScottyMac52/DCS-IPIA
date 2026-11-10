@@ -4,11 +4,13 @@ using Heimdall.Application.Interfaces;
 namespace Heimdall.App.Smoke
 {
     /// <summary>Provides deterministic repeated controllers to exercise the Windows inventory UI.</summary>
-    public sealed class InventorySmokeDiscovery : IControllerCapabilityDiscovery
+    public sealed class InventorySmokeDiscovery : IControllerCapabilityDiscovery, IConnectedDeviceDiscovery
     {
         #region BEGIN Public
         /// <summary>Gets or sets the current scan evidence.</summary>
         public IReadOnlyList<ControllerObservation> Observations { get; set; } = [];
+        /// <inheritdoc/>
+        public IReadOnlyList<DetectedDcsDevice> Discover() => Observations.Select(x => x.Device).ToArray();
         /// <inheritdoc/>
         public Task<IReadOnlyList<ControllerObservation>> DiscoverAsync(CancellationToken ct = default)
         {

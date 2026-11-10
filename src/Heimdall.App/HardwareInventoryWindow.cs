@@ -47,7 +47,7 @@ namespace Heimdall.App
             _destination.Text = destination;
             _scanOnOpen = scanOnOpen;
             _catalog = catalog ?? (ct => Task.Run(() => DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root, ct), ct));
-            Title = setup is null ? "HEIMDALL — User hardware inventory" : "HEIMDALL — Hardware setup";
+            Title = setup is null ? "HEIMDALL — Devices for all games" : "HEIMDALL — Hardware setup";
             if (setup is not null) { _save.Content = "_Confirm setup"; _save.IsDefault = true; }
             Width = 1200; Height = 740; MinWidth = 800; MinHeight = 500;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -93,7 +93,7 @@ namespace Heimdall.App
             RegisterName("HardwareInventorySplitter", splitter);
             Grid.SetRow(splitter, 4); layout.Children.Add(splitter);
             Grid.SetRow(_details, 5); layout.Children.Add(_details);
-            _grid.Columns.Add(new DataGridCheckBoxColumn { Header = "Selected", Binding = new Binding(nameof(HardwareInventoryRow.Selected)) });
+            _grid.Columns.Add(new DataGridCheckBoxColumn { Header = "Use in games", Binding = new Binding(nameof(HardwareInventoryRow.Selected)) });
             Text("Instance label", nameof(HardwareInventoryRow.Label), false);
             Text("Role", nameof(HardwareInventoryRow.Role), false);
             Text("Native name", nameof(HardwareInventoryRow.NativeName));
@@ -101,13 +101,14 @@ namespace Heimdall.App
             Text("Status", nameof(HardwareInventoryRow.Status));
             Text("Controls", nameof(HardwareInventoryRow.Controls));
             Text("Mapping", nameof(HardwareInventoryRow.Mapping));
-            if (setup is not null)
             {
                 var choice = new FrameworkElementFactory(typeof(ComboBox));
-                choice.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(HardwareInventoryRow.MappingChoices)));
-                choice.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty,
+                choice.SetValue(ItemsControl.DisplayMemberPathProperty, "Value");
+                choice.SetValue(System.Windows.Controls.Primitives.Selector.SelectedValuePathProperty, "Key");
+                choice.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(HardwareInventoryRow.MappingOptions)));
+                choice.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedValueProperty,
                     new Binding(nameof(HardwareInventoryRow.MappingChoice)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged, NotifyOnSourceUpdated = true });
-                _grid.Columns.Add(new DataGridTemplateColumn { Header = "Preferred mapping", CellTemplate = new DataTemplate { VisualTree = choice } });
+                _grid.Columns.Add(new DataGridTemplateColumn { Header = "Drawing (all games)", CellTemplate = new DataTemplate { VisualTree = choice } });
             }
             _grid.Columns.Add(new DataGridCheckBoxColumn { Header = "Adopt changed controls", Binding = new Binding(nameof(HardwareInventoryRow.AdoptChangedCapabilities)) });
             _grid.SelectionChanged += (_, _) => _details.Text = (_grid.SelectedItem as HardwareInventoryRow)?.Details ?? "";
@@ -157,7 +158,12 @@ namespace Heimdall.App
         private async Task InitializeAsync()
         {
             Busy(true);
-            try { ShowRows(await _manager.LoadAsync()); _status.Text = "Saved units retained offline. Rescan to observe connections; scans do not adopt devices."; }
+            try
+            {
+                _sources = await _catalog(CancellationToken.None);
+                ShowRows(await _manager.LoadAsync());
+                _status.Text = "Devices and preferred drawings are shared by all games. Saved offline units are retained. Rescan to see current connections.";
+            }
             catch (Exception ex) { _status.Text = "Unable to load inventory: " + ex.Message; }
             finally { Busy(false); }
             if (_scanOnOpen) await ScanAsync();
@@ -222,7 +228,8 @@ namespace Heimdall.App
         }
         private void ShowRows(IReadOnlyList<HardwareInventoryCandidate> rows)
         {
-            _rows = rows.Select(x => new HardwareInventoryRow(x, _sources, _setup is not null)).ToArray();
+            _rows = rows.Select(x => new HardwareInventoryRow(x, _sources, true,
+                _manager.Current.Definitions.FirstOrDefault(d => d.Id == x.Saved?.DefinitionId))).ToArray();
             _grid.ItemsSource = _rows;
             _grid.SelectedIndex = _rows.Length > 0 ? 0 : -1;
         }

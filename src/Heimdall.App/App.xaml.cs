@@ -124,9 +124,11 @@ namespace Heimdall.App
                     .AddSingleton<IDcsEditorWorkspaceRepository>(
                         _ => new DcsSqliteEditorWorkspaceRepository(connectionString))
                     .AddSingleton<IHardwareInventoryRepository>(_ => new SqliteHardwareInventoryRepository(connectionString))
-                    .AddSingleton<IControllerCapabilityDiscovery, WindowsConnectedDeviceDiscovery>()
-                    .AddSingleton<IConnectedDeviceDiscovery, WindowsConnectedDeviceDiscovery>()
+                    .AddSingleton<WindowsConnectedDeviceDiscovery>()
+                    .AddSingleton<IControllerCapabilityDiscovery>(provider => provider.GetRequiredService<WindowsConnectedDeviceDiscovery>())
                     .AddSingleton<HardwareInventoryManager>()
+                    .AddSingleton<IConnectedDeviceDiscovery>(provider => new InventoryDeviceDiscovery(
+                        provider.GetRequiredService<HardwareInventoryManager>(), provider.GetRequiredService<WindowsConnectedDeviceDiscovery>()))
                     .AddSingleton<ISetupRepository>(_ => new SqliteSetupRepository(connectionString))
                     .AddSingleton<SetupManager>()
                     .AddSingleton<IDcsSharedUiLayerWorkspaceRepository>(
@@ -146,6 +148,8 @@ namespace Heimdall.App
                 registrations.AddSingleton<IUserDataProfileService>(new UserDataProfileService(profile, ApplicationVersion.Label));
             }
             _services = registrations.BuildServiceProvider();
+            try { await _services.GetRequiredService<HardwareInventoryManager>().ReadSnapshotAsync(); }
+            catch (Exception error) { ApplicationLog.InventoryFailure(_logger, error); }
             MainWindow = _services.GetRequiredService<MainWindow>();
             MainWindow.Show();
             if (releaseSmoke)

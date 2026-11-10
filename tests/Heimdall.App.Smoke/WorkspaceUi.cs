@@ -19,7 +19,7 @@ namespace Heimdall.App.Smoke
             ["InputTestSnapshotChoice"] = ("InputTest", "InputTestSnapshotChoice", false),
             ["InputTestLogMessage"] = ("InputTest", "InputTestLogMessage", false),
             ["InputTestSplitter"] = ("InputTest", "InputTestSplitter", false),
-                ["AddInventoryButton"] = ("Devices", "Add inventory unit with generic controls", true),
+                ["AddInventoryButton"] = ("Devices", "AddInventoryUnitButton", false),
                 ["UnlinkDrawingButton"] = ("Devices", "Unlink drawing", true),
                 ["AdoptCustomMappingButton"] = ("Devices", "Apply drawing to selected device", true),
                 ["AircraftCommandCategory"] = ("Commands", "CommandCategory", false),

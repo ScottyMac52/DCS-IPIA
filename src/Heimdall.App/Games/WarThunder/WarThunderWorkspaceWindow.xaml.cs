@@ -62,6 +62,11 @@ namespace Heimdall.App.Games.WarThunder
             ConfigureWorkspace(FeatureContent, FeatureActions,
                 [new("devices", () => _devices), new("assignments", () => _assignments), new("references", () => _references)]);
             ConfigureWorkspaceCommands(Save, Discard, SavedState);
+            ConfigureSharedDevices(services.Inventory, async () =>
+            {
+                await _controllers.RefreshHardwareAsync();
+                _controllers.RefreshDevices(); _drawing.ShowDrawing();
+            });
             RegisterWorkspaceCleanup(Dispose);
             WireDevices(); WireAssignments();
             _commandDrag = new(_assignments.Browser.CommandsList, "heimdall.war-thunder.command",

@@ -34,7 +34,8 @@ namespace Heimdall.App.Smoke
                 });
             window.Show(); window.Activate(); ThemeControlSmoke.Pump(window); window.ImportFile(path);
             var picker = Box<ListBox>(window, "DevicePicker");
-            var reference = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Name == "06A30BAC");
+            var referenceId = window.Session!.Snapshot.Profile.Devices.Single(x => x.Identity!.SimSpecificIds["ed.device"] == "06A30BAC").LogicalId;
+            var reference = picker.Items.Cast<GameDeviceChoice>().Single(x => x.Id == referenceId);
             picker.SelectedItem = reference;
             var profile = JsonSerializer.Serialize(window.Session!.Snapshot.Profile);
             Click(window, "ConfirmIdentificationButton");

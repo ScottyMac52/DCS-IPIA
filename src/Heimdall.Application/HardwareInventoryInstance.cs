@@ -9,5 +9,11 @@ namespace Heimdall.Application
     /// <param name="Selected">Whether the user explicitly adopted this unit.</param>
     /// <param name="TemplateCandidates">Compatible artwork hints for this unit's reviewed identity, never automatically selected.</param>
     public sealed record HardwareInventoryInstance(Guid PhysicalGuid, string NativeName, string DefinitionId,
-        string Label, string Role, bool Selected, IReadOnlyList<string> TemplateCandidates);
+        string Label, string Role, bool Selected, IReadOnlyList<string> TemplateCandidates)
+    {
+        #region BEGIN Public
+        /// <summary>Gets the explicitly chosen shared drawing for new game links; null selects generic controls.</summary>
+        public string? PreferredHardwareId { get; init; }
+        #endregion END Public
+    }
 }

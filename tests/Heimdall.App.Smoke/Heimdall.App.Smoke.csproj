@@ -14,5 +14,6 @@
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/Squadrons/Synthetic_profile_synced" Link="Fixtures/Squadrons/Synthetic_profile_synced" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/Squadrons/Fresh_profile_synced" Link="Fixtures/Squadrons/Fresh_profile_synced" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><Content Include="../Heimdall.Tests/Fixtures/WarThunder/Synthetic.blk" Link="Fixtures/WarThunder/Synthetic.blk" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/DcsPerformancePackageInput.cs" Link="DcsPerformancePackageInput.cs" /></ItemGroup>
 </Project>
 

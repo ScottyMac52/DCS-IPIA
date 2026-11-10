@@ -312,7 +312,7 @@ namespace Heimdall.App
             if (dialog.RequiresRestart) System.Windows.Application.Current.Shutdown();
             else if (dialog.ResumeSetupRequested) OpenSetup();
         }
-        private void OpenSetup()
+        private async void OpenSetup()
         {
             if (_setup is null || _hardwareInventory is null || _profileService is null || OwnedWindows.Count > 0 || _moduleOperationBusy) return;
             try
@@ -322,6 +322,9 @@ namespace Heimdall.App
                 _profileService.MarkSetupOffered();
                 dialog.ShowDialog();
                 if (!dialog.SetupConfirmed) return;
+                _moduleOperationBusy = true;
+                try { await _hardwareInventory.ReadSnapshotAsync(); }
+                finally { _moduleOperationBusy = false; }
                 if (_settings is SqliteAppSettingsService sqlite) sqlite.ReloadDestination();
                 UpdateFlyNowControls();
                 if (_recovery is not null && ThemeMessageBox.Show(this,
@@ -518,7 +521,7 @@ namespace Heimdall.App
                 var defaults = await _sharedDefaults.GetAsync() ??
                     await _sharedDefaults.SaveAsync(await DcsSharedUiLayerWorkspaceFactory.CreateAsync());
                 var hardware = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
-                var dialog = new DcsNewModuleWindow(_workspaces, defaults, hardware, inventory: _hardwareInventory,
+                var dialog = new DcsNewModuleWindow(_workspaces, defaults, hardware, discovery: _deviceDiscovery, inventory: _hardwareInventory,
                     logger: new AssemblyLogger<DcsNewModuleWindow>(_loggerFactory)) { Owner = this };
                 if (dialog.ShowDialog() != true || dialog.CreatedWorkspace is not { } saved)
                     return;
@@ -813,7 +816,7 @@ namespace Heimdall.App
         {
             if (_lastViewModel is null)
                 return;
-            var window = new DcsModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, inventory: _hardwareInventory, userMappings: _userMappings,
+            var window = new DcsModuleWorkspaceWindow(_lastViewModel, _settings, _workspaces, deviceDiscovery: _deviceDiscovery, inventory: _hardwareInventory, userMappings: _userMappings,
                 logger: new AssemblyLogger<DcsModuleWorkspaceWindow>(_loggerFactory), allowGameSwitch: _games is not null,
                 moduleChoices: SavedModules.Items.Cast<DcsSavedModuleChoice>().ToArray()) { Owner = this };
             if (_games is not null && _lastViewModel.Workspace is { } workspace)

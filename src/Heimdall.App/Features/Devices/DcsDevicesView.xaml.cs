@@ -33,6 +33,12 @@ namespace Heimdall.App.Features.Devices
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
+            if (context.DeviceDiscovery is InventoryDeviceDiscovery)
+            {
+                AddSharedHardwareButton.Visibility = Visibility.Collapsed;
+                if (ActionBar.FindButton(this, "New") is { } create) create.Visibility = Visibility.Collapsed;
+                if (ActionBar.FindButton(this, "Load built-in hardware") is { } load) load.Visibility = Visibility.Collapsed;
+            }
             _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, Refresh);
             _context.StatusChanged += (_, msg) => StatusMessage.Text = msg;
             DevicesScope.SelectedIndex = 0;
@@ -43,6 +49,13 @@ namespace Heimdall.App.Features.Devices
                 await LoadInventoryChoicesAsync();
                 await LoadUserMappingsAsync();
             });
+        }
+        /// <summary>Refreshes shared connected choices without discarding game-owned edits.</summary>
+        public async Task RefreshSharedDevicesAsync()
+        {
+            await RefreshDetectedDevicesAsync();
+            await LoadInventoryChoicesAsync();
+            Refresh();
         }
         #endregion END Public
 
@@ -441,10 +454,17 @@ namespace Heimdall.App.Features.Devices
             try
             {
                 var choices = DcsInventoryHardwareAuthoring.Choices(await _context.Inventory.ReadSnapshotAsync());
+                if (_context.DeviceDiscovery is InventoryDeviceDiscovery)
+                {
+                    var connected = _context.DeviceDiscovery.Discover().Select(x => x.PhysicalGuid).ToHashSet();
+                    choices = choices.Where(x => connected.Contains(x.Instance.PhysicalGuid)).ToArray();
+                }
                 _inventorySources = await DcsModuleWorkspaceLoader.LoadHardwareAsync(BundledSharedCatalog.Root);
                 _inventoryHardware = EditionAccess.Hardware(JsonSerializer.Deserialize<WorkspaceHardware[]>(
                     _inventorySources["config/ipia-hardware.json"]) ?? [], EditionAccess.Training(_context)).ToArray();
-                InventoryUnits.ItemsSource = EditionAccess.Policy.HasPremium ? choices : [];
+                InventoryUnits.ItemsSource = choices.Where(choice => EditionAccess.Policy.HasPremium ||
+                    _context.DeviceDiscovery is InventoryDeviceDiscovery && choice.Instance.PreferredHardwareId is { } preferred &&
+                    EditionAccess.Policy.AllowsHardware(preferred)).ToArray();
                 if (InventoryUnits.Items.Count > 0) InventoryUnits.SelectedIndex = 0;
             }
             catch (Exception ex)
@@ -466,6 +486,12 @@ namespace Heimdall.App.Features.Devices
                 StatusMessage.Text = "Choose a drawing for this unit, or explicitly choose generic controls without artwork.";
                 return;
             }
+            if (_context.DeviceDiscovery is InventoryDeviceDiscovery &&
+                !_context.DeviceDiscovery.Discover().Any(x => x.PhysicalGuid == choice.Instance.PhysicalGuid))
+            {
+                StatusMessage.Text = "This controller is offline. Reconnect it before adding it to this game.";
+                return;
+            }
             if (!StageEdit(workspace =>
                 DcsInventoryHardwareAuthoring.Add(PinInventoryHardware(workspace, hardware), choice, _layer, hardware))) return;
 
@@ -479,7 +505,9 @@ namespace Heimdall.App.Features.Devices
             var generic = GenericHardwareLayout.Create(choice.Definition) with { Label = "Generic controls (no artwork)" };
             var drawings = DcsInventoryHardwareAuthoring.Drawings(_inventoryHardware, choice);
             InventoryDrawing.ItemsSource = new[] { generic }.Concat(drawings).ToArray();
-            InventoryDrawing.SelectedIndex = drawings.Count == 0 ? 0 : -1;
+            InventoryDrawing.SelectedItem = choice.Instance.PreferredHardwareId is { } preferred
+                ? InventoryDrawing.Items.Cast<WorkspaceHardware>().FirstOrDefault(x => x.DeviceId == preferred) ?? generic
+                : _context?.DeviceDiscovery is InventoryDeviceDiscovery || drawings.Count == 0 ? generic : null;
         }
 
         private DcsEditorWorkspaceSnapshot PinInventoryHardware(DcsEditorWorkspaceSnapshot workspace, WorkspaceHardware hardware)
@@ -507,12 +535,18 @@ namespace Heimdall.App.Features.Devices
                 var path = hardware.Diagram.Path.Replace("/svg/", "/drawio/", StringComparison.Ordinal);
                 path = Path.ChangeExtension(path, ".drawio").Replace('\\', '/');
                 var source = await BundledSharedCatalog.ReadTextAsync(path);
-                if (_context.ContentVersion != version)
-                    throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
-                if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
-                StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (_context.ContentVersion != version)
+                        throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
+                    if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
+                    StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+                });
             }
-            catch (Exception ex) { StatusMessage.Text = "Artwork was not applied: " + ex.Message; }
+            catch (Exception ex)
+            {
+                await Dispatcher.InvokeAsync(() => StatusMessage.Text = "Artwork was not applied: " + ex.Message);
+            }
         }
 
         private async Task LoadUserMappingsAsync()

@@ -41,6 +41,8 @@ namespace Heimdall.App.Games.Squadrons
         internal bool Identifying => State.Activity == WorkspaceActivityKind.Identify;
         #endregion END Public
         protected override NativeWorkspaceFacts ReadNativeFacts() => ProfileFacts(ProfileCapabilities(EditionAccess.Policy.HasPremium, Session?.CanLinkCapturedDevices == true));
-        protected override bool SelectionReadOnly => AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) == true;
+        protected override bool SelectionReadOnly => AssignmentSource?.StartsWith("system.", StringComparison.Ordinal) == true ||
+            Services.Inventory is not null && State.Selection.ControllerId is { } id &&
+            !GameInputReadiness.Ready(Session?.HardwarePin(id), Services.CurrentDevices);
     }
 }
