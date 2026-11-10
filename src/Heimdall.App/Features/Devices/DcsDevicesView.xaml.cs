@@ -535,12 +535,18 @@ namespace Heimdall.App.Features.Devices
                 var path = hardware.Diagram.Path.Replace("/svg/", "/drawio/", StringComparison.Ordinal);
                 path = Path.ChangeExtension(path, ".drawio").Replace('\\', '/');
                 var source = await BundledSharedCatalog.ReadTextAsync(path);
-                if (_context.ContentVersion != version)
-                    throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
-                if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
-                StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (_context.ContentVersion != version)
+                        throw new InvalidOperationException("The workspace changed while artwork was loading. Select it again.");
+                    if (!StageEdit(workspace => DcsInventoryHardwareAuthoring.ApplyDrawing(workspace, device.ProfileId, choice, hardware, source))) return;
+                    StatusMessage.Text = "Artwork applied. Save to database to keep it. Assignments and physical identity retained.";
+                });
             }
-            catch (Exception ex) { StatusMessage.Text = "Artwork was not applied: " + ex.Message; }
+            catch (Exception ex)
+            {
+                await Dispatcher.InvokeAsync(() => StatusMessage.Text = "Artwork was not applied: " + ex.Message);
+            }
         }
 
         private async Task LoadUserMappingsAsync()

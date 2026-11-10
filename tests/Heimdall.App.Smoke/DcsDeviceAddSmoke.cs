@@ -86,7 +86,15 @@ namespace Heimdall.App.Smoke
                 var addedId = ((DcsWorkspaceDevice)devices.SelectedItem).ProfileId;
                 ((Button)view.FindName("UnlinkDrawingButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 drawingChoices.SelectedItem = drawingChoices.Items.Cast<WorkspaceHardware>().Single(x => x.DeviceId == "tm-sol-r-ava-r-pov");
-                ((Button)view.FindName("ApplyInventoryDrawingButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                // Direct event invocation need not install a dispatcher synchronization context.
+                // The artwork continuation must explicitly return to the owning dispatcher.
+                var previousContext = System.Threading.SynchronizationContext.Current;
+                try
+                {
+                    System.Threading.SynchronizationContext.SetSynchronizationContext(null);
+                    ((Button)view.FindName("ApplyInventoryDrawingButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+                finally { System.Threading.SynchronizationContext.SetSynchronizationContext(previousContext); }
                 Wait(window, () => window.DcsContext.Working!.Diagrams.Single(x => x.ProfileId == addedId).CustomMapping is not null ||
                     status.Text.StartsWith("Artwork was not applied", StringComparison.Ordinal));
                 Require(window.DcsContext.Working!.Diagrams.Single(x => x.ProfileId == addedId).Svg.Contains("data:image/", StringComparison.Ordinal),

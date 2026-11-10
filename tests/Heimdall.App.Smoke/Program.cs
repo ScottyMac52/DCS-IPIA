@@ -16,7 +16,7 @@ namespace Heimdall.App.Smoke
     /// <summary>Opens both read-only WPF preview modes on a Windows CI runner.</summary>
     public static class Program
     {
-        private static readonly string[] NavigationHeaders = ["Devices", "Assignments & Testing", "Reference Sheets"];
+        private static readonly string[] NavigationHeaders = ["Controllers", "Assignments & Testing", "Reference Sheets"];
         private static readonly string[] CommandImportButtons = ["LoadCommandJsonButton", "LoadCommandHtmlButton"];
         private static readonly string[] CreationHardware = ["tm-mfd", "tm-mfd", "tm-mfd", "tm-mfd", "logitech-throttle-quadrant", "logitech-throttle-quadrant",
             "moza-ab9", "vkb-f14-gunfighter", "winctrl-pto2", "winctrl-icp"];
