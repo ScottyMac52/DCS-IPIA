@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Heimdall.App.Games;
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
 using Heimdall.Infrastructure;
 using Heimdall.TestSupport;
@@ -232,6 +233,17 @@ namespace Heimdall.App.Smoke
                 var sourceController = window.WorkspaceContext.State.Selection.ControllerId;
                 var unchangedNative = window.Session.Export().Files.Single().Value;
                 assignments.Editor.Index.SelectedValue = 3;
+                assignments.Editor.ActionState(WorkspaceAssignmentAction.Apply);
+                assignments.Editor.ActionState(WorkspaceAssignmentAction.AddAlternative);
+                var reviewsBefore = assignments.Editor.NativeReviewComputations;
+                var copiesBefore = window.Session.SnapshotCopies;
+                for (var i = 0; i < 20; i++)
+                {
+                    assignments.Editor.ActionState(WorkspaceAssignmentAction.Apply);
+                    assignments.Editor.ActionState(WorkspaceAssignmentAction.AddAlternative);
+                }
+                if (assignments.Editor.NativeReviewComputations != reviewsBefore || window.Session.SnapshotCopies != copiesBefore)
+                    throw new InvalidOperationException("Repeated native draft availability revalidated or copied the unchanged document.");
                 var profileName = Box<TextBox>(window, "ProfileName"); var originalName = profileName.Text;
                 profileName.Text = originalName + " pending";
                 store.FailSave = true;
