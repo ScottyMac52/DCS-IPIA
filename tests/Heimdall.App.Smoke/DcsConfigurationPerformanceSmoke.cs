@@ -103,7 +103,7 @@ namespace Heimdall.App.Smoke
             Directory.CreateDirectory(export);
             var window = new DcsModuleWorkspaceWindow(new(saved), repository: repository, deviceDiscovery: new EmptyDeviceDiscovery(),
                 outputPathPicker: snapshot => snapshot ? Path.Combine(export, "module.heimdall-module.json") : export, persistLayout: false);
-            window.Show(); ((TextBox)WorkspaceUi.Find(window, "BuildVersion")!).Text = version;
+            window.Show(); ((TextBox)WorkspaceUi.Find(window, "PackageVersion")!).Text = version;
             ThemeControlSmoke.Pump(window); return window;
         }
         private static void Exercise(DcsModuleWorkspaceWindow window, int iterations, Action<string, bool, Action> step)
