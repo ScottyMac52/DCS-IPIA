@@ -91,7 +91,11 @@ namespace Heimdall.App.Games.Elite
             _devicesView.ConfirmIdentificationButton.Click += _controllers.ConfirmIdentificationClicked;
             _devicesView.ConnectedPicker.SelectionChanged += _controllers.ConnectedChanged;
             _devicesView.ReplacementReferencePicker.SelectionChanged += (_, _) => { if (!_refreshing) Run(_controllers.UpdateControllerAvailability); };
-            _devicesView.RescanControllerButton.Click += (sender, args) => { _controllers.RescanClicked(sender, args); Refresh(); };
+            _devicesView.RescanControllerButton.Click += (sender, args) =>
+            {
+                if (!_devicesView.RescanControllerButton.IsEnabled) return;
+                _controllers.RescanClicked(sender, args); Refresh();
+            };
             _devicesView.AddControllerButton.Click += _controllers.AddControllerClicked;
             _devicesView.ReplaceControllerButton.Click += _controllers.ReplaceControllerClicked;
             _devicesView.RemoveControllerButton.Click += _controllers.RemoveControllerClicked;
