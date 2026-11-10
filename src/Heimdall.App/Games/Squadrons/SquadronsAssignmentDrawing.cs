@@ -136,9 +136,10 @@ namespace Heimdall.App.Games.Squadrons
 
         private void ShowSystemDrawing(string title, string deviceId, UiLayerDiagram diagram)
         {
+            var assignments = SquadronsSystemInputDrawings.AssignmentsByInput(context.Rows, deviceId, context.DrawingSection);
             void Select(HardwareGraphicControl control)
             {
-                var rows = SquadronsSystemInputDrawings.ForControl(control, context.Rows, deviceId, context.DrawingSection);
+                var rows = assignments.GetValueOrDefault(control.InputKey) ?? [];
                 var selected = rows.Count == 0 ? null : rows[0];
                 var oldRefreshing = context.Refreshing;
                 context.Refreshing = true;
@@ -157,7 +158,7 @@ namespace Heimdall.App.Games.Squadrons
             _drawingPresenter.Show(diagram, SquadronsSystemInputDrawings.Diagram(title, diagram, context.Rows, deviceId, context.DrawingSection),
                 new HardwareDiagramInteractions(Select, Inspect: Select), AppearanceManager.ArtworkOpacityFor(owner),
                 control => control.Label + " · read-only\n" + string.Join("\n",
-                    SquadronsSystemInputDrawings.ForControl(control, context.Rows, deviceId, context.DrawingSection)
+                    (assignments.GetValueOrDefault(control.InputKey) ?? [])
                         .Select(row => row.CommandName + " · " + row.InputLabel + "\n" +
                             string.Join(", ", row.Native.Fields.OrderBy(field => field.Key, StringComparer.Ordinal)
                                 .Select(field => field.Key + "=" + field.Value)))));
