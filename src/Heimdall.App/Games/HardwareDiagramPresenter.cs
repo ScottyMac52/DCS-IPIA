@@ -24,6 +24,9 @@ namespace Heimdall.App.Games
             canvas.Children.Clear(); Regions.Clear();
             canvas.Width = diagram.Width; canvas.Height = diagram.Height;
             canvas.Children.Add(new Image { Source = RenderArtwork(diagram, page, artworkOpacity), Width = diagram.Width, Height = diagram.Height, IsHitTestVisible = false });
+#if PERFORMANCE_TRACE
+            using var regions = PerformanceTrace.Measure("diagram.hit-regions", GetType());
+#endif
             foreach (var control in diagram.Controls)
             {
                 var border = new Border { Width = control.Width, Height = control.Height, Background = Brushes.Transparent,
@@ -123,9 +126,16 @@ namespace Heimdall.App.Games
         // Bound retained images across controller, scope, content and opacity changes.
         private BitmapImage RenderArtwork(UiLayerDiagram diagram, KneeboardComposite page, double opacity)
         {
-            var svg = PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity);
+            string svg;
+#if PERFORMANCE_TRACE
+            using (PerformanceTrace.Measure("diagram.compose", GetType()))
+#endif
+            { svg = PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity); }
             var key = (svg, diagram.Width, diagram.Height);
             if (_artwork.TryGetValue(key, out var image)) return image;
+#if PERFORMANCE_TRACE
+            using var raster = PerformanceTrace.Measure("diagram.rasterize", GetType());
+#endif
             image = Image(CanonicalSvgRenderer.RenderComplete(svg, diagram.Width, diagram.Height));
             if (_artwork.Count >= 8) _artwork.Remove(_artwork.Keys.First());
             _artwork.Add(key, image);

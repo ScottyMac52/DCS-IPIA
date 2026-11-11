@@ -214,7 +214,14 @@ namespace Heimdall.App.Games
             using var performance = Heimdall.Application.PerformanceTrace.Measure("editor.render", GetType());
 #endif
             _refreshing = true;
-            try { nativeRefresh(); NativeRefreshPasses++; RefreshAssignmentAvailability(); ObserveContext(); _editorObserver?.Accept(_browser?.Metrics.ContentBuilds ?? 0); }
+            try
+            {
+#if PERFORMANCE_TRACE
+                using (PerformanceTrace.Measure("editor.refresh-core", GetType()))
+#endif
+                { nativeRefresh(); }
+                NativeRefreshPasses++; RefreshNativeAvailability(); ObserveContext(); _editorObserver?.Accept(_browser?.Metrics.ContentBuilds ?? 0);
+            }
             finally { _refreshing = false; }
         }
         private void BrowserProjectionChanged(object? sender, EventArgs args) => SynchronizeNativeAssignments();
@@ -252,8 +259,15 @@ namespace Heimdall.App.Games
         private void RefreshAvailabilityOnly()
         {
             _refreshing = true;
-            try { RefreshAssignmentAvailability(); }
+            try { RefreshNativeAvailability(); }
             finally { _refreshing = false; }
+        }
+        private void RefreshNativeAvailability()
+        {
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure("editor.availability", GetType());
+#endif
+            RefreshAssignmentAvailability();
         }
         private void ObserveContext()
         {

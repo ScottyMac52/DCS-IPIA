@@ -29,6 +29,14 @@ The default budget is **1,000 ms per measured interactive action**, with 20 iter
 
 Compare identical files, iteration counts and builds on the same machine. Wall times include dispatcher pumping and nested spans overlap. Allocation deltas are process-wide, not exclusive to a method. A native round-trip success does not claim full game installation or hardware acceptance.
 
+## Attributing shared refresh work
+
+Profile builds record `editor.refresh-core` and `editor.availability` at the inherited assignment-view boundary. The shared diagram presenter records `diagram.compose`, `diagram.rasterize` (cache misses only), and `diagram.hit-regions`, which includes tooltips and pointed-control menu construction. Compare these scopes with the enclosing scenario and dispatcher delays before choosing another optimization.
+
+For Elite, Squadrons and War Thunder, the shared profile session records `assignment.review`, `assignment.review-candidate` and `assignment.review-baseline`. The unchanged baseline is validated once per session/content stamp and retained as private immutable file/string pairs. Candidate validation and live access/input checks still run on each review; actual mutation and export remain independently validated. Save, discard and content changes invalidate the comparison baseline. DCS retains its native module validation contract rather than being forced into this profile format.
+
+These scopes overlap and do not cover every layout or dispatcher operation. Their durations must not be added together or treated as exclusive CPU/allocation measurements. Tags contain no controller identifiers or native configuration values.
+
 ## DCS OVGME round-trip
 
 A plain OVGME ZIP contains generated Lua and PNGs, not editable command catalogs, drawing controls or page definitions. The runner therefore requires either a **HEIMDALL Complete release ZIP** containing the OVGME package and authoring snapshot, or both separately exported artifacts:
