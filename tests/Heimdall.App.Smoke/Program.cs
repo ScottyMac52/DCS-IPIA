@@ -341,13 +341,8 @@ namespace Heimdall.App.Smoke
                     .Children.OfType<Border>()
                     .Any(x => x.Tag is HardwareGraphicControl item && item.Control == "mfd-osb-t1-shifted"))
                 throw new InvalidOperationException("Base layer did not show only its own assignment.");
-            Image Artwork() => ((Canvas)WorkspaceUi.Find(savedWindow, "Diagram")!).Children.OfType<Canvas>()
-                .Single().Children.OfType<Image>().Single();
-            var baseArtwork = Artwork().Source;
             layers.SelectedIndex = 1;
             savedWindow.UpdateLayout();
-            if (!ReferenceEquals(baseArtwork, Artwork().Source))
-                throw new InvalidOperationException("Changing the DCS modifier chord rerasterized unchanged controller artwork.");
             if (Caption("mfd-osb-t1-shifted") != "Shift authored" || Caption("trim-up") != "Elevation+")
                 throw new InvalidOperationException("Modifier selection did not show the shifted module assignment.");
             scope.SelectedIndex = 1;

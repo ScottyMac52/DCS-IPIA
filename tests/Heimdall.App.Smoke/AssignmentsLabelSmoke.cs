@@ -17,6 +17,7 @@ namespace Heimdall.App.Smoke
         {
             var module = new DcsModule(Guid.NewGuid(), "LABELS", "Assignment label regression");
             var profile = new DcsDeviceProfile(Guid.NewGuid(), "tm-tpr", null, "Rudder", "Rudder.diff.lua");
+            var secondProfile = new DcsDeviceProfile(Guid.NewGuid(), "other-test", null, "Second controller", "Second.diff.lua");
             var slot = new DcsDraftAssignmentSlot(module.Id, profile.Id, AssignmentLayer.Module, BindingSection.Axis, "JOY_X");
             var graphic = new UiLayerDiagram("Rudder", null, "rudder.svg", 240, 90, [], [])
             {
@@ -27,7 +28,14 @@ namespace Heimdall.App.Smoke
                     "<text id='lbl-axis' x='120' y='48' text-anchor='middle' fill='white'>Original label</text></svg>",
                 Controls = [new("axis", "Axis", "JOY_X", 20, 20, 200, 50, true)]
             };
-            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [profile], [], [], "smoke"), [], [], [graphic],
+            var secondGraphic = graphic with
+            {
+                ProfileId = secondProfile.Id,
+                Device = "Second controller",
+                Svg = graphic.Svg.Replace("black", "navy", StringComparison.Ordinal)
+            };
+            var workspace = new DcsEditorWorkspaceSnapshot(new(module, [profile, secondProfile], [], [], "smoke"), [], [],
+                [graphic, secondGraphic],
                 [new("X", "X", "Axis", true)], [], [new(slot, new("X", "X", true, AssignmentLayer.Module))],
                 new Dictionary<string, string>(), new Dictionary<string, string> { ["config/kneeboard.json"] = "{}" });
             var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
@@ -70,6 +78,19 @@ namespace Heimdall.App.Smoke
                         }
                 }
                 ThemeControlSmoke.SaveImage(window, "assignments-single-caption-transparent");
+                var devices = (ComboBox)view.FindName("DeviceChoice")!;
+                var deviceSource = devices.ItemsSource;
+                var firstArtwork = surface.Children.OfType<Image>().Single().Source;
+                devices.SelectedValue = secondProfile.Id;
+                ThemeControlSmoke.Pump(window);
+                var secondArtwork = diagram.Children.OfType<Canvas>().Single().Children.OfType<Image>().Single().Source;
+                if (ReferenceEquals(firstArtwork, secondArtwork))
+                    throw new InvalidOperationException("Switching to distinct DCS artwork reused the previous controller image.");
+                devices.SelectedValue = profile.Id;
+                ThemeControlSmoke.Pump(window);
+                var restored = diagram.Children.OfType<Canvas>().Single().Children.OfType<Image>().Single().Source;
+                if (!ReferenceEquals(firstArtwork, restored) || !ReferenceEquals(deviceSource, devices.ItemsSource))
+                    throw new InvalidOperationException("Revisiting a DCS controller rerasterized its artwork or republished the unchanged controller list.");
             }
             finally { window.Close(); }
         }
