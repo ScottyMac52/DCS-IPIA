@@ -176,8 +176,7 @@ namespace Heimdall.App.Smoke
             if (DcsGeneratedInputTestPlan.Create(workspace).Bindings.Count != 0)
                 throw new InvalidOperationException("The raw-input fixture must have no generated assignments.");
             FakeDeviceInputSource? source = null;
-            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
-                deviceDiscovery: new EmptyDeviceDiscovery(), inputSourceFactory: (_, devices) =>
+            var window = new RawInputSmokeWindow(new DcsModuleWorkspaceViewModel(workspace), (_, devices) =>
                     source = devices.Contains(physical) ? new FakeDeviceInputSource(physical) { ButtonValue = 0 }
                         : throw new InvalidOperationException("An unassigned module controller was excluded from input acquisition."));
             try
@@ -277,6 +276,14 @@ namespace Heimdall.App.Smoke
                     ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
                     ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                 });
+        }
+        private sealed class RawInputSmokeWindow(DcsModuleWorkspaceViewModel viewModel,
+            Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> inputSourceFactory)
+            : DcsModuleWorkspaceWindow(viewModel, deviceDiscovery: new EmptyDeviceDiscovery(),
+                inputSourceFactory: inputSourceFactory)
+        {
+            // The staged drawing edit is fixture data. Accept the discard through the real close path.
+            protected override bool ConfirmDiscardWorkspaceChanges() => true;
         }
         #endregion END private helpers
     }
