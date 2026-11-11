@@ -1,6 +1,6 @@
 using System.IO;
 using System.Windows.Media.Imaging;
-using Heimdall.Application.Games;
+using Heimdall.Application;
 using Heimdall.Rendering;
 
 namespace Heimdall.App.Games
