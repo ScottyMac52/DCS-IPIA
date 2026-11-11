@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Heimdall.Application;
+using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.Domain;
 using Heimdall.App;
