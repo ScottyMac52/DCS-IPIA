@@ -6,7 +6,6 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Heimdall.Application;
-using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using Heimdall.Domain;
 using Heimdall.App;
@@ -177,7 +176,8 @@ namespace Heimdall.App.Smoke
             if (DcsGeneratedInputTestPlan.Create(workspace).Bindings.Count != 0)
                 throw new InvalidOperationException("The raw-input fixture must have no generated assignments.");
             FakeDeviceInputSource? source = null;
-            var window = new RawInputSmokeWindow(new DcsModuleWorkspaceViewModel(workspace), (_, devices) =>
+            var window = new DcsModuleWorkspaceWindow(new DcsModuleWorkspaceViewModel(workspace),
+                deviceDiscovery: new EmptyDeviceDiscovery(), inputSourceFactory: (_, devices) =>
                     source = devices.Contains(physical) ? new FakeDeviceInputSource(physical) { ButtonValue = 0 }
                         : throw new InvalidOperationException("An unassigned module controller was excluded from input acquisition."));
             try
@@ -205,8 +205,13 @@ namespace Heimdall.App.Smoke
                     shiftedOutline.BorderBrush != Brushes.Transparent)
                     throw new InvalidOperationException("Unassigned controller input did not highlight only the active base callout.");
             }
-            finally { window.Close(); }
-            if (source?.Disposed != true) throw new InvalidOperationException("Closing the raw-input test leaked its input source.");
+            finally
+            {
+                window.DcsContext.Discard();
+                window.Close();
+            }
+            if (window.IsVisible || source?.Disposed != true)
+                throw new InvalidOperationException("Raw-input test cleanup did not close the window and release its input source.");
         }
 
         private static void VerifyLegendLayout(Window window, ItemsControl legend)
@@ -277,14 +282,6 @@ namespace Heimdall.App.Smoke
                     ["config/kneeboard.json"] = """{"profiles":{},"pages":[],"summaryPages":[]}""",
                     ["assets/shared/ui-layer/input/UiLayer/modifiers.lua"] = "local modifiers = {} return modifiers"
                 });
-        }
-        private sealed class RawInputSmokeWindow(DcsModuleWorkspaceViewModel viewModel,
-            Func<nint, IReadOnlyList<Guid>, IDeviceInputSource> inputSourceFactory)
-            : DcsModuleWorkspaceWindow(viewModel, deviceDiscovery: new EmptyDeviceDiscovery(),
-                inputSourceFactory: inputSourceFactory)
-        {
-            // The staged drawing edit is fixture data. Accept the discard through the real close path.
-            protected override bool ConfirmDiscardWorkspaceChanges() => true;
         }
         #endregion END private helpers
     }
