@@ -260,7 +260,8 @@ class BrowserEditorOwnershipTests(unittest.TestCase):
     def test_shared_view_owns_completed_editor_revisions(self):
         view = (APP / 'Games/GameAssignmentsView.cs').read_text()
         self.assertIn('WorkspaceEditorObserver', view)
-        self.assertLess(view.index('nativeRefresh(); NativeRefreshPasses++'), view.index('_editorObserver?.Accept('))
+        self.assertLess(view.index('nativeRefresh();'), view.index('NativeRefreshPasses++;'))
+        self.assertLess(view.index('NativeRefreshPasses++;'), view.index('_editorObserver?.Accept('))
         for game in ('Elite', 'Squadrons', 'WarThunder'):
             browser = (APP / f'Games/{game}/{game}AssignmentBrowser.cs').read_text()
             self.assertNotIn('_editorKey', browser)
