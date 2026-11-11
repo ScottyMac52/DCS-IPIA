@@ -108,20 +108,25 @@ namespace Heimdall.Rendering
                 if (id?.StartsWith("lbl-", StringComparison.Ordinal) == true) ApplyControlLabel(label, id, page);
                 else if (id?.StartsWith("meta-", StringComparison.Ordinal) == true) ApplyCategoryLabel(label, id, page);
             }
+            var labels = new Dictionary<string, XElement>(StringComparer.Ordinal);
+            foreach (var element in root.Descendants())
+                if (element.Attribute("id")?.Value is { } id &&
+                    (id.StartsWith("lbl-", StringComparison.Ordinal) || id.StartsWith("meta-", StringComparison.Ordinal)))
+                    labels.TryAdd(id, element);
+            using var typeface = page.Labels.Count > 0 || page.CategoryLabels.Count > 0 ? LabelTypeface() : null;
             foreach (var control in diagram.Controls)
             {
-                var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "lbl-" + control.Control);
-                if (label is not null && label.Value.Length > 0)
+                if (labels.TryGetValue("lbl-" + control.Control, out var label) && label.Value.Length > 0)
                 {
                     if (!double.IsFinite(control.LabelTopInset) || control.LabelTopInset < 0 || control.LabelTopInset >= control.Height - 2)
                         throw new InvalidDataException("Control assignment label inset is outside its callout: " + control.Control);
                     var labelArea = control with { Y = control.Y + control.LabelTopInset, Height = control.Height - control.LabelTopInset };
                     if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
-                        FitStackedCallout(label, labelArea, page.Labels[control.Control]);
-                    else FitCallout(label, labelArea, page.Labels[control.Control]);
+                        FitStackedCallout(label, labelArea, page.Labels[control.Control], typeface!);
+                    else FitCallout(label, labelArea, page.Labels[control.Control], typeface!);
                 }
             }
-            FitCategories(root, diagram, page);
+            FitCategories(labels, diagram, page, typeface!);
             return root.ToString(SaveOptions.DisableFormatting);
         }
         #endregion END Public
@@ -203,11 +208,12 @@ namespace Heimdall.Rendering
                                            new XAttribute("font-size", 16),
                                            new XAttribute("font-weight", "700"), lines[i]));
         }
-        private static void FitCategories(XDocument root, UiLayerDiagram diagram, KneeboardComposite page)
+        private static void FitCategories(IReadOnlyDictionary<string, XElement> labels, UiLayerDiagram diagram,
+                                          KneeboardComposite page, SKTypeface typeface)
         {
             foreach (var (name, text) in page.CategoryLabels.Where(x => x.Value.Length > 0))
             {
-                var label = root.Descendants().FirstOrDefault(x => x.Attribute("id")?.Value == "meta-" + name);
+                var label = labels.GetValueOrDefault("meta-" + name);
                 var box = label?.ElementsBeforeSelf().LastOrDefault(x => x.Name.LocalName == "rect");
                 if (label is null || box is null) continue;
                 var bounds = new float[4];
@@ -240,15 +246,15 @@ namespace Heimdall.Rendering
                 var categoryControl = new HardwareGraphicControl(name, name, "", fitted.Left, fitted.Top, fitted.Width, fitted.Height);
                 IReadOnlyList<KneeboardLabelVariant> variants = [new(text, "#ffffff", AssignmentLayer.Module, "")];
                 if (label.Attribute("data-ipia-text-layout")?.Value == "stacked")
-                    FitStackedCallout(label, categoryControl, variants);
-                else FitCallout(label, categoryControl, variants);
+                    FitStackedCallout(label, categoryControl, variants, typeface);
+                else FitCallout(label, categoryControl, variants, typeface);
             }
         }
-        private static void FitCallout(XElement label, HardwareGraphicControl control, IReadOnlyList<KneeboardLabelVariant> variants)
+        private static void FitCallout(XElement label, HardwareGraphicControl control,
+                                       IReadOnlyList<KneeboardLabelVariant> variants, SKTypeface typeface)
         {
             if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
                 throw new InvalidDataException("Authored callout has no usable text area: " + control.Control);
-            using var typeface = LabelTypeface();
             using var font = new SKFont(typeface, AuthoredFontSize(label, variants.Count > 1 ? 13 : 16));
             var available = (float)control.Width - 4;
             var lines = new List<(string Text, KneeboardLabelVariant Variant)>();
@@ -300,11 +306,10 @@ namespace Heimdall.Rendering
             }
         }
         private static void FitStackedCallout(XElement label, HardwareGraphicControl control,
-                                              IReadOnlyList<KneeboardLabelVariant> variants)
+                                              IReadOnlyList<KneeboardLabelVariant> variants, SKTypeface typeface)
         {
             if (!double.IsFinite(control.Width) || !double.IsFinite(control.Height) || control.Width <= 4 || control.Height <= 2)
                 throw new InvalidDataException("Authored stacked callout has no usable text area: " + control.Control);
-            using var typeface = LabelTypeface();
             using var font = new SKFont(typeface, AuthoredFontSize(label, 16));
             var columns = variants.Select(v => v.Text.EnumerateRunes().Select(r => r.ToString()).ToArray()).ToArray();
             var columnWidth = (float)(control.Width - 4) / variants.Count;
