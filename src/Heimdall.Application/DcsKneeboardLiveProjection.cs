@@ -18,7 +18,7 @@ namespace Heimdall.Application
             ArgumentNullException.ThrowIfNull(activeModifiers);
             var labels = page.Labels.ToDictionary(x => x.Key,
                 x => (IReadOnlyList<KneeboardLabelVariant>)x.Value.Select(variant =>
-                    KneeboardLegendActivity.Matches(variant.Scope, variant.ModifierChord, activeModifiers)
+                    Matches(variant, activeModifiers)
                         ? variant : variant with { Color = InactiveLabelColor }).ToArray(),
                 StringComparer.Ordinal);
             return page with { Labels = labels };
@@ -53,8 +53,8 @@ namespace Heimdall.Application
             ArgumentNullException.ThrowIfNull(activeModifiers);
             if (!page.Labels.TryGetValue(control, out var variants) || variants.Count == 0)
                 return BaseHighlightColor;
-            var chosen = variants.Where(x => KneeboardLegendActivity.Matches(x.Scope, x.ModifierChord, activeModifiers))
-                .OrderByDescending(Priority).FirstOrDefault();
+            var chosen = variants.Where(x => Matches(x, activeModifiers))
+                .OrderByDescending(x => Priority(x, activeModifiers)).FirstOrDefault();
             return chosen is null ? null : Color(chosen);
         }
 
@@ -73,7 +73,24 @@ namespace Heimdall.Application
             var physical = controls.FirstOrDefault(x => x.Control == control);
             return physical is null || controls.Any(x => DcsInputKey.SamePhysicalInput(
                 x.InputKey, physical.InputKey) && page.Labels.ContainsKey(x.Control))
-                ? null : BaseHighlightColor;
+                ? null : FallbackControl(physical, controls, activeModifiers) == control ? BaseHighlightColor : null;
+        }
+
+        /// <summary>Resolves the live outline color for a physically activated control, falling back to Base when unassigned in the active chord.</summary>
+        public static string? HighlightColor(KneeboardComposite page, string control,
+            IReadOnlyList<HardwareGraphicControl> controls,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentException.ThrowIfNullOrWhiteSpace(control);
+            ArgumentNullException.ThrowIfNull(controls);
+            ArgumentNullException.ThrowIfNull(activeModifiers);
+            var selected = Preferred(page, control, controls, activeModifiers);
+            if (selected is { } match)
+                return match.Control == control ? Color(match.Variant) : null;
+            var physical = controls.FirstOrDefault(x => x.Control == control);
+            return physical is not null && FallbackControl(physical, controls, activeModifiers) == control
+                ? BaseHighlightColor : null;
         }
         #endregion END Public
 
@@ -87,17 +104,65 @@ namespace Heimdall.Application
             var matches = controls.Where(x => DcsInputKey.SamePhysicalInput(x.InputKey, physical.InputKey))
                 .SelectMany(x => (page.Labels.GetValueOrDefault(x.Control) ?? [])
                     .Select(variant => (Control: x.Control, Variant: variant)))
-                .Where(x => KneeboardLegendActivity.Matches(x.Variant.Scope, x.Variant.ModifierChord, activeModifiers))
-                .OrderByDescending(x => Priority(x.Variant)).ToArray();
+                .Where(x => Matches(x.Variant, activeModifiers))
+                .OrderByDescending(x => Priority(x.Variant, activeModifiers)).ToArray();
             return matches.Length == 0 ? null : matches[0];
         }
 
-        private static int Priority(KneeboardLabelVariant variant) => variant.ModifierChord.Length > 0
-            ? variant.Scope == AssignmentLayer.UiLayer ? 4 : 3
-            : variant.Scope == AssignmentLayer.Module ? 2 : 1;
+        private static string FallbackControl(HardwareGraphicControl physical,
+            IReadOnlyList<HardwareGraphicControl> controls,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
+        {
+            var group = controls.Where(x => DcsInputKey.SamePhysicalInput(x.InputKey, physical.InputKey)).ToArray();
+            var shifted = activeModifiers.Values.Any(x => x.Length > 0);
+            return (group.FirstOrDefault(x => x.Control.EndsWith("-shifted", StringComparison.Ordinal) == shifted)
+                ?? group[0]).Control;
+        }
+
+        private static bool Matches(KneeboardLabelVariant variant,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers) =>
+            KneeboardLegendActivity.Matches(variant.Scope, variant.ModifierChord, activeModifiers) ||
+            (ModifierActivatorName(variant) is { } name && IsModifierActive(variant.Scope, name, activeModifiers));
+
+        private static bool IsModifierActive(AssignmentLayer scope, string modifierName,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers) =>
+            (activeModifiers.GetValueOrDefault(scope) ?? "")
+                .Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Contains(modifierName, StringComparer.Ordinal);
+
+        private static string? ModifierActivatorName(KneeboardLabelVariant variant)
+        {
+            if (variant.ModifierChord.Length > 0 ||
+                string.Equals(variant.Color, "#ffffff", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(variant.Color, KneeboardStateColors.UiBase, StringComparison.OrdinalIgnoreCase))
+                return null;
+            var text = variant.Scope == AssignmentLayer.UiLayer &&
+                       variant.Text.StartsWith("UI: ", StringComparison.Ordinal)
+                ? variant.Text["UI: ".Length..]
+                : variant.Text;
+            if (text.EndsWith(" (Hold)", StringComparison.Ordinal))
+                return text[..^" (Hold)".Length];
+            return text.EndsWith(" (Toggle)", StringComparison.Ordinal)
+                ? text[..^" (Toggle)".Length]
+                : null;
+        }
+
+        private static int Priority(KneeboardLabelVariant variant,
+            IReadOnlyDictionary<AssignmentLayer, string> activeModifiers)
+        {
+            if (ModifierActivatorName(variant) is { } name)
+                return IsModifierActive(variant.Scope, name, activeModifiers)
+                    ? (variant.Scope == AssignmentLayer.UiLayer ? 4 : 3)
+                    : 0;
+            return variant.ModifierChord.Length > 0
+                ? variant.Scope == AssignmentLayer.UiLayer ? 4 : 3
+                : variant.Scope == AssignmentLayer.Module ? 2 : 1;
+        }
 
         private static string Color(KneeboardLabelVariant variant) =>
-            KneeboardStateColors.Resolve(variant.Scope, variant.ModifierChord, variant.Color);
+            ModifierActivatorName(variant) is not null
+                ? variant.Color
+                : KneeboardStateColors.Resolve(variant.Scope, variant.ModifierChord, variant.Color);
         #endregion END private helpers
     }
 }

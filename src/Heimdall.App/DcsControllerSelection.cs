@@ -44,11 +44,9 @@ namespace Heimdall.App
                     SelectControllerPage(view);
                     return;
                 }
-                if (view is Features.InputTest.DcsInputTestView && _workspace() is { } current)
-                    selector.ItemsSource = DcsWorkspaceStructureEditor.Describe(current).Devices
-                        .Where(x => x.Layer == AssignmentLayer.Module).ToArray();
                 if (_selectedController is { } selected) selector.SelectedValue = selected;
                 if (selector.SelectedIndex < 0 && selector.Items.Count > 0) selector.SelectedIndex = 0;
+                if (view is Features.InputTest.DcsInputTestView inputTest) inputTest.SynchronizeWorkspace();
                 _picker.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("ItemsSource") { Source = selector });
                 _picker.SetBinding(Selector.SelectedValueProperty, new Binding("SelectedValue")
                 {
