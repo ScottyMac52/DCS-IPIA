@@ -33,6 +33,8 @@ namespace Heimdall.Application.Games
         private string? _currentJson;
         private string? _savedJson;
         private long _contentStamp;
+        private long _reviewBaselineStamp = -1;
+        private KeyValuePair<string, string>[]? _reviewBaseline;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
@@ -52,6 +54,8 @@ namespace Heimdall.Application.Games
         public GameWorkspace Snapshot { get { SnapshotCopies++; return GameWorkspaceContract.Clone(_current); } }
         /// <summary>Gets how many defensive document copies this session supplied (performance work counter).</summary>
         public int SnapshotCopies { get; private set; }
+        /// <summary>Gets how many unchanged native comparison baselines were validated for draft review.</summary>
+        public int ReviewBaselineBuilds { get; private set; }
         /// <summary>Gets whether current authoring differs from the last saved state.</summary>
         public bool HasChanges => !ReferenceEquals(_currentValue, _savedValue) && !string.Equals(CurrentJson, SavedJson, StringComparison.Ordinal);
         /// <summary>Gets the immutable canonical content of the current document (cached until the next native change).</summary>
@@ -619,19 +623,36 @@ namespace Heimdall.Application.Games
 
         private GameAssignmentReview ReviewProfile(Func<ProfileDocument, ProfileDocument> edit)
         {
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure("assignment.review", _backend.GetType());
+#endif
             try
             {
                 RequireAccess();
                 var candidate = edit(Snapshot.Profile);
                 RequireProfileIdentity(candidate, "Assignment review changed game or profile identity.");
-                var output = ValidateProfile(candidate);
-                var current = ValidateProfile(_current.Profile);
+                SimProfileExportPlan output;
+#if PERFORMANCE_TRACE
+                using (PerformanceTrace.Measure("assignment.review-candidate", _backend.GetType()))
+#endif
+                { output = ValidateProfile(candidate); }
                 var changed = !output.Files.OrderBy(file => file.Key, StringComparer.Ordinal)
-                    .SequenceEqual(current.Files.OrderBy(file => file.Key, StringComparer.Ordinal));
+                    .SequenceEqual(ReviewBaseline());
                 return new(true, changed, "");
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException or InvalidDataException or JsonException)
             { return new(false, false, error.Message); }
+        }
+        // Keep immutable comparison data only. Candidate review, live access/input checks and real exports stay fresh.
+        private KeyValuePair<string, string>[] ReviewBaseline()
+        {
+            if (_reviewBaseline is not null && _reviewBaselineStamp == ContentStamp) return _reviewBaseline;
+#if PERFORMANCE_TRACE
+            using var performance = PerformanceTrace.Measure("assignment.review-baseline", _backend.GetType());
+#endif
+            var files = ValidateProfile(_current.Profile).Files.OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
+            _reviewBaseline = files; _reviewBaselineStamp = ContentStamp; ReviewBaselineBuilds++;
+            return files;
         }
         private void RequireNativeEdit(ISimNativeEdit edit)
         {
