@@ -1,4 +1,3 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -13,7 +12,7 @@ namespace Heimdall.App.Games
     /// Simulator adapters own native editing, never this class.</summary>
     internal sealed class HardwareDiagramPresenter(Canvas canvas)
     {
-        private readonly Dictionary<(string Svg, double Width, double Height), BitmapImage> _artwork = [];
+        private readonly HardwareDiagramArtworkCache _artwork = new();
         #region BEGIN Public
         /// <summary>Gets current physical controls and their feedback outlines.</summary>
         internal List<(HardwareGraphicControl Control, Border Outline)> Regions { get; } = [];
@@ -114,16 +113,9 @@ namespace Heimdall.App.Games
             }
         }
         /// <summary>Decodes a frozen bitmap with no retained stream handle.</summary>
-        internal static BitmapImage Image(byte[] bytes)
-        {
-            using var stream = new MemoryStream(bytes);
-            var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad;
-            image.StreamSource = stream; image.EndInit(); image.Freeze(); return image;
-        }
+        internal static BitmapImage Image(byte[] bytes) => HardwareDiagramArtworkCache.Decode(bytes);
         #endregion END Public
         #region BEGIN private helpers
-        // Cache only frozen pixels, keyed by complete composed output and dimensions. Hit regions and menus remain live.
-        // Bound retained images across controller, scope, content and opacity changes.
         private BitmapImage RenderArtwork(UiLayerDiagram diagram, KneeboardComposite page, double opacity)
         {
             string svg;
@@ -131,15 +123,7 @@ namespace Heimdall.App.Games
             using (PerformanceTrace.Measure("diagram.compose", GetType()))
 #endif
             { svg = PreviewArtwork.Prepare(CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page), opacity); }
-            var key = (svg, diagram.Width, diagram.Height);
-            if (_artwork.TryGetValue(key, out var image)) return image;
-#if PERFORMANCE_TRACE
-            using var raster = PerformanceTrace.Measure("diagram.rasterize", GetType());
-#endif
-            image = Image(CanonicalSvgRenderer.RenderComplete(svg, diagram.Width, diagram.Height));
-            if (_artwork.Count >= 8) _artwork.Remove(_artwork.Keys.First());
-            _artwork.Add(key, image);
-            return image;
+            return _artwork.GetOrRender(svg, diagram.Width, diagram.Height);
         }
         private static WorkspaceAssignmentActionState State(HardwareDiagramInteractions actions, HardwareGraphicControl control,
             WorkspaceAssignmentAction action, bool ready, string reason = "") => actions.ActionState?.Invoke(control, action)

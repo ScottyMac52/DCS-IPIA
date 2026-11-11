@@ -3,13 +3,11 @@ using Heimdall.Application.Games;
 using Heimdall.App.Games;
 using Heimdall.Dcs;
 using Heimdall.Rendering;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
 
 namespace Heimdall.App.Features.Assignments
 {
@@ -28,6 +26,8 @@ namespace Heimdall.App.Features.Assignments
         Func<WorkspaceAssignmentContext> AssignmentContext,
         Func<HardwareGraphicControl?, WorkspaceAssignmentAction, WorkspaceAssignmentActionState> actionState)
     {
+        private readonly HardwareDiagramArtworkCache _artwork = new(capacity: 12, preserveLabels: false,
+            pixelBudget: 64 * 1024 * 1024);
         private readonly Dictionary<string, Action> _inputSelections = new(StringComparer.Ordinal);
         private const string UnAssignedText = "Unassigned", SelectDeviceText = "Select a device", UnableToRenderMessage = "Unable to render: ";
         #region BEGIN Public
@@ -56,26 +56,14 @@ namespace Heimdall.App.Features.Assignments
             if (state.InputKey is not null && !diagram.Controls.Any(x => x.InputKey == state.InputKey)) inspector.Clear();
             try
             {
-                var snapshot = state.Context.Draft?.Snapshot ?? state.Context.Working.Assignments;
-                var colorPage = DcsKneeboardDraftProjection.CreateCombined(state.Context.Working, diagram, snapshot, state.Context.Labels);
-                var previewSvg = diagram.Svg;
-                if (diagram.Svg.Contains("meta-mfd-category-", StringComparison.Ordinal))
-                {
-                    // Apply saved MFD side headings; interactive controls supply assignment text below.
-                    var categoryPage = colorPage with
-                    {
-                        Labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>()
-                    };
-                    previewSvg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, categoryPage);
-                }
-                var png = CanonicalSvgRenderer.Render(PreviewArtwork.Prepare(previewSvg, AppearanceManager.ArtworkOpacityFor(owner)), diagram.Width, diagram.Height);
-                using var stream = new MemoryStream(png);
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.StreamSource = stream;
-                bitmap.EndInit();
-                bitmap.Freeze();
+                var workspace = state.Context.Working;
+                var snapshot = state.Context.Draft?.Snapshot ?? workspace.Assignments;
+                KneeboardComposite colorPage;
+#if PERFORMANCE_TRACE
+                using (PerformanceTrace.Measure("diagram.dcs-projection", GetType()))
+#endif
+                { colorPage = DcsKneeboardDraftProjection.CreateCombined(workspace, diagram, snapshot, state.Context.Labels); }
+                var bitmap = _artwork.GetOrRender(PrepareArtwork(diagram, colorPage), diagram.Width, diagram.Height);
 
                 Diagram.Width = diagram.Width;
                 Diagram.Height = diagram.Height;
@@ -86,15 +74,21 @@ namespace Heimdall.App.Features.Assignments
 
                 var layer = state.Layer;
                 var chord = state.Chord;
-                var management = DcsWorkspaceStructureEditor.Describe(state.Context.Working);
+                var management = DcsWorkspaceStructureEditor.Describe(workspace);
+#if PERFORMANCE_TRACE
+                using var regions = PerformanceTrace.Measure("diagram.hit-regions", GetType());
+#endif
+                var bySlot = new Dictionary<string, DcsDraftAssignment>(StringComparer.Ordinal);
+                foreach (var assignment in snapshot)
+                    if (assignment.Slot.ProfileId == diagram.ProfileId && assignment.Slot.Layer == layer)
+                        bySlot.TryAdd(DcsInputKey.PhysicalSlotKey(assignment.Slot), assignment);
 
                 foreach (var control in diagram.Controls)
                 {
-                    var slot = DcsKneeboardDraftProjection.SlotForControl(state.Context.Working, diagram, control, layer, chord);
+                    var slot = DcsKneeboardDraftProjection.SlotForControl(workspace, diagram, control, layer, chord);
                     if (slot is null) continue;
 
-                    var assignment = snapshot.FirstOrDefault(x =>
-                        DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
+                    var assignment = bySlot.GetValueOrDefault(DcsInputKey.PhysicalSlotKey(slot));
                     var reserved = DcsModifierAssignmentReservation.Find(management, diagram.ProfileId, control.InputKey);
                     var protectedInput = reserved.Count != 0;
                     var modifierDescription = string.Join("\n", reserved.Select(DcsModifierAssignmentReservation.Description));
@@ -203,5 +197,22 @@ namespace Heimdall.App.Features.Assignments
             InputPicker.SelectedValue = state.InputKey;
         }
         #endregion END Public
+
+        #region BEGIN private helpers
+        private string PrepareArtwork(UiLayerDiagram diagram, KneeboardComposite page)
+        {
+#if PERFORMANCE_TRACE
+            using var compose = PerformanceTrace.Measure("diagram.compose", GetType());
+#endif
+            var svg = diagram.Svg;
+            if (svg.Contains("meta-mfd-category-", StringComparison.Ordinal))
+            {
+                // The artwork provides saved MFD headings. Interactive controls supply assignment text.
+                var categoryPage = page with { Labels = new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>() };
+                svg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, categoryPage);
+            }
+            return PreviewArtwork.Prepare(svg, AppearanceManager.ArtworkOpacityFor(owner));
+        }
+        #endregion END private helpers
     }
 }
