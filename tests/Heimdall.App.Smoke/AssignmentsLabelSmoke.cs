@@ -44,6 +44,8 @@ namespace Heimdall.App.Smoke
             {
                 window.Show();
                 var view = WorkspaceUi.Navigate(window, "Assignments");
+                var devices = (ComboBox)view.FindName("DeviceChoice")!;
+                devices.SelectedValue = profile.Id;
                 view.Resources["ControlForegroundBrush"] = Brushes.Gold;
                 view.Resources["AccentTextBrush"] = Brushes.Gold;
                 ThemeControlSmoke.Pump(window);
@@ -78,7 +80,6 @@ namespace Heimdall.App.Smoke
                         }
                 }
                 ThemeControlSmoke.SaveImage(window, "assignments-single-caption-transparent");
-                var devices = (ComboBox)view.FindName("DeviceChoice")!;
                 var deviceSource = devices.ItemsSource;
                 var firstArtwork = surface.Children.OfType<Image>().Single().Source;
                 devices.SelectedValue = secondProfile.Id;
