@@ -1,6 +1,7 @@
 using Heimdall.Application;
 using Heimdall.Application.Games;
 using Heimdall.Application.Interfaces;
+using Heimdall.Domain.MultiSim;
 using Heimdall.EliteDangerous;
 using Heimdall.Squadrons;
 using Heimdall.TestSupport;
@@ -48,8 +49,80 @@ namespace Heimdall.Tests
             var locked = Open(game, new EditionPolicy()); var calls = edit.Calls;
             Assert.False(locked.ReviewNativeEdit(edit).Valid); Assert.Equal(calls, edit.Calls); Assert.Equal(0, locked.ReviewBaselineBuilds);
         }
+        /// <summary>Identical display drafts share one snapshot, including separately constructed modifier inputs.</summary>
+        [Fact]
+        public void Assignment_availability_is_bounded_and_fresh_review_stays_independent()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var session = Open("elite", issuer.Policy);
+            var draft = AssignmentDraft(session);
+            var copies = session.SnapshotCopies;
+            var expected = session.ReviewAssignmentAvailability(draft);
+            Assert.True(expected.Valid && expected.Changed);
+            for (var i = 0; i < 20; i++)
+                Assert.Equal(expected, session.ReviewAssignmentAvailability(draft with
+                {
+                    Modifiers = [new() { Source = draft.Modifiers![0].Source, Value = draft.Modifiers[0].Value }]
+                }));
+            Assert.Equal(copies + 1, session.SnapshotCopies);
+            Assert.False(session.HasChanges);
+            Assert.Equal(expected, session.ReviewAssignment(draft));
+            Assert.Equal(copies + 2, session.SnapshotCopies);
+
+            session.Assign(draft);
+            Assert.True(session.HasChanges);
+            Assert.Equal(new(true, false, ""), session.ReviewAssignmentAvailability(draft));
+            Assert.Equal(copies + 3, session.SnapshotCopies);
+        }
+
+        /// <summary>Changes to modifier values, edit settings and persisted content invalidate display reviews.</summary>
+        [Fact]
+        public void Assignment_availability_tracks_native_values_and_content_changes()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var session = Open("elite", issuer.Policy);
+            var draft = AssignmentDraft(session);
+            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            var copies = session.SnapshotCopies;
+            draft.Modifiers![0].Value = "Key_RightShift";
+            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            Assert.Equal(copies + 1, session.SnapshotCopies);
+            var emptyInput = draft with { Key = "" };
+            Assert.False(session.ReviewAssignmentAvailability(emptyInput).Valid);
+            Assert.False(session.ReviewAssignmentAvailability(emptyInput).Valid);
+            Assert.Equal(copies + 2, session.SnapshotCopies);
+
+            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            session.AcceptSaved();
+            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            session.Discard();
+            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            Assert.Equal(copies + 5, session.SnapshotCopies);
+        }
+
+        /// <summary>Display review checks edition access before cloning or validating the native profile.</summary>
+        [Fact]
+        public void Assignment_availability_checks_edition_before_reviewing()
+        {
+            var session = Open("elite", new EditionPolicy());
+            var draft = AssignmentDraft(session);
+            var copies = session.SnapshotCopies;
+            var result = session.ReviewAssignmentAvailability(draft);
+            Assert.False(result.Valid);
+            Assert.Equal(session.AccessMessage, result.Message);
+            Assert.Equal(copies, session.SnapshotCopies);
+        }
         #endregion END Public
         #region BEGIN private helpers
+        private static GameAssignmentEdit AssignmentDraft(GameProfileSession session)
+        {
+            var devices = session.Snapshot.Profile.Devices;
+            var stick = devices.Single(device => device.Identity!.SimSpecificIds["ed.device"] == "ExampleStick");
+            var keyboard = devices.Single(device => device.Identity!.SimSpecificIds["ed.device"] == "Keyboard");
+            return new(stick.LogicalId, "PrimaryFire", "Primary", "Joy_9",
+                Modifiers: [new() { Source = keyboard.LogicalId, Value = "Key_LeftShift" }]);
+        }
+
         private static GameProfileSession Open(string game, EditionPolicy policy)
         {
             ISimProfileBackend backend = game switch

@@ -133,7 +133,7 @@ namespace Heimdall.App.Games.Elite
             var drawing = _session is not null && Device is not null ? context.CurrentDrawing(Device.Id) : null;
             _assignmentsView.AssignmentEditor.IsEnabled = Command is not null && _session?.AccessMessage.Length == 0 && !_busy;
             var draft = Draft();
-            var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignment(draft);
+            var review = draft is null ? new GameAssignmentReview(false, false, "Choose a command, controller and valid input settings.") : _session!.ReviewAssignmentAvailability(draft);
             var assigned = _rows.Any(x => x.DeviceId == Device?.Id && x.CommandId == Command?.Id && x.Slot == Slot);
             var ready = opened && EditionAccess.Policy.HasPremium && pin is not null && GameInputReadiness.Ready(pin, _services.CurrentDevices);
             var deviceNames = DevicePicker.Items.Cast<GameDeviceChoice>().ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);

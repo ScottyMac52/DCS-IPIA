@@ -35,6 +35,7 @@ namespace Heimdall.Application.Games
         private long _contentStamp;
         private long _reviewBaselineStamp = -1;
         private KeyValuePair<string, string>[]? _reviewBaseline;
+        private (long Stamp, GameAssignmentEdit Draft, GameAssignmentReview Review)? _assignmentAvailability;
         /// <summary>Opens a validated document using authoritative edition and hardware services.</summary>
         public GameProfileSession(ISimProfileBackend backend, GameWorkspace workspace, EditionPolicy policy,
             IReadOnlyCollection<string> catalogIds, Func<IReadOnlyList<DetectedDcsDevice>> observed, ISimDeviceReferenceMatcher? referenceMatcher = null,
@@ -536,6 +537,25 @@ namespace Heimdall.Application.Games
         /// <summary>Gets the saved drawing association independently of physical connection or link state.</summary>
         public string? DrawingId(string logicalId) => _current.Hardware.TryGetValue(logicalId, out var pin)
             ? pin.DrawingHidden ? null : pin.HardwareId : _current.UnlinkedDrawings.GetValueOrDefault(logicalId);
+        /// <summary>Reuses the last display-only assignment review while the exact draft and workspace content match.</summary>
+        public GameAssignmentReview ReviewAssignmentAvailability(GameAssignmentEdit draft)
+        {
+            ArgumentNullException.ThrowIfNull(draft);
+            var access = AccessMessage;
+            if (access.Length != 0) return new(false, false, access);
+
+            var stamp = ContentStamp;
+            if (_assignmentAvailability is { } cached && cached.Stamp == stamp && SameAssignment(cached.Draft, draft))
+                return cached.Review;
+
+            var frozen = draft with
+            {
+                Modifiers = draft.Modifiers?.Select(modifier => new Modifier { Source = modifier.Source, Value = modifier.Value }).ToArray()
+            };
+            var review = ReviewAssignment(frozen);
+            _assignmentAvailability = (stamp, frozen, review);
+            return review;
+        }
         /// <summary>Reviews a complete draft with the authoritative adapter without publishing edits or events.</summary>
         public GameAssignmentReview ReviewAssignment(GameAssignmentEdit draft) => ReviewProfile(profile =>
         {
@@ -620,6 +640,11 @@ namespace Heimdall.Application.Games
             ValidateControllerCandidate(candidate);
             return new(this, JsonSerializer.Serialize(_current), candidate, result.Summary, null);
         }
+
+        private static bool SameAssignment(GameAssignmentEdit previous, GameAssignmentEdit current) =>
+            previous == (current with { Modifiers = previous.Modifiers }) &&
+            (previous.Modifiers ?? []).Select(modifier => (modifier.Source, modifier.Value))
+                .SequenceEqual((current.Modifiers ?? []).Select(modifier => (modifier.Source, modifier.Value)));
 
         private GameAssignmentReview ReviewProfile(Func<ProfileDocument, ProfileDocument> edit)
         {
