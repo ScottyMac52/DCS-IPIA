@@ -58,7 +58,7 @@ namespace Heimdall.Tests
             var draft = AssignmentDraft(session);
             var copies = session.SnapshotCopies;
             var expected = session.ReviewAssignmentAvailability(draft);
-            Assert.True(expected.Valid && expected.Changed);
+            Assert.True(expected.Valid && expected.Changed, expected.Message);
             for (var i = 0; i < 20; i++)
                 Assert.Equal(expected, session.ReviewAssignmentAvailability(draft with
                 {
@@ -82,7 +82,8 @@ namespace Heimdall.Tests
             using var issuer = new OwnerLicenseTestIssuer();
             var session = Open("elite", issuer.Policy);
             var draft = AssignmentDraft(session);
-            Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
+            var initial = session.ReviewAssignmentAvailability(draft);
+            Assert.True(initial.Valid, initial.Message);
             var copies = session.SnapshotCopies;
             draft.Modifiers![0].Value = "Key_RightShift";
             Assert.True(session.ReviewAssignmentAvailability(draft).Valid);
@@ -119,7 +120,8 @@ namespace Heimdall.Tests
             var devices = session.Snapshot.Profile.Devices;
             var stick = devices.Single(device => device.Identity!.SimSpecificIds["ed.device"] == "ExampleStick");
             var keyboard = devices.Single(device => device.Identity!.SimSpecificIds["ed.device"] == "Keyboard");
-            return new(stick.LogicalId, "PrimaryFire", "Primary", "Joy_9",
+            var command = session.Catalog.Commands.Single(entry => entry.DisplayName == "Primary Fire");
+            return new(stick.LogicalId, command.Id, "Primary", "Joy_9",
                 Modifiers: [new() { Source = keyboard.LogicalId, Value = "Key_LeftShift" }]);
         }
 
