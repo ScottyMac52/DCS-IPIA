@@ -166,8 +166,9 @@ namespace Heimdall.App.Smoke
         private static void VerifyUnassignedController()
         {
             var physical = Guid.NewGuid();
-            var linkedDiagram = Workspace(physical).Diagrams[0];
-            var workspace = Workspace(physical) with
+            var linkedWorkspace = Workspace(physical);
+            var linkedDiagram = linkedWorkspace.Diagrams[0];
+            var workspace = linkedWorkspace with
             {
                 Assignments = [],
                 Diagrams = [linkedDiagram with { DrawingUnlinked = true, Svg = "" }]
