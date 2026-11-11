@@ -54,14 +54,17 @@ namespace Heimdall.App.Smoke
                     "Browsing changed module assignments, modifiers, drawings or pages.");
                 Measure("scenario.ovgme-export", false, () =>
                 {
-                    Output(window, "BuildButton", "Wrote ");
-                    Output(window, "ExportModuleSnapshotButton", "Exported module snapshot:");
-                    var generated = Directory.GetFiles(export, "*-OVGME.zip").Single();
-                    Await(Task.Run(() =>
+                    Measure("scenario.ovgme-build", false, () => Output(window, "BuildButton", "Wrote "));
+                    Measure("scenario.snapshot-export", false, () => Output(window, "ExportModuleSnapshotButton", "Exported module snapshot:"));
+                    Measure("scenario.ovgme-verification", false, () =>
                     {
-                        DcsPerformancePackageInput.Compare(DcsModuleSnapshotWorkflow.Build(inputs), DcsPerformancePackageInput.Package(generated));
-                        return true;
-                    }));
+                        var generated = Directory.GetFiles(export, "*-OVGME.zip").Single();
+                        Await(Task.Run(() =>
+                        {
+                            DcsPerformancePackageInput.Compare(DcsModuleSnapshotWorkflow.Build(inputs), DcsPerformancePackageInput.Package(generated));
+                            return true;
+                        }));
+                    });
                 });
                 Measure("scenario.reimport", false, () =>
                 {

@@ -44,6 +44,8 @@ jobs:
       - name: Build Visual Studio solution
         id: solution_build
         run: dotnet build HEIMDALL.sln --configuration Release
+      - name: Build performance smoke with Profile instrumentation
+        run: dotnet build tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj --configuration Profile
       - name: Test setup folder defaults and appsettings persistence
         shell: powershell
         run: ./tests/installer/Test-SavedGamesSettings.ps1

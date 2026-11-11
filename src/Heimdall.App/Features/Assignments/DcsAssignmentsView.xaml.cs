@@ -150,8 +150,12 @@ namespace Heimdall.App.Features.Assignments
                 .Where(x => state.Devices.Any(d => d.ProfileId == x.ProfileId && d.Layer == _state.Layer))
                 .ToArray();
 
-            DeviceChoice.ItemsSource = devices;
-            DeviceChoice.DisplayMemberPath = "Title";
+            if (DeviceChoice.ItemsSource is not UiLayerDiagram[] displayed ||
+                !displayed.SequenceEqual(devices, ReferenceEqualityComparer.Instance))
+            {
+                DeviceChoice.ItemsSource = devices;
+                DeviceChoice.DisplayMemberPath = "Title";
+            }
             DeviceChoice.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == _state.DeviceId)
                 ?? (devices.Length > 0 ? devices[0] : null);
             if (_state.Diagram is UiLayerDiagram selected)
