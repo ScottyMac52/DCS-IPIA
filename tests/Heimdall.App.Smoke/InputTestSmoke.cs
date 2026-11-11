@@ -166,7 +166,13 @@ namespace Heimdall.App.Smoke
         private static void VerifyUnassignedController()
         {
             var physical = Guid.NewGuid();
-            var workspace = Workspace(physical) with { Assignments = [] };
+            var linkedWorkspace = Workspace(physical);
+            var linkedDiagram = linkedWorkspace.Diagrams[0];
+            var workspace = linkedWorkspace with
+            {
+                Assignments = [],
+                Diagrams = [linkedDiagram with { DrawingUnlinked = true, Svg = "" }]
+            };
             if (DcsGeneratedInputTestPlan.Create(workspace).Bindings.Count != 0)
                 throw new InvalidOperationException("The raw-input fixture must have no generated assignments.");
             FakeDeviceInputSource? source = null;
@@ -177,6 +183,10 @@ namespace Heimdall.App.Smoke
             try
             {
                 window.Show();
+                var view = WorkspaceUi.Navigate(window, "InputTest");
+                ThemeControlSmoke.Pump(window);
+                WorkspaceUi.Navigate(window, "Devices");
+                window.RunStructureEdit(current => current with { Diagrams = [linkedDiagram] });
                 WorkspaceUi.Navigate(window, "InputTest");
                 ThemeControlSmoke.Pump(window);
                 var start = (Button)WorkspaceUi.Find(window, "StartInputTestButton")!;
@@ -187,9 +197,21 @@ namespace Heimdall.App.Smoke
                 Wait(window, () => log.Items.Count > 0);
                 if (!log.Items.Cast<InputTestLogEntry>().Any(x => x.Display.Contains("Unassigned in generated profiles", StringComparison.Ordinal)))
                     throw new InvalidOperationException("Raw input feedback was missing for an unassigned controller.");
+                var diagram = (Canvas)view.FindName("Diagram")!;
+                var baseOutline = diagram.Children.OfType<Border>().Single(x => Equals(x.Tag, "JOY_BTN1|button"));
+                var shiftedOutline = diagram.Children.OfType<Border>().Single(x => Equals(x.Tag, "JOY_BTN1|button-shifted"));
+                var baseColor = (Color)ColorConverter.ConvertFromString(DcsKneeboardLiveProjection.BaseHighlightColor);
+                if ((baseOutline.BorderBrush as SolidColorBrush)?.Color != baseColor ||
+                    shiftedOutline.BorderBrush != Brushes.Transparent)
+                    throw new InvalidOperationException("Unassigned controller input did not highlight only the active base callout.");
             }
-            finally { window.Close(); }
-            if (source?.Disposed != true) throw new InvalidOperationException("Closing the raw-input test leaked its input source.");
+            finally
+            {
+                window.DcsContext.Discard();
+                window.Close();
+            }
+            if (window.IsVisible || source?.Disposed != true)
+                throw new InvalidOperationException("Raw-input test cleanup did not close the window and release its input source.");
         }
 
         private static void VerifyLegendLayout(Window window, ItemsControl legend)

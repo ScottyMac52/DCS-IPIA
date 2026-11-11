@@ -124,6 +124,94 @@ namespace Heimdall.Tests
             state[AssignmentLayer.UiLayer] = "UI_SHIFT";
             Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "ui", controls, state));
         }
+
+        /// <summary>Modifier activator buttons keep their swatch color and light their callout when held or toggled.</summary>
+        [Fact]
+        public void ModifierActivatorsLightCalloutAndRetainSwatchWhenActive()
+        {
+            var page = new KneeboardComposite("Stick", "TEST", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["s3"] = [new("S3 (Hold)", "#dc2626", AssignmentLayer.Module, "")],
+                ["unused"] = [new("UNUSED (Hold)", KneeboardStateColors.UnusedModifier, AssignmentLayer.Module, "")],
+                ["shared"] = [
+                    new("Base action", "#ffffff", AssignmentLayer.Module, ""),
+                    new("ARM (Toggle)", "#ea580c", AssignmentLayer.Module, "")
+                ],
+                ["ui-mod"] = [new("UI: UI_MOD (Toggle)", "#7c3aed", AssignmentLayer.UiLayer, "")]
+            }, new Dictionary<string, string>(), []);
+            HardwareGraphicControl[] controls = [
+                new("s3", "Pinkie", "JOY_BTN3", 0, 0, 20, 20),
+                new("unused", "Unused", "JOY_BTN4", 0, 25, 20, 20),
+                new("shared", "Shared", "JOY_BTN5", 0, 50, 20, 20),
+                new("ui-mod", "UI Mod", "JOY_BTN6", 0, 75, 20, 20)
+            ];
+
+            var baseline = new Dictionary<AssignmentLayer, string>();
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "s3", controls, baseline));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "shared", controls, baseline));
+
+            var heldS3 = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "s3", heldS3));
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.ActiveColor(page, "s3", controls, heldS3));
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.HighlightColor(page, "s3", controls, heldS3));
+            var focusedS3 = DcsKneeboardLiveProjection.Focus(page, controls, heldS3);
+            Assert.Equal("#dc2626", focusedS3.Labels["s3"][0].Color);
+
+            var heldUnused = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "UNUSED" };
+            Assert.Equal(KneeboardStateColors.UnusedModifier,
+                DcsKneeboardLiveProjection.ActiveColor(page, "unused", controls, heldUnused));
+
+            var toggledArm = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "ARM" };
+            Assert.Equal("#ea580c", DcsKneeboardLiveProjection.ActiveColor(page, "shared", controls, toggledArm));
+            var focusedArm = DcsKneeboardLiveProjection.Focus(page, controls, toggledArm);
+            Assert.Equal(DcsKneeboardLiveProjection.InactiveLabelColor, focusedArm.Labels["shared"][0].Color);
+            Assert.Equal("#ea580c", focusedArm.Labels["shared"][1].Color);
+
+            var toggledUi = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.UiLayer] = "UI_MOD" };
+            Assert.Equal("#7c3aed", DcsKneeboardLiveProjection.ActiveColor(page, "ui-mod", controls, toggledUi));
+            var focusedUi = DcsKneeboardLiveProjection.Focus(page, controls, toggledUi);
+            Assert.Equal("#7c3aed", focusedUi.Labels["ui-mod"][0].Color);
+        }
+
+        /// <summary>Physical input highlights fall back to the active base or shifted callout when unassigned in the current chord.</summary>
+        [Fact]
+        public void HighlightColorFallsBackToMatchingPhysicalCalloutWhenChordIsUnassigned()
+        {
+            var page = new KneeboardComposite("Test", "MFD", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>
+            {
+                ["shift-only"] = [new("Only shift", "#dc2626", AssignmentLayer.Module, "S3")],
+                ["base-only"] = [new("Only base", "#ffffff", AssignmentLayer.Module, "")]
+            }, new Dictionary<string, string>(), []);
+            HardwareGraphicControl[] controls = [
+                new("shift-only", "Shift only", "JOY_BTN1", 0, 0, 20, 20),
+                new("base-only", "Base only", "JOY_BTN2", 0, 25, 20, 20),
+                new("pair", "Pair base", "JOY_BTN3", 0, 50, 20, 20),
+                new("pair-shifted", "Pair shifted", "JOY_BTN3", 0, 75, 20, 20)
+            ];
+
+            var baseline = new Dictionary<AssignmentLayer, string>();
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.HighlightColor(page, "shift-only", controls, baseline));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.HighlightColor(page, "pair", controls, baseline));
+            Assert.Null(DcsKneeboardLiveProjection.HighlightColor(page, "pair-shifted", controls, baseline));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "pair", controls, baseline));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "pair-shifted", controls, baseline));
+
+            var held = new Dictionary<AssignmentLayer, string> { [AssignmentLayer.Module] = "S3" };
+            Assert.Equal("#dc2626", DcsKneeboardLiveProjection.HighlightColor(page, "shift-only", controls, held));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.HighlightColor(page, "base-only", controls, held));
+            Assert.Null(DcsKneeboardLiveProjection.HighlightColor(page, "pair", controls, held));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.HighlightColor(page, "pair-shifted", controls, held));
+            Assert.Null(DcsKneeboardLiveProjection.ActiveColor(page, "pair", controls, held));
+            Assert.Equal(DcsKneeboardLiveProjection.BaseHighlightColor,
+                DcsKneeboardLiveProjection.ActiveColor(page, "pair-shifted", controls, held));
+            Assert.Null(DcsKneeboardLiveProjection.HighlightColor(page, "unknown", controls, held));
+        }
         #endregion END Public
 
         #region BEGIN private helpers

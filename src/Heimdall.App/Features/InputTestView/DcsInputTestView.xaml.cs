@@ -18,7 +18,7 @@ namespace Heimdall.App.Features.InputTest
 {
 
     /// <summary>Displays live input feedback for a frozen generated mapping plan.</summary>
-    public partial class DcsInputTestView : UserControl, IDisposable
+    public partial class DcsInputTestView : UserControl, IDisposable, IGameWorkspaceFeatureLifetime
     {
         private IDcsModuleWorkspaceContext? _context;
         private IWorkspaceActivityLease? _activityLease;
@@ -37,21 +37,26 @@ namespace Heimdall.App.Features.InputTest
         private string? _lastModifierSignature;
         private InputTestLegendItem[] _legendItems = [];
         private DcsEditorWorkspaceSnapshot? _testSnapshot;
-         private readonly List<InputTestLogEntry> _events = [];
+        private readonly List<InputTestLogEntry> _events = [];
         private readonly Dictionary<string, System.Windows.Input.Key> _testKeyboard = new(StringComparer.Ordinal);
         private readonly Dictionary<(Guid Device, string Key), DateTime> _liveAxisUntil = [];
         private readonly HashSet<(Guid Device, string Key)> _livePressedInputs = [];
         private Guid? _inputFeedbackDevice;
+        private bool _featureActive = true;
+        private bool _diagramDirty;
+        private bool _refreshingDevices;
         private Button? StartButton => ActionBar.FindButton(this, "Start test");
         private Button? StopButton => ActionBar.FindButton(this, "Stop test");
         private readonly DiagramViewport _viewport;
 
         #region BEGIN Public
+        /// <summary>Initializes a new instance of the <see cref="DcsInputTestView"/> class.</summary>
         public DcsInputTestView()
         {
             AppearanceManager.ObserveArtwork(this, () => { _lastModifierSignature = null; RefreshLiveArtwork(); });
             InitializeComponent();
             _viewport = new DiagramViewport(DiagramScroll, Diagram, Zoom, "input-test.zoom");
+            FeedbackDevice.SelectionChanged += (_, _) => { if (!_refreshingDevices) RenderDiagram(); };
             _timer.Tick += Poll;
             Unloaded += OnUnloaded;
             Loaded += OnLoaded;
@@ -73,22 +78,19 @@ namespace Heimdall.App.Features.InputTest
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
-            StatusText.Text = context.Working is null
-                ? "No working snapshot"
-                : $"Input test · {context.Working.Configuration.Module.DisplayName}";
-            StartButton?.IsEnabled = context.Working is not null && EditionAccess.AllowsInputTest(context);
-
-            if (context.Working is not null)
-            {
-                var devices = DcsWorkspaceStructureEditor.Describe(context.Working)
-                    .Devices.Where(x => x.Layer == AssignmentLayer.Module).ToArray();
-                FeedbackDevice.ItemsSource = devices;
-                FeedbackDevice.SelectedIndex = 0;
-                FeedbackDevice.SelectionChanged += (_, _) => RenderDiagram();
-            }
-
+            _context.StateChanged += WorkspaceChangeObserver.ReloadUnlessSelectionOnly(_context, OnWorkspaceChanged);
             AttachOwner();
+            UpdateDevicesAndStatus();
             RenderDiagram();
+        }
+
+        /// <summary>Tracks whether the input-test view is the active feature in the workspace host.</summary>
+        public void SetFeatureActive(bool active) => _featureActive = active;
+
+        /// <summary>Renders any deferred workspace diagram changes when the feature becomes active.</summary>
+        internal void SynchronizeWorkspace()
+        {
+            if (_diagramDirty) RenderDiagram();
         }
         #endregion END Public
 
@@ -280,8 +282,40 @@ namespace Heimdall.App.Features.InputTest
             InputTestLogMessage.Text = "Log cleared.";
             UpdateLogButtons();
         }
+        private void OnWorkspaceChanged()
+        {
+            UpdateDevicesAndStatus();
+            if (_featureActive) RenderDiagram();
+            else _diagramDirty = true;
+        }
+
+        private void UpdateDevicesAndStatus()
+        {
+            StatusText.Text = _context?.Working is null
+                ? "No working snapshot"
+                : $"Input test · {_context.Working.Configuration.Module.DisplayName}";
+            if (_testSnapshot is null)
+                StartButton?.IsEnabled = _context?.Working is not null && EditionAccess.AllowsInputTest(_context) && _context.Saved is not null;
+            if (_context?.Working is null)
+            {
+                FeedbackDevice.ItemsSource = null;
+                return;
+            }
+            var selectedId = (FeedbackDevice.SelectedItem as DcsWorkspaceDevice)?.ProfileId;
+            var devices = DcsWorkspaceStructureEditor.Describe(_context.Working)
+                .Devices.Where(x => x.Layer == AssignmentLayer.Module).ToArray();
+            _refreshingDevices = true;
+            try
+            {
+                FeedbackDevice.ItemsSource = devices;
+                FeedbackDevice.SelectedItem = devices.FirstOrDefault(x => x.ProfileId == selectedId) ?? devices.FirstOrDefault();
+            }
+            finally { _refreshingDevices = false; }
+        }
+
         private void RenderDiagram()
         {
+            _diagramDirty = false;
             Diagram.Children.Clear();
             _callouts.Clear();
             _highlightColors.Clear();
@@ -416,7 +450,7 @@ namespace Heimdall.App.Features.InputTest
         }
 
         private Guid? CurrentInputTestDevice() => FeedbackDevice.SelectedItem is DcsWorkspaceDevice device
-            ? DcsPhysicalIdentity.FromFileName(device.FileName) : null;
+            ? device.PhysicalGuid ?? DcsPhysicalIdentity.FromFileName(device.FileName) : null;
 
         private void ClearInputHighlights()
         {
@@ -441,7 +475,7 @@ namespace Heimdall.App.Features.InputTest
                 var moving = _liveAxisUntil.Any(x => x.Key.Device == guid &&
                     DcsInputKey.SamePhysicalInput(x.Key.Key, input) && x.Value > DateTime.UtcNow);
                 if (!pressed && !moving) continue;
-                var color = DcsKneeboardLiveProjection.ActiveColor(_currentDiagramModel.Page, control,
+                var color = DcsKneeboardLiveProjection.HighlightColor(_currentDiagramModel.Page, control,
                     _currentDiagram?.Controls ?? [], active);
                 if (color is not null) desired[border] = color;
             }
