@@ -186,6 +186,7 @@ namespace Heimdall.App.Features.InputTest
                 StartInputTestButton.IsEnabled = false;
                 StopInputTestButton.IsEnabled = true;
                 InputTestSnapshotChoice.IsEnabled = false;
+                InputTestModifiers.Visibility = Visibility.Visible;
                 _timer.Start();
                 Poll(this, EventArgs.Empty);
             }
@@ -211,6 +212,7 @@ namespace Heimdall.App.Features.InputTest
             InputTestSnapshotChoice.IsEnabled = true;
             InputTestStatus.Text = status;
             InputTestModifiers.Text = "";
+            InputTestModifiers.Visibility = Visibility.Collapsed;
         }
 
         private void Poll(object? sender, EventArgs e)
@@ -244,7 +246,10 @@ namespace Heimdall.App.Features.InputTest
                     else if (result.Transition == "Press") _livePressedInputs.Add((result.PhysicalGuid, result.InputKey));
                     else if (result.Transition == "Release") _livePressedInputs.Remove((result.PhysicalGuid, result.InputKey));
                 }
-                InputTestModifiers.Text = string.Join(" · ", _session.ActiveModifiers.Select(x => x.Key + " modifiers: " + (x.Value.Length == 0 ? "Base" : x.Value)));
+                var activeModifiers = _session.ActiveModifiers;
+                var module = activeModifiers.GetValueOrDefault(AssignmentLayer.Module) is { Length: > 0 } moduleChord ? moduleChord : "Base";
+                var ui = activeModifiers.GetValueOrDefault(AssignmentLayer.UiLayer) is { Length: > 0 } uiChord ? uiChord : "Base";
+                InputTestModifiers.Text = $"Active SHIFT — Module: {module} · UI Layer: {ui}";
                 UpdateModifierLegend();
                 RefreshLiveArtwork();
                 if (results.Count > 0) RefreshEventLog();

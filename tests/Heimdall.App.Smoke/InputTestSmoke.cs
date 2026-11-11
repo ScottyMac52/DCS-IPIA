@@ -44,7 +44,7 @@ namespace Heimdall.App.Smoke
                 {
                     if (clipboardFailure) throw new InvalidOperationException("Injected clipboard busy.");
                     clipboard = new(html, text);
-                });
+                }, persistLayout: false);
             window.Show();
             var view = WorkspaceUi.Navigate(window, "InputTest");
             window.UpdateLayout();
@@ -87,19 +87,24 @@ namespace Heimdall.App.Smoke
                 .Single(x => x.Entry.Layer == AssignmentLayer.Module && x.Entry.Chord == "S3");
             if (shift.IsActive || diagram.Children.OfType<Border>().Any(x => x.Background != Brushes.Transparent))
                 throw new InvalidOperationException("The input test obscured the finished device drawing or activated a neutral shift.");
+            var legendExpander = (Expander)view.FindName("ModifierLegendExpander")!;
+            var liveModifiers = (TextBlock)view.FindName("InputTestModifiers")!;
+            legendExpander.IsExpanded = false;
+            window.UpdateLayout();
             source.ModifierValue = 1;
             var shiftedColor = (Color)ColorConverter.ConvertFromString(shift.Color);
             Wait(window, () => shift.IsActive &&
                 (shiftedOutline.BorderBrush as SolidColorBrush)?.Color == shiftedColor &&
                 activeOutline.BorderBrush == Brushes.Transparent);
-            if (!shift.IsActive)
-                throw new InvalidOperationException("A modifier on another controller did not light its legend entry.");
+            if (!liveModifiers.IsVisible || liveModifiers.Text != "Active SHIFT — Module: S3 · UI Layer: Base")
+                throw new InvalidOperationException("The live DCS shift state was missing with the artwork legend collapsed.");
             source.ModifierValue = 0;
             Wait(window, () => !shift.IsActive &&
                 (activeOutline.BorderBrush as SolidColorBrush)?.Color == baseColor &&
                 shiftedOutline.BorderBrush == Brushes.Transparent);
-            if (shift.IsActive)
-                throw new InvalidOperationException("A released Hold modifier remained lit.");
+            if (liveModifiers.Text != "Active SHIFT — Module: Base · UI Layer: Base")
+                throw new InvalidOperationException("The live DCS shift state did not return to Base after release.");
+            legendExpander.IsExpanded = true;
             if (activeOutline is not ContrastOutlineBorder || shiftedOutline is not ContrastOutlineBorder)
                 throw new InvalidOperationException("Live highlights lost their contrasting edges.");
             var uiBase = new Heimdall.App.Features.InputTest.InputTestLegendItem(new("UI Base", "#0891b2", AssignmentLayer.UiLayer));
@@ -121,6 +126,8 @@ namespace Heimdall.App.Smoke
                 throw new InvalidOperationException($"Input-test divider did not redistribute pane width: {leftBefore}/{rightBefore} -> {left.ActualWidth}/{right.ActualWidth}.");
             InputTestLogSmoke.VerifyLive(window, source!, () => clipboard, fail => clipboardFailure = fail);
             stop.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (liveModifiers.Visibility != Visibility.Collapsed || liveModifiers.Text.Length != 0)
+                throw new InvalidOperationException("Stop did not clear the live DCS shift state.");
             if (legend.Items.Cast<Heimdall.App.Features.InputTest.InputTestLegendItem>().Any(x => x.IsActive))
                 throw new InvalidOperationException("Stop did not turn off live modifier swatches.");
             if (source?.Disposed != true || !start.IsEnabled || stop.IsEnabled || !choice.IsEnabled)

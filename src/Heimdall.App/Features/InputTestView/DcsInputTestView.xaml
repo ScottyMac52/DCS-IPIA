@@ -24,7 +24,6 @@
             <ComboBox Style="{StaticResource AppComboBox}" x:Name="InputTestSnapshotChoice" SelectedIndex="0"><ComboBoxItem Content="Current edits"/><ComboBoxItem Content="Saved profile"/></ComboBox>
             <TextBlock x:Name="InputTestLogMessage"/>
             <TextBlock x:Name="InputTestStatus" TextWrapping="Wrap" Margin="0,8,0,0" Style="{StaticResource AppLabel}"/>
-            <TextBlock x:Name="InputTestModifiers" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource AppLabel}"/>
         </StackPanel>
         </ScrollViewer>
         <DockPanel Grid.Row="1" Margin="0,8,0,0">
@@ -43,7 +42,11 @@
             </WrapPanel>
             <ListBox x:Name="InputTestLog" SelectionMode="Extended" DisplayMemberPath="Display"/>
         </DockPanel>
-        <Expander Grid.Row="2" Header="SHIFT / MODIFIER legend" IsExpanded="True" pres:WorkspaceLayout.Key="input-test.legend">
+        <DockPanel Grid.Row="2">
+          <TextBlock DockPanel.Dock="Top" x:Name="InputTestModifiers" Visibility="Collapsed" TextWrapping="Wrap"
+                     Margin="0,4,0,4" Style="{StaticResource AppLabel}" AutomationProperties.Name="Live DCS modifier state"/>
+          <Expander x:Name="ModifierLegendExpander" Header="SHIFT / MODIFIER legend" IsExpanded="True"
+                    pres:WorkspaceLayout.Key="input-test.legend">
           <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ItemsControl x:Name="ModifierLegend" AutomationProperties.Name="Live shift and modifier legend">
                         <ItemsControl.ItemTemplate>
@@ -92,7 +95,8 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
           </ScrollViewer>
-        </Expander>
+          </Expander>
+        </DockPanel>
       </Grid>
       <GridSplitter Grid.Column="1" Style="{StaticResource WorkspaceDivider}" x:Name="InputTestSplitter" AutomationProperties.Name="Events and controller divider"/>
             <DockPanel Grid.Column="2" Margin="6,0,0,0">
