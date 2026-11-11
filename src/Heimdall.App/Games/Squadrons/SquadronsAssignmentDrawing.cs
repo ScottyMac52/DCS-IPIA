@@ -65,9 +65,9 @@ namespace Heimdall.App.Games.Squadrons
             _assignmentsView.DrawingHint.Visibility = Visibility.Visible;
             _assignmentsView.InputActivity.Visibility = Visibility.Visible;
             _assignmentsView.DrawingScroll.Visibility = Visibility.Collapsed;
-            var snapshot = context.Session?.Snapshot;
+            var session = context.Session;
             var slot = context.SelectedController;
-            var pin = slot is null ? null : snapshot?.Hardware.GetValueOrDefault(slot);
+            var pin = slot is null ? null : session?.HardwarePin(slot);
             // A native physical link does not imply an artwork catalog identity.
             var oldRefreshing = context.Refreshing;
             context.Refreshing = true;
@@ -79,24 +79,24 @@ namespace Heimdall.App.Games.Squadrons
             }
             finally { context.Refreshing = oldRefreshing; }
             var links = ControllerLinkState.For(pin is not null, slot is not null && context.Session?.DrawingId(slot) is not null,
-                snapshot is not null && context.Session?.AccessMessage.Length == 0, controllers().Identification.Running || (controllers().Input?.Running ?? false) || context.ScanningInputs);
+                session?.AccessMessage.Length == 0, controllers().Identification.Running || (controllers().Input?.Running ?? false) || context.ScanningInputs);
             _devicesView.DrawingPicker.IsEnabled = links.SelectDrawing && context.Drawings.Count > 0;
             _devicesView.ClearDrawingButton.IsEnabled = links.UnlinkDrawing;
             _devicesView.ChooseDrawingButton.IsEnabled = _devicesView.DrawingPicker.IsEnabled;
             FeatureActionBar.ShowAlternate(_devicesView.ChooseDrawingButton, _devicesView.ClearDrawingButton,
                 slot is not null && context.Session?.DrawingId(slot) is not null);
             _devicesView.DrawingPicker.ToolTip = links.UnlinkDrawing ? "Unlink drawing before choosing another drawing." : "Choose an optional drawing.";
-            if (snapshot is not null && slot is not null && _devicesView.DrawingPicker.SelectedItem is WorkspaceHardware preview)
+            if (session is not null && slot is not null && _devicesView.DrawingPicker.SelectedItem is WorkspaceHardware preview)
                 _devicesView.ControllerPreview.Show(preview.Diagram,
-                    SquadronsDrawingProjection.Diagram(snapshot.Name, preview.Diagram, context.Rows, slot, "All"),
+                    SquadronsDrawingProjection.Diagram(session.Name, preview.Diagram, context.Rows, slot, "All"),
                     AppearanceManager.ArtworkOpacityFor(owner));
             else
                 _devicesView.ControllerPreview.Clear();
             if (_assignmentsView.DrawingPanel.IsExpanded != true) return;
-            if (snapshot is not null && DevicePicker.SelectedItem is GameDeviceChoice system &&
+            if (session is not null && DevicePicker.SelectedItem is GameDeviceChoice system &&
                 SquadronsSystemInputDrawings.Create(system.Id, context.Rows) is { } systemDiagram)
             {
-                ShowSystemDrawing(snapshot.Name, system.Id, systemDiagram);
+                ShowSystemDrawing(session.Name, system.Id, systemDiagram);
                 return;
             }
             if (slot is null || pin is null)
@@ -122,7 +122,7 @@ namespace Heimdall.App.Games.Squadrons
             }
             var diagram = hardware.Diagram;
             var section = context.DrawingSection;
-            var page = SquadronsDrawingProjection.Diagram(snapshot!.Name, diagram, context.Rows, slot, section);
+            var page = SquadronsDrawingProjection.Diagram(session!.Name, diagram, context.Rows, slot, section);
             // Native clearing reviews the complete pointed-control record set, including both axis directions.
             _drawingPresenter.Show(diagram, page,
                 editing().DrawingInteractions(),
@@ -155,7 +155,7 @@ namespace Heimdall.App.Games.Squadrons
                 _assignmentsView.EmptyState.Text = "No captured assignments on this input in the current context.";
                 _assignmentsView.RefreshNativeAssignments();
             }
-            _drawingPresenter.Show(diagram, SquadronsSystemInputDrawings.Diagram(title, diagram, context.Rows, deviceId, context.DrawingSection),
+            _drawingPresenter.Show(diagram, SquadronsSystemInputDrawings.Diagram(title, diagram, assignments, context.DrawingSection),
                 new HardwareDiagramInteractions(Select, Inspect: Select), AppearanceManager.ArtworkOpacityFor(owner),
                 control => control.Label + " · read-only\n" + string.Join("\n",
                     (assignments.GetValueOrDefault(control.InputKey) ?? [])

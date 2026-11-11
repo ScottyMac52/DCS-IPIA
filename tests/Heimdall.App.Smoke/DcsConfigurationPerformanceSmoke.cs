@@ -118,13 +118,11 @@ namespace Heimdall.App.Smoke
             var search = (TextBox)manager.FindName("CommandSearch");
             var commands = (Selector)manager.FindName("Commands");
             var controllers = (Selector)window.FindName("ControllerPicker");
+            var visitedControllers = new HashSet<int> { controllers.SelectedIndex };
             for (var i = 0; i < iterations; i++)
             {
                 if (controllers.Items.Count > 0)
-                {
-                    var index = i % controllers.Items.Count;
-                    step("scenario.controller-selection", true, () => controllers.SelectedIndex = index);
-                }
+                    ConfigurationPerformanceSmoke.SelectController(controllers, i % controllers.Items.Count, visitedControllers, step);
                 var text = i % 2 == 0 ? "a" : "no-such-command-performance-smoke";
                 step("scenario.search", true, () => search.Text = text);
                 step("scenario.search", true, () => search.Text = "");

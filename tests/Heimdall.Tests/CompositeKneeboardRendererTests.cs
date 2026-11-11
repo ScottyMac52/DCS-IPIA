@@ -10,6 +10,31 @@ namespace Heimdall.Tests
     public sealed class CompositeKneeboardRendererTests
     {
         #region BEGIN Public
+        /// <summary>Dense authored SVGs stay within a managed allocation budget during label lookup.</summary>
+        [Fact]
+        public void DenseArtworkBoundsLabelLookupAllocation()
+        {
+            var controls = Enumerable.Range(0, 160)
+                .Select(i => new HardwareGraphicControl("control-" + i, "Control", "JOY_BTN" + i, 0, 0, 80, 30)).ToArray();
+            var filler = string.Concat(Enumerable.Repeat("<rect width='1' height='1'/>", 640));
+            var placeholders = string.Concat(controls.Select(control => $"<text id='lbl-{control.Control}'>Old</text>"));
+            var diagram = new UiLayerDiagram("Device", null, "dense.svg", 100, 100, [], [])
+            {
+                Svg = "<svg xmlns='http://www.w3.org/2000/svg'>" + filler + placeholders + "</svg>",
+                Controls = controls
+            };
+            var page = new KneeboardComposite("Device", "", new Dictionary<string, IReadOnlyList<KneeboardLabelVariant>>(),
+                new Dictionary<string, string>(), []);
+            _ = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page);
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var svg = CompositeKneeboardRenderer.BuildDeviceSvg(diagram, page);
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.InRange(allocated, 0L, 2L * 1024 * 1024);
+            Assert.Equal(160, XDocument.Parse(svg).Descendants().Count(element => element.Name.LocalName == "text" && element.Value.Length == 0));
+        }
+
         /// <summary>Long multi-scope labels fit their authored callout in both dimensions without dropping text.</summary>
         [Fact]
         public void FitsMappedCalloutWithoutLosingVariants()

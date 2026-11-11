@@ -23,7 +23,12 @@ namespace Heimdall.Squadrons
         public static KneeboardComposite Diagram(string title, UiLayerDiagram diagram,
             IEnumerable<SquadronsWorkspaceRow> rows, string deviceId, string section)
         {
-            var assignments = AssignmentsByInput(rows, deviceId, section);
+            return Diagram(title, diagram, AssignmentsByInput(rows, deviceId, section), section);
+        }
+        /// <summary>Builds captions from the same indexed assignments used for inspection and tooltips.</summary>
+        public static KneeboardComposite Diagram(string title, UiLayerDiagram diagram,
+            IReadOnlyDictionary<string, IReadOnlyList<SquadronsWorkspaceRow>> assignments, string section)
+        {
             var labels = diagram.Controls.ToDictionary(control => control.Control, control =>
                 (IReadOnlyList<KneeboardLabelVariant>)(assignments.GetValueOrDefault(control.InputKey) ?? [])
                     .Select(row => new KneeboardLabelVariant(Caption(row), KneeboardStateColors.Base, AssignmentLayer.Module, ""))

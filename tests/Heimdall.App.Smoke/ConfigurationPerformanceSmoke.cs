@@ -138,6 +138,12 @@ namespace Heimdall.App.Smoke
             }
 #endif
         }
+        /// <summary>Measures first visits, actual warm switches and no-op selections separately.</summary>
+        internal static void SelectController(Selector controllers, int index, HashSet<int> visited, Action<string, bool, Action> step)
+        {
+            var visit = controllers.SelectedIndex == index ? "same" : visited.Add(index) ? "first" : "warm";
+            step("scenario.controller-selection." + visit, true, () => controllers.SelectedIndex = index);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static (GameWorkspaceWindow, Func<GameProfileSession?>, Action<string>) Open(string game, GameWorkspaceServices services, Guid? initial)
@@ -162,13 +168,11 @@ namespace Heimdall.App.Smoke
             var search = ThemeControlSmoke.Children(view).OfType<TextBox>().First(x => x.Name == "CommandSearch");
             var commands = ThemeControlSmoke.Children(view).OfType<Selector>().First(x => x.Name == "CommandsList");
             var controllers = (Selector)(window.FindName("DevicePicker") ?? window.FindName("Controllers"));
+            var visitedControllers = new HashSet<int> { controllers.SelectedIndex };
             for (var i = 0; i < iterations; i++)
             {
                 if (controllers.Items.Count > 0)
-                {
-                    var controllerIndex = i % controllers.Items.Count;
-                    step("scenario.controller-selection", true, () => controllers.SelectedIndex = controllerIndex);
-                }
+                    SelectController(controllers, i % controllers.Items.Count, visitedControllers, step);
                 var term = i % 2 == 0 ? "a" : "no-such-command-performance-smoke";
                 step("scenario.search", true, () => search.Text = term);
                 step("scenario.search", true, () => search.Text = "");

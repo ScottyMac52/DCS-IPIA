@@ -51,11 +51,16 @@ namespace Heimdall.App.Games.Elite
             var rows = _rows.Where(x => x.DeviceId == Device.Id).ToArray();
             var page = EliteWorkspaceProjection.Diagram(_session.Name, hardware.Diagram, rows, Section);
             _devicesView.ControllerPreview.Show(hardware.Diagram, page, AppearanceManager.ArtworkOpacityFor(owner));
-            _diagram.Show(hardware.Diagram, page, DiagramInteractions(),
-                AppearanceManager.ArtworkOpacityFor(owner),
-                control => control.Label + " · " + (EliteInputKeys.FromDiagram(hardware.Diagram, control) ?? control.InputKey) + "\n" +
-                    string.Join("\n", rows.Where(x => x.Input == EliteInputKeys.FromDiagram(hardware.Diagram, control) && (Section == "All" || x.Section == Section))
-                        .Select(x => x.CommandName + " · " + x.Slot + (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : ""))));
+            var section = Section;
+            var rowsByInput = rows.Where(x => section == "All" || x.Section == section).ToLookup(x => (string?)x.Input, StringComparer.Ordinal);
+            _diagram.Show(hardware.Diagram, page, DiagramInteractions(), AppearanceManager.ArtworkOpacityFor(owner), Tooltip);
+            string Tooltip(HardwareGraphicControl control)
+            {
+                var key = EliteInputKeys.FromDiagram(hardware.Diagram, control);
+                return control.Label + " · " + (key ?? control.InputKey) + "\n" +
+                    string.Join("\n", rowsByInput[key].Select(x => x.CommandName + " · " + x.Slot +
+                        (x.Modifiers.Count > 0 ? " · " + string.Join(" + ", x.Modifiers.Select(m => m.Value)) : "")));
+            }
             _assignmentsView.DiagramHint.Visibility = Visibility.Collapsed;
             UpdateInputActivityVisibility();
         }
