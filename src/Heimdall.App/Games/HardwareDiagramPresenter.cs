@@ -32,15 +32,12 @@ namespace Heimdall.App.Games
                     BorderBrush = Brushes.Transparent, BorderThickness = new Thickness(3), AllowDrop = true,
                     ToolTip = tooltip?.Invoke(control) ?? control.Label + " · " + control.InputKey, Tag = control };
                 Canvas.SetLeft(border, control.X); Canvas.SetTop(border, control.Y);
-                var availability = HardwareDiagramActionAvailability.For(actions.Select is not null,
-                    actions.Drop is not null, actions.Clear is not null, actions.CanClear?.Invoke(control) == true,
-                    actions.Tune is not null, actions.CanTune?.Invoke(control) == true);
-                if (availability.Select)
-                    border.MouseLeftButtonDown += (_, e) => { actions.Select!(control); e.Handled = true; };
-                if (availability.Drop)
+                if (actions.Select is { } select)
+                    border.MouseLeftButtonDown += (_, e) => { select(control); e.Handled = true; };
+                if (actions.Drop is { } drop)
                 {
                     border.DragOver += (_, e) => { e.Effects = e.Data.GetData(actions.DragFormat) is string id && (State(actions, control, WorkspaceAssignmentAction.Apply, true).Enabled && (actions.CanDrop?.Invoke(control, id) ?? true)) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; };
-                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (State(actions, control, WorkspaceAssignmentAction.Apply, true).Enabled && (actions.CanDrop?.Invoke(control, id) ?? true))) actions.Drop!(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
+                    border.Drop += (_, e) => { if (e.Data.GetData(actions.DragFormat) is string id && (State(actions, control, WorkspaceAssignmentAction.Apply, true).Enabled && (actions.CanDrop?.Invoke(control, id) ?? true))) drop(control, id); else e.Effects = DragDropEffects.None; e.Handled = true; };
                 }
                 // A left click already selects the input. A right-click menu
                 // advertises only actual native operations; no phantom Select/Tune.
